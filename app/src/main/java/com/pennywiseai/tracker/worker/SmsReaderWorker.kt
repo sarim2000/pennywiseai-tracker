@@ -220,8 +220,11 @@ class SmsReaderWorker @AssistedInject constructor(
                     
                     if (parsedTransaction != null) {
                         parsedCount++
+                        // Generate hash for logging
+                        val transactionHash = parsedTransaction.transactionHash ?: parsedTransaction.generateTransactionId()
+                        
                         Log.d(TAG, """
-                            Parsed Transaction:
+                            Parsed Transaction from SmsReaderWorker:
                             Bank: ${parsedTransaction.bankName}
                             Amount: ${parsedTransaction.amount}
                             Type: ${parsedTransaction.type}
@@ -230,7 +233,8 @@ class SmsReaderWorker @AssistedInject constructor(
                             Account: ${parsedTransaction.accountLast4}
                             Balance: ${parsedTransaction.balance}
                             Credit Limit: ${parsedTransaction.creditLimit}
-                            ID: ${parsedTransaction.generateTransactionId()}
+                            Timestamp: ${sms.timestamp}
+                            Hash: $transactionHash
                         """.trimIndent())
                         
                         // Convert to entity and save
@@ -268,9 +272,9 @@ class SmsReaderWorker @AssistedInject constructor(
                             val rowId = transactionRepository.insertTransaction(finalEntity)
                             if (rowId != -1L) {
                                 savedCount++
-                                Log.d(TAG, "Saved new transaction with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
+                                Log.d(TAG, "New transaction saved by SmsReaderWorker with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
                             } else {
-                                Log.d(TAG, "Transaction already exists (duplicate), skipping transaction: ${entity.transactionHash}")
+                                Log.d(TAG, "Transaction already exists (duplicate detected by SmsReaderWorker), skipping. Hash: ${entity.transactionHash}")
                             }
                             
                             // ALWAYS save balance/credit limit information, even for duplicate transactions

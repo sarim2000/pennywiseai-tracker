@@ -23,6 +23,9 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionById(id: Long): TransactionEntity? = 
         transactionDao.getTransactionById(id)
     
+    suspend fun getTransactionByHash(hash: String): TransactionEntity? = 
+        transactionDao.getTransactionByHash(hash)
+    
     fun getTransactionsBetweenDates(
         startDate: LocalDateTime,
         endDate: LocalDateTime

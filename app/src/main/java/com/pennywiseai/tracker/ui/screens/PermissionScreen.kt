@@ -30,12 +30,15 @@ fun PermissionScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
-    // Permission launcher using AndroidX APIs (best practice)
+    // Permission launcher for multiple permissions
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        viewModel.onPermissionResult(isGranted)
-        if (isGranted) {
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        // Check if SMS permissions are granted (notification is optional)
+        val smsPermissionsGranted = permissions[Manifest.permission.READ_SMS] == true && 
+                                    permissions[Manifest.permission.RECEIVE_SMS] == true
+        viewModel.onPermissionResult(smsPermissionsGranted)
+        if (smsPermissionsGranted) {
             onPermissionGranted()
         } else {
             viewModel.onPermissionDenied()
@@ -132,7 +135,18 @@ fun PermissionScreen(
         // Primary action button
         Button(
             onClick = {
-                permissionLauncher.launch(Manifest.permission.READ_SMS)
+                // Request SMS and notification permissions
+                val permissions = mutableListOf(
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.RECEIVE_SMS
+                )
+                
+                // Add POST_NOTIFICATIONS for Android 13+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                
+                permissionLauncher.launch(permissions.toTypedArray())
             },
             modifier = Modifier.fillMaxWidth()
         ) {

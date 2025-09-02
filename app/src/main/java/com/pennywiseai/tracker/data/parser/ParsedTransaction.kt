@@ -35,9 +35,21 @@ data class ParsedTransaction(
         val normalizedAmount = amount.setScale(Constants.Parsing.AMOUNT_SCALE, java.math.RoundingMode.HALF_UP)
         val data = "$sender|$normalizedAmount|$timestamp"
         
-        return MessageDigest.getInstance(Constants.Parsing.MD5_ALGORITHM)
+        val hash = MessageDigest.getInstance(Constants.Parsing.MD5_ALGORITHM)
             .digest(data.toByteArray())
             .joinToString("") { "%02x".format(it) }
+        
+        android.util.Log.d("ParsedTransaction", """
+            Hash Generation Debug:
+            Sender: $sender
+            Original Amount: $amount
+            Normalized Amount: $normalizedAmount
+            Timestamp: $timestamp
+            Hash Input: $data
+            Generated Hash: $hash
+        """.trimIndent())
+        
+        return hash
     }
     
     /**
@@ -52,6 +64,18 @@ data class ParsedTransaction(
         // Normalize merchant name to proper case
         val normalizedMerchant = merchant?.let { normalizeMerchantName(it) }
         
+        // Determine which hash to use
+        val finalHash = transactionHash?.takeIf { it.isNotBlank() } ?: generateTransactionId()
+        
+        android.util.Log.d("ParsedTransaction", """
+            ToEntity Hash Selection:
+            Custom Hash Provided: ${transactionHash != null}
+            Custom Hash Value: $transactionHash
+            Final Hash Used: $finalHash
+            Bank: $bankName
+            Merchant: $normalizedMerchant
+        """.trimIndent())
+        
         return TransactionEntity(
             id = 0, // Auto-generated
             amount = amount,
@@ -65,7 +89,7 @@ data class ParsedTransaction(
             smsSender = sender,
             accountNumber = accountLast4,
             balanceAfter = balance,
-            transactionHash = transactionHash?.takeIf { it.isNotBlank() } ?: generateTransactionId(),
+            transactionHash = finalHash,
             isRecurring = false, // Will be determined later
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()

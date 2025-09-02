@@ -24,10 +24,19 @@ fun PennyWiseNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
-    startDestination: Any = Home
+    startDestination: Any = Home,
+    editTransactionId: Long? = null,
+    onEditComplete: () -> Unit = {}
 ) {
     // Use a stable start destination
     val stableStartDestination = remember { startDestination }
+    
+    // Navigate to edit transaction if provided
+    editTransactionId?.let { transactionId ->
+        androidx.compose.runtime.LaunchedEffect(transactionId) {
+            navController.navigate(TransactionDetail(transactionId = transactionId))
+        }
+    }
     
     NavHost(
         navController = navController,
@@ -106,10 +115,20 @@ fun PennyWiseNavHost(
             popExitTransition = { ExitTransition.None }
         ) { backStackEntry ->
             val transactionDetail = backStackEntry.toRoute<TransactionDetail>()
+            val isFromNotification = editTransactionId == transactionDetail.transactionId
+            
             TransactionDetailScreen(
                 transactionId = transactionDetail.transactionId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    if (isFromNotification) {
+                        onEditComplete()
+                        // Navigate to home if came from notification
+                        navController.navigate(Home) {
+                            popUpTo(Home) { inclusive = false }
+                        }
+                    } else {
+                        navController.popBackStack()
+                    }
                 }
             )
         }

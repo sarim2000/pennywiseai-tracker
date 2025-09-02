@@ -2,11 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- SMS Permission for reading transaction messages -->
+    <!-- SMS Permissions for reading and receiving transaction messages -->
     <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     
     <!-- Internet permission for downloading AI model -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Notification permission for Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Explicitly remove AD_ID permission to ensure privacy -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
@@ -34,6 +38,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- SMS Broadcast Receiver for real-time transaction processing -->
+        <receiver 
+            android:name=".receiver.SmsBroadcastReceiver"
+            android:permission="android.permission.BROADCAST_SMS"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Notification Action Receiver for handling notification actions -->
+        <receiver
+            android:name=".receiver.NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.pennywiseai.tracker.UPDATE_MERCHANT" />
+                <action android:name="com.pennywiseai.tracker.UPDATE_CATEGORY" />
+                <action android:name="com.pennywiseai.tracker.CONFIRM_TRANSACTION" />
+                <action android:name="com.pennywiseai.tracker.DELETE_TRANSACTION" />
+            </intent-filter>
+        </receiver>
         
         <!-- Disable default WorkManager initialization -->
         <provider

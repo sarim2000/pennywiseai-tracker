@@ -15,6 +15,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
     
+    @Query("SELECT * FROM transactions WHERE transaction_hash = :hash LIMIT 1")
+    suspend fun getTransactionByHash(hash: String): TransactionEntity?
+    
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 

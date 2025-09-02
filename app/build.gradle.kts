@@ -163,6 +163,7 @@ dependencies {
     // Lifecycle and ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.2")
+    implementation("androidx.lifecycle:lifecycle-process:2.9.2")
 
     // Navigation
     val navVersion = "2.9.3"

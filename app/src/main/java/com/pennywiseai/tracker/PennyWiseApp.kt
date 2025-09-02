@@ -19,7 +19,9 @@ import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 
 @Composable
 fun PennyWiseApp(
-    themeViewModel: ThemeViewModel = hiltViewModel()
+    themeViewModel: ThemeViewModel = hiltViewModel(),
+    editTransactionId: Long? = null,
+    onEditComplete: () -> Unit = {}
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -30,14 +32,19 @@ fun PennyWiseApp(
     
     // Check initial permission state only once
     val startDestination = remember {
-        val hasSmsPermission = ContextCompat.checkSelfPermission(
+        val hasReadSms = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_SMS
         ) == PackageManager.PERMISSION_GRANTED
         
+        val hasReceiveSms = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECEIVE_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+        
         // Note: We can't check hasSkippedPermission here because it's async from DataStore
-        // So we always start at Permission if no SMS permission, and let the screen handle skipped state
-        if (hasSmsPermission) Home else Permission
+        // So we always start at Permission if no SMS permissions, and let the screen handle skipped state
+        if (hasReadSms && hasReceiveSms) Home else Permission
     }
     
     PennyWiseTheme(
@@ -47,7 +54,9 @@ fun PennyWiseApp(
         PennyWiseNavHost(
             navController = navController,
             themeViewModel = themeViewModel,
-            startDestination = startDestination
+            startDestination = startDestination,
+            editTransactionId = editTransactionId,
+            onEditComplete = onEditComplete
         )
     }
 }

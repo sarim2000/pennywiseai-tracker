@@ -33,6 +33,56 @@ class FederalBankParser : BankParser() {
                // Legacy patterns
                normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
     }
+
+    fun detectIsCreditCard(message: String): Boolean {
+        return  message.lowercase().contains("credit card")
+    }
+
+    /**
+     * Detects if the transaction is from a card (credit/debit) based on Federal Bank specific patterns.
+     */
+    override fun detectIsCard(message: String): Boolean {
+        val lowerMessage = message.lowercase()
+        
+        return when {
+            // Explicit credit card patterns
+            detectIsCreditCard(message) -> true
+            
+            // Explicit debit card patterns
+            lowerMessage.contains("debit card") -> true
+            
+            // Card number patterns: "card XX**9747" or "card ending with 1234"
+            lowerMessage.contains("card xx**") -> true
+            lowerMessage.contains("card ending with") -> true
+            
+            // INR spent pattern (typically credit card)
+            lowerMessage.matches(Regex(""".*inr\s+[\d,]+(?:\.\d{2})?\s+spent.*""")) -> true
+            
+            // "at <merchant> on <date>" pattern (credit card transactions)
+            lowerMessage.contains(" spent ") && lowerMessage.contains(" at ") && 
+            lowerMessage.contains(" on ") -> true
+            
+            // E-mandate on card patterns
+            (lowerMessage.contains("e-mandate") || lowerMessage.contains("payment of")) &&
+            (lowerMessage.contains("federal bank debit card") || 
+             lowerMessage.contains("federal bank credit card")) -> true
+            
+            // Exclude UPI transactions (these are not card transactions)
+            lowerMessage.contains("via upi") -> false
+            lowerMessage.contains("to vpa") -> false
+            
+            // Exclude ATM withdrawals from being categorized as card transactions
+            lowerMessage.contains("atm") -> false
+            lowerMessage.contains("withdrawn") && !lowerMessage.contains("card") -> false
+            
+            // Exclude IMPS/NEFT/RTGS transfers
+            lowerMessage.contains("via imps") -> false
+            lowerMessage.contains("via neft") -> false
+            lowerMessage.contains("via rtgs") -> false
+            
+            else -> false
+        }
+    }
     
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: INR 506.52 spent (credit card format)
@@ -77,7 +127,7 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 3: Rs 70.00 sent via UPI
+        // Pattern 4: Rs 70.00 sent via UPI
         val sentPattern = Regex(
             """Rs\s+([0-9,]+(?:\.\d{2})?)\s+sent""",
             RegexOption.IGNORE_CASE
@@ -91,7 +141,7 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 4: Rs 500.00 credited
+        // Pattern 5: Rs 500.00 credited
         val creditPattern = Regex(
             """Rs\s+([0-9,]+(?:\.\d{2})?)\s+credited""",
             RegexOption.IGNORE_CASE
@@ -105,7 +155,7 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 5: withdrawn Rs 500
+        // Pattern 6: withdrawn Rs 500
         val withdrawnPattern = Regex(
             """withdrawn\s+Rs\s+([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -119,7 +169,6 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Fall back to base class patterns
         return super.extractAmount(message)
     }
     
@@ -130,9 +179,28 @@ class FederalBankParser : BankParser() {
             return "IMPS Credit"
         }
 
-        // Pattern 1: E-mandate transactions
+        // Priority 2: Card transactions - use detectIsCard to avoid duplication
+        if (detectIsCard(message)) {
+            // Credit card transactions - "at <merchant> on date"
+            if (message.contains(" at ", ignoreCase = true)) {
+                val creditCardPattern = Regex(
+                    """at\s+([^.\n]+?)\s+on\s+\d""",
+                    RegexOption.IGNORE_CASE
+                )
+                creditCardPattern.find(message)?.let { match ->
+                    val merchant = cleanMerchantName(match.groupValues[1].trim())
+                    if (isValidMerchantName(merchant)) {
+                        val cleanedMerchant = merchant
+                            .replace(Regex("""\s+(limited|ltd|pvt\s+ltd|private\s+limited)$""", RegexOption.IGNORE_CASE), "")
+                            .trim()
+                        return cleanedMerchant.ifEmpty { merchant }
+                    }
+                }
+            }
+        }
+
+        // Priority 3: E-mandate transactions
         if (message.contains("e-mandate", ignoreCase = true) || message.contains("payment of", ignoreCase = true)) {
-            // Extract merchant from "payment of INR amount for MERCHANT via e-mandate"
             val emandatePattern = Regex(
                 """payment of\s+[^.]+?\s+for\s+([^.\n]+?)\s+via\s+e-mandate""",
                 RegexOption.IGNORE_CASE
@@ -144,7 +212,6 @@ class FederalBankParser : BankParser() {
                 }
             }
 
-            // Extract merchant from "payment via e-mandate declined for ID: id on Federal Bank Debit Card"
             val emandateDeclinedPattern = Regex(
                 """payment via e-mandate\s+declined\s+for\s+ID:\s*[^.]+?\s+on\s+Federal Bank\s+Debit Card\s+\d+""",
                 RegexOption.IGNORE_CASE
@@ -153,26 +220,8 @@ class FederalBankParser : BankParser() {
                 return "E-Mandate Declined"
             }
         }
-
-        // Pattern 2: Credit card transactions - "at <merchant> on date"
-        if (message.contains("credit card", ignoreCase = true) && message.contains(" at ", ignoreCase = true)) {
-            val creditCardPattern = Regex(
-                """at\s+([^.\n]+?)\s+on\s+\d""",
-                RegexOption.IGNORE_CASE
-            )
-            creditCardPattern.find(message)?.let { match ->
-                val merchant = cleanMerchantName(match.groupValues[1].trim())
-                if (isValidMerchantName(merchant)) {
-                    // Remove common suffixes like "limited", "ltd", "pvt ltd"
-                    val cleanedMerchant = merchant
-                        .replace(Regex("""\s+(limited|ltd|pvt\s+ltd|private\s+limited)$""", RegexOption.IGNORE_CASE), "")
-                        .trim()
-                    return cleanedMerchant.ifEmpty { merchant }
-                }
-            }
-        }
         
-        // Pattern 2: UPI transactions - "to VPA merchant@bank"
+        // Priority 4: UPI transactions - "to VPA merchant@bank"
         if (message.contains("VPA", ignoreCase = true)) {
             val vpaPattern = Regex(
                 """to\s+VPA\s+([^\s]+?)(?:\.\s*Ref\s+No|\s*Ref\s+No|$)""",
@@ -184,14 +233,13 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 3: "to <merchant name>" (general)
+        // Priority 5: "to <merchant name>" (general)
         val toPattern = Regex(
             """to\s+([^.\n]+?)(?:\.\s*Ref|Ref\s+No|$)""",
             RegexOption.IGNORE_CASE
         )
         toPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
-            // Skip if it's VPA (already handled above)
             if (!merchant.contains("VPA", ignoreCase = true)) {
                 val cleaned = cleanMerchantName(merchant)
                 if (isValidMerchantName(cleaned)) {
@@ -200,7 +248,7 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 4: "you've received INR" transactions - extract sender
+        // Priority 6: "you've received INR" transactions
         if (message.contains("you've received", ignoreCase = true)) {
             val sentByPattern = Regex(
                 """It was sent by\s+([^.\n]+?)(?:\s+on|$)""",
@@ -208,7 +256,6 @@ class FederalBankParser : BankParser() {
             )
             sentByPattern.find(message)?.let { match ->
                 val sender = match.groupValues[1].trim()
-                // If sender is 0000 or similar numbers, categorize as Bank Transfer/Refund
                 if (sender.matches(Regex("^0+$")) || sender.length <= 4) {
                     return "Bank Transfer"
                 }
@@ -219,7 +266,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 5: "from <sender name>" (for credits)
+        // Priority 7: "from <sender name>"
         val fromPattern = Regex(
             """from\s+([^.\n]+?)(?:\.\s*|$)""",
             RegexOption.IGNORE_CASE
@@ -231,22 +278,20 @@ class FederalBankParser : BankParser() {
             }
         }
         
-        // Pattern 5: ATM transactions
+        // Priority 8: ATM transactions
         if (message.contains("ATM", ignoreCase = true) || 
             message.contains("withdrawn", ignoreCase = true)) {
             return "ATM Withdrawal"
         }
         
-        // Fall back to base class extraction
         return super.extractMerchant(message, sender)
     }
     
     private fun parseUPIMerchant(vpa: String): String {
-        // Extract merchant name from VPA
         val cleanVPA = vpa.split("@")[0].lowercase()
         
         return when {
-            // Airlines & Travel (check before payment apps)
+            // Airlines & Travel
             cleanVPA.contains("indigo") -> "Indigo"
             cleanVPA.contains("spicejet") -> "SpiceJet"
             cleanVPA.contains("airasia") -> "AirAsia"
@@ -264,7 +309,7 @@ class FederalBankParser : BankParser() {
             cleanVPA.contains("myntra") -> "Myntra"
             cleanVPA.contains("meesho") -> "Meesho"
 
-            // Payment apps (check after specific brands)
+            // Payment apps
             cleanVPA.contains("paytm") -> "Paytm"
             cleanVPA.contains("bharatpe") -> "BharatPe"
             cleanVPA.contains("phonepe") -> "PhonePe"
@@ -296,7 +341,7 @@ class FederalBankParser : BankParser() {
             cleanVPA.contains("oyo") -> "OYO"
             cleanVPA.contains("airbnb") -> "Airbnb"
             
-            // Payment gateways - try to extract actual merchant
+            // Payment gateways
             cleanVPA.contains("razorpay") || cleanVPA.contains("razorp") || cleanVPA.contains("rzp") -> {
                 when {
                     cleanVPA.contains("pvr") -> "PVR"
@@ -308,10 +353,9 @@ class FederalBankParser : BankParser() {
             }
             cleanVPA.contains("payu") || cleanVPA.contains("billdesk") || cleanVPA.contains("ccavenue") -> "Online Payment"
             
-            // Individual transfers (just numbers)
+            // Individual transfers
             cleanVPA.matches(Regex("\\d+")) -> "Individual"
             
-            // Default - return full VPA when no clear pattern is detected
             else -> vpa.trim()
         }
     }
@@ -326,12 +370,12 @@ class FederalBankParser : BankParser() {
             return false
         }
         
-        // Skip mandate creation notifications and declined payments (not actual transactions)
+        // Skip mandate creation notifications and declined payments
         if (isMandateCreationNotification(message) || isDeclinedMandatePayment(message)) {
             return false
         }
 
-        // Check for Federal Bank specific transaction keywords
+        // Federal Bank specific transaction keywords
         val federalKeywords = listOf(
             "sent via upi",
             "debited via upi",
@@ -340,75 +384,64 @@ class FederalBankParser : BankParser() {
             "received",
             "transferred",
             "spent on your credit card",
-            "payment of", // Actual mandate payments, not creation notifications
-            "payment via e-mandate" // Actual mandate payments
+            "payment of",
+            "payment via e-mandate"
         )
         
-        // If any Federal Bank specific pattern is found, it's likely a transaction
         if (federalKeywords.any { lowerMessage.contains(it) }) {
             return true
         }
         
-        // Fall back to base class for standard checks
         return super.isTransactionMessage(message)
     }
     
     override fun extractAccountLast4(message: String): String? {
-        // Pattern for credit card: "credit card ending with 1234"
-        val creditCardPattern = Regex(
-            """credit\s+card\s+ending\s+with\s+(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        creditCardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+        // Only extract card numbers if this is actually a card transaction
+        if (detectIsCard(message)) {
+            // Pattern 1: "credit card ending with 1234"
+            val endingWithPattern = Regex(
+                """(?:credit|debit)\s+card\s+ending\s+with\s+(\d{4})""",
+                RegexOption.IGNORE_CASE
+            )
+            endingWithPattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
+
+            // Pattern 2: "card XX**9747"
+            val cardPattern = Regex(
+                """card\s+XX\*\*?(\d{4})""",
+                RegexOption.IGNORE_CASE
+            )
+            cardPattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
         }
 
-        // Pattern for debit card transactions: "card XX**9747"
-        val debitCardPattern = Regex(
-            """card\s+XX\*\*?(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        debitCardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        // Fall back to base class patterns for regular account numbers
-        val accountNumber = super.extractAccountLast4(message)
-        if (accountNumber != null) {
-            return accountNumber
-        }
-
-        // For UPI transactions that don't specify account number,
-        // we can't determine the account from the message alone
-        // Return null and let the application handle it at a higher level
-        return null
+        // For non-card transactions, try base class patterns
+        return super.extractAccountLast4(message)
     }
     
     override fun extractBalance(message: String): BigDecimal? {
-        // Don't extract credit limit as balance - that's handled separately
-        // Fall back to base class patterns for actual account balances
+        // Don't extract credit limit as balance
         return super.extractBalance(message)
     }
-    
-    // The base class now handles available limit extraction for credit card transactions
-    // No need to override parse() or extractAvailableLimit() as the base implementation covers our patterns
     
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
         
         return when {
-            // Credit card transactions
-            lowerMessage.contains("credit card") && lowerMessage.contains("spent") -> TransactionType.CREDIT
+            // Credit card transactions - now using detectIsCard
+            detectIsCreditCard(message) && lowerMessage.contains("spent") -> TransactionType.CREDIT
 
-            // E-mandate payments (only successful ones, not declined)
+            // E-mandate payments (only successful ones)
             (lowerMessage.contains("e-mandate") || lowerMessage.contains("payment of")) &&
             lowerMessage.contains("processed successfully") -> TransactionType.EXPENSE
 
-            // Expense keywords - including "sent"
+            // Expense keywords
             lowerMessage.contains("sent via upi") -> TransactionType.EXPENSE
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
-            lowerMessage.contains("spent") && !lowerMessage.contains("credit card") -> TransactionType.EXPENSE
+            lowerMessage.contains("spent") && !detectIsCreditCard(message) -> TransactionType.EXPENSE
             lowerMessage.contains("paid") -> TransactionType.EXPENSE
 
             // Income keywords
@@ -421,14 +454,9 @@ class FederalBankParser : BankParser() {
         }
     }
 
-    /**
-     * Checks if this is a mandate creation notification (not an actual transaction).
-     * Follows the same pattern as HDFC and SBI parsers.
-     */
     fun isMandateCreationNotification(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        // Federal Bank mandate creation patterns
         return (lowerMessage.contains("mandate") || lowerMessage.contains("e-mandate")) &&
                (lowerMessage.contains("successfully created a mandate") ||
                 lowerMessage.contains("you have successfully created") ||
@@ -437,9 +465,6 @@ class FederalBankParser : BankParser() {
                 lowerMessage.contains("registration has been initiated"))
     }
 
-    /**
-     * Checks if this is a declined e-mandate payment (not an actual expense).
-     */
     fun isDeclinedMandatePayment(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
@@ -447,16 +472,11 @@ class FederalBankParser : BankParser() {
                lowerMessage.contains("declined")
     }
 
-    /**
-     * Parses E-Mandate subscription information for Federal Bank.
-     * Compatible with HDFC's EMandateInfo structure for consistency.
-     */
     fun parseEMandateSubscription(message: String): EMandateInfo? {
         if (!isMandateCreationNotification(message)) {
             return null
         }
 
-        // Extract amount - "maximum amount of Rs 119.00" or "for a maximum amount of Rs 119.00"
         val amountPattern = Regex("""(?:for\s+a\s+)?maximum\s+amount\s+of\s+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         val amount = amountPattern.find(message)?.let { match ->
             val amountStr = match.groupValues[1].replace(",", "")
@@ -467,17 +487,14 @@ class FederalBankParser : BankParser() {
             }
         } ?: return null
 
-        // Extract start date - "starting from 11-06-2025"
         val datePattern = Regex("""starting\s+from\s+(\d{2}-\d{2}-\d{4})""", RegexOption.IGNORE_CASE)
         val startDate = datePattern.find(message)?.groupValues?.get(1)
 
-        // Extract merchant - "created a mandate on Spotify India" or "mandate on Spotify India"
         val merchantPattern = Regex("""(?:created\s+a\s+mandate\s+on|mandate\s+on)\s+([^.\n]+?)(?:\s+for|\s*$)""", RegexOption.IGNORE_CASE)
         val merchant = merchantPattern.find(message)?.let { match ->
             cleanMerchantName(match.groupValues[1].trim())
         } ?: "Unknown Subscription"
 
-        // Extract UMN - "Mandate Ref No- 52c3f1f40cf0435a90988fe85381d2ff@fifederal" or "Mandate Ref No- 52c3f1f40cf0435a90988fe85381d2ff@fifederal"
         val umnPattern = Regex("""Mandate\s+Ref\s+No-?\s*([^.\s]+)""", RegexOption.IGNORE_CASE)
         val umn = umnPattern.find(message)?.groupValues?.get(1)
 
@@ -489,19 +506,13 @@ class FederalBankParser : BankParser() {
         )
     }
 
-    /**
-     * Parses future debit notifications for subscription tracking.
-     * For payment due messages.
-     */
     fun parseFutureDebit(message: String): EMandateInfo? {
         val lowerMessage = message.lowercase()
 
-        // Check if this is a payment due notification
         if (!lowerMessage.contains("payment due") || !lowerMessage.contains("will be processed")) {
             return null
         }
 
-        // Extract amount - "INR 119.00"
         val amountPattern = Regex("""INR\s+(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         val amount = amountPattern.find(message)?.let { match ->
             val amountStr = match.groupValues[1].replace(",", "")
@@ -512,10 +523,8 @@ class FederalBankParser : BankParser() {
             }
         } ?: return null
 
-        // Extract due date - "on 06/08/2024"
         val datePattern = Regex("""on\s+(\d{2}/\d{2}/\d{4})""", RegexOption.IGNORE_CASE)
         val dueDate = datePattern.find(message)?.groupValues?.get(1)?.let { dateStr ->
-            // Convert DD/MM/YYYY to DD/MM/YY for consistency
             try {
                 val parts = dateStr.split("/")
                 if (parts.size == 3) {
@@ -528,7 +537,6 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Extract merchant - "for Spotify"
         val merchantPattern = Regex("""for\s+([^.\n]+?)\s*,\s*INR""", RegexOption.IGNORE_CASE)
         val merchant = merchantPattern.find(message)?.let { match ->
             cleanMerchantName(match.groupValues[1].trim())
@@ -538,24 +546,18 @@ class FederalBankParser : BankParser() {
             amount = amount,
             nextDeductionDate = dueDate,
             merchant = merchant,
-            umn = null // Payment due notifications don't have UMN
+            umn = null
         )
     }
 
-    /**
-     * E-Mandate subscription information for Federal Bank.
-     * Implements the common MandateInfo interface for standardized handling.
-     */
     data class EMandateInfo(
         override val amount: BigDecimal,
         override val nextDeductionDate: String?,
         override val merchant: String,
         override val umn: String?
     ) : MandateInfo {
-        // Federal Bank uses dd-MM-yyyy format for mandate creation dates
         override val dateFormat = "dd-MM-yyyy"
     }
 
-    // Wrapper function for testing - exposes protected isTransactionMessage method
     fun isTransactionMessageForTesting(message: String): Boolean = isTransactionMessage(message)
 }

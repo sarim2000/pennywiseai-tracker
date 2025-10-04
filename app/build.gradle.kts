@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
 }
 
 android {
@@ -77,23 +77,26 @@ android {
             // Standard flavor includes all architectures (including x86 for emulators)
         }
     }
-    
-    // Enable APK splits for smaller APKs per architecture (only for APK builds, not bundles)
+
     splits {
         abi {
-            // Disable splits for F-Droid builds and Bundle builds
-            // Bundles don't support APK splits, they handle multi-architecture differently
-            isEnable = !gradle.startParameter.taskNames.any { 
-                it.contains("Fdroid") || 
-                it.contains("Bundle") || 
-                it.contains("bundle")
-            }
+            // Disable splits for F-Droid builds and bundle builds
+            //noinspection WrongGradleMethod
+            val runTasks = gradle.startParameter.taskNames.map { it.lowercase() }
+            //noinspection WrongGradleMethod
+            val isBundleBuild = runTasks.any { it.contains("bundle") }   // e.g., :app:bundleRelease
+            //noinspection WrongGradleMethod
+            val isFdroidBuild = runTasks.any { it.contains("fdroid") }
+
+            isEnable = !(isBundleBuild || isFdroidBuild)
+
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true  // Also generate a universal APK containing all ABIs
+            isUniversalApk = true
         }
     }
-    
+
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -104,7 +107,7 @@ android {
             )
             
             // Only apply signing config to standard flavor
-            productFlavors.forEach { flavor ->
+            for (flavor in productFlavors) {
                 if (flavor.name == "standard") {
                     // Check if release signing config exists
                     val releaseSigningConfig = signingConfigs.findByName("release")
@@ -154,71 +157,67 @@ dependencies {
     implementation(libs.androidx.material3)
     
     // Material Icons Extended
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.compose.material.icons.extended)
     
     // Color Picker for Compose
-    implementation("com.github.skydoves:colorpicker-compose:1.1.2")
+    implementation(libs.colorpicker.compose)
     
     // Splash Screen API
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
     
     // Lifecycle and ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.2")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Navigation
-    val navVersion = "2.9.3"
-    implementation("androidx.navigation:navigation-compose:$navVersion")
+    implementation(libs.androidx.navigation.compose)
     
     // Kotlin Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation(libs.kotlinx.serialization.json)
 
     // Ktor for HTTP requests
-    val ktorVersion = "2.3.12"
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-android:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     
     // Gson for backup/restore
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
     
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation(libs.androidx.datastore.preferences)
     
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.57")
-    ksp("com.google.dagger:hilt-android-compiler:2.57")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     
     // Room
-    val roomVersion = "2.7.2"
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    ksp("androidx.room:room-compiler:$roomVersion")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     
     // WorkManager
-    val workVersion = "2.10.5"
-    implementation("androidx.work:work-runtime-ktx:$workVersion")
+    implementation(libs.androidx.work.runtime.ktx)
     
     // Hilt WorkManager integration
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
     
     // MediaPipe for LLM inference
-    implementation("com.google.mediapipe:tasks-genai:0.10.25")
+    implementation(libs.tasks.genai)
     
     // Google Play In-App Updates (only for standard flavor)
-    "standardImplementation"("com.google.android.play:app-update:2.1.0")
-    "standardImplementation"("com.google.android.play:app-update-ktx:2.1.0")
+    "standardImplementation"(libs.app.update)
+    "standardImplementation"(libs.app.update.ktx)
     
     // Google Play In-App Reviews (only for standard flavor)
-    "standardImplementation"("com.google.android.play:review:2.0.2")
-    "standardImplementation"("com.google.android.play:review-ktx:2.0.2")
+    "standardImplementation"(libs.review)
+    "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.junit)
-    testImplementation("androidx.room:room-testing:$roomVersion")
-    androidTestImplementation("androidx.work:work-testing:$workVersion")
+    testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -227,9 +226,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     
     // Markdown support
-    implementation("org.jetbrains:markdown:0.7.3")
+    implementation(libs.markdown)
     
     // OpenCSV for CSV export
-    implementation("com.opencsv:opencsv:5.12.0")
+    implementation(libs.opencsv)
     testImplementation(kotlin("test"))
 }

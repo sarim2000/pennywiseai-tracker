@@ -30,7 +30,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "john.doe123@okbank",
-                    reference = "987654321098"
+                    reference = "987654321098",
+                    isFromCard = false
                 )
             ),
 
@@ -43,7 +44,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "Swiggy",
-                    reference = "876543210987"
+                    reference = "876543210987",
+                    isFromCard = false
                 )
             ),
 
@@ -56,7 +58,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "Indigo",
-                    reference = "987654321099"
+                    reference = "987654321099",
+                    isFromCard = false
                 )
             ),
 
@@ -69,7 +72,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "merchant.store.98765@hdfcbank",
-                    reference = "765432109876"
+                    reference = "765432109876",
+                    isFromCard = false
                 )
             ),
 
@@ -85,7 +89,8 @@ class FederalBankParserTest {
                     merchant = "IMPS Credit",
                     accountLast4 = "4567",
                     balance = BigDecimal("25000.75"),
-                    reference = "654321098765"
+                    reference = "654321098765",
+                    isFromCard = false
                 )
             ),
 
@@ -99,7 +104,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "TESTUSER",
-                    accountLast4 = "1896"
+                    accountLast4 = "1896",
+                    isFromCard = false
                 )
             ),
 
@@ -112,7 +118,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "SAMPLE PERSON",
-                    accountLast4 = "1896"
+                    accountLast4 = "1896",
+                    isFromCard = false
                 )
             ),
 
@@ -125,7 +132,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "Bank Transfer",
-                    accountLast4 = "1896"
+                    accountLast4 = "1896",
+                    isFromCard = false
                 )
             ),
 
@@ -140,7 +148,8 @@ class FederalBankParserTest {
                     merchant = "IMPS Credit",
                     accountLast4 = "7890",
                     balance = BigDecimal("42500.80"),
-                    reference = "543210987654"
+                    reference = "543210987654",
+                    isFromCard = false
                 )
             ),
 
@@ -154,7 +163,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "Netflix via e-mandate ID: NX789XYZABC",
-                    accountLast4 = "3456"
+                    accountLast4 = "3456",
+                    isFromCard = true
                 )
             ),
 
@@ -167,7 +177,8 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "Spotify via e-mandate ID: SP456DEF123",
-                    accountLast4 = "7890"
+                    accountLast4 = "7890",
+                    isFromCard = true
                 )
             ),
 
@@ -180,7 +191,39 @@ class FederalBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "LifeInsurance via e-mandate ID: LI789GHI456",
-                    accountLast4 = "1234"
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
+            ),
+
+            // Card Transactions (testing detectIsCard)
+            ParserTestCase(
+                name = "Credit Card Transaction - Amazon",
+                message = "INR 1200.00 spent on your credit card ending with 5678 at AMAZON on 09-05-2025 15:30:15. Available limit Rs.38000.00 -Federal Bank",
+                sender = "AD-FEDBNK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1200.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "AMAZON",
+                    accountLast4 = "5678",
+                    creditLimit = BigDecimal("38000.00"),
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Debit Card Transaction - Masked Card",
+                message = "Rs 1500.00 debited via card XX**3456 at MERCHANT on 14-05-2025 15:30:45. Current Bal: Rs.250.75 -Federal Bank",
+                sender = "AD-FEDBNK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1500.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "MERCHANT",
+                    accountLast4 = "3456",
+                    balance = BigDecimal("250.75"),
+                    isFromCard = true
                 )
             ),
 
@@ -276,4 +319,6 @@ class FederalBankParserTest {
         assertEquals("Netflix", paymentDueResult?.merchant)
         assertNull(paymentDueResult?.umn, "Payment due notifications don't have UMN")
     }
+
+
 }

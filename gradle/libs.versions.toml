@@ -1,17 +1,61 @@
 [versions]
-agp = "8.11.0"
+agp = "8.13.0"
+appUpdate = "2.1.0"
+appUpdateKtx = "2.1.0"
+colorpickerCompose = "1.1.2"
+coreSplashscreen = "1.0.1"
+datastorePreferences = "1.1.7"
+gson = "2.13.2"
+hiltAndroid = "2.57.2"
+hiltAndroidCompiler = "2.57.2"
+hiltCompiler = "1.3.0"
+hiltNavigationCompose = "1.3.0"
+hiltWork = "1.3.0"
 kotlin = "2.1.0"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
+kotlinxSerializationJson = "1.9.0"
+ktorVersion = "2.3.12"
+lifecycleRuntimeCompose = "2.9.4"
 lifecycleRuntimeKtx = "2.9.2"
 activityCompose = "1.10.1"
 composeBom = "2025.07.00"
+lifecycleViewmodelCompose = "2.9.4"
+markdown = "0.7.3"
+navVersion = "2.9.3"
+opencsv = "5.12.0"
+review = "2.0.2"
+reviewKtx = "2.0.2"
+roomVersion = "2.7.2"
+tasksGenai = "0.10.29"
 visionInternalVkp = "18.2.3"
+workVersion = "2.10.5"
 
 [libraries]
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltWork" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navVersion" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomVersion" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomVersion" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }
+androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "roomVersion" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workVersion" }
+androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workVersion" }
+app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdate" }
+app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
+colorpicker-compose = { module = "com.github.skydoves:colorpicker-compose", version.ref = "colorpickerCompose" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -25,6 +69,16 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorVersion" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
+markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+opencsv = { module = "com.opencsv:opencsv", version.ref = "opencsv" }
+review = { module = "com.google.android.play:review", version.ref = "review" }
+review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtx" }
+tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "tasksGenai" }
 vision-internal-vkp = { group = "com.google.mlkit", name = "vision-internal-vkp", version.ref = "visionInternalVkp" }
 
 [plugins]

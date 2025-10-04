@@ -83,7 +83,7 @@ class ADCBParser : FABParser() {
         }
 
         // If no specific patterns match, try fallback with transaction context
-        if (message.contains("was used for", ignoreCase = true)) {
+        if (containsCardPurchase(message)) {
             val afterUsage = message.substringAfter("was used for")
             val currencyAmountPattern = Regex("""([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""")
             currencyAmountPattern.find(afterUsage)?.let { match ->
@@ -113,9 +113,16 @@ class ADCBParser : FABParser() {
         return null
     }
 
+    override fun containsCardPurchase(message: String): Boolean {
+        // ADCB debit card purchase patterns
+        return message.contains("was used for", ignoreCase = true) ||
+                message.contains("used for", ignoreCase = true)
+    }
+
     override fun extractMerchant(message: String, sender: String): String? {
         // ADCB Debit Card Purchase pattern: "at MERCHANT,AE. Avl.Bal"
-        if (message.contains("was used for", ignoreCase = true) || message.contains("used for", ignoreCase = true)) {
+        if(containsCardPurchase(message)) {
+            // Extract merchant name between "at " and ", AE" (country code)
             val merchantPattern = Regex("""at\s+([^,\n]+),\s*[A-Z]{2}""", RegexOption.IGNORE_CASE)
             merchantPattern.find(message)?.let { match ->
                 return cleanMerchantName(match.groupValues[1].trim())
@@ -302,7 +309,7 @@ class ADCBParser : FABParser() {
 
         return when {
             // Debit card purchases are expenses
-            lowerMessage.contains("was used for") || lowerMessage.contains("used for") -> TransactionType.EXPENSE
+            containsCardPurchase(message) -> TransactionType.EXPENSE
 
             // ATM withdrawals are expenses
             lowerMessage.contains("withdrawn from") && lowerMessage.contains("atm") -> TransactionType.EXPENSE
@@ -440,7 +447,7 @@ class ADCBParser : FABParser() {
         }
 
         // Fallback: look for currency codes in the transaction part of the message
-        if (message.contains("was used for", ignoreCase = true) || message.contains("used for", ignoreCase = true)) {
+        if (containsCardPurchase(message)) {
             val afterUsage = if (message.contains("was used for", ignoreCase = true)) {
                 message.substringAfter("was used for")
             } else {

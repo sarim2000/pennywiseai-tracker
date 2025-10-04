@@ -162,8 +162,7 @@ open class FABParser : BankParser() {
         return when {
             // Credit card transactions (always expenses)
             lowerMessage.contains("credit card purchase") -> TransactionType.CREDIT
-            lowerMessage.contains("debit card purchase") -> TransactionType.EXPENSE
-            lowerMessage.contains("card purchase") -> TransactionType.EXPENSE
+            containsCardPurchase(message) -> TransactionType.EXPENSE
 
             //Cheque transactions
             lowerMessage.contains("cheque credited") -> TransactionType.INCOME
@@ -198,7 +197,7 @@ open class FABParser : BankParser() {
     }
 
     // centralized function to reduce repeated code for card purchase check
-    private fun containsCardPurchase(message: String): Boolean {
+    open fun containsCardPurchase(message: String): Boolean {
         return message.contains(Regex("(Credit|Debit) Card Purchase", RegexOption.IGNORE_CASE))
     }
 

@@ -33,6 +33,20 @@ class SouthIndianBankParserTest {
                     balance = BigDecimal("793.02"),
                     reference = "528005821348"
                 )
+            ),
+            ParserTestCase(
+                name = "UPI debit with RRN and balance",
+                message = "UPI debit:Rs.599.00 A/c X7477, 16-10-25 16:25:29 RRN: 565526068910 Bal:Rs.12345.89 Block A/c? Call18004251809/SMS BLK<A/c>to 9840777222-South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("599.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "UPI Transaction",
+                    accountLast4 = "7477",
+                    balance = BigDecimal("12345.89"),
+                    reference = "565526068910"
+                )
             )
         )
 

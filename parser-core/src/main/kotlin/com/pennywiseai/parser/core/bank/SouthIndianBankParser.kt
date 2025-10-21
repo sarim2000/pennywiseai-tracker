@@ -128,8 +128,10 @@ class SouthIndianBankParser : BankParser() {
             }
 
             // Check for "to" pattern (e.g., "to merchant@upi")
-            val toPattern = Regex("""to\s+([^,\s]+(?:@[^\s,]+)?)""", RegexOption.IGNORE_CASE)
-            toPattern.find(message)?.let { match ->
+            // Only match if it appears early in the message to avoid matching footer phone numbers
+            val messagePrefix = message.take(200)  // Only look in first 200 chars
+            val toPattern = Regex("""to\s+([^,\s]+@[^\s,]+)""", RegexOption.IGNORE_CASE)
+            toPattern.find(messagePrefix)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -138,8 +140,8 @@ class SouthIndianBankParser : BankParser() {
 
             // Check for "from" pattern for incoming transfers
             if (message.contains("credit", ignoreCase = true)) {
-                val fromPattern = Regex("""from\s+([^,\s]+(?:@[^\s,]+)?)""", RegexOption.IGNORE_CASE)
-                fromPattern.find(message)?.let { match ->
+                val fromPattern = Regex("""from\s+([^,\s]+@[^\s,]+)""", RegexOption.IGNORE_CASE)
+                fromPattern.find(messagePrefix)?.let { match ->
                     val merchant = match.groupValues[1].trim()
                     if (merchant.isNotEmpty()) {
                         return cleanMerchantName(merchant)

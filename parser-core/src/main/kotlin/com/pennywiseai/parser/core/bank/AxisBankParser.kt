@@ -73,6 +73,25 @@ class AxisBankParser : BankParser() {
     }
     
     override fun extractMerchant(message: String, sender: String): String? {
+        // Credit card "Spent" transactions with merchant on separate line
+        // Example: "Spent INR 131\nAxis Bank Card no. XX0818\n05-10-25 09:43:27 IST\nSwiggy Limi\nAvl Limit:"
+        val spentPattern = Regex(
+            """Spent\s+INR[\s\S]*?IST\s*\n\s*([^\n]+?)(?:\s*\n|\s*Avl Limit:|\s*Not you?)""",
+            RegexOption.IGNORE_CASE
+        )
+        spentPattern.find(message)?.let { match ->
+            var merchant = match.groupValues[1].trim()
+
+            // Clean up truncated merchant names by removing common truncation patterns
+            merchant = merchant.replace(Regex("""\s+Limi$"""), "")  // "Swiggy Limi" -> "Swiggy"
+            merchant = merchant.replace(Regex("""\s+Pay$"""), "")   // "Amazon Pay" -> "Amazon"
+
+            merchant = cleanMerchantName(merchant)
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         val upiMerchantPattern = Regex(
             """UPI/[^/]+/[^/]+/([^\n]+?)(?:\s*Not you|\s*$)""",
             RegexOption.IGNORE_CASE
@@ -83,7 +102,7 @@ class AxisBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         val upiPersonPattern = Regex(
             """UPI/P2A/[^/]+/([^\n]+?)(?:\s*Not you|\s*$)""",
             RegexOption.IGNORE_CASE
@@ -94,7 +113,7 @@ class AxisBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         val infoPattern = Regex(
             """Info\s*[-–]\s*([^.\n]+?)(?:\.\s*Chk|\s*$)""",
             RegexOption.IGNORE_CASE
@@ -106,7 +125,7 @@ class AxisBankParser : BankParser() {
                 else -> cleanMerchantName(info)
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractMerchant(message, sender)
     }
@@ -126,8 +145,23 @@ class AxisBankParser : BankParser() {
                 digitsOnly
             }
         }
-        
-        // Pattern 2: "Credit Card XXNNNN"
+
+        // Pattern 2: "Card no. XXNNNN" - for credit card spending messages
+        val cardNoPattern = Regex(
+            """Card\s+no\.\s+([X\*]*\d+)""",
+            RegexOption.IGNORE_CASE
+        )
+        cardNoPattern.find(message)?.let { match ->
+            val accountStr = match.groupValues[1]
+            val digitsOnly = accountStr.filter { it.isDigit() }
+            return if (digitsOnly.length >= 4) {
+                digitsOnly.takeLast(4)
+            } else {
+                digitsOnly
+            }
+        }
+
+        // Pattern 3: "Credit Card XXNNNN"
         val creditCardPattern = Regex(
             """Credit\s+Card\s+([X\*]*\d+)""",
             RegexOption.IGNORE_CASE
@@ -141,7 +175,7 @@ class AxisBankParser : BankParser() {
                 digitsOnly
             }
         }
-        
+
         return super.extractAccountLast4(message)
     }
     

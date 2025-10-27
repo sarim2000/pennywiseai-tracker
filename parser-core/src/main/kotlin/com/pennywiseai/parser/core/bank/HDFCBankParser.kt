@@ -421,13 +421,20 @@ class HDFCBankParser : BankParser() {
         if (isEMandateNotification(message)) {
             return false
         }
-        
+
         // Skip future debit notifications (these are subscription alerts, not transactions)
         if (isFutureDebitNotification(message)) {
             return false
         }
-        
+
         val lowerMessage = message.lowercase()
+
+        // Skip bill alert notifications (these are reminders for future payments, not transactions)
+        // Example: "New Bill Alert: Your ... Bill ... is due on ..."
+        if (lowerMessage.contains("bill alert") ||
+            (lowerMessage.contains("bill") && lowerMessage.contains("is due on"))) {
+            return false
+        }
         
         // Check for payment alerts (current transactions)
         if (lowerMessage.contains("payment alert")) {

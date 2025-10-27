@@ -304,8 +304,23 @@ class ICICIBankParser : BankParser() {
                 cardNumber
             }
         }
-        
-        // Pattern 2: "Acct XXNNNN" - extract everything after Acct
+
+        // Pattern 2: "ICICI Bank Account XXNNNN" or "ICICI Bank Account XX566"
+        val accountPattern = Regex(
+            """ICICI\s+Bank\s+Account\s+([X\*]*\d+)""",
+            RegexOption.IGNORE_CASE
+        )
+        accountPattern.find(message)?.let { match ->
+            val accountStr = match.groupValues[1]
+            val digitsOnly = accountStr.filter { it.isDigit() }
+            return if (digitsOnly.length >= 4) {
+                digitsOnly.takeLast(4)
+            } else {
+                digitsOnly
+            }
+        }
+
+        // Pattern 3: "Acct XXNNNN" - extract everything after Acct
         val acctPattern = Regex(
             """Acct\s+([X\*]*\d+)""",
             RegexOption.IGNORE_CASE
@@ -319,8 +334,8 @@ class ICICIBankParser : BankParser() {
                 digitsOnly
             }
         }
-        
-        // Pattern 3: "ICICI Bank Acct XXNNNN"
+
+        // Pattern 4: "ICICI Bank Acct XXNNNN"
         val bankAcctPattern = Regex(
             """ICICI\s+Bank\s+Acct\s+([X\*]*\d+)""",
             RegexOption.IGNORE_CASE
@@ -334,20 +349,58 @@ class ICICIBankParser : BankParser() {
                 digitsOnly
             }
         }
-        
-        // Pattern 4: "ICICI Bank Account 1234XXXX1234" - extract last 4 visible digits
-        val accountFullPattern = Regex(
-            """ICICI\s+Bank\s+Account\s+\d+X+(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        accountFullPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-        
+
         // Fall back to base class
         return super.extractAccountLast4(message)
     }
     
+    override fun extractBalance(message: String): BigDecimal? {
+        // Pattern 1: "Available Balance is Rs. 28,076.14" (ICICI-specific format with "is")
+        val availBalIsPattern = Regex(
+            """Available\s+Balance\s+is\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        availBalIsPattern.find(message)?.let { match ->
+            val balanceStr = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(balanceStr)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 2: "Avl Bal Rs 10,000.00"
+        val avlBalPattern = Regex(
+            """Avl\s+Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        avlBalPattern.find(message)?.let { match ->
+            val balanceStr = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(balanceStr)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 3: "Updated Bal: Rs 5,000.00"
+        val updatedBalPattern = Regex(
+            """Updated\s+Bal[:\s]+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        updatedBalPattern.find(message)?.let { match ->
+            val balanceStr = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(balanceStr)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Fall back to base class
+        return super.extractBalance(message)
+    }
+
     override fun extractReference(message: String): String? {
         // Pattern 1: "RRN 1xxxxx3xxxxx"
         val rrnPattern = Regex(

@@ -126,6 +126,19 @@ class ICICIBankParserTest {
                     type = TransactionType.EXPENSE,
                     reference = "TXN123456789"
                 )
+            ),
+            ParserTestCase(
+                name = "Salary credit with INF format",
+                message = "ICICI Bank Account XX566 credited:Rs. 18,832.00 on 28-Feb-25. Info INF*000169831922*IQBO SAL FE. Available Balance is Rs. 28,076.14.",
+                sender = "VM-ICICIT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("18832.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Salary",
+                    accountLast4 = "566",
+                    balance = BigDecimal("28076.14")
+                )
             )
         )
 

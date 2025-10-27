@@ -197,7 +197,17 @@ class ICICIBankParser : BankParser() {
     }
     
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"
+        // Pattern 1: Salary transactions - "Info INF*...*...* SAL ..."
+        // Example: "Info INF*000169831922*IQBO SAL FE"
+        val salaryPattern = Regex(
+            """Info\s+INF\*[^*]+\*[^*]*SAL[^.]*""",
+            RegexOption.IGNORE_CASE
+        )
+        if (salaryPattern.find(message) != null) {
+            return "Salary"
+        }
+
+        // Pattern 2: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"
         val cardMerchantPattern = Regex(
             """on\s+\d{1,2}-\w{3}-\d{2}\s+(?:at|on)\s+([^.]+?)(?:\.|\s+Avl|$)""",
             RegexOption.IGNORE_CASE
@@ -208,8 +218,8 @@ class ICICIBankParser : BankParser() {
                 return merchant
             }
         }
-        
-        // Pattern 2: ACH/NACH dividend payments - "Info ACH*COMPANY NAME*XXX"
+
+        // Pattern 3: ACH/NACH dividend payments - "Info ACH*COMPANY NAME*XXX"
         val achNachPattern = Regex(
             """Info\s+(?:ACH|NACH)\*([^*]+)\*""",
             RegexOption.IGNORE_CASE

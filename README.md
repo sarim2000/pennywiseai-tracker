@@ -52,12 +52,12 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ## Supported Banks & Countries
 
-Supporting **46+ banks** across **10 countries** with **multi-currency** capabilities:
+Supporting **47+ banks** across **10 countries** with **multi-currency** capabilities:
 
-### 🇮🇳 India (34 banks) - INR ₹
+### 🇮🇳 India (35 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
 - **Axis Bank**, **Punjab National Bank (PNB)**, **IDBI Bank**
-- **Indian Bank**, **Federal Bank**, **Karnataka Bank**
+- **Indian Bank**, **Federal Bank**, **Karnataka Bank**, **Kerala Gramin Bank**
 - **Canara Bank**, **Bank of Baroda**, **Bank of India**
 - **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
 - **IDFC First Bank**, **Union Bank**, **HSBC Bank**

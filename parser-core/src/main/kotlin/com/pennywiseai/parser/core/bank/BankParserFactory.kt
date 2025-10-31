@@ -17,6 +17,7 @@ object BankParserFactory {
         UtkarshBankParser(),
         ICICIBankParser(),
         KarnatakaBankParser(),
+        KeralaGraminBankParser(),
         IDBIBankParser(),
         JupiterBankParser(),
         AxisBankParser(),

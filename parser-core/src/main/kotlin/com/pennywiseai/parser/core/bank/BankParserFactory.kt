@@ -55,7 +55,8 @@ object BankParserFactory {
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)
         CharlesSchwabParser(),  // Charles Schwab (USA)
-        PriorbankParser()  // Priorbank (Belarus)
+        PriorbankParser(),  // Priorbank (Belarus)
+        AlinmaBankParser()  // Alinma Bank (Saudi Arabia)
         // Add more bank parsers here as we implement them
     )
     

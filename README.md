@@ -52,7 +52,7 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ## Supported Banks & Countries
 
-Supporting **45+ banks** across **9 countries** with **multi-currency** capabilities:
+Supporting **46+ banks** across **10 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (34 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -87,6 +87,9 @@ Supporting **45+ banks** across **9 countries** with **multi-currency** capabili
 
 ### 🇨🇴 Colombia (1 bank) - COP $
 - **Bancolombia**
+
+### 🇰🇪 Kenya (1 service) - KES Ksh
+- **M-PESA** - Mobile money service
 
 More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md)
 

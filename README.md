@@ -52,13 +52,13 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ## Supported Banks & Countries
 
-Supporting **41+ banks** across **5 countries** with **multi-currency** capabilities:
+Supporting **44+ banks** across **9 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (34 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
 - **Axis Bank**, **Punjab National Bank (PNB)**, **IDBI Bank**
 - **Indian Bank**, **Federal Bank**, **Karnataka Bank**
-- **Canara Bank**, **Bank of Baroda**, **Jio Payments Bank**
+- **Canara Bank**, **Bank of Baroda**, **Bank of India**
 - **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
 - **IDFC First Bank**, **Union Bank**, **HSBC Bank**
 - **Central Bank of India**, **South Indian Bank**, **JK Bank**
@@ -68,15 +68,25 @@ Supporting **41+ banks** across **5 countries** with **multi-currency** capabili
 ### 🇺🇸 USA (4 banks) - USD $
 - **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
 
-### 🇦🇪 UAE (2 banks) - AED د.إ
+### 🇦🇪 UAE (3 banks) - AED د.إ
 - **First Abu Dhabi Bank (FAB)**
 - **Abu Dhabi Commercial Bank (ADCB)**
+- **Mashreq Bank**
+
+### 🇸🇦 Saudi Arabia (1 bank) - SAR ﷼
+- **Alinma Bank (بنك الإنماء)** - Arabic SMS support
+
+### 🇧🇾 Belarus (1 bank) - BYN Br
+- **Priorbank** - Russian/Belarusian SMS support
 
 ### 🇳🇵 Nepal (2 banks) - NPR ₨
 - **Laxmi Sunrise Bank**, **Everest Bank**
 
 ### 🇪🇹 Ethiopia (1 bank) - ETB ብር
 - **Commercial Bank of Ethiopia (CBE)**
+
+### 🇨🇴 Colombia (1 bank) - COP $
+- **Bancolombia**
 
 More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md)
 

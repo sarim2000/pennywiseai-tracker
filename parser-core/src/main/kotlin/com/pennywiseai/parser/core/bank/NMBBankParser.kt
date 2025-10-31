@@ -149,10 +149,11 @@ class NMBBankParser : BankParser() {
             val part1 = match.groupValues[1]
             val part2 = match.groupValues[2]
             val combined = part1 + part2
+            // Pad with leading zeros if needed to get 4 digits
             return if (combined.length >= 4) {
                 combined.takeLast(4)
             } else {
-                combined
+                combined.padStart(4, '0')
             }
         }
 

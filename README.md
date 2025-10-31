@@ -52,7 +52,7 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ## Supported Banks & Countries
 
-Supporting **44+ banks** across **9 countries** with **multi-currency** capabilities:
+Supporting **45+ banks** across **9 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (34 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -79,8 +79,8 @@ Supporting **44+ banks** across **9 countries** with **multi-currency** capabili
 ### 🇧🇾 Belarus (1 bank) - BYN Br
 - **Priorbank** - Russian/Belarusian SMS support
 
-### 🇳🇵 Nepal (2 banks) - NPR ₨
-- **Laxmi Sunrise Bank**, **Everest Bank**
+### 🇳🇵 Nepal (3 banks) - NPR ₨
+- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**
 
 ### 🇪🇹 Ethiopia (1 bank) - ETB ብር
 - **Commercial Bank of Ethiopia (CBE)**

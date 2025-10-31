@@ -115,6 +115,44 @@ SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
                     accountLast4 = "7441",
                     isFromCard = true
                 )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - BPCL Petrol",
+                message = """Spent INR 500
+Axis Bank Card no. XX6018
+22-09-25 09:03:41 IST
+BPCL ARUNAA
+Avl Limit: INR 17131.47
+Not you? SMS BLOCK 6018 to 919951860002""",
+                sender = "CP-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "BPCL ARUNAA",
+                    accountLast4 = "6018",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - JSK Fuel Station",
+                message = """Spent INR 500
+Axis Bank Card no. XX6018
+13-09-25 13:08:07 IST
+JSK FUEL ST
+Avl Limit: INR 6826.78
+Not you? SMS BLOCK 6018 to 919951860002""",
+                sender = "JX-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "JSK FUEL ST",
+                    accountLast4 = "6018",
+                    isFromCard = true
+                )
             )
         )
 

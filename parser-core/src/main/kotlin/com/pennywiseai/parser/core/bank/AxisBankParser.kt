@@ -74,17 +74,38 @@ class AxisBankParser : BankParser() {
     
     override fun extractMerchant(message: String, sender: String): String? {
         // Credit card "Spent" transactions with merchant on separate line
-        // Example: "Spent INR 131\nAxis Bank Card no. XX0818\n05-10-25 09:43:27 IST\nSwiggy Limi\nAvl Limit:"
-        val spentPattern = Regex(
-            """Spent\s+INR[\s\S]*?IST\s*\n\s*([^\n]+?)(?:\s*\n|\s*Avl Limit:|\s*Not you?)""",
+        // Format 1: "Spent INR 131\nAxis Bank Card no. XX0818\n05-10-25 09:43:27 IST\nSwiggy Limi\nAvl Limit:"
+        // Format 2: "Spent\nCard no. XX7441\nINR 562\n01-09-25 12:04:18\nAVENUE SUPE\nAvl Lmt"
+        val spentPatternWithIST = Regex(
+            """Spent[\s\S]*?IST\s*\n\s*([^\n]+?)(?:\s*\n|\s*Avl Limit:|\s*Avl Lmt|\s*Not you?)""",
             RegexOption.IGNORE_CASE
         )
-        spentPattern.find(message)?.let { match ->
+        spentPatternWithIST.find(message)?.let { match ->
             var merchant = match.groupValues[1].trim()
 
             // Clean up truncated merchant names by removing common truncation patterns
             merchant = merchant.replace(Regex("""\s+Limi$"""), "")  // "Swiggy Limi" -> "Swiggy"
             merchant = merchant.replace(Regex("""\s+Pay$"""), "")   // "Amazon Pay" -> "Amazon"
+            merchant = merchant.replace(Regex("""\s+SUPE$"""), "")  // "AVENUE SUPE" -> "AVENUE"
+
+            merchant = cleanMerchantName(merchant)
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Alternative pattern without IST (for formats that use different time formats)
+        val spentPatternWithTime = Regex(
+            """Spent[\s\S]*?\d{2}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*\n\s*([^\n]+?)(?:\s*\n|\s*Avl Limit:|\s*Avl Lmt|\s*Not you?)""",
+            RegexOption.IGNORE_CASE
+        )
+        spentPatternWithTime.find(message)?.let { match ->
+            var merchant = match.groupValues[1].trim()
+
+            // Clean up truncated merchant names
+            merchant = merchant.replace(Regex("""\s+Limi$"""), "")
+            merchant = merchant.replace(Regex("""\s+Pay$"""), "")
+            merchant = merchant.replace(Regex("""\s+SUPE$"""), "")
 
             merchant = cleanMerchantName(merchant)
             if (isValidMerchantName(merchant)) {

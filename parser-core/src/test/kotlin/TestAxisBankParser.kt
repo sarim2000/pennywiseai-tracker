@@ -56,6 +56,65 @@ Not you? SMS BLOCK 5678 to 919951860002""",
                     accountLast4 = "5678",
                     isFromCard = true
                 )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - Avenue Supermarts (format 2)",
+                message = """Spent
+Card no. XX7441
+INR 562
+01-09-25 12:04:18
+AVENUE SUPE
+Avl Lmt INR 5120.87
+SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
+                sender = "CP-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("562"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "AVENUE",  // cleanMerchantName converts ALL_CAPS -> Proper Case, but single words stay uppercase
+                    accountLast4 = "7441",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - Blinkit (Format 1 with IST)",
+                message = """Spent INR 174
+Axis Bank Card no. XX7441
+13-09-25 21:35:56 IST
+Blinkit
+Avl Limit: INR 6652.78
+Not you? SMS BLOCK 7441 to 919951860002""",
+                sender = "JX-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("174"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Blinkit",
+                    accountLast4 = "7441",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - Blinkit (Format 2 without IST)",
+                message = """Spent
+Card no. XX7441
+INR 207
+01-09-25 14:10:35
+Blinkit
+Avl Lmt INR 4632.87
+SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
+                sender = "AX-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("207"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Blinkit",
+                    accountLast4 = "7441",
+                    isFromCard = true
+                )
             )
         )
 

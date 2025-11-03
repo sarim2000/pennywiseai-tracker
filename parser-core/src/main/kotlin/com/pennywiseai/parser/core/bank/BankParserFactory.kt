@@ -56,6 +56,7 @@ object BankParserFactory {
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)
         CharlesSchwabParser(),  // Charles Schwab (USA)
+        NavyFederalParser(),  // Navy Federal Credit Union (USA)
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)

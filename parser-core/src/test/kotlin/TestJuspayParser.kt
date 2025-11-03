@@ -109,6 +109,39 @@ class JuspayParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Amazon"
                 )
+            ),
+            ParserTestCase(
+                name = "Generic merchant transaction (new format)",
+                message = "Payment of Rs 500 using Apay Balance successful at merchant. Updated Balance is Rs 1500 - SMS by Juspay",
+                sender = "JUSPAY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "merchant"
+                )
+            ),
+            ParserTestCase(
+                name = "Multi-word merchant name",
+                message = "Payment of Rs 750 using Apay Balance successful at Big Bazaar. Updated Balance is Rs 2500 - SMS by Juspay",
+                sender = "JUSPAY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("750"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Big Bazaar"
+                )
+            ),
+            ParserTestCase(
+                name = "Merchant name with special characters",
+                message = "Payment of Rs 1200 using Apay Balance successful at D'Mart Store. Updated Balance is Rs 3500 - SMS by Juspay",
+                sender = "APAY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1200"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "D'Mart Store"
+                )
             )
         )
 

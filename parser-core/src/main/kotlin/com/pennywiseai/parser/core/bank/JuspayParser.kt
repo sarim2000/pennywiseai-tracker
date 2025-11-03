@@ -68,10 +68,11 @@ class JuspayParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         val lowerMessage = message.lowercase()
 
-        // Pattern 1: "successful at merchant"
-        val merchantPattern = Regex("""successful\s+at\s+([^.\s]+)""", RegexOption.IGNORE_CASE)
+        // Pattern 1: "successful at merchant" - improved to capture multi-word merchants
+        // Captures everything between "successful at" and the period or "Updated Balance"
+        val merchantPattern = Regex("""successful\s+at\s+(.+?)(?:\.\s*Updated|\s*\.\s*Updated|\.(?:\s|$))""", RegexOption.IGNORE_CASE)
         merchantPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return match.groupValues[1].trim()
         }
 
         // Pattern 2: Common merchant indicators

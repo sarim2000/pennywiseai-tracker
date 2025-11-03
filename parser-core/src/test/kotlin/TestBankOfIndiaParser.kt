@@ -34,6 +34,21 @@ class BankOfIndiaParserTest {
                 )
             ),
 
+            // Cash deposit via Cash Acceptor Machine - variant
+            ParserTestCase(
+                name = "Cash Deposit at MAIN ROAD",
+                message = "BOI -  Cash Rs. 500 deposited in your account XX5468 from Cash Acceptor Machine R0807030 at  MAIN ROAD ON 14-10-2025. Available balance Rs. 15000.50",
+                sender = "BOIIND",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = "Cash Deposit",
+                    accountLast4 = "5468",
+                    balance = BigDecimal("15000.50")
+                )
+            ),
+
             // UPI debit transaction
             ParserTestCase(
                 name = "UPI Debit Transaction",

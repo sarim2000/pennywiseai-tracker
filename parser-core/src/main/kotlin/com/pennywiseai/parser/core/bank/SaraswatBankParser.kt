@@ -90,11 +90,11 @@ class SaraswatBankParser : BankParser() {
         }
 
         // Pattern 2: "for S.I." or "for NEFT" etc.
-        val forPattern = Regex("""for\s+([A-Z.]+)(?:\.\s*Current|\s*Current|$)""", RegexOption.IGNORE_CASE)
+        val forPattern = Regex("""for\s+([A-Z.]+?)(?:\.\s+Current|\s+Current|$)""", RegexOption.IGNORE_CASE)
         forPattern.find(message)?.let { match ->
-            val merchant = match.groupValues[1].trim()
+            val merchant = match.groupValues[1].trim().removeSuffix(".")
             return when (merchant.uppercase()) {
-                "S.I." -> "Standing Instruction"
+                "S.I" -> "Standing Instruction"
                 "SI" -> "Standing Instruction"
                 "NEFT" -> "NEFT Transfer"
                 "RTGS" -> "RTGS Transfer"

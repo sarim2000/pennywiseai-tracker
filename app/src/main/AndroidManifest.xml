@@ -4,7 +4,10 @@
 
     <!-- SMS Permission for reading transaction messages -->
     <uses-permission android:name="android.permission.READ_SMS" />
-    
+
+    <!-- Telephony hardware feature (optional for ChromeOS compatibility) -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <!-- Internet permission for downloading AI model -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -23,8 +26,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Pennywisecompose"
-        tools:replace="android:allowBackup">
+        android:theme="@style/Theme.Pennywisecompose">
         <activity
             android:name=".MainActivity"
             android:exported="true"

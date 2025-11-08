@@ -35,7 +35,12 @@ class UserPreferencesRepository @Inject constructor(
         val LAST_SCAN_TIMESTAMP = longPreferencesKey("last_scan_timestamp")
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
-        
+
+        // App Lock preferences
+        val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
+        val APP_LOCK_TIMEOUT_MINUTES = intPreferencesKey("app_lock_timeout_minutes")
+        val LAST_AUTH_TIMESTAMP = longPreferencesKey("last_auth_timestamp")
+
         // In-App Review preferences
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val HAS_SHOWN_REVIEW_PROMPT = booleanPreferencesKey("has_shown_review_prompt")
@@ -256,6 +261,76 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] = timestamp
         }
     }
+
+    // App Lock methods
+    val isAppLockEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_ENABLED] ?: false
+        }
+
+    suspend fun setAppLockEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Atomically updates both app lock enabled state and authentication timestamp.
+     * This prevents race conditions where the flow sees enabled=true but timestamp=0.
+     */
+    suspend fun setAppLockEnabledWithTimestamp(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
+            if (enabled) {
+                preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
+            }
+        }
+    }
+
+    val appLockTimeoutMinutes: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1 // Default to 1 minute
+        }
+
+    suspend fun setAppLockTimeoutMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] = minutes
+        }
+    }
+
+    /**
+     * Atomically updates timeout and authentication timestamp.
+     * This prevents immediate lock when changing timeout by resetting the auth time.
+     */
+    suspend fun setAppLockTimeoutWithTimestamp(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] = minutes
+            preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
+        }
+    }
+
+    suspend fun getAppLockTimeoutMinutes(): Int {
+        return context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1 }
+            .first()
+    }
+
+    suspend fun setLastAuthTimestamp(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun getLastAuthTimestamp(): Long {
+        return context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L }
+            .first()
+    }
+
+    fun getLastAuthTimestampFlow(): Flow<Long> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L
+        }
 }
 
 data class UserPreferences(

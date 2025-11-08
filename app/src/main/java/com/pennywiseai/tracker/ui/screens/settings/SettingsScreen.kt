@@ -46,9 +46,11 @@ fun SettingsScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
-    settingsViewModel: SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
+    val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val downloadState by settingsViewModel.downloadState.collectAsStateWithLifecycle()
     val downloadProgress by settingsViewModel.downloadProgress.collectAsStateWithLifecycle()
     val downloadedMB by settingsViewModel.downloadedMB.collectAsStateWithLifecycle()
@@ -60,6 +62,7 @@ fun SettingsScreen(
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     var showSmsScanDialog by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
+    var showTimeoutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
     // File picker for import
@@ -138,7 +141,91 @@ fun SettingsScreen(
                 }
             }
         }
-        
+
+        // Security Section
+        SectionHeader(title = "Security")
+
+        PennyWiseCard(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                // App Lock Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "App Lock",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (appLockUiState.canUseBiometric) {
+                                "Protect your data with biometric authentication"
+                            } else {
+                                appLockUiState.biometricCapability.getErrorMessage()
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (appLockUiState.canUseBiometric) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
+                        )
+                    }
+                    Switch(
+                        checked = appLockUiState.isLockEnabled,
+                        onCheckedChange = { enabled ->
+                            appLockViewModel.setAppLockEnabled(enabled)
+                        },
+                        enabled = appLockUiState.canUseBiometric
+                    )
+                }
+
+                // Lock Timeout Setting (only show if app lock is enabled)
+                AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
+                    Column {
+                        Divider()
+                        Spacer(modifier = Modifier.height(Spacing.md))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showTimeoutDialog = true },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Lock Timeout",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = when (appLockUiState.timeoutMinutes) {
+                                        0 -> "Lock immediately when app goes to background"
+                                        1 -> "Lock after 1 minute in background"
+                                        else -> "Lock after ${appLockUiState.timeoutMinutes} minutes in background"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Data Management Section
         SectionHeader(title = "Data Management")
         
@@ -875,6 +962,63 @@ fun SettingsScreen(
                     }
                 ) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Lock Timeout Dialog
+    if (showTimeoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showTimeoutDialog = false },
+            title = { Text("Lock Timeout") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Text(
+                        text = "Choose when to lock the app after it goes to background",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.md))
+
+                    val timeoutOptions = listOf(
+                        0 to "Immediately",
+                        1 to "1 minute",
+                        5 to "5 minutes",
+                        15 to "15 minutes"
+                    )
+
+                    timeoutOptions.forEach { (minutes, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    appLockViewModel.setTimeoutMinutes(minutes)
+                                    showTimeoutDialog = false
+                                }
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = appLockUiState.timeoutMinutes == minutes,
+                                onClick = {
+                                    appLockViewModel.setTimeoutMinutes(minutes)
+                                    showTimeoutDialog = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTimeoutDialog = false }) {
+                    Text("Done")
                 }
             }
         )

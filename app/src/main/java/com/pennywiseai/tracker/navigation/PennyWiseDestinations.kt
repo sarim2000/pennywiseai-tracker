@@ -4,6 +4,9 @@ import kotlinx.serialization.Serializable
 
 // Define navigation destinations using Kotlin Serialization
 @Serializable
+object AppLock
+
+@Serializable
 object Permission
 
 @Serializable

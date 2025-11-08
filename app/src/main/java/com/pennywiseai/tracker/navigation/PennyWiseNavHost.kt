@@ -34,6 +34,20 @@ fun PennyWiseNavHost(
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
     ) {
+        composable<AppLock>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.ui.screens.AppLockScreen(
+                onUnlocked = {
+                    navController.navigate(Home) {
+                        popUpTo(AppLock) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable<Permission>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },

@@ -186,7 +186,10 @@ dependencies {
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
-    
+
+    // Biometric Authentication
+    implementation(libs.androidx.biometric)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

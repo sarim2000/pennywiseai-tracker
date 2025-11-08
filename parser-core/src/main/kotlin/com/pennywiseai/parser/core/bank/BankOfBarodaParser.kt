@@ -41,8 +41,22 @@ class BankOfBarodaParser : BankParser() {
                 null
             }
         }
-        
-        // Pattern 1: Rs.80.00 Dr. from
+
+        // Pattern 1: Rs.XX transferred from A/c (Transfer pattern)
+        val transferPattern = Regex(
+            """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+transferred\s+from""",
+            RegexOption.IGNORE_CASE
+        )
+        transferPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 2: Rs.80.00 Dr. from
         val drPattern = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+Dr\.?\s+from""",
             RegexOption.IGNORE_CASE
@@ -56,7 +70,7 @@ class BankOfBarodaParser : BankParser() {
             }
         }
         
-        // Pattern 2: credited with INR 70.00
+        // Pattern 3: credited with INR 70.00
         val creditPattern = Regex(
             """credited\s+with\s+INR\s+([\d,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -69,8 +83,8 @@ class BankOfBarodaParser : BankParser() {
                 null
             }
         }
-        
-        // Pattern 3: Rs.xxxxxx Credited to
+
+        // Pattern 4: Rs.xxxxxx Credited to
         val creditPattern2 = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+Credited\s+to""",
             RegexOption.IGNORE_CASE
@@ -83,8 +97,8 @@ class BankOfBarodaParser : BankParser() {
                 null
             }
         }
-        
-        // Pattern 4: Cr. to redacted@ybl (UPI)
+
+        // Pattern 5: Cr. to redacted@ybl (UPI)
         val crPattern = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+.*?Cr\.?\s+to""",
             RegexOption.IGNORE_CASE
@@ -97,8 +111,8 @@ class BankOfBarodaParser : BankParser() {
                 null
             }
         }
-        
-        // Pattern 5: Rs.xxxxx deposited in cash
+
+        // Pattern 6: Rs.xxxxx deposited in cash
         val cashDepositPattern = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+deposited\s+in\s+cash""",
             RegexOption.IGNORE_CASE
@@ -117,7 +131,21 @@ class BankOfBarodaParser : BankParser() {
     }
     
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: Cr. to redacted@ybl (UPI VPA)
+        // Pattern 1: transferred from A/c to:Merchant Name (Transfer pattern)
+        val transferToPattern = Regex(
+            """transferred\s+from\s+A/c\s+[^\s]+\s+to:\s*([^.]+?)(?:\.|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        transferToPattern.find(message)?.let { match ->
+            val merchantRaw = match.groupValues[1].trim()
+            // Clean up the merchant name (remove "Total Bal" and everything after if present)
+            val merchant = merchantRaw.split(Regex("""\s+Total\s+Bal""", RegexOption.IGNORE_CASE))[0].trim()
+            if (isValidMerchantName(merchant)) {
+                return cleanMerchantName(merchant)
+            }
+        }
+
+        // Pattern 2: Cr. to redacted@ybl (UPI VPA)
         val upiPattern = Regex(
             """Cr\.?\s+to\s+([^\s]+@[^\s.]+)""",
             RegexOption.IGNORE_CASE
@@ -133,7 +161,7 @@ class BankOfBarodaParser : BankParser() {
             }
         }
         
-        // Pattern 2: IMPS by Name of Person
+        // Pattern 3: IMPS by Name of Person
         val impsPattern = Regex(
             """IMPS/[\d]+\s+by\s+([^.]+?)(?:\s*\.|$)""",
             RegexOption.IGNORE_CASE
@@ -144,8 +172,8 @@ class BankOfBarodaParser : BankParser() {
                 return merchant
             }
         }
-        
-        // Pattern 3: For UPI credits, extract from context
+
+        // Pattern 4: For UPI credits, extract from context
         if (message.contains("UPI", ignoreCase = true)) {
             if (message.contains("credited", ignoreCase = true)) {
                 return "UPI Credit"
@@ -153,13 +181,13 @@ class BankOfBarodaParser : BankParser() {
                 return "UPI Payment"
             }
         }
-        
-        // Pattern 4: For IMPS without clear merchant
+
+        // Pattern 5: For IMPS without clear merchant
         if (message.contains("IMPS", ignoreCase = true)) {
             return "IMPS Transfer"
         }
-        
-        // Pattern 5: Cash deposit
+
+        // Pattern 6: Cash deposit
         if (message.contains("deposited in cash", ignoreCase = true)) {
             return "Cash Deposit"
         }
@@ -280,14 +308,18 @@ class BankOfBarodaParser : BankParser() {
     
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         return when {
             // Credit card transactions - BOBCARD
             lowerMessage.contains("spent on your bobcard") -> TransactionType.CREDIT
             lowerMessage.contains("bobcard") && lowerMessage.contains("spent") -> TransactionType.CREDIT
             lowerMessage.contains("bobcard") && lowerMessage.contains("is spent") -> TransactionType.CREDIT
-            
+
+            // Debit/Expense patterns
+            lowerMessage.contains("transferred from") -> TransactionType.EXPENSE
             lowerMessage.contains("dr.") || lowerMessage.contains("debited") -> TransactionType.EXPENSE
+
+            // Credit/Income patterns
             lowerMessage.contains("cr.") || lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
             else -> super.extractTransactionType(message)
@@ -315,17 +347,18 @@ class BankOfBarodaParser : BankParser() {
     
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Check for BOB-specific transaction keywords
-        if (lowerMessage.contains("dr. from") || 
+        if (lowerMessage.contains("dr. from") ||
             lowerMessage.contains("cr. to") ||
             lowerMessage.contains("credited to a/c") ||
             lowerMessage.contains("credited with inr") ||
             lowerMessage.contains("deposited in cash") ||
+            lowerMessage.contains("transferred from") ||  // Transfer transactions
             lowerMessage.contains("is spent")) {  // Credit card transactions
             return true
         }
-        
+
         return super.isTransactionMessage(message)
     }
 }

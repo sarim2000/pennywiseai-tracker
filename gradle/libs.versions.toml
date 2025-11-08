@@ -2,8 +2,9 @@
 agp = "8.13.0"
 appUpdate = "2.1.0"
 appUpdateKtx = "2.1.0"
+biometric = "1.1.0"
 colorpickerCompose = "1.1.2"
-coreSplashscreen = "1.0.1"
+coreSplashscreen = "1.2.0-rc01"
 datastorePreferences = "1.1.7"
 gson = "2.13.2"
 hiltAndroid = "2.57.2"
@@ -34,6 +35,7 @@ visionInternalVkp = "18.2.3"
 workVersion = "2.10.5"
 
 [libraries]
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }

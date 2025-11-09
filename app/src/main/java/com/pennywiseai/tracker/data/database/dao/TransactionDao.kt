@@ -16,14 +16,39 @@ interface TransactionDao {
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
     
     @Query("""
-        SELECT * FROM transactions 
-        WHERE is_deleted = 0 
-        AND date_time BETWEEN :startDate AND :endDate 
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND date_time BETWEEN :startDate AND :endDate
         ORDER BY date_time DESC
     """)
     fun getTransactionsBetweenDates(
         startDate: LocalDateTime,
         endDate: LocalDateTime
+    ): Flow<List<TransactionEntity>>
+
+    /**
+     * Optimized query that filters transactions at the database level.
+     * Combines date range, currency, and transaction type filters to reduce memory usage.
+     *
+     * @param startDate Start of the date range (inclusive)
+     * @param endDate End of the date range (inclusive)
+     * @param currency Currency code to filter by (e.g., "INR", "USD")
+     * @param transactionType Optional transaction type filter (null means all types)
+     * @return Flow of filtered transactions ordered by date descending
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND date_time BETWEEN :startDate AND :endDate
+        AND currency = :currency
+        AND (:transactionType IS NULL OR transaction_type = :transactionType)
+        ORDER BY date_time DESC
+    """)
+    fun getTransactionsFiltered(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        currency: String,
+        transactionType: TransactionType?
     ): Flow<List<TransactionEntity>>
     
     @Query("""

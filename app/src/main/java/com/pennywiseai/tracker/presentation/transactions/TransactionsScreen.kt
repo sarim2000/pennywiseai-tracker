@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.CollapsibleFilterRow
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.DateRangeUtils
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -75,12 +76,14 @@ fun TransactionsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val sortOption by viewModel.sortOption.collectAsState()
     val smsScanMonths by viewModel.smsScanMonths.collectAsState()
-    
+    val customDateRange by viewModel.customDateRange.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
     var showAdvancedFilters by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showDateRangePicker by remember { mutableStateOf(false) }
     
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -91,10 +94,16 @@ fun TransactionsScreen(
         transactionTypeFilter != TransactionTypeFilter.ALL,
         categoryFilter != null
     ).count { it }
-    
+
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()
+    }
+
+    // Cache expensive operations
+    val timePeriods = remember { TimePeriod.values().toList() }
+    val customRangeLabel = remember(customDateRange) {
+        DateRangeUtils.formatDateRange(customDateRange)
     }
     
     // Apply initial filters only once when screen is first created
@@ -264,11 +273,31 @@ fun TransactionsScreen(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             // Period filter chips
-            items(TimePeriod.values().toList()) { period ->
+            items(timePeriods) { period ->
                 FilterChip(
-                    selected = selectedPeriod == period,
-                    onClick = { viewModel.selectPeriod(period) },
-                    label = { Text(period.label) },
+                    // Only show CUSTOM as selected if both period is CUSTOM AND dates are set
+                    selected = if (period == TimePeriod.CUSTOM) {
+                        selectedPeriod == period && customDateRange != null
+                    } else {
+                        selectedPeriod == period
+                    },
+                    onClick = {
+                        if (period == TimePeriod.CUSTOM) {
+                            showDateRangePicker = true
+                            // Don't change selectedPeriod until user confirms dates
+                        } else {
+                            viewModel.selectPeriod(period)
+                        }
+                    },
+                    label = {
+                        Text(
+                            if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
+                                customRangeLabel
+                            } else {
+                                period.label
+                            }
+                        )
+                    },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -515,6 +544,18 @@ fun TransactionsScreen(
         ExportTransactionsDialog(
             transactions = uiState.transactions,
             onDismiss = { showExportDialog = false }
+        )
+    }
+
+    if (showDateRangePicker) {
+        CustomDateRangePickerDialog(
+            onDismiss = { showDateRangePicker = false },
+            onConfirm = { startDate, endDate ->
+                viewModel.setCustomDateRange(startDate, endDate)
+                showDateRangePicker = false
+            },
+            initialStartDate = customDateRange?.first,
+            initialEndDate = customDateRange?.second
         )
     }
 }

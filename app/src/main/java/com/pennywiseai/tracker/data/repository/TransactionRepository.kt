@@ -32,10 +32,33 @@ class TransactionRepository @Inject constructor(
     fun getTransactionsBetweenDates(
         startDate: LocalDate,
         endDate: LocalDate
-    ): Flow<List<TransactionEntity>> = 
+    ): Flow<List<TransactionEntity>> =
         transactionDao.getTransactionsBetweenDates(
             startDate.atStartOfDay(),
             endDate.atTime(23, 59, 59)
+        )
+
+    /**
+     * Gets transactions filtered at the database level for better performance.
+     * Combines date range, currency, and transaction type filters to reduce memory usage.
+     *
+     * @param startDate Start of the date range (inclusive)
+     * @param endDate End of the date range (inclusive)
+     * @param currency Currency code to filter by (e.g., "INR", "USD")
+     * @param transactionType Optional transaction type filter (null means all types)
+     * @return Flow of filtered transactions
+     */
+    fun getTransactionsFiltered(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        currency: String,
+        transactionType: TransactionType? = null
+    ): Flow<List<TransactionEntity>> =
+        transactionDao.getTransactionsFiltered(
+            startDate.atStartOfDay(),
+            endDate.atTime(23, 59, 59),
+            currency,
+            transactionType
         )
     
     fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>> = 

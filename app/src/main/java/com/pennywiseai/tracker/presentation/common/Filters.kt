@@ -7,7 +7,8 @@ enum class TimePeriod(val label: String) {
     THIS_MONTH("This Month"),
     LAST_MONTH("Last Month"),
     CURRENT_FY("Current FY"),
-    ALL("All Time")
+    ALL("All Time"),
+    CUSTOM("Custom Range")
 }
 
 enum class TransactionTypeFilter(val label: String) {
@@ -19,7 +20,7 @@ enum class TransactionTypeFilter(val label: String) {
     INVESTMENT("Investment")
 }
 
-fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate> {
+fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate>? {
     val today = LocalDate.now()
     return when (period) {
         TimePeriod.THIS_MONTH -> {
@@ -47,6 +48,10 @@ fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate> {
             // Use a reasonable date range for "All Time" - 10 years back to today
             val start = today.minusYears(10)
             start to today
+        }
+        TimePeriod.CUSTOM -> {
+            // Custom range is handled separately in ViewModel
+            null
         }
     }
 }

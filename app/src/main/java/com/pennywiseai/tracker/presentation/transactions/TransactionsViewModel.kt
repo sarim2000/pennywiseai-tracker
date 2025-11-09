@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -30,6 +31,7 @@ class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
+    private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -51,6 +53,23 @@ class TransactionsViewModel @Inject constructor(
     private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
 
+    // Store custom date range as epoch days to survive process death
+    // Stored as Pair<Long, Long> (startEpochDay, endEpochDay) in SavedStateHandle
+    private val _customDateRangeEpochDays = savedStateHandle.getStateFlow<Pair<Long, Long>?>("customDateRange", null)
+
+    // Expose as LocalDate pair for convenience
+    val customDateRange: StateFlow<Pair<LocalDate, LocalDate>?> = _customDateRangeEpochDays
+        .map { epochDays ->
+            epochDays?.let { (startEpochDay, endEpochDay) ->
+                LocalDate.ofEpochDay(startEpochDay) to LocalDate.ofEpochDay(endEpochDay)
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
+
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
     
@@ -58,14 +77,26 @@ class TransactionsViewModel @Inject constructor(
     val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
     // Available currencies for the selected time period
-    val availableCurrencies: StateFlow<List<String>> = selectedPeriod.flatMapLatest { period ->
+    val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange) { period, customRange ->
+        period to customRange
+    }.flatMapLatest { (period, customRange) ->
         if (period == TimePeriod.ALL) {
             transactionRepository.getAllCurrencies()
-        } else {
-            val (startDate, endDate) = getDateRangeForPeriod(period)
+        } else if (period == TimePeriod.CUSTOM && customRange != null) {
+            val (startDate, endDate) = customRange
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
+        } else {
+            val dateRange = getDateRangeForPeriod(period)
+            if (dateRange != null) {
+                val (startDate, endDate) = dateRange
+                val startDateTime = startDate.atStartOfDay()
+                val endDateTime = endDate.atTime(23, 59, 59)
+                transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
+            } else {
+                transactionRepository.getAllCurrencies()
+            }
         }
     }
         .map { currencies ->
@@ -132,14 +163,30 @@ class TransactionsViewModel @Inject constructor(
     fun isShowingLimitedData(): Boolean {
         val currentPeriod = _selectedPeriod.value
         val scanMonthsValue = smsScanMonths.value
-        
+
         return when (currentPeriod) {
             TimePeriod.ALL -> true  // Always show for "All Time"
             TimePeriod.CURRENT_FY -> {
                 // Check if FY start is before scan period
-                val (fyStart, _) = getDateRangeForPeriod(TimePeriod.CURRENT_FY)
-                val scanStart = LocalDate.now().minusMonths(scanMonthsValue.toLong())
-                fyStart.isBefore(scanStart)
+                val dateRange = getDateRangeForPeriod(TimePeriod.CURRENT_FY)
+                if (dateRange != null) {
+                    val (fyStart, _) = dateRange
+                    val scanStart = LocalDate.now().minusMonths(scanMonthsValue.toLong())
+                    fyStart.isBefore(scanStart)
+                } else {
+                    false
+                }
+            }
+            TimePeriod.CUSTOM -> {
+                // Check if custom range start is before scan period
+                val customRange = customDateRange.value
+                if (customRange != null) {
+                    val (startDate, _) = customRange
+                    val scanStart = LocalDate.now().minusMonths(scanMonthsValue.toLong())
+                    startDate.isBefore(scanStart)
+                } else {
+                    false
+                }
             }
             else -> false
         }
@@ -153,7 +200,8 @@ class TransactionsViewModel @Inject constructor(
             categoryFilter.map { "category" },
             transactionTypeFilter.map { "typeFilter" },
             selectedCurrency.map { "currency" },
-            sortOption.map { "sort" }
+            sortOption.map { "sort" },
+            customDateRange.map { "customDate" }
         )
             .transformLatest { trigger ->
                 // Get current values from all StateFlows
@@ -220,7 +268,36 @@ class TransactionsViewModel @Inject constructor(
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
     }
-    
+
+    /**
+     * Sets a custom date range filter and switches the period to CUSTOM.
+     * Date range is persisted in SavedStateHandle to survive process death.
+     *
+     * @param startDate The start date (inclusive)
+     * @param endDate The end date (inclusive)
+     * @throws IllegalArgumentException if startDate > endDate
+     */
+    fun setCustomDateRange(startDate: LocalDate, endDate: LocalDate) {
+        require(startDate <= endDate) {
+            "Start date ($startDate) must be before or equal to end date ($endDate)"
+        }
+        // Store as epoch days for process death survival
+        savedStateHandle["customDateRange"] = startDate.toEpochDay() to endDate.toEpochDay()
+        _selectedPeriod.value = TimePeriod.CUSTOM
+    }
+
+    /**
+     * Clears the custom date range and resets to THIS_MONTH period.
+     * Always safe to call - ensures we never have CUSTOM period with null dates.
+     */
+    fun clearCustomDateRange() {
+        savedStateHandle["customDateRange"] = null
+        // Always reset to a valid period to prevent CUSTOM with null dates
+        if (_selectedPeriod.value == TimePeriod.CUSTOM) {
+            _selectedPeriod.value = TimePeriod.THIS_MONTH
+        }
+    }
+
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             _deletedTransaction.value = transaction
@@ -251,6 +328,7 @@ class TransactionsViewModel @Inject constructor(
         hasAppliedInitialFilters = false
         clearCategoryFilter()
         updateSearchQuery("")
+        clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         setSortOption(SortOption.DATE_NEWEST)
@@ -362,13 +440,43 @@ class TransactionsViewModel @Inject constructor(
         // Apply period filter
         val periodFilteredFlow = when (period) {
             TimePeriod.ALL -> baseFlow
+            TimePeriod.CUSTOM -> {
+                val customRange = customDateRange.value
+                // Guard against invalid state: CUSTOM period must have a date range
+                // This should never happen due to clearCustomDateRange() logic, but be defensive
+                if (customRange == null) {
+                    android.util.Log.e("TransactionsViewModel",
+                        "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
+                    // Auto-correct the invalid state
+                    _selectedPeriod.value = TimePeriod.THIS_MONTH
+                    val (startDate, endDate) = getDateRangeForPeriod(TimePeriod.THIS_MONTH)!!
+                    val startDateTime = startDate.atStartOfDay()
+                    val endDateTime = endDate.atTime(23, 59, 59)
+                    baseFlow.map { transactions ->
+                        transactions.filter { it.dateTime in startDateTime..endDateTime }
+                    }
+                } else {
+                    val (startDate, endDate) = customRange
+                    val startDateTime = startDate.atStartOfDay()
+                    val endDateTime = endDate.atTime(23, 59, 59)
+
+                    baseFlow.map { transactions ->
+                        transactions.filter { it.dateTime in startDateTime..endDateTime }
+                    }
+                }
+            }
             else -> {
-                val (startDate, endDate) = getDateRangeForPeriod(period)
-                val startDateTime = startDate.atStartOfDay()
-                val endDateTime = endDate.atTime(23, 59, 59)
-                
-                baseFlow.map { transactions ->
-                    transactions.filter { it.dateTime in startDateTime..endDateTime }
+                val dateRange = getDateRangeForPeriod(period)
+                if (dateRange != null) {
+                    val (startDate, endDate) = dateRange
+                    val startDateTime = startDate.atStartOfDay()
+                    val endDateTime = endDate.atTime(23, 59, 59)
+
+                    baseFlow.map { transactions ->
+                        transactions.filter { it.dateTime in startDateTime..endDateTime }
+                    }
+                } else {
+                    baseFlow
                 }
             }
         }
@@ -495,13 +603,10 @@ class TransactionsViewModel @Inject constructor(
 
         // Note: availableCurrencies are now provided by the separate availableCurrencies StateFlow
         // We'll keep the old behavior for compatibility but the UI should use availableCurrencies property
-        val filteredAvailableCurrencies = totalsByCurrency.keys.toList().sortedWith { a, b ->
-            when {
-                a == "INR" -> -1 // INR first
-                b == "INR" -> 1
-                else -> a.compareTo(b) // Alphabetical for others
-            }
-        }
+        // Use standard currency sorting (INR first, then alphabetical)
+        val filteredAvailableCurrencies = CurrencyUtils.sortCurrencies(
+            totalsByCurrency.keys.toList()
+        )
 
         return CurrencyGroupedTotals(
             totalsByCurrency = totalsByCurrency,

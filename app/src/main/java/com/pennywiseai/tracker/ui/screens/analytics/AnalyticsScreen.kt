@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,10 +43,18 @@ fun AnalyticsScreen(
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
+    val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     var showAdvancedFilters by remember { mutableStateOf(false) }
-    
+    var showDateRangePicker by remember { mutableStateOf(false) }
+
     // Calculate active filter count
     val activeFilterCount = if (transactionTypeFilter != TransactionTypeFilter.EXPENSE) 1 else 0
+
+    // Cache expensive operations
+    val timePeriods = remember { TimePeriod.values().toList() }
+    val customRangeLabel = remember(customDateRange) {
+        DateRangeUtils.formatDateRange(customDateRange)
+    }
     
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
@@ -66,11 +75,31 @@ fun AnalyticsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                items(TimePeriod.values().toList()) { period ->
+                items(timePeriods) { period ->
                     FilterChip(
-                        selected = selectedPeriod == period,
-                        onClick = { viewModel.selectPeriod(period) },
-                        label = { Text(period.label) },
+                        // Only show CUSTOM as selected if both period is CUSTOM AND dates are set
+                        selected = if (period == TimePeriod.CUSTOM) {
+                            selectedPeriod == period && customDateRange != null
+                        } else {
+                            selectedPeriod == period
+                        },
+                        onClick = {
+                            if (period == TimePeriod.CUSTOM) {
+                                showDateRangePicker = true
+                                // Don't change selectedPeriod until user confirms dates
+                            } else {
+                                viewModel.selectPeriod(period)
+                            }
+                        },
+                        label = {
+                            Text(
+                                if (period == TimePeriod.CUSTOM && customRangeLabel != null) {
+                                    customRangeLabel
+                                } else {
+                                    period.label
+                                }
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -228,6 +257,18 @@ fun AnalyticsScreen(
 //            contentDescription = "Open AI Assistant"
 //        )
 //    }
+    }
+
+    if (showDateRangePicker) {
+        CustomDateRangePickerDialog(
+            onDismiss = { showDateRangePicker = false },
+            onConfirm = { startDate, endDate ->
+                viewModel.setCustomDateRange(startDate, endDate)
+                showDateRangePicker = false
+            },
+            initialStartDate = customDateRange?.first,
+            initialEndDate = customDateRange?.second
+        )
     }
 }
 

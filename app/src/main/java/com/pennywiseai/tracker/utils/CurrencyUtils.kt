@@ -60,4 +60,27 @@ object CurrencyUtils {
         }
         return formatter.format(amount)
     }
+
+    /**
+     * Sorts a list of currency codes with INR prioritized first, then alphabetically.
+     * This is the standard sorting for currency lists throughout the app.
+     *
+     * @param currencies List of currency codes to sort
+     * @return Sorted list with INR first (if present), then alphabetically
+     *
+     * Example:
+     * ```
+     * sortCurrencies(listOf("USD", "EUR", "INR", "GBP"))
+     * // Returns: ["INR", "EUR", "GBP", "USD"]
+     * ```
+     */
+    fun sortCurrencies(currencies: List<String>): List<String> {
+        return currencies.sortedWith { a, b ->
+            when {
+                a == "INR" -> -1 // INR first
+                b == "INR" -> 1
+                else -> a.compareTo(b) // Alphabetical for others
+            }
+        }
+    }
 }

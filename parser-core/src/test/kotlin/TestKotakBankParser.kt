@@ -99,6 +99,6 @@ class KotakBankParserTest {
             suiteName = "Kotak Bank Parser"
         )
 
-    
+
     }
 }

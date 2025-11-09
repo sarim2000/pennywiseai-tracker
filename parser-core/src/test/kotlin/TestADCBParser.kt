@@ -1,9 +1,8 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.test.ParserTestUtils
-import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ExpectedTransaction
-import org.junit.jupiter.api.Assertions.*
+import com.pennywiseai.parser.core.test.ParserTestCase
+import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
@@ -236,7 +235,7 @@ class ADCBParserTest {
                 )
             )
         )
-        
+
         val handleCases: List<Pair<String, Boolean>> = listOf(
             "ADCBAlert" to true,
             "ADCBBank" to true,
@@ -245,7 +244,8 @@ class ADCBParserTest {
             "SBI" to false,
             "" to false
         )
-        val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "ADCB Parser Tests")
-    
+        val result =
+            ParserTestUtils.runTestSuite(parser, testCases, handleCases, "ADCB Parser Tests")
+
     }
 }

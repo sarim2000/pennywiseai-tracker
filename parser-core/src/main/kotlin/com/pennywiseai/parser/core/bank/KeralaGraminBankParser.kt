@@ -22,8 +22,8 @@ class KeralaGraminBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("KGBANK") ||
-               normalizedSender.contains("KERALA GRAMIN") ||
-               normalizedSender.contains("KERALAGR")
+                normalizedSender.contains("KERALA GRAMIN") ||
+                normalizedSender.contains("KERALAGR")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -49,13 +49,15 @@ class KeralaGraminBankParser : BankParser() {
 
         // Debited = expense
         if (lowerMessage.contains("debited for") ||
-            lowerMessage.contains("is debited")) {
+            lowerMessage.contains("is debited")
+        ) {
             return TransactionType.EXPENSE
         }
 
         // Credited = income
         if (lowerMessage.contains("credited with") ||
-            lowerMessage.contains("is credited")) {
+            lowerMessage.contains("is credited")
+        ) {
             return TransactionType.INCOME
         }
 
@@ -66,7 +68,8 @@ class KeralaGraminBankParser : BankParser() {
         // Pattern 1: UPI debit - "credited to a/c no. XXXXX00019 (UPI Ref"
         // This is money sent via UPI
         if (message.contains("debited", ignoreCase = true) &&
-            message.contains("credited to", ignoreCase = true)) {
+            message.contains("credited to", ignoreCase = true)
+        ) {
             return "UPI Transfer"
         }
 
@@ -128,7 +131,8 @@ class KeralaGraminBankParser : BankParser() {
 
         // Skip OTP and promotional messages
         if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("password")) {
+            lowerMessage.contains("password")
+        ) {
             return false
         }
 

@@ -15,9 +15,9 @@ class DiscoverCardParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "DISCOVER" ||
-               upperSender.contains("DISCOVERCARD") ||
-               upperSender == "347268" ||  // DLT sender ID
-               upperSender.matches(Regex("""^[A-Z]{2}-DISCOVER-[A-Z]$"""))
+                upperSender.contains("DISCOVERCARD") ||
+                upperSender == "347268" ||  // DLT sender ID
+                upperSender.matches(Regex("""^[A-Z]{2}-DISCOVER-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -56,7 +56,8 @@ class DiscoverCardParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "transaction of $25.00 at WWW.XXX.ORG"
-        val atPattern = Regex("""at\s+([^\s]+(?:\s+[^\s]*)*?)(?:\s+on|\s+Text|$)""", RegexOption.IGNORE_CASE)
+        val atPattern =
+            Regex("""at\s+([^\s]+(?:\s+[^\s]*)*?)(?:\s+on|\s+Text|$)""", RegexOption.IGNORE_CASE)
         atPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty() && !merchant.matches(Regex("""\w+\s+\d{1,2},\s+\d{4}"""))) {

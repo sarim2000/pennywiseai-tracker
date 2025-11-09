@@ -7,28 +7,28 @@ import java.math.BigDecimal
  * Parser for Axis Bank SMS messages
  */
 class AxisBankParser : BankParser() {
-    
+
     override fun getBankName() = "Axis Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("AXIS BANK") ||
-               normalizedSender.contains("AXISBANK") ||
-               normalizedSender.contains("AXISBK") ||
-               normalizedSender.contains("AXISB") ||
-               // DLT patterns for transactions (-S suffix)
-               normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK-S$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-AXISBANK-S$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-AXIS-S$")) ||
-               // Legacy patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-AXIS$")) ||
-               // Direct sender IDs
-               normalizedSender == "AXISBK" ||
-               normalizedSender == "AXISBANK" ||
-               normalizedSender == "AXIS"
+                normalizedSender.contains("AXISBANK") ||
+                normalizedSender.contains("AXISBK") ||
+                normalizedSender.contains("AXISB") ||
+                // DLT patterns for transactions (-S suffix)
+                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK-S$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBANK-S$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-AXIS-S$")) ||
+                // Legacy patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-AXIS$")) ||
+                // Direct sender IDs
+                normalizedSender == "AXISBK" ||
+                normalizedSender == "AXISBANK" ||
+                normalizedSender == "AXIS"
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         val inrDebitPattern = Regex(
             """INR\s+([0-9,]+(?:\.\d{2})?)\s+debited""",
@@ -42,7 +42,7 @@ class AxisBankParser : BankParser() {
                 null
             }
         }
-        
+
         val inrCreditPattern = Regex(
             """INR\s+([0-9,]+(?:\.\d{2})?)\s+credited""",
             RegexOption.IGNORE_CASE
@@ -55,7 +55,7 @@ class AxisBankParser : BankParser() {
                 null
             }
         }
-        
+
         val paymentPattern = Regex(
             """Payment\s+of\s+INR\s+([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -68,10 +68,10 @@ class AxisBankParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Credit card "Spent" transactions with merchant on separate line
         // Format 1: "Spent INR 131\nAxis Bank Card no. XX0818\n05-10-25 09:43:27 IST\nSwiggy Limi\nAvl Limit:"
@@ -150,7 +150,7 @@ class AxisBankParser : BankParser() {
         // Fall back to base class patterns
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "A/c no. XXNNNN" - extract everything after "A/c no."
         val acNoPattern = Regex(
@@ -199,7 +199,7 @@ class AxisBankParser : BankParser() {
 
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         val upiRefPattern = Regex(
             """UPI/[^/]+/([0-9]+)""",
@@ -208,33 +208,35 @@ class AxisBankParser : BankParser() {
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Skip Axis-specific payment confirmation messages (payment TO card, not spending)
-        if (lowerMessage.contains("payment") && 
-            lowerMessage.contains("has been received") && 
-            lowerMessage.contains("towards your axis bank")) {
+        if (lowerMessage.contains("payment") &&
+            lowerMessage.contains("has been received") &&
+            lowerMessage.contains("towards your axis bank")
+        ) {
             return false
         }
-        
+
         // Base class handles common payment reminders and other non-transaction messages
         return super.isTransactionMessage(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         // Credit card spending transactions
         if ((lowerMessage.contains("credit card") || lowerMessage.contains(" cc ")) &&
-            (lowerMessage.contains("debited") || lowerMessage.contains("spent"))) {
+            (lowerMessage.contains("debited") || lowerMessage.contains("spent"))
+        ) {
             return TransactionType.CREDIT
         }
-        
+
         // Fall back to base class for standard checks
         return super.extractTransactionType(message)
     }

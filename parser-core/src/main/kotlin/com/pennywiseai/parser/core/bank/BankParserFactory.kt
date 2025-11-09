@@ -4,7 +4,7 @@ package com.pennywiseai.parser.core.bank
  * Factory for creating bank-specific parsers based on SMS sender.
  */
 object BankParserFactory {
-    
+
     private val parsers = listOf(
         HDFCBankParser(),
         SBIBankParser(),
@@ -64,7 +64,7 @@ object BankParserFactory {
         MPESAParser()  // M-PESA (Kenya)
         // Add more bank parsers here as we implement them
     )
-    
+
     /**
      * Returns the appropriate bank parser for the given sender.
      * Returns null if no specific parser is found.
@@ -72,7 +72,7 @@ object BankParserFactory {
     fun getParser(sender: String): BankParser? {
         return parsers.firstOrNull { it.canHandle(sender) }
     }
-    
+
     /**
      * Returns the bank parser for the given bank name.
      * Returns null if no specific parser is found.
@@ -80,12 +80,12 @@ object BankParserFactory {
     fun getParserByName(bankName: String): BankParser? {
         return parsers.firstOrNull { it.getBankName() == bankName }
     }
-    
+
     /**
      * Returns all available bank parsers.
      */
     fun getAllParsers(): List<BankParser> = parsers
-    
+
     /**
      * Checks if the sender belongs to any known bank.
      */

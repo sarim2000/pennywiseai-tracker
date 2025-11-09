@@ -1,21 +1,20 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
  * Parser for Canara Bank SMS messages
  */
 class CanaraBankParser : BankParser() {
-    
+
     override fun getBankName() = "Canara Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("CANBNK") || 
-               normalizedSender.contains("CANARA")
+        return normalizedSender.contains("CANBNK") ||
+                normalizedSender.contains("CANARA")
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern: Rs.23.00 paid thru
         val upiAmountPattern = Regex(
@@ -30,7 +29,7 @@ class CanaraBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern: INR 50.00 has been DEBITED
         val debitPattern = Regex(
             """INR\s+([\d,]+(?:\.\d{2})?)\s+has\s+been\s+DEBITED""",
@@ -44,11 +43,11 @@ class CanaraBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern: paid thru A/C XX1234 on 08-8-25 16:41:00 to BMTC BUS KA57F6
         val upiMerchantPattern = Regex(
@@ -61,16 +60,16 @@ class CanaraBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Check if it's a generic debit
         if (message.contains("DEBITED", ignoreCase = true)) {
             return "Canara Bank Debit"
         }
-        
+
         // Fall back to base class patterns
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern: account XXX123 or A/C XX1234
         val accountPattern = Regex(
@@ -80,10 +79,10 @@ class CanaraBankParser : BankParser() {
         accountPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: Total Avail.bal INR 1,092.62
         val balancePattern = Regex(
@@ -98,10 +97,10 @@ class CanaraBankParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractBalance(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern: UPI Ref 123456789012
         val upiRefPattern = Regex(
@@ -111,25 +110,26 @@ class CanaraBankParser : BankParser() {
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Skip failed transactions
         if (lowerMessage.contains("failed due to")) {
             return false
         }
-        
+
         // Check for Canara-specific transaction keywords
-        if (lowerMessage.contains("paid thru") || 
+        if (lowerMessage.contains("paid thru") ||
             lowerMessage.contains("has been debited") ||
-            lowerMessage.contains("has been credited")) {
+            lowerMessage.contains("has been credited")
+        ) {
             return true
         }
-        
+
         return super.isTransactionMessage(message)
     }
 }

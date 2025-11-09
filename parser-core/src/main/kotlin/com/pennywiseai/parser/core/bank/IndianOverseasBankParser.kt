@@ -5,22 +5,22 @@ import java.math.BigDecimal
 
 /**
  * Parser for Indian Overseas Bank (IOB) SMS messages
- * 
+ *
  * Common senders: VA-IOBCHN-S, XX-IOB-S, etc.
- * 
+ *
  * SMS Format:
  * Your a/c no. XXXXX92 is credited by Rs.906.00 on 2025-08-28 17, from SIDDHANT SIN-7737219900@su(UPI Ref no 560699645381).Payer Remark - Paid via Supe -IOB
  */
 class IndianOverseasBankParser : BankParser() {
-    
+
     override fun getBankName() = "Indian Overseas Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("IOB") || 
-               normalizedSender.contains("IOBCHN")
+        return normalizedSender.contains("IOB") ||
+                normalizedSender.contains("IOBCHN")
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // List of amount patterns for IOB
         val amountPatterns = listOf(
@@ -33,7 +33,7 @@ class IndianOverseasBankParser : BankParser() {
             // "debited for Rs.906.00"
             Regex("""debited\s+for\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
-        
+
         for (pattern in amountPatterns) {
             pattern.find(message)?.let { match ->
                 val amount = match.groupValues[1].replace(",", "")
@@ -44,25 +44,25 @@ class IndianOverseasBankParser : BankParser() {
                 }
             }
         }
-        
+
         return super.extractAmount(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
         return when {
             lowerMessage.contains("credited by") -> TransactionType.INCOME
             lowerMessage.contains("credited with") -> TransactionType.INCOME
             lowerMessage.contains("is credited") -> TransactionType.INCOME
-            
+
             lowerMessage.contains("debited by") -> TransactionType.EXPENSE
             lowerMessage.contains("debited for") -> TransactionType.EXPENSE
             lowerMessage.contains("is debited") -> TransactionType.EXPENSE
-            
+
             else -> super.extractTransactionType(message)
         }
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // UPI transaction with payer details
         // Pattern: "from SIDDHANT SIN-7737219900@su(UPI Ref"
@@ -72,7 +72,7 @@ class IndianOverseasBankParser : BankParser() {
         )
         upiPayerPattern.find(message)?.let { match ->
             val payer = match.groupValues[1].trim()
-            
+
             // Check if it contains UPI ID
             if (payer.contains("@")) {
                 // Extract name and UPI ID
@@ -91,7 +91,7 @@ class IndianOverseasBankParser : BankParser() {
                 }
             }
         }
-        
+
         // Check for payer remark
         val remarkPattern = Regex(
             """Payer\s+Remark\s*-\s*([^-]+)""",
@@ -103,7 +103,7 @@ class IndianOverseasBankParser : BankParser() {
                 return remark
             }
         }
-        
+
         // Generic patterns for debit transactions
         if (message.contains("debited", ignoreCase = true)) {
             // Try to extract merchant from "to" or "for" patterns
@@ -118,10 +118,10 @@ class IndianOverseasBankParser : BankParser() {
                 }
             }
         }
-        
+
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern: "Your a/c no. XXXXX92"
         val accountPattern = Regex(
@@ -132,10 +132,10 @@ class IndianOverseasBankParser : BankParser() {
             val digits = match.groupValues[1]
             return if (digits.length >= 4) digits.takeLast(4) else digits
         }
-        
+
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern: "(UPI Ref no 560699645381)"
         val upiRefPattern = Regex(
@@ -145,7 +145,7 @@ class IndianOverseasBankParser : BankParser() {
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Alternative pattern without parentheses
         val altUpiRefPattern = Regex(
             """UPI\s+Ref\s+no\s+(\d+)""",
@@ -154,29 +154,31 @@ class IndianOverseasBankParser : BankParser() {
         altUpiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Skip OTP and non-transaction messages
-        if (lowerMessage.contains("otp") || 
+        if (lowerMessage.contains("otp") ||
             lowerMessage.contains("verification") ||
             lowerMessage.contains("request") ||
-            lowerMessage.contains("failed")) {
+            lowerMessage.contains("failed")
+        ) {
             return false
         }
-        
+
         // Check for IOB specific transaction patterns
         if (lowerMessage.contains("is credited by") ||
             lowerMessage.contains("is debited by") ||
             lowerMessage.contains("credited with") ||
-            lowerMessage.contains("debited for")) {
+            lowerMessage.contains("debited for")
+        ) {
             return true
         }
-        
+
         return super.isTransactionMessage(message)
     }
 }

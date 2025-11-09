@@ -19,9 +19,9 @@ class YesBankParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // DLT patterns for Yes Bank (XX-YESBNK-S format)
         return normalizedSender.matches(Regex("^[A-Z]{2}-YESBNK-S$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-YESBNK$")) ||
-               normalizedSender == "YESBNK" ||
-               normalizedSender == "YESBANK"
+                normalizedSender.matches(Regex("^[A-Z]{2}-YESBNK$")) ||
+                normalizedSender == "YESBNK" ||
+                normalizedSender == "YESBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -141,7 +141,8 @@ class YesBankParser : BankParser() {
         // Yes Bank credit card transactions have "spent" and "Avl Lmt"
         if (lowerMessage.contains("spent") &&
             lowerMessage.contains("yes bank card") &&
-            lowerMessage.contains("avl lmt")) {
+            lowerMessage.contains("avl lmt")
+        ) {
             return TransactionType.CREDIT
         }
 
@@ -168,14 +169,16 @@ class YesBankParser : BankParser() {
         // Skip OTP and non-transaction messages
         if (lowerMessage.contains("otp") ||
             lowerMessage.contains("verification") ||
-            lowerMessage.contains("one time password")) {
+            lowerMessage.contains("one time password")
+        ) {
             return false
         }
 
         // Skip promotional messages
         if (lowerMessage.contains("offer") ||
             lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("discount")) {
+            lowerMessage.contains("discount")
+        ) {
             return false
         }
 

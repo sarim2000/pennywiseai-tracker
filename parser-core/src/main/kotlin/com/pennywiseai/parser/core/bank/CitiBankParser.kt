@@ -15,9 +15,9 @@ class CitiBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "CITI" ||
-               upperSender.contains("CITIBANK") ||
-               upperSender == "692484" ||  // DLT sender ID
-               upperSender.matches(Regex("""^[A-Z]{2}-CITI-[A-Z]$"""))
+                upperSender.contains("CITIBANK") ||
+                upperSender == "692484" ||  // DLT sender ID
+                upperSender.matches(Regex("""^[A-Z]{2}-CITI-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -57,7 +57,8 @@ class CitiBankParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "transaction was made at BP#1234E"
-        val atPattern = Regex("""transaction was made at\s+([^.]+?)(?:\s+on|$)""", RegexOption.IGNORE_CASE)
+        val atPattern =
+            Regex("""transaction was made at\s+([^.]+?)(?:\s+on|$)""", RegexOption.IGNORE_CASE)
         atPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) {
@@ -66,7 +67,8 @@ class CitiBankParser : BankParser() {
         }
 
         // Pattern 2: "transaction at WWW Google C"
-        val transactionAtPattern = Regex("""transaction at\s+([^.]+?)(?:\s+View|\.|$)""", RegexOption.IGNORE_CASE)
+        val transactionAtPattern =
+            Regex("""transaction at\s+([^.]+?)(?:\s+View|\.|$)""", RegexOption.IGNORE_CASE)
         transactionAtPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) {
@@ -89,7 +91,8 @@ class CitiBankParser : BankParser() {
 
     override fun extractReference(message: String): String? {
         // Look for dates in the message
-        val datePattern = Regex("""on\s+(card ending|\w+\s+\d{1,2},\s+\d{4})""", RegexOption.IGNORE_CASE)
+        val datePattern =
+            Regex("""on\s+(card ending|\w+\s+\d{1,2},\s+\d{4})""", RegexOption.IGNORE_CASE)
         datePattern.find(message)?.let { match ->
             if (!match.groupValues[1].contains("card ending")) {
                 return match.groupValues[1]

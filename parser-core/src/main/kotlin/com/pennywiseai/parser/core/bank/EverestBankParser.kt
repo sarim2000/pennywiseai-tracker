@@ -20,12 +20,12 @@ class EverestBankParser : BankParser() {
 
             // Text-based senders
             upperSender == "EVEREST" ||
-            upperSender.contains("EVERESTBANK") ||
-            upperSender == "UJJ SH" ||
-            upperSender == "CWRD" ||  // ATM withdrawal code
+                    upperSender.contains("EVERESTBANK") ||
+                    upperSender == "UJJ SH" ||
+                    upperSender == "CWRD" ||  // ATM withdrawal code
 
-            // DLT patterns for Nepal
-            upperSender.matches(Regex("""^[A-Z]{2}-EVEREST-[A-Z]$""")) -> true
+                    // DLT patterns for Nepal
+                    upperSender.matches(Regex("""^[A-Z]{2}-EVEREST-[A-Z]$""")) -> true
 
             else -> false
         }
@@ -36,7 +36,10 @@ class EverestBankParser : BankParser() {
         val patterns = listOf(
             Regex("""NPR\s+([0-9,]+(?:\.[0-9]{2})?)\s""", RegexOption.IGNORE_CASE),
             Regex("""NPR\s+([0-9,]+(?:\.[0-9]{2})?)(?:\s|$)""", RegexOption.IGNORE_CASE),
-            Regex("""(?:debited|credited)\s+by\s+NPR\s+([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
+            Regex(
+                """(?:debited|credited)\s+by\s+NPR\s+([0-9,]+(?:\.[0-9]{2})?)""",
+                RegexOption.IGNORE_CASE
+            )
         )
 
         for (pattern in patterns) {
@@ -115,7 +118,8 @@ class EverestBankParser : BankParser() {
                         val cleanPart = part.trim()
                         if (cleanPart.isNotEmpty() &&
                             !cleanPart.matches(Regex("""\d+""")) &&
-                            cleanPart != "UJJ SH") {
+                            cleanPart != "UJJ SH"
+                        ) {
                             return cleanMerchantName(cleanPart)
                         }
                     }

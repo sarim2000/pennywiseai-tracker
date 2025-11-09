@@ -162,7 +162,7 @@ class JuspayParserTest {
             suiteName = "Juspay (Amazon Pay) Parser"
         )
 
-    
+
     }
 
     @Test
@@ -197,7 +197,7 @@ class JuspayParserTest {
             )
         )
 
-       ParserTestUtils.runFactoryTestSuite(cases, "Juspay Factory Tests")
-        
+        ParserTestUtils.runFactoryTestSuite(cases, "Juspay Factory Tests")
+
     }
 }

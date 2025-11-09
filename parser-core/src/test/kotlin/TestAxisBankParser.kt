@@ -1,10 +1,9 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.test.ParserTestUtils
-import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ExpectedTransaction
+import com.pennywiseai.parser.core.test.ParserTestCase
+import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.Test
-
 import java.math.BigDecimal
 
 class AxisBankParserTest {
@@ -168,7 +167,8 @@ Not you? SMS BLOCK 6018 to 919951860002""",
             "" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Axis Bank Parser Tests")
-    
+        val result =
+            ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Axis Bank Parser Tests")
+
     }
 }

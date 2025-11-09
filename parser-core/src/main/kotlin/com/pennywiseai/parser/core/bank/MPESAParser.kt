@@ -27,9 +27,9 @@ class MPESAParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("MPESA") ||
-               normalizedSender.contains("M-PESA") ||
-               normalizedSender == "MPESA" ||
-               normalizedSender == "M-PESA"
+                normalizedSender.contains("M-PESA") ||
+                normalizedSender == "MPESA" ||
+                normalizedSender == "M-PESA"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -69,13 +69,15 @@ class MPESAParser : BankParser() {
 
         // "You have received" = income
         if (lowerMessage.contains("you have received") ||
-            lowerMessage.contains("received ksh")) {
+            lowerMessage.contains("received ksh")
+        ) {
             return TransactionType.INCOME
         }
 
         // "paid to" or "sent to" = expense
         if (lowerMessage.contains("paid to") ||
-            lowerMessage.contains("sent to")) {
+            lowerMessage.contains("sent to")
+        ) {
             return TransactionType.EXPENSE
         }
 

@@ -1,25 +1,25 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
  * Parser for HSBC Bank SMS messages
  */
 class HSBCBankParser : BankParser() {
-    
+
     override fun getBankName() = "HSBC Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("HSBC") ||
-               normalizedSender.contains("HSBCIN") ||
-               // DLT patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-HSBCIN-[A-Z]$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-HSBC-[A-Z]$"))
+                normalizedSender.contains("HSBCIN") ||
+                // DLT patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-HSBCIN-[A-Z]$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-HSBC-[A-Z]$"))
     }
-    
+
     override fun parse(
         smsBody: String,
         sender: String,
@@ -27,11 +27,11 @@ class HSBCBankParser : BankParser() {
     ): ParsedTransaction? {
         if (!canHandle(sender)) return null
         if (!isTransactionMessage(smsBody)) return null
-        
+
         val amount = extractAmount(smsBody) ?: return null
         val transactionType = extractTransactionType(smsBody) ?: return null
         val merchant = extractMerchant(smsBody, sender) ?: "Unknown"
-        
+
         return ParsedTransaction(
             amount = amount,
             type = transactionType,
@@ -45,7 +45,7 @@ class HSBCBankParser : BankParser() {
             bankName = getBankName()
         )
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: INR 49.00 is paid from
         // Pattern 2: INR 1000.50 is credited to
@@ -95,7 +95,7 @@ class HSBCBankParser : BankParser() {
 
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "at IKEA INDIA ." (debit card format with space before period)
         val atMerchantPattern = Regex(
@@ -147,7 +147,7 @@ class HSBCBankParser : BankParser() {
 
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "Debit Card XXXXX71xx" format
         val debitCardPattern = Regex(
@@ -184,7 +184,7 @@ class HSBCBankParser : BankParser() {
 
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern: with ref 222222222222
         val pattern = Regex(
@@ -240,7 +240,7 @@ class HSBCBankParser : BankParser() {
             else -> super.extractTransactionType(message)
         }
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
@@ -252,7 +252,8 @@ class HSBCBankParser : BankParser() {
             (lowerMessage.contains("credit card") && lowerMessage.contains("used at")) ||
             (lowerMessage.contains("thank you for using") && lowerMessage.contains("card")) ||
             (lowerMessage.contains("debit card") && lowerMessage.contains("for inr")) ||
-            (lowerMessage.contains("inr") && lowerMessage.contains("account"))) {
+            (lowerMessage.contains("inr") && lowerMessage.contains("account"))
+        ) {
             return true
         }
 

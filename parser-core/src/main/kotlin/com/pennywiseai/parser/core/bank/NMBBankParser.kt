@@ -23,9 +23,9 @@ class NMBBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("NMB") ||
-               normalizedSender == "NMB_ALERT" ||
-               normalizedSender == "NMBBANK" ||
-               normalizedSender.contains("NABIL")
+                normalizedSender == "NMB_ALERT" ||
+                normalizedSender == "NMBBANK" ||
+                normalizedSender.contains("NABIL")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -65,7 +65,8 @@ class NMBBankParser : BankParser() {
 
         // Fund transfer = expense (money sent)
         if (lowerMessage.contains("fund transfer") ||
-            lowerMessage.contains("transfer") && lowerMessage.contains("to a/c")) {
+            lowerMessage.contains("transfer") && lowerMessage.contains("to a/c")
+        ) {
             return TransactionType.EXPENSE
         }
 
@@ -90,7 +91,8 @@ class NMBBankParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "Fund transfer to A/C ..."
         if (message.contains("Fund transfer", ignoreCase = true) ||
-            message.contains("transfer", ignoreCase = true)) {
+            message.contains("transfer", ignoreCase = true)
+        ) {
             return "Fund Transfer"
         }
 
@@ -201,7 +203,8 @@ class NMBBankParser : BankParser() {
         // Skip OTP and promotional messages
         if (lowerMessage.contains("otp") ||
             lowerMessage.contains("password") ||
-            lowerMessage.contains("click here to learn more") && !lowerMessage.contains("withdrawn")) {
+            lowerMessage.contains("click here to learn more") && !lowerMessage.contains("withdrawn")
+        ) {
             // Exception: "Enjoy the new features... A/C withdrawn" is still a transaction
             if (!lowerMessage.contains("withdrawn")) {
                 return false

@@ -158,6 +158,6 @@ class ICICIBankParserTest {
             suiteName = "ICICI Bank Parser"
         )
 
-    
+
     }
 }

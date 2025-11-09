@@ -38,7 +38,10 @@ class BancolombiaParser : BankParser() {
     override fun extractAmount(message: String): BigDecimal? {
         // Colombian format: dots for thousands (1.000), commas for decimals (,50)
         // Example: $1.000.000,50 = 1 million pesos and 50 centavos
-        val pattern = Regex("""(Transferiste|Compraste|Pagaste|Recibiste)\s+\$?([0-9.,]+)""", RegexOption.IGNORE_CASE)
+        val pattern = Regex(
+            """(Transferiste|Compraste|Pagaste|Recibiste)\s+\$?([0-9.,]+)""",
+            RegexOption.IGNORE_CASE
+        )
         pattern.find(message)?.let { match ->
             // Convert Colombian format to standard format for BigDecimal
             val amount = match.groupValues[2]

@@ -70,6 +70,6 @@ class CitiBankParserTest {
             suiteName = "Citi Bank Parser"
         )
 
-    
+
     }
 }

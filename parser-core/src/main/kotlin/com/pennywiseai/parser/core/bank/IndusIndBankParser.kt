@@ -52,7 +52,8 @@ class IndusIndBankParser : BankParser() {
      */
     override fun detectIsCard(message: String): Boolean {
         val lower = message.lowercase()
-        val isAchOrNach = lower.contains("ach db") || lower.contains("ach cr") || lower.contains("nach")
+        val isAchOrNach =
+            lower.contains("ach db") || lower.contains("ach cr") || lower.contains("nach")
         if (isAchOrNach) return false
         return super.detectIsCard(message)
     }
@@ -158,7 +159,11 @@ class IndusIndBankParser : BankParser() {
         )
         verbAmountPattern.find(message)?.let { match ->
             val amt = match.groupValues[1].replace(",", "")
-            return try { java.math.BigDecimal(amt) } catch (_: NumberFormatException) { null }
+            return try {
+                java.math.BigDecimal(amt)
+            } catch (_: NumberFormatException) {
+                null
+            }
         }
 
         return super.extractAmount(message)

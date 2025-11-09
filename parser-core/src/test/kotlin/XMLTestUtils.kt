@@ -1,12 +1,12 @@
 package com.pennywiseai.parser.core.test
 
-import javax.xml.parsers.DocumentBuilderFactory
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
 import java.io.File
 import java.io.InputStream
+import javax.xml.parsers.DocumentBuilderFactory
 
 data class SMSData(
     val sender: String,
@@ -63,8 +63,9 @@ object XMLTestUtils {
         val smsList = mutableListOf<SMSData>()
 
         try {
-            val inputStream: InputStream = object {}.javaClass.classLoader.getResourceAsStream(resourcePath)
-                ?: throw RuntimeException("XML resource not found: $resourcePath")
+            val inputStream: InputStream =
+                object {}.javaClass.classLoader.getResourceAsStream(resourcePath)
+                    ?: throw RuntimeException("XML resource not found: $resourcePath")
 
             val dbFactory = DocumentBuilderFactory.newInstance()
             val dBuilder = dbFactory.newDocumentBuilder()
@@ -148,4 +149,4 @@ object XMLTestUtils {
         )
     }
 
-  }
+}

@@ -407,6 +407,6 @@ class FABParserTest {
             suiteName = "FAB Parser Comprehensive Suite"
         )
 
-    
+
     }
 }

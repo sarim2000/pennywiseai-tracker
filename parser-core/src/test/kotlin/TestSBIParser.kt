@@ -57,6 +57,6 @@ class SBIBankParserTest {
             suiteName = "SBI Parser"
         )
 
-    
+
     }
 }

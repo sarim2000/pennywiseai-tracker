@@ -1,7 +1,7 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 import java.util.Currency
 
@@ -106,32 +106,71 @@ class CharlesSchwabParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "SCHWAB" ||
-               upperSender.contains("CHARLES SCHWAB") ||
-               upperSender.contains("SCHWAB BANK") ||
-               upperSender == "24465" ||  // Typical DLT sender ID
-               upperSender.matches(Regex("""^[A-Z]{2}-SCHWAB-[A-Z]$"""))
+                upperSender.contains("CHARLES SCHWAB") ||
+                upperSender.contains("SCHWAB BANK") ||
+                upperSender == "24465" ||  // Typical DLT sender ID
+                upperSender.matches(Regex("""^[A-Z]{2}-SCHWAB-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
         // Charles Schwab patterns: "A $7.44 debit card transaction", "A $10.00 debit card transaction", "A $22.07 ACH was debited"
         // Multi-currency support: "A €25.50 debit card transaction", "A £15.75 ATM transaction", "A ฿500.00 ATM transaction"
         val patterns = listOf(
-            Regex("""A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""", RegexOption.IGNORE_CASE),
+            Regex(
+                """A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""",
+                RegexOption.IGNORE_CASE
+            ),
             Regex("""A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+ATM transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+(?:debit card|ATM)\s+transaction""", RegexOption.IGNORE_CASE),
+            Regex(
+                """A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+(?:debit card|ATM)\s+transaction""",
+                RegexOption.IGNORE_CASE
+            ),
             // Multi-currency patterns with symbols before amount
-            Regex("""A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ATM transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+(?:debit card|ATM)\s+transaction""", RegexOption.IGNORE_CASE),
+            Regex(
+                """A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ATM transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([€£₹¥฿₩ብር])\s*([0-9,]+(?:\.[0-9]{2})?)\s+(?:debit card|ATM)\s+transaction""",
+                RegexOption.IGNORE_CASE
+            ),
             // Generic currency code patterns
-            Regex("""A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ATM transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""", RegexOption.IGNORE_CASE),
-            Regex("""A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""", RegexOption.IGNORE_CASE)
+            Regex(
+                """A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+debit card transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ATM transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+transaction""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """A\s+([A-Z]{3})\s*([0-9,]+(?:\.[0-9]{2})?)\s+ACH\s+was debited""",
+                RegexOption.IGNORE_CASE
+            )
         )
 
         for (pattern in patterns) {

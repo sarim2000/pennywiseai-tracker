@@ -145,7 +145,7 @@ class SaraswatBankParserTest {
             suiteName = "Saraswat Co-operative Bank Parser"
         )
 
-    
+
     }
 
     @Test
@@ -183,7 +183,7 @@ class SaraswatBankParserTest {
             )
         )
 
-       ParserTestUtils.runFactoryTestSuite(cases, "Saraswat Bank Factory Tests")
-        
+        ParserTestUtils.runFactoryTestSuite(cases, "Saraswat Bank Factory Tests")
+
     }
 }

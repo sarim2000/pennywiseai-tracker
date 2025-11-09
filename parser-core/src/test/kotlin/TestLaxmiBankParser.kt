@@ -87,6 +87,6 @@ class LaxmiBankParserTest {
             suiteName = "Laxmi Sunrise Bank Parser"
         )
 
-    
+
     }
 }

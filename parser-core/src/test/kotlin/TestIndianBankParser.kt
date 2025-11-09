@@ -113,7 +113,7 @@ class IndianBankParserTest {
             suiteName = "Indian Bank Parser"
         )
 
-    
+
     }
 
     @Test
@@ -149,7 +149,7 @@ class IndianBankParserTest {
             )
         )
 
-       ParserTestUtils.runFactoryTestSuite(cases, "Indian Bank Factory Tests")
-        
+        ParserTestUtils.runFactoryTestSuite(cases, "Indian Bank Factory Tests")
+
     }
 }

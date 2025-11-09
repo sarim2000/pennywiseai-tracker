@@ -182,7 +182,7 @@ class CharlesSchwabParserTest {
             suiteName = "Charles Schwab Parser"
         )
 
-    
+
     }
 
     @Test
@@ -218,7 +218,7 @@ class CharlesSchwabParserTest {
             )
         )
 
-       ParserTestUtils.runFactoryTestSuite(cases, "Charles Schwab Factory Tests")
-        
+        ParserTestUtils.runFactoryTestSuite(cases, "Charles Schwab Factory Tests")
+
     }
 }

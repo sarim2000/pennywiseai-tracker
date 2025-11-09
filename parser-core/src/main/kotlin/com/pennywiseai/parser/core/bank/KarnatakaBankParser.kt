@@ -1,39 +1,38 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
  * Parser for Karnataka Bank SMS messages
- * 
+ *
  * Supported formats:
  * - Debit: "Your Account x001234x has been DEBITED for Rs.6368/-"
  * - Credit: "Your a/c XX1234 is credited by Rs.6600.00"
  * - ACH, UPI, and other transaction types
- * 
+ *
  * Common senders: Karnataka Bank, KTKBNK, variations with DLT patterns
  */
 class KarnatakaBankParser : BankParser() {
-    
+
     override fun getBankName() = "Karnataka Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("KARNATAKA BANK") ||
-               normalizedSender.contains("KARNATAKABANK") ||
-               normalizedSender.contains("KBLBNK") ||
-               normalizedSender.contains("KTKBANK") ||
-               normalizedSender.contains("KARBANK") ||
-               // DLT patterns for transactions (-S suffix)
-               normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK-S$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-KARBANK-S$")) ||
-               // Legacy patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK$")) ||
-               // Direct sender IDs
-               normalizedSender == "KBLBNK" ||
-               normalizedSender == "KARBANK"
+                normalizedSender.contains("KARNATAKABANK") ||
+                normalizedSender.contains("KBLBNK") ||
+                normalizedSender.contains("KTKBANK") ||
+                normalizedSender.contains("KARBANK") ||
+                // DLT patterns for transactions (-S suffix)
+                normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK-S$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-KARBANK-S$")) ||
+                // Legacy patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK$")) ||
+                // Direct sender IDs
+                normalizedSender == "KBLBNK" ||
+                normalizedSender == "KARBANK"
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: "DEBITED for Rs.6368/-"
         val debitPattern = Regex(
@@ -48,7 +47,7 @@ class KarnatakaBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 2: "credited by Rs.6600.00"
         val creditPattern = Regex(
             """credited\s+by\s+Rs\.?([0-9,]+(?:\.\d{2})?)""",
@@ -62,11 +61,11 @@ class KarnatakaBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: ACH transactions - "ACHInwDr-MERCHANT/date"
         val achPattern = Regex(
@@ -79,7 +78,7 @@ class KarnatakaBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 2: "from <merchant> on" for UPI
         val fromPattern = Regex(
             """from\s+([^\s]+)\s+on""",
@@ -91,7 +90,7 @@ class KarnatakaBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 3: Check for specific transaction types
         val lowerMessage = message.lowercase()
         return when {
@@ -100,7 +99,7 @@ class KarnatakaBankParser : BankParser() {
             else -> super.extractMerchant(message, sender)
         }
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "Account x001234x" or "Account XX1234X"
         val accountPattern1 = Regex(
@@ -116,7 +115,7 @@ class KarnatakaBankParser : BankParser() {
                 digits
             }
         }
-        
+
         // Pattern 2: "a/c XX1234"
         val accountPattern2 = Regex(
             """a/c\s+[xX]{0,2}([0-9]{4,6})""",
@@ -125,11 +124,11 @@ class KarnatakaBankParser : BankParser() {
         accountPattern2.find(message)?.let { match ->
             return match.groupValues[1].takeLast(4)
         }
-        
+
         // Fall back to base class
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern 1: "UPI Ref no 441877242175"
         val upiRefPattern = Regex(
@@ -139,11 +138,11 @@ class KarnatakaBankParser : BankParser() {
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Fall back to base class
         return super.extractReference(message)
     }
-    
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: "Balance is Rs.705.92"
         val balancePattern = Regex(
@@ -158,7 +157,7 @@ class KarnatakaBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Fall back to base class
         return super.extractBalance(message)
     }

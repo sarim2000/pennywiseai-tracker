@@ -83,6 +83,6 @@ class DiscoverCardParserTest {
             suiteName = "Discover Card Parser"
         )
 
-    
+
     }
 }

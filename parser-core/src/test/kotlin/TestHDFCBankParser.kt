@@ -1,10 +1,9 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.test.ParserTestUtils
-import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ExpectedTransaction
+import com.pennywiseai.parser.core.test.ParserTestCase
+import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.Test
-
 import java.math.BigDecimal
 
 class HDFCBankParserTest {
@@ -53,7 +52,8 @@ T&C. Ignore if paid""",
             "" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
-    
+        val result =
+            ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
+
     }
 }

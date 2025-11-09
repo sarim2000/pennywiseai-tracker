@@ -101,6 +101,6 @@ class CBEBankParserTest {
             suiteName = "CBE Parser"
         )
 
-    
+
     }
 }

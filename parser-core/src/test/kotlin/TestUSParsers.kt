@@ -9,10 +9,14 @@ class USParsersTest {
 
     @Test
     fun `factory resolves US parsers and parses sample messages`() {
-        val citiMessage = "Citi Alert: A \$3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"
-        val discoverMessage = "Discover Card Alert: A transaction of \$25.00 at WWW.XXX.ORG on February 21, 2025. No Action needed. See it at https://app.discover.com/ACTVT. Text STOP to end"
-        val charlesSchwabMessage = "A \$7.44 debit card transaction was debited from account ending 1234. Reply STOP to end Schwab Text Alerts."
-        val charlesSchwabACHMessage = "A \$22.07 ACH was debited from account ending 3456. Reply STOP to end Schwab Text Alerts."
+        val citiMessage =
+            "Citi Alert: A \$3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"
+        val discoverMessage =
+            "Discover Card Alert: A transaction of \$25.00 at WWW.XXX.ORG on February 21, 2025. No Action needed. See it at https://app.discover.com/ACTVT. Text STOP to end"
+        val charlesSchwabMessage =
+            "A \$7.44 debit card transaction was debited from account ending 1234. Reply STOP to end Schwab Text Alerts."
+        val charlesSchwabACHMessage =
+            "A \$22.07 ACH was debited from account ending 3456. Reply STOP to end Schwab Text Alerts."
 
         ParserTestUtils.printSectionHeader("US Bank Parser Factory Tests")
 
@@ -126,6 +130,6 @@ class USParsersTest {
 
         val result = ParserTestUtils.runFactoryTestSuite(factoryCases, "US Parser Factory Coverage")
 
-    
+
     }
 }

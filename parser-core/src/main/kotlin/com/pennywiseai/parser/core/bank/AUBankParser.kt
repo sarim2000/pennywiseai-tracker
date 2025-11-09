@@ -110,7 +110,8 @@ class AUBankParser : BankParser() {
 
         // Pattern 3: ATM transactions
         if (message.contains("ATM", ignoreCase = true) ||
-            message.contains("withdrawn", ignoreCase = true)) {
+            message.contains("withdrawn", ignoreCase = true)
+        ) {
             return "ATM Withdrawal"
         }
 
@@ -197,7 +198,8 @@ class AUBankParser : BankParser() {
         // Skip OTP and promotional messages
         if (lowerMessage.contains("otp") ||
             lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")) {
+            lowerMessage.contains("verification code")
+        ) {
             return false
         }
 

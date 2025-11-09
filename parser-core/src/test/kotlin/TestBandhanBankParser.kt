@@ -74,7 +74,7 @@ class BandhanBankParserTest {
             suiteName = "Bandhan Bank Parser"
         )
 
-    
+
     }
 }
 

@@ -115,6 +115,6 @@ class OldHickoryParserTest {
             suiteName = "Old Hickory Parser Tests"
         )
 
-    
+
     }
 }

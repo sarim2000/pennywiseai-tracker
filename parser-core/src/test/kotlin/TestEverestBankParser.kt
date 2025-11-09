@@ -111,6 +111,6 @@ class EverestBankParserTest {
             suiteName = "Everest Bank Parser"
         )
 
-    
+
     }
 }

@@ -1,11 +1,12 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.test.ParserTestUtils
-import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ExpectedTransaction
-import org.junit.jupiter.api.Assertions.*
+import com.pennywiseai.parser.core.test.ParserTestCase
+import com.pennywiseai.parser.core.test.ParserTestUtils
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-
 import java.math.BigDecimal
 
 class FederalBankParserTest {
@@ -256,7 +257,7 @@ class FederalBankParserTest {
                 shouldParse = false
             )
         )
-        
+
         val handleCases: List<Pair<String, Boolean>> = listOf(
             "AD-FEDBNK" to true,
             "JM-FEDBNK" to true,
@@ -266,8 +267,13 @@ class FederalBankParserTest {
             "" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Federal Bank Parser Tests")
-    
+        val result = ParserTestUtils.runTestSuite(
+            parser,
+            testCases,
+            handleCases,
+            "Federal Bank Parser Tests"
+        )
+
     }
 
 
@@ -276,18 +282,24 @@ class FederalBankParserTest {
         val parser = FederalBankParser()
 
         // Test mandate creation message (should return mandate info, not transaction)
-        val mandateCreationMessage = "Dear Customer, You have successfully created a mandate on Netflix India for a MONTHLY frequency starting from 05-09-2024 for a maximum amount of Rs 199.00 Mandate Ref No- abc123def456@fifederal - Federal Bank"
+        val mandateCreationMessage =
+            "Dear Customer, You have successfully created a mandate on Netflix India for a MONTHLY frequency starting from 05-09-2024 for a maximum amount of Rs 199.00 Mandate Ref No- abc123def456@fifederal - Federal Bank"
         val result = parser.parse(mandateCreationMessage, "AX-FEDBNK-S", System.currentTimeMillis())
 
         // Mandate creation messages should not be parsed as regular transactions
         assertNull(result, "Mandate creation messages should not be parsed as regular transactions")
 
         // Test payment due message (should return mandate info, not transaction)
-        val paymentDueMessage = "Hi, payment due for Netflix,INR 199.00 on 05/09/2024 will be processed using Federal Bank Debit Card 3456. To cancel, visit https://www.sihub.in/managesi/federal T&CA - Federal Bank"
-        val paymentDueResult = parser.parse(paymentDueMessage, "AX-FEDBNK-S", System.currentTimeMillis())
+        val paymentDueMessage =
+            "Hi, payment due for Netflix,INR 199.00 on 05/09/2024 will be processed using Federal Bank Debit Card 3456. To cancel, visit https://www.sihub.in/managesi/federal T&CA - Federal Bank"
+        val paymentDueResult =
+            parser.parse(paymentDueMessage, "AX-FEDBNK-S", System.currentTimeMillis())
 
         // Payment due messages should not be parsed as regular transactions
-        assertNull(paymentDueResult, "Payment due messages should not be parsed as regular transactions")
+        assertNull(
+            paymentDueResult,
+            "Payment due messages should not be parsed as regular transactions"
+        )
     }
 
     @Test
@@ -295,7 +307,8 @@ class FederalBankParserTest {
         val parser = FederalBankParser()
 
         // Test mandate creation API
-        val mandateCreationMessage = "Dear Customer, You have successfully created a mandate on Netflix India for a MONTHLY frequency starting from 05-09-2024 for a maximum amount of Rs 199.00 Mandate Ref No- abc123def456@fifederal - Federal Bank"
+        val mandateCreationMessage =
+            "Dear Customer, You have successfully created a mandate on Netflix India for a MONTHLY frequency starting from 05-09-2024 for a maximum amount of Rs 199.00 Mandate Ref No- abc123def456@fifederal - Federal Bank"
         val mandateResult = parser.parseEMandateSubscription(mandateCreationMessage)
 
         assertNotNull(mandateResult, "Should parse mandate creation via API")
@@ -305,7 +318,8 @@ class FederalBankParserTest {
         assertEquals("abc123def456@fifederal", mandateResult?.umn)
 
         // Test payment due API
-        val paymentDueMessage = "Hi, payment due for Netflix,INR 199.00 on 05/09/2024 will be processed using Federal Bank Debit Card 3456. To cancel, visit https://www.sihub.in/managesi/federal T&CA - Federal Bank"
+        val paymentDueMessage =
+            "Hi, payment due for Netflix,INR 199.00 on 05/09/2024 will be processed using Federal Bank Debit Card 3456. To cancel, visit https://www.sihub.in/managesi/federal T&CA - Federal Bank"
         val paymentDueResult = parser.parseFutureDebit(paymentDueMessage)
 
         assertNotNull(paymentDueResult, "Should parse payment due via API")

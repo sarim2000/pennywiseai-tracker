@@ -92,7 +92,12 @@ class MashreqBankParser : BankParser() {
                 // Validate currency code (3 letters, not month abbreviations)
                 if (currencyCode.length == 3 &&
                     currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                    !currencyCode.matches(
+                        Regex(
+                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
+                            RegexOption.IGNORE_CASE
+                        )
+                    )
                 ) {
                     return try {
                         BigDecimal(amountStr)
@@ -109,10 +114,12 @@ class MashreqBankParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         // Mashreq debit card purchase pattern: "at CARREFOUR on"
         if (message.contains("debit card", ignoreCase = true) ||
-            message.contains("credit card", ignoreCase = true)) {
+            message.contains("credit card", ignoreCase = true)
+        ) {
 
             // Pattern: "at MERCHANT on DATE"
-            val merchantPattern = Regex("""at\s+([^,\n]+?)\s+on\s+\d{1,2}-[A-Z]{3}-\d{4}""", RegexOption.IGNORE_CASE)
+            val merchantPattern =
+                Regex("""at\s+([^,\n]+?)\s+on\s+\d{1,2}-[A-Z]{3}-\d{4}""", RegexOption.IGNORE_CASE)
             merchantPattern.find(message)?.let { match ->
                 return cleanMerchantName(match.groupValues[1].trim())
             }
@@ -120,7 +127,8 @@ class MashreqBankParser : BankParser() {
 
         // ATM withdrawal pattern
         if (message.contains("atm", ignoreCase = true) &&
-            message.contains("withdrawn", ignoreCase = true)) {
+            message.contains("withdrawn", ignoreCase = true)
+        ) {
             return "ATM Withdrawal"
         }
 
@@ -163,10 +171,16 @@ class MashreqBankParser : BankParser() {
         // Note: Mashreq uses 'X' for masking thousands, e.g., "AED X,480.15"
         val balancePatterns = listOf(
             // "Available Balance is AED X,480.15" or "Available Balance is AED 1,480.15"
-            Regex("""Available Balance is\s+([A-Z]{3})\s+([X0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Available Balance is\s+([A-Z]{3})\s+([X0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
 
             // "Avl. Bal. AED X,480.15"
-            Regex("""Avl\.?\s*Bal\.?\s+([A-Z]{3})\s+([X0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Avl\.?\s*Bal\.?\s+([A-Z]{3})\s+([X0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
 
             // "Balance: AED X,480.15"
             Regex("""Balance:?\s+([A-Z]{3})\s+([X0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
@@ -195,7 +209,10 @@ class MashreqBankParser : BankParser() {
         // Mashreq date/time patterns
         val referencePatterns = listOf(
             // "on 26-AUG-2025 10:25 PM" - Mashreq's standard format
-            Regex("""on\s+(\d{1,2}-[A-Z]{3}-\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """on\s+(\d{1,2}-[A-Z]{3}-\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)""",
+                RegexOption.IGNORE_CASE
+            ),
 
             // Fallback: any date-time pattern
             Regex("""(\d{1,2}-[A-Z]{3}-\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)""", RegexOption.IGNORE_CASE)
@@ -216,11 +233,15 @@ class MashreqBankParser : BankParser() {
         return when {
             // Debit card purchases are expenses (any currency)
             lowerMessage.contains("debit card") &&
-                Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> TransactionType.EXPENSE
+                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
+                        message
+                    ) -> TransactionType.EXPENSE
 
             // Credit card purchases are credit transactions (any currency)
             lowerMessage.contains("credit card") &&
-                Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> TransactionType.CREDIT
+                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
+                        message
+                    ) -> TransactionType.CREDIT
 
             // ATM withdrawals are expenses
             lowerMessage.contains("atm") && lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
@@ -256,7 +277,7 @@ class MashreqBankParser : BankParser() {
         )
 
         return mashreqCardPatterns.any { lowerMessage.contains(it) } ||
-               super.detectIsCard(message)
+                super.detectIsCard(message)
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -321,7 +342,12 @@ class MashreqBankParser : BankParser() {
 
                 // Validate it's a 3-letter code (standard ISO currency format) but not month names
                 if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                    !currencyCode.matches(
+                        Regex(
+                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
+                            RegexOption.IGNORE_CASE
+                        )
+                    )
                 ) {
                     return currencyCode
                 }

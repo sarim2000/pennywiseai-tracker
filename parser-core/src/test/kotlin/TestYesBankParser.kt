@@ -117,11 +117,6 @@ class YesBankParserTest {
             suiteName = "Yes Bank Parser"
         )
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 }

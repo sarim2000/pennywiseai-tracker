@@ -91,11 +91,6 @@ class KeralaGraminBankParserTest {
         )
 
         val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Kerala Gramin Bank Parser Tests")
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 }

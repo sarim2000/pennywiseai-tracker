@@ -210,11 +210,6 @@ class BankOfBarodaParserTest {
         )
 
         val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Bank of Baroda Parser Tests")
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 }

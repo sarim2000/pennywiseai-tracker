@@ -169,12 +169,7 @@ class NavyFederalParserTest {
             suiteName = "Navy Federal Credit Union Parser"
         )
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 
     @Test
@@ -212,12 +207,7 @@ class NavyFederalParserTest {
             )
         )
 
-        val suite = ParserTestUtils.runFactoryTestSuite(cases, "Navy Federal Factory Tests")
-        ParserTestUtils.printTestSummary(
-            totalTests = suite.totalTests,
-            passedTests = suite.passedTests,
-            failedTests = suite.failedTests,
-            failureDetails = suite.failureDetails
-        )
+       ParserTestUtils.runFactoryTestSuite(cases, "Navy Federal Factory Tests")
+        
     }
 }

@@ -144,11 +144,6 @@ class AllNewParsersTest {
 
         val result = ParserTestUtils.runFactoryTestSuite(factoryCases, "Factory smoke tests")
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 }

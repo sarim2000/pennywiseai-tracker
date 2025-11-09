@@ -122,7 +122,7 @@ object ParserTestUtils {
         testCases: List<ParserTestCase>,
         handleCases: List<Pair<String, Boolean>> = emptyList(),
         suiteName: String = ""
-    ): TestSuiteResult {
+    ) {
         if (suiteName.isNotEmpty()) printSectionHeader(suiteName)
 
         val results = mutableListOf<TestResult>()
@@ -151,11 +151,10 @@ object ParserTestUtils {
             printTestResult(result, showDetails = !result.passed)
             results.add(result)
         }
-
-        return createSuiteResult(results, "Parser test cases for ${parser::class.simpleName ?: "parser"}")
+        printTestSummaryFromResults(results)
     }
 
-    fun runFactoryTestSuite(testCases: List<SimpleTestCase>, suiteName: String = ""): TestSuiteResult {
+    fun runFactoryTestSuite(testCases: List<SimpleTestCase>, suiteName: String = "")  {
         if (suiteName.isNotEmpty()) printSectionHeader(suiteName)
 
         val results = testCases.mapIndexed { index, testCase ->
@@ -180,8 +179,7 @@ object ParserTestUtils {
             printTestResult(result)
             result
         }
-
-        return createSuiteResult(results, "Factory parser coverage assertions")
+        printTestSummaryFromResults(results)
     }
 
     fun printTestHeader(parserName: String, bankName: String, currency: String, additionalInfo: String = "") {
@@ -204,7 +202,15 @@ object ParserTestUtils {
         if (!result.passed) result.error?.let { println("  Error: $it") }
         println()
     }
-
+    fun printTestSummaryFromResults(results: List<TestResult>)  {
+        val resultsX = this.createSuiteResult(results,"")
+        printTestSummary(
+            totalTests = resultsX.totalTests,
+            passedTests = resultsX.passedTests,
+            failedTests = resultsX.failedTests,
+            failureDetails = resultsX.failureDetails
+        )
+    }
     fun printTestSummary(totalTests: Int, passedTests: Int, failedTests: Int, failureDetails: List<String> = emptyList()) {
         val sep = "=".repeat(80)
         println(sep)

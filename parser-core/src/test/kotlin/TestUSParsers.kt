@@ -126,11 +126,6 @@ class USParsersTest {
 
         val result = ParserTestUtils.runFactoryTestSuite(factoryCases, "US Parser Factory Coverage")
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+    
     }
 }

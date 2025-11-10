@@ -23,11 +23,12 @@ class IndusIndBankParser : BankParser() {
         if (s == "INDUSB" || s == "INDUSIND" || s.contains("INDUSIND BANK")) return true
 
         // DLT/route patterns frequently used in India
-        if (s.matches(Regex("^[A-Z]{2}-INDUSB(?:-S)?$"))) return true
-        if (s.matches(Regex("^[A-Z]{2}-INDUSIND(?:-S)?$"))) return true
+        // Allow -S, -T, or no suffix (e.g., VM-INDUSB, VM-INDUSB-S, VM-INDUSB-T)
+        if (s.matches(Regex("^[A-Z]{2}-INDUSB(?:-[A-Z])?$"))) return true
+        if (s.matches(Regex("^[A-Z]{2}-INDUSIND(?:-[A-Z])?$"))) return true
 
-        // Some routes omit the trailing -S suffix or vary the middle part
-        if (s.matches(Regex("^[A-Z]{2}-INDUS(?:[A-Z]{2,})?-S$"))) return true
+        // Some routes omit the trailing suffix or vary the middle part
+        if (s.matches(Regex("^[A-Z]{2}-INDUS(?:[A-Z]{2,})?-[A-Z]$"))) return true
 
         return false
     }
@@ -175,6 +176,14 @@ class IndusIndBankParser : BankParser() {
             if (m.isNotEmpty()) return cleanMerchantName(m)
         }
 
+        // Credit: from account XXXX/MERCHANT pattern
+        // Example: "received from account XXXXXXX4321/MADMONEY"
+        val fromAccountPattern = Regex("""from\s+account\s+[^\s/]+/([^\s(]+)""", RegexOption.IGNORE_CASE)
+        fromAccountPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1].trim().trimEnd('.', ',', ';', ')')
+            if (merchant.isNotEmpty()) return cleanMerchantName(merchant)
+        }
+
         // Credit: from <vpa or merchant>
         val fromPattern = Regex("""from\s+(\S+)""", RegexOption.IGNORE_CASE)
         fromPattern.find(message)?.let { match ->
@@ -274,6 +283,14 @@ class IndusIndBankParser : BankParser() {
         rrnPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
+
+        // Capture IMPS/UPI Ref no. pattern
+        // Example: "IMPS Ref no. 123456789" or "Ref no. 123456789"
+        val refNoPattern = Regex("""(?:IMPS\s+)?Ref\s+no\.?\s*([0-9]+)""", RegexOption.IGNORE_CASE)
+        refNoPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         return super.extractReference(message)
     }
 

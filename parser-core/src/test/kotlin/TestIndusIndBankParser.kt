@@ -171,11 +171,25 @@ class IndusIndBankParserTest {
                     merchant = "IMPS",
                     accountLast4 = "0000"
                 )
+            ),
+            ParserTestCase(
+                name = "IMPS credit with from account/merchant pattern",
+                message = "Your account XXXXXXX1234 is credited by Rs.54321 on 07-11-25 received from account XXXXXXX4321/MADMONEY (IMPS Ref no. 123456789). Call 18602677777 to report issue-IndusInd Bank",
+                sender = "VM-INDUSB-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("54321"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "MADMONEY",
+                    accountLast4 = "1234",
+                    reference = "123456789"
+                )
             )
         )
 
         val handleChecks = listOf(
             "AD-INDUSB-S" to true,
+            "VM-INDUSB-T" to true,
             "VM-INDUSIND-S" to true,
             "JK-INDUSB-S" to true,
             "JX-INDUSB-S" to true,

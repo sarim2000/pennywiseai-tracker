@@ -153,11 +153,29 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                     accountLast4 = "6018",
                     isFromCard = true
                 )
+            ),
+
+            // ATM withdrawals
+            ParserTestCase(
+                name = "ATM Withdrawal - Axis Bank Location",
+                message = "INR 2000.00 debited from A/c no. XX589034 on AXIS BANK L 04-11-2025 16:06:39 IST. Avl bal: INR 98919.81. Not you? SMS BLOCKCARD XX0192 to +919951860002 - Axis Bank",
+                sender = "JD-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "ATM",
+                    accountLast4 = "9034",
+                    balance = BigDecimal("98919.81")
+                )
             )
         )
 
         val handleCases: List<Pair<String, Boolean>> = listOf(
             "AX-AXISBK-S" to true,
+            "JD-AXISBK-S" to true,
+            "CP-AXISBK-S" to true,
+            "JX-AXISBK-S" to true,
             "AX-AXISBANK-S" to true,
             "AX-AXIS-S" to true,
             "AXISBK" to true,

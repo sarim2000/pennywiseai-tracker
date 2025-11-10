@@ -47,6 +47,34 @@ class SouthIndianBankParserTest {
                     balance = BigDecimal("12345.89"),
                     reference = "565526068910"
                 )
+            ),
+            ParserTestCase(
+                name = "Debit card usage",
+                message = "A/c X7477 DEBIT:Rs.983.75 SPICE KITCHEN MCT Bal:Rs.1234.67 Block A/c? call 18004251809/SMS BLK<full A/c>to 9840777222-South Indian Bank",
+                sender = "VM-SIBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("983.75"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SPICE KITCHEN MCT",
+                    accountLast4 = "7477",
+                    balance = BigDecimal("1234.67"),
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "UPI debit with comma separator and RRN",
+                message = "UPI debit:Rs.42225.06, A/c X7477, 03-11-25 00:12:50 RRN:567304295699. Bal:Rs.35037.21 Block A/c? Cal118004251809/SMS BLK<A/c>to 9840777222-South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("42225.06"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "UPI Transaction",
+                    accountLast4 = "7477",
+                    balance = BigDecimal("35037.21"),
+                    reference = "567304295699"
+                )
             )
         )
 

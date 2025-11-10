@@ -83,7 +83,7 @@ class SouthIndianBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern for "Rs.85.00" or "INR 85.00"
+        // Pattern for "Rs.42225.06" or "Rs.42225.06," (with comma after)
         val patterns = listOf(
             Regex("""(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
@@ -151,10 +151,30 @@ class SouthIndianBankParser : BankParser() {
                         return cleanMerchantName(merchant)
                     }
                 }
+                // Default to UPI Credit if no merchant found
+                return "UPI Credit"
             }
 
-            // Default to UPI Transaction
+            // Default to UPI Transaction for UPI messages (if not credit)
             return "UPI Transaction"
+        }
+
+        // For debit/credit transactions - merchant between amount and balance
+        // Only apply this if NOT a UPI transaction (already handled above)
+        if ((message.contains("debit", ignoreCase = true) ||
+                    message.contains("credit", ignoreCase = true)) &&
+            !message.contains("UPI", ignoreCase = true)) {
+            // Pattern for "DEBIT:Rs.983.75 MERCHANT NAME Bal:Rs.79184.67"
+            val debitCreditPattern = Regex(
+                """(?:DEBIT|CREDIT)[:\s]*Rs\.?\s*[0-9,]+(?:\.\d{2})?\s+([A-Z\s]+?)\s+(?:Bal|Available)""",
+                RegexOption.IGNORE_CASE
+            )
+            debitCreditPattern.find(message)?.let { match ->
+                val merchant = match.groupValues[1].trim()
+                if (merchant.isNotEmpty() && merchant.length > 2) {
+                    return cleanMerchantName(merchant)
+                }
+            }
         }
 
         // For ATM withdrawals
@@ -178,7 +198,6 @@ class SouthIndianBankParser : BankParser() {
 
         return super.extractMerchant(message, sender)
     }
-
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
@@ -219,7 +238,7 @@ class SouthIndianBankParser : BankParser() {
             }
         }
 
-        // Pattern for RRN (e.g., "RRN:523273398527")
+        // Pattern for RRN (e.g., "RRN:523273398527" or "RRN:567304295699.")
         val rrnPattern = Regex("""RRN[:\s]*(\d{12})""", RegexOption.IGNORE_CASE)
         rrnPattern.find(message)?.let { match ->
             return match.groupValues[1].trim()

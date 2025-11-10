@@ -30,15 +30,13 @@ object CompiledPatterns {
     }
 
     object Balance {
-        val AVL_BAL = Regex(
-            """(?:Bal|Balance|Avl Bal|Available Balance)[:\s]+(?:Rs\.?\s*)?([0-9,]+(?:\.\d{2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        val UPDATED_BAL = Regex(
-            """(?:Updated Balance|Remaining Balance)[:\s]+(?:Rs\.?\s*)?([0-9,]+(?:\.\d{2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        val ALL_PATTERNS = listOf(AVL_BAL, UPDATED_BAL)
+        val AVL_BAL_RS = Regex("""(?:Bal|Balance|Avl Bal|Available Balance)[:\s]+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val AVL_BAL_INR = Regex("""(?:Bal|Balance|Avl Bal|Available Balance)[:\s]+INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val AVL_BAL_RUPEE = Regex("""(?:Bal|Balance|Avl Bal|Available Balance)[:\s]+₹\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val AVL_BAL_NO_CURRENCY = Regex("""(?:Bal|Balance|Avl Bal|Available Balance)[:\s]+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val UPDATED_BAL_RS = Regex("""(?:Updated Balance|Remaining Balance)[:\s]+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val UPDATED_BAL_INR = Regex("""(?:Updated Balance|Remaining Balance)[:\s]+INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val ALL_PATTERNS = listOf(AVL_BAL_RS, AVL_BAL_INR, AVL_BAL_RUPEE, AVL_BAL_NO_CURRENCY, UPDATED_BAL_RS, UPDATED_BAL_INR)
     }
 
     object Merchant {

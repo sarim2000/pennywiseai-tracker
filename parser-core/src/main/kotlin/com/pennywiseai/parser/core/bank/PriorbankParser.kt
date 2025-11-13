@@ -24,7 +24,7 @@ class PriorbankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("PRIORBANK") ||
-               normalizedSender == "PRIORBANK"
+                normalizedSender == "PRIORBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -133,7 +133,8 @@ class PriorbankParser : BankParser() {
         // Skip OTP messages
         if (lowerMessage.contains("otp") ||
             lowerMessage.contains("kod") || // "kod" = code in Russian
-            lowerMessage.contains("parol")) { // "parol" = password in Russian
+            lowerMessage.contains("parol")
+        ) { // "parol" = password in Russian
             return false
         }
 

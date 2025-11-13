@@ -43,12 +43,12 @@ open class FABParser : BankParser() {
         }
 
         val (fromAccount, toAccount) = if (type == TransactionType.TRANSFER) {
-        extractTransferAccounts(smsBody)
-    } else {
-        Pair(null, null)
-    }
+            extractTransferAccounts(smsBody)
+        } else {
+            Pair(null, null)
+        }
 
-    return ParsedTransaction(
+        return ParsedTransaction(
             amount = amount,
             type = type,
             merchant = extractMerchant(smsBody, sender),
@@ -272,44 +272,45 @@ open class FABParser : BankParser() {
         }
 
 // Pattern 2: Payment instructions and funds transfer - extract recipient account
-if (message.contains("payment instructions", ignoreCase = true) ||
-    message.contains("funds transfer request", ignoreCase = true)
-) {
-    // For funds transfer messages, use the same logic as extractTransferAccounts to ensure consistency
-    if (message.contains("funds transfer request", ignoreCase = true)) {
-        return formatTransferMerchant(extractTransferAccounts(message))
-    }
+        if (message.contains("payment instructions", ignoreCase = true) ||
+            message.contains("funds transfer request", ignoreCase = true)
+        ) {
+            // For funds transfer messages, use the same logic as extractTransferAccounts to ensure consistency
+            if (message.contains("funds transfer request", ignoreCase = true)) {
+                return formatTransferMerchant(extractTransferAccounts(message))
+            }
 
-    // Pattern: Extract anything after "to" for payment instructions
-    val toPattern = Regex("""to\s+([^\s]+)""", RegexOption.IGNORE_CASE)
+            // Pattern: Extract anything after "to" for payment instructions
+            val toPattern = Regex("""to\s+([^\s]+)""", RegexOption.IGNORE_CASE)
 
-    toPattern.find(message)?.let { match ->
-        val recipient = match.groupValues[1]
+            toPattern.find(message)?.let { match ->
+                val recipient = match.groupValues[1]
 
-        // If it contains asterisks (masked format), extract last visible digits
-        if (recipient.contains("*")) {
-            val visibleDigits = recipient.filter { it.isDigit() }
-            if (visibleDigits.isNotEmpty()) {
-                // Take last 4 digits if available, otherwise all
-                val displayDigits = if (visibleDigits.length >= 4) {
-                    visibleDigits.takeLast(4)
-                } else {
-                    visibleDigits
+                // If it contains asterisks (masked format), extract last visible digits
+                if (recipient.contains("*")) {
+                    val visibleDigits = recipient.filter { it.isDigit() }
+                    if (visibleDigits.isNotEmpty()) {
+                        // Take last 4 digits if available, otherwise all
+                        val displayDigits = if (visibleDigits.length >= 4) {
+                            visibleDigits.takeLast(4)
+                        } else {
+                            visibleDigits
+                        }
+                        return "Transfer to $displayDigits"
+                    }
                 }
-                return "Transfer to $displayDigits"
+
+                // For unmasked accounts, take last 4 digits
+                val digits = recipient.filter { it.isDigit() || it == 'X' }
+                if (digits.isNotEmpty()) {
+                    return "Transfer to ${digits.takeLast(4)}"
+                }
             }
         }
 
-        // For unmasked accounts, take last 4 digits
-        val digits = recipient.filter { it.isDigit() || it == 'X' }
-        if (digits.isNotEmpty()) {
-            return "Transfer to ${digits.takeLast(4)}"
-        }
-    }
-}
-
         if (message.contains("has been credited to your fab account", ignoreCase = true) &&
-            !message.contains("unsuccessful transaction", ignoreCase = true)) {
+            !message.contains("unsuccessful transaction", ignoreCase = true)
+        ) {
             return "Account Credited"
         }
 
@@ -454,7 +455,10 @@ if (message.contains("payment instructions", ignoreCase = true) ||
         val toPatterns = listOf(
             Regex("""to\s+account\s+([X\d]{4,})""", RegexOption.IGNORE_CASE),
             Regex("""to\s+IBAN/Account/Card\s+([X\d]{4,})""", RegexOption.IGNORE_CASE),
-            Regex("""to\s+IBAN/Account/Card\s+([X\d]{4,})\s+has been processed successfully from""", RegexOption.IGNORE_CASE),
+            Regex(
+                """to\s+IBAN/Account/Card\s+([X\d]{4,})\s+has been processed successfully from""",
+                RegexOption.IGNORE_CASE
+            ),
             Regex("""to\s+([X\d]{4,})\s+from\s+account""", RegexOption.IGNORE_CASE)
         )
 

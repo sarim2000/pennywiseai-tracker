@@ -1,7 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.parser.core.ParsedTransaction
 import java.math.BigDecimal
 
 /**
@@ -16,17 +15,23 @@ class NavyFederalParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "NFCU" ||
-               upperSender == "NAVYFED" ||
-               upperSender.contains("NAVY FEDERAL") ||
-               upperSender.contains("NAVYFEDERAL") ||
-               upperSender.matches(Regex("""^[A-Z]{2}-NFCU-[A-Z]$"""))
+                upperSender == "NAVYFED" ||
+                upperSender.contains("NAVY FEDERAL") ||
+                upperSender.contains("NAVYFEDERAL") ||
+                upperSender.matches(Regex("""^[A-Z]{2}-NFCU-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
         // NFCU pattern: "Transaction for $3.26 was approved"
         val patterns = listOf(
-            Regex("""Transaction for \$([0-9,]+(?:\.[0-9]{2})?)\s+was approved""", RegexOption.IGNORE_CASE),
-            Regex("""Transaction for \$([0-9,]+(?:\.[0-9]{2})?)\s+was declined""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Transaction for \$([0-9,]+(?:\.[0-9]{2})?)\s+was approved""",
+                RegexOption.IGNORE_CASE
+            ),
+            Regex(
+                """Transaction for \$([0-9,]+(?:\.[0-9]{2})?)\s+was declined""",
+                RegexOption.IGNORE_CASE
+            ),
             Regex("""for \$([0-9,]+(?:\.[0-9]{2})?)\s+was approved""", RegexOption.IGNORE_CASE),
             Regex("""for \$([0-9,]+(?:\.[0-9]{2})?)\s+was declined""", RegexOption.IGNORE_CASE)
         )
@@ -47,13 +52,17 @@ class NavyFederalParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern: "at Google One at 08:19 PM" - captures merchant between first "at" and second "at" (for time)
-        val merchantPattern = Regex("""on (?:debit|credit) card \d{4} at (.+?)\s+at \d{2}:\d{2}""", RegexOption.IGNORE_CASE)
+        val merchantPattern = Regex(
+            """on (?:debit|credit) card \d{4} at (.+?)\s+at \d{2}:\d{2}""",
+            RegexOption.IGNORE_CASE
+        )
         merchantPattern.find(message)?.let { match ->
             return match.groupValues[1].trim()
         }
 
         // Alternative pattern without time: "at merchant."
-        val simpleMerchantPattern = Regex("""on (?:debit|credit) card \d{4} at (.+?)(?:\.|$)""", RegexOption.IGNORE_CASE)
+        val simpleMerchantPattern =
+            Regex("""on (?:debit|credit) card \d{4} at (.+?)(?:\.|$)""", RegexOption.IGNORE_CASE)
         simpleMerchantPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             // Clean up common trailing text

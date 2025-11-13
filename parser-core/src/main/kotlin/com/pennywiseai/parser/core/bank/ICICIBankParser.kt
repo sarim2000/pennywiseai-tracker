@@ -1,7 +1,7 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
@@ -79,7 +79,8 @@ class ICICIBankParser : BankParser() {
             val currency = match.groupValues[1].uppercase()
             // Validate it's a valid currency code (3 letters, not month abbreviations)
             if (currency.length == 3 &&
-                !currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))) {
+                !currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))
+            ) {
                 return currency
             }
         }
@@ -89,24 +90,24 @@ class ICICIBankParser : BankParser() {
 
         return null
     }
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("ICICI") ||
-               normalizedSender.contains("ICICIB") ||
-               // DLT patterns for transactions (-S suffix)
-               normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-S$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-ICICI-S$")) ||
-               // Other DLT patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-[TPG]$")) ||
-               // Legacy patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-ICICI$")) ||
-               // Direct sender IDs
-               normalizedSender == "ICICIB" ||
-               normalizedSender == "ICICIBANK"
+                normalizedSender.contains("ICICIB") ||
+                // DLT patterns for transactions (-S suffix)
+                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-S$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-ICICI-S$")) ||
+                // Other DLT patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-[TPG]$")) ||
+                // Legacy patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-ICICI$")) ||
+                // Direct sender IDs
+                normalizedSender == "ICICIB" ||
+                normalizedSender == "ICICIBANK"
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: Multi-currency support - "USD 11.80 spent" or "EUR 50.00 spent"
         val multiCurrencySpentPattern = Regex(
@@ -135,7 +136,7 @@ class ICICIBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 2: "debited with Rs xxx.00"
         val debitWithPattern = Regex(
             """debited\s+with\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
@@ -149,7 +150,7 @@ class ICICIBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 3: "debited for Rs xxx.00"
         val debitForPattern = Regex(
             """debited\s+for\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
@@ -163,7 +164,7 @@ class ICICIBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 4: "credited with Rs xxx.00"
         val creditWithPattern = Regex(
             """credited\s+with\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
@@ -177,7 +178,7 @@ class ICICIBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 5: "credited:Rs. xxx.xx" (colon format for cash deposits)
         val creditColonPattern = Regex(
             """credited:\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
@@ -191,11 +192,11 @@ class ICICIBankParser : BankParser() {
                 null
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: Salary transactions - "Info INF*...*...* SAL ..."
         // Example: "Info INF*000169831922*IQBO SAL FE"
@@ -229,7 +230,7 @@ class ICICIBankParser : BankParser() {
             // Append "Dividend" to make categorization clear
             return "$companyName Dividend"
         }
-        
+
         // Pattern 3: "towards <merchant> for"
         val towardsPattern = Regex(
             """towards\s+([^.\n]+?)\s+for""",
@@ -241,7 +242,7 @@ class ICICIBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 4: "from <name>. UPI"
         val fromUpiPattern = Regex(
             """from\s+([^.\n]+?)\.\s*UPI""",
@@ -253,7 +254,7 @@ class ICICIBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 5: "; <name> credited. UPI"
         val creditedPattern = Regex(
             """;\s*([^.\n]+?)\s+credited\.\s*UPI""",
@@ -265,12 +266,12 @@ class ICICIBankParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 6: Cash deposit via "Info BY CASH" pattern
         if (message.contains("Info BY CASH", ignoreCase = true)) {
             return "Cash Deposit"
         }
-        
+
         // Pattern 7: AutoPay specific - extract service name
         if (message.contains("AutoPay", ignoreCase = true)) {
             // Look for common AutoPay services
@@ -285,11 +286,11 @@ class ICICIBankParser : BankParser() {
                 else -> "AutoPay Subscription"
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "ICICI Bank Card XXNNNN" - for card transactions
         val cardPattern = Regex(
@@ -353,7 +354,7 @@ class ICICIBankParser : BankParser() {
         // Fall back to base class
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern 1: "Available Balance is Rs. 28,076.14" (ICICI-specific format with "is")
         val availBalIsPattern = Regex(
@@ -410,7 +411,7 @@ class ICICIBankParser : BankParser() {
         rrnPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Pattern 2: "UPI:5xxxxx8xxxxx"
         val upiPattern = Regex(
             """UPI:([A-Za-z0-9]+)""",
@@ -419,7 +420,7 @@ class ICICIBankParser : BankParser() {
         upiPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Pattern 3: "transaction reference no.MCDA001746000000"
         val txnRefPattern = Regex(
             """transaction\s+reference\s+no\.?([A-Z0-9]+)""",
@@ -428,11 +429,11 @@ class ICICIBankParser : BankParser() {
         txnRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Fall back to base class
         return super.extractReference(message)
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
@@ -445,7 +446,8 @@ class ICICIBankParser : BankParser() {
         // Skip cash deposit confirmation messages (these are duplicates)
         // We only want to process the actual credit notification
         if (lowerMessage.contains("cash deposit transaction") &&
-            lowerMessage.contains("has been completed")) {
+            lowerMessage.contains("has been completed")
+        ) {
             return false // Skip this confirmation message
         }
 
@@ -481,22 +483,23 @@ class ICICIBankParser : BankParser() {
         // Fall back to base class for standard checks
         return super.isTransactionMessage(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         // Credit card transactions - both "ICICI Bank Credit Card" and "ICICI Bank Card" with spent
-        if ((lowerMessage.contains("icici bank credit card") || 
-             (lowerMessage.contains("icici bank card") && lowerMessage.contains("spent"))) && 
-            (lowerMessage.contains("spent") || lowerMessage.contains("debited"))) {
+        if ((lowerMessage.contains("icici bank credit card") ||
+                    (lowerMessage.contains("icici bank card") && lowerMessage.contains("spent"))) &&
+            (lowerMessage.contains("spent") || lowerMessage.contains("debited"))
+        ) {
             return TransactionType.CREDIT
         }
-        
+
         // Cash deposit via "Info BY CASH" is income
         if (lowerMessage.contains("info by cash")) {
             return TransactionType.INCOME
         }
-        
+
         // Fall back to base class for standard checks
         return super.extractTransactionType(message)
     }

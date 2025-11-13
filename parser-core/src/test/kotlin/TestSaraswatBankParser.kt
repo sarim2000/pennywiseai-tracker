@@ -145,12 +145,7 @@ class SaraswatBankParserTest {
             suiteName = "Saraswat Co-operative Bank Parser"
         )
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+
     }
 
     @Test
@@ -188,12 +183,7 @@ class SaraswatBankParserTest {
             )
         )
 
-        val suite = ParserTestUtils.runFactoryTestSuite(cases, "Saraswat Bank Factory Tests")
-        ParserTestUtils.printTestSummary(
-            totalTests = suite.totalTests,
-            passedTests = suite.passedTests,
-            failedTests = suite.failedTests,
-            failureDetails = suite.failureDetails
-        )
+        ParserTestUtils.runFactoryTestSuite(cases, "Saraswat Bank Factory Tests")
+
     }
 }

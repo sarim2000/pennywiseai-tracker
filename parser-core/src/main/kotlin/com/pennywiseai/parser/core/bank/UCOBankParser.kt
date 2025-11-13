@@ -19,13 +19,13 @@ class UCOBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("UCOBNK") ||
-               normalizedSender.contains("UCOBANK") ||
-               normalizedSender.contains("UCO BANK") ||
-               // DLT patterns with any two-letter prefix followed by -UCOBNK-S
-               normalizedSender.matches(Regex("^[A-Z]{2}-UCOBNK-[ST]$")) ||
-               // Other variations
-               normalizedSender.matches(Regex("^[A-Z]{2}-UCOBNK$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-UCOBANK$"))
+                normalizedSender.contains("UCOBANK") ||
+                normalizedSender.contains("UCO BANK") ||
+                // DLT patterns with any two-letter prefix followed by -UCOBNK-S
+                normalizedSender.matches(Regex("^[A-Z]{2}-UCOBNK-[ST]$")) ||
+                // Other variations
+                normalizedSender.matches(Regex("^[A-Z]{2}-UCOBNK$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-UCOBANK$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -96,7 +96,10 @@ class UCOBankParser : BankParser() {
         // UCO Bank format: "Avl Bal Rs.11111.11"
         val balancePatterns = listOf(
             Regex("""Avl\s+Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""Available\s+Balance\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Available\s+Balance\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
             Regex("""Balance[:.]?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
 

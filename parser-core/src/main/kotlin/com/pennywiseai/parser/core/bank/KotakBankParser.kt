@@ -1,8 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.parser.core.ParsedTransaction
-import java.math.BigDecimal
 
 /**
  * Kotak Bank specific parser.
@@ -12,16 +10,16 @@ import java.math.BigDecimal
  * - Card transactions
  */
 class KotakBankParser : BankParser() {
-    
+
     override fun getBankName() = "Kotak Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        
+
         // DLT patterns for Kotak Bank
         return normalizedSender.matches(Regex("^[A-Z]{2}-KOTAKB-[ST]$"))
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "Sent Rs.X from Kotak Bank AC XXXX to merchant@bank on"
         // Pattern 2: "Received Rs.X in your Kotak Bank AC XXXX from merchant@bank on"
@@ -55,7 +53,9 @@ class KotakBankParser : BankParser() {
                             extractMerchantFromBankCode(bankCode) ?: cleanMerchantName(name)
                         }
                         // Valid UPI ID with meaningful content (not just all digits)
-                        name.isNotEmpty() && (!name.all { it.isDigit() } || name.contains("-") || name.contains("_")) -> {
+                        name.isNotEmpty() && (!name.all { it.isDigit() } || name.contains("-") || name.contains(
+                            "_"
+                        )) -> {
                             // For phone numbers or IDs with separators, try to get meaningful merchant name
                             if (name.all { it.isDigit() || it == '-' || it == '_' }) {
                                 // This looks like a phone number or ID, try to extract merchant from bank code
@@ -70,6 +70,7 @@ class KotakBankParser : BankParser() {
                             // not the bank/app name (users want to see WHO they sent to, not HOW)
                             name
                         }
+
                         else -> null
                     }
                 }
@@ -85,7 +86,7 @@ class KotakBankParser : BankParser() {
                 return merchantName
             }
         }
-        
+
         // Fall back to generic extraction
         return super.extractMerchant(message, sender)
     }
@@ -148,7 +149,7 @@ class KotakBankParser : BankParser() {
             else -> null
         }
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
@@ -156,7 +157,7 @@ class KotakBankParser : BankParser() {
             // Kotak specific: "Sent Rs.X from Kotak Bank" - money going OUT (EXPENSE)
             // This indicates the user sent money from their Kotak account to someone else
             lowerMessage.contains("sent") && lowerMessage.contains("from kotak") -> TransactionType.EXPENSE
-            
+
             // Standard expense keywords
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
@@ -164,76 +165,79 @@ class KotakBankParser : BankParser() {
             lowerMessage.contains("charged") -> TransactionType.EXPENSE
             lowerMessage.contains("paid") -> TransactionType.EXPENSE
             lowerMessage.contains("purchase") -> TransactionType.EXPENSE
-            
+
             // Income keywords
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
             lowerMessage.contains("received") -> TransactionType.INCOME
             lowerMessage.contains("refund") -> TransactionType.INCOME
             lowerMessage.contains("cashback") && !lowerMessage.contains("earn cashback") -> TransactionType.INCOME
-            
+
             else -> null
         }
     }
-    
+
     override fun extractReference(message: String): String? {
         // Kotak specific UPI reference pattern
         val upiRefPattern = Regex("UPI\\s+Ref\\s+([0-9]+)", RegexOption.IGNORE_CASE)
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1].trim()
         }
-        
+
         // Fall back to generic extraction
         return super.extractReference(message)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Kotak specific pattern: "AC X0000" or "AC XXXX0000"
-        val kotakAccountPattern = Regex("AC\\s+[X*]*([0-9]{4})(?:\\s|,|\\.)", RegexOption.IGNORE_CASE)
+        val kotakAccountPattern =
+            Regex("AC\\s+[X*]*([0-9]{4})(?:\\s|,|\\.)", RegexOption.IGNORE_CASE)
         kotakAccountPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractAccountLast4(message)
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Skip fraud warning links
         if (lowerMessage.contains("not you") && lowerMessage.contains("fraud")) {
             // This is still a transaction message, just with fraud warning
             // Continue processing
         }
-        
+
         // Skip OTP and promotional messages
-        if (lowerMessage.contains("otp") || 
+        if (lowerMessage.contains("otp") ||
             lowerMessage.contains("one time password") ||
             lowerMessage.contains("verification code") ||
-            lowerMessage.contains("offer") || 
+            lowerMessage.contains("offer") ||
             lowerMessage.contains("discount") ||
             lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")) {
+            lowerMessage.contains("win ")
+        ) {
             return false
         }
-        
+
         // Skip payment request messages
-        if (lowerMessage.contains("has requested") || 
+        if (lowerMessage.contains("has requested") ||
             lowerMessage.contains("payment request") ||
             lowerMessage.contains("collect request") ||
             lowerMessage.contains("requesting payment") ||
             lowerMessage.contains("requests rs") ||
-            lowerMessage.contains("ignore if already paid")) {
+            lowerMessage.contains("ignore if already paid")
+        ) {
             return false
         }
-        
+
         // Kotak specific transaction keywords
         val kotakTransactionKeywords = listOf(
             "sent", // Kotak uses "Sent Rs.X from Kotak Bank"
             "debited", "credited", "withdrawn", "deposited",
             "spent", "received", "transferred", "paid"
         )
-        
+
         return kotakTransactionKeywords.any { lowerMessage.contains(it) }
     }
 }

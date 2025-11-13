@@ -70,24 +70,28 @@ object ParserTestUtils {
 
     fun runSingleTest(parser: BankParser, testCase: ParserTestCase): TestResult {
         val parsed = parser.parse(testCase.message, testCase.sender, System.currentTimeMillis())
-        
+
         return when {
             parsed == null && testCase.shouldParse -> TestResult(
-                testCase.name, false, 
+                testCase.name, false,
                 "Parser returned null but expected to parse: ${testCase.message.take(100)}..."
             )
+
             parsed != null && !testCase.shouldParse -> TestResult(
                 testCase.name, false,
                 "Parser parsed message but should have rejected: ${parsed.amount} ${parsed.currency}"
             )
+
             parsed == null -> TestResult(
                 testCase.name, true,
                 details = "Correctly rejected non-transaction message"
             )
+
             testCase.expected == null -> TestResult(
                 testCase.name, true,
                 details = "Parsed ${parsed.amount} ${parsed.currency} (${parsed.type})"
             )
+
             else -> {
                 val errors = validateResult(parsed, testCase.expected)
                 TestResult(
@@ -105,14 +109,26 @@ object ParserTestUtils {
             checkField(result.amount, expected.amount, "Amount")
             checkField(result.currency, expected.currency, "Currency")
             checkField(result.type, expected.type, "Transaction type")
-            
+
             expected.merchant?.let { checkField(result.merchant, it, "Merchant") { "'$it'" } }
             expected.reference?.let { checkField(result.reference, it, "Reference") { "'$it'" } }
-            expected.accountLast4?.let { checkField(result.accountLast4, it, "Account") { "'$it'" } }
+            expected.accountLast4?.let {
+                checkField(
+                    result.accountLast4,
+                    it,
+                    "Account"
+                ) { "'$it'" }
+            }
             expected.balance?.let { checkField(result.balance, it, "Balance") }
             expected.creditLimit?.let { checkField(result.creditLimit, it, "Credit limit") }
             expected.isFromCard?.let { checkField(result.isFromCard, it, "isFromCard") }
-            expected.fromAccount?.let { checkField(result.fromAccount, it, "From account") { "'$it'" } }
+            expected.fromAccount?.let {
+                checkField(
+                    result.fromAccount,
+                    it,
+                    "From account"
+                ) { "'$it'" }
+            }
             expected.toAccount?.let { checkField(result.toAccount, it, "To account") { "'$it'" } }
         }
     }
@@ -122,11 +138,11 @@ object ParserTestUtils {
         testCases: List<ParserTestCase>,
         handleCases: List<Pair<String, Boolean>> = emptyList(),
         suiteName: String = ""
-    ): TestSuiteResult {
+    ) {
         if (suiteName.isNotEmpty()) printSectionHeader(suiteName)
 
         val results = mutableListOf<TestResult>()
-        
+
         testCases.forEach { testCase ->
             runSingleTest(parser, testCase).also {
                 printTestResult(it)
@@ -151,40 +167,45 @@ object ParserTestUtils {
             printTestResult(result, showDetails = !result.passed)
             results.add(result)
         }
-
-        return createSuiteResult(results, "Parser test cases for ${parser::class.simpleName ?: "parser"}")
+        printTestSummaryFromResults(results)
     }
 
-    fun runFactoryTestSuite(testCases: List<SimpleTestCase>, suiteName: String = ""): TestSuiteResult {
+    fun runFactoryTestSuite(testCases: List<SimpleTestCase>, suiteName: String = "") {
         if (suiteName.isNotEmpty()) printSectionHeader(suiteName)
 
         val results = testCases.mapIndexed { index, testCase ->
             val displayName = testCase.description.ifBlank {
                 "${index + 1}. ${testCase.bankName} (${testCase.sender})"
             }
-            
+
             val parser = BankParserFactory.getParser(testCase.sender)
-            
+
             val result = when {
                 parser == null && !testCase.shouldParse -> TestResult(
                     displayName, true,
                     details = "Correctly returned null parser for sender '${testCase.sender}'"
                 )
+
                 parser == null -> TestResult(
                     displayName, false,
                     "Factory returned null for sender '${testCase.sender}'"
                 )
+
                 else -> validateFactoryParser(parser, testCase, displayName)
             }
-            
+
             printTestResult(result)
             result
         }
-
-        return createSuiteResult(results, "Factory parser coverage assertions")
+        printTestSummaryFromResults(results)
     }
 
-    fun printTestHeader(parserName: String, bankName: String, currency: String, additionalInfo: String = "") {
+    fun printTestHeader(
+        parserName: String,
+        bankName: String,
+        currency: String,
+        additionalInfo: String = ""
+    ) {
         val sep = "=".repeat(80)
         println(sep)
         println("$parserName Test Suite$additionalInfo")
@@ -205,7 +226,22 @@ object ParserTestUtils {
         println()
     }
 
-    fun printTestSummary(totalTests: Int, passedTests: Int, failedTests: Int, failureDetails: List<String> = emptyList()) {
+    fun printTestSummaryFromResults(results: List<TestResult>) {
+        val resultsX = this.createSuiteResult(results, "")
+        printTestSummary(
+            totalTests = resultsX.totalTests,
+            passedTests = resultsX.passedTests,
+            failedTests = resultsX.failedTests,
+            failureDetails = resultsX.failureDetails
+        )
+    }
+
+    fun printTestSummary(
+        totalTests: Int,
+        passedTests: Int,
+        failedTests: Int,
+        failureDetails: List<String> = emptyList()
+    ) {
         val sep = "=".repeat(80)
         println(sep)
         println("Test Summary")
@@ -248,7 +284,11 @@ object ParserTestUtils {
         }
     }
 
-    private fun validateFactoryParser(parser: BankParser, testCase: SimpleTestCase, displayName: String): TestResult {
+    private fun validateFactoryParser(
+        parser: BankParser,
+        testCase: SimpleTestCase,
+        displayName: String
+    ): TestResult {
         val errors = mutableListOf<String>()
 
         if (parser.getBankName() != testCase.bankName) {
@@ -267,30 +307,36 @@ object ParserTestUtils {
         }
 
         val parseTestCase = ParserTestCase(
-            displayName, testCase.message, testCase.sender, 
+            displayName, testCase.message, testCase.sender,
             testCase.expected, testCase.shouldParse, testCase.description
         )
         val parseResult = runSingleTest(parser, parseTestCase)
-        
+
         if (!parseResult.passed) parseResult.error?.let { errors.add(it) }
 
         return if (errors.isEmpty()) {
-            parseResult.copy(details = parseResult.details ?: "Factory matched ${parser.getBankName()} (${parser.getCurrency()})")
+            parseResult.copy(
+                details = parseResult.details
+                    ?: "Factory matched ${parser.getBankName()} (${parser.getCurrency()})"
+            )
         } else {
             TestResult(displayName, false, errors.joinToString("; "))
         }
     }
 
-    private fun createSuiteResult(results: List<TestResult>, assertionLabel: String): TestSuiteResult {
+    private fun createSuiteResult(
+        results: List<TestResult>,
+        assertionLabel: String
+    ): TestSuiteResult {
         val executables = results.map { result ->
-            Executable { 
+            Executable {
                 assertTrue(
-                    result.passed, 
+                    result.passed,
                     { "${result.name}: ${result.error ?: "Test failed"}" }
-                ) 
+                )
             }
         }
-        
+
         if (executables.isNotEmpty()) {
             assertAll(assertionLabel, *executables.toTypedArray())
         }

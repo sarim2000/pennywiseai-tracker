@@ -1,10 +1,9 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.test.ParserTestUtils
-import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ExpectedTransaction
+import com.pennywiseai.parser.core.test.ParserTestCase
+import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.Test
-
 import java.math.BigDecimal
 
 class NMBBankParserTest {
@@ -79,12 +78,8 @@ Your  Esewa Wallet Load for 9850000007 of 300.00 is successful on 24-May-2025 18
             "" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(parser, testCases, handleCases, "NMB Bank Parser Tests")
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+        val result =
+            ParserTestUtils.runTestSuite(parser, testCases, handleCases, "NMB Bank Parser Tests")
+
     }
 }

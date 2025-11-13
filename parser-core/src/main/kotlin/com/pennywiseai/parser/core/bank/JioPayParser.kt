@@ -6,21 +6,21 @@ import java.math.BigDecimal
 /**
  * Parser for JioPay wallet transactions.
  * Handles messages from JA-JioPay-S and similar senders.
- * 
+ *
  * Note: Wallet transactions are marked as CREDIT to avoid double-counting
  * (money already counted when loading wallet from bank account)
  */
 class JioPayParser : BankParser() {
-    
+
     override fun getBankName() = "JioPay"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JIOPAY") ||
-               normalizedSender == "JA-JIOPAY-S" ||
-               normalizedSender == "JM-JIOPAY"
+                normalizedSender == "JA-JIOPAY-S" ||
+                normalizedSender == "JM-JIOPAY"
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: "Plan Name : 249.00"
         val planPattern = Regex(
@@ -35,7 +35,7 @@ class JioPayParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 2: "Rs. 249.00" or "Rs 249"
         val rsPattern = Regex(
             """Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
@@ -49,19 +49,20 @@ class JioPayParser : BankParser() {
                 null
             }
         }
-        
+
         // Fall back to base class patterns
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         val lowerMessage = message.lowercase()
-        
+
         return when {
             // Jio Recharge
             lowerMessage.contains("recharge successful") && lowerMessage.contains("jio number") -> {
                 // Extract the phone number for reference
-                val numberPattern = Regex("""Jio\s+Number\s*:\s*(\d{10})""", RegexOption.IGNORE_CASE)
+                val numberPattern =
+                    Regex("""Jio\s+Number\s*:\s*(\d{10})""", RegexOption.IGNORE_CASE)
                 val number = numberPattern.find(message)?.groupValues?.get(1) ?: ""
                 if (number.isNotEmpty()) {
                     "Jio Recharge - ${number.take(4)}****"
@@ -69,7 +70,7 @@ class JioPayParser : BankParser() {
                     "Jio Recharge"
                 }
             }
-            
+
             // Bill payment patterns
             lowerMessage.contains("bill payment") -> {
                 when {
@@ -81,7 +82,7 @@ class JioPayParser : BankParser() {
                     else -> "Bill Payment"
                 }
             }
-            
+
             // Other recharges
             lowerMessage.contains("recharge") -> {
                 when {
@@ -91,20 +92,21 @@ class JioPayParser : BankParser() {
                     else -> "Recharge"
                 }
             }
-            
+
             // Payment to merchant
             lowerMessage.contains("payment successful to") -> {
-                val toPattern = Regex("""payment\s+successful\s+to\s+([^.\n]+)""", RegexOption.IGNORE_CASE)
+                val toPattern =
+                    Regex("""payment\s+successful\s+to\s+([^.\n]+)""", RegexOption.IGNORE_CASE)
                 toPattern.find(message)?.let { match ->
                     return cleanMerchantName(match.groupValues[1].trim())
                 }
                 "JioPay Payment"
             }
-            
+
             else -> super.extractMerchant(message, sender) ?: "JioPay Transaction"
         }
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern: "Transaction ID : BR000CAUBYON"
         val txnPattern = Regex(
@@ -114,22 +116,22 @@ class JioPayParser : BankParser() {
         txnPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType {
         // All JioPay wallet transactions are marked as CREDIT
         // to avoid double-counting (money was already debited when loading wallet)
         return TransactionType.CREDIT
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // JioPay messages don't use standard transaction keywords
         // but "recharge successful" indicates a transaction
-        return lowerMessage.contains("recharge successful") || 
-               super.isTransactionMessage(message)
+        return lowerMessage.contains("recharge successful") ||
+                super.isTransactionMessage(message)
     }
 }

@@ -22,9 +22,9 @@ class OldHickoryParser : BankParser() {
             // Text-based senders
             sender.uppercase().let { upper ->
                 upper == "OLDHICKORY" ||
-                upper == "OHCU" ||
-                upper.contains("HICKORY") ||
-                upper.contains("OLD HICKORY")
+                        upper == "OHCU" ||
+                        upper.contains("HICKORY") ||
+                        upper.contains("OLD HICKORY")
             } -> true
 
             // DLT patterns for US credit unions
@@ -105,7 +105,10 @@ class OldHickoryParser : BankParser() {
 
     override fun extractReference(message: String): String? {
         // Look for threshold values as reference
-        val thresholdPattern = Regex("""above the\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+value you set""", RegexOption.IGNORE_CASE)
+        val thresholdPattern = Regex(
+            """above the\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+value you set""",
+            RegexOption.IGNORE_CASE
+        )
         thresholdPattern.find(message)?.let { match ->
             return "Alert threshold: $${match.groupValues[1]}"
         }

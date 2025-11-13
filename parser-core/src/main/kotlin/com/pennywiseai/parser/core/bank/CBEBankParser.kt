@@ -15,10 +15,10 @@ class CBEBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "CBE" ||
-               upperSender.contains("COMMERCIALBANK") ||
-               upperSender.contains("CBEBANK") ||
-               // DLT patterns for Ethiopia might be different
-               upperSender.matches(Regex("""^[A-Z]{2}-CBE-[A-Z]$"""))
+                upperSender.contains("COMMERCIALBANK") ||
+                upperSender.contains("CBEBANK") ||
+                // DLT patterns for Ethiopia might be different
+                upperSender.matches(Regex("""^[A-Z]{2}-CBE-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -26,7 +26,10 @@ class CBEBankParser : BankParser() {
         val patterns = listOf(
             Regex("""ETB\s+([0-9,]+(?:\.[0-9]{2})?)\s""", RegexOption.IGNORE_CASE),
             Regex("""ETB\s*([0-9,]+(?:\.[0-9]{2})?)(?:\s|$|\.)""", RegexOption.IGNORE_CASE),
-            Regex("""(?:Credited|debited|transfered)\s+(?:with\s+)?ETB\s+([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
+            Regex(
+                """(?:Credited|debited|transfered)\s+(?:with\s+)?ETB\s+([0-9,]+(?:\.[0-9]{2})?)""",
+                RegexOption.IGNORE_CASE
+            )
         )
 
         for (pattern in patterns) {
@@ -84,7 +87,8 @@ class CBEBankParser : BankParser() {
 
         // Pattern 3: Service charge or general debit
         if (message.contains("s.charge", ignoreCase = true) ||
-            message.contains("service charge", ignoreCase = true)) {
+            message.contains("service charge", ignoreCase = true)
+        ) {
             return "Service Charge"
         }
 
@@ -109,7 +113,8 @@ class CBEBankParser : BankParser() {
 
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: "Your Current Balance is ETB 3,104.87"
-        val balancePattern = Regex("""Current Balance is ETB\s+([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
+        val balancePattern =
+            Regex("""Current Balance is ETB\s+([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
         balancePattern.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
@@ -139,7 +144,8 @@ class CBEBankParser : BankParser() {
         }
 
         // Look for date and time: "on 13/09/2025 at 12:37:24"
-        val dateTimePattern = Regex("""on\s+(\d{2}/\d{2}/\d{4}\s+at\s+\d{2}:\d{2}:\d{2})""", RegexOption.IGNORE_CASE)
+        val dateTimePattern =
+            Regex("""on\s+(\d{2}/\d{2}/\d{4}\s+at\s+\d{2}:\d{2}:\d{2})""", RegexOption.IGNORE_CASE)
         dateTimePattern.find(message)?.let { match ->
             return match.groupValues[1]
         }

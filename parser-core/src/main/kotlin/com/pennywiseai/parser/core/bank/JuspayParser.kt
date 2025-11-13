@@ -1,7 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.parser.core.ParsedTransaction
 import java.math.BigDecimal
 
 /**
@@ -17,13 +16,14 @@ class JuspayParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JUSPAY") ||
-               normalizedSender.contains("APAY") ||
-               normalizedSender == "AMAZON PAY"
+                normalizedSender.contains("APAY") ||
+                normalizedSender == "AMAZON PAY"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: "Your Apay Wallet balance is debited for INR Xxx"
-        val debitPattern = Regex("""debited\s+for\s+INR\s+([0-9,]+(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
+        val debitPattern =
+            Regex("""debited\s+for\s+INR\s+([0-9,]+(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
         debitPattern.find(message)?.let { match ->
             return try {
                 BigDecimal(match.groupValues[1].replace(",", ""))
@@ -33,7 +33,8 @@ class JuspayParser : BankParser() {
         }
 
         // Pattern 2: "Payment of Rs xxx using Apay Balance"
-        val paymentPattern = Regex("""Payment\s+of\s+Rs\s+([0-9,]+(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
+        val paymentPattern =
+            Regex("""Payment\s+of\s+Rs\s+([0-9,]+(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
         paymentPattern.find(message)?.let { match ->
             return try {
                 BigDecimal(match.groupValues[1].replace(",", ""))
@@ -70,7 +71,10 @@ class JuspayParser : BankParser() {
 
         // Pattern 1: "successful at merchant" - improved to capture multi-word merchants
         // Captures everything between "successful at" and the period or "Updated Balance"
-        val merchantPattern = Regex("""successful\s+at\s+(.+?)(?:\.\s*Updated|\s*\.\s*Updated|\.(?:\s|$))""", RegexOption.IGNORE_CASE)
+        val merchantPattern = Regex(
+            """successful\s+at\s+(.+?)(?:\.\s*Updated|\s*\.\s*Updated|\.(?:\s|$))""",
+            RegexOption.IGNORE_CASE
+        )
         merchantPattern.find(message)?.let { match ->
             return match.groupValues[1].trim()
         }
@@ -140,6 +144,6 @@ class JuspayParser : BankParser() {
         )
 
         return transactionKeywords.any { lowerMessage.contains(it) } ||
-               super.isTransactionMessage(message)
+                super.isTransactionMessage(message)
     }
 }

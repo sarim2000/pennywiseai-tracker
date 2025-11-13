@@ -19,7 +19,7 @@ class BandhanBankParser : BankParser() {
         val s = sender.uppercase()
 
         // Common short/long forms
-        if ( s.contains("BANDHAN") ) return true
+        if (s.contains("BANDHAN")) return true
 
         // DLT/route patterns frequently used in India
         if (s.matches(Regex("^[A-Z]{2}-BDNSMS(?:-S)?$"))) return true
@@ -40,7 +40,10 @@ class BandhanBankParser : BankParser() {
             if (merchantRaw.contains("/")) {
                 val segments = merchantRaw.split('/').map { it.trim() }.filter { it.isNotEmpty() }
                 val candidate = segments.lastOrNull { segment ->
-                    segment.length >= 2 && segment.any { it.isLetter() } && !segment.equals("UPI", ignoreCase = true)
+                    segment.length >= 2 && segment.any { it.isLetter() } && !segment.equals(
+                        "UPI",
+                        ignoreCase = true
+                    )
                 } ?: segments.lastOrNull()
 
                 if (candidate != null) {

@@ -7,16 +7,16 @@ import java.math.BigDecimal
  * Parser for India Post Payments Bank (IPPB) SMS messages
  */
 class IPPBParser : BankParser() {
-    
+
     override fun getBankName() = "India Post Payments Bank"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        
+
         // Pattern: XX-IPBMSG-S or XX-IPBMSG-T where XX is any two letters
         return normalizedSender.matches(Regex("^[A-Z]{2}-IPBMSG-[ST]$"))
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern: Rs.1.00 or Rs. 1.00
         val amountPattern = Regex(
@@ -31,10 +31,10 @@ class IPPBParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractAmount(message)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: A/C X1234 or a/c X1234
         val accountPattern = Regex(
@@ -50,10 +50,10 @@ class IPPBParser : BankParser() {
                 accountNumber
             }
         }
-        
+
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: Avl Bal Rs.436.91
         val balancePattern = Regex(
@@ -68,13 +68,13 @@ class IPPBParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractBalance(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         val lowerMessage = message.lowercase()
-        
+
         // Pattern 1: "for UPI to john@superyes" (Debit)
         if (lowerMessage.contains("debit")) {
             val toPattern = Regex(
@@ -91,13 +91,13 @@ class IPPBParser : BankParser() {
                     cleanMerchantName(merchant)
                 }
             }
-            
+
             // Fallback: "for UPI" without specific merchant
             if (lowerMessage.contains("for upi")) {
                 return "UPI Payment"
             }
         }
-        
+
         // Pattern 2: "from john doe thru IPPB" (Credit)
         if (lowerMessage.contains("received a payment")) {
             val fromPattern = Regex(
@@ -109,10 +109,10 @@ class IPPBParser : BankParser() {
                 return cleanMerchantName(sender)
             }
         }
-        
+
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern 1: Ref 560002638161
         val refPattern = Regex(
@@ -122,7 +122,7 @@ class IPPBParser : BankParser() {
         refPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Pattern 2: Info: UPI/CREDIT/523498793035
         val infoPattern = Regex(
             """Info:\s*UPI/[^/]+/(\d+)""",
@@ -131,13 +131,13 @@ class IPPBParser : BankParser() {
         infoPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         return when {
             lowerMessage.contains("debit") -> TransactionType.EXPENSE
             lowerMessage.contains("received a payment") -> TransactionType.INCOME
@@ -145,17 +145,18 @@ class IPPBParser : BankParser() {
             else -> super.extractTransactionType(message)
         }
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Check for IPPB-specific transaction keywords
-        if (lowerMessage.contains("debit rs") || 
+        if (lowerMessage.contains("debit rs") ||
             lowerMessage.contains("received a payment") ||
-            (lowerMessage.contains("info: upi") && lowerMessage.contains("credit"))) {
+            (lowerMessage.contains("info: upi") && lowerMessage.contains("credit"))
+        ) {
             return true
         }
-        
+
         return super.isTransactionMessage(message)
     }
 }

@@ -207,19 +207,15 @@ class IndusIndBankParserTest {
             suiteName = "IndusInd Bank Parser"
         )
 
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
-        )
+
     }
 
     @Test
     fun `indusind balance update parsing`() {
         val parser = IndusIndBankParser()
 
-        val message = "Your A/C 2134***12345 has Avl BAL of INR 1,234.56 as on 05/10/25 04:10 AM. Download IndusMobile from PlayStore - IndusInd Bank"
+        val message =
+            "Your A/C 2134***12345 has Avl BAL of INR 1,234.56 as on 05/10/25 04:10 AM. Download IndusMobile from PlayStore - IndusInd Bank"
 
         // Should be detected as a balance update (not a transaction)
         org.junit.jupiter.api.Assertions.assertTrue(parser.isBalanceUpdateNotification(message))
@@ -259,13 +255,8 @@ class IndusIndBankParserTest {
             )
         )
 
-        val suite = ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - IndusInd")
-        ParserTestUtils.printTestSummary(
-            totalTests = suite.totalTests,
-            passedTests = suite.passedTests,
-            failedTests = suite.failedTests,
-            failureDetails = suite.failureDetails
-        )
+        ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - IndusInd")
+
     }
 
 }

@@ -118,11 +118,19 @@ class FABXmlTest {
             errors.add("Amount should be positive: ${result.amount}")
         }
 
-        if (result.type == TransactionType.INCOME && smsData.body.contains("Debit", ignoreCase = true)) {
+        if (result.type == TransactionType.INCOME && smsData.body.contains(
+                "Debit",
+                ignoreCase = true
+            )
+        ) {
             errors.add("Debit transaction marked as INCOME")
         }
 
-        if (result.type == TransactionType.EXPENSE && smsData.body.contains("credit", ignoreCase = true)) {
+        if (result.type == TransactionType.EXPENSE && smsData.body.contains(
+                "credit",
+                ignoreCase = true
+            )
+        ) {
             errors.add("Credit transaction marked as EXPENSE")
         }
 

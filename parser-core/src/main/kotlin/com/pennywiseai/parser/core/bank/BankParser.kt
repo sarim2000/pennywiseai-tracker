@@ -2,8 +2,8 @@ package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.Constants
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
@@ -11,12 +11,12 @@ import java.math.BigDecimal
  * Each bank should extend this class and implement its specific parsing logic.
  */
 abstract class BankParser {
-    
+
     /**
      * Returns the name of the bank this parser handles.
      */
     abstract fun getBankName(): String
-    
+
     /**
      * Checks if this parser can handle messages from the given sender.
      */
@@ -27,7 +27,7 @@ abstract class BankParser {
      * Defaults to INR for Indian banks. International banks should override this.
      */
     open fun getCurrency(): String = "INR"
-    
+
     /**
      * Parses an SMS message and extracts transaction information.
      * Returns null if the message cannot be parsed.
@@ -37,17 +37,17 @@ abstract class BankParser {
         if (!isTransactionMessage(smsBody)) {
             return null
         }
-        
+
         val amount = extractAmount(smsBody)
         if (amount == null) {
             return null
         }
-        
+
         val type = extractTransactionType(smsBody)
         if (type == null) {
             return null
         }
-        
+
         // Extract available limit for credit card transactions
         val availableLimit = if (type == TransactionType.CREDIT) {
             val limit = extractAvailableLimit(smsBody)
@@ -55,7 +55,7 @@ abstract class BankParser {
         } else {
             null
         }
-        
+
         return ParsedTransaction(
             amount = amount,
             type = type,
@@ -72,43 +72,46 @@ abstract class BankParser {
             currency = getCurrency()
         )
     }
-    
+
     /**
      * Checks if the message is a transaction message (not OTP, promotional, etc.)
      */
     protected open fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Skip OTP messages
-        if (lowerMessage.contains("otp") || 
+        if (lowerMessage.contains("otp") ||
             lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")) {
+            lowerMessage.contains("verification code")
+        ) {
             return false
         }
-        
+
         // Skip promotional messages
-        if (lowerMessage.contains("offer") || 
+        if (lowerMessage.contains("offer") ||
             lowerMessage.contains("discount") ||
             lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")) {
+            lowerMessage.contains("win ")
+        ) {
             return false
         }
-        
+
         // Skip payment request messages (common across banks)
-        if (lowerMessage.contains("has requested") || 
+        if (lowerMessage.contains("has requested") ||
             lowerMessage.contains("payment request") ||
             lowerMessage.contains("collect request") ||
             lowerMessage.contains("requesting payment") ||
             lowerMessage.contains("requests rs") ||
-            lowerMessage.contains("ignore if already paid")) {
+            lowerMessage.contains("ignore if already paid")
+        ) {
             return false
         }
-        
+
         // Skip merchant payment acknowledgments
         if (lowerMessage.contains("have received payment")) {
             return false
         }
-        
+
         // Skip payment reminder/due messages
         if (lowerMessage.contains("is due") ||
             lowerMessage.contains("min amount due") ||
@@ -116,19 +119,20 @@ abstract class BankParser {
             lowerMessage.contains("in arrears") ||
             lowerMessage.contains("is overdue") ||
             lowerMessage.contains("ignore if paid") ||
-            (lowerMessage.contains("pls pay") && lowerMessage.contains("min of"))) {
+            (lowerMessage.contains("pls pay") && lowerMessage.contains("min of"))
+        ) {
             return false
         }
-        
+
         // Must contain transaction keywords
         val transactionKeywords = listOf(
             "debited", "credited", "withdrawn", "deposited",
             "spent", "received", "transferred", "paid"
         )
-        
+
         return transactionKeywords.any { lowerMessage.contains(it) }
     }
-    
+
     /**
      * Extracts the transaction currency from the message.
      * Can be overridden by specific bank parsers for custom logic.
@@ -156,21 +160,21 @@ abstract class BankParser {
                 }
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Extracts the transaction type (INCOME/EXPENSE/INVESTMENT).
      */
     protected open fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         // Check for investment transactions first (highest priority)
         if (isInvestmentTransaction(lowerMessage)) {
             return TransactionType.INVESTMENT
         }
-        
+
         return when {
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
@@ -179,17 +183,17 @@ abstract class BankParser {
             lowerMessage.contains("paid") -> TransactionType.EXPENSE
             lowerMessage.contains("purchase") -> TransactionType.EXPENSE
             lowerMessage.contains("deducted") -> TransactionType.EXPENSE
-            
+
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
             lowerMessage.contains("received") -> TransactionType.INCOME
             lowerMessage.contains("refund") -> TransactionType.INCOME
             lowerMessage.contains("cashback") && !lowerMessage.contains("earn cashback") -> TransactionType.INCOME
-            
+
             else -> null
         }
     }
-    
+
     /**
      * Checks if the message is for an investment transaction.
      * Can be overridden by specific bank parsers for custom logic.
@@ -202,12 +206,12 @@ abstract class BankParser {
             "nsccl",                        // NSE Clearing Corporation
             "nse clearing",
             "clearing corporation",
-            
+
             // Auto-pay indicators (excluding mandate/UMRN to avoid subscription false positives)
             "nach",                         // National Automated Clearing House
             "ach",                          // Automated Clearing House
             "ecs",                          // Electronic Clearing Service
-            
+
             // Investment platforms
             "groww",
             "zerodha",
@@ -230,7 +234,7 @@ abstract class BankParser {
             "edelweiss",
             "axis direct",
             "sbi securities",
-            
+
             // Investment types
             "mutual fund",
             "sip",                          // Systematic Investment Plan
@@ -239,17 +243,17 @@ abstract class BankParser {
             "folio",                        // Mutual fund folio
             "demat",
             "stockbroker",
-            
+
             // Stock exchanges
             "nse",                          // National Stock Exchange
             "bse",                          // Bombay Stock Exchange
             "cdsl",                         // Central Depository Services
             "nsdl"                          // National Securities Depository
         )
-        
+
         return investmentKeywords.any { lowerMessage.contains(it) }
     }
-    
+
     /**
      * Extracts merchant/payee information.
      */
@@ -262,10 +266,10 @@ abstract class BankParser {
                 }
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Extracts transaction reference number.
      */
@@ -275,10 +279,10 @@ abstract class BankParser {
                 return match.groupValues[1].trim()
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Extracts last 4 digits of account number.
      */
@@ -288,10 +292,10 @@ abstract class BankParser {
                 return match.groupValues[1]
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Extracts balance after transaction.
      */
@@ -306,32 +310,38 @@ abstract class BankParser {
                 }
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Extracts credit card available limit from the message.
      * This is the remaining credit available to spend, NOT the total credit limit.
      */
     protected open fun extractAvailableLimit(message: String): BigDecimal? {
-        
+
         // Common patterns for credit limit across banks
         val creditLimitPatterns = listOf(
             // "Available limit Rs.111,111.89" - Federal Bank format (no space after Rs.)
             Regex("""Available\s+limit\s+Rs\.([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Available limit Rs. 111,111.89" or "Available limit: Rs 111,111.89"
-            Regex("""Available\s+limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Available\s+limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
             // "Avl Lmt Rs.111,111.89" or "Avl Lmt: Rs 111,111.89" (ICICI and others)
             Regex("""Avl\s+Lmt:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Avail Limit Rs.111,111.89"
             Regex("""Avail\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Available Credit Limit: Rs.111,111.89"
-            Regex("""Available\s+Credit\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex(
+                """Available\s+Credit\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
             // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
             Regex("""(?:^|\s)Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
-        
+
         for ((index, pattern) in creditLimitPatterns.withIndex()) {
             pattern.find(message)?.let { match ->
                 val limitStr = match.groupValues[1].replace(",", "")
@@ -343,17 +353,17 @@ abstract class BankParser {
                 }
             }
         }
-        
+
         return null
     }
-    
+
     /**
      * Detects if the transaction is from a card (credit/debit) based on message patterns.
      * First excludes account-related patterns, then checks for actual card patterns.
      */
     protected open fun detectIsCard(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // FIRST: Explicitly exclude account-related patterns - these are NOT cards
         val accountPatterns = listOf(
             "a/c",           // Account abbreviation (e.g., "from HDFC Bank A/c 120092")
@@ -365,14 +375,14 @@ abstract class BankParser {
             "savings a/c",
             "current a/c"
         )
-        
+
         // If message contains account patterns, it's NOT a card transaction
         for (pattern in accountPatterns) {
             if (lowerMessage.contains(pattern)) {
                 return false
             }
         }
-        
+
         // SECOND: Check for actual card-specific patterns
         val cardPatterns = listOf(
             "card ending",
@@ -384,24 +394,24 @@ abstract class BankParser {
             "card *",
             "card x"
         )
-        
+
         // Check for card patterns
         for (pattern in cardPatterns) {
             if (lowerMessage.contains(pattern)) {
                 return true
             }
         }
-        
+
         // Check for masked card number patterns (e.g., "XXXX1234", "*1234", "ending 1234")
         // BUT only if we haven't already excluded it as an account transaction
         val maskedCardRegex = Regex("""(?:xx|XX|\*{2,})?\d{4}""")
         if (lowerMessage.contains("ending") && maskedCardRegex.containsMatchIn(message)) {
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * Cleans merchant name by removing common suffixes and noise.
      */
@@ -417,17 +427,18 @@ abstract class BankParser {
             .replace(CompiledPatterns.Cleaning.LTD, "")
             .trim()
     }
-    
+
     /**
      * Validates if the extracted merchant name is valid.
      */
     protected open fun isValidMerchantName(name: String): Boolean {
-        val commonWords = setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
-        
-        return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH && 
-               name.any { it.isLetter() } && 
-               name.uppercase() !in commonWords &&
-               !name.all { it.isDigit() } &&
-               !name.contains("@") // Not a UPI ID
+        val commonWords =
+            setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
+
+        return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
+                name.any { it.isLetter() } &&
+                name.uppercase() !in commonWords &&
+                !name.all { it.isDigit() } &&
+                !name.contains("@") // Not a UPI ID
     }
 }

@@ -1,7 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.parser.core.ParsedTransaction
 import java.math.BigDecimal
 
 /**
@@ -29,9 +28,9 @@ class SaraswatBankParser : BankParser() {
 
         // DLT patterns (XX-SARBNK-S/T format)
         return normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK-[ST]$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT-[ST]$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT$"))
+                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT-[ST]$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -76,7 +75,8 @@ class SaraswatBankParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "towards ACH Credit:GUJARAT GAS LIMITED"
-        val towardsPattern = Regex("""towards\s+(.+?)(?:\.\s*Current|\s*Current|$)""", RegexOption.IGNORE_CASE)
+        val towardsPattern =
+            Regex("""towards\s+(.+?)(?:\.\s*Current|\s*Current|$)""", RegexOption.IGNORE_CASE)
         towardsPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             // Clean up "ACH Credit:" prefix
@@ -90,7 +90,8 @@ class SaraswatBankParser : BankParser() {
         }
 
         // Pattern 2: "for S.I." or "for NEFT" etc.
-        val forPattern = Regex("""for\s+([A-Z.]+?)(?:\.\s+Current|\s+Current|$)""", RegexOption.IGNORE_CASE)
+        val forPattern =
+            Regex("""for\s+([A-Z.]+?)(?:\.\s+Current|\s+Current|$)""", RegexOption.IGNORE_CASE)
         forPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim().removeSuffix(".")
             return when (merchant.uppercase()) {
@@ -104,7 +105,11 @@ class SaraswatBankParser : BankParser() {
         }
 
         // Pattern 3: ATM withdrawal
-        if (message.contains("ATM", ignoreCase = true) || message.contains("withdrawn", ignoreCase = true)) {
+        if (message.contains("ATM", ignoreCase = true) || message.contains(
+                "withdrawn",
+                ignoreCase = true
+            )
+        ) {
             return "ATM Withdrawal"
         }
 
@@ -114,7 +119,8 @@ class SaraswatBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "A/c no. 013460" or "A/c no. ending with 013460"
-        val accountNoPattern = Regex("""A/c\s+no\.\s+(?:ending\s+with\s+)?(\d{4,6})""", RegexOption.IGNORE_CASE)
+        val accountNoPattern =
+            Regex("""A/c\s+no\.\s+(?:ending\s+with\s+)?(\d{4,6})""", RegexOption.IGNORE_CASE)
         accountNoPattern.find(message)?.let { match ->
             val accountNumber = match.groupValues[1]
             // Return last 4 digits
@@ -122,7 +128,8 @@ class SaraswatBankParser : BankParser() {
         }
 
         // Pattern 2: "account no. ending with 013460"
-        val endingWithPattern = Regex("""account\s+no\.\s+ending\s+with\s+(\d{4,6})""", RegexOption.IGNORE_CASE)
+        val endingWithPattern =
+            Regex("""account\s+no\.\s+ending\s+with\s+(\d{4,6})""", RegexOption.IGNORE_CASE)
         endingWithPattern.find(message)?.let { match ->
             val accountNumber = match.groupValues[1]
             return accountNumber.takeLast(4)
@@ -140,7 +147,10 @@ class SaraswatBankParser : BankParser() {
 
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern 1: "Current Bal is INR 941.23 CR" or "Current Bal is INR 8,256.97CR"
-        val currentBalPattern = Regex("""Current\s+Bal\s+is\s+INR\s+(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:CR|DR)?""", RegexOption.IGNORE_CASE)
+        val currentBalPattern = Regex(
+            """Current\s+Bal\s+is\s+INR\s+(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:CR|DR)?""",
+            RegexOption.IGNORE_CASE
+        )
         currentBalPattern.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
@@ -151,7 +161,8 @@ class SaraswatBankParser : BankParser() {
         }
 
         // Pattern 2: "Bal: Rs. 1000.00"
-        val balPattern = Regex("""Bal[:\s]+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val balPattern =
+            Regex("""Bal[:\s]+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         balPattern.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
@@ -171,7 +182,8 @@ class SaraswatBankParser : BankParser() {
         // Skip OTP and verification messages
         if (lowerMessage.contains("otp") ||
             lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")) {
+            lowerMessage.contains("verification code")
+        ) {
             return false
         }
 

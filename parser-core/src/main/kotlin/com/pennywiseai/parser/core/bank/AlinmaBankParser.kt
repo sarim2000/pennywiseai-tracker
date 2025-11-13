@@ -23,8 +23,8 @@ class AlinmaBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("ALINMA") ||
-               normalizedSender == "ALINMA" ||
-               normalizedSender.contains("الإنماء") // Arabic name
+                normalizedSender == "ALINMA" ||
+                normalizedSender.contains("الإنماء") // Arabic name
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -203,7 +203,8 @@ class AlinmaBankParser : BankParser() {
         // Skip OTP messages
         if (message.contains("OTP", ignoreCase = true) ||
             message.contains("رمز", ignoreCase = true) || // "رمز" = code
-            message.contains("كلمة المرور")) { // "كلمة المرور" = password
+            message.contains("كلمة المرور")
+        ) { // "كلمة المرور" = password
             return false
         }
 
@@ -223,10 +224,10 @@ class AlinmaBankParser : BankParser() {
     override fun detectIsCard(message: String): Boolean {
         // Check for card-related keywords in Arabic
         return message.contains("البطاقة") ||          // card
-               message.contains("بطاقة") ||            // card
-               message.contains("البطاقة الائتمانية") || // credit card
-               message.contains("بطاقة مدى") ||        // Mada card
-               message.contains("POS") ||
-               message.contains("نقاط البيع")          // POS in Arabic
+                message.contains("بطاقة") ||            // card
+                message.contains("البطاقة الائتمانية") || // credit card
+                message.contains("بطاقة مدى") ||        // Mada card
+                message.contains("POS") ||
+                message.contains("نقاط البيع")          // POS in Arabic
     }
 }

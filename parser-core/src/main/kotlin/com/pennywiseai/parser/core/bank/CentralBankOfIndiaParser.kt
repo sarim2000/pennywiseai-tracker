@@ -1,27 +1,27 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
  * Parser for Central Bank of India (CBoI) SMS messages
  */
 class CentralBankOfIndiaParser : BankParser() {
-    
+
     override fun getBankName() = "Central Bank of India"
-    
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("CENTBK") ||
-               normalizedSender.contains("CBOI") ||
-               normalizedSender.contains("CENTRALBANK") ||
-               normalizedSender.contains("CENTRAL") ||
-               // DLT patterns
-               normalizedSender.matches(Regex("^[A-Z]{2}-CENTBK-[A-Z]$")) ||
-               normalizedSender.matches(Regex("^[A-Z]{2}-CBOI-[A-Z]$"))
+                normalizedSender.contains("CBOI") ||
+                normalizedSender.contains("CENTRALBANK") ||
+                normalizedSender.contains("CENTRAL") ||
+                // DLT patterns
+                normalizedSender.matches(Regex("^[A-Z]{2}-CENTBK-[A-Z]$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-CBOI-[A-Z]$"))
     }
-    
+
     override fun parse(
         smsBody: String,
         sender: String,
@@ -29,11 +29,11 @@ class CentralBankOfIndiaParser : BankParser() {
     ): ParsedTransaction? {
         if (!canHandle(sender)) return null
         if (!isTransactionMessage(smsBody)) return null
-        
+
         val amount = extractAmount(smsBody) ?: return null
         val transactionType = extractTransactionType(smsBody) ?: return null
         val merchant = extractMerchant(smsBody, sender) ?: "Unknown"
-        
+
         return ParsedTransaction(
             amount = amount,
             type = transactionType,
@@ -47,7 +47,7 @@ class CentralBankOfIndiaParser : BankParser() {
             bankName = getBankName()
         )
     }
-    
+
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: Credited by Rs.50.00
         // Pattern 2: Debited by Rs.100.50
@@ -55,7 +55,7 @@ class CentralBankOfIndiaParser : BankParser() {
             """(?:Credited|Debited)\s+by\s+Rs\.?\s*([\d,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
-        
+
         pattern1.find(message)?.let { match ->
             val amount = match.groupValues[1].replace(",", "")
             return try {
@@ -64,13 +64,13 @@ class CentralBankOfIndiaParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 2: Rs.XXX credited/debited
         val pattern2 = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+(?:credited|debited)""",
             RegexOption.IGNORE_CASE
         )
-        
+
         pattern2.find(message)?.let { match ->
             val amount = match.groupValues[1].replace(",", "")
             return try {
@@ -79,10 +79,10 @@ class CentralBankOfIndiaParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractAmount(message)
     }
-    
+
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "from [NAME]" for credits
         val fromPattern = Regex(
@@ -97,7 +97,7 @@ class CentralBankOfIndiaParser : BankParser() {
             }
             return cleanMerchantName(merchant)
         }
-        
+
         // Pattern 2: "to [NAME]" for debits
         val toPattern = Regex(
             """to\s+([^\\s]+?)(?:\s+via|\s+Ref|\s+\.|$)""",
@@ -109,7 +109,7 @@ class CentralBankOfIndiaParser : BankParser() {
                 return merchant
             }
         }
-        
+
         // Pattern 3: via UPI
         if (message.contains("via UPI", ignoreCase = true)) {
             if (message.contains("Credited", ignoreCase = true)) {
@@ -118,10 +118,10 @@ class CentralBankOfIndiaParser : BankParser() {
                 return "UPI Payment"
             }
         }
-        
+
         return super.extractMerchant(message, sender)
     }
-    
+
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: account XX3113 (last 4 visible)
         val pattern1 = Regex(
@@ -131,7 +131,7 @@ class CentralBankOfIndiaParser : BankParser() {
         pattern1.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         // Pattern 2: A/C ending XXXX
         val pattern2 = Regex(
             """A/C\s+ending\s+[X*]*(\d{4})""",
@@ -140,10 +140,10 @@ class CentralBankOfIndiaParser : BankParser() {
         pattern2.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractAccountLast4(message)
     }
-    
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern 1: Total Bal Rs.0000.99 CR
         val totalBalPattern = Regex(
@@ -161,7 +161,7 @@ class CentralBankOfIndiaParser : BankParser() {
                 null
             }
         }
-        
+
         // Pattern 2: Clear Bal Rs.XXX CR
         val clearBalPattern = Regex(
             """Clear\s+Bal\s+Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+(CR|DR)""",
@@ -177,10 +177,10 @@ class CentralBankOfIndiaParser : BankParser() {
                 null
             }
         }
-        
+
         return super.extractBalance(message)
     }
-    
+
     override fun extractReference(message: String): String? {
         // Pattern: Ref No.541986000003
         val pattern = Regex(
@@ -190,13 +190,13 @@ class CentralBankOfIndiaParser : BankParser() {
         pattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
-        
+
         return super.extractReference(message)
     }
-    
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
-        
+
         return when {
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
@@ -207,23 +207,24 @@ class CentralBankOfIndiaParser : BankParser() {
             else -> super.extractTransactionType(message)
         }
     }
-    
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
-        
+
         // Check for CBoI-specific transaction keywords
-        if ((lowerMessage.contains("credited by") || 
-             lowerMessage.contains("debited by")) &&
-            lowerMessage.contains("bal")) {
+        if ((lowerMessage.contains("credited by") ||
+                    lowerMessage.contains("debited by")) &&
+            lowerMessage.contains("bal")
+        ) {
             return true
         }
-        
+
         // Check for signature
         if (lowerMessage.contains("-cboi")) {
-            return lowerMessage.contains("credited") || 
-                   lowerMessage.contains("debited")
+            return lowerMessage.contains("credited") ||
+                    lowerMessage.contains("debited")
         }
-        
+
         return super.isTransactionMessage(message)
     }
 }

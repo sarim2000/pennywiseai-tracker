@@ -21,8 +21,6 @@ the guidelines below.
 * Use `ParserTestUtils.runTestSuite` for parser-specific assertions and
   `ParserTestUtils.runFactoryTestSuite` for sender lookups that delegate to
   `BankParserFactory`.
-* Always call `ParserTestUtils.printTestSummary(...)` at the end of each test to
-  retain the console output parity expected by downstream tooling.
 
 ### Parser-specific tests
 
@@ -53,13 +51,8 @@ fun `fab parser handles key paths`() {
         )
     )
 
-    val suite = ParserTestUtils.runTestSuite(parser, cases)
-    ParserTestUtils.printTestSummary(
-        totalTests = suite.totalTests,
-        passedTests = suite.passedTests,
-        failedTests = suite.failedTests,
-        failureDetails = suite.failureDetails
-    )
+   ParserTestUtils.runTestSuite(parser, cases)
+
 }
 ```
 
@@ -83,13 +76,7 @@ fun `factory resolves fab`() {
         )
     )
 
-    val suite = ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests")
-    ParserTestUtils.printTestSummary(
-        totalTests = suite.totalTests,
-        passedTests = suite.passedTests,
-        failedTests = suite.failedTests,
-        failureDetails = suite.failureDetails
-    )
+   ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests")
 }
 ```
 

@@ -151,14 +151,12 @@ class ICICIBankParserTest {
             "HDFC" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
             suiteName = "ICICI Bank Parser"
         )
-
-
     }
 
     @Test
@@ -215,17 +213,10 @@ class ICICIBankParserTest {
             )
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             suiteName = "ICICI Bank UPI Debit Transactions"
-        )
-
-        ParserTestUtils.printTestSummary(
-            totalTests = result.totalTests,
-            passedTests = result.passedTests,
-            failedTests = result.failedTests,
-            failureDetails = result.failureDetails
         )
     }
 }

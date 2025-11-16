@@ -160,4 +160,72 @@ class ICICIBankParserTest {
 
 
     }
+
+    @Test
+    fun `icici parser handles UPI debit transactions with merchant credited pattern`() {
+        val parser = ICICIBankParser()
+
+        ParserTestUtils.printTestHeader(
+            parserName = "ICICI Bank - UPI Debit Transactions",
+            bankName = parser.getBankName(),
+            currency = parser.getCurrency()
+        )
+
+        val testCases = listOf(
+            ParserTestCase(
+                name = "UPI Debit - DINDUGAL ORIGIN (Nov 10)",
+                message = "ICICI Bank Acct XX051 debited for Rs 180.00 on 10-Nov-25; DINDUGAL ORIGIN credited. UPI:568069174081. Call 18002662 for dispute. SMS BLOCK 051 to 9215676766. 06:33 PM",
+                sender = "ICICIB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("180.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "DINDUGAL ORIGIN",
+                    reference = "568069174081",
+                    accountLast4 = "051"
+                )
+            ),
+
+            ParserTestCase(
+                name = "UPI Debit - HOTEL SARADHAS (Nov 11)",
+                message = "ICICI Bank Acct XX051 debited for Rs 210.00 on 11-Nov-25; HOTEL SARADHAS credited. UPI:531517664120. Call 18002662 for dispute. SMS BLOCK 051 to 9215676766. 06:57 PM",
+                sender = "ICICIB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("210.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "HOTEL SARADHAS",
+                    reference = "531517664120",
+                    accountLast4 = "051"
+                )
+            ),
+
+            ParserTestCase(
+                name = "UPI Debit - DINDUGAL ORIGIN (Nov 12)",
+                message = "ICICI Bank Acct XX051 debited for Rs 240.00 on 12-Nov-25; DINDUGAL ORIGIN credited. UPI:568205532451. Call 18002662 for dispute. SMS BLOCK 051 to 9215676766. 06:29 PM",
+                sender = "ICICIB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("240.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "DINDUGAL ORIGIN",
+                    reference = "568205532451",
+                    accountLast4 = "051"
+                )
+            )
+        )
+
+        val result = ParserTestUtils.runTestSuite(
+            parser = parser,
+            testCases = testCases,
+            suiteName = "ICICI Bank UPI Debit Transactions"
+        )
+
+        ParserTestUtils.printTestSummary(
+            totalTests = result.totalTests,
+            passedTests = result.passedTests,
+            failedTests = result.failedTests,
+            failureDetails = result.failureDetails
+        )
+    }
 }

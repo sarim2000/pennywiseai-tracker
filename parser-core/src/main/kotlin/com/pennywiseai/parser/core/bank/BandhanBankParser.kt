@@ -29,14 +29,17 @@ class BandhanBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Pattern to extract merchant from "towards" section
+        // Stops at: " Value", " on", " dt", " at", ".", or end of string
         val towardsPattern = Regex(
-            """towards\s+([^\.\n]+?)(?:\s+on|\s+dt|\s+at|\.|$)""",
+            """towards\s+([^\.\n]+?)(?:\s+Value|\s+on|\s+dt|\s+at|\.|$)""",
             RegexOption.IGNORE_CASE
         )
 
         towardsPattern.find(message)?.let { match ->
             var merchantRaw = match.groupValues[1].trim()
 
+            // For UPI transactions with "/" delimiters, extract the last meaningful segment
             if (merchantRaw.contains("/")) {
                 val segments = merchantRaw.split('/').map { it.trim() }.filter { it.isNotEmpty() }
                 val candidate = segments.lastOrNull { segment ->
@@ -51,10 +54,12 @@ class BandhanBankParser : BankParser() {
                 }
             }
 
+            // Clean up the merchant name
             val cleanedMerchant = cleanMerchantName(
                 merchantRaw.replace(Regex("""\bu\b""", RegexOption.IGNORE_CASE), "").trim()
             )
 
+            // Normalize specific merchants
             val normalizedMerchant = when {
                 cleanedMerchant.equals("interest", ignoreCase = true) -> "Interest"
                 else -> cleanedMerchant

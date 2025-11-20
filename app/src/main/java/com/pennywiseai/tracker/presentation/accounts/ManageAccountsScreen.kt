@@ -40,6 +40,8 @@ fun ManageAccountsScreen(
     var selectedAccountEntity by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
     var showHistoryDialog by remember { mutableStateOf(false) }
     var historyAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var accountToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     
     Box(
         modifier = Modifier.fillMaxSize()
@@ -203,6 +205,10 @@ fun ManageAccountsScreen(
                             },
                             onUnlinkCard = { cardId ->
                                 viewModel.unlinkCard(cardId)
+                            },
+                            onDeleteAccount = {
+                                accountToDelete = account.bankName to account.accountLast4
+                                showDeleteConfirmDialog = true
                             }
                         )
                     }
@@ -264,6 +270,10 @@ fun ManageAccountsScreen(
                                 historyAccount = card.bankName to card.accountLast4
                                 viewModel.loadBalanceHistory(card.bankName, card.accountLast4)
                                 showHistoryDialog = true
+                            },
+                            onDeleteAccount = {
+                                accountToDelete = card.bankName to card.accountLast4
+                                showDeleteConfirmDialog = true
                             }
                         )
                     }
@@ -352,6 +362,23 @@ fun ManageAccountsScreen(
             }
         )
     }
+
+    // Delete Account Confirmation Dialog
+    if (showDeleteConfirmDialog && accountToDelete != null) {
+        DeleteAccountConfirmDialog(
+            bankName = accountToDelete!!.first,
+            accountLast4 = accountToDelete!!.second,
+            onDismiss = {
+                showDeleteConfirmDialog = false
+                accountToDelete = null
+            },
+            onConfirm = {
+                viewModel.deleteAccount(accountToDelete!!.first, accountToDelete!!.second)
+                showDeleteConfirmDialog = false
+                accountToDelete = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -360,7 +387,8 @@ private fun CreditCardItem(
     isHidden: Boolean,
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
-    onViewHistory: () -> Unit
+    onViewHistory: () -> Unit,
+    onDeleteAccount: () -> Unit
 ) {
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
@@ -551,6 +579,21 @@ private fun CreditCardItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(if (isHidden) "Show" else "Hide")
                 }
+
+                OutlinedButton(
+                    onClick = onDeleteAccount,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete")
+                }
             }
         }
     }
@@ -564,7 +607,8 @@ private fun AccountItem(
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
-    onUnlinkCard: (cardId: Long) -> Unit = {}
+    onUnlinkCard: (cardId: Long) -> Unit = {},
+    onDeleteAccount: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -756,6 +800,21 @@ private fun AccountItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(if (isHidden) "Show" else "Hide")
+                }
+
+                OutlinedButton(
+                    onClick = onDeleteAccount,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete")
                 }
             }
         }
@@ -1199,6 +1258,89 @@ private fun LinkCardDialog(
                 enabled = selectedAccount != null
             ) {
                 Text("Link")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteAccountConfirmDialog(
+    bankName: String,
+    accountLast4: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = {
+            Text("Delete Account?")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text(
+                    text = "Are you sure you want to delete this account?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Column {
+                            Text(
+                                text = bankName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Account ending in $accountLast4",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "This will permanently delete all balance history for this account. Any linked cards will be unlinked. This action cannot be undone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Delete")
             }
         },
         dismissButton = {

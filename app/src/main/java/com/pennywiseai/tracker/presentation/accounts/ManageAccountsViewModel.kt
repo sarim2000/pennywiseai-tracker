@@ -376,4 +376,42 @@ class ManageAccountsViewModel @Inject constructor(
             loadCards() // Reload cards to update UI
         }
     }
+
+    fun deleteAccount(bankName: String, accountLast4: String) {
+        viewModelScope.launch {
+            try {
+                // Unlink any cards linked to this account
+                val linkedCards = _uiState.value.linkedCards[accountLast4] ?: emptyList()
+                linkedCards.forEach { card ->
+                    cardRepository.unlinkCard(card.id)
+                }
+
+                // Delete all balance records for this account
+                val deletedCount = accountBalanceRepository.deleteAccount(bankName, accountLast4)
+
+                // Remove from hidden accounts if present
+                val key = "${bankName}_${accountLast4}"
+                val hidden = _uiState.value.hiddenAccounts.toMutableSet()
+                hidden.remove(key)
+                sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+
+                _uiState.update {
+                    it.copy(
+                        hiddenAccounts = hidden,
+                        successMessage = "Account deleted successfully ($deletedCount balance records removed)"
+                    )
+                }
+
+                // Clear message after delay
+                delay(3000)
+                _uiState.update { it.copy(successMessage = null) }
+
+                loadCards() // Reload cards to update UI
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to delete account: ${e.message}")
+                }
+            }
+        }
+    }
 }

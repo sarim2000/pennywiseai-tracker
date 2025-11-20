@@ -124,4 +124,8 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4)
     }
+
+    suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
+        return accountBalanceDao.deleteAccount(bankName, accountLast4)
+    }
 }

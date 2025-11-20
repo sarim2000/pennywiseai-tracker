@@ -144,7 +144,10 @@ interface AccountBalanceDao {
     @Query("UPDATE account_balances SET balance = :newBalance WHERE id = :id")
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal)
     
-    @Query("""SELECT COUNT(*) FROM account_balances 
+    @Query("""SELECT COUNT(*) FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int
+
+    @Query("DELETE FROM account_balances WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun deleteAccount(bankName: String, accountLast4: String): Int
 }

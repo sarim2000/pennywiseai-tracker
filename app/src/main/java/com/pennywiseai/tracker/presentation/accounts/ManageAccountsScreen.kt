@@ -42,6 +42,7 @@ fun ManageAccountsScreen(
     var historyAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var accountToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showHiddenAccounts by remember { mutableStateOf(false) }
     
     Box(
         modifier = Modifier.fillMaxSize()
@@ -140,41 +141,23 @@ fun ManageAccountsScreen(
                     }
                 }
                 
-                // Show hidden accounts toggle if any accounts are hidden
-                if (uiState.hiddenAccounts.isNotEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(Dimensions.Padding.content),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(
-                                    text = "${uiState.hiddenAccounts.size} account(s) hidden",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
+                // Separate visible and hidden accounts
+                val visibleRegularAccounts = uiState.accounts.filter {
+                    !it.isCreditCard && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
+                val visibleCreditCards = uiState.accounts.filter {
+                    it.isCreditCard && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
+                }
+                val hiddenRegularAccounts = uiState.accounts.filter {
+                    !it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
+                }
+                val hiddenCreditCards = uiState.accounts.filter {
+                    it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
+                }
+                val allRegularAccounts = uiState.accounts.filter { !it.isCreditCard }
                 
-                // Separate regular accounts and credit cards
-                val regularAccounts = uiState.accounts.filter { !it.isCreditCard }
-                val creditCards = uiState.accounts.filter { it.isCreditCard }
-                
-                // Regular Bank Accounts Section
-                if (regularAccounts.isNotEmpty()) {
+                // Regular Bank Accounts Section (Visible Only)
+                if (visibleRegularAccounts.isNotEmpty()) {
                     item {
                         Text(
                             text = "Bank Accounts",
@@ -184,12 +167,12 @@ fun ManageAccountsScreen(
                             modifier = Modifier.padding(vertical = Spacing.xs)
                         )
                     }
-                    
-                    items(regularAccounts) { account ->
+
+                    items(visibleRegularAccounts) { account ->
                         AccountItem(
                             account = account,
                             linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
-                            isHidden = viewModel.isAccountHidden(account.bankName, account.accountLast4),
+                            isHidden = false,
                             onToggleVisibility = {
                                 viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
                             },
@@ -230,7 +213,7 @@ fun ManageAccountsScreen(
                     items(uiState.orphanedCards) { card ->
                         OrphanedCardItem(
                             card = card,
-                            accounts = regularAccounts,
+                            accounts = allRegularAccounts,
                             onLinkToAccount = { accountLast4 ->
                                 viewModel.linkCardToAccount(card.id, accountLast4)
                             },
@@ -240,9 +223,9 @@ fun ManageAccountsScreen(
                         )
                     }
                 }
-                
-                // Credit Cards Section
-                if (creditCards.isNotEmpty()) {
+
+                // Credit Cards Section (Visible Only)
+                if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
                         Text(
@@ -253,11 +236,11 @@ fun ManageAccountsScreen(
                             modifier = Modifier.padding(vertical = Spacing.xs)
                         )
                     }
-                    
-                    items(creditCards) { card ->
+
+                    items(visibleCreditCards) { card ->
                         CreditCardItem(
                             card = card,
-                            isHidden = viewModel.isAccountHidden(card.bankName, card.accountLast4),
+                            isHidden = false,
                             onToggleVisibility = {
                                 viewModel.toggleAccountVisibility(card.bankName, card.accountLast4)
                             },
@@ -278,9 +261,110 @@ fun ManageAccountsScreen(
                         )
                     }
                 }
+
+                // Hidden Accounts Section (Collapsible)
+                if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.md))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showHiddenAccounts = !showHiddenAccounts },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Dimensions.Padding.content),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                ) {
+                                    Icon(
+                                        Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Hidden Accounts (${hiddenRegularAccounts.size + hiddenCreditCards.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Icon(
+                                    if (showHiddenAccounts) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (showHiddenAccounts) "Collapse" else "Expand",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (showHiddenAccounts) {
+                        // Hidden Bank Accounts
+                        items(hiddenRegularAccounts) { account ->
+                            AccountItem(
+                                account = account,
+                                linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
+                                isHidden = true,
+                                onToggleVisibility = {
+                                    viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+                                },
+                                onUpdateBalance = {
+                                    selectedAccount = account.bankName to account.accountLast4
+                                    selectedAccountEntity = account
+                                    showUpdateDialog = true
+                                },
+                                onViewHistory = {
+                                    historyAccount = account.bankName to account.accountLast4
+                                    viewModel.loadBalanceHistory(account.bankName, account.accountLast4)
+                                    showHistoryDialog = true
+                                },
+                                onUnlinkCard = { cardId ->
+                                    viewModel.unlinkCard(cardId)
+                                },
+                                onDeleteAccount = {
+                                    accountToDelete = account.bankName to account.accountLast4
+                                    showDeleteConfirmDialog = true
+                                }
+                            )
+                        }
+
+                        // Hidden Credit Cards
+                        items(hiddenCreditCards) { card ->
+                            CreditCardItem(
+                                card = card,
+                                isHidden = true,
+                                onToggleVisibility = {
+                                    viewModel.toggleAccountVisibility(card.bankName, card.accountLast4)
+                                },
+                                onUpdateBalance = {
+                                    selectedAccount = card.bankName to card.accountLast4
+                                    selectedAccountEntity = card
+                                    showUpdateDialog = true
+                                },
+                                onViewHistory = {
+                                    historyAccount = card.bankName to card.accountLast4
+                                    viewModel.loadBalanceHistory(card.bankName, card.accountLast4)
+                                    showHistoryDialog = true
+                                },
+                                onDeleteAccount = {
+                                    accountToDelete = card.bankName to card.accountLast4
+                                    showDeleteConfirmDialog = true
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
-        
+
         // FAB positioned at bottom end
         FloatingActionButton(
             onClick = onNavigateToAddAccount,

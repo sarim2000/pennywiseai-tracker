@@ -91,17 +91,26 @@ class TransactionDetailViewModel @Inject constructor(
         initialValue = emptyList()
     )
     
-    // Available accounts for linking
+    // Available accounts for linking (excluding hidden accounts)
+    private val sharedPrefs = context.getSharedPreferences("account_prefs", android.content.Context.MODE_PRIVATE)
+
     val availableAccounts = accountBalanceRepository.getAllLatestBalances()
         .map { balances ->
-            balances.map { balance ->
-                AccountInfo(
-                    bankName = balance.bankName,
-                    accountLast4 = balance.accountLast4,
-                    displayName = "${balance.bankName} ••••${balance.accountLast4}",
-                    isCreditCard = balance.isCreditCard
-                )
-            }.distinctBy { "${it.bankName}_${it.accountLast4}" }
+            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            balances
+                .filter { balance ->
+                    val key = "${balance.bankName}_${balance.accountLast4}"
+                    !hiddenAccounts.contains(key)
+                }
+                .map { balance ->
+                    AccountInfo(
+                        bankName = balance.bankName,
+                        accountLast4 = balance.accountLast4,
+                        displayName = "${balance.bankName} ••••${balance.accountLast4}",
+                        isCreditCard = balance.isCreditCard
+                    )
+                }
+                .distinctBy { "${it.bankName}_${it.accountLast4}" }
         }
         .stateIn(
             scope = viewModelScope,

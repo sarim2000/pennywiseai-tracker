@@ -1,0 +1,33 @@
+{
+    "name": "pennywise-web",
+    "main": "src/worker.js",
+    "compatibility_date": "2025-11-20",
+    "compatibility_flags": ["nodejs_compat"],
+    "observability": {
+      "enabled": true
+    },
+    "containers": [
+      {
+        "class_name": "PennyWiseContainer",
+        "image": "./Dockerfile",
+        "max_instances": 10
+      }
+    ],
+    "durable_objects": {
+      "bindings": [
+        {
+          "class_name": "PennyWiseContainer",
+          "name": "PENNYWISE_CONTAINER"
+        }
+      ]
+    },
+    "migrations": [
+      {
+        "new_sqlite_classes": ["PennyWiseContainer"],
+        "tag": "v1"
+      }
+    ],
+    "vars": {
+      "KTOR_ENV": "production"
+    }
+  }

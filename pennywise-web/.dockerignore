@@ -26,6 +26,10 @@ docs/
 # Tests
 */src/test/
 
-# Gradle cache
+# Gradle cache (but keep wrapper jar)
 .gradle/
-gradle/wrapper/gradle-wrapper.jar
+
+# Cloudflare Workers (temporary files)
+node_modules/
+.wrangler/
+# Note: .parser-core is needed for Docker build, so not excluded here

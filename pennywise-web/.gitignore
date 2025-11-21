@@ -39,3 +39,10 @@ out/
 .env
 .env.local
 *.env
+
+### Cloudflare Workers ###
+node_modules/
+.wrangler/
+.dev.vars
+package-lock.json
+.parser-core/

@@ -43,6 +43,8 @@ fun ManageAccountsScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var accountToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showHiddenAccounts by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var accountToEdit by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
     
     Box(
         modifier = Modifier.fillMaxSize()
@@ -192,6 +194,10 @@ fun ManageAccountsScreen(
                             onDeleteAccount = {
                                 accountToDelete = account.bankName to account.accountLast4
                                 showDeleteConfirmDialog = true
+                            },
+                            onEditAccount = {
+                                accountToEdit = account
+                                showEditDialog = true
                             }
                         )
                     }
@@ -257,6 +263,10 @@ fun ManageAccountsScreen(
                             onDeleteAccount = {
                                 accountToDelete = card.bankName to card.accountLast4
                                 showDeleteConfirmDialog = true
+                            },
+                            onEditAccount = {
+                                accountToEdit = card
+                                showEditDialog = true
                             }
                         )
                     }
@@ -332,6 +342,10 @@ fun ManageAccountsScreen(
                                 onDeleteAccount = {
                                     accountToDelete = account.bankName to account.accountLast4
                                     showDeleteConfirmDialog = true
+                                },
+                                onEditAccount = {
+                                    accountToEdit = account
+                                    showEditDialog = true
                                 }
                             )
                         }
@@ -357,6 +371,10 @@ fun ManageAccountsScreen(
                                 onDeleteAccount = {
                                     accountToDelete = card.bankName to card.accountLast4
                                     showDeleteConfirmDialog = true
+                                },
+                                onEditAccount = {
+                                    accountToEdit = card
+                                    showEditDialog = true
                                 }
                             )
                         }
@@ -463,6 +481,29 @@ fun ManageAccountsScreen(
             }
         )
     }
+
+    // Edit Account Dialog
+    if (showEditDialog && accountToEdit != null) {
+        EditAccountDialog(
+            account = accountToEdit!!,
+            onDismiss = {
+                showEditDialog = false
+                accountToEdit = null
+            },
+            onConfirm = { newBankName, newBalance, newCreditLimit ->
+                viewModel.editAccount(
+                    oldBankName = accountToEdit!!.bankName,
+                    accountLast4 = accountToEdit!!.accountLast4,
+                    newBankName = newBankName,
+                    newBalance = newBalance,
+                    newCreditLimit = newCreditLimit,
+                    isCreditCard = accountToEdit!!.isCreditCard
+                )
+                showEditDialog = false
+                accountToEdit = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -472,8 +513,10 @@ private fun CreditCardItem(
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
-    onDeleteAccount: () -> Unit
+    onDeleteAccount: () -> Unit,
+    onEditAccount: () -> Unit = {}
 ) {
+    val isManualAccount = card.sourceType == "MANUAL"
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
         ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
@@ -621,25 +664,41 @@ private fun CreditCardItem(
                     }
                 }
             }
-            
+
             // Action Buttons
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                OutlinedButton(
-                    onClick = onUpdateBalance
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Update")
+                if (!isManualAccount) {
+                    OutlinedButton(
+                        onClick = onUpdateBalance
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Update")
+                    }
                 }
-                
+
+                if (isManualAccount) {
+                    OutlinedButton(
+                        onClick = onEditAccount
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit")
+                    }
+                }
+
                 OutlinedButton(
                     onClick = onViewHistory
                 ) {
@@ -651,7 +710,7 @@ private fun CreditCardItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("History")
                 }
-                
+
                 OutlinedButton(
                     onClick = onToggleVisibility
                 ) {
@@ -692,8 +751,10 @@ private fun AccountItem(
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
     onUnlinkCard: (cardId: Long) -> Unit = {},
-    onDeleteAccount: () -> Unit = {}
+    onDeleteAccount: () -> Unit = {},
+    onEditAccount: () -> Unit = {}
 ) {
+    val isManualAccount = account.sourceType == "MANUAL"
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -850,18 +911,34 @@ private fun AccountItem(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                OutlinedButton(
-                    onClick = onUpdateBalance
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Update")
+                if (!isManualAccount) {
+                    OutlinedButton(
+                        onClick = onUpdateBalance
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Update")
+                    }
                 }
-                
+
+                if (isManualAccount) {
+                    OutlinedButton(
+                        onClick = onEditAccount
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit")
+                    }
+                }
+
                 OutlinedButton(
                     onClick = onViewHistory
                 ) {
@@ -873,7 +950,7 @@ private fun AccountItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("History")
                 }
-                
+
                 OutlinedButton(
                     onClick = onToggleVisibility
                 ) {
@@ -1425,6 +1502,210 @@ private fun DeleteAccountConfirmDialog(
                 )
             ) {
                 Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditAccountDialog(
+    account: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity,
+    onDismiss: () -> Unit,
+    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?) -> Unit
+) {
+    var bankNameText by remember { mutableStateOf(account.bankName) }
+    var balanceText by remember { mutableStateOf(account.balance.toString()) }
+    var creditLimitText by remember { mutableStateOf(account.creditLimit?.toString() ?: "") }
+    var isValid by remember { mutableStateOf(false) }
+
+    LaunchedEffect(bankNameText, balanceText, creditLimitText) {
+        isValid = bankNameText.isNotBlank() &&
+                  balanceText.isNotBlank() &&
+                  balanceText.toDoubleOrNull() != null &&
+                  (if (account.isCreditCard) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text("Edit Account")
+                Text(
+                    text = if (account.isCreditCard) "Credit Card" else "Bank Account",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                // Bank Name (Editable)
+                OutlinedTextField(
+                    value = bankNameText,
+                    onValueChange = { bankNameText = it },
+                    label = { Text("Bank Name") },
+                    leadingIcon = {
+                        Icon(
+                            if (account.isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
+                            contentDescription = null
+                        )
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Account Number (Read-only)
+                OutlinedTextField(
+                    value = "••${account.accountLast4}",
+                    onValueChange = {},
+                    label = { Text("Account Number") },
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = "Read-only")
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (account.isCreditCard) {
+                    // Outstanding Balance (Credit Card)
+                    OutlinedTextField(
+                        value = balanceText,
+                        onValueChange = { text ->
+                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                balanceText = text
+                            }
+                        },
+                        label = { Text("Outstanding Balance") },
+                        placeholder = { Text("0.00") },
+                        leadingIcon = {
+                            Text(
+                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        supportingText = {
+                            Text("Amount currently owed on the card")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Credit Limit
+                    OutlinedTextField(
+                        value = creditLimitText,
+                        onValueChange = { text ->
+                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                creditLimitText = text
+                            }
+                        },
+                        label = { Text("Credit Limit") },
+                        placeholder = { Text("50000.00") },
+                        leadingIcon = {
+                            Text(
+                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        supportingText = {
+                            Text("Total credit limit of the card")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Show available credit preview
+                    val outstanding = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val limit = creditLimitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    if (limit > BigDecimal.ZERO) {
+                        val available = limit - outstanding
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Spacing.sm),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Available Credit:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(available, account.currency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Account Balance (Regular Account)
+                    OutlinedTextField(
+                        value = balanceText,
+                        onValueChange = { text ->
+                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                balanceText = text
+                            }
+                        },
+                        label = { Text("Account Balance") },
+                        placeholder = { Text("0.00") },
+                        leadingIcon = {
+                            Text(
+                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val balance = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val creditLimit = if (account.isCreditCard) {
+                        creditLimitText.toBigDecimalOrNull()
+                    } else null
+                    onConfirm(bankNameText, balance, creditLimit)
+                },
+                enabled = isValid
+            ) {
+                Text("Save")
             }
         },
         dismissButton = {

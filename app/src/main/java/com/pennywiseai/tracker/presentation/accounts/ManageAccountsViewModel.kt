@@ -414,4 +414,59 @@ class ManageAccountsViewModel @Inject constructor(
             }
         }
     }
+
+    fun editAccount(
+        oldBankName: String,
+        accountLast4: String,
+        newBankName: String,
+        newBalance: BigDecimal,
+        newCreditLimit: BigDecimal?,
+        isCreditCard: Boolean
+    ) {
+        viewModelScope.launch {
+            try {
+                // Update bank name if changed
+                if (newBankName != oldBankName) {
+                    accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+
+                    // Update hidden accounts preference if bank name changed
+                    val oldKey = "${oldBankName}_${accountLast4}"
+                    val newKey = "${newBankName}_${accountLast4}"
+                    val hidden = _uiState.value.hiddenAccounts.toMutableSet()
+                    if (hidden.contains(oldKey)) {
+                        hidden.remove(oldKey)
+                        hidden.add(newKey)
+                        sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                        _uiState.update { it.copy(hiddenAccounts = hidden) }
+                    }
+                }
+
+                // Insert new balance record with updated values
+                accountBalanceRepository.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = newBankName,
+                        accountLast4 = accountLast4,
+                        balance = newBalance,
+                        creditLimit = newCreditLimit,
+                        timestamp = LocalDateTime.now(),
+                        isCreditCard = isCreditCard,
+                        sourceType = "MANUAL"
+                    )
+                )
+
+                _uiState.update {
+                    it.copy(successMessage = "Account updated successfully")
+                }
+
+                // Clear message after delay
+                delay(3000)
+                _uiState.update { it.copy(successMessage = null) }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to update account: ${e.message}")
+                }
+            }
+        }
+    }
 }

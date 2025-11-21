@@ -128,4 +128,8 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.deleteAccount(bankName, accountLast4)
     }
+
+    suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int {
+        return accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+    }
 }

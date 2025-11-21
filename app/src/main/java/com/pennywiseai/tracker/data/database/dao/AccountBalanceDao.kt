@@ -150,4 +150,7 @@ interface AccountBalanceDao {
 
     @Query("DELETE FROM account_balances WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int
+
+    @Query("UPDATE account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
+    suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int
 }

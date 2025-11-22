@@ -82,6 +82,6 @@ object Constants {
     object Links {
         const val DISCORD_URL = "https://discord.gg/H3xWeMWjKQ"
         const val GITHUB_URL = "https://github.com/sarim2000/pennywiseai-tracker"
-        const val WEB_PARSER_URL = "https://pennywise-web-ywcyejojoa-el.a.run.app"
+        const val WEB_PARSER_URL = "https://pennywise.querymind.pro"
     }
 }

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens
 
 import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -31,13 +32,21 @@ fun PermissionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    
-    // Permission launcher using AndroidX APIs (best practice)
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        viewModel.onPermissionResult(isGranted)
-        if (isGranted) {
+
+    // Track which permissions have been granted
+    var readSmsGranted by remember { mutableStateOf(false) }
+    var receiveSmsGranted by remember { mutableStateOf(false) }
+
+    // Permission launcher for multiple permissions
+    val multiplePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        readSmsGranted = permissions[Manifest.permission.READ_SMS] == true
+        receiveSmsGranted = permissions[Manifest.permission.RECEIVE_SMS] == true
+
+        // Both SMS permissions granted (or at least READ_SMS for basic functionality)
+        if (readSmsGranted) {
+            viewModel.onPermissionResult(true)
             onPermissionGranted()
         } else {
             viewModel.onPermissionDenied()
@@ -135,7 +144,18 @@ fun PermissionScreen(
         // Primary action button
         Button(
             onClick = {
-                permissionLauncher.launch(Manifest.permission.READ_SMS)
+                // Request both READ_SMS and RECEIVE_SMS permissions
+                val permissions = mutableListOf(
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.RECEIVE_SMS
+                )
+
+                // Add POST_NOTIFICATIONS for Android 13+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+
+                multiplePermissionLauncher.launch(permissions.toTypedArray())
             },
             modifier = Modifier.fillMaxWidth()
         ) {

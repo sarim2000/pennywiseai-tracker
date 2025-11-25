@@ -27,7 +27,9 @@ import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 @Composable
 fun PennyWiseApp(
     themeViewModel: ThemeViewModel = hiltViewModel(),
-    appLockViewModel: AppLockViewModel = hiltViewModel()
+    appLockViewModel: AppLockViewModel = hiltViewModel(),
+    editTransactionId: Long? = null,
+    onEditComplete: () -> Unit = {}
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +83,13 @@ fun PennyWiseApp(
         }
     }
     
+    // Navigate to transaction detail when editTransactionId changes
+    LaunchedEffect(editTransactionId) {
+        editTransactionId?.let { transactionId ->
+            navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId))
+        }
+    }
+
     PennyWiseTheme(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled
@@ -88,7 +97,8 @@ fun PennyWiseApp(
         PennyWiseNavHost(
             navController = navController,
             themeViewModel = themeViewModel,
-            startDestination = startDestination
+            startDestination = startDestination,
+            onEditComplete = onEditComplete
         )
     }
 }

@@ -2,8 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- SMS Permission for reading transaction messages -->
+    <!-- SMS Permissions for reading and receiving transaction messages -->
     <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+    <!-- Notification permission for Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Telephony hardware feature (optional for ChromeOS compatibility) -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -62,6 +66,26 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- SMS BroadcastReceiver for real-time transaction processing -->
+        <receiver
+            android:name=".receiver.SmsBroadcastReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Notification Action Receiver for handling notification button actions -->
+        <receiver
+            android:name=".receiver.NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.pennywiseai.tracker.ACTION_DELETE_TRANSACTION" />
+                <action android:name="com.pennywiseai.tracker.ACTION_CONFIRM_TRANSACTION" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

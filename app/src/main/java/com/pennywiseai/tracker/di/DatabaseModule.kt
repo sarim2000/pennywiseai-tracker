@@ -44,7 +44,7 @@ object DatabaseModule {
     fun providePennyWiseDatabase(
         @ApplicationContext context: Context
     ): PennyWiseDatabase {
-        return Room.databaseBuilder(
+        val database = Room.databaseBuilder(
             context,
             PennyWiseDatabase::class.java,
             PennyWiseDatabase.DATABASE_NAME
@@ -58,14 +58,19 @@ object DatabaseModule {
                 PennyWiseDatabase.MIGRATION_21_22,
                 PennyWiseDatabase.MIGRATION_22_23
             )
-            
+
             // Enable auto-migrations
             // Room will automatically detect schema changes between versions
-            
+
             // Add callback to seed default data on first creation
             .addCallback(DatabaseCallback())
-            
+
             .build()
+
+        // Set the singleton instance so BroadcastReceivers can access it
+        PennyWiseDatabase.setInstance(database)
+
+        return database
     }
     
     /**

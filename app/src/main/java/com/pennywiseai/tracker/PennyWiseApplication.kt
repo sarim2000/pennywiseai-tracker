@@ -26,6 +26,14 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     private var activityReferences = 0
     private var isInForeground = false
 
+    /**
+     * Publicly accessible flag to check if the app is in the foreground.
+     * Used by SmsBroadcastReceiver to determine whether to show notifications.
+     */
+    @Volatile
+    var isAppInForeground: Boolean = false
+        private set
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -48,6 +56,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             if (!isInForeground) {
                 // App came to foreground
                 isInForeground = true
+                isAppInForeground = true
                 // Check if app should be locked when returning from background
                 checkAndLockApp()
             }
@@ -62,6 +71,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             if (activityReferences == 0) {
                 // App went to background
                 isInForeground = false
+                isAppInForeground = false
                 // Note: We don't need to do anything here
                 // The lock state will be checked when app returns to foreground
             }

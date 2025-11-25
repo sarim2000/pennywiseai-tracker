@@ -20,7 +20,8 @@ fun PennyWiseNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
-    startDestination: Any = Home
+    startDestination: Any = Home,
+    onEditComplete: () -> Unit = {}
 ) {
     // Use a stable start destination
     val stableStartDestination = remember { startDestination }
@@ -119,6 +120,7 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
                 transactionId = transactionDetail.transactionId,
                 onNavigateBack = {
+                    onEditComplete()
                     navController.popBackStack()
                 }
             )

@@ -76,6 +76,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         const val TAG = "OptimizedSmsReaderWorker"
         const val WORK_NAME = "optimized_sms_reader_work"
 
+        // Input keys
+        const val INPUT_FORCE_RESYNC = "input_force_resync"
+
         // Progress keys
         const val PROGRESS_TOTAL = "progress_total"
         const val PROGRESS_PROCESSED = "progress_processed"
@@ -165,12 +168,22 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Starting optimized SMS reading and parsing work...")
+            // Check if this is a force resync request
+            val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
+            Log.d(TAG, "Starting optimized SMS reading and parsing work... (forceResync: $forceResync)")
+
+            // If force resync, clear existing data first
+            if (forceResync) {
+                Log.d(TAG, "Force resync: Clearing existing transactions and account balances...")
+                transactionRepository.deleteAllTransactions()
+                accountBalanceRepository.deleteAllBalances()
+                Log.d(TAG, "Force resync: Database cleared, starting fresh scan")
+            }
 
             val stats = ProcessingStats()
 
-            // Read SMS messages
-            val messages = readSmsMessages()
+            // Read SMS messages (force resync ignores last scan timestamp)
+            val messages = readSmsMessages(forceResync)
             stats.totalMessages = messages.size
             Log.d(TAG, "Found ${messages.size} SMS messages to process")
 
@@ -1335,7 +1348,7 @@ private suspend fun processUnrecognizedSms(sms: SmsMessage) {
     }
 }
 
-private suspend fun readSmsMessages(): List<SmsMessage> {
+private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessage> {
     val messages = mutableListOf<SmsMessage>()
 
     try {
@@ -1347,7 +1360,12 @@ private suspend fun readSmsMessages(): List<SmsMessage> {
         val now = System.currentTimeMillis()
 
         // Determine if we need a full scan
-        val needsFullScan = lastScanTimestamp == 0L || scanAllTime || scanMonths > lastScanPeriod
+        // Force resync always triggers a full scan from scratch
+        val needsFullScan = forceResync || lastScanTimestamp == 0L || scanAllTime || scanMonths > lastScanPeriod
+
+        if (forceResync) {
+            Log.d(TAG, "Force resync requested - performing full scan and reprocessing all messages")
+        }
 
         // Calculate scan start time
         val scanStartTime = if (needsFullScan) {

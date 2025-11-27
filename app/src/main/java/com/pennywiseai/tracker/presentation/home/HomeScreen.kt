@@ -9,6 +9,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,6 +48,11 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.work.WorkInfo
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import kotlinx.coroutines.launch
@@ -89,6 +97,12 @@ fun HomeScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // State for full resync confirmation dialog
+    var showFullResyncDialog by remember { mutableStateOf(false) }
+
+    // Haptic feedback
+    val view = LocalView.current
 
     // Currency dropdown state
       
@@ -296,19 +310,79 @@ fun HomeScreen(
             }
             
             // Sync FAB (bottom, primary)
-            FloatingActionButton(
-                onClick = { viewModel.scanSmsMessages() },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            // Single tap: incremental scan, Long press: full resync
+            Surface(
+                modifier = Modifier
+                    .spotlightTarget(onFabPositioned)
+                    .size(56.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { viewModel.scanSmsMessages() },
+                            onLongPress = {
+                                // Haptic feedback for long press
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                showFullResyncDialog = true
+                            }
+                        )
+                    },
+                shape = FloatingActionButtonDefaults.shape,
+                color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.spotlightTarget(onFabPositioned)
+                shadowElevation = 6.dp
             ) {
-                Icon(
-                    imageVector = Icons.Default.Sync,
-                    contentDescription = "Sync SMS"
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sync SMS (long press for full resync)"
+                    )
+                }
             }
         }
         
+        // Full Resync Confirmation Dialog
+        if (showFullResyncDialog) {
+            AlertDialog(
+                onDismissRequest = { showFullResyncDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                title = {
+                    Text("Full Resync")
+                },
+                text = {
+                    Text(
+                        "This will reprocess all SMS messages from scratch. " +
+                        "Use this to fix issues caused by updated bank parsers.\n\n" +
+                        "This may take a few seconds depending on your message history."
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showFullResyncDialog = false
+                            viewModel.scanSmsMessages(forceResync = true)
+                        }
+                    ) {
+                        Text("Resync All")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showFullResyncDialog = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         // SMS Parsing Progress Dialog
         SmsParsingProgressDialog(
             isVisible = uiState.isScanning,

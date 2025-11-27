@@ -61,7 +61,8 @@ object BankParserFactory {
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
-        MPESAParser()  // M-PESA (Kenya)
+        MPESAParser(),  // M-PESA (Kenya)
+        CIBEgyptParser()  // CIB - Commercial International Bank (Egypt)
         // Add more bank parsers here as we implement them
     )
 

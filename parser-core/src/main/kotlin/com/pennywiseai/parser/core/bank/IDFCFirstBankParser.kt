@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -12,6 +13,9 @@ import java.math.BigDecimal
  * SMS Format:
  * Your A/C XXXXXXXXXXX is debited by INR 68.00 on 06/08/25 17:36. New Bal :INR XXXXX.00
  * Your A/C XXXXXXXXXXX is credited by INR 500.00 on 06/08/25 17:36. New Bal :INR XXXXX.00
+ *
+ * Credit Card Format (with multi-currency support):
+ * Transaction Successful! EUR 500.00 spent on your IDFC FIRST Bank Credit Card ending XXXX at MERCHANT on DD-MMM-YYYY
  */
 class IDFCFirstBankParser : BankParser() {
 
@@ -24,9 +28,76 @@ class IDFCFirstBankParser : BankParser() {
                 normalizedSender.contains("IDFC")
     }
 
+    override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
+        // Skip non-transaction messages
+        if (!isTransactionMessage(smsBody)) {
+            return null
+        }
+
+        val amount = extractAmount(smsBody)
+        if (amount == null) {
+            return null
+        }
+
+        val type = extractTransactionType(smsBody)
+        if (type == null) {
+            return null
+        }
+
+        // Extract currency dynamically for multi-currency support (foreign transactions on credit cards)
+        val currency = extractCurrencyFromMessage(smsBody) ?: "INR"
+
+        // Extract available limit for credit card transactions
+        val availableLimit = if (type == TransactionType.CREDIT) {
+            extractAvailableLimit(smsBody)
+        } else {
+            null
+        }
+
+        return ParsedTransaction(
+            amount = amount,
+            type = type,
+            merchant = extractMerchant(smsBody, sender),
+            reference = extractReference(smsBody),
+            accountLast4 = extractAccountLast4(smsBody),
+            balance = extractBalance(smsBody),
+            creditLimit = availableLimit,
+            smsBody = smsBody,
+            sender = sender,
+            timestamp = timestamp,
+            bankName = getBankName(),
+            isFromCard = detectIsCard(smsBody),
+            currency = currency
+        )
+    }
+
+    /**
+     * Extract currency from IDFC First Bank transaction messages.
+     * Handles formats like "EUR 500.00 spent" or "USD 100.00 spent" for credit card transactions.
+     */
+    private fun extractCurrencyFromMessage(message: String): String? {
+        // Pattern: "EUR 500.00 spent" or "USD 100.00 spent" (credit card foreign currency transactions)
+        val currencySpentPattern = Regex(
+            """([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+spent""",
+            RegexOption.IGNORE_CASE
+        )
+        currencySpentPattern.find(message)?.let { match ->
+            val currency = match.groupValues[1].uppercase()
+            // Validate: 3 letters, not month abbreviations
+            if (!currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))) {
+                return currency
+            }
+        }
+
+        return null // Falls back to INR
+    }
+
     override fun extractAmount(message: String): BigDecimal? {
         // List of amount patterns for IDFC First Bank
         val amountPatterns = listOf(
+            // Credit card foreign currency pattern: "EUR 500.00 spent" or "USD 100.00 spent"
+            Regex("""[A-Z]{3}\s+([0-9,]+(?:\.\d{2})?)\s+spent""", RegexOption.IGNORE_CASE),
+
             // Debit patterns
             Regex("""Debit\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             Regex("""debited\s+by\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
@@ -100,6 +171,7 @@ class IDFCFirstBankParser : BankParser() {
         return when {
             lowerMessage.contains("debit") -> TransactionType.EXPENSE
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
+            lowerMessage.contains("spent") -> TransactionType.EXPENSE  // Credit card transactions
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("withdrawn") || lowerMessage.contains("withdrawal") -> TransactionType.EXPENSE
             lowerMessage.contains("deposited") || lowerMessage.contains("deposit") -> TransactionType.INCOME
@@ -183,7 +255,16 @@ class IDFCFirstBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern: A/C XXXXXXXXXXX where last 4 digits are visible
+        // Pattern 1: Credit Card ending XX1234 or ending XXXX
+        val cardEndingPattern = Regex(
+            """Credit\s+Card\s+ending\s+[X]*(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        cardEndingPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 2: A/C XXXXXXXXXXX where last 4 digits are visible
         val acPattern = Regex(
             """A/C\s+[X]*(\d{3,4})""",
             RegexOption.IGNORE_CASE

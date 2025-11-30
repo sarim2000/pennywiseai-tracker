@@ -115,8 +115,9 @@ class DhanlaxmiBankParser : BankParser() {
         // Pattern: "UPI TXN: /675325120952-MR /Payment from PhonePe/..."
         if (message.contains("UPI TXN", ignoreCase = true)) {
             // Try to extract payment app or merchant from description
+            // Stop at /, ", or end of quoted section
             val paymentFromPattern = Regex(
-                """Payment\s+from\s+([^/]+)""",
+                """Payment\s+from\s+([^/"]+)""",
                 RegexOption.IGNORE_CASE
             )
             paymentFromPattern.find(message)?.let { match ->
@@ -127,8 +128,9 @@ class DhanlaxmiBankParser : BankParser() {
             }
 
             // Try to extract "payment on <merchant>" pattern
+            // Stop at whitespace, /, ", or using
             val paymentOnPattern = Regex(
-                """payment\s+on\s+([^\s/]+)""",
+                """payment\s+on\s+(\w+)""",
                 RegexOption.IGNORE_CASE
             )
             paymentOnPattern.find(message)?.let { match ->

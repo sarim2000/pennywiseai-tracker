@@ -14,6 +14,7 @@ interface RuleRepository {
     suspend fun insertRule(rule: TransactionRule)
     suspend fun updateRule(rule: TransactionRule)
     suspend fun deleteRule(ruleId: String)
+    suspend fun deleteAllRules()
     suspend fun setRuleActive(ruleId: String, isActive: Boolean)
     suspend fun updateRulePriority(ruleId: String, priority: Int)
 

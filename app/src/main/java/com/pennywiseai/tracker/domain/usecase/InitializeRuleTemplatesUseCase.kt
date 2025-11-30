@@ -13,12 +13,14 @@ class InitializeRuleTemplatesUseCase @Inject constructor(
         val existingRules = ruleRepository.getAllRules().first()
 
         if (existingRules.isEmpty() || forceReset) {
+            // Delete all existing rules when force resetting to avoid duplicates
+            if (forceReset) {
+                ruleRepository.deleteAllRules()
+            }
+
             val templates = ruleTemplateService.getDefaultRuleTemplates()
             templates.forEach { template ->
-                // Only insert if not already exists (by name) or if force reset
-                if (forceReset || existingRules.none { it.name == template.name }) {
-                    ruleRepository.insertRule(template)
-                }
+                ruleRepository.insertRule(template)
             }
         }
     }

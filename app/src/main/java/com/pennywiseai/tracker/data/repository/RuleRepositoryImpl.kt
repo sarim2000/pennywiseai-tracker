@@ -114,6 +114,10 @@ class RuleRepositoryImpl @Inject constructor(
         ruleDao.deleteRuleById(ruleId)
     }
 
+    override suspend fun deleteAllRules() {
+        ruleDao.deleteAllRules()
+    }
+
     override suspend fun setRuleActive(ruleId: String, isActive: Boolean) {
         ruleDao.setRuleActive(ruleId, isActive)
     }

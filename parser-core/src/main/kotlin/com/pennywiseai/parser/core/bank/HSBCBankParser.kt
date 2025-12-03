@@ -244,6 +244,12 @@ class HSBCBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
+        // Skip OTP messages
+        if (lowerMessage.contains("otp is") || lowerMessage.contains("otp valid for")
+        ) {
+            return false
+        }
+
         // Check for HSBC-specific transaction keywords
         if (lowerMessage.contains("is paid from") ||
             lowerMessage.contains("is credited to") ||

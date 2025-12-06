@@ -63,7 +63,8 @@ object BankParserFactory {
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         MPESAParser(),  // M-PESA (Kenya)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
-        DhanlaxmiBankParser()  // Dhanlaxmi Bank (India)
+        DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
+        HuntingtonBankParser()  // Huntington Bank (USA)
         // Add more bank parsers here as we implement them
     )
 

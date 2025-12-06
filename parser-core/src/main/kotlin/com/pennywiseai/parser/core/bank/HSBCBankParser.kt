@@ -97,7 +97,20 @@ class HSBCBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: "at IKEA INDIA ." (debit card format with space before period)
+        // Pattern 1: "from CHAS A/c ***6983 of John Doe" (Issue #118 - NEFT/Credit transactions)
+        // Extract everything after "from" until " ." or end of sentence
+        val neftCreditPattern = Regex(
+            """as\s+(?:NEFT|RTGS|IMPS)\s+from\s+(.+?)\s+\.""",
+            RegexOption.IGNORE_CASE
+        )
+        neftCreditPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 2: "at IKEA INDIA ." (debit card format with space before period)
         val atMerchantPattern = Regex(
             """at\s+([^.]+?)\s*\.""",
             RegexOption.IGNORE_CASE
@@ -109,9 +122,9 @@ class HSBCBankParser : BankParser() {
             }
         }
 
-        // Pattern 2: "used at [Merchant] for" (credit card)
+        // Pattern 3: "used at [Merchant] for" (credit card)
         val creditCardPattern = Regex(
-            """used\s+at\s+([^.]+?)\s+for\s+INR""",
+            """used\s+at\s+([^\s]+)\s+for\s+INR""",
             RegexOption.IGNORE_CASE
         )
         creditCardPattern.find(message)?.let { match ->
@@ -121,7 +134,7 @@ class HSBCBankParser : BankParser() {
             }
         }
 
-        // Pattern 3: "to [Merchant] on" for payments
+        // Pattern 4: "to [Merchant] on" for payments
         val paymentPattern = Regex(
             """to\s+([^.]+?)\s+on\s+\d""",
             RegexOption.IGNORE_CASE
@@ -133,7 +146,7 @@ class HSBCBankParser : BankParser() {
             }
         }
 
-        // Pattern 4: "from [Merchant]" for credits
+        // Pattern 5: "from [Merchant]" for generic credits
         val creditPattern = Regex(
             """from\s+([^.]+?)(?:\s+on\s+|\s+with\s+|$)""",
             RegexOption.IGNORE_CASE
@@ -148,23 +161,45 @@ class HSBCBankParser : BankParser() {
         return super.extractMerchant(message, sender)
     }
 
+    override fun cleanMerchantName(merchant: String): String {
+        var cleaned = super.cleanMerchantName(merchant)
+
+        // Remove "for INR xxx" suffix that may appear in credit card transactions
+        cleaned = cleaned.replace(Regex("""\s+for\s+INR\s+[\d,]+(?:\.\d{2})?$""", RegexOption.IGNORE_CASE), "")
+
+        return cleaned.trim()
+    }
+
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "Debit Card XXXXX71xx" format
+        // Pattern 1: "A/c 074-260***-006" format (Issue #118)
+        // Match account numbers with dashes and asterisks
+        val acNoPattern = Regex(
+            """A/c\s+\d+-\d+\*+-(\d+)""",
+            RegexOption.IGNORE_CASE
+        )
+        acNoPattern.find(message)?.let { match ->
+            val lastPart = match.groupValues[1]
+            // Pad with leading zero if needed to make it 4 digits
+            return lastPart.padStart(4, '0')
+        }
+
+        // Pattern 2: "Debit Card XXXXX71xx" format
+        // Handle mixed digits and 'x' characters
         val debitCardPattern = Regex(
-            """Debit\s+Card\s+[X*]+(\d+)[xX*]*""",
+            """Debit\s+Card\s+[X*]+(\d+[xX]*)""",
             RegexOption.IGNORE_CASE
         )
         debitCardPattern.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            // Extract last 4 digits if we have more than 4
-            return if (digits.length >= 4) {
-                digits.takeLast(4)
+            val cardNum = match.groupValues[1]
+            // Return last 4 characters as-is (may include 'x')
+            return if (cardNum.length >= 4) {
+                cardNum.takeLast(4).lowercase()
             } else {
-                digits
+                cardNum.lowercase()
             }
         }
 
-        // Pattern 2: "creditcard xxxxx1234" or "credit card xxxxx1234"
+        // Pattern 3: "creditcard xxxxx1234" or "credit card xxxxx1234"
         val creditCardPattern = Regex(
             """credit\s*card\s+[xX*]+(\d{4})""",
             RegexOption.IGNORE_CASE
@@ -173,7 +208,7 @@ class HSBCBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        // Pattern 3: account XXXXXX1234
+        // Pattern 4: account XXXXXX1234
         val accountPattern = Regex(
             """account\s+[X*]+(\d{4})""",
             RegexOption.IGNORE_CASE
@@ -186,12 +221,21 @@ class HSBCBankParser : BankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Pattern: with ref 222222222222
-        val pattern = Regex(
+        // Pattern 1: "with UTR CHASH00007392391" (Issue #118 - NEFT/RTGS/IMPS transactions)
+        val utrPattern = Regex(
+            """with\s+UTR\s+(\w+)""",
+            RegexOption.IGNORE_CASE
+        )
+        utrPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 2: "with ref 222222222222"
+        val refPattern = Regex(
             """with\s+ref\s+(\w+)""",
             RegexOption.IGNORE_CASE
         )
-        pattern.find(message)?.let { match ->
+        refPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
@@ -199,7 +243,21 @@ class HSBCBankParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Pattern: "available bal is INR xyz" or "Your available bal is INR xyz"
+        // Pattern 1: "Your Avl Bal is INR xyz" (Issue #118 - abbreviated form)
+        val avlBalPattern = Regex(
+            """(?:Your\s+)?Avl\s+Bal\s+is\s+INR\s+([\d,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        avlBalPattern.find(message)?.let { match ->
+            val balanceStr = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(balanceStr)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 2: "available bal is INR xyz" or "Your available bal is INR xyz"
         val availableBalPattern = Regex(
             """available\s+bal\s+is\s+INR\s+([\d,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -236,6 +294,7 @@ class HSBCBankParser : BankParser() {
             lowerMessage.contains("is paid from") -> TransactionType.EXPENSE
             lowerMessage.contains("is debited") -> TransactionType.EXPENSE
             lowerMessage.contains("is credited to") -> TransactionType.INCOME
+            lowerMessage.contains("is credited with") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
             else -> super.extractTransactionType(message)
         }

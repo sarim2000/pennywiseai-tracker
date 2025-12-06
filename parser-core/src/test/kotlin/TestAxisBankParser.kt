@@ -167,6 +167,33 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                     accountLast4 = "9034",
                     balance = BigDecimal("98919.81")
                 )
+            ),
+
+            // Debit card transactions - Issue #120
+            ParserTestCase(
+                name = "Debit Card - BURGRILL",
+                message = "INR 209.00 debited from A/c no. XXxxxxy on BURGRILL 04-12-2025 13:13:27 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX0023 to +919951860002 - Axis Bank",
+                sender = "JD-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("209.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "BURGRILL",
+                    accountLast4 = "xxxy"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Debit Card - PAHALWAN DH",
+                message = "INR 1028.00 debited from A/c no. XXxxxxy on PAHALWAN DH 02-12-2025 20:38:23 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX0023 to +919951860002 - Axis Bank",
+                sender = "JD-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1028.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "PAHALWAN DH",
+                    accountLast4 = "xxxy"
+                )
             )
         )
 

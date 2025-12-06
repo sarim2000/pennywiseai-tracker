@@ -87,6 +87,20 @@ class AxisBankParser : BankParser() {
             return "ATM"
         }
 
+        // Debit card transaction pattern (Issue #120)
+        // Pattern: "debited from A/c no. XXxxxxy on BURGRILL 04-12-2025 13:13:27 IST"
+        // Extract merchant name between "on" and the date pattern
+        val debitCardPattern = Regex(
+            """debited from A/c no\. [^\s]+ on ([^0-9]+?)(?:\d{2}-\d{2}-\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        debitCardPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Credit card "Spent" transactions with merchant on separate line
         // Format 1: "Spent INR 131\nAxis Bank Card no. XX0818\n05-10-25 09:43:27 IST\nSwiggy Limi\nAvl Limit:"
         // Format 2: "Spent\nCard no. XX7441\nINR 562\n01-09-25 12:04:18\nAVENUE SUPE\nAvl Lmt"
@@ -166,13 +180,27 @@ class AxisBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "A/c no. XXNNNN" - extract everything after "A/c no."
+        // Pattern 1: "A/c no. XXNNNN" or "A/c no. XXxxxxy" - extract everything after "A/c no."
+        // Handle both uppercase X and lowercase x patterns
         val acNoPattern = Regex(
-            """A/c\s+no\.\s+([X\*]*\d+)""",
+            """A/c\s+no\.\s+([X\*xX]+[a-zA-Z\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
             val accountStr = match.groupValues[1]
+            // Extract all alphanumeric characters (to preserve patterns like "xxxy")
+            val digitsAndLetters = accountStr.filter { it.isLetterOrDigit() }
+
+            // If it contains lowercase letters at the end (like "xxxy"), return last 4 chars as-is
+            if (digitsAndLetters.any { it in 'a'..'z' }) {
+                return if (digitsAndLetters.length >= 4) {
+                    digitsAndLetters.takeLast(4).lowercase()
+                } else {
+                    digitsAndLetters.lowercase()
+                }
+            }
+
+            // Otherwise, extract only digits (for patterns like XX1234)
             val digitsOnly = accountStr.filter { it.isDigit() }
             return if (digitsOnly.length >= 4) {
                 digitsOnly.takeLast(4)

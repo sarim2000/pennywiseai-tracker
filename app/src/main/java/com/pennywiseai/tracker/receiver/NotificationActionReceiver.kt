@@ -22,8 +22,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         const val ACTION_DELETE_TRANSACTION = "com.pennywiseai.tracker.ACTION_DELETE_TRANSACTION"
         const val ACTION_CONFIRM_TRANSACTION = "com.pennywiseai.tracker.ACTION_CONFIRM_TRANSACTION"
+        const val ACTION_CHANGE_CATEGORY = "com.pennywiseai.tracker.ACTION_CHANGE_CATEGORY"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
+        const val EXTRA_NEW_CATEGORY = "new_category"
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -43,6 +45,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
             }
             ACTION_CONFIRM_TRANSACTION -> {
                 confirmTransaction(context, notificationId)
+            }
+            ACTION_CHANGE_CATEGORY -> {
+                val newCategory = intent.getStringExtra(EXTRA_NEW_CATEGORY)
+                if (newCategory != null) {
+                    changeCategory(context, transactionId, newCategory, notificationId)
+                } else {
+                    Log.e(TAG, "No category provided")
+                }
             }
             else -> {
                 Log.w(TAG, "Unknown action: ${intent.action}")
@@ -72,6 +82,34 @@ class NotificationActionReceiver : BroadcastReceiver() {
         // Simply dismiss the notification - transaction is already saved
         dismissNotification(context, notificationId)
         Log.d(TAG, "Transaction confirmed, notification dismissed")
+    }
+
+    private fun changeCategory(context: Context, transactionId: Long, newCategory: String, notificationId: Int) {
+        receiverScope.launch {
+            try {
+                val database = PennyWiseDatabase.getInstance(context)
+                val transactionDao = database.transactionDao()
+
+                // Get the transaction
+                val transaction = transactionDao.getTransactionById(transactionId)
+                if (transaction != null) {
+                    // Update with new category
+                    val updated = transaction.copy(
+                        category = newCategory,
+                        updatedAt = java.time.LocalDateTime.now()
+                    )
+                    transactionDao.updateTransaction(updated)
+                    Log.d(TAG, "Updated transaction $transactionId category to: $newCategory")
+
+                    // Dismiss the notification
+                    dismissNotification(context, notificationId)
+                } else {
+                    Log.e(TAG, "Transaction not found: $transactionId")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error changing category", e)
+            }
+        }
     }
 
     private fun dismissNotification(context: Context, notificationId: Int) {

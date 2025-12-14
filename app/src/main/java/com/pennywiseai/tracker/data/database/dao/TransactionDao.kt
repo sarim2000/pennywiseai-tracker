@@ -79,7 +79,16 @@ interface TransactionDao {
     
     @Query("SELECT DISTINCT category FROM transactions WHERE is_deleted = 0 ORDER BY category ASC")
     fun getAllCategories(): Flow<List<String>>
-    
+
+    @Query("""
+        SELECT category FROM transactions
+        WHERE is_deleted = 0
+        GROUP BY category
+        ORDER BY COUNT(*) DESC
+        LIMIT :limit
+    """)
+    suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String>
+
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
     

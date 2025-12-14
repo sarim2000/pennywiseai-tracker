@@ -76,10 +76,20 @@ class TransactionRepository @Inject constructor(
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>> =
         transactionDao.getCurrenciesForPeriod(startDate, endDate)
     
-    fun getAllCategories(): Flow<List<String>> = 
+    fun getAllCategories(): Flow<List<String>> =
         transactionDao.getAllCategories()
-    
-    fun getAllMerchants(): Flow<List<String>> = 
+
+    /**
+     * Gets the top N categories by usage count (number of transactions).
+     * Useful for showing user's most frequently used categories in notifications.
+     *
+     * @param limit Maximum number of categories to return (default: 3)
+     * @return List of category names ordered by usage count (most used first)
+     */
+    suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String> =
+        transactionDao.getTopCategoriesByUsage(limit)
+
+    fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
     
     suspend fun getTotalAmountByTypeAndPeriod(

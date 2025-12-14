@@ -121,24 +121,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     /**
      * Calculates optimal parallelism based on available cores and message count
+     *
+     * IMPORTANT: Sequential processing (parallelism=1) to prevent race conditions
+     * in balance calculations. When multiple threads process transactions for the
+     * same account simultaneously, they read the same "previous balance" value,
+     * causing incorrect balance calculations.
      */
     private fun calculateOptimalParallelism(totalMessages: Int, availableCores: Int): Int {
-        return when {
-            totalMessages < 50 -> 1 // Small datasets: no benefit from parallelization
-            totalMessages < 200 -> minOf(
-                2,
-                availableCores
-            ) // Small benefit from limited parallelism
-            totalMessages < 1000 -> minOf(
-                4,
-                availableCores
-            ) // Medium datasets: moderate parallelism
-            else -> {
-                // Large datasets: use more cores but leave one for system operations
-                val maxParallelism = maxOf(availableCores - 1, 2)
-                minOf(maxParallelism, 8) // Cap at 8 to avoid diminishing returns
-            }
-        }
+        // Always use sequential processing to ensure correct balance calculations
+        return 1
     }
 
     data class ProcessingStats(
@@ -1255,21 +1246,47 @@ private suspend fun processBalanceUpdate(
                 }
 
                 else -> {
-                    existingAccount?.balance ?: BigDecimal.ZERO
+                    // SMS doesn't have explicit balance - calculate based on transaction type
+                    val currentBalance = existingAccount?.balance ?: BigDecimal.ZERO
+                    when (parsedTransaction.type.toEntityType()) {
+                        TransactionType.INCOME -> {
+                            // Money coming in - add to balance
+                            currentBalance + parsedTransaction.amount
+                        }
+                        TransactionType.EXPENSE, TransactionType.INVESTMENT -> {
+                            // Money going out - subtract from balance
+                            (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
+                        }
+                        TransactionType.CREDIT, TransactionType.TRANSFER -> {
+                            // Keep existing balance for transfers (complex logic needed)
+                            // Credit should be handled above, this is fallback
+                            currentBalance
+                        }
+                    }
                 }
+            }
+
+            val balanceSource = when {
+                isCreditCard -> "Calculated (Credit Card)"
+                existingAccount?.isCreditCard == true && parsedTransaction.type.toEntityType() == TransactionType.INCOME -> "Calculated (CC Payment)"
+                parsedTransaction.balance != null -> "From SMS"
+                else -> "Calculated (${parsedTransaction.type.toEntityType()})"
             }
 
             Log.d(
                 TAG, """
                     Saving account balance:
+                    - SMS Timestamp: ${parsedTransaction.timestamp} (${java.time.Instant.ofEpochMilli(parsedTransaction.timestamp)})
                     - Bank: ${parsedTransaction.bankName}
                     - Original: **${parsedTransaction.accountLast4}
                     - Target Account: **$targetAccountLast4
                     - Is Card Transaction: ${parsedTransaction.isFromCard}
                     - Is Credit Card: $isCreditCard
+                    - Transaction Type: ${parsedTransaction.type.toEntityType()}
                     - Transaction Amount: ${parsedTransaction.amount}
                     - Previous Balance: ${existingAccount?.balance}
                     - New Balance: $newBalance
+                    - Balance Source: $balanceSource
                     - Available Limit (from SMS): ${parsedTransaction.creditLimit}
                 """.trimIndent()
             )
@@ -1406,7 +1423,7 @@ private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessa
             SMS_PROJECTION,
             "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
             arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
-            "${Telephony.Sms.DATE} DESC"
+            "${Telephony.Sms.DATE} ASC"  // Process oldest first (chronological order)
         )
 
         cursor?.use {
@@ -1426,6 +1443,18 @@ private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessa
                 )
                 messages.add(message)
             }
+        }
+
+        // Log SMS processing order for verification
+        if (messages.isNotEmpty()) {
+            val firstMsg = messages.first()
+            val lastMsg = messages.last()
+            Log.d(TAG, """
+                Loaded ${messages.size} SMS messages
+                - First (oldest): ${java.time.Instant.ofEpochMilli(firstMsg.timestamp)}
+                - Last (newest): ${java.time.Instant.ofEpochMilli(lastMsg.timestamp)}
+                - Processing order: Chronological (oldest → newest)
+            """.trimIndent())
         }
 
         // Update scan tracking

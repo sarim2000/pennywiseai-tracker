@@ -262,7 +262,25 @@ class SmsTransactionProcessor @Inject constructor(
                     (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
                 }
                 parsedTransaction.balance != null -> parsedTransaction.balance!!
-                else -> existingAccount?.balance ?: BigDecimal.ZERO
+                else -> {
+                    // SMS doesn't have explicit balance - calculate based on transaction type
+                    val currentBalance = existingAccount?.balance ?: BigDecimal.ZERO
+                    when (parsedTransaction.type.toEntityType()) {
+                        TransactionType.INCOME -> {
+                            // Money coming in - add to balance
+                            currentBalance + parsedTransaction.amount
+                        }
+                        TransactionType.EXPENSE, TransactionType.INVESTMENT -> {
+                            // Money going out - subtract from balance
+                            (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
+                        }
+                        TransactionType.CREDIT, TransactionType.TRANSFER -> {
+                            // Keep existing balance for transfers (complex logic needed)
+                            // Credit should be handled above, this is fallback
+                            currentBalance
+                        }
+                    }
+                }
             }
 
             val balanceEntity = AccountBalanceEntity(

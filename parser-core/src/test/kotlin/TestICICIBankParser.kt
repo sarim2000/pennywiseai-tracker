@@ -93,6 +93,12 @@ class ICICIBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "Credit card bill payment",
+                message = "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX9006 through Bharat Bill Payment System on 06-DEC-25.",
+                sender = "AD-ICICIT-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "Regular debit with UPI reference",
                 message = "ICICI Bank Acct XX123 debited for Rs 500.00 on 01-Oct-25; merchant credited. UPI: 543210987654. Call 18002662 for dispute. Updated Bal: Rs 5,000.00",
                 sender = "AX-ICICIT-S",

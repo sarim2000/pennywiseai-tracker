@@ -462,6 +462,12 @@ class ICICIBankParser : BankParser() {
             return false // This is a future debit notification, not an actual transaction
         }
 
+        // Skip credit card bill payment confirmations - these are transfers between own accounts
+        // Example: "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX9006..."
+        if (lowerMessage.contains("has been received on your icici bank credit card")) {
+            return false // This is a credit card bill payment, not a transaction
+        }
+
         // Check for ICICI-specific transaction keywords
         val iciciKeywords = listOf(
             "debited with",

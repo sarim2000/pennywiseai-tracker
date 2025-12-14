@@ -272,7 +272,12 @@ class AxisBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
-        // Credit card spending transactions
+        // Credit card transactions: if message contains "Avl Limit" or "Avl Lmt", it's a credit card
+        if (lowerMessage.contains("avl limit") || lowerMessage.contains("avl lmt")) {
+            return TransactionType.CREDIT
+        }
+
+        // Explicit credit card mention
         if ((lowerMessage.contains("credit card") || lowerMessage.contains(" cc ")) &&
             (lowerMessage.contains("debited") || lowerMessage.contains("spent"))
         ) {
@@ -281,5 +286,31 @@ class AxisBankParser : BankParser() {
 
         // Fall back to base class for standard checks
         return super.extractTransactionType(message)
+    }
+
+    override fun extractAvailableLimit(message: String): BigDecimal? {
+        // Axis Bank specific patterns using "INR" instead of "Rs"
+        val axisCreditLimitPatterns = listOf(
+            // "Avl Limit: INR 217162.72"
+            Regex("""Avl\s+Limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Lmt INR 4632.87"
+            Regex("""Avl\s+Lmt\s+INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Available limit INR 111,111.89"
+            Regex("""Available\s+limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in axisCreditLimitPatterns) {
+            pattern.find(message)?.let { match ->
+                val limitStr = match.groupValues[1].replace(",", "")
+                return try {
+                    BigDecimal(limitStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
+        }
+
+        // Fall back to base class patterns (for Rs-based formats)
+        return super.extractAvailableLimit(message)
     }
 }

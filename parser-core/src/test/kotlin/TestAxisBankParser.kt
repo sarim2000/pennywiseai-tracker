@@ -31,10 +31,11 @@ Not you? SMS BLOCK 0818 to 919951860002""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("131"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "Swiggy",
                     accountLast4 = "0818",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("217162.72")
                 )
             ),
 
@@ -50,10 +51,11 @@ Not you? SMS BLOCK 5678 to 919951860002""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1299.00"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "Amazon",
                     accountLast4 = "5678",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("50000.00")
                 )
             ),
 
@@ -70,10 +72,11 @@ SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("562"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "AVENUE",  // cleanMerchantName converts ALL_CAPS -> Proper Case, but single words stay uppercase
                     accountLast4 = "7441",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("5120.87")
                 )
             ),
 
@@ -89,10 +92,11 @@ Not you? SMS BLOCK 7441 to 919951860002""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("174"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "Blinkit",
                     accountLast4 = "7441",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("6652.78")
                 )
             ),
 
@@ -109,10 +113,11 @@ SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("207"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "Blinkit",
                     accountLast4 = "7441",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("4632.87")
                 )
             ),
 
@@ -128,10 +133,11 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "BPCL ARUNAA",
                     accountLast4 = "6018",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("17131.47")
                 )
             ),
 
@@ -147,10 +153,11 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500"),
                     currency = "INR",
-                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
                     merchant = "JSK FUEL ST",
                     accountLast4 = "6018",
-                    isFromCard = true
+                    isFromCard = true,
+                    creditLimit = BigDecimal("6826.78")
                 )
             ),
 
@@ -184,15 +191,29 @@ Not you? SMS BLOCK 6018 to 919951860002""",
             ),
 
             ParserTestCase(
-                name = "Debit Card - PAHALWAN DH",
-                message = "INR 1028.00 debited from A/c no. XXxxxxy on PAHALWAN DH 02-12-2025 20:38:23 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX0023 to +919951860002 - Axis Bank",
+                name = "Debit Card - Restaurant",
+                message = "INR 1028.00 debited from A/c no. XXxxxxy on RESTAURANT XY 02-12-2025 20:38:23 IST. Avl bal: INR xxxxxxx. Not you? SMS BLOCKCARD XX0023 to +919951860002 - Axis Bank",
                 sender = "JD-AXISBK-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1028.00"),
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
-                    merchant = "PAHALWAN DH",
+                    merchant = "RESTAURANT XY",
                     accountLast4 = "xxxy"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Debit Card - Numeric Account Pattern",
+                message = "INR 500.00 debited from A/c no. XX312225 on MERCHANT ABC 02-12-2025 20:38:23 IST. Avl bal: INR 10000.00. Not you? SMS BLOCKCARD XX0023 to +919951860002 - Axis Bank",
+                sender = "JD-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "MERCHANT ABC",
+                    accountLast4 = "2225",
+                    balance = BigDecimal("10000.00")
                 )
             )
         )

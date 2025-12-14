@@ -214,6 +214,19 @@ class FederalBankParserTest {
             ),
 
             ParserTestCase(
+                name = "Scapia Federal Credit Card Transaction",
+                message = "Hi! Your txn of ₹882.00 at Carnatic Cafe Gurgaon In on your Scapia Federal Visa credit card was successful. And you've earned 10% rewards on this spend! Not you? Go to Scapia support on the app or call 18002961199. -Federal Bank",
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("882.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "Carnatic Cafe Gurgaon In",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
                 name = "Debit Card Transaction - Masked Card",
                 message = "Rs 1500.00 debited via card XX**3456 at MERCHANT on 14-05-2025 15:30:45. Current Bal: Rs.250.75 -Federal Bank",
                 sender = "AD-FEDBNK",

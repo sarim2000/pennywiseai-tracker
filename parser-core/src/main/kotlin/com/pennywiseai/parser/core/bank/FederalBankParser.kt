@@ -24,8 +24,10 @@ class FederalBankParser : BankParser() {
         return normalizedSender.contains("FEDBNK") ||
                 normalizedSender.contains("FEDERAL") ||
                 normalizedSender.contains("FEDFIB") ||
+                normalizedSender.contains("FEDSCP") ||
                 // DLT patterns for transactions (-S suffix)
                 normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||
+                normalizedSender.matches(Regex("^[A-Z]{2}-FEDSCP-S$")) ||
                 // FedFiB patterns
                 normalizedSender.matches(Regex("^[A-Z]{2}-FedFiB-[A-Z]$")) ||
                 // Other DLT patterns
@@ -85,7 +87,21 @@ class FederalBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern 1: INR 506.52 spent (credit card format)
+        // Pattern 1: ₹882.00 (rupee symbol format for Scapia card)
+        val rupeeSymbolPattern = Regex(
+            """₹\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        rupeeSymbolPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 2: INR 506.52 spent (credit card format)
         val inrSpentPattern = Regex(
             """INR\s+([0-9,]+(?:\.\d{2})?)\s+spent""",
             RegexOption.IGNORE_CASE
@@ -99,7 +115,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 2: "you've received INR 10,509.09"
+        // Pattern 3: "you've received INR 10,509.09"
         val receivedPattern = Regex(
             """you've received INR\s+([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -113,7 +129,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 3: Rs 34.51 debited via UPI
+        // Pattern 4: Rs 34.51 debited via UPI
         val debitPattern = Regex(
             """Rs\s+([0-9,]+(?:\.\d{2})?)\s+debited""",
             RegexOption.IGNORE_CASE
@@ -127,7 +143,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 4: Rs 70.00 sent via UPI
+        // Pattern 5: Rs 70.00 sent via UPI
         val sentPattern = Regex(
             """Rs\s+([0-9,]+(?:\.\d{2})?)\s+sent""",
             RegexOption.IGNORE_CASE
@@ -141,7 +157,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 5: Rs 500.00 credited
+        // Pattern 6: Rs 500.00 credited
         val creditPattern = Regex(
             """Rs\s+([0-9,]+(?:\.\d{2})?)\s+credited""",
             RegexOption.IGNORE_CASE
@@ -155,7 +171,7 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 6: withdrawn Rs 500
+        // Pattern 7: withdrawn Rs 500
         val withdrawnPattern = Regex(
             """withdrawn\s+Rs\s+([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -182,8 +198,29 @@ class FederalBankParser : BankParser() {
 
         // Priority 2: Card transactions - use detectIsCard to avoid duplication
         if (detectIsCard(message)) {
-            // Credit card transactions - "at <merchant> on date"
+            // Credit card transactions - "at <merchant> on date" or "at <merchant> on your"
             if (message.contains(" at ", ignoreCase = true)) {
+                // Pattern 1: "at <merchant> on your" (Scapia format)
+                val scapiaPattern = Regex(
+                    """at\s+([^.\n]+?)\s+on\s+your""",
+                    RegexOption.IGNORE_CASE
+                )
+                scapiaPattern.find(message)?.let { match ->
+                    val merchant = cleanMerchantName(match.groupValues[1].trim())
+                    if (isValidMerchantName(merchant)) {
+                        val cleanedMerchant = merchant
+                            .replace(
+                                Regex(
+                                    """\s+(limited|ltd|pvt\s+ltd|private\s+limited)$""",
+                                    RegexOption.IGNORE_CASE
+                                ), ""
+                            )
+                            .trim()
+                        return cleanedMerchant.ifEmpty { merchant }
+                    }
+                }
+
+                // Pattern 2: "at <merchant> on date" (traditional format)
                 val creditCardPattern = Regex(
                     """at\s+([^.\n]+?)\s+on\s+\d""",
                     RegexOption.IGNORE_CASE
@@ -397,6 +434,7 @@ class FederalBankParser : BankParser() {
             "received",
             "transferred",
             "spent on your credit card",
+            "credit card was successful",
             "payment of",
             "payment via e-mandate"
         )

@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
 fun RulesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreateRule: () -> Unit,
+    onNavigateToEditRule: (String) -> Unit,
     viewModel: RulesViewModel = hiltViewModel()
 ) {
     val rules by viewModel.rules.collectAsStateWithLifecycle()
@@ -178,6 +179,9 @@ fun RulesScreen(
                                 onToggle = { isActive ->
                                     viewModel.toggleRule(rule.id, isActive)
                                 },
+                                onEdit = {
+                                    onNavigateToEditRule(rule.id)
+                                },
                                 onDelete = {
                                     viewModel.deleteRule(rule.id)
                                 },
@@ -227,6 +231,7 @@ fun RulesScreen(
 private fun RuleCard(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
     onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onApplyToPast: () -> Unit
 ) {
@@ -327,6 +332,18 @@ private fun RuleCard(
                             expanded = showActionsMenu,
                             onDismissRequest = { showActionsMenu = false }
                         ) {
+                            // Edit rule
+                            DropdownMenuItem(
+                                text = { Text("Edit Rule") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                },
+                                onClick = {
+                                    showActionsMenu = false
+                                    onEdit()
+                                }
+                            )
+
                             // Apply to past transactions
                             DropdownMenuItem(
                                 text = { Text("Apply to Past Transactions") },

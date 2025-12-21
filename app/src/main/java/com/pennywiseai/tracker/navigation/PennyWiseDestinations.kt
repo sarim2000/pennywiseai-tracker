@@ -46,4 +46,4 @@ object Faq
 object Rules
 
 @Serializable
-object CreateRule
+data class CreateRule(val ruleId: String? = null)

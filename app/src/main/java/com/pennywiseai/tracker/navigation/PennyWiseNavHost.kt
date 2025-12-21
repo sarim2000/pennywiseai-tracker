@@ -176,7 +176,10 @@ fun PennyWiseNavHost(
                     navController.popBackStack()
                 },
                 onNavigateToCreateRule = {
-                    navController.navigate(CreateRule)
+                    navController.navigate(CreateRule())
+                },
+                onNavigateToEditRule = { ruleId ->
+                    navController.navigate(CreateRule(ruleId = ruleId))
                 }
             )
         }
@@ -186,8 +189,16 @@ fun PennyWiseNavHost(
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
-        ) {
+        ) { backStackEntry ->
+            val createRule = backStackEntry.toRoute<CreateRule>()
             val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
+
+            // Collect rules from the flow to find the existing rule
+            val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
+            val existingRule = createRule.ruleId?.let { ruleId ->
+                rules.firstOrNull { it.id == ruleId }
+            }
+
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -195,7 +206,8 @@ fun PennyWiseNavHost(
                 onSaveRule = { rule ->
                     rulesViewModel.createRule(rule)
                     navController.popBackStack()
-                }
+                },
+                existingRule = existingRule
             )
         }
         

@@ -2,8 +2,10 @@ package com.pennywiseai.tracker.presentation.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -22,7 +24,8 @@ import javax.inject.Inject
 class AddViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
-    private val getCategoriesUseCase: GetCategoriesUseCase
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) : ViewModel() {
     
     // General UI State
@@ -45,7 +48,22 @@ class AddViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    
+
+    // All accounts for selection in manual transaction entry
+    val accounts = accountBalanceRepository.getAllLatestBalances()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Transaction Tab Functions
+    fun updateSelectedAccount(account: AccountBalanceEntity?) {
+        _transactionUiState.update { currentState ->
+            currentState.copy(selectedAccount = account)
+        }
+    }
+
     // Transaction Tab Functions
     fun updateTransactionAmount(amount: String) {
         val filtered = amount.filter { it.isDigit() || it == '.' }
@@ -146,9 +164,10 @@ class AddViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _transactionUiState.update { it.copy(isLoading = true) }
-                
+
                 val amount = BigDecimal(state.amount)
-                
+                val selectedAccount = state.selectedAccount
+
                 addTransactionUseCase.execute(
                     amount = amount,
                     merchant = state.merchant.trim(),
@@ -156,9 +175,11 @@ class AddViewModel @Inject constructor(
                     type = state.transactionType,
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
-                    isRecurring = state.isRecurring
+                    isRecurring = state.isRecurring,
+                    bankName = selectedAccount?.bankName,
+                    accountLast4 = selectedAccount?.accountLast4
                 )
-                
+
                 onSuccess()
             } catch (e: Exception) {
                 _transactionUiState.update { currentState ->
@@ -332,7 +353,8 @@ data class TransactionUiState(
     val notes: String = "",
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedAccount: AccountBalanceEntity? = null
 ) {
     val isValid: Boolean
         get() = amount.isNotBlank() && 

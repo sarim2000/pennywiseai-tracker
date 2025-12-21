@@ -11,10 +11,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -26,10 +31,12 @@ fun TransactionTabContent(
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
-    
+    val accounts by viewModel.accounts.collectAsState()
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -153,7 +160,136 @@ fun TransactionTabContent(
                 }
             }
         }
-        
+
+        // Account Selection (Optional)
+        ExposedDropdownMenuBox(
+            expanded = showAccountMenu,
+            onExpandedChange = { showAccountMenu = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = uiState.selectedAccount?.let { account ->
+                    "${account.bankName} • ${account.getAccountType().displayName()} • ••${account.accountLast4}"
+                } ?: "No account (Manual Entry)",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Account (Optional)") },
+                leadingIcon = {
+                    Icon(
+                        when (uiState.selectedAccount?.getAccountType()) {
+                            AccountType.CASH -> Icons.Default.Money
+                            AccountType.CREDIT -> Icons.Default.CreditCard
+                            AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
+                            null -> Icons.Default.AccountBalance
+                        },
+                        contentDescription = null
+                    )
+                },
+                trailingIcon = {
+                    Row {
+                        if (uiState.selectedAccount != null) {
+                            IconButton(onClick = { viewModel.updateSelectedAccount(null) }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear selection")
+                            }
+                        }
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showAccountMenu)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                supportingText = {
+                    Text("Select an account to update its balance automatically")
+                }
+            )
+
+            ExposedDropdownMenu(
+                expanded = showAccountMenu,
+                onDismissRequest = { showAccountMenu = false }
+            ) {
+                // "No account" option
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text("No account (Manual Entry)")
+                            Text(
+                                "Transaction won't affect any account balance",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    onClick = {
+                        viewModel.updateSelectedAccount(null)
+                        showAccountMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Block, contentDescription = null)
+                    }
+                )
+
+                HorizontalDivider()
+
+                // Account list grouped by type
+                val groupedAccounts = accounts.groupBy { it.getAccountType() }
+
+                groupedAccounts.forEach { (accountType, accountList) ->
+                    // Section header
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = accountType.displayName(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        onClick = {},
+                        enabled = false
+                    )
+
+                    // Accounts in this group
+                    accountList.forEach { account ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text("${account.bankName} ••${account.accountLast4}")
+                                    Text(
+                                        CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            onClick = {
+                                viewModel.updateSelectedAccount(account)
+                                showAccountMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    when (accountType) {
+                                        AccountType.CASH -> Icons.Default.Money
+                                        AccountType.CREDIT -> Icons.Default.CreditCard
+                                        else -> Icons.Default.AccountBalance
+                                    },
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                if (uiState.selectedAccount?.id == account.id) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         // Date Selection
         OutlinedTextField(
             value = uiState.date.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),

@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.domain.model.toDatabaseString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -42,7 +43,8 @@ data class AccountFormState(
 enum class AccountType {
     SAVINGS,
     CURRENT,
-    CREDIT
+    CREDIT,
+    CASH
 }
 
 @HiltViewModel
@@ -110,21 +112,22 @@ class ManageAccountsViewModel @Inject constructor(
     }
     
     fun updateBankName(name: String) {
-        _formState.update { 
+        _formState.update {
             it.copy(
                 bankName = name,
-                isValid = validateForm(name, it.accountLast4, it.balance)
+                isValid = validateForm(name, it.accountLast4, it.balance, it.accountType)
             )
         }
     }
     
     fun updateAccountLast4(last4: String) {
-        // Only allow 4 characters
-        if (last4.length <= 4) {
-            _formState.update { 
+        val isCash = _formState.value.accountType == AccountType.CASH
+        // Allow empty for CASH, or up to 4 chars for others
+        if (isCash || last4.length <= 4) {
+            _formState.update {
                 it.copy(
-                    accountLast4 = last4,
-                    isValid = validateForm(it.bankName, last4, it.balance)
+                    accountLast4 = if (isCash && last4.isEmpty()) "CASH" else last4,
+                    isValid = validateForm(it.bankName, if (isCash && last4.isEmpty()) "CASH" else last4, it.balance, it.accountType)
                 )
             }
         }
@@ -133,10 +136,10 @@ class ManageAccountsViewModel @Inject constructor(
     fun updateBalance(balance: String) {
         // Only allow valid numeric input
         if (balance.isEmpty() || balance.matches(Regex("^\\d*\\.?\\d*$"))) {
-            _formState.update { 
+            _formState.update {
                 it.copy(
                     balance = balance,
-                    isValid = validateForm(it.bankName, it.accountLast4, balance)
+                    isValid = validateForm(it.bankName, it.accountLast4, balance, it.accountType)
                 )
             }
         }
@@ -153,10 +156,11 @@ class ManageAccountsViewModel @Inject constructor(
         _formState.update { it.copy(accountType = type) }
     }
     
-    private fun validateForm(bankName: String, last4: String, balance: String): Boolean {
-        return bankName.isNotBlank() && 
-               last4.length == 4 && 
-               balance.isNotBlank() && 
+    private fun validateForm(bankName: String, last4: String, balance: String, accountType: AccountType = AccountType.SAVINGS): Boolean {
+        val isCash = accountType == AccountType.CASH
+        return bankName.isNotBlank() &&
+               (isCash || last4.length == 4) &&  // CASH accounts: last4 can be "CASH" default
+               balance.isNotBlank() &&
                balance.toDoubleOrNull() != null
     }
     
@@ -188,7 +192,9 @@ class ManageAccountsViewModel @Inject constructor(
                     balance = BigDecimal(state.balance),
                     creditLimit = creditLimit,
                     timestamp = LocalDateTime.now(),
-                    isCreditCard = (state.accountType == AccountType.CREDIT)
+                    isCreditCard = (state.accountType == AccountType.CREDIT),
+                    accountType = state.accountType.toDatabaseString(),
+                    sourceType = "MANUAL"
                 )
             )
             

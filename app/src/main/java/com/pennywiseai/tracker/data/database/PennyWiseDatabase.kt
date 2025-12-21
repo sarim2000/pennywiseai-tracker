@@ -44,7 +44,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class],
-    version = 27,
+    version = 28,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -69,7 +69,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
         AutoMigration(from = 25, to = 26),
-        AutoMigration(from = 26, to = 27)
+        AutoMigration(from = 26, to = 27),
+        AutoMigration(from = 27, to = 28, spec = Migration27To28::class)
     ]
 )
 @TypeConverters(Converters::class)
@@ -459,11 +460,11 @@ class Migration7To8 : AutoMigrationSpec {
 class Migration10To11 : AutoMigrationSpec {
     override fun onPostMigrate(db: SupportSQLiteDatabase) {
         super.onPostMigrate(db)
-        
+
         // Migrate existing balance data from transactions table
         db.execSQL("""
             INSERT INTO account_balances (bank_name, account_last4, balance, timestamp, transaction_id, created_at)
-            SELECT 
+            SELECT
                 bank_name,
                 account_number,
                 balance_after,
@@ -471,9 +472,34 @@ class Migration10To11 : AutoMigrationSpec {
                 id,
                 created_at
             FROM transactions
-            WHERE balance_after IS NOT NULL 
-                AND bank_name IS NOT NULL 
+            WHERE balance_after IS NOT NULL
+                AND bank_name IS NOT NULL
                 AND account_number IS NOT NULL
         """.trimIndent())
+    }
+}
+
+/**
+ * Migration from version 27 to 28.
+ * - Adds account_type column to account_balances table
+ * - Migrates existing accounts: isCreditCard=true → CREDIT, others → SAVINGS
+ */
+class Migration27To28 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        super.onPostMigrate(db)
+
+        // Update existing credit card accounts
+        db.execSQL("""
+            UPDATE account_balances
+            SET account_type = 'CREDIT'
+            WHERE is_credit_card = 1
+        """)
+
+        // Update existing non-credit accounts to SAVINGS (default)
+        db.execSQL("""
+            UPDATE account_balances
+            SET account_type = 'SAVINGS'
+            WHERE is_credit_card = 0 AND account_type IS NULL
+        """)
     }
 }

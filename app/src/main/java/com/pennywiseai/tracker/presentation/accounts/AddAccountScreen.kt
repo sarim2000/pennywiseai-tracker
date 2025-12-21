@@ -53,7 +53,7 @@ fun AddAccountScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Add accounts not tracked via SMS like cash, wallets, or investment accounts.",
+                        text = "Add accounts not tracked via SMS like cash, wallets, credit cards, or investment accounts.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -107,6 +107,7 @@ fun AddAccountScreen(
                             imageVector = when (formState.accountType) {
                                 AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
                                 AccountType.CREDIT -> Icons.Default.CreditCard
+                                AccountType.CASH -> Icons.Default.Money
                             },
                             contentDescription = null
                         )
@@ -133,6 +134,7 @@ fun AddAccountScreen(
                                     imageVector = when (type) {
                                         AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
                                         AccountType.CREDIT -> Icons.Default.CreditCard
+                                        AccountType.CASH -> Icons.Default.Money
                                     },
                                     contentDescription = null
                                 )
@@ -147,11 +149,12 @@ fun AddAccountScreen(
                 value = formState.bankName,
                 onValueChange = viewModel::updateBankName,
                 label = { Text("Account Name *") },
-                placeholder = { 
+                placeholder = {
                     Text(
                         when (formState.accountType) {
                             AccountType.SAVINGS, AccountType.CURRENT -> "e.g., HDFC Bank"
                             AccountType.CREDIT -> "e.g., HDFC Credit Card"
+                            AccountType.CASH -> "e.g., My Wallet"
                         }
                     )
                 },
@@ -169,13 +172,22 @@ fun AddAccountScreen(
             OutlinedTextField(
                 value = formState.accountLast4,
                 onValueChange = viewModel::updateAccountLast4,
-                label = { Text("Last 4 Digits *") },
-                placeholder = { Text("e.g., 1234") },
+                label = {
+                    Text(if (formState.accountType == AccountType.CASH) "Identifier (Optional)" else "Last 4 Digits *")
+                },
+                placeholder = {
+                    Text(if (formState.accountType == AccountType.CASH) "e.g., 0001" else "e.g., 1234")
+                },
                 leadingIcon = {
                     Icon(Icons.Default.Tag, contentDescription = null)
                 },
                 supportingText = {
-                    Text("Enter last 4 digits of account/card")
+                    Text(
+                        if (formState.accountType == AccountType.CASH)
+                            "Optional identifier for this cash account"
+                        else
+                            "Enter last 4 digits of account/card"
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,

@@ -46,7 +46,10 @@ data class AccountBalanceEntity(
     
     @ColumnInfo(name = "source_type")
     val sourceType: String? = null,  // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
-    
+
+    @ColumnInfo(name = "account_type")
+    val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH
+
     @ColumnInfo(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

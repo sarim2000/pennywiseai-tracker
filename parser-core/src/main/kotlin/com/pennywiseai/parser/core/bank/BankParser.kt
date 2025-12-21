@@ -289,11 +289,77 @@ abstract class BankParser {
     protected open fun extractAccountLast4(message: String): String? {
         for (pattern in CompiledPatterns.Account.ALL_PATTERNS) {
             pattern.find(message)?.let { match ->
-                return match.groupValues[1]
+                val accountLast4 = match.groupValues[1]
+
+                // Validate that this is actually an account number, not a date or RRN
+                if (isValidAccountLast4(accountLast4, match.value, message)) {
+                    return accountLast4
+                }
             }
         }
 
         return null
+    }
+
+    /**
+     * Validates that the extracted 4 digits are actually part of an account number,
+     * not a date, RRN, or other numeric field.
+     */
+    private fun isValidAccountLast4(last4: String, matchedText: String, fullMessage: String): Boolean {
+        // Escape the last4 for safe regex usage
+        val escapedLast4 = Regex.escape(last4)
+
+        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.)
+        val datePatterns = listOf(
+            Regex("""\d{1,2}[/-]\d{1,2}[/-]$escapedLast4"""),  // 04/11/2025, 05-02-2025
+            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}"""),  // 2025/11/04, 2025-02-05
+            Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),  // "on 04/11/2025"
+            Regex("""\bdated\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE)  // "dated 05-02-2025"
+        )
+
+        for (datePattern in datePatterns) {
+            if (datePattern.find(fullMessage) != null) {
+                return false
+            }
+        }
+
+        // Check if it's part of an RRN (Reference Number) - typically 12 digits
+        val rrnPatterns = listOf(
+            Regex("""RRN\s+(?:No\.?)?(\d{8,16})""", RegexOption.IGNORE_CASE),  // "RRN No.503612315893"
+            Regex("""Ref\s+(?:No\.?)?(\d{8,16})""", RegexOption.IGNORE_CASE)   // "Ref No.503612315893"
+        )
+
+        for (rrnPattern in rrnPatterns) {
+            rrnPattern.find(fullMessage)?.let { rrnMatch ->
+                val rrnNumber = rrnMatch.groupValues[1]
+                // If our last4 is part of this RRN, reject it
+                if (rrnNumber.contains(last4)) {
+                    return false
+                }
+            }
+        }
+
+        // Check if it's a standalone year (2024, 2025, etc.)
+        if (last4.toIntOrNull() in 2000..2099) {
+            // Only reject if it appears to be a year in date context
+            val yearContextPatterns = listOf(
+                Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),
+                Regex("""\bdated\s+.*?$escapedLast4""", RegexOption.IGNORE_CASE),
+                Regex("""$escapedLast4(?:\s|$)""")  // Year at end of phrase
+            )
+
+            for (yearPattern in yearContextPatterns) {
+                if (yearPattern.find(fullMessage) != null) {
+                    // Only reject if NOT preceded by "Account" or "A/c" within 25 chars
+                    val accountBeforeYear = Regex("""(?:A/c|Account|Acct).{0,25}$escapedLast4""", RegexOption.IGNORE_CASE)
+                    if (accountBeforeYear.find(fullMessage) == null) {
+                        return false
+                    }
+                }
+            }
+        }
+
+        return true
     }
 
     /**

@@ -17,7 +17,8 @@ class JioPayParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JIOPAY") ||
-                normalizedSender == "JA-JIOPAY-S" ||
+                normalizedSender.endsWith("-JIOPAY-S") ||
+                normalizedSender.endsWith("-JIOPAY-T") ||
                 normalizedSender == "JM-JIOPAY"
     }
 
@@ -128,6 +129,16 @@ class JioPayParser : BankParser() {
 
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
+
+        // Reject bill notifications and reminders (not actual transactions)
+        if (lowerMessage.contains("e-bill") ||
+            lowerMessage.contains("bill has been sent") ||
+            lowerMessage.contains("bill summary") ||
+            lowerMessage.contains("payment due date") ||
+            lowerMessage.contains("amount payable")
+        ) {
+            return false
+        }
 
         // JioPay messages don't use standard transaction keywords
         // but "recharge successful" indicates a transaction

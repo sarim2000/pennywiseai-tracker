@@ -32,7 +32,7 @@ class SliceParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         // Look for "sent to NAME" pattern for UPI transfers
-        val sentToPattern = Regex("""sent.*to\s+([A-Z][A-Z\s]+?)\s*\(""", RegexOption.IGNORE_CASE)
+        val sentToPattern = Regex("""sent.*to\s+([A-Z][A-Z0-9\s./&-]+?)\s*\(""", RegexOption.IGNORE_CASE)
         sentToPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) {

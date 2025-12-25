@@ -48,6 +48,8 @@ object BankParserFactory {
         BandhanBankParser(),
         ADCBParser(),  // Abu Dhabi Commercial Bank (UAE)
         FABParser(),  // First Abu Dhabi Bank (UAE)
+        EmiratesNBDParser(),  // Emirates NBD Bank (UAE)
+        LivBankParser(),  // Liv Bank (UAE)
         CitiBankParser(),  // Citi Bank (USA)
         DiscoverCardParser(),  // Discover Card (USA)
         OldHickoryParser(),  // Old Hickory Credit Union (USA)
@@ -58,6 +60,7 @@ object BankParserFactory {
         MashreqBankParser(),  // Mashreq Bank (UAE)
         CharlesSchwabParser(),  // Charles Schwab (USA)
         NavyFederalParser(),  // Navy Federal Credit Union (USA)
+        AdelFiParser(),  // AdelFi Credit Union (USA)
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)

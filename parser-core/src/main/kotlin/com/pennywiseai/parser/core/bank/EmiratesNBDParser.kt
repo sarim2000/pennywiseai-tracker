@@ -5,13 +5,14 @@ import java.math.BigDecimal
 
 /**
  * Parser for Emirates NBD Bank (UAE) transactions.
- * Handles credit card and account transactions.
+ * Inherits from FABParser for multi-currency support.
+ * Handles credit card and account transactions in AED and other currencies.
  */
-class EmiratesNBDParser : BankParser() {
+class EmiratesNBDParser : FABParser() {
 
     override fun getBankName() = "Emirates NBD"
 
-    override fun getCurrency() = "AED"
+    override fun getCurrency() = "AED"  // UAE Dirham (default)
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
@@ -33,11 +34,36 @@ class EmiratesNBDParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern: "AED 27.74" or "AED 30,978.13"
-        val amountPattern = Regex("""AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        return amountPattern.find(message)?.let {
-            it.groupValues[1].replace(",", "").toBigDecimalOrNull()
+        // Emirates NBD patterns: Support multi-currency - "AED 27.74", "USD 100.00", "EUR 50.00", etc.
+        val patterns = listOf(
+            // Pattern 1: "Purchase of CURRENCY amount"
+            Regex("""purchase of\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // Pattern 2: Generic "CURRENCY amount" pattern
+            Regex("""([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in patterns) {
+            pattern.find(message)?.let { match ->
+                val currencyCode = match.groupValues[1].uppercase()
+                val amountStr = match.groupValues[2].replace(",", "")
+
+                // Validate currency code (3 letters, not month names)
+                if (currencyCode.length == 3 &&
+                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
+                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                ) {
+                    return try {
+                        BigDecimal(amountStr)
+                    } catch (e: NumberFormatException) {
+                        null
+                    }
+                }
+            }
         }
+
+        // Fallback to FAB's multi-currency extraction
+        return super.extractAmount(message)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
@@ -76,19 +102,53 @@ class EmiratesNBDParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Pattern: "Avl Bal is AED X,XXX.XX" or "Available Balance: AED X,XXX.XX"
-        val balancePattern = Regex("""(?:Avl\s+Bal|Available\s+Balance)(?:\s+is)?\s*AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        return balancePattern.find(message)?.let {
-            it.groupValues[1].replace(",", "").toBigDecimalOrNull()
+        // Emirates NBD balance patterns: Support multi-currency
+        val balancePatterns = listOf(
+            // Pattern 1: "Avl Bal is CURRENCY X,XXX.XX"
+            Regex("""(?:Avl\s+Bal|Available\s+Balance)(?:\s+is)?\s*([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // Pattern 2: "Available Balance: CURRENCY X,XXX.XX"
+            Regex("""Available\s+Balance:\s*([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in balancePatterns) {
+            pattern.find(message)?.let { match ->
+                val balanceStr = match.groupValues[2].replace(",", "")
+                return try {
+                    BigDecimal(balanceStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
         }
+
+        // Fallback to FAB's multi-currency balance extraction
+        return super.extractBalance(message)
     }
 
     override fun extractAvailableLimit(message: String): BigDecimal? {
-        // Pattern: "Avl Cr. Limit is AED 30,978.13"
-        val limitPattern = Regex("""Avl\s+Cr\.?\s+Limit(?:\s+is)?\s*AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        return limitPattern.find(message)?.let {
-            it.groupValues[1].replace(",", "").toBigDecimalOrNull()
+        // Emirates NBD credit limit patterns: Support multi-currency
+        val limitPatterns = listOf(
+            // Pattern 1: "Avl Cr. Limit is CURRENCY 30,978.13"
+            Regex("""Avl\s+Cr\.?\s+Limit(?:\s+is)?\s*([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // Pattern 2: "Available Credit Limit: CURRENCY X,XXX.XX"
+            Regex("""Available\s+Credit\s+Limit:\s*([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in limitPatterns) {
+            pattern.find(message)?.let { match ->
+                val limitStr = match.groupValues[2].replace(",", "")
+                return try {
+                    BigDecimal(limitStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
         }
+
+        // Fallback to FAB's multi-currency limit extraction
+        return super.extractAvailableLimit(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

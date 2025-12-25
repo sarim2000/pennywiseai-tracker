@@ -66,6 +66,41 @@ class EmiratesNBDParserTest {
                     merchant = "Mall of Emirates",
                     accountLast4 = "4321"
                 )
+            ),
+            ParserTestCase(
+                name = "Multi-currency Purchase - USD",
+                message = "Purchase of USD 100.00 with Credit Card ending 9074 at Amazon.com. Avl Cr. Limit is USD 10,000.00",
+                sender = "EmiratesNBD",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100.00"),
+                    currency = "USD",
+                    type = TransactionType.CREDIT,
+                    merchant = "Amazon.com",
+                    accountLast4 = "9074"
+                )
+            ),
+            ParserTestCase(
+                name = "Multi-currency Purchase - EUR",
+                message = "Purchase of EUR 75.50 with Credit Card ending 4321 at Booking.com. Avl Cr. Limit is EUR 5,000.00",
+                sender = "ENBD",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("75.50"),
+                    currency = "EUR",
+                    type = TransactionType.CREDIT,
+                    merchant = "Booking.com",
+                    accountLast4 = "4321"
+                )
+            ),
+            ParserTestCase(
+                name = "Multi-currency Debit - GBP",
+                message = "GBP 200.00 debited from A/C xxxx5678 on 25-Dec-25. Avl Bal is GBP 3,500.00",
+                sender = "EmiratesNBD",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("200.00"),
+                    currency = "GBP",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "5678"
+                )
             )
         )
 

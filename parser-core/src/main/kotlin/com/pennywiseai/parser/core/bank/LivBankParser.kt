@@ -5,17 +5,19 @@ import java.math.BigDecimal
 
 /**
  * Parser for Liv Bank (UAE) - Digital bank
- * Handles AED currency transactions
+ * Inherits from FABParser for multi-currency support.
+ * Handles AED and other currency transactions.
  *
  * Example SMS formats:
  * - Credit: "AED 3,586.96 has been credited to account 095XXX71XXXO1. Current balance is AED 4,377.01."
  * - Debit: "Purchase of AED 33.00 with Debit Card ending 4878 at JABAL HAFEET HAIRDRESS, Sharjah. Avl Balance is AED 4,344.01."
+ * - Multi-currency: "Purchase of USD 100.00 with Debit Card ending 4878 at AMAZON.COM. Avl Balance is AED 4,244.01."
  */
-class LivBankParser : BankParser() {
+class LivBankParser : FABParser() {
 
     override fun getBankName() = "Liv Bank"
 
-    override fun getCurrency() = "AED"
+    override fun getCurrency() = "AED"  // UAE Dirham (default)
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
@@ -60,20 +62,59 @@ class LivBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Liv Bank patterns: "AED X,XXX.XX" or "AED XXX.XX"
-        val amountPattern = Regex("""AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        return amountPattern.find(message)?.let {
-            it.groupValues[1].replace(",", "").toBigDecimalOrNull()
+        // Liv Bank patterns: Support multi-currency - "AED 33.00", "USD 100.00", "EUR 50.00", etc.
+        val patterns = listOf(
+            // Pattern 1: "Purchase of CURRENCY amount"
+            Regex("""purchase of\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // Pattern 2: "CURRENCY amount has been credited"
+            Regex("""([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)\s+has been credited""", RegexOption.IGNORE_CASE),
+
+            // Pattern 3: Generic "CURRENCY amount" pattern
+            Regex("""([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in patterns) {
+            pattern.find(message)?.let { match ->
+                val currencyCode = match.groupValues[1].uppercase()
+                val amountStr = match.groupValues[2].replace(",", "")
+
+                // Validate currency code (3 letters, not month names)
+                if (currencyCode.length == 3 &&
+                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
+                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                ) {
+                    return try {
+                        BigDecimal(amountStr)
+                    } catch (e: NumberFormatException) {
+                        null
+                    }
+                }
+            }
         }
+
+        // Fallback to FAB's multi-currency extraction
+        return super.extractAmount(message)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
         val lowerMessage = message.lowercase()
 
-        // Pattern for purchases: "at MERCHANT_NAME, Location."
+        // Pattern for purchases: "at MERCHANT_NAME"
+        // This allows dots in merchant names (like AMAZON.COM) but stops at comma or "Avl Balance" or period with space
         if (lowerMessage.contains("purchase of")) {
-            val merchantPattern = Regex("""at\s+([^,\.]+)""", RegexOption.IGNORE_CASE)
+            // Pattern: Match everything after "at " until we hit a comma, " Avl", or ". " (period with space)
+            val merchantPattern = Regex("""at\s+([^,]+?)(?:,|\s+Avl|\.\s)""", RegexOption.IGNORE_CASE)
             merchantPattern.find(message)?.let { match ->
+                val merchant = match.groupValues[1].trim()
+                if (merchant.isNotEmpty() && !merchant.contains("Avl Balance")) {
+                    return cleanMerchantName(merchant)
+                }
+            }
+
+            // Fallback: Match up to just "Avl" or end of merchant before punctuation
+            val fallbackPattern = Regex("""at\s+([^.]+?)(?:\s+Avl|,)""", RegexOption.IGNORE_CASE)
+            fallbackPattern.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -112,21 +153,21 @@ class LivBankParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Liv Bank balance patterns
+        // Liv Bank balance patterns: Support multi-currency
         val balancePatterns = listOf(
-            // "Current balance is AED X,XXX.XX"
-            Regex("""Current balance is\s+AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            
-            // "Avl Balance is AED X,XXX.XX"
-            Regex("""Avl Balance is\s+AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            
-            // Generic "Balance: AED X,XXX.XX"
-            Regex("""Balance:?\s+AED\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            // "Current balance is CURRENCY X,XXX.XX"
+            Regex("""Current balance is\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // "Avl Balance is CURRENCY X,XXX.XX"
+            Regex("""Avl Balance is\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // Generic "Balance: CURRENCY X,XXX.XX"
+            Regex("""Balance:?\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in balancePatterns) {
             pattern.find(message)?.let { match ->
-                val balanceStr = match.groupValues[1].replace(",", "")
+                val balanceStr = match.groupValues[2].replace(",", "")
                 return try {
                     BigDecimal(balanceStr)
                 } catch (e: NumberFormatException) {
@@ -135,6 +176,7 @@ class LivBankParser : BankParser() {
             }
         }
 
+        // Fallback to FAB's multi-currency balance extraction
         return super.extractBalance(message)
     }
 
@@ -164,8 +206,46 @@ class LivBankParser : BankParser() {
         // Liv-specific card indicators
         return lowerMessage.contains("debit card ending") ||
                 lowerMessage.contains("credit card ending") ||
-                lowerMessage.contains("debit card") ||
-                lowerMessage.contains("credit card") ||
+                lowerMessage.contains("purchase of") ||  // Liv Bank uses this for card purchases
                 super.detectIsCard(message)
+    }
+
+    override fun containsCardPurchase(message: String): Boolean {
+        val lowerMessage = message.lowercase()
+
+        // Liv Bank uses "Purchase of" with "Debit Card ending" or "Credit Card ending"
+        return (lowerMessage.contains("purchase of") &&
+                (lowerMessage.contains("debit card ending") || lowerMessage.contains("credit card ending"))) ||
+                super.containsCardPurchase(message)
+    }
+
+    override fun extractCurrency(message: String): String? {
+        // Extract currency from the transaction context for Liv Bank
+        val currencyPatterns = listOf(
+            // "Purchase of CURRENCY amount"
+            Regex("""purchase of\s+([A-Z]{3})\s+[\d,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+
+            // "CURRENCY amount has been credited"
+            Regex("""([A-Z]{3})\s+[\d,]+(?:\.\d{2})?[\s\n]+has been credited""", RegexOption.IGNORE_CASE),
+
+            // Generic pattern - CURRENCY followed by amount
+            Regex("""([A-Z]{3})\s+[\d,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in currencyPatterns) {
+            pattern.find(message)?.let { match ->
+                val currencyCode = match.groupValues[1].uppercase()
+
+                // Validate it's a 3-letter code (standard ISO currency format) but not month names
+                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
+                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                ) {
+                    return currencyCode
+                }
+            }
+        }
+
+        // Default to AED for Liv Bank (UAE Dirham)
+        return "AED"
     }
 }

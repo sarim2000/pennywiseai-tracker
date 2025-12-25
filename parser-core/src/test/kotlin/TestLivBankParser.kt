@@ -132,6 +132,67 @@ class LivBankParserTest {
                 )
             ),
 
+            // Multi-currency test cases
+            ParserTestCase(
+                name = "Multi-currency Purchase - USD",
+                message = "Purchase of USD 75.00 with Debit Card ending 4878 at AMAZON.COM. Avl Balance is AED 4,100.00.",
+                sender = "Liv",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("75.00"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "AMAZON.COM",
+                    accountLast4 = "4878",
+                    balance = BigDecimal("4100.00"),
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Multi-currency Purchase - EUR",
+                message = "Purchase of EUR 50.00 with Debit Card ending 1234 at BOOKING.COM. Avl Balance is AED 3,800.00.",
+                sender = "Liv",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.00"),
+                    currency = "EUR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "BOOKING.COM",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("3800.00"),
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Multi-currency Purchase - GBP",
+                message = "Purchase of GBP 100.00 with Debit Card ending 5678 at MARKS AND SPENCER. Avl Balance is AED 3,200.00.",
+                sender = "Liv",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100.00"),
+                    currency = "GBP",
+                    type = TransactionType.EXPENSE,
+                    merchant = "MARKS AND SPENCER",
+                    accountLast4 = "5678",
+                    balance = BigDecimal("3200.00"),
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Multi-currency Credit - USD",
+                message = "USD 200.00 has been credited to account 095XXX71XXXO1. Current balance is AED 6,000.00.",
+                sender = "Liv",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("200.00"),
+                    currency = "USD",
+                    type = TransactionType.INCOME,
+                    merchant = "Account Credit",
+                    accountLast4 = "O1",
+                    balance = BigDecimal("6000.00"),
+                    isFromCard = false
+                )
+            ),
+
             // Negative test cases - should NOT parse
 
             ParserTestCase(
@@ -219,6 +280,22 @@ class LivBankParserTest {
                     merchant = "TEST MERCHANT",
                     accountLast4 = "1234",
                     balance = BigDecimal("450.00"),
+                    isFromCard = true
+                ),
+                shouldHandle = true
+            ),
+            SimpleTestCase(
+                bankName = "Liv Bank",
+                sender = "LIV",
+                currency = "AED",
+                message = "Purchase of AED 99.00 with Debit Card ending 5678 at DUBAI MALL. Avl Balance is AED 1,200.00.",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("99.00"),
+                    currency = "AED",
+                    type = TransactionType.EXPENSE,
+                    merchant = "DUBAI MALL",
+                    accountLast4 = "5678",
+                    balance = BigDecimal("1200.00"),
                     isFromCard = true
                 ),
                 shouldHandle = true

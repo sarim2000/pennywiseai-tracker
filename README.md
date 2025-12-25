@@ -1,7 +1,7 @@
 <a name="top"></a>
 [![PennyWise AI Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
 [![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-12+-3DDC84)](https://developer.android.com/about/versions/12)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF)](https://kotlinlang.org/)
 [![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://developers.google.com/mediapipe)
@@ -16,7 +16,7 @@
 Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
 
 
-⭐ **Star us on GitHub — join 100+ supporters!**
+⭐ **Star us on GitHub — join 300+ supporters!**
 
 [![Share](https://img.shields.io/badge/share-000000?logo=x&logoColor=white)](https://x.com/intent/tweet?text=Check%20out%20PennyWise%20AI%20-%20Privacy-first%20expense%20tracker%20with%20on-device%20AI:%20https://github.com/sarim2000/pennywiseai-tracker%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI)
 [![Share](https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/sarim2000/pennywiseai-tracker)
@@ -194,7 +194,13 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+GNU Affero General Public License v3.0 - see [LICENSE](LICENSE)
+
+This project is licensed under AGPL v3, which means:
+- ✅ You can use, modify, and distribute this software
+- ✅ You must share your modifications under the same license
+- ✅ If you run a modified version on a server, you must make the source code available to users
+- ✅ Patent rights are explicitly granted and protected
 
 ---
 

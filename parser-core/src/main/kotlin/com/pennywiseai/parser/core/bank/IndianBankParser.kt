@@ -13,7 +13,7 @@ import java.math.BigDecimal
  * - Promotional: XX-INDBNK-P
  * - Direct: INDBNK, INDIAN
  */
-class IndianBankParser : BankParser() {
+class IndianBankParser : BaseIndianBankParser() {
     override fun getBankName() = "Indian Bank"
 
     override fun canHandle(sender: String): Boolean {
@@ -244,51 +244,8 @@ class IndianBankParser : BankParser() {
             else -> super.extractTransactionType(message)
         }
     }
-
-    /**
-     * Checks if the message is a mandate notification
-     * Example: "For the upcoming mandate set for 29-May-25 ,your account will be debited with INR 59.00 towards Spotify India ."
-     */
-    fun isMandateNotification(message: String): Boolean {
-        val lowerMessage = message.lowercase()
-        return lowerMessage.contains("mandate") &&
-                (lowerMessage.contains("upcoming") || lowerMessage.contains("set for") || lowerMessage.contains(
-                    "will be debited"
-                ))
-    }
-
-    /**
-     * Parses mandate/subscription information from the message
-     */
-    fun parseMandateSubscription(message: String): IndianMandateInfo? {
-        // Pattern: "For the upcoming mandate set for 29-May-25 ,your account will be debited with INR 59.00 towards Spotify India ."
-        val mandatePattern = Regex(
-            """mandate\s+set\s+for\s+(\d{1,2}-\w{3}-\d{2})\s*,?\s*your\s+account\s+will\s+be\s+debited\s+with\s+INR\s+(\d+(?:\.\d{2})?)\s+towards\s+([^.]+)""",
-            RegexOption.IGNORE_CASE
-        )
-
-        mandatePattern.find(message)?.let { match ->
-            val dateStr = match.groupValues[1]  // e.g., "29-May-25"
-            val amount = match.groupValues[2]
-            val merchant = match.groupValues[3].trim()
-
-            return IndianMandateInfo(
-                amount = BigDecimal(amount),
-                nextDeductionDate = dateStr,
-                merchant = cleanMerchantName(merchant)
-            )
-        }
-
-        return null
-    }
-
-    data class IndianMandateInfo(
-        override val amount: BigDecimal,
-        override val nextDeductionDate: String?,
-        override val merchant: String,
-        override val umn: String? = null
-    ) : MandateInfo {
-        // Indian Bank uses d-MMM-yy format
-        override val dateFormat = "d-MMM-yy"
-    }
 }
+
+
+
+

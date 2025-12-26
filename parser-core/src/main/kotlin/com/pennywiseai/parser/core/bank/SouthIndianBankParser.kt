@@ -12,7 +12,7 @@ import java.time.LocalDateTime
  * - Balance updates
  * - Card transactions
  */
-class SouthIndianBankParser : BankParser() {
+class SouthIndianBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "South Indian Bank"
 

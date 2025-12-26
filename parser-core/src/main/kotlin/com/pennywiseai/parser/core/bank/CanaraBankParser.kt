@@ -5,7 +5,7 @@ import java.math.BigDecimal
 /**
  * Parser for Canara Bank SMS messages
  */
-class CanaraBankParser : BankParser() {
+class CanaraBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Canara Bank"
 

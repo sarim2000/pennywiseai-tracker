@@ -115,6 +115,34 @@ object CompiledPatterns {
             Regex("""(\s+PVT\.?\s*LTD\.?|\s+PRIVATE\s+LIMITED)$""", RegexOption.IGNORE_CASE)
         val LTD = Regex("""(\s+LTD\.?|\s+LIMITED)$""", RegexOption.IGNORE_CASE)
     }
+
+    object Currency {
+        val ISO_CODE = Regex("""[A-Z]{3}""")
+        val SPECIFIC_ISO = { code: String -> Regex(code, RegexOption.IGNORE_CASE) }
+        val COMMON_CURRENCIES = Regex("""(?:INR|Rs\.?|₹|USD|EUR|GBP|AED|SAR)""", RegexOption.IGNORE_CASE)
+    }
+
+    object Date {
+        // dd/MM/yy e.g. 20/10/25
+        val DD_MM_YY = Regex("""\d{1,2}/\d{1,2}/\d{2}""")
+
+        // dd/MM/yyyy e.g. 20/10/2025
+        val DD_MM_YYYY = Regex("""\d{1,2}/\d{1,2}/\d{4}""")
+
+        // dd-MMM-yy e.g. 20-OCT-25
+        val DD_MMM_YY = Regex("""\d{1,2}-[A-Za-z]{3}-\d{2}""", RegexOption.IGNORE_CASE)
+
+        // dd-MM-yyyy e.g. 20-10-2025
+        val DD_MM_YYYY_DASH = Regex("""\d{1,2}-\d{1,2}-\d{4}""")
+    }
+
+    object Time {
+        // HH:mm:ss
+        val HH_MM_SS = Regex("""\d{1,2}:\d{2}:\d{2}""")
+
+        // HH:mm
+        val HH_MM = Regex("""\d{1,2}:\d{2}""")
+    }
 }
 
 

@@ -7,7 +7,7 @@ import java.text.Normalizer
 /**
  * Parser for Punjab National Bank (PNB) SMS messages
  */
-class PNBBankParser : BankParser() {
+class PNBBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Punjab National Bank"
 

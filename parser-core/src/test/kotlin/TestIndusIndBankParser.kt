@@ -4,13 +4,13 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class IndusIndBankParserTest {
 
-    @Test
-    fun `indusind parser basic flows`() {
+    @TestFactory
+    fun `indusind parser basic flows`(): List<DynamicTest> {
         val parser = IndusIndBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -200,7 +200,7 @@ class IndusIndBankParserTest {
             "AX-HDFC-S" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
@@ -238,8 +238,8 @@ class IndusIndBankParserTest {
         org.junit.jupiter.api.Assertions.assertEquals(expectedDate, info.asOfDate)
     }
 
-    @Test
-    fun `factory resolves indusind`() {
+    @TestFactory
+    fun `factory resolves indusind`(): List<DynamicTest> {
         val cases = listOf(
             SimpleTestCase(
                 bankName = "IndusInd Bank",
@@ -255,7 +255,7 @@ class IndusIndBankParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - IndusInd")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - IndusInd")
 
     }
 

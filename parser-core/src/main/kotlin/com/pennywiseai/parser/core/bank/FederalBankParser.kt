@@ -15,7 +15,7 @@ import java.math.BigDecimal
  *
  * Sender patterns: AD-FEDBNK-S, JM-FEDBNK-S, etc.
  */
-class FederalBankParser : BankParser() {
+class FederalBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Federal Bank"
 

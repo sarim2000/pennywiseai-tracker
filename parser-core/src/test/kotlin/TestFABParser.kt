@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.FABParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class FABParserTest {
 
-    @Test
-    fun `fab parser covers representative scenarios`() {
+    @TestFactory
+    fun `fab parser covers representative scenarios`(): List<DynamicTest> {
         val parser = FABParser()
 
         ParserTestUtils.printTestHeader(
@@ -400,7 +400,7 @@ class FABParserTest {
             "SBI" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

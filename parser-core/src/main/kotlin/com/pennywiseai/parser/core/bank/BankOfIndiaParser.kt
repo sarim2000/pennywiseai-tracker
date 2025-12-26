@@ -10,7 +10,7 @@ import java.math.BigDecimal
  * - "Rs.200.00 debited A/cXX5468 and credited to SAI MISAL via UPI Ref No 315439383341 on 23Aug25. Call 18001031906, if not done by you. -BOI"
  * - Other BOI transaction formats
  */
-class BankOfIndiaParser : BankParser() {
+class BankOfIndiaParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Bank of India"
 

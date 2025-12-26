@@ -14,7 +14,7 @@ import java.security.MessageDigest
  * - Account number patterns
  * - Balance updates
  */
-class JKBankParser : BankParser() {
+class JKBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "JK Bank"
 

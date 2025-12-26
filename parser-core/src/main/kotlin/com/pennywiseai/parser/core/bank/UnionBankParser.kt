@@ -13,7 +13,7 @@ import java.math.BigDecimal
  *
  * Sender patterns: XX-UNIONB-S/T, UNIONB, UNIONBANK, etc.
  */
-class UnionBankParser : BankParser() {
+class UnionBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Union Bank of India"
 

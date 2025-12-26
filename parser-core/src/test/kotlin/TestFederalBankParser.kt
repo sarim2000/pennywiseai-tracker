@@ -6,12 +6,12 @@ import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class FederalBankParserTest {
-    @Test
-    fun `test Federal Bank Parser comprehensive test suite`() {
+    @TestFactory
+    fun `test Federal Bank Parser comprehensive test suite`(): List<DynamicTest> {
         val parser = FederalBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -280,7 +280,7 @@ class FederalBankParserTest {
             "" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser,
             testCases,
             handleCases,

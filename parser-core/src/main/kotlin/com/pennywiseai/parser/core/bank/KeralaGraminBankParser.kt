@@ -13,7 +13,7 @@ import java.math.BigDecimal
  * Common senders: AD-KGBANK-S, BX-KGBANK-S
  * Currency: INR (Indian Rupee)
  */
-class KeralaGraminBankParser : BankParser() {
+class KeralaGraminBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Kerala Gramin Bank"
 

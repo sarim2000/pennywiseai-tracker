@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.JuspayParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class JuspayParserTest {
 
-    @Test
-    fun `juspay parser handles apay wallet transactions`() {
+    @TestFactory
+    fun `juspay parser handles apay wallet transactions`(): List<DynamicTest> {
         val parser = JuspayParser()
 
         ParserTestUtils.printTestHeader(
@@ -155,7 +155,7 @@ class JuspayParserTest {
             "HDFC" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
@@ -165,8 +165,8 @@ class JuspayParserTest {
 
     }
 
-    @Test
-    fun `factory resolves juspay`() {
+    @TestFactory
+    fun `factory resolves juspay`(): List<DynamicTest> {
         val cases = listOf(
             com.pennywiseai.parser.core.test.SimpleTestCase(
                 bankName = "Amazon Pay",
@@ -197,7 +197,7 @@ class JuspayParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Juspay Factory Tests")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Juspay Factory Tests")
 
     }
 }

@@ -2,13 +2,13 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class USParsersTest {
 
-    @Test
-    fun `factory resolves US parsers and parses sample messages`() {
+    @TestFactory
+    fun `factory resolves US parsers and parses sample messages`(): List<DynamicTest> {
         val citiMessage =
             "Citi Alert: A \$3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"
         val discoverMessage =
@@ -128,7 +128,7 @@ class USParsersTest {
             )
         )
 
-        val result = ParserTestUtils.runFactoryTestSuite(factoryCases, "US Parser Factory Coverage")
+        return ParserTestUtils.runFactoryTestSuite(factoryCases, "US Parser Factory Coverage")
 
 
     }

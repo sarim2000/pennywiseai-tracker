@@ -4,12 +4,12 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class CIBEgyptParserTest {
-    @Test
-    fun `test CIB Egypt Parser comprehensive test suite`() {
+    @TestFactory
+    fun `test CIB Egypt Parser comprehensive test suite`(): List<DynamicTest> {
         val parser = CIBEgyptParser()
 
         ParserTestUtils.printTestHeader(
@@ -129,7 +129,7 @@ class CIBEgyptParserTest {
             "" to false
         )
 
-        ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser,
             testCases,
             handleCases,

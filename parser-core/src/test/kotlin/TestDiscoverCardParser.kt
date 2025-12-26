@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.DiscoverCardParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class DiscoverCardParserTest {
 
-    @Test
-    fun `discover card parser handles primary formats`() {
+    @TestFactory
+    fun `discover card parser handles primary formats`(): List<DynamicTest> {
         val parser = DiscoverCardParser()
 
         ParserTestUtils.printTestHeader(
@@ -76,7 +76,7 @@ class DiscoverCardParserTest {
             "UNKNOWN" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

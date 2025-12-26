@@ -13,7 +13,7 @@ import java.math.BigDecimal
  *
  * Sender patterns: TL-DHANBK-S, VM-DHANBK, etc.
  */
-class DhanlaxmiBankParser : BankParser() {
+class DhanlaxmiBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Dhanlaxmi Bank"
 

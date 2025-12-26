@@ -4,13 +4,13 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class SouthIndianBankParserTest {
 
-    @Test
-    fun `south indian bank parser basic flows`() {
+    @TestFactory
+    fun `south indian bank parser basic flows`(): List<DynamicTest> {
         val parser = SouthIndianBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -87,7 +87,7 @@ class SouthIndianBankParserTest {
             "AX-HDFC-S" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
@@ -97,8 +97,8 @@ class SouthIndianBankParserTest {
 
     }
 
-    @Test
-    fun `factory resolves south indian bank`() {
+    @TestFactory
+    fun `factory resolves south indian bank`(): List<DynamicTest> {
         val cases = listOf(
             SimpleTestCase(
                 bankName = "South Indian Bank",
@@ -114,7 +114,7 @@ class SouthIndianBankParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - South Indian Bank")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - South Indian Bank")
 
     }
 }

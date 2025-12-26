@@ -6,7 +6,7 @@ import java.math.BigDecimal
 /**
  * Parser for Bank of Baroda (BOB) SMS messages
  */
-class BankOfBarodaParser : BankParser() {
+class BankOfBarodaParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Bank of Baroda"
 

@@ -13,7 +13,7 @@ import java.math.BigDecimal
  * - Your a/c no. XXXXXXXXXXXXXXX is credited for Rs.111.00 on 01-09-2025 and debited from a/c no. YYYYYYYYYYYYYYY (UPI Ref no 123456789012)
  * - Savings No XXXXXXXXXXXXXXX credited with INR 111.00 towards BY NEFT TRF:AMBANI YYYYYYYYYYYYYYY: on 01-SEP-2025. Avl Bal 120.00
  */
-class CityUnionBankParser : BankParser() {
+class CityUnionBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "City Union Bank"
 

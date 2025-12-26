@@ -6,7 +6,7 @@ import com.pennywiseai.parser.core.TransactionType
  * Parser for Utkarsh Small Finance Bank (SFBL) SuperCard credit card transactions.
  * Handles messages from UTKSPR and similar senders.
  */
-class UtkarshBankParser : BankParser() {
+class UtkarshBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Utkarsh Bank"
 

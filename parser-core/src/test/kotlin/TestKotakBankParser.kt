@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.KotakBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class KotakBankParserTest {
 
-    @Test
-    fun `kotak parser handles UPI transactions with payment app QR codes`() {
+    @TestFactory
+    fun `kotak parser handles UPI transactions with payment app QR codes`(): List<DynamicTest> {
         val parser = KotakBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -92,7 +92,7 @@ class KotakBankParserTest {
             "UNKNOWN" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

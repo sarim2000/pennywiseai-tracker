@@ -11,11 +11,11 @@ import java.math.BigDecimal
  * Example SMS format:
  * "Thank you for using NEO VISA Debit Card Card ending XXXX for AED 5.99 at CARREFOUR on 26-AUG-2025 10:25 PM. Available Balance is AED X,480.15"
  */
-class MashreqBankParser : BankParser() {
+class MashreqBankParser : UAEBankParser() {
 
     override fun getBankName() = "Mashreq Bank"
 
-    override fun getCurrency() = "AED"  // UAE Dirham (default)
+    // Currency defaults to AED in UAEBankParser
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         // Skip non-transaction messages
@@ -70,46 +70,8 @@ class MashreqBankParser : BankParser() {
                 upperSender.matches(Regex("^[A-Z]{2}-MASHREQ-[A-Z]$")) ||
                 upperSender.matches(Regex("^[A-Z]{2}-MSHREQ-[A-Z]$"))
     }
-
-    override fun extractAmount(message: String): BigDecimal? {
-        // Mashreq patterns for amount extraction
-        val patterns = listOf(
-            // 1. "for AED 5.99" - debit card usage
-            Regex("""for\s+([A-Z]{3})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 2. "of AED 5.99" - transfers or other transactions
-            Regex("""of\s+([A-Z]{3})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 3. Generic currency amount pattern
-            Regex("""\b([A-Z]{3})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
-            pattern.find(message)?.let { match ->
-                val currencyCode = match.groupValues[1].uppercase()
-                val amountStr = match.groupValues[2].replace(",", "")
-
-                // Validate currency code (3 letters, not month abbreviations)
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
-                ) {
-                    return try {
-                        BigDecimal(amountStr)
-                    } catch (e: NumberFormatException) {
-                        null
-                    }
-                }
-            }
-        }
-
-        return super.extractAmount(message)
-    }
+    
+    // extractAmount handled by UAEBankParser
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Mashreq debit card purchase pattern: "at CARREFOUR on"

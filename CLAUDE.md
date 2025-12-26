@@ -66,6 +66,8 @@ Bank parsers are now in the `parser-core` module for reusability across platform
 ### When adding new bank parsers:
 1. **Location**: Add to `parser-core/src/main/kotlin/com/pennywiseai/parser/core/bank/`
 2. **Base Class**: All bank parsers extend `BankParser` abstract class
+   - **Indian Banks**: MUST extend `BaseIndianBankParser` to inherit centralized mandate, subscription, and balance update logic.
+   - **UAE Banks**: MUST extend `UAEBankParser` for currency and transaction type handling.
 3. **Key Methods**:
    - `getBankName()`: Returns the bank's display name
    - `canHandle(sender: String)`: Checks if parser can handle SMS from sender

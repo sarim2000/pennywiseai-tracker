@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.BandhanBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class BandhanBankParserTest {
 
-    @Test
-    fun `bandhan bank parser handles provided samples`() {
+    @TestFactory
+    fun `bandhan bank parser handles provided samples`(): List<DynamicTest> {
         val parser = BandhanBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -146,7 +146,7 @@ class BandhanBankParserTest {
             )
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = transactionCases + rejectionCases,
             handleCases = listOf(

@@ -5,14 +5,12 @@ import java.math.BigDecimal
 
 /**
  * Parser for Emirates NBD Bank (UAE) transactions.
- * Inherits from FABParser for multi-currency support.
+ * Inherits from UAEBankParser for multi-currency support.
  * Handles credit card and account transactions in AED and other currencies.
  */
-class EmiratesNBDParser : FABParser() {
+class EmiratesNBDParser : UAEBankParser() {
 
     override fun getBankName() = "Emirates NBD"
-
-    override fun getCurrency() = "AED"  // UAE Dirham (default)
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
@@ -33,38 +31,7 @@ class EmiratesNBDParser : FABParser() {
                 lowerMessage.contains("transfer")
     }
 
-    override fun extractAmount(message: String): BigDecimal? {
-        // Emirates NBD patterns: Support multi-currency - "AED 27.74", "USD 100.00", "EUR 50.00", etc.
-        val patterns = listOf(
-            // Pattern 1: "Purchase of CURRENCY amount"
-            Regex("""purchase of\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // Pattern 2: Generic "CURRENCY amount" pattern
-            Regex("""([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
-            pattern.find(message)?.let { match ->
-                val currencyCode = match.groupValues[1].uppercase()
-                val amountStr = match.groupValues[2].replace(",", "")
-
-                // Validate currency code (3 letters, not month names)
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
-                ) {
-                    return try {
-                        BigDecimal(amountStr)
-                    } catch (e: NumberFormatException) {
-                        null
-                    }
-                }
-            }
-        }
-
-        // Fallback to FAB's multi-currency extraction
-        return super.extractAmount(message)
-    }
+    // extractAmount is now handled by UAEBankParser which supports multi-currency patterns
 
     override fun extractMerchant(message: String, sender: String): String? {
         val lowerMessage = message.lowercase()

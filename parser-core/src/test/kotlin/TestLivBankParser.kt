@@ -5,12 +5,12 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class LivBankParserTest {
-    @Test
-    fun `test Liv Bank Parser comprehensive test suite`() {
+    @TestFactory
+    fun `test Liv Bank Parser comprehensive test suite`(): List<DynamicTest> {
         val parser = LivBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -242,7 +242,7 @@ class LivBankParserTest {
             "" to false
         )
 
-        ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser,
             testCases,
             handleCases,
@@ -250,8 +250,8 @@ class LivBankParserTest {
         )
     }
 
-    @Test
-    fun `factory resolves Liv Bank`() {
+    @TestFactory
+    fun `factory resolves Liv Bank`(): List<DynamicTest> {
         val cases = listOf(
             SimpleTestCase(
                 bankName = "Liv Bank",
@@ -302,6 +302,6 @@ class LivBankParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Liv Bank Factory Tests")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Liv Bank Factory Tests")
     }
 }

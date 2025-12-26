@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.NavyFederalParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class NavyFederalParserTest {
 
-    @Test
-    fun `navy federal parser handles primary formats`() {
+    @TestFactory
+    fun `navy federal parser handles primary formats`(): List<DynamicTest> {
         val parser = NavyFederalParser()
 
         ParserTestUtils.printTestHeader(
@@ -162,7 +162,7 @@ class NavyFederalParserTest {
             "SCHWAB" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
@@ -172,8 +172,8 @@ class NavyFederalParserTest {
 
     }
 
-    @Test
-    fun `factory resolves navy federal`() {
+    @TestFactory
+    fun `factory resolves navy federal`(): List<DynamicTest> {
         val cases = listOf(
             com.pennywiseai.parser.core.test.SimpleTestCase(
                 bankName = "Navy Federal Credit Union",
@@ -207,7 +207,7 @@ class NavyFederalParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Navy Federal Factory Tests")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Navy Federal Factory Tests")
 
     }
 }

@@ -4,12 +4,12 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class DhanlaxmiBankParserTest {
-    @Test
-    fun `test Dhanlaxmi Bank Parser comprehensive test suite`() {
+    @TestFactory
+    fun `test Dhanlaxmi Bank Parser comprehensive test suite`(): List<DynamicTest> {
         val parser = DhanlaxmiBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -135,7 +135,7 @@ class DhanlaxmiBankParserTest {
             "" to false
         )
 
-        ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser,
             testCases,
             handleCases,

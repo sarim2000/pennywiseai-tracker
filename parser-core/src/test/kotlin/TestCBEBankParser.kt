@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.CBEBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class CBEBankParserTest {
 
-    @Test
-    fun `cbe parser handles credit debit and transfer`() {
+    @TestFactory
+    fun `cbe parser handles credit debit and transfer`(): List<DynamicTest> {
         val parser = CBEBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -94,7 +94,7 @@ class CBEBankParserTest {
             "UNKNOWN" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

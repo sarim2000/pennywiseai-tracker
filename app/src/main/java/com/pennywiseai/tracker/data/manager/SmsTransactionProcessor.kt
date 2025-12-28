@@ -300,4 +300,5 @@ class SmsTransactionProcessor @Inject constructor(
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
     }
+
 }

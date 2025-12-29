@@ -32,7 +32,8 @@ object CurrencyFormatter {
         "THB" to "฿",
         "MYR" to "RM",
         "KWD" to "KD",
-        "KRW" to "₩"
+        "KRW" to "₩",
+        "KES" to "KES"
     )
 
     /**
@@ -54,7 +55,8 @@ object CurrencyFormatter {
         "THB" to Locale.Builder().setLanguage("th").setRegion("TH").build(),
         "MYR" to Locale.Builder().setLanguage("ms").setRegion("MY").build(),
         "KWD" to Locale.Builder().setLanguage("en").setRegion("KW").build(),
-        "KRW" to Locale.KOREA
+        "KRW" to Locale.KOREA,
+        "KES" to Locale.Builder().setLanguage("en").setRegion("KE").build()
     )
 
     /**
@@ -62,7 +64,8 @@ object CurrencyFormatter {
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
         return try {
-            val locale = CURRENCY_LOCALES[currencyCode] ?: INDIAN_LOCALE
+            // Use Indian locale only for INR, otherwise use US locale for standard 3-digit grouping
+            val locale = CURRENCY_LOCALES[currencyCode] ?: if (currencyCode == "INR") INDIAN_LOCALE else Locale.US
             val formatter = NumberFormat.getCurrencyInstance(locale)
 
             // Set the currency if supported
@@ -108,9 +111,10 @@ object CurrencyFormatter {
 
     /**
      * Formats just the numeric amount without currency symbol
+     * Uses US locale for standard 3-digit grouping (not Indian 2,3,3,3... grouping)
      */
     private fun formatAmount(amount: BigDecimal): String {
-        val formatter = NumberFormat.getNumberInstance(INDIAN_LOCALE)
+        val formatter = NumberFormat.getNumberInstance(Locale.US)
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
         return formatter.format(amount)

@@ -17,7 +17,7 @@ import java.math.BigDecimal
  *
  * Common senders: XX-ICICIB-S, ICICIB, ICICIBANK
  */
-class ICICIBankParser : BankParser() {
+class ICICIBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "ICICI Bank"
 

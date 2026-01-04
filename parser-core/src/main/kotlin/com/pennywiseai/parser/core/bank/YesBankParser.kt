@@ -11,7 +11,7 @@ import java.math.BigDecimal
  *
  * Common senders: CP-YESBNK-S, VM-YESBNK-S, JX-YESBNK-S
  */
-class YesBankParser : BankParser() {
+class YesBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Yes Bank"
 

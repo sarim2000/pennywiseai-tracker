@@ -2,13 +2,13 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class AllNewParsersTest {
 
-    @Test
-    fun `factory resolves new session parsers`() {
+    @TestFactory
+    fun `factory resolves new session parsers`(): List<DynamicTest> {
         val fabMessage = """
         Credit Card Purchase
         Card No XXXX
@@ -19,10 +19,10 @@ class AllNewParsersTest {
     """.trimIndent()
 
         val citiMessage =
-            "Citi Alert: A \$3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"
+            "Citi Alert: A $3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"
 
         val discoverMessage =
-            "Discover Card Alert: A transaction of \$25.00 at WWW.XXX.ORG on February 21, 2025. No Action needed. See it at https://app.discover.com/ACTVT. Text STOP to end"
+            "Discover Card Alert: A transaction of $25.00 at WWW.XXX.ORG on February 21, 2025. No Action needed. See it at https://app.discover.com/ACTVT. Text STOP to end"
 
         val laxmiMessage =
             "Dear Customer, Your #12344560 has been debited by NPR 720.00 on 05/09/25. Remarks:ESEWA LOAD/9763698550,127847587\n-Laxmi Sunrise"
@@ -34,9 +34,7 @@ class AllNewParsersTest {
             "Dear Customer, Your A/c 12345678 is debited by NPR 520.00 For: 9843368/Mobile Recharge,Ncell. Never Share Password/OTP With Anyone"
 
         val oldHickoryMessage =
-            "A transaction for \$27.00 has posted to ACCOUNT NAME (part of ACCOUNT#), which is above the \$0.00 value you set."
-
-        ParserTestUtils.printSectionHeader("New Session Parser Coverage")
+            "A transaction for $27.00 has posted to ACCOUNT NAME (part of ACCOUNT#), which is above the $0.00 value you set."
 
         val factoryCases = listOf(
             SimpleTestCase(
@@ -148,8 +146,6 @@ class AllNewParsersTest {
             )
         )
 
-        val result = ParserTestUtils.runFactoryTestSuite(factoryCases, "Factory smoke tests")
-
-
+        return ParserTestUtils.runFactoryTestSuite(factoryCases, "Factory smoke tests")
     }
 }

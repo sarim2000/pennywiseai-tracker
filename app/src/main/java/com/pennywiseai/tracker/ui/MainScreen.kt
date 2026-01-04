@@ -119,6 +119,11 @@ fun MainScreen(
                     onNavigateToSubscriptions = {
                         navController.navigate("subscriptions")
                     },
+                    onNavigateToBudgets = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.Budgets
+                        )
+                    },
                     onNavigateToAddScreen = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.AddTransaction
@@ -269,6 +274,11 @@ fun MainScreen(
                     onNavigateToRules = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.Rules
+                        )
+                    },
+                    onNavigateToBudgets = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.Budgets
                         )
                     }
                 )

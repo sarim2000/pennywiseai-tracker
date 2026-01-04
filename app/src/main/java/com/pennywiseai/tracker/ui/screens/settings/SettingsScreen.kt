@@ -46,6 +46,7 @@ fun SettingsScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
+    onNavigateToBudgets: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -360,7 +361,51 @@ fun SettingsScreen(
                 )
             }
         }
-        
+
+        // Budgets
+        PennyWiseCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToBudgets() }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimensions.Padding.content),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Budgets",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Track spending limits by category",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         // Export Data
         PennyWiseCard(
             modifier = Modifier

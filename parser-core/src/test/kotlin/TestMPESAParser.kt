@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
 class MPESAParserTest {
-    @Test
-    fun `test M-PESA Parser comprehensive test suite`() {
+    @TestFactory
+    fun `test M-PESA Parser comprehensive test suite`(): List<DynamicTest> {
         val parser = MPESAParser()
 
         ParserTestUtils.printTestHeader(
@@ -212,7 +212,7 @@ class MPESAParserTest {
         )
 
         val result =
-            ParserTestUtils.runTestSuite(parser, testCases, handleCases, "M-PESA Parser Tests")
+            return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "M-PESA Parser Tests")
 
     }
 

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.*
@@ -57,6 +58,11 @@ fun TransactionsScreen(
     initialPeriod: String? = null,
     initialCurrency: String? = null,
     focusSearch: Boolean = false,
+    // New parameters for budget navigation
+    initialStartDateEpochDay: Long? = null,
+    initialEndDateEpochDay: Long? = null,
+    initialCategories: String? = null,  // Comma-separated category names
+    initialTransactionType: String? = null,
     viewModel: TransactionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
@@ -67,6 +73,7 @@ fun TransactionsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val categoryFilter by viewModel.categoryFilter.collectAsState()
+    val categoriesFilter by viewModel.categoriesFilter.collectAsState()
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
@@ -124,6 +131,19 @@ fun TransactionsScreen(
                 initialMerchant,
                 initialPeriod,
                 initialCurrency
+            )
+        }
+    }
+
+    // Apply budget filters when navigating from budget screen
+    LaunchedEffect(initialStartDateEpochDay, initialEndDateEpochDay, initialCategories, initialTransactionType) {
+        if (initialStartDateEpochDay != null && initialEndDateEpochDay != null) {
+            viewModel.applyBudgetFilters(
+                startDateEpochDay = initialStartDateEpochDay,
+                endDateEpochDay = initialEndDateEpochDay,
+                currency = initialCurrency,
+                categories = initialCategories,
+                transactionType = initialTransactionType
             )
         }
     }
@@ -497,6 +517,37 @@ fun TransactionsScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
+                    // Show info banner when viewing budget transactions
+                    if (categoriesFilter != null) {
+                        item {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = Spacing.sm)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(Spacing.sm),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "Totals may differ from budget due to split transactions",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Iterate through date groups in order
                     listOf(
                         DateGroup.TODAY,

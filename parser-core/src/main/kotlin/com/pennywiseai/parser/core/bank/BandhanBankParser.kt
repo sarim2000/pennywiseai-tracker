@@ -11,7 +11,7 @@ import java.math.BigDecimal
  *
  * Senders generally follow DLT patterns like XY-BDNSMS-S.
  */
-class BandhanBankParser : BankParser() {
+class BandhanBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Bandhan Bank"
 

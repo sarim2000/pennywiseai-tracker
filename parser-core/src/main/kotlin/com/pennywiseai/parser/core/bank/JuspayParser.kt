@@ -7,7 +7,7 @@ import java.math.BigDecimal
  * Parser for Juspay/Amazon Pay wallet transactions.
  * Handles messages from XX-JUSPAY-X, APAY, and similar senders.
  */
-class JuspayParser : BankParser() {
+class JuspayParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Amazon Pay"
 

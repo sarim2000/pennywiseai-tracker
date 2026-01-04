@@ -67,6 +67,7 @@ import com.pennywiseai.tracker.ui.components.ListItemCard
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.AccountBalancesCard
+import com.pennywiseai.tracker.ui.components.BudgetCardCompact
 import com.pennywiseai.tracker.ui.components.CreditCardsCard
 import com.pennywiseai.tracker.ui.components.UnifiedAccountsCard
 import com.pennywiseai.tracker.ui.components.spotlightTarget
@@ -86,6 +87,7 @@ fun HomeScreen(
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToBudgets: () -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
@@ -204,7 +206,33 @@ fun HomeScreen(
                     )
                 }
             }
-            
+
+            // Budgets Section
+            if (uiState.activeBudgets.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "Budgets",
+                        action = {
+                            TextButton(onClick = onNavigateToBudgets) {
+                                Text("View All")
+                            }
+                        }
+                    )
+                }
+
+                items(
+                    items = uiState.activeBudgets.take(2),
+                    key = { it.budget.id }
+                ) { budgetWithSpending ->
+                    BudgetCardCompact(
+                        budget = budgetWithSpending.budget,
+                        spending = budgetWithSpending.spending,
+                        daysRemaining = budgetWithSpending.daysRemaining,
+                        onClick = onNavigateToBudgets
+                    )
+                }
+            }
+
             // Upcoming Subscriptions Alert
             if (uiState.upcomingSubscriptions.isNotEmpty()) {
                 item {

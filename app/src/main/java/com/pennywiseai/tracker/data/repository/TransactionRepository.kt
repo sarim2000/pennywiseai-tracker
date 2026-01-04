@@ -1,8 +1,11 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -15,7 +18,8 @@ import kotlin.math.min
 
 @Singleton
 class TransactionRepository @Inject constructor(
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val transactionSplitDao: TransactionSplitDao
 ) {
     fun getAllTransactions(): Flow<List<TransactionEntity>> = 
         transactionDao.getAllTransactions()
@@ -291,4 +295,82 @@ class TransactionRepository @Inject constructor(
             transaction.category.isNullOrBlank() || transaction.category == "Others"
         }
     }
+
+    // ========== Transaction Split Methods ==========
+
+    /**
+     * Gets a transaction with its splits.
+     */
+    fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?> =
+        transactionSplitDao.getTransactionWithSplits(transactionId)
+
+    /**
+     * Gets transactions with their splits for a date range and currency.
+     * Useful for analytics that need to consider split amounts by category.
+     */
+    fun getTransactionsWithSplitsFiltered(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        currency: String
+    ): Flow<List<TransactionWithSplits>> =
+        transactionSplitDao.getTransactionsWithSplitsFiltered(
+            startDate.atStartOfDay(),
+            endDate.atTime(23, 59, 59),
+            currency
+        )
+
+    /**
+     * Gets a transaction with its splits synchronously.
+     */
+    suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits? =
+        transactionSplitDao.getTransactionWithSplitsSync(transactionId)
+
+    /**
+     * Gets splits for a specific transaction.
+     */
+    fun getSplitsForTransaction(transactionId: Long): Flow<List<TransactionSplitEntity>> =
+        transactionSplitDao.getSplitsForTransaction(transactionId)
+
+    /**
+     * Checks if a transaction has splits.
+     */
+    suspend fun hasSplits(transactionId: Long): Boolean =
+        transactionSplitDao.hasSplits(transactionId)
+
+    /**
+     * Saves splits for a transaction, replacing any existing splits.
+     */
+    suspend fun saveSplits(transactionId: Long, splits: List<TransactionSplitEntity>) {
+        // Delete existing splits
+        transactionSplitDao.deleteSplitsForTransaction(transactionId)
+        // Insert new splits
+        if (splits.isNotEmpty()) {
+            transactionSplitDao.insertSplits(splits.map { it.copy(transactionId = transactionId) })
+        }
+    }
+
+    /**
+     * Removes all splits from a transaction.
+     */
+    suspend fun removeSplits(transactionId: Long) {
+        transactionSplitDao.deleteSplitsForTransaction(transactionId)
+    }
+
+    /**
+     * Inserts a single split.
+     */
+    suspend fun insertSplit(split: TransactionSplitEntity): Long =
+        transactionSplitDao.insertSplit(split)
+
+    /**
+     * Updates a split.
+     */
+    suspend fun updateSplit(split: TransactionSplitEntity) =
+        transactionSplitDao.updateSplit(split)
+
+    /**
+     * Deletes a single split.
+     */
+    suspend fun deleteSplit(split: TransactionSplitEntity) =
+        transactionSplitDao.deleteSplit(split)
 }

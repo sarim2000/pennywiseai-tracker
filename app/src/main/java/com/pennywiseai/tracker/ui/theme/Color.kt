@@ -91,3 +91,28 @@ val category_bills = Color(0xFF42A5F5)  // Light Blue
 val category_entertainment = Color(0xFFEC407A)  // Pink
 val category_health = Color(0xFF26A69A)  // Teal
 val category_other = Color(0xFF78909C)  // Blue Grey
+
+// Budget Progress Colors
+// Green: under 50% spent (safe)
+val budget_safe_light = Color(0xFF2E7D32)   // Medium green - good contrast on white
+val budget_safe_dark = Color(0xFF81C784)    // Light green - readable on dark
+
+// Yellow/Amber: 50-80% spent (warning)
+val budget_warning_light = Color(0xFFFF8F00)  // Amber - good contrast on white
+val budget_warning_dark = Color(0xFFFFCA28)   // Light amber - readable on dark
+
+// Red: over 80% spent (danger)
+val budget_danger_light = Color(0xFFD32F2F)   // Medium red - good contrast on white
+val budget_danger_dark = Color(0xFFEF5350)    // Light red - readable on dark
+
+// Budget Card Colors (for different budget cards)
+val budget_card_colors = listOf(
+    Color(0xFF1565C0),  // Blue (default)
+    Color(0xFF2E7D32),  // Green
+    Color(0xFFF57C00),  // Orange
+    Color(0xFF7B1FA2),  // Purple
+    Color(0xFFD32F2F),  // Red
+    Color(0xFF00838F),  // Cyan
+    Color(0xFFC2185B),  // Pink
+    Color(0xFF455A64)   // Blue Grey
+)

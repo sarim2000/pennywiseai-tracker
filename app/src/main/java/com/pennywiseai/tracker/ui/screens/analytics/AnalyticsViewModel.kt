@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.ui.screens.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
@@ -15,6 +17,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
@@ -110,33 +113,50 @@ class AnalyticsViewModel @Inject constructor(
                     TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
                 }
 
-                // Load filtered transactions from database (filtered at DB level for performance)
-                transactionRepository.getTransactionsFiltered(
+                // Load transactions with splits for proper category breakdown
+                transactionRepository.getTransactionsWithSplitsFiltered(
                     startDate = dateRange.first,
                     endDate = dateRange.second,
-                    currency = filterState.currency,
-                    transactionType = dbTransactionType
-                )
-            }.map { filteredTransactions ->
+                    currency = filterState.currency
+                ).map { txs -> txs to dbTransactionType }
+            }.map { (allTransactionsWithSplits, transactionTypeFilter) ->
+                // Filter by transaction type in memory (splits are already loaded)
+                val filteredTransactionsWithSplits = if (transactionTypeFilter != null) {
+                    allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
+                } else {
+                    allTransactionsWithSplits
+                }
+
+                val filteredTransactions = filteredTransactionsWithSplits.map { it.transaction }
 
                 // Calculate total
                 val totalSpending = filteredTransactions.sumOf { it.amount.toDouble() }.toBigDecimal()
 
-                // Group by category
-                val categoryBreakdown = filteredTransactions
-                    .groupBy { it.category ?: "Others" }
-                    .map { (categoryName, txns) ->
-                        val categoryTotal = txns.sumOf { it.amount.toDouble() }.toBigDecimal()
-                        CategoryData(
-                            name = categoryName,
-                            amount = categoryTotal,
-                            percentage = if (totalSpending > BigDecimal.ZERO) {
-                                (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
-                            } else 0f,
-                            transactionCount = txns.size
-                        )
+                // Build category breakdown considering splits
+                // For transactions with splits, use split amounts per category
+                // For transactions without splits, use full amount for transaction category
+                val categoryAmounts = mutableMapOf<String, BigDecimal>()
+                val categoryTransactionCounts = mutableMapOf<String, Int>()
+
+                filteredTransactionsWithSplits.forEach { txWithSplits ->
+                    txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                        val categoryName = category.ifEmpty { "Others" }
+                        categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + amount
+                        // Count as 1 transaction per category (even if split)
+                        categoryTransactionCounts[categoryName] = (categoryTransactionCounts[categoryName] ?: 0) + 1
                     }
-                    .sortedByDescending { it.amount }
+                }
+
+                val categoryBreakdown = categoryAmounts.map { (categoryName, categoryTotal) ->
+                    CategoryData(
+                        name = categoryName,
+                        amount = categoryTotal,
+                        percentage = if (totalSpending > BigDecimal.ZERO) {
+                            (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                        } else 0f,
+                        transactionCount = categoryTransactionCounts[categoryName] ?: 0
+                    )
+                }.sortedByDescending { it.amount }
 
                 // Group by merchant
                 val merchantBreakdown = filteredTransactions

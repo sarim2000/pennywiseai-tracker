@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import dagger.Module
 import dagger.Provides
@@ -203,6 +205,30 @@ object DatabaseModule {
     @Singleton
     fun provideExchangeRateDao(database: PennyWiseDatabase): ExchangeRateDao {
         return database.exchangeRateDao()
+    }
+
+    /**
+     * Provides the BudgetDao from the database.
+     *
+     * @param database The PennyWiseDatabase instance
+     * @return BudgetDao for accessing budget data
+     */
+    @Provides
+    @Singleton
+    fun provideBudgetDao(database: PennyWiseDatabase): BudgetDao {
+        return database.budgetDao()
+    }
+
+    /**
+     * Provides the TransactionSplitDao from the database.
+     *
+     * @param database The PennyWiseDatabase instance
+     * @return TransactionSplitDao for accessing transaction split data
+     */
+    @Provides
+    @Singleton
+    fun provideTransactionSplitDao(database: PennyWiseDatabase): TransactionSplitDao {
+        return database.transactionSplitDao()
     }
 }
 

@@ -10,7 +10,7 @@ import java.math.BigDecimal
  * - "Your A/c no. 013460 is credited with INR 115.50 on 13-10-2025 towards ACH Credit:GUJARAT GAS LIMITED. Current Bal is INR 941.23 CR  - Saraswat Bank"
  * - "Dear Customer, Your account no. ending with 013460 is debited with INR 10,000.00 on 25-09-2025  for S.I. Current Bal is INR 8,256.97CR. - Saraswat Bank"
  */
-class SaraswatBankParser : BankParser() {
+class SaraswatBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Saraswat Co-operative Bank"
 

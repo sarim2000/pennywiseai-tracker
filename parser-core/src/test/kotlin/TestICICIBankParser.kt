@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.ICICIBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class ICICIBankParserTest {
 
-    @Test
-    fun `icici parser handles currency and autopay flows`() {
+    @TestFactory
+    fun `icici parser handles currency and autopay flows`(): List<DynamicTest> {
         val parser = ICICIBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -157,7 +157,7 @@ class ICICIBankParserTest {
             "HDFC" to false
         )
 
-        ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,
@@ -165,8 +165,8 @@ class ICICIBankParserTest {
         )
     }
 
-    @Test
-    fun `icici parser handles UPI debit transactions with merchant credited pattern`() {
+    @TestFactory
+    fun `icici parser handles UPI debit transactions with merchant credited pattern`(): List<DynamicTest> {
         val parser = ICICIBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -219,7 +219,7 @@ class ICICIBankParserTest {
             )
         )
 
-        ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             suiteName = "ICICI Bank UPI Debit Transactions"

@@ -8,7 +8,7 @@ import java.math.BigDecimal
 /**
  * Parser for State Bank of India (SBI) SMS messages
  */
-class SBIBankParser : BankParser() {
+class SBIBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "State Bank of India"
 
@@ -551,7 +551,7 @@ class SBIBankParser : BankParser() {
         }
 
         // Skip UPI-Mandate creation notifications
-        if (isUPIMandateNotification(message)) {
+        if (isEMandateNotification(message)) {
             return false
         }
 
@@ -563,67 +563,6 @@ class SBIBankParser : BankParser() {
         // Fall back to base class for other checks
         return super.isTransactionMessage(message)
     }
-
-    /**
-     * Checks if this is a UPI-Mandate creation notification.
-     * Only returns true if it's a mandate creation message (not a debit notification).
-     */
-    fun isUPIMandateNotification(message: String): Boolean {
-        return message.contains("UPI-Mandate", ignoreCase = true) &&
-                message.contains("successfully created", ignoreCase = true)
-    }
-
-    /**
-     * Parses UPI-Mandate subscription information.
-     * Similar to HDFC's EMandateInfo structure for consistency.
-     */
-    fun parseUPIMandateSubscription(message: String): UPIMandateInfo? {
-        if (!isUPIMandateNotification(message)) {
-            return null
-        }
-
-        // Extract amount - "Rs.1050.00"
-        val amountPattern =
-            Regex("""Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        val amount = amountPattern.find(message)?.let { match ->
-            val amountStr = match.groupValues[1].replace(",", "")
-            try {
-                BigDecimal(amountStr)
-            } catch (e: NumberFormatException) {
-                null
-            }
-        } ?: return null
-
-        // Extract merchant - "towards Google Play"
-        val merchantPattern =
-            Regex("""towards\s+([^.\n]+?)(?:\s+from|\s+A/c|$)""", RegexOption.IGNORE_CASE)
-        val merchant = merchantPattern.find(message)?.let { match ->
-            cleanMerchantName(match.groupValues[1].trim())
-        } ?: "Unknown Subscription"
-
-        // Extract UMN - "UMN:f6b4a989bc9d465984e4e7519a6622f4@okaxis"
-        val umnPattern = Regex("""UMN:([^.\s]+)""", RegexOption.IGNORE_CASE)
-        val umn = umnPattern.find(message)?.groupValues?.get(1)
-
-        return UPIMandateInfo(
-            amount = amount,
-            nextDeductionDate = null, // SBI doesn't provide next deduction date in creation message
-            merchant = merchant,
-            umn = umn
-        )
-    }
-
-    /**
-     * UPI-Mandate subscription information for SBI.
-     * Compatible with HDFC's EMandateInfo structure.
-     */
-    data class UPIMandateInfo(
-        override val amount: BigDecimal,
-        override val nextDeductionDate: String?,
-        override val merchant: String,
-        override val umn: String?
-    ) : MandateInfo {
-        // SBI uses dd/MM/yy format
-        override val dateFormat = "dd/MM/yy"
-    }
 }
+
+

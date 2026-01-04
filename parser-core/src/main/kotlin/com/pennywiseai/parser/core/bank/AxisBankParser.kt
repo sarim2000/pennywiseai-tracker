@@ -6,7 +6,7 @@ import java.math.BigDecimal
 /**
  * Parser for Axis Bank SMS messages
  */
-class AxisBankParser : BankParser() {
+class AxisBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Axis Bank"
 

@@ -17,7 +17,7 @@ import java.math.BigDecimal
  * Credit Card Format (with multi-currency support):
  * Transaction Successful! EUR 500.00 spent on your IDFC FIRST Bank Credit Card ending XXXX at MERCHANT on DD-MMM-YYYY
  */
-class IDFCFirstBankParser : BankParser() {
+class IDFCFirstBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "IDFC First Bank"
 

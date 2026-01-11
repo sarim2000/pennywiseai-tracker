@@ -84,9 +84,21 @@ class CentralBankOfIndiaParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: "from [NAME]" for credits
+        // Pattern 1: "By.NAME" or "By NAME" for NEFT/transfer credits (before bank suffix like -CBoI)
+        val byPattern = Regex(
+            """By[.\s]+(.+?)(?:-CBoI|-CBOI|-CENTBK|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        byPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 2: "from [NAME]" for credits
         val fromPattern = Regex(
-            """from\s+([A-Z0-9]+|[^\\s]+?)(?:\s+via|\s+Ref|\s+\.|$)""",
+            """from\s+([A-Z0-9]+|[^\s]+?)(?:\s+via|\s+Ref|\s+\.|$)""",
             RegexOption.IGNORE_CASE
         )
         fromPattern.find(message)?.let { match ->
@@ -98,9 +110,9 @@ class CentralBankOfIndiaParser : BankParser() {
             return cleanMerchantName(merchant)
         }
 
-        // Pattern 2: "to [NAME]" for debits
+        // Pattern 3: "to [NAME]" for debits
         val toPattern = Regex(
-            """to\s+([^\\s]+?)(?:\s+via|\s+Ref|\s+\.|$)""",
+            """to\s+([^\s]+?)(?:\s+via|\s+Ref|\s+\.|$)""",
             RegexOption.IGNORE_CASE
         )
         toPattern.find(message)?.let { match ->
@@ -110,7 +122,7 @@ class CentralBankOfIndiaParser : BankParser() {
             }
         }
 
-        // Pattern 3: via UPI
+        // Pattern 4: via UPI
         if (message.contains("via UPI", ignoreCase = true)) {
             if (message.contains("Credited", ignoreCase = true)) {
                 return "UPI Credit"

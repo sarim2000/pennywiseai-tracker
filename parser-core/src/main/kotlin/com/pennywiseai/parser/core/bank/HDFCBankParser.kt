@@ -475,5 +475,174 @@ class HDFCBankParser : BaseIndianBankParser() {
         return hdfcTransactionKeywords.any { lowerMessage.contains(it) }
     }
 
+    // ==========================================
+    // E-Mandate / Subscription Logic
+    // ==========================================
 
+    /**
+     * Parses E-Mandate subscription information from HDFC messages.
+     */
+    fun parseEMandateSubscription(message: String): EMandateInfo? {
+        if (!isEMandateNotification(message)) {
+            return null
+        }
+
+        // Extract amount - patterns like "Rs.1050.00", "INR 59.00"
+        val amountPatterns = listOf(
+            Regex("""Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        var amount: BigDecimal? = null
+        for (pattern in amountPatterns) {
+            pattern.find(message)?.let { match ->
+                val amountStr = match.groupValues[1].replace(",", "")
+                amount = try {
+                    BigDecimal(amountStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
+            if (amount != null) break
+        }
+
+        if (amount == null) return null
+
+        // Extract merchant
+        var merchant = "Unknown Subscription"
+        val merchantPatterns = listOf(
+            Regex("""towards\s+([^.\n]+?)(?:\s+from|\s+A/c|\s+UMRN|\s+ID:|\s+Alert:|\s*\.|$)""", RegexOption.IGNORE_CASE),
+            Regex("""for\s+([^.\n]+?)(?:\s+ID:|\s+Act:|\s*\.|$)""", RegexOption.IGNORE_CASE),
+            Regex("""Info:\s*([^.\n]+?)(?:\s*$)""", RegexOption.IGNORE_CASE),
+            Regex("""To\s+([^.\n]+?)(?:\s+UPI|,|$)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in merchantPatterns) {
+            pattern.find(message)?.let { match ->
+                val m = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(m) && m.length > 2) {
+                    merchant = m
+                }
+            }
+            if (merchant != "Unknown Subscription") break
+        }
+
+        // Extract next deduction date
+        val datePatterns = listOf(
+            Regex("""on\s+(\d{2}-\w{3}-\d{2,4})""", RegexOption.IGNORE_CASE),
+            Regex("""date[:\s]+(\d{2}/\d{2}/\d{2,4})""", RegexOption.IGNORE_CASE),
+            Regex("""(\d{2}-\d{2}-\d{4})""", RegexOption.IGNORE_CASE),
+            Regex("""(\d{2}/\d{2}/\d{2,4})""", RegexOption.IGNORE_CASE)
+        )
+
+        var nextDeductionDate: String? = null
+        for (pattern in datePatterns) {
+            pattern.find(message)?.let { match ->
+                nextDeductionDate = match.groupValues[1]
+            }
+            if (nextDeductionDate != null) break
+        }
+
+        // Extract UMN (Unique Mandate Number)
+        val umnPatterns = listOf(
+            Regex("""UMN[:\s]+([^.\s]+)""", RegexOption.IGNORE_CASE),
+            Regex("""UMRN[:\s]+([^.\s]+)""", RegexOption.IGNORE_CASE)
+        )
+        var umn: String? = null
+        for (pattern in umnPatterns) {
+            pattern.find(message)?.let { match ->
+                umn = match.groupValues[1]
+            }
+            if (umn != null) break
+        }
+
+        return EMandateInfo(
+            amount = amount!!,
+            nextDeductionDate = nextDeductionDate,
+            merchant = merchant,
+            umn = umn
+        )
+    }
+
+    /**
+     * Parses future debit notification from HDFC messages.
+     * These are alerts for upcoming subscription charges.
+     */
+    fun parseFutureDebit(message: String): EMandateInfo? {
+        if (!isFutureDebitNotification(message)) {
+            return null
+        }
+
+        // Extract amount
+        val amountPatterns = listOf(
+            Regex("""Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        var amount: BigDecimal? = null
+        for (pattern in amountPatterns) {
+            pattern.find(message)?.let { match ->
+                val amountStr = match.groupValues[1].replace(",", "")
+                amount = try {
+                    BigDecimal(amountStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
+            if (amount != null) break
+        }
+
+        if (amount == null) return null
+
+        // Extract merchant
+        var merchant = "Unknown Subscription"
+        val merchantPatterns = listOf(
+            Regex("""for\s+([^.\n]+?)(?:\s+ID:|\s+Act:|\s+will\s+be|\s*\.|$)""", RegexOption.IGNORE_CASE),
+            Regex("""towards\s+([^.\n]+?)(?:\s+from|\s+A/c|\s+UMRN|\s+ID:|\s*\.|$)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in merchantPatterns) {
+            pattern.find(message)?.let { match ->
+                val m = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(m) && m.length > 2) {
+                    merchant = m
+                }
+            }
+            if (merchant != "Unknown Subscription") break
+        }
+
+        // Extract next deduction date
+        val datePatterns = listOf(
+            Regex("""on\s+(\d{2}-\w{3}-\d{2,4})""", RegexOption.IGNORE_CASE),
+            Regex("""on\s+(\d{2}/\d{2}/\d{2,4})""", RegexOption.IGNORE_CASE),
+            Regex("""(\d{2}-\d{2}-\d{4})""", RegexOption.IGNORE_CASE)
+        )
+
+        var nextDeductionDate: String? = null
+        for (pattern in datePatterns) {
+            pattern.find(message)?.let { match ->
+                nextDeductionDate = match.groupValues[1]
+            }
+            if (nextDeductionDate != null) break
+        }
+
+        return EMandateInfo(
+            amount = amount!!,
+            nextDeductionDate = nextDeductionDate,
+            merchant = merchant,
+            umn = null
+        )
+    }
+
+    /**
+     * E-Mandate information for HDFC Bank
+     */
+    data class EMandateInfo(
+        override val amount: BigDecimal,
+        override val nextDeductionDate: String?,
+        override val merchant: String,
+        override val umn: String?
+    ) : MandateInfo {
+        override val dateFormat = "dd/MM/yy"
+    }
 }

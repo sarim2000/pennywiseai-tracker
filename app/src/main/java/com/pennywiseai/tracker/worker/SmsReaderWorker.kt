@@ -191,7 +191,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                         // Save to account_balances table
                                         accountBalanceRepository.insertBalanceUpdate(
                                             bankName = balanceUpdateInfo.bankName,
-                                            accountLast4 = balanceUpdateInfo.accountLast4,
+                                            accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                                             balance = balanceUpdateInfo.balance,
                                             timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
                                             currency = parser.getCurrency()
@@ -212,7 +212,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                     try {
                                         accountBalanceRepository.insertBalanceUpdate(
                                             bankName = balanceUpdateInfo.bankName,
-                                            accountLast4 = balanceUpdateInfo.accountLast4,
+                                            accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                                             balance = balanceUpdateInfo.balance,
                                             timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
                                             currency = parser.getCurrency()

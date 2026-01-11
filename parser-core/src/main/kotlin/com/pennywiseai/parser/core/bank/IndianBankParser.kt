@@ -244,8 +244,45 @@ class IndianBankParser : BaseIndianBankParser() {
             else -> super.extractTransactionType(message)
         }
     }
+
+    // ==========================================
+    // Mandate / Subscription Logic
+    // ==========================================
+
+    /**
+     * Checks if this is a mandate notification (not a transaction).
+     * Delegates to base class E-Mandate and future debit checks.
+     */
+    fun isMandateNotification(message: String): Boolean {
+        return isEMandateNotification(message) || isFutureDebitNotification(message)
+    }
+
+    /**
+     * Parses mandate subscription information from Indian Bank messages.
+     * Uses base class logic but returns bank-specific type.
+     */
+    override fun parseMandateSubscription(message: String): IndianMandateInfo? {
+        val baseInfo = super.parseMandateSubscription(message) ?: return null
+
+        return IndianMandateInfo(
+            amount = baseInfo.amount,
+            nextDeductionDate = baseInfo.nextDeductionDate,
+            merchant = baseInfo.merchant,
+            umn = baseInfo.umn
+        )
+    }
+
+    /**
+     * Mandate information for Indian Bank
+     */
+    data class IndianMandateInfo(
+        override val amount: BigDecimal,
+        override val nextDeductionDate: String?,
+        override val merchant: String,
+        override val umn: String?
+    ) : MandateInfo {
+        override val dateFormat = "dd-MMM-yy"
+    }
 }
-
-
 
 

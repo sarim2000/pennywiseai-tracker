@@ -243,6 +243,8 @@ abstract class BankParser {
             "folio",                        // Mutual fund folio
             "demat",
             "stockbroker",
+            "digital gold",                 // Digital Gold investments
+            "sovereign gold",               // Sovereign Gold Bonds
 
             // Stock exchanges
             "nse",                          // National Stock Exchange

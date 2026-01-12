@@ -30,7 +30,10 @@ class MPesaTanzaniaParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        // M-Pesa Tanzania uses same sender IDs but we differentiate by content
+        // M-Pesa Tanzania uses same sender IDs as Kenya ("MPESA" or "M-PESA")
+        // We differentiate by message content (TZS vs Ksh) in the parse() method
+        // This parser will only be used if Kenya parser's parse() returns null
+        // and the message contains TZS currency
         return normalizedSender.contains("MPESA") ||
                 normalizedSender.contains("M-PESA") ||
                 normalizedSender == "MPESA" ||

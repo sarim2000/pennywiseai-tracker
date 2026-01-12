@@ -65,8 +65,8 @@ object BankParserFactory {
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
-        MPesaTanzaniaParser(),  // M-Pesa Tanzania (must be before Kenya M-PESA)
-        MPESAParser(),  // M-PESA (Kenya)
+        MPESAParser(),  // M-PESA (Kenya) - must be before Tanzania to handle common "MPESA" sender
+        MPesaTanzaniaParser(),  // M-Pesa Tanzania (differentiated by TZS currency in message)
         SelcomPesaParser(),  // Selcom Pesa (Tanzania)
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
@@ -79,6 +79,10 @@ object BankParserFactory {
     /**
      * Returns the appropriate bank parser for the given sender.
      * Returns null if no specific parser is found.
+     * 
+     * Note: When multiple parsers can handle the same sender (e.g., Kenya vs Tanzania M-PESA),
+     * the first matching parser in the list is returned. The parser's parse() method should
+     * return null if it cannot actually parse the message, allowing fallback logic if needed.
      */
     fun getParser(sender: String): BankParser? {
         return parsers.firstOrNull { it.canHandle(sender) }

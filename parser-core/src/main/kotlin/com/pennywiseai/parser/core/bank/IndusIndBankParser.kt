@@ -12,7 +12,7 @@ import java.time.LocalDateTime
  * - Relies on base patterns for amount, balance, merchant, account, reference
  * - canHandle() includes common DLT sender variants seen in India
  */
-class IndusIndBankParser : BankParser() {
+class IndusIndBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "IndusInd Bank"
 
@@ -59,22 +59,14 @@ class IndusIndBankParser : BankParser() {
         return super.detectIsCard(message)
     }
 
-    /**
-     * Balance update information (similar to HDFC's BalanceUpdateInfo)
-     */
-    data class BalanceUpdateInfo(
-        val bankName: String,
-        val accountLast4: String,
-        val balance: BigDecimal,
-        val asOfDate: LocalDateTime? = null
-    )
+
 
     /**
      * Detect balance-only notifications (not transactions).
      * Examples:
      *  - "Your A/C 2134***12345 has Avl BAL of INR 1,234.56 as on 05/10/25 04:10 AM ..."
      */
-    fun isBalanceUpdateNotification(message: String): Boolean {
+    override fun isBalanceUpdateNotification(message: String): Boolean {
         val lower = message.lowercase()
         val hasBalanceCue = lower.contains("avl bal") ||
                 lower.contains("available bal") ||
@@ -88,7 +80,7 @@ class IndusIndBankParser : BankParser() {
     /**
      * Parse balance-only notifications.
      */
-    fun parseBalanceUpdate(message: String): BalanceUpdateInfo? {
+    override fun parseBalanceUpdate(message: String): BaseBalanceUpdateInfo? {
         if (!isBalanceUpdateNotification(message)) return null
 
         // Extract account last4 using existing helper
@@ -135,7 +127,7 @@ class IndusIndBankParser : BankParser() {
             }.getOrNull()
         }
 
-        return BalanceUpdateInfo(
+        return BaseBalanceUpdateInfo(
             bankName = getBankName(),
             accountLast4 = accountLast4,
             balance = balance,

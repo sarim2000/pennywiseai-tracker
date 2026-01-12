@@ -17,9 +17,11 @@ import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.presentation.budgets.BudgetWithSpending
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,6 +39,7 @@ class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val budgetRepository: BudgetRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val inAppUpdateManager: InAppUpdateManager,
@@ -173,6 +176,30 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
                     upcomingSubscriptionsTotal = totalAmount
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            // Load active budgets with spending
+            budgetRepository.getCurrentBudgets().collect { budgets ->
+                val budgetsWithSpending = budgets.map { budget ->
+                    val spending = budgetRepository.getBudgetSpending(budget).first()
+                    val dailyAllowance = budgetRepository.calculateDailyAllowance(budget, spending.totalSpent)
+                    val daysRemaining = budgetRepository.getDaysRemaining(budget)
+                    val categories = budgetRepository.getCategoryNamesForBudget(budget.id)
+
+                    BudgetWithSpending(
+                        budget = budget,
+                        spending = spending,
+                        dailyAllowance = dailyAllowance,
+                        daysRemaining = daysRemaining,
+                        categories = categories
+                    )
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    activeBudgets = budgetsWithSpending
                 )
             }
         }
@@ -561,6 +588,7 @@ data class HomeUiState(
     val recentTransactions: List<TransactionEntity> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
+    val activeBudgets: List<BudgetWithSpending> = emptyList(),
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
     val totalBalance: BigDecimal = BigDecimal.ZERO,

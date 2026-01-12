@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.database.converter
 
 import androidx.room.TypeConverter
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
@@ -77,9 +78,19 @@ class Converters {
     fun fromSubscriptionState(value: SubscriptionState): String {
         return value.name
     }
-    
+
     @TypeConverter
     fun toSubscriptionState(value: String): SubscriptionState {
         return SubscriptionState.valueOf(value)
+    }
+
+    @TypeConverter
+    fun fromBudgetPeriodType(value: BudgetPeriodType): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toBudgetPeriodType(value: String): BudgetPeriodType {
+        return BudgetPeriodType.valueOf(value)
     }
 }

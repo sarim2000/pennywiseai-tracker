@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -30,6 +31,7 @@ import javax.inject.Inject
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
@@ -43,7 +45,11 @@ class TransactionsViewModel @Inject constructor(
     
     private val _categoryFilter = MutableStateFlow<String?>(null)
     val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
-    
+
+    // Multiple categories filter (for budget navigation)
+    private val _categoriesFilter = MutableStateFlow<List<String>?>(null)
+    val categoriesFilter: StateFlow<List<String>?> = _categoriesFilter.asStateFlow()
+
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
     
@@ -198,6 +204,7 @@ class TransactionsViewModel @Inject constructor(
             searchQuery.debounce(300).map { "search" },
             selectedPeriod.map { "period" },
             categoryFilter.map { "category" },
+            categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },
             selectedCurrency.map { "currency" },
             sortOption.map { "sort" },
@@ -208,12 +215,13 @@ class TransactionsViewModel @Inject constructor(
                 val query = searchQuery.value
                 val period = selectedPeriod.value
                 val category = categoryFilter.value
+                val categories = categoriesFilter.value
                 val typeFilter = transactionTypeFilter.value
                 val currency = selectedCurrency.value
                 val sort = sortOption.value
 
                 // Get filtered transactions
-                getFilteredTransactions(query, period, category, typeFilter)
+                getFilteredTransactions(query, period, category, categories, typeFilter)
                     .collect { transactions ->
                         // Filter by currency
                         val currencyFilteredTransactions = transactions.filter {
@@ -422,11 +430,70 @@ class TransactionsViewModel @Inject constructor(
         // Only set currency if it's provided (from navigation)
         currency?.let { selectCurrency(it) }
     }
-    
+
+    /**
+     * Apply filters for budget transactions navigation.
+     * This sets a custom date range, categories filter, and transaction type.
+     */
+    fun applyBudgetFilters(
+        startDateEpochDay: Long,
+        endDateEpochDay: Long,
+        currency: String?,
+        categories: String?,  // Comma-separated
+        transactionType: String?
+    ) {
+        // Clear existing filters first
+        clearCategoryFilter()
+        updateSearchQuery("")
+        setSortOption(SortOption.DATE_NEWEST)
+
+        // Set custom date range
+        setCustomDateRange(
+            LocalDate.ofEpochDay(startDateEpochDay),
+            LocalDate.ofEpochDay(endDateEpochDay)
+        )
+
+        // Set currency
+        currency?.let { selectCurrency(it) }
+
+        // Set transaction type filter
+        transactionType?.let {
+            try {
+                val filter = TransactionTypeFilter.valueOf(it)
+                setTransactionTypeFilter(filter)
+            } catch (e: IllegalArgumentException) {
+                // Ignore invalid transaction type
+            }
+        }
+
+        // Set multiple categories filter
+        categories?.let { cats ->
+            val categoryList = cats.split(",").map { cat ->
+                if (cat.contains("+") || cat.contains("%")) {
+                    java.net.URLDecoder.decode(cat, "UTF-8")
+                } else {
+                    cat
+                }
+            }.filter { it.isNotBlank() }
+
+            if (categoryList.isNotEmpty()) {
+                _categoriesFilter.value = categoryList
+            }
+        }
+    }
+
+    /**
+     * Clears the multiple categories filter.
+     */
+    fun clearCategoriesFilter() {
+        _categoriesFilter.value = null
+    }
+
     private fun getFilteredTransactions(
         searchQuery: String,
         period: TimePeriod,
         category: String?,
+        categories: List<String>?,
         typeFilter: TransactionTypeFilter
     ): Flow<List<TransactionEntity>> {
         // Start with the base flow based on category filter
@@ -436,10 +503,46 @@ class TransactionsViewModel @Inject constructor(
         } else {
             transactionRepository.getAllTransactions()
         }
+
+        // Apply multiple categories filter (for budget navigation)
+        // This needs to consider split transactions - a transaction should be included
+        // if its main category OR any of its split categories match the budget's categories
+        val categoriesFilteredFlow = if (categories != null && categories.isNotEmpty()) {
+            baseFlow.flatMapLatest { transactions ->
+                flow {
+                    // Get all transaction IDs
+                    val txIds = transactions.map { it.id }
+
+                    // Batch fetch all splits for these transactions (efficient single query)
+                    val allSplits = if (txIds.isNotEmpty()) {
+                        transactionSplitDao.getSplitsForTransactions(txIds)
+                    } else {
+                        emptyList()
+                    }
+
+                    // Group splits by transaction ID for quick lookup
+                    val splitsByTxId = allSplits.groupBy { it.transactionId }
+
+                    // Filter transactions
+                    val filtered = transactions.filter { tx ->
+                        // Check main category first (fast path)
+                        if (tx.category in categories) {
+                            true
+                        } else {
+                            // Check if any split category matches
+                            splitsByTxId[tx.id]?.any { it.category in categories } == true
+                        }
+                    }
+                    emit(filtered)
+                }
+            }
+        } else {
+            baseFlow
+        }
         
         // Apply period filter
         val periodFilteredFlow = when (period) {
-            TimePeriod.ALL -> baseFlow
+            TimePeriod.ALL -> categoriesFilteredFlow
             TimePeriod.CUSTOM -> {
                 val customRange = customDateRange.value
                 // Guard against invalid state: CUSTOM period must have a date range
@@ -452,7 +555,7 @@ class TransactionsViewModel @Inject constructor(
                     val (startDate, endDate) = getDateRangeForPeriod(TimePeriod.THIS_MONTH)!!
                     val startDateTime = startDate.atStartOfDay()
                     val endDateTime = endDate.atTime(23, 59, 59)
-                    baseFlow.map { transactions ->
+                    categoriesFilteredFlow.map { transactions ->
                         transactions.filter { it.dateTime in startDateTime..endDateTime }
                     }
                 } else {
@@ -460,7 +563,7 @@ class TransactionsViewModel @Inject constructor(
                     val startDateTime = startDate.atStartOfDay()
                     val endDateTime = endDate.atTime(23, 59, 59)
 
-                    baseFlow.map { transactions ->
+                    categoriesFilteredFlow.map { transactions ->
                         transactions.filter { it.dateTime in startDateTime..endDateTime }
                     }
                 }
@@ -472,11 +575,11 @@ class TransactionsViewModel @Inject constructor(
                     val startDateTime = startDate.atStartOfDay()
                     val endDateTime = endDate.atTime(23, 59, 59)
 
-                    baseFlow.map { transactions ->
+                    categoriesFilteredFlow.map { transactions ->
                         transactions.filter { it.dateTime in startDateTime..endDateTime }
                     }
                 } else {
-                    baseFlow
+                    categoriesFilteredFlow
                 }
             }
         }

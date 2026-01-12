@@ -42,6 +42,9 @@ import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
+import com.pennywiseai.tracker.ui.components.SplitEditor
+import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -69,7 +72,12 @@ fun TransactionDetailScreen(
     val deleteSuccess by viewModel.deleteSuccess.collectAsStateWithLifecycle()
     val accountPrimaryCurrency by viewModel.primaryCurrency.collectAsStateWithLifecycle()
     val convertedAmount by viewModel.convertedAmount.collectAsStateWithLifecycle()
-    
+
+    // Split state
+    val splits by viewModel.splits.collectAsStateWithLifecycle()
+    val showSplitEditor by viewModel.showSplitEditor.collectAsStateWithLifecycle()
+    val hasSplits by viewModel.hasSplits.collectAsStateWithLifecycle()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
@@ -204,6 +212,9 @@ fun TransactionDetailScreen(
                 viewModel = viewModel,
                 accountPrimaryCurrency = accountPrimaryCurrency,
                 convertedAmount = convertedAmount,
+                splits = splits,
+                showSplitEditor = showSplitEditor,
+                hasSplits = hasSplits,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -254,6 +265,9 @@ private fun TransactionDetailContent(
     viewModel: TransactionDetailViewModel,
     accountPrimaryCurrency: String,
     convertedAmount: BigDecimal?,
+    splits: List<SplitItem>,
+    showSplitEditor: Boolean,
+    hasSplits: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -290,10 +304,12 @@ private fun TransactionDetailContent(
                 applyToAllFromMerchant = applyToAllFromMerchant,
                 updateExistingTransactions = updateExistingTransactions,
                 existingTransactionCount = existingTransactionCount,
-                viewModel = viewModel
+                viewModel = viewModel,
+                splits = splits,
+                showSplitEditor = showSplitEditor
             )
         } else {
-            ExtractedInfoCard(transaction)
+            ExtractedInfoCard(transaction, splits, hasSplits, transaction.currency)
         }
         
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -436,7 +452,12 @@ private fun SmsBodyCard(smsBody: String) {
 }
 
 @Composable
-private fun ExtractedInfoCard(transaction: TransactionEntity) {
+private fun ExtractedInfoCard(
+    transaction: TransactionEntity,
+    splits: List<SplitItem>,
+    hasSplits: Boolean,
+    currency: String
+) {
     PennyWiseCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -461,16 +482,24 @@ private fun ExtractedInfoCard(transaction: TransactionEntity) {
                     fontWeight = FontWeight.Bold
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.md))
-            
-            // Category
-            InfoRow(
-                label = "Category",
-                value = transaction.category,
-                icon = Icons.Default.Category
-            )
-            
+
+            // Category - show "Multiple Categories" if has splits
+            if (hasSplits && splits.isNotEmpty()) {
+                InfoRow(
+                    label = "Category",
+                    value = "Split (${splits.size} categories)",
+                    icon = Icons.Default.CallSplit
+                )
+            } else {
+                InfoRow(
+                    label = "Category",
+                    value = transaction.category,
+                    icon = Icons.Default.Category
+                )
+            }
+
             // Bank
             transaction.bankName?.let {
                 InfoRow(
@@ -479,7 +508,7 @@ private fun ExtractedInfoCard(transaction: TransactionEntity) {
                     icon = Icons.Default.AccountBalance
                 )
             }
-            
+
             // Transaction Type
             InfoRow(
                 label = "Type",
@@ -492,7 +521,7 @@ private fun ExtractedInfoCard(transaction: TransactionEntity) {
                     TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
                 }
             )
-            
+
             // Description
             transaction.description?.let {
                 InfoRow(
@@ -501,7 +530,7 @@ private fun ExtractedInfoCard(transaction: TransactionEntity) {
                     icon = Icons.Default.Description
                 )
             }
-            
+
             // Recurring status
             if (transaction.isRecurring) {
                 InfoRow(
@@ -511,6 +540,16 @@ private fun ExtractedInfoCard(transaction: TransactionEntity) {
                 )
             }
         }
+    }
+
+    // Show split breakdown card if transaction has splits
+    if (hasSplits && splits.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(Spacing.md))
+        SplitBreakdownCard(
+            splits = splits,
+            currency = currency,
+            modifier = Modifier.padding(horizontal = 0.dp)
+        )
     }
 }
 
@@ -773,8 +812,12 @@ private fun EditableExtractedInfoCard(
     applyToAllFromMerchant: Boolean,
     updateExistingTransactions: Boolean,
     existingTransactionCount: Int,
-    viewModel: TransactionDetailViewModel
+    viewModel: TransactionDetailViewModel,
+    splits: List<SplitItem>,
+    showSplitEditor: Boolean
 ) {
+    val categories by viewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
+
     PennyWiseCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -799,57 +842,79 @@ private fun EditableExtractedInfoCard(
                     fontWeight = FontWeight.Bold
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.md))
-            
-            // Category Dropdown
-            CategoryDropdown(
-                selectedCategory = transaction.category,
-                onCategorySelected = { viewModel.updateCategory(it) },
-                viewModel = viewModel
-            )
-            
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            
-            // Apply to all from merchant checkbox
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = applyToAllFromMerchant,
-                    onCheckedChange = { viewModel.toggleApplyToAllFromMerchant() }
+
+            // Category section - show dropdown only if not in split mode
+            if (!showSplitEditor) {
+                CategoryDropdown(
+                    selectedCategory = transaction.category,
+                    onCategorySelected = { viewModel.updateCategory(it) },
+                    viewModel = viewModel
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = "Apply this category to all future transactions from ${transaction.merchantName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                // "Split into categories" button - only for expenses
+                if (transaction.transactionType == TransactionType.EXPENSE) {
+                    OutlinedButton(
+                        onClick = { viewModel.enableSplitMode() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.CallSplit,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Split into categories")
+                    }
+
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                }
             }
-            
-            // Update existing transactions checkbox (only show if there are other transactions)
-            if (existingTransactionCount > 0) {
-                Spacer(modifier = Modifier.height(Spacing.xs))
+
+            // Apply to all from merchant checkbox - only when not in split mode
+            if (!showSplitEditor) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = updateExistingTransactions,
-                        onCheckedChange = { viewModel.toggleUpdateExistingTransactions() }
+                        checked = applyToAllFromMerchant,
+                        onCheckedChange = { viewModel.toggleApplyToAllFromMerchant() }
                     )
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
-                        text = "Also update $existingTransactionCount existing ${if (existingTransactionCount == 1) "transaction" else "transactions"} from ${transaction.merchantName}",
+                        text = "Apply this category to all future transactions from ${transaction.merchantName}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
+                // Update existing transactions checkbox (only show if there are other transactions)
+                if (existingTransactionCount > 0) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = updateExistingTransactions,
+                            onCheckedChange = { viewModel.toggleUpdateExistingTransactions() }
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(
+                            text = "Also update $existingTransactionCount existing ${if (existingTransactionCount == 1) "transaction" else "transactions"} from ${transaction.merchantName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
             }
-            
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            
+
             // Description
             OutlinedTextField(
                 value = transaction.description ?: "",
@@ -865,18 +930,18 @@ private fun EditableExtractedInfoCard(
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 2
             )
-            
+
             Spacer(modifier = Modifier.height(Spacing.sm))
-            
+
             // Account Number
             AccountNumberField(
                 accountNumber = transaction.accountNumber,
                 onAccountNumberChange = { viewModel.updateAccountNumber(it) },
                 viewModel = viewModel
             )
-            
+
             Spacer(modifier = Modifier.height(Spacing.sm))
-            
+
             // Recurring checkbox
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -892,7 +957,7 @@ private fun EditableExtractedInfoCard(
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
-            
+
             // Bank (read-only)
             transaction.bankName?.let {
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -914,6 +979,20 @@ private fun EditableExtractedInfoCard(
                 }
             }
         }
+    }
+
+    // Show SplitEditor when in split mode
+    if (showSplitEditor) {
+        Spacer(modifier = Modifier.height(Spacing.md))
+        SplitEditor(
+            totalAmount = transaction.amount,
+            currency = transaction.currency,
+            splits = splits,
+            availableCategories = categories.map { it.name },
+            onSplitsChanged = { viewModel.updateSplits(it) },
+            onRemoveSplits = { viewModel.removeSplits() },
+            modifier = Modifier.padding(horizontal = 0.dp)
+        )
     }
 }
 

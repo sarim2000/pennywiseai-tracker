@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.CitiBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class CitiBankParserTest {
 
-    @Test
-    fun `citi parser handles common alerts`() {
+    @TestFactory
+    fun `citi parser handles common alerts`(): List<DynamicTest> {
         val parser = CitiBankParser()
 
         ParserTestUtils.printTestHeader(
@@ -63,7 +63,7 @@ class CitiBankParserTest {
             "UNKNOWN" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

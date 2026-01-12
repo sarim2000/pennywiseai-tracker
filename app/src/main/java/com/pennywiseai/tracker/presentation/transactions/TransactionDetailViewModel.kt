@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
@@ -71,6 +73,18 @@ class TransactionDetailViewModel @Inject constructor(
     private val _deleteSuccess = MutableStateFlow(false)
     val deleteSuccess: StateFlow<Boolean> = _deleteSuccess.asStateFlow()
     val existingTransactionCount: StateFlow<Int> = _existingTransactionCount.asStateFlow()
+
+    // Split-related state
+    private val _splits = MutableStateFlow<List<SplitItem>>(emptyList())
+    val splits: StateFlow<List<SplitItem>> = _splits.asStateFlow()
+
+    private val _originalSplits = MutableStateFlow<List<SplitItem>>(emptyList())
+
+    private val _showSplitEditor = MutableStateFlow(false)
+    val showSplitEditor: StateFlow<Boolean> = _showSplitEditor.asStateFlow()
+
+    private val _hasSplits = MutableStateFlow(false)
+    val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
     
     // Categories should be based on transaction type
     val categories: StateFlow<List<CategoryEntity>> = combine(
@@ -132,7 +146,33 @@ class TransactionDetailViewModel @Inject constructor(
             transaction?.let {
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
+                loadSplits(transactionId)
             }
+        }
+    }
+
+    private suspend fun loadSplits(transactionId: Long) {
+        val hasSplits = transactionRepository.hasSplits(transactionId)
+        _hasSplits.value = hasSplits
+
+        if (hasSplits) {
+            transactionRepository.getSplitsForTransaction(transactionId)
+                .collect { splitEntities ->
+                    val splitItems = splitEntities.map { entity ->
+                        SplitItem(
+                            id = entity.id,
+                            category = entity.category,
+                            amount = entity.amount
+                        )
+                    }
+                    _splits.value = splitItems
+                    _originalSplits.value = splitItems
+                    _showSplitEditor.value = true
+                }
+        } else {
+            _splits.value = emptyList()
+            _originalSplits.value = emptyList()
+            _showSplitEditor.value = false
         }
     }
 
@@ -166,7 +206,13 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.value = _transaction.value?.copy()
         _isEditMode.value = true
         _errorMessage.value = null
-        
+
+        // Restore split state from original splits
+        if (_hasSplits.value) {
+            _splits.value = _originalSplits.value
+            _showSplitEditor.value = true
+        }
+
         // Load count of other transactions from same merchant
         _transaction.value?.let { txn ->
             viewModelScope.launch {
@@ -186,6 +232,10 @@ class TransactionDetailViewModel @Inject constructor(
         _applyToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
         _existingTransactionCount.value = 0
+
+        // Reset split state to original values
+        _splits.value = _originalSplits.value
+        _showSplitEditor.value = _hasSplits.value
     }
     
     fun toggleApplyToAllFromMerchant() {
@@ -263,20 +313,116 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    // ========== Split Management Methods ==========
+
+    /**
+     * Enables split mode for the current transaction.
+     * Creates two initial splits: one with the current category and half the amount,
+     * and another with "Others" and the remaining amount.
+     */
+    fun enableSplitMode() {
+        val transaction = _editableTransaction.value ?: _transaction.value ?: return
+
+        // Only allow splits for expenses
+        if (transaction.transactionType != TransactionType.EXPENSE) {
+            _errorMessage.value = "Splits are only available for expenses"
+            return
+        }
+
+        val currentCategory = transaction.category
+        val totalAmount = transaction.amount
+        val halfAmount = totalAmount.divide(BigDecimal(2), 2, java.math.RoundingMode.HALF_UP)
+        val remainingAmount = totalAmount - halfAmount
+
+        val initialSplits = listOf(
+            SplitItem(id = 0, category = currentCategory, amount = halfAmount),
+            SplitItem(id = 0, category = "Others", amount = remainingAmount)
+        )
+
+        _splits.value = initialSplits
+        _showSplitEditor.value = true
+    }
+
+    /**
+     * Updates the splits list.
+     */
+    fun updateSplits(newSplits: List<SplitItem>) {
+        _splits.value = newSplits
+    }
+
+    /**
+     * Removes all splits from the transaction, reverting to single category.
+     */
+    fun removeSplits() {
+        _splits.value = emptyList()
+        _showSplitEditor.value = false
+        _hasSplits.value = false
+    }
+
+    /**
+     * Validates that splits sum equals the transaction total (within tolerance).
+     * @return true if splits are valid, false otherwise
+     */
+    fun validateSplits(): Boolean {
+        val transaction = _editableTransaction.value ?: _transaction.value ?: return true
+        val currentSplits = _splits.value
+
+        if (currentSplits.isEmpty()) return true
+
+        // Minimum 2 splits required
+        if (currentSplits.size < 2) {
+            _errorMessage.value = "At least 2 splits are required"
+            return false
+        }
+
+        // All splits must have positive amounts
+        if (currentSplits.any { it.amount <= BigDecimal.ZERO }) {
+            _errorMessage.value = "All split amounts must be positive"
+            return false
+        }
+
+        // Splits must sum to transaction total (within 0.01 tolerance)
+        val splitsTotal = currentSplits.sumOf { it.amount }
+        val difference = (transaction.amount - splitsTotal).abs()
+        val tolerance = BigDecimal("0.01")
+
+        if (difference > tolerance) {
+            _errorMessage.value = "Split amounts must equal the transaction total"
+            return false
+        }
+
+        return true
+    }
+
+    /**
+     * Checks if the amount field should be editable.
+     * Amount is locked when splits exist.
+     */
+    fun isAmountEditable(): Boolean {
+        return !_showSplitEditor.value || _splits.value.isEmpty()
+    }
+
     fun saveChanges() {
         val toSave = _editableTransaction.value ?: return
-        
+
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
             _errorMessage.value = "Merchant name is required"
             return
         }
-        
+
         if (toSave.amount <= BigDecimal.ZERO) {
             _errorMessage.value = "Amount must be positive"
             return
         }
-        
+
+        // Validate splits if present
+        if (_showSplitEditor.value && _splits.value.isNotEmpty()) {
+            if (!validateSplits()) {
+                return
+            }
+        }
+
         viewModelScope.launch {
             _isSaving.value = true
             try {
@@ -284,9 +430,31 @@ class TransactionDetailViewModel @Inject constructor(
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName)
                 )
-                
+
                 transactionRepository.updateTransaction(normalizedTransaction)
-                
+
+                // Save or remove splits
+                val currentSplits = _splits.value
+                if (_showSplitEditor.value && currentSplits.isNotEmpty()) {
+                    // Convert SplitItems to entities and save
+                    val splitEntities = currentSplits.map { item ->
+                        TransactionSplitEntity(
+                            id = item.id,
+                            transactionId = normalizedTransaction.id,
+                            category = item.category,
+                            amount = item.amount
+                        )
+                    }
+                    transactionRepository.saveSplits(normalizedTransaction.id, splitEntities)
+                    _hasSplits.value = true
+                    _originalSplits.value = currentSplits
+                } else if (_originalSplits.value.isNotEmpty()) {
+                    // Splits were removed, delete them from database
+                    transactionRepository.removeSplits(normalizedTransaction.id)
+                    _hasSplits.value = false
+                    _originalSplits.value = emptyList()
+                }
+
                 // Save merchant mapping if checkbox is checked
                 if (_applyToAllFromMerchant.value) {
                     merchantMappingRepository.setMapping(
@@ -294,7 +462,7 @@ class TransactionDetailViewModel @Inject constructor(
                         normalizedTransaction.category
                     )
                 }
-                
+
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
                     transactionRepository.updateCategoryForMerchant(
@@ -302,7 +470,7 @@ class TransactionDetailViewModel @Inject constructor(
                         normalizedTransaction.category
                     )
                 }
-                
+
                 _transaction.value = normalizedTransaction
                 _saveSuccess.value = true
                 _isEditMode.value = false

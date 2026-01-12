@@ -5,15 +5,15 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class AdelFiParserTest {
 
     private val parser = AdelFiParser()
 
-    @Test
-    fun `adelfi credit union parser handles key paths`() {
+    @TestFactory
+    fun `adelfi credit union parser handles key paths`(): List<DynamicTest> {
         ParserTestUtils.printTestHeader(
             parserName = "AdelFi Credit Union (USA)",
             bankName = parser.getBankName(),
@@ -47,11 +47,11 @@ class AdelFiParserTest {
             )
         )
 
-        ParserTestUtils.runTestSuite(parser, cases)
+        return ParserTestUtils.runTestSuite(parser, cases)
     }
 
-    @Test
-    fun `factory resolves adelfi credit union`() {
+    @TestFactory
+    fun `factory resolves adelfi credit union`(): List<DynamicTest> {
         val cases = listOf(
             SimpleTestCase(
                 bankName = "AdelFi",
@@ -79,6 +79,6 @@ class AdelFiParserTest {
             )
         )
 
-        ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests")
+        return ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests")
     }
 }

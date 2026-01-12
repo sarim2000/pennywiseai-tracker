@@ -97,6 +97,19 @@ class HSBCBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Pattern 0: Outgoing NEFT/RTGS/IMPS - "credited to the [BANK] A/c XXX of [NAME]"
+        // Extract the beneficiary name (the person receiving the money)
+        val outgoingNeftPattern = Regex(
+            """credited\s+to\s+the\s+\w+\s+A/c\s+[X\d]+\s+of\s+(.+?)\s+on\s+""",
+            RegexOption.IGNORE_CASE
+        )
+        outgoingNeftPattern.find(message)?.let { match ->
+            val beneficiaryName = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(beneficiaryName)) {
+                return beneficiaryName
+            }
+        }
+
         // Pattern 1: "from CHAS A/c ***6983 of John Doe" (Issue #118 - NEFT/Credit transactions)
         // Extract everything after "from" until " ." or end of sentence
         val neftCreditPattern = Regex(
@@ -290,6 +303,10 @@ class HSBCBankParser : BankParser() {
                 else TransactionType.CREDIT
             }
 
+            // NEFT/RTGS/IMPS outgoing transfer - "credited to the [OTHER BANK] A/c of [PERSON]"
+            // This is a confirmation that YOUR outgoing transfer was successful
+            isOutgoingNeftTransfer(message) -> TransactionType.TRANSFER
+
             // Standard transaction patterns
             lowerMessage.contains("is paid from") -> TransactionType.EXPENSE
             lowerMessage.contains("is debited") -> TransactionType.EXPENSE
@@ -298,6 +315,43 @@ class HSBCBankParser : BankParser() {
             lowerMessage.contains("deposited") -> TransactionType.INCOME
             else -> super.extractTransactionType(message)
         }
+    }
+
+    /**
+     * Detects outgoing NEFT/RTGS/IMPS transfers where the SMS confirms
+     * that money has been credited to someone else's account at another bank.
+     * Pattern: "your NEFT transaction... has been credited to the [BANK] A/c... of [NAME]"
+     */
+    private fun isOutgoingNeftTransfer(message: String): Boolean {
+        val lowerMessage = message.lowercase()
+
+        // Must be a NEFT/RTGS/IMPS transaction
+        if (!lowerMessage.contains("neft") &&
+            !lowerMessage.contains("rtgs") &&
+            !lowerMessage.contains("imps")) {
+            return false
+        }
+
+        // Check for pattern: "credited to the [BANK] A/c" where BANK is not HSBC
+        val creditedToOtherBankPattern = Regex(
+            """credited\s+to\s+the\s+(\w+)\s+A/c""",
+            RegexOption.IGNORE_CASE
+        )
+        creditedToOtherBankPattern.find(message)?.let { match ->
+            val bankName = match.groupValues[1].uppercase()
+            // If credited to a non-HSBC account, it's an outgoing transfer
+            if (bankName != "HSBC") {
+                return true
+            }
+        }
+
+        // Check for pattern: "credited to... of [PERSON NAME]" (beneficiary name)
+        if (lowerMessage.contains("credited to") &&
+            Regex("""A/c\s+[X\d]+\s+of\s+\w+""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
+            return true
+        }
+
+        return false
     }
 
     override fun isTransactionMessage(message: String): Boolean {

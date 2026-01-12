@@ -15,7 +15,7 @@ import java.math.BigDecimal
  *
  * Sender patterns: AD-FEDBNK-S, JM-FEDBNK-S, etc.
  */
-class FederalBankParser : BankParser() {
+class FederalBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Federal Bank"
 
@@ -171,7 +171,21 @@ class FederalBankParser : BankParser() {
             }
         }
 
-        // Pattern 7: withdrawn Rs 500
+        // Pattern 7: "has received Rs 21.00 from" (outgoing transfer to company)
+        val hasReceivedPattern = Regex(
+            """has\s+received\s+Rs\s+([0-9,]+(?:\.\d{2})?)\s+from""",
+            RegexOption.IGNORE_CASE
+        )
+        hasReceivedPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 8: withdrawn Rs 500
         val withdrawnPattern = Regex(
             """withdrawn\s+Rs\s+([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
@@ -189,6 +203,19 @@ class FederalBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Priority 0: "[Company] has received Rs X from your A/c" pattern (outgoing transfers)
+        // Extract the company name at the start of the message
+        val hasReceivedPattern = Regex(
+            """^([A-Z][A-Za-z0-9\s]+?)\s+has\s+received\s+Rs""",
+            RegexOption.IGNORE_CASE
+        )
+        hasReceivedPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Priority 1: IMPS credits - show "IMPS Credit" instead of parsing description
         if (message.contains("credited to your A/c", ignoreCase = true) &&
             message.contains("via IMPS", ignoreCase = true)
@@ -481,6 +508,20 @@ class FederalBankParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         return when {
+            // "[Company] has received Rs X from your A/c" - outgoing transfer (EXPENSE or INVESTMENT)
+            isOutgoingHasReceivedPattern(message) -> {
+                // Check if it's an investment (mutual fund, gold, etc.)
+                if (isInvestmentTransaction(lowerMessage)) {
+                    TransactionType.INVESTMENT
+                } else {
+                    TransactionType.EXPENSE
+                }
+            }
+
+            // Credit card bill payment - "received your payment towards credit card"
+            lowerMessage.contains("received your payment") &&
+                lowerMessage.contains("credit card") -> TransactionType.TRANSFER
+
             // Credit card transactions - now using detectIsCard
             detectIsCreditCard(message) && (lowerMessage.contains("spent") ||
                 lowerMessage.contains("was successful") ||
@@ -505,6 +546,18 @@ class FederalBankParser : BankParser() {
 
             else -> super.extractTransactionType(message)
         }
+    }
+
+    /**
+     * Detects "[Company] has received Rs X from your A/c" pattern
+     * This indicates money going OUT of the user's account to a company
+     */
+    private fun isOutgoingHasReceivedPattern(message: String): Boolean {
+        val pattern = Regex(
+            """has\s+received\s+Rs\s+[\d,.]+\s+from\s+your\s+A/c""",
+            RegexOption.IGNORE_CASE
+        )
+        return pattern.containsMatchIn(message)
     }
 
     fun isMandateCreationNotification(message: String): Boolean {

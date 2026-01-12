@@ -3,13 +3,13 @@ import com.pennywiseai.parser.core.bank.OldHickoryParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class OldHickoryParserTest {
 
-    @Test
-    fun `old hickory parser handles expected scenarios`() {
+    @TestFactory
+    fun `old hickory parser handles expected scenarios`(): List<DynamicTest> {
         val parser = OldHickoryParser()
 
         ParserTestUtils.printTestHeader(
@@ -108,7 +108,7 @@ class OldHickoryParserTest {
             "UNKNOWN" to false
         )
 
-        val result = ParserTestUtils.runTestSuite(
+        return ParserTestUtils.runTestSuite(
             parser = parser,
             testCases = testCases,
             handleCases = handleChecks,

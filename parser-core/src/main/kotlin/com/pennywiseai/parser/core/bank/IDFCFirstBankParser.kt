@@ -200,6 +200,18 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
             return "Cash Deposit"
         }
 
+        // Pattern: "debited by Rs. X on DATE; MERCHANT credited" (e.g., REDBUS credited)
+        val merchantCreditedPattern = Regex(
+            """;\s*([A-Z][A-Z0-9\s]+?)\s+credited""",
+            RegexOption.IGNORE_CASE
+        )
+        merchantCreditedPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1])
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // UPI transaction pattern
         if (message.contains("UPI", ignoreCase = true)) {
             // Try to extract UPI ID
@@ -291,6 +303,11 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
             Regex(
                 """Updated\s+balance\s+is\s+INR\s*([0-9,]+(?:\.\d{2})?)""",
                 RegexOption.IGNORE_CASE
+            ),
+            // "Available balance Rs. X,XXX.XX"
+            Regex(
+                """Available\s+balance\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
             )
         )
 
@@ -309,6 +326,15 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
+        // RRN (Retrieval Reference Number) pattern
+        val rrnPattern = Regex(
+            """RRN\s+(\d+)""",
+            RegexOption.IGNORE_CASE
+        )
+        rrnPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         // IMPS reference pattern in parentheses
         val impsRefPattern = Regex(
             """IMPS\s+Ref\s+no\s+(\d+)""",

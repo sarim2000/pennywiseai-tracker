@@ -76,6 +76,23 @@ class IDFCFirstBankParserTest {
                 )
             ),
 
+            // Debit with merchant credited pattern (e.g., travel booking)
+            ParserTestCase(
+                name = "Debit with Merchant Credited Pattern (REDBUS)",
+                message = "Your A/c XX4614 debited by Rs. 1,172.06 on 15/01/26; REDBUS credited. RRN 060649915527. Available balance Rs. 9,134.15. Team IDFC FIRST Bank",
+                sender = "JM-IDFCFB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1172.06"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "REDBUS",
+                    accountLast4 = "4614",
+                    balance = BigDecimal("9134.15"),
+                    reference = "060649915527",
+                    isFromCard = false
+                )
+            ),
+
             ParserTestCase(
                 name = "INR Credit Transaction",
                 message = "Your A/C XXXXXXX5678 is credited by INR 500.00 on 06/08/25 17:36. New Bal :INR 10000.00",

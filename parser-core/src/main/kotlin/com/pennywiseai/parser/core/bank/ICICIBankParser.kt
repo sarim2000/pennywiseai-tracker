@@ -306,7 +306,16 @@ class ICICIBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Pattern 2: "ICICI Bank Account XXNNNN" or "ICICI Bank Account XX566"
+        // Pattern 2: "ICICI Bank Credit Card XX1234" or ending with digits
+        val creditCardPattern = Regex(
+            """ICICI\s+Bank\s+Credit\s+Card\s+[X\*]*(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        creditCardPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 3: "ICICI Bank Account XXNNNN" or "ICICI Bank Account XX566"
         val accountPattern = Regex(
             """ICICI\s+Bank\s+Account\s+([X\*]*\d+)""",
             RegexOption.IGNORE_CASE
@@ -316,43 +325,44 @@ class ICICIBankParser : BaseIndianBankParser() {
             val digitsOnly = accountStr.filter { it.isDigit() }
             return if (digitsOnly.length >= 4) {
                 digitsOnly.takeLast(4)
-            } else {
+            } else if (digitsOnly.isNotEmpty()) {
                 digitsOnly
+            } else {
+                null
             }
         }
 
-        // Pattern 3: "Acct XXNNNN" - extract everything after Acct
-        val acctPattern = Regex(
-            """Acct\s+([X\*]*\d+)""",
-            RegexOption.IGNORE_CASE
-        )
-        acctPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
-        }
-
-        // Pattern 4: "ICICI Bank Acct XXNNNN"
+        // Pattern 4: "ICICI Bank Acct XXNNNN" - more specific pattern first
         val bankAcctPattern = Regex(
-            """ICICI\s+Bank\s+Acct\s+([X\*]*\d+)""",
+            """ICICI\s+Bank\s+Acct\s+[X\*]*(\d{3,4})""",
             RegexOption.IGNORE_CASE
         )
         bankAcctPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return match.groupValues[1].takeLast(4)
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        // Pattern 5: "Acct XX1234" - ONLY when followed by specific ICICI patterns
+        // Must be exactly XX followed by 3-4 digits to avoid false positives
+        val acctXXPattern = Regex(
+            """Acct\s+XX(\d{3,4})(?:\s|$|[,;.])""",
+            RegexOption.IGNORE_CASE
+        )
+        acctXXPattern.find(message)?.let { match ->
+            return match.groupValues[1].takeLast(4)
+        }
+
+        // Pattern 6: "Acct *1234" - asterisk masked pattern
+        val acctStarPattern = Regex(
+            """Acct\s+\*+(\d{3,4})(?:\s|$|[,;.])""",
+            RegexOption.IGNORE_CASE
+        )
+        acctStarPattern.find(message)?.let { match ->
+            return match.groupValues[1].takeLast(4)
+        }
+
+        // DO NOT fall back to base class - base class patterns are too generic
+        // and cause false positives. Better to return null than wrong account.
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

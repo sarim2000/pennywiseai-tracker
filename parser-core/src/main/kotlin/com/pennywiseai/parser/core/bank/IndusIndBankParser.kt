@@ -211,7 +211,25 @@ class IndusIndBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // IndusInd balance/alerts often mask accounts like: "A/C 2134***12345"
+        // Pattern 1: "IndusInd Account 20XXXXX1234" - extract last 4 digits
+        val indusIndAccountPattern = Regex(
+            """IndusInd\s+Account\s+\d+X+(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        indusIndAccountPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 2: "account XXXXXXX1234" - X's followed by 4 digits
+        val accountXPattern = Regex(
+            """account\s+X{5,}(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        accountXPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 3: IndusInd balance/alerts often mask accounts like: "A/C 2134***12345"
         val maskedPattern = Regex(
             """A/?C\s+([0-9]{2,})[\*xX#]+(\d{4,})""",
             RegexOption.IGNORE_CASE
@@ -222,7 +240,7 @@ class IndusIndBankParser : BaseIndianBankParser() {
             return if (trailing.length >= 4) trailing.takeLast(4) else trailing
         }
 
-        // Pattern: "A/c *XX1234" -> capture trailing digits after masked Xs or *
+        // Pattern 4: "A/c *XX1234" -> capture trailing digits after masked Xs or *
         val starMaskPattern = Regex(
             """A/?c\s+\*?X+\s*(\d{4,6})""",
             RegexOption.IGNORE_CASE
@@ -237,8 +255,10 @@ class IndusIndBankParser : BaseIndianBankParser() {
         if (lower.contains("ach db") || lower.contains("ach cr") || lower.contains("nach")) {
             return null
         }
-        // Fallback to base implementation (generic last-4 extraction)
-        return super.extractAccountLast4(message)
+
+        // DO NOT fallback to base implementation - base patterns are too generic
+        // and can cause false positives. Better to return null than wrong account.
+        return null
     }
 
     override fun extractBalance(message: String): java.math.BigDecimal? {

@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.CategoryBudgetLimitDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
@@ -229,6 +230,12 @@ object DatabaseModule {
     @Singleton
     fun provideTransactionSplitDao(database: PennyWiseDatabase): TransactionSplitDao {
         return database.transactionSplitDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCategoryBudgetLimitDao(database: PennyWiseDatabase): CategoryBudgetLimitDao {
+        return database.categoryBudgetLimitDao()
     }
 }
 

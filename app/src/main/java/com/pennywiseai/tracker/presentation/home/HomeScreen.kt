@@ -67,7 +67,13 @@ import com.pennywiseai.tracker.ui.components.ListItemCard
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.AccountBalancesCard
-import com.pennywiseai.tracker.ui.components.BudgetCardCompact
+import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
+import com.pennywiseai.tracker.ui.theme.budget_safe_light
+import com.pennywiseai.tracker.ui.theme.budget_safe_dark
+import com.pennywiseai.tracker.ui.theme.budget_warning_light
+import com.pennywiseai.tracker.ui.theme.budget_warning_dark
+import com.pennywiseai.tracker.ui.theme.budget_danger_light
+import com.pennywiseai.tracker.ui.theme.budget_danger_dark
 import com.pennywiseai.tracker.ui.components.CreditCardsCard
 import com.pennywiseai.tracker.ui.components.UnifiedAccountsCard
 import com.pennywiseai.tracker.ui.components.spotlightTarget
@@ -209,27 +215,12 @@ fun HomeScreen(
                 }
             }
 
-            // Budgets Section
-            if (uiState.activeBudgets.isNotEmpty()) {
+            // Monthly Budget Card
+            uiState.monthlyBudgetSpending?.let { spending ->
                 item {
-                    SectionHeader(
-                        title = "Budgets",
-                        action = {
-                            TextButton(onClick = onNavigateToBudgets) {
-                                Text("View All")
-                            }
-                        }
-                    )
-                }
-
-                items(
-                    items = uiState.activeBudgets.take(2),
-                    key = { it.budget.id }
-                ) { budgetWithSpending ->
-                    BudgetCardCompact(
-                        budget = budgetWithSpending.budget,
-                        spending = budgetWithSpending.spending,
-                        daysRemaining = budgetWithSpending.daysRemaining,
+                    MonthlyBudgetHomeCard(
+                        spending = spending,
+                        currency = uiState.selectedCurrency,
                         onClick = onNavigateToBudgets
                     )
                 }
@@ -1120,3 +1111,86 @@ private fun EnhancedCurrencySelector(
     }
 }
 
+@Composable
+private fun MonthlyBudgetHomeCard(
+    spending: MonthlyBudgetSpending,
+    currency: String,
+    onClick: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val progressColor = when {
+        spending.percentageUsed < 50f -> if (isDark) budget_safe_dark else budget_safe_light
+        spending.percentageUsed < 80f -> if (isDark) budget_warning_dark else budget_warning_light
+        else -> if (isDark) budget_danger_dark else budget_danger_light
+    }
+
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.content),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Monthly Budget",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (spending.daysRemaining > 0 && spending.remaining > java.math.BigDecimal.ZERO) {
+                    Text(
+                        text = "${CurrencyFormatter.formatCurrency(spending.dailyAllowance, currency)}/day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = CurrencyFormatter.formatCurrency(spending.totalSpent, currency),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = progressColor
+                )
+                Text(
+                    text = "/ ${CurrencyFormatter.formatCurrency(spending.totalLimit, currency)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { (spending.percentageUsed / 100f).coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp),
+                color = progressColor,
+                trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
+            )
+
+            Text(
+                text = if (spending.remaining >= java.math.BigDecimal.ZERO) {
+                    "${CurrencyFormatter.formatCurrency(spending.remaining, currency)} remaining"
+                } else {
+                    "${CurrencyFormatter.formatCurrency(spending.remaining.abs(), currency)} over budget"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}

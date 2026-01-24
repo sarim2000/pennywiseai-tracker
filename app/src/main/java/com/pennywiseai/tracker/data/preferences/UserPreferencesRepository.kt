@@ -51,6 +51,9 @@ class UserPreferencesRepository @Inject constructor(
 
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
+
+        // Monthly Budget
+        val MONTHLY_BUDGET_LIMIT = stringPreferencesKey("monthly_budget_limit")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -360,6 +363,22 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setLastSeenAppVersion(version: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SEEN_APP_VERSION] = version
+        }
+    }
+
+    // Monthly Budget
+    val monthlyBudgetLimit: Flow<java.math.BigDecimal?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.MONTHLY_BUDGET_LIMIT]?.let { java.math.BigDecimal(it) }
+        }
+
+    suspend fun updateMonthlyBudgetLimit(amount: java.math.BigDecimal?) {
+        context.dataStore.edit { preferences ->
+            if (amount == null) {
+                preferences.remove(PreferencesKeys.MONTHLY_BUDGET_LIMIT)
+            } else {
+                preferences[PreferencesKeys.MONTHLY_BUDGET_LIMIT] = amount.toPlainString()
+            }
         }
     }
 }

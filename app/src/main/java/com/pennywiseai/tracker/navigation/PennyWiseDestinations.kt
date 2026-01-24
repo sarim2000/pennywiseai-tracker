@@ -49,15 +49,7 @@ object Rules
 data class CreateRule(val ruleId: String? = null)
 
 @Serializable
-object Budgets
+object MonthlyBudget
 
 @Serializable
-data class CreateBudget(val budgetId: Long? = null)
-
-@Serializable
-data class BudgetTransactions(
-    val startDateEpochDay: Long,
-    val endDateEpochDay: Long,
-    val currency: String,
-    val categories: String? = null  // Comma-separated, null means all categories
-)
+object MonthlyBudgetSettings

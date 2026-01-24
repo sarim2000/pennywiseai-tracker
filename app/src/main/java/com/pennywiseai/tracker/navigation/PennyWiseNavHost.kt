@@ -14,7 +14,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
-import java.net.URLEncoder
 
 @Composable
 fun PennyWiseNavHost(
@@ -96,7 +95,7 @@ fun PennyWiseNavHost(
                     navController.navigate(Faq)
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(Budgets)
+                    navController.navigate(MonthlyBudget)
                 }
             )
         }
@@ -227,85 +226,31 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<Budgets>(
+        composable<MonthlyBudget>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            com.pennywiseai.tracker.presentation.budgets.BudgetsScreen(
+            com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetScreen(
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToCreateBudget = {
-                    navController.navigate(CreateBudget())
-                },
-                onNavigateToEditBudget = { budgetId ->
-                    navController.navigate(CreateBudget(budgetId = budgetId))
-                },
-                onNavigateToTransactions = { budgetWithSpending ->
-                    val budget = budgetWithSpending.budget
-                    // Build categories string: comma-separated, URL encoded
-                    // Only include categories if budget doesn't include all categories
-                    val categoriesParam = if (!budget.includeAllCategories && budgetWithSpending.categories.isNotEmpty()) {
-                        budgetWithSpending.categories.joinToString(",") { cat ->
-                            URLEncoder.encode(cat, "UTF-8")
-                        }
-                    } else {
-                        null
-                    }
-
-                    navController.navigate(
-                        BudgetTransactions(
-                            startDateEpochDay = budget.startDate.toEpochDay(),
-                            endDateEpochDay = budget.endDate.toEpochDay(),
-                            currency = budget.currency,
-                            categories = categoriesParam
-                        )
-                    )
-                }
-            )
-        }
-
-        composable<CreateBudget>(
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
-        ) { backStackEntry ->
-            val createBudget = backStackEntry.toRoute<CreateBudget>()
-            com.pennywiseai.tracker.presentation.budgets.CreateBudgetScreen(
-                budgetId = createBudget.budgetId,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable<BudgetTransactions>(
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
-        ) { backStackEntry ->
-            val budgetTx = backStackEntry.toRoute<BudgetTransactions>()
-            com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
-                initialStartDateEpochDay = budgetTx.startDateEpochDay,
-                initialEndDateEpochDay = budgetTx.endDateEpochDay,
-                initialCurrency = budgetTx.currency,
-                initialCategories = budgetTx.categories,
-                initialTransactionType = "EXPENSE",
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onTransactionClick = { transactionId ->
-                    navController.navigate(TransactionDetail(transactionId))
-                },
-                onAddTransactionClick = {
-                    navController.navigate(AddTransaction)
                 },
                 onNavigateToSettings = {
-                    navController.navigate(Settings)
+                    navController.navigate(MonthlyBudgetSettings)
+                }
+            )
+        }
+
+        composable<MonthlyBudgetSettings>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -136,7 +136,7 @@ fun MainScreen(
                     },
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.Budgets
+                            com.pennywiseai.tracker.navigation.MonthlyBudget
                         )
                     },
                     onNavigateToAddScreen = {
@@ -309,7 +309,7 @@ fun MainScreen(
                     },
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.Budgets
+                            com.pennywiseai.tracker.navigation.MonthlyBudget
                         )
                     }
                 )

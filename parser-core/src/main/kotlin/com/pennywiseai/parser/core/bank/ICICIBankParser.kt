@@ -208,7 +208,15 @@ class ICICIBankParser : BaseIndianBankParser() {
             return "Salary"
         }
 
-        // Pattern 2: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"
+        // Pattern 2: NFS Cash Withdrawal - "NFSCASH WDL" (ATM withdrawal from other bank's ATM)
+        if (message.contains("NFSCASH WDL", ignoreCase = true) ||
+            message.contains("NFS CASH WDL", ignoreCase = true) ||
+            message.contains("NFSCASH", ignoreCase = true)
+        ) {
+            return "ATM Withdrawal"
+        }
+
+        // Pattern 3: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"
         val cardMerchantPattern = Regex(
             """on\s+\d{1,2}-\w{3}-\d{2}\s+(?:at|on)\s+([^.]+?)(?:\.|\s+Avl|$)""",
             RegexOption.IGNORE_CASE
@@ -341,7 +349,16 @@ class ICICIBankParser : BaseIndianBankParser() {
             return match.groupValues[1].takeLast(4)
         }
 
-        // Pattern 5: "Acct XX1234" - ONLY when followed by specific ICICI patterns
+        // Pattern 5: "ICICI Bank Acc XX921" - short "Acc" format
+        val bankAccPattern = Regex(
+            """ICICI\s+Bank\s+Acc\s+[X\*]*(\d{3,4})""",
+            RegexOption.IGNORE_CASE
+        )
+        bankAccPattern.find(message)?.let { match ->
+            return match.groupValues[1].takeLast(4)
+        }
+
+        // Pattern 6: "Acct XX1234" - ONLY when followed by specific ICICI patterns
         // Must be exactly XX followed by 3-4 digits to avoid false positives
         val acctXXPattern = Regex(
             """Acct\s+XX(\d{3,4})(?:\s|$|[,;.])""",
@@ -351,7 +368,16 @@ class ICICIBankParser : BaseIndianBankParser() {
             return match.groupValues[1].takeLast(4)
         }
 
-        // Pattern 6: "Acct *1234" - asterisk masked pattern
+        // Pattern 7: "Acc XX921" - short form with XX mask
+        val accXXPattern = Regex(
+            """Acc\s+XX(\d{3,4})(?:\s|$|[,;.])""",
+            RegexOption.IGNORE_CASE
+        )
+        accXXPattern.find(message)?.let { match ->
+            return match.groupValues[1].takeLast(4)
+        }
+
+        // Pattern 8: "Acct *1234" - asterisk masked pattern
         val acctStarPattern = Regex(
             """Acct\s+\*+(\d{3,4})(?:\s|$|[,;.])""",
             RegexOption.IGNORE_CASE
@@ -380,9 +406,9 @@ class ICICIBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Pattern 2: "Avl Bal Rs 10,000.00"
+        // Pattern 2: "Avl Bal Rs 10,000.00" or "Avb Bal Rs 10,000.00" (typo variant)
         val avlBalPattern = Regex(
-            """Avl\s+Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            """Av[lb]\s+Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         avlBalPattern.find(message)?.let { match ->

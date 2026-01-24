@@ -28,6 +28,7 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
         com.pennywiseai.parser.core.TransactionType.CREDIT -> TransactionType.CREDIT
         com.pennywiseai.parser.core.TransactionType.TRANSFER -> TransactionType.TRANSFER
         com.pennywiseai.parser.core.TransactionType.INVESTMENT -> TransactionType.INVESTMENT
+        com.pennywiseai.parser.core.TransactionType.BALANCE_UPDATE -> TransactionType.EXPENSE
     }
 
     return TransactionEntity(
@@ -104,5 +105,6 @@ fun com.pennywiseai.parser.core.TransactionType.toEntityType(): TransactionType 
         com.pennywiseai.parser.core.TransactionType.CREDIT -> TransactionType.CREDIT
         com.pennywiseai.parser.core.TransactionType.TRANSFER -> TransactionType.TRANSFER
         com.pennywiseai.parser.core.TransactionType.INVESTMENT -> TransactionType.INVESTMENT
+        com.pennywiseai.parser.core.TransactionType.BALANCE_UPDATE -> TransactionType.EXPENSE
     }
 }

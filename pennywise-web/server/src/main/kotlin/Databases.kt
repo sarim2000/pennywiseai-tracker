@@ -1,5 +1,7 @@
 package com.example
 
+import com.example.feedback.FeedbackService
+import com.example.feedback.configureFeedback
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -11,6 +13,10 @@ import java.sql.DriverManager
 fun Application.configureDatabases() {
     val dbConnection: Connection = connectToPostgres(embedded = false)
     val smsReportService = SmsReportService(dbConnection)
+    val feedbackService = FeedbackService(dbConnection)
+
+    // Configure feedback routes
+    configureFeedback(feedbackService)
 
     routing {
         // SMS Report endpoint

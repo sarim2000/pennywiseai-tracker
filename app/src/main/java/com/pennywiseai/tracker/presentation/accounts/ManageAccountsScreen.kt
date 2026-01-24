@@ -665,77 +665,83 @@ private fun CreditCardItem(
                 }
             }
 
-            // Action Buttons
-            FlowRow(
+            // Action Buttons - Primary action + overflow menu
+            var showMenu by remember { mutableStateOf(false) }
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!isManualAccount) {
-                    OutlinedButton(
-                        onClick = onUpdateBalance
-                    ) {
+                // Primary action
+                OutlinedButton(
+                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (isManualAccount) "Edit" else "Update")
+                }
+
+                // Overflow menu
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
                         Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            Icons.Default.MoreVert,
+                            contentDescription = "More options"
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Update")
                     }
-                }
-
-                if (isManualAccount) {
-                    OutlinedButton(
-                        onClick = onEditAccount
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
                     ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                        DropdownMenuItem(
+                            text = { Text("History") },
+                            onClick = {
+                                showMenu = false
+                                onViewHistory()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = null
+                                )
+                            }
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Edit")
+                        DropdownMenuItem(
+                            text = { Text(if (isHidden) "Show" else "Hide") },
+                            onClick = {
+                                showMenu = false
+                                onToggleVisibility()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                showMenu = false
+                                onDeleteAccount()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = MaterialTheme.colorScheme.error
+                            )
+                        )
                     }
-                }
-
-                OutlinedButton(
-                    onClick = onViewHistory
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("History")
-                }
-
-                OutlinedButton(
-                    onClick = onToggleVisibility
-                ) {
-                    Icon(
-                        imageVector = if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (isHidden) "Show" else "Hide")
-                }
-
-                OutlinedButton(
-                    onClick = onDeleteAccount,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Delete")
                 }
             }
         }
@@ -813,21 +819,25 @@ private fun AccountItem(
                                 )
                             }
                         }
-                        Text(
-                            text = "Account Balance",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
-                
+
                 // Balance
-                Text(
-                    text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Balance",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             
             // Linked Cards Section
@@ -904,78 +914,84 @@ private fun AccountItem(
                     }
                 }
             }
-            
-            // Action Buttons
-            FlowRow(
+
+            // Action Buttons - Primary action + overflow menu
+            var showMenu by remember { mutableStateOf(false) }
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!isManualAccount) {
-                    OutlinedButton(
-                        onClick = onUpdateBalance
-                    ) {
+                // Primary action
+                OutlinedButton(
+                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (isManualAccount) "Edit" else "Update Balance")
+                }
+
+                // Overflow menu
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
                         Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            Icons.Default.MoreVert,
+                            contentDescription = "More options"
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Update")
                     }
-                }
-
-                if (isManualAccount) {
-                    OutlinedButton(
-                        onClick = onEditAccount
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
                     ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                        DropdownMenuItem(
+                            text = { Text("History") },
+                            onClick = {
+                                showMenu = false
+                                onViewHistory()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = null
+                                )
+                            }
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Edit")
+                        DropdownMenuItem(
+                            text = { Text(if (isHidden) "Show" else "Hide") },
+                            onClick = {
+                                showMenu = false
+                                onToggleVisibility()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                showMenu = false
+                                onDeleteAccount()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = MaterialTheme.colorScheme.error
+                            )
+                        )
                     }
-                }
-
-                OutlinedButton(
-                    onClick = onViewHistory
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("History")
-                }
-
-                OutlinedButton(
-                    onClick = onToggleVisibility
-                ) {
-                    Icon(
-                        imageVector = if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (isHidden) "Show" else "Hide")
-                }
-
-                OutlinedButton(
-                    onClick = onDeleteAccount,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Delete")
                 }
             }
         }

@@ -6,6 +6,6 @@ ktor:
     port: ${PORT:8080}
     host: 0.0.0.0
 postgres:
-  url: ${DATABASE_URL}
-  user: ${DATABASE_USER}
-  password: ${DATABASE_PASSWORD}
+  url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/pennywise}
+  user: ${DATABASE_USER:postgres}
+  password: ${DATABASE_PASSWORD:postgres}

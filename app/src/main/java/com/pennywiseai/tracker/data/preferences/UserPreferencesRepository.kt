@@ -45,6 +45,12 @@ class UserPreferencesRepository @Inject constructor(
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
         val HAS_SHOWN_REVIEW_PROMPT = booleanPreferencesKey("has_shown_review_prompt")
         val LAST_REVIEW_PROMPT_TIME = longPreferencesKey("last_review_prompt_time")
+
+        // Feature discovery
+        val HAS_USED_FULL_RESYNC = booleanPreferencesKey("has_used_full_resync")
+
+        // What's New feature
+        val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -331,6 +337,31 @@ class UserPreferencesRepository @Inject constructor(
         .map { preferences ->
             preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L
         }
+
+    // Feature discovery - Full resync hint
+    val hasUsedFullResync: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] ?: false
+        }
+
+    suspend fun markFullResyncUsed() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] = true
+        }
+    }
+
+    // What's New feature
+    suspend fun getLastSeenAppVersion(): String? {
+        return context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.LAST_SEEN_APP_VERSION] }
+            .first()
+    }
+
+    suspend fun setLastSeenAppVersion(version: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_SEEN_APP_VERSION] = version
+        }
+    }
 }
 
 data class UserPreferences(

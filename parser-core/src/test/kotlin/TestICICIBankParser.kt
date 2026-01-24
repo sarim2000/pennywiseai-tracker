@@ -145,6 +145,19 @@ class ICICIBankParserTest {
                     accountLast4 = "566",
                     balance = BigDecimal("28076.14")
                 )
+            ),
+            ParserTestCase(
+                name = "NFS Cash Withdrawal (ATM)",
+                message = "ICICI Bank Acc XX921 debited Rs. 10,000.00 on 20-Jan-26 NFSCASH WDL. Avb Bal Rs. 3,943.84. To dispute Call 18002662 or SMS BLOCK 921 to 9215676766 .",
+                sender = "JD-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ATM Withdrawal",
+                    accountLast4 = "921",
+                    balance = BigDecimal("3943.84")
+                )
             )
         )
 

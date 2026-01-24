@@ -10,9 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -61,10 +63,15 @@ private fun CategoryBar(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val percentage = if (maxAmount > java.math.BigDecimal.ZERO) {
+    val barPercentage = if (maxAmount > java.math.BigDecimal.ZERO) {
         (category.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
     } else 0f
-    
+
+    // Get category-specific color
+    val categoryInfo = CategoryMapping.categories[category.name]
+        ?: CategoryMapping.categories["Others"]!!
+    val categoryColor = categoryInfo.color
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -85,14 +92,24 @@ private fun CategoryBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = CurrencyFormatter.formatCurrency(category.amount, currency),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${category.percentage.toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = CurrencyFormatter.formatCurrency(category.amount, currency),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
-        
-        // Progress bar
+
+        // Progress bar with category-specific color
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,10 +119,10 @@ private fun CategoryBar(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(percentage)
+                    .fillMaxWidth(barPercentage)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(categoryColor)
             )
         }
     }

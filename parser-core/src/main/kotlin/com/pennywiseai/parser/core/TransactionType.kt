@@ -5,7 +5,8 @@ enum class TransactionType {
     EXPENSE,
     CREDIT,
     TRANSFER,
-    INVESTMENT
+    INVESTMENT,
+    BALANCE_UPDATE
 }
 
 

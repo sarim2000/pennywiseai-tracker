@@ -268,6 +268,61 @@ class FederalBankParserTest {
                 message = "Dear Customer, your FedMobile registration has been initiated. If not initiated by you, please call 18004201199. Please do not share your card details/OTP/CVV to anyone -Federal Bank",
                 sender = "AD-FEDBNK",
                 shouldParse = false
+            ),
+
+            // Cash Deposit / CDM transactions
+            ParserTestCase(
+                name = "Cash Deposit via CDM",
+                message = "Rs 5000.00 deposited to your A/c XX1234 via CDM on 19JAN2026 10:30:15. Bal:Rs 25000.00 -Federal Bank",
+                sender = "AD-FEDBNK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = "Cash Deposit",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("25000.00"),
+                    isFromCard = false
+                )
+            ),
+
+            ParserTestCase(
+                name = "Cash Deposit Machine - Compact Format",
+                message = "Hi,Rs.1100credited in your A/c XX3223 on 15JAN2026 13:03:07 using cash deposit machine at FBL-CHANGANASSERY. Current Bal: Rs.1181.90 - Federal Bank",
+                sender = "AX-FEDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1100"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = "Cash Deposit",
+                    accountLast4 = "3223",
+                    balance = BigDecimal("1181.90"),
+                    isFromCard = false
+                )
+            ),
+
+            // Balance inquiry with unmasked balance
+            ParserTestCase(
+                name = "Balance Inquiry with Clear Balance",
+                message = "Your available balance for a/c no(s) SBA1234 is INR 15000.50,SBA5678 is INR 8500.25 .For detailed statement download FedMobile https://fedmobile.federalbank.co.in/download-fedmobile/ - Federal Bank",
+                sender = "VM-FEDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal.ZERO,
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.BALANCE_UPDATE,
+                    merchant = "Balance Inquiry",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("15000.50"),
+                    isFromCard = false
+                )
+            ),
+
+            // Balance inquiry with masked balance (contains 'x') - cannot parse numeric balance
+            ParserTestCase(
+                name = "Balance Inquiry with Masked Balance Should Not Parse",
+                message = "Your available balance for a/c no(s) SBA0001 is INR 1xxx,SBA3001 is INR 9xxx.9 .For detailed statement download FedMobile https://fedmobile.federalbank.co.in/download-fedmobile/ - Federal Bank",
+                sender = "VM-FEDBNK-S",
+                shouldParse = false
             )
         )
 

@@ -1,6 +1,7 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.MandateInfo
+import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -34,6 +35,72 @@ class FederalBankParser : BaseIndianBankParser() {
                 normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-[TPG]$")) ||
                 // Legacy patterns
                 normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
+    }
+
+    override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
+        // Check for balance inquiry message first
+        if (isBalanceInquiryMessage(smsBody)) {
+            return parseBalanceInquiry(smsBody, sender, timestamp)
+        }
+
+        // Otherwise, use the default parsing logic
+        return super.parse(smsBody, sender, timestamp)
+    }
+
+    /**
+     * Detects balance inquiry messages from missed call banking
+     * Format: "Your available balance for a/c no(s) SBA1234 is INR 1xxx,SBA5678 is INR 9xxx.9 ..."
+     */
+    private fun isBalanceInquiryMessage(message: String): Boolean {
+        return message.contains("Your available balance for a/c", ignoreCase = true)
+    }
+
+    /**
+     * Parses balance inquiry message and extracts the balance
+     */
+    private fun parseBalanceInquiry(message: String, sender: String, timestamp: Long): ParsedTransaction? {
+        // Pattern: "SBA1234 is INR 1,234.56" - must be followed by comma (next account) or period (sentence end)
+        // This ensures we don't match masked balances like "INR 1xxx"
+        val balancePattern = Regex(
+            """([A-Z]{2,3}\d{4})\s+is\s+INR\s+([0-9,]+(?:\.\d{1,2})?)(?=[,.]|\s+\.)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        val match = balancePattern.find(message) ?: return null
+
+        val accountNumber = match.groupValues[1]
+        val balanceStr = match.groupValues[2].replace(",", "")
+
+        // Additional check: reject if the balance area contains masking characters
+        val balanceAreaPattern = Regex(
+            """([A-Z]{2,3}\d{4})\s+is\s+INR\s+[0-9,x.]+""",
+            RegexOption.IGNORE_CASE
+        )
+        val balanceArea = balanceAreaPattern.find(message)?.value ?: ""
+        if (balanceArea.contains("x", ignoreCase = true)) {
+            return null
+        }
+
+        val balance = try {
+            BigDecimal(balanceStr)
+        } catch (e: NumberFormatException) {
+            return null
+        }
+
+        return ParsedTransaction(
+            amount = BigDecimal.ZERO,
+            type = TransactionType.BALANCE_UPDATE,
+            merchant = "Balance Inquiry",
+            reference = null,
+            accountLast4 = accountNumber.takeLast(4),
+            balance = balance,
+            smsBody = message,
+            sender = sender,
+            timestamp = timestamp,
+            bankName = getBankName(),
+            isFromCard = false,
+            currency = "INR"
+        )
     }
 
     fun detectIsCreditCard(message: String): Boolean {
@@ -352,7 +419,16 @@ class FederalBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Priority 8: ATM transactions
+        // Priority 8: Cash Deposit / CDM transactions
+        if (message.contains("cash deposit", ignoreCase = true) ||
+            message.contains("deposited", ignoreCase = true) ||
+            message.contains("CDM", ignoreCase = true) ||
+            message.contains("cash credited", ignoreCase = true)
+        ) {
+            return "Cash Deposit"
+        }
+
+        // Priority 9: ATM transactions
         if (message.contains("ATM", ignoreCase = true) ||
             message.contains("withdrawn", ignoreCase = true)
         ) {

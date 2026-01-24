@@ -40,7 +40,9 @@ import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
+import com.pennywiseai.tracker.ui.components.WhatsNewDialog
 import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
+import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
 
@@ -50,18 +52,31 @@ fun MainScreen(
     rootNavController: NavHostController? = null,
     navController: NavHostController = rememberNavController(),
     themeViewModel: ThemeViewModel = hiltViewModel(),
-    spotlightViewModel: SpotlightViewModel = hiltViewModel()
+    spotlightViewModel: SpotlightViewModel = hiltViewModel(),
+    mainViewModel: MainViewModel = hiltViewModel()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    // Extract base route name (without query parameters) for title matching
+    val baseRoute = currentRoute?.substringBefore("?") ?: ""
     val spotlightState by spotlightViewModel.spotlightState.collectAsState()
-    
+
+    // What's New dialog state
+    val whatsNewVersion by mainViewModel.whatsNewVersion.collectAsState()
+
     Box(modifier = Modifier.fillMaxSize()) {
+        // What's New Dialog
+        whatsNewVersion?.let { version ->
+            WhatsNewDialog(
+                version = version,
+                onDismiss = { mainViewModel.dismissWhatsNew() }
+            )
+        }
             Scaffold(
             topBar = {
             val context = LocalContext.current
             PennyWiseTopAppBar(
-                title = when (currentRoute) {
+                title = when (baseRoute) {
                     "home" -> "PennyWise"
                     "transactions" -> "Transactions"
                     "subscriptions" -> "Subscriptions"
@@ -75,9 +90,9 @@ fun MainScreen(
                     "faq" -> "Help & FAQ"
                     else -> "PennyWise"
                 },
-                showBackButton = currentRoute in listOf("chat", "settings", "subscriptions", "transactions", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"),
-                showSettingsButton = currentRoute !in listOf("settings", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"),
-                showDiscordButton = currentRoute !in listOf("settings", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"), // Hide on these screens
+                showBackButton = baseRoute in listOf("chat", "settings", "subscriptions", "transactions", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"),
+                showSettingsButton = baseRoute !in listOf("settings", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"),
+                showDiscordButton = baseRoute !in listOf("settings", "categories", "unrecognized_sms", "manage_accounts", "add_account", "faq"), // Hide on these screens
                 onBackClick = { navController.popBackStack() },
                 onSettingsClick = { navController.navigate("settings") },
                 onDiscordClick = {
@@ -88,7 +103,7 @@ fun MainScreen(
         },
         bottomBar = {
             // Show bottom navigation only for main screens
-            if (currentRoute in listOf("home", "analytics")) {
+            if (baseRoute in listOf("home", "analytics")) {
                 PennyWiseBottomNavigation(navController = navController)
             }
         }
@@ -134,6 +149,14 @@ fun MainScreen(
                             com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)
                         )
                     },
+                    onTransactionTypeClick = { type ->
+                        val route = if (type != null) {
+                            "transactions?type=$type"
+                        } else {
+                            "transactions"
+                        }
+                        navController.navigate(route)
+                    },
                     onFabPositioned = { position ->
                         spotlightViewModel.updateFabPosition(position)
                     }
@@ -141,14 +164,14 @@ fun MainScreen(
             }
             
             composable(
-                route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}",
+                route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}",
                 arguments = listOf(
-                    navArgument("category") { 
+                    navArgument("category") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
                     },
-                    navArgument("merchant") { 
+                    navArgument("merchant") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
@@ -166,6 +189,11 @@ fun MainScreen(
                     navArgument("focusSearch") {
                         type = NavType.BoolType
                         defaultValue = false
+                    },
+                    navArgument("type") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
                     }
                 )
             ) { backStackEntry ->
@@ -174,13 +202,15 @@ fun MainScreen(
                 val period = backStackEntry.arguments?.getString("period")
                 val currency = backStackEntry.arguments?.getString("currency")
                 val focusSearch = backStackEntry.arguments?.getBoolean("focusSearch") ?: false
-                
+                val transactionType = backStackEntry.arguments?.getString("type")
+
                 TransactionsScreen(
                     initialCategory = category,
                     initialMerchant = merchant,
                     initialPeriod = period,
                     initialCurrency = currency,
                     focusSearch = focusSearch,
+                    initialTransactionType = transactionType,
                     onNavigateBack = {
                         navController.popBackStack()
                     },
@@ -240,7 +270,8 @@ fun MainScreen(
                             }
                         }
                         navController.navigate(route)
-                    }
+                    },
+                    onNavigateToHome = { navController.navigate("home") }
                 )
             }
             
@@ -330,7 +361,7 @@ fun MainScreen(
     }
     
     // Spotlight Tutorial overlay - outside Scaffold to overlay everything
-    if (currentRoute == "home" && spotlightState.showTutorial && spotlightState.fabPosition != null) {
+    if (baseRoute == "home" && spotlightState.showTutorial && spotlightState.fabPosition != null) {
         val homeViewModel: com.pennywiseai.tracker.presentation.home.HomeViewModel? = 
             navController.currentBackStackEntry?.let { hiltViewModel(it) }
         

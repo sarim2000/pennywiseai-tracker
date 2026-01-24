@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.screens.chat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -287,6 +288,17 @@ fun ChatScreen(
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                             reverseLayout = false
                         ) {
+                            // Example prompts when no messages
+                            if (messages.isEmpty() && currentResponse.isEmpty() && !uiState.isLoading) {
+                                item {
+                                    ChatEmptyState(
+                                        onPromptClick = { prompt ->
+                                            viewModel.sendMessage(prompt)
+                                        }
+                                    )
+                                }
+                            }
+
                             items(messages) { message ->
                                 ChatMessageItem(message = message)
                             }
@@ -728,6 +740,68 @@ fun ChatMessageItem(
                             MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChatEmptyState(
+    onPromptClick: (String) -> Unit
+) {
+    val examplePrompts = listOf(
+        "What did I spend on food this month?",
+        "My biggest expense?",
+        "Am I over budget?",
+        "Compare this month to last month"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Icon(
+            Icons.Default.AutoAwesome,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        )
+
+        Text(
+            text = "Ask about your spending",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Text(
+            text = "Try one of these prompts",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            examplePrompts.forEach { prompt ->
+                SuggestionChip(
+                    onClick = { onPromptClick(prompt) },
+                    label = { Text(prompt) },
+                    icon = {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
             }
         }
     }

@@ -260,7 +260,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Add manual accounts and update balances",
+                            text = "View and manage your bank accounts",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -785,22 +785,22 @@ fun SettingsScreen(
         
         // Support Section
         SectionHeader(title = "Support & Community")
-        
+
         val context = LocalContext.current
-        
+
         PennyWiseCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
                 // Help & FAQ
                 ListItem(
-                    headlineContent = { 
+                    headlineContent = {
                         Text(
                             text = "Help & FAQ",
                             fontWeight = FontWeight.Medium
                         )
                     },
-                    supportingContent = { 
+                    supportingContent = {
                         Text("Frequently asked questions and help")
                     },
                     leadingContent = {
@@ -819,18 +819,18 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.clickable { onNavigateToFaq() }
                 )
-                
+
                 HorizontalDivider()
-                
+
                 // GitHub Issues
                 ListItem(
-                    headlineContent = { 
+                    headlineContent = {
                         Text(
                             text = "Report an Issue",
                             fontWeight = FontWeight.Medium
                         )
                     },
-                    supportingContent = { 
+                    supportingContent = {
                         Text("Submit bug reports or bank requests on GitHub")
                     },
                     leadingContent = {
@@ -855,6 +855,17 @@ fun SettingsScreen(
                 )
             }
         }
+
+        // App Version
+        Spacer(modifier = Modifier.height(Spacing.md))
+        Text(
+            text = "PennyWise v${com.pennywiseai.tracker.BuildConfig.VERSION_NAME}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(Spacing.md))
     }
 
     // SMS Scan Period Dialog

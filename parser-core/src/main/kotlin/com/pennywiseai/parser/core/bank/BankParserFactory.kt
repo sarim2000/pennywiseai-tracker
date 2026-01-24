@@ -72,7 +72,8 @@ object BankParserFactory {
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
-        StandardCharteredBankParser()  // Standard Chartered Bank (India)
+        StandardCharteredBankParser(),  // Standard Chartered Bank (India)
+        EquitasBankParser()  // Equitas Small Finance Bank (India)
         // Add more bank parsers here as we implement them
     )
 

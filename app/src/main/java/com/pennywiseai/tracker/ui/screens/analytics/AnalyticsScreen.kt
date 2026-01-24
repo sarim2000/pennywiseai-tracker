@@ -36,7 +36,8 @@ import java.math.BigDecimal
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
-    onNavigateToTransactions: (category: String?, merchant: String?, period: String?, currency: String?) -> Unit = { _, _, _, _ -> }
+    onNavigateToTransactions: (category: String?, merchant: String?, period: String?, currency: String?) -> Unit = { _, _, _, _ -> },
+    onNavigateToHome: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
@@ -238,7 +239,7 @@ fun AnalyticsScreen(
         // Empty state
         if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
             item {
-                EmptyAnalyticsState()
+                EmptyAnalyticsState(onScanSmsClick = onNavigateToHome)
             }
         }
     }
@@ -339,7 +340,9 @@ private fun MerchantListItem(
 }
 
 @Composable
-private fun EmptyAnalyticsState() {
+private fun EmptyAnalyticsState(
+    onScanSmsClick: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -355,17 +358,39 @@ private fun EmptyAnalyticsState() {
                     .padding(Dimensions.Padding.empty),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
-                    text = "No data available",
+                    text = "No spending data yet",
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    text = "Start tracking expenses to see analytics",
+                    text = "Scan your SMS to see spending insights",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(Spacing.md))
+                Button(
+                    onClick = onScanSmsClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sms,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text("Scan SMS")
+                }
             }
         }
     }

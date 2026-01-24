@@ -90,6 +90,7 @@ fun HomeScreen(
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
+    onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -174,7 +175,7 @@ fun HomeScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content,
-                bottom = Dimensions.Padding.content + 80.dp // Space for FAB
+                bottom = Dimensions.Padding.content + 120.dp // Space for dual FABs (Add + Sync)
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -182,7 +183,8 @@ fun HomeScreen(
             item {
                 TransactionSummaryCards(
                     uiState = uiState,
-                    onCurrencySelected = { viewModel.selectCurrency(it) }
+                    onCurrencySelected = { viewModel.selectCurrency(it) },
+                    onTypeClick = onTransactionTypeClick
                 )
             }
             
@@ -246,6 +248,12 @@ fun HomeScreen(
             
             // Recent Transactions Section
             item {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 SectionHeader(
                     title = "Recent Transactions",
                     action = {
@@ -290,17 +298,43 @@ fun HomeScreen(
                     PennyWiseCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(Dimensions.Padding.empty),
-                            contentAlignment = Alignment.Center
+                                .padding(Dimensions.Padding.card),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
                             Text(
                                 text = "No transactions yet",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                            Text(
+                                text = "Tap the sync button below to scan your SMS and automatically detect transactions",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Button(
+                                onClick = { viewModel.scanSmsMessages() },
+                                modifier = Modifier.padding(top = Spacing.xs)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text("Scan SMS")
+                            }
                         }
                     }
                 }
@@ -339,32 +373,45 @@ fun HomeScreen(
             
             // Sync FAB (bottom, primary)
             // Single tap: incremental scan, Long press: full resync
-            Surface(
-                modifier = Modifier
-                    .spotlightTarget(onFabPositioned)
-                    .size(56.dp)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { viewModel.scanSmsMessages() },
-                            onLongPress = {
-                                // Haptic feedback for long press
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                showFullResyncDialog = true
-                            }
-                        )
-                    },
-                shape = FloatingActionButtonDefaults.shape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shadowElevation = 6.dp
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier
+                        .spotlightTarget(onFabPositioned)
+                        .size(56.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { viewModel.scanSmsMessages() },
+                                onLongPress = {
+                                    // Haptic feedback for long press
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    showFullResyncDialog = true
+                                }
+                            )
+                        },
+                    shape = FloatingActionButtonDefaults.shape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shadowElevation = 6.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Sync,
-                        contentDescription = "Sync SMS (long press for full resync)"
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sync SMS (long press for full resync)"
+                        )
+                    }
+                }
+                // Hint for long-press functionality - only show for new users (no transactions yet)
+                if (uiState.recentTransactions.isEmpty() && !uiState.isLoading) {
+                    Text(
+                        text = "Hold for full resync",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -530,7 +577,7 @@ private fun MonthSummaryCard(
     )
     val currencySymbol = currencySymbols[currency] ?: currency
 
-    val titleText = "Net Balance ($currencySymbol) • $currentMonth 1-${now.dayOfMonth}"
+    val titleText = "Cash Flow ($currencySymbol) • $currentMonth 1-${now.dayOfMonth}"
     
     SummaryCard(
         title = titleText,
@@ -688,7 +735,7 @@ private fun BreakdownDialog(
                 HorizontalDivider()
                 
                 BreakdownRow(
-                    label = "Net Balance",
+                    label = "Cash Flow",
                     amount = currentMonthTotal,
                     isIncome = currentMonthTotal >= BigDecimal.ZERO,
                     isBold = true
@@ -719,7 +766,7 @@ private fun BreakdownDialog(
                 HorizontalDivider()
                 
                 BreakdownRow(
-                    label = "Net Balance",
+                    label = "Cash Flow",
                     amount = lastMonthTotal,
                     isIncome = lastMonthTotal >= BigDecimal.ZERO,
                     isBold = true
@@ -734,7 +781,7 @@ private fun BreakdownDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Formula: Income - Expenses = Net Balance\n" +
+                        text = "Formula: Income - Expenses = Cash Flow\n" +
                                "Green (+) = Savings | Red (-) = Overspending",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -843,7 +890,8 @@ private fun UpcomingSubscriptionsCard(
 @Composable
 private fun TransactionSummaryCards(
     uiState: HomeUiState,
-    onCurrencySelected: (String) -> Unit = {}
+    onCurrencySelected: (String) -> Unit = {},
+    onTypeClick: (String?) -> Unit = {}
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
 
@@ -875,7 +923,7 @@ private fun TransactionSummaryCards(
                         currency = uiState.selectedCurrency,
                         currentExpenses = uiState.currentMonthExpenses,
                         lastExpenses = uiState.lastMonthExpenses,
-                        onShowBreakdown = { /* TODO */ }
+                        onShowBreakdown = { onTypeClick(null) }
                     )
                 }
                 1 -> {
@@ -886,7 +934,8 @@ private fun TransactionSummaryCards(
                         amount = uiState.currentMonthCreditCard,
                         color = if (!isSystemInDarkTheme()) credit_light else credit_dark,
                         emoji = "💳",
-                        currency = uiState.selectedCurrency
+                        currency = uiState.selectedCurrency,
+                        onClick = { onTypeClick("CREDIT") }
                     )
                 }
                 2 -> {
@@ -897,7 +946,8 @@ private fun TransactionSummaryCards(
                         amount = uiState.currentMonthTransfer,
                         color = if (!isSystemInDarkTheme()) transfer_light else transfer_dark,
                         emoji = "↔️",
-                        currency = uiState.selectedCurrency
+                        currency = uiState.selectedCurrency,
+                        onClick = { onTypeClick("TRANSFER") }
                     )
                 }
                 3 -> {
@@ -908,7 +958,8 @@ private fun TransactionSummaryCards(
                         amount = uiState.currentMonthInvestment,
                         color = if (!isSystemInDarkTheme()) investment_light else investment_dark,
                         emoji = "📈",
-                        currency = uiState.selectedCurrency
+                        currency = uiState.selectedCurrency,
+                        onClick = { onTypeClick("INVESTMENT") }
                     )
                 }
             }
@@ -918,20 +969,21 @@ private fun TransactionSummaryCards(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = Spacing.xs),
+                .padding(top = Spacing.sm),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             repeat(4) { index ->
-                val color = if (pagerState.currentPage == index) {
+                val isSelected = pagerState.currentPage == index
+                val color = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 }
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 2.dp)
-                        .size(8.dp)
+                        .padding(horizontal = 4.dp)
+                        .size(if (isSelected) 10.dp else 8.dp)
                         .background(
                             color = color,
                             shape = androidx.compose.foundation.shape.CircleShape
@@ -949,11 +1001,12 @@ private fun TransactionTypeCard(
     amount: BigDecimal,
     color: Color,
     emoji: String,
-    currency: String
+    currency: String,
+    onClick: () -> Unit = {}
 ) {
     val currentMonth = LocalDate.now().month.name.lowercase().replaceFirstChar { it.uppercase() }
     val now = LocalDate.now()
-    
+
     val subtitle = when {
         amount > BigDecimal.ZERO -> {
             when (title) {
@@ -972,13 +1025,13 @@ private fun TransactionTypeCard(
             }
         }
     }
-    
+
     SummaryCard(
         title = "$emoji $title • $currentMonth",
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(amount, currency),
         amountColor = color,
-        onClick = { /* TODO: Navigate to filtered view */ }
+        onClick = onClick
     )
 }
 

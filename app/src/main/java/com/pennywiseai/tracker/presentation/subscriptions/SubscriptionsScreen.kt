@@ -185,7 +185,7 @@ private fun SwipeableSubscriptionItem(
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Default.VisibilityOff,
                     contentDescription = "Hide",
                     tint = MaterialTheme.colorScheme.onError
                 )

@@ -102,6 +102,15 @@ fun TransactionsScreen(
         categoryFilter != null
     ).count { it }
 
+    // Check if any filter is active (for showing "Clear all" button)
+    val hasAnyActiveFilter = searchQuery.isNotEmpty() ||
+        selectedPeriod != TimePeriod.THIS_MONTH ||
+        categoryFilter != null ||
+        categoriesFilter != null ||
+        transactionTypeFilter != TransactionTypeFilter.ALL ||
+        selectedCurrency != null ||
+        customDateRange != null
+
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()
@@ -292,6 +301,28 @@ fun TransactionsScreen(
             contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            // Clear all filters chip - only show when any filter is active
+            if (hasAnyActiveFilter) {
+                item {
+                    FilterChip(
+                        selected = false,
+                        onClick = { viewModel.resetFilters() },
+                        label = { Text("Clear all") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                            labelColor = MaterialTheme.colorScheme.error
+                        )
+                    )
+                }
+            }
+
             // Period filter chips
             items(timePeriods) { period ->
                 FilterChip(
@@ -431,19 +462,21 @@ fun TransactionsScreen(
             }
         }
         
-        // Totals Card - Moved after filters
-        TransactionTotalsCard(
-            income = filteredTotals.income,
-            expenses = filteredTotals.expenses,
-            netBalance = filteredTotals.netBalance,
-            currency = selectedCurrency,
-            availableCurrencies = availableCurrencies,
-            onCurrencySelected = { viewModel.selectCurrency(it) },
-            isLoading = uiState.isLoading,
-            modifier = Modifier
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(top = Spacing.sm)
-        )
+        // Totals Card - Only show when there are transactions (hide 0/0/0 state)
+        if (uiState.transactions.isNotEmpty() || uiState.isLoading) {
+            TransactionTotalsCard(
+                income = filteredTotals.income,
+                expenses = filteredTotals.expenses,
+                netBalance = filteredTotals.netBalance,
+                currency = selectedCurrency,
+                availableCurrencies = availableCurrencies,
+                onCurrencySelected = { viewModel.selectCurrency(it) },
+                isLoading = uiState.isLoading,
+                modifier = Modifier
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(top = Spacing.sm)
+            )
+        }
         
         // Category Filter Chip (if active) - Moved to its own row
         categoryFilter?.let { category ->
@@ -504,7 +537,8 @@ fun TransactionsScreen(
             uiState.transactions.isEmpty() -> {
                 EmptyTransactionsState(
                     searchQuery = searchQuery,
-                    selectedPeriod = selectedPeriod
+                    selectedPeriod = selectedPeriod,
+                    onAddClick = onAddTransactionClick
                 )
             }
             else -> {
@@ -685,15 +719,8 @@ private fun TransactionItem(
     // Always show both date and time
     val dateTimeText = transaction.dateTime.format(dateTimeFormatter)
     
-    // Build subtitle without category (will show category separately)
+    // Build subtitle (type shown via icon, not text)
     val subtitleParts = buildList {
-        // Add transaction type indicator for special types
-        when (transaction.transactionType) {
-            TransactionType.CREDIT -> add("Credit Card")
-            TransactionType.TRANSFER -> add("Transfer")
-            TransactionType.INVESTMENT -> add("Investment")
-            else -> {} // No special label for INCOME/EXPENSE
-        }
         add(dateTimeText)
         if (transaction.isRecurring) add("Recurring")
     }
@@ -765,7 +792,8 @@ private fun TransactionItem(
 @Composable
 private fun EmptyTransactionsState(
     searchQuery: String,
-    selectedPeriod: TimePeriod
+    selectedPeriod: TimePeriod,
+    onAddClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -779,32 +807,43 @@ private fun EmptyTransactionsState(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Dimensions.Padding.empty),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(Dimensions.Padding.card),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 )
-                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
                     text = when {
                         searchQuery.isNotEmpty() -> "No transactions matching \"$searchQuery\""
                         selectedPeriod != TimePeriod.ALL -> "No transactions for ${selectedPeriod.label.lowercase()}"
                         else -> "No transactions yet"
                     },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (searchQuery.isEmpty() && selectedPeriod == TimePeriod.ALL) {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = "Sync your SMS to see transactions",
+                        text = "Sync your SMS from the home screen, or add a transaction manually",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Button(onClick = onAddClick) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text("Add Transaction")
+                    }
                 }
             }
         }

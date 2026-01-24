@@ -143,6 +143,26 @@ ksp {
     arg("room.generateKotlin", "true")
 }
 
+// Copy changelog from fastlane to generated assets for What's New dialog
+val generatedAssetsDir = layout.buildDirectory.dir("generated/assets/changelog")
+
+tasks.register<Copy>("copyChangelog") {
+    val versionCode = android.defaultConfig.versionCode
+    val changelogDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
+    val changelogFile = file("$changelogDir/$versionCode.txt")
+    val defaultFile = file("$changelogDir/default.txt")
+
+    from(if (changelogFile.exists()) changelogFile else defaultFile)
+    into(generatedAssetsDir)
+    rename { "whats_new.txt" }
+}
+
+android.sourceSets["main"].assets.srcDir(generatedAssetsDir)
+
+tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.configureEach {
+    dependsOn("copyChangelog")
+}
+
 dependencies {
     // Local modules
     implementation(project(":parser-core"))

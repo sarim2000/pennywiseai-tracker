@@ -74,17 +74,14 @@ fun UnifiedAccountsCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Bank Balance",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = if (bankAccounts.isNotEmpty()) {
+                            "Bank Balance • ${bankAccounts.size}"
+                        } else {
+                            "Bank Balance"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (bankAccounts.isNotEmpty()) {
-                        Text(
-                            text = "${bankAccounts.size} account${if (bankAccounts.size > 1) "s" else ""}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
                 
                 // Divider
@@ -114,17 +111,14 @@ fun UnifiedAccountsCard(
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = "Available Credit",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = if (creditCards.isNotEmpty()) {
+                            "Available Credit • ${creditCards.size}"
+                        } else {
+                            "Available Credit"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (creditCards.isNotEmpty()) {
-                        Text(
-                            text = "${creditCards.size} card${if (creditCards.size > 1) "s" else ""}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
             

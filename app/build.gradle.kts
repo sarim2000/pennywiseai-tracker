@@ -21,8 +21,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 79
-        versionName = "2.15.44"
+        versionCode = 80
+        versionName = "2.15.45"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -147,7 +147,7 @@ ksp {
 val generatedAssetsDir = layout.buildDirectory.dir("generated/assets/changelog")
 
 tasks.register<Copy>("copyChangelog") {
-    val versionCode = android.defaultConfig.versionCode
+    val versionCode = 80
     val changelogDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
     val changelogFile = file("$changelogDir/$versionCode.txt")
     val defaultFile = file("$changelogDir/default.txt")

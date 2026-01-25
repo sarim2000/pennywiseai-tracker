@@ -575,6 +575,21 @@ private fun CategorySpendingRow(
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
+
+            // Daily info: allowance for limited categories, spend rate for others
+            if (info.dailyAllowance != null && info.dailyAllowance > BigDecimal.ZERO) {
+                Text(
+                    text = "${CurrencyFormatter.formatCurrency(info.dailyAllowance, currency)}/day left",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (info.dailySpend > BigDecimal.ZERO) {
+                Text(
+                    text = "${CurrencyFormatter.formatCurrency(info.dailySpend, currency)}/day",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

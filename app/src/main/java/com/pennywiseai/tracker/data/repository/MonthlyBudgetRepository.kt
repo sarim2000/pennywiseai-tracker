@@ -35,7 +35,9 @@ data class CategorySpendingInfo(
     val categoryName: String,
     val spent: BigDecimal,
     val limit: BigDecimal?,
-    val percentageUsed: Float?
+    val percentageUsed: Float?,
+    val dailySpend: BigDecimal = BigDecimal.ZERO,
+    val dailyAllowance: BigDecimal? = null
 )
 
 @Singleton
@@ -76,6 +78,11 @@ class MonthlyBudgetRepository @Inject constructor(
         val prevEndDate = prevMonth.atEndOfMonth().atTime(23, 59, 59)
 
         val today = LocalDate.now()
+        val daysElapsed = if (yearMonth == YearMonth.from(today)) {
+            today.dayOfMonth
+        } else {
+            yearMonth.lengthOfMonth()
+        }
         val daysRemaining = if (yearMonth == YearMonth.from(today)) {
             (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
         } else {
@@ -139,11 +146,24 @@ class MonthlyBudgetRepository @Inject constructor(
                 } else {
                     null
                 }
+                val catDailySpend = if (daysElapsed > 0 && spent > BigDecimal.ZERO) {
+                    spent.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
+                } else {
+                    BigDecimal.ZERO
+                }
+                val catRemaining = if (catLimit != null) catLimit - spent else null
+                val catDailyAllowance = if (catLimit != null && daysRemaining > 0 && catRemaining != null && catRemaining > BigDecimal.ZERO) {
+                    catRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
+                } else {
+                    null
+                }
                 CategorySpendingInfo(
                     categoryName = categoryName,
                     spent = spent,
                     limit = catLimit,
-                    percentageUsed = catPercentage
+                    percentageUsed = catPercentage,
+                    dailySpend = catDailySpend,
+                    dailyAllowance = catDailyAllowance
                 )
             }.sortedWith(compareByDescending<CategorySpendingInfo> { it.limit != null }.thenByDescending { it.spent })
 

@@ -9,7 +9,9 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
 import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
 import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +40,7 @@ data class MonthlyBudgetUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MonthlyBudgetViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val monthlyBudgetRepository: MonthlyBudgetRepository,
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository
@@ -105,24 +108,28 @@ class MonthlyBudgetViewModel @Inject constructor(
     fun setMonthlyLimit(amount: BigDecimal) {
         viewModelScope.launch {
             monthlyBudgetRepository.setMonthlyBudgetLimit(amount)
+            com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }
 
     fun setCategoryLimit(categoryName: String, amount: BigDecimal) {
         viewModelScope.launch {
             monthlyBudgetRepository.setCategoryLimit(categoryName, amount)
+            com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }
 
     fun removeCategoryLimit(categoryName: String) {
         viewModelScope.launch {
             monthlyBudgetRepository.removeCategoryLimit(categoryName)
+            com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }
 
     fun removeBudget() {
         viewModelScope.launch {
             monthlyBudgetRepository.setMonthlyBudgetLimit(null)
+            com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }
 

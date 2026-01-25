@@ -1191,6 +1191,26 @@ private fun MonthlyBudgetHomeCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
+
+            if (spending.totalIncome > java.math.BigDecimal.ZERO) {
+                val savingsColor = if (spending.netSavings >= java.math.BigDecimal.ZERO) {
+                    if (isDark) budget_safe_dark else budget_safe_light
+                } else {
+                    if (isDark) budget_danger_dark else budget_danger_light
+                }
+                val deltaText = spending.savingsDelta?.let { delta ->
+                    if (delta.compareTo(java.math.BigDecimal.ZERO) != 0) {
+                        " ${if (delta >= java.math.BigDecimal.ZERO) "↑" else "↓"}${CurrencyFormatter.formatCurrency(delta.abs(), currency)}"
+                    } else null
+                } ?: ""
+
+                Text(
+                    text = "${if (spending.netSavings >= java.math.BigDecimal.ZERO) "Saved" else "Overspent"} ${CurrencyFormatter.formatCurrency(spending.netSavings.abs(), currency)} (${String.format("%.0f", kotlin.math.abs(spending.savingsRate))}%)$deltaText",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = savingsColor
+                )
+            }
         }
     }
 }

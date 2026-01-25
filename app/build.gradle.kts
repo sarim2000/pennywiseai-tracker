@@ -226,7 +226,11 @@ dependencies {
     // Hilt WorkManager integration
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
-    
+
+    // Glance Widget
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
     // MediaPipe for LLM inference
     implementation(libs.tasks.genai)
     

@@ -163,6 +163,11 @@ tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.con
     dependsOn("copyChangelog")
 }
 
+// Lint tasks also need to depend on copyChangelog since they analyze generated assets
+tasks.matching { it.name.contains("lint") || it.name.contains("Lint") }.configureEach {
+    dependsOn("copyChangelog")
+}
+
 dependencies {
     // Local modules
     implementation(project(":parser-core"))

@@ -323,6 +323,21 @@ class FederalBankParserTest {
                 message = "Your available balance for a/c no(s) SBA0001 is INR 1xxx,SBA3001 is INR 9xxx.9 .For detailed statement download FedMobile https://fedmobile.federalbank.co.in/download-fedmobile/ - Federal Bank",
                 sender = "VM-FEDBNK-S",
                 shouldParse = false
+            ),
+
+            // ATM Cash Withdrawal - should not extract phone number as merchant
+            ParserTestCase(
+                name = "ATM Cash Withdrawal",
+                message = "Rs 1500 withdrawn@ YBL CHAN on 21JAN26 17:59 Bal Rs 7517.94 Ref 602117126490. Not you? Call 18004251199/ SMS NO 3683 to 9895088888 -Federal Bank",
+                sender = "AD-FEDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1500"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Cash Withdrawal",
+                    balance = BigDecimal("7517.94"),
+                    isFromCard = false
+                )
             )
         )
 

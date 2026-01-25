@@ -270,7 +270,12 @@ class FederalBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Priority 0: "[Company] has received Rs X from your A/c" pattern (outgoing transfers)
+        // Priority 0: ATM/Cash withdrawal - check early to avoid matching phone numbers
+        if (message.contains("withdrawn", ignoreCase = true)) {
+            return "Cash Withdrawal"
+        }
+
+        // Priority 1: "[Company] has received Rs X from your A/c" pattern (outgoing transfers)
         // Extract the company name at the start of the message
         val hasReceivedPattern = Regex(
             """^([A-Z][A-Za-z0-9\s]+?)\s+has\s+received\s+Rs""",
@@ -283,7 +288,7 @@ class FederalBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Priority 1: IMPS credits - show "IMPS Credit" instead of parsing description
+        // Priority 2: IMPS credits - show "IMPS Credit" instead of parsing description
         if (message.contains("credited to your A/c", ignoreCase = true) &&
             message.contains("via IMPS", ignoreCase = true)
         ) {
@@ -426,13 +431,6 @@ class FederalBankParser : BaseIndianBankParser() {
             message.contains("cash credited", ignoreCase = true)
         ) {
             return "Cash Deposit"
-        }
-
-        // Priority 9: ATM transactions
-        if (message.contains("ATM", ignoreCase = true) ||
-            message.contains("withdrawn", ignoreCase = true)
-        ) {
-            return "ATM Withdrawal"
         }
 
         return super.extractMerchant(message, sender)

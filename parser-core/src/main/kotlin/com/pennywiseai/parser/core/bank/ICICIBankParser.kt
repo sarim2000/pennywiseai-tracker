@@ -208,12 +208,15 @@ class ICICIBankParser : BaseIndianBankParser() {
             return "Salary"
         }
 
-        // Pattern 2: NFS Cash Withdrawal - "NFSCASH WDL" (ATM withdrawal from other bank's ATM)
+        // Pattern 2: NFS Cash Withdrawal - various ATM withdrawal formats
+        // Examples: "NFSCASH WDL", "NFS CASH WDL", "NFS*CASH WDL*", "CASH WDL"
         if (message.contains("NFSCASH WDL", ignoreCase = true) ||
             message.contains("NFS CASH WDL", ignoreCase = true) ||
+            message.contains("NFS*CASH WDL", ignoreCase = true) ||
+            message.contains("CASH WDL", ignoreCase = true) ||
             message.contains("NFSCASH", ignoreCase = true)
         ) {
-            return "ATM Withdrawal"
+            return "Cash Withdrawal"
         }
 
         // Pattern 3: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"

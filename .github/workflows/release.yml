@@ -82,8 +82,8 @@ jobs:
       - name: Get current version
         id: current_version
         run: |
-          CURRENT_VERSION=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-          CURRENT_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/[^0-9]*//g')
+          CURRENT_VERSION=$(grep "versionName = " app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          CURRENT_CODE=$(grep "versionCode = " app/build.gradle.kts | head -n 1 | sed 's/[^0-9]*//g' | tr -d '\n')
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "code=$CURRENT_CODE" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION (code: $CURRENT_CODE)"

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -53,7 +54,10 @@ fun MainScreen(
     navController: NavHostController = rememberNavController(),
     themeViewModel: ThemeViewModel = hiltViewModel(),
     spotlightViewModel: SpotlightViewModel = hiltViewModel(),
-    mainViewModel: MainViewModel = hiltViewModel()
+    mainViewModel: MainViewModel = hiltViewModel(),
+    initialCategory: String? = null,
+    initialPeriod: String? = null,
+    initialCurrency: String? = null
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -63,6 +67,25 @@ fun MainScreen(
 
     // What's New dialog state
     val whatsNewVersion by mainViewModel.whatsNewVersion.collectAsState()
+
+    // Navigate to transactions with filter if provided
+    LaunchedEffect(initialCategory) {
+        if (initialCategory != null) {
+            val route = buildString {
+                append("transactions")
+                val params = mutableListOf<String>()
+                val encoded = java.net.URLEncoder.encode(initialCategory, "UTF-8")
+                params.add("category=$encoded")
+                initialPeriod?.let { params.add("period=$it") }
+                initialCurrency?.let { params.add("currency=$it") }
+                if (params.isNotEmpty()) {
+                    append("?")
+                    append(params.joinToString("&"))
+                }
+            }
+            navController.navigate(route)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // What's New Dialog

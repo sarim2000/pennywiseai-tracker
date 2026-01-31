@@ -73,7 +73,22 @@ fun PennyWiseNavHost(
                 rootNavController = navController
             )
         }
-        
+
+        composable<HomeWithCategoryFilter>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) { backStackEntry ->
+            val args = backStackEntry.toRoute<HomeWithCategoryFilter>()
+            MainScreen(
+                rootNavController = navController,
+                initialCategory = args.category,
+                initialPeriod = args.period,
+                initialCurrency = args.currency
+            )
+        }
+
         composable<Settings>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
@@ -238,6 +253,11 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToSettings = {
                     navController.navigate(MonthlyBudgetSettings)
+                },
+                onNavigateToCategory = { category, yearMonth, currency ->
+                    navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
+                        popUpTo(Home) { inclusive = true }
+                    }
                 }
             )
         }

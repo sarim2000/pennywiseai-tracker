@@ -1,6 +1,7 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
+import java.math.BigDecimal
 
 /**
  * Kotak Bank specific parser.
@@ -21,6 +22,19 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Credit card merchant pattern: "on DD-MON-YYYY at MERCHANT. Avl limit"
+        val cardMerchantPattern = Regex(
+            """on\s+\d{1,2}-\w{3}-\d{2,4}\s+at\s+([^.]+?)(?:\.|\s+Avl|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        cardMerchantPattern.find(message)?.let { match ->
+            val rawMerchant = match.groupValues[1].trim()
+            val merchant = cleanKotakCardMerchant(rawMerchant)
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 1: "Sent Rs.X from Kotak Bank AC XXXX to merchant@bank on"
         // Pattern 2: "Received Rs.X in your Kotak Bank AC XXXX from merchant@bank on"
 
@@ -92,6 +106,19 @@ class KotakBankParser : BankParser() {
     }
 
     /**
+     * Cleans merchant name from Kotak credit card SMS format.
+     * Handles UPI reference format "UPI-<ref_number>-<MERCHANT_NAME>"
+     * by extracting just the merchant name part.
+     */
+    private fun cleanKotakCardMerchant(rawMerchant: String): String {
+        val upiRefPattern = Regex("""^UPI-\d+-(.+)$""", RegexOption.IGNORE_CASE)
+        upiRefPattern.find(rawMerchant)?.let { match ->
+            return cleanMerchantName(match.groupValues[1].trim())
+        }
+        return cleanMerchantName(rawMerchant)
+    }
+
+    /**
      * Checks if the UPI username looks like a generated ID from a payment app
      * rather than a human-readable username or phone number.
      */
@@ -153,6 +180,18 @@ class KotakBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
+        // Credit card transactions: "Avl limit" indicates credit card usage
+        if (lowerMessage.contains("avl limit") || lowerMessage.contains("avl lmt")) {
+            return TransactionType.CREDIT
+        }
+
+        // Explicit credit card mention with spending keywords
+        if (lowerMessage.contains("credit card") &&
+            (lowerMessage.contains("spent") || lowerMessage.contains("debited"))
+        ) {
+            return TransactionType.CREDIT
+        }
+
         return when {
             // Kotak specific: "Sent Rs.X from Kotak Bank" - money going OUT (EXPENSE)
             // This indicates the user sent money from their Kotak account to someone else
@@ -189,6 +228,15 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        // Kotak credit card pattern: "Credit Card x5236" or "Credit Card XX5236"
+        val kotakCardPattern = Regex(
+            """Credit\s+Card\s+[xX*]*(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        kotakCardPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         // Kotak specific pattern: "AC X0000" or "AC XXXX0000"
         val kotakAccountPattern =
             Regex("AC\\s+[X*]*([0-9]{4})(?:\\s|,|\\.)", RegexOption.IGNORE_CASE)
@@ -197,6 +245,30 @@ class KotakBankParser : BankParser() {
         }
 
         return super.extractAccountLast4(message)
+    }
+
+    override fun extractAvailableLimit(message: String): BigDecimal? {
+        val kotakCreditLimitPatterns = listOf(
+            // "Avl limit INR 73733.02"
+            Regex("""Avl\s+limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Lmt INR 73733.02"
+            Regex("""Avl\s+Lmt:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Available limit INR 73733.02"
+            Regex("""Available\s+limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in kotakCreditLimitPatterns) {
+            pattern.find(message)?.let { match ->
+                val limitStr = match.groupValues[1].replace(",", "")
+                return try {
+                    BigDecimal(limitStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
+            }
+        }
+
+        return super.extractAvailableLimit(message)
     }
 
     override fun isTransactionMessage(message: String): Boolean {

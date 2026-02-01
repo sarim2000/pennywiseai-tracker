@@ -214,7 +214,7 @@ fun CreateRuleScreen(
                 value = ruleName,
                 onValueChange = { ruleName = it },
                 label = { Text("Rule Name") },
-                placeholder = { Text("e.g., Food expenses under ₹200") },
+                placeholder = { Text("e.g., Food expenses under 200") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )

@@ -60,3 +60,6 @@ object MonthlyBudget
 
 @Serializable
 object MonthlyBudgetSettings
+
+@Serializable
+object ExchangeRates

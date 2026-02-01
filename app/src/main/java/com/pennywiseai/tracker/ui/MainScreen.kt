@@ -334,6 +334,11 @@ fun MainScreen(
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.MonthlyBudget
                         )
+                    },
+                    onNavigateToExchangeRates = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.ExchangeRates
+                        )
                     }
                 )
             }

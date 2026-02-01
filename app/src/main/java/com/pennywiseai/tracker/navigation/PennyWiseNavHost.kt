@@ -111,10 +111,13 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToBudgets = {
                     navController.navigate(MonthlyBudget)
+                },
+                onNavigateToExchangeRates = {
+                    navController.navigate(ExchangeRates)
                 }
             )
         }
-        
+
         composable<Categories>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
@@ -269,6 +272,19 @@ fun PennyWiseNavHost(
             popExitTransition = { ExitTransition.None }
         ) {
             com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<ExchangeRates>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

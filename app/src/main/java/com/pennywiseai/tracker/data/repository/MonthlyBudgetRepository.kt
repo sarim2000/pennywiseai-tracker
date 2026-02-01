@@ -211,4 +211,55 @@ class MonthlyBudgetRepository @Inject constructor(
         val today = LocalDate.now()
         return getMonthSpending(today.year, today.monthValue, currency)
     }
+
+    /**
+     * Get month spending across all currencies, returning raw per-currency breakdowns.
+     * Used by unified currency mode to convert and aggregate spending.
+     */
+    fun getMonthSpendingAllCurrencies(year: Int, month: Int): Flow<MonthlyBudgetSpendingRaw> {
+        val yearMonth = YearMonth.of(year, month)
+        val startDate = yearMonth.atDay(1).atStartOfDay()
+        val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
+
+        val prevMonth = yearMonth.minusMonths(1)
+        val prevStartDate = prevMonth.atDay(1).atStartOfDay()
+        val prevEndDate = prevMonth.atEndOfMonth().atTime(23, 59, 59)
+
+        val today = LocalDate.now()
+        val daysElapsed = if (yearMonth == YearMonth.from(today)) {
+            today.dayOfMonth
+        } else {
+            yearMonth.lengthOfMonth()
+        }
+        val daysRemaining = if (yearMonth == YearMonth.from(today)) {
+            (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
+        } else {
+            0
+        }
+
+        return combine(
+            monthlyBudgetLimit,
+            categoryBudgetLimitDao.getAllLimits(),
+            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
+            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(prevStartDate, prevEndDate)
+        ) { limit, categoryLimits, allTransactions, prevTransactions ->
+            MonthlyBudgetSpendingRaw(
+                totalLimit = limit ?: BigDecimal.ZERO,
+                categoryLimits = categoryLimits,
+                allTransactions = allTransactions,
+                prevTransactions = prevTransactions,
+                daysElapsed = daysElapsed,
+                daysRemaining = daysRemaining
+            )
+        }
+    }
 }
+
+data class MonthlyBudgetSpendingRaw(
+    val totalLimit: BigDecimal,
+    val categoryLimits: List<CategoryBudgetLimitEntity>,
+    val allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+    val prevTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+    val daysElapsed: Int,
+    val daysRemaining: Int
+)

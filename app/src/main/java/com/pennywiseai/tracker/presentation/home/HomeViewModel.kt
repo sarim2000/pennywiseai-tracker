@@ -16,24 +16,34 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
 import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
 import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
+import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpendingRaw
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
@@ -42,6 +52,7 @@ class HomeViewModel @Inject constructor(
     private val monthlyBudgetRepository: MonthlyBudgetRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     @ApplicationContext private val context: Context
@@ -63,7 +74,29 @@ class HomeViewModel @Inject constructor(
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     
     init {
+        loadUnifiedModePreferences()
         loadHomeData()
+    }
+
+    private fun loadUnifiedModePreferences() {
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { unifiedMode, displayCurrency ->
+                unifiedMode to displayCurrency
+            }.collect { (unifiedMode, displayCurrency) ->
+                val previousMode = _uiState.value.isUnifiedMode
+                val previousCurrency = _uiState.value.selectedCurrency
+
+                _uiState.value = _uiState.value.copy(isUnifiedMode = unifiedMode)
+
+                if (unifiedMode && (previousMode != unifiedMode || previousCurrency != displayCurrency)) {
+                    // Switch to unified mode: aggregate all currencies
+                    selectCurrency(displayCurrency)
+                }
+            }
+        }
     }
     
     private fun loadHomeData() {
@@ -160,19 +193,55 @@ class HomeViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            // Load recent transactions (last 3)
-            transactionRepository.getRecentTransactions(limit = 3).collect { transactions ->
+            // Load recent transactions (last 3) with conversion for unified mode
+            combine(
+                transactionRepository.getRecentTransactions(limit = 3),
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { transactions, isUnified, displayCurrency ->
+                Triple(transactions, isUnified, displayCurrency)
+            }.collect { (transactions, isUnified, displayCurrency) ->
+                val convertedAmounts = if (isUnified) {
+                    val map = mutableMapOf<Long, java.math.BigDecimal>()
+                    for (tx in transactions) {
+                        if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
+                            map[tx.id] = currencyConversionService.convertAmount(
+                                tx.amount, tx.currency, displayCurrency
+                            )
+                        }
+                    }
+                    map
+                } else {
+                    emptyMap()
+                }
                 _uiState.value = _uiState.value.copy(
                     recentTransactions = transactions,
+                    recentTransactionConvertedAmounts = convertedAmounts,
                     isLoading = false
                 )
             }
         }
         
         viewModelScope.launch {
-            // Load all active subscriptions
-            subscriptionRepository.getActiveSubscriptions().collect { subscriptions ->
-                val totalAmount = subscriptions.sumOf { it.amount }
+            // Load all active subscriptions with conversion for unified mode
+            combine(
+                subscriptionRepository.getActiveSubscriptions(),
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { subscriptions, isUnified, displayCurrency ->
+                Triple(subscriptions, isUnified, displayCurrency)
+            }.collect { (subscriptions, isUnified, displayCurrency) ->
+                val totalAmount = if (isUnified) {
+                    var total = java.math.BigDecimal.ZERO
+                    for (sub in subscriptions) {
+                        total += currencyConversionService.convertAmount(
+                            sub.amount, sub.currency, displayCurrency
+                        )
+                    }
+                    total
+                } else {
+                    subscriptions.sumOf { it.amount }
+                }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
                     upcomingSubscriptionsTotal = totalAmount
@@ -181,9 +250,23 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            monthlyBudgetRepository.getCurrentMonthSpending(
-                _uiState.value.selectedCurrency
-            ).collect { spending ->
+            combine(
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency,
+                userPreferencesRepository.baseCurrency
+            ) { unifiedMode, displayCurrency, baseCurrency ->
+                Triple(unifiedMode, displayCurrency, baseCurrency)
+            }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency) ->
+                if (unifiedMode) {
+                    val today = LocalDate.now()
+                    monthlyBudgetRepository.getMonthSpendingAllCurrencies(today.year, today.monthValue)
+                        .map { raw ->
+                            mapRawToConvertedSpending(raw, displayCurrency, baseCurrency)
+                        }
+                } else {
+                    monthlyBudgetRepository.getCurrentMonthSpending(baseCurrency)
+                }
+            }.collect { spending ->
                 _uiState.value = _uiState.value.copy(
                     monthlyBudgetSpending = if (spending.totalLimit > BigDecimal.ZERO) spending else null
                 )
@@ -472,25 +555,52 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun updateTransactionTypeTotals(transactions: List<TransactionEntity>) {
-        // Filter transactions by selected currency
         val selectedCurrency = _uiState.value.selectedCurrency
-        val currencyTransactions = transactions.filter { it.currency == selectedCurrency }
+        val isUnified = _uiState.value.isUnifiedMode
 
-        val creditCardTotal = currencyTransactions
-            .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
-            .sumOf { it.amount }
-        val transferTotal = currencyTransactions
-            .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER }
-            .sumOf { it.amount }
-        val investmentTotal = currencyTransactions
-            .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT }
-            .sumOf { it.amount }
+        if (isUnified) {
+            // Convert all transactions to display currency
+            viewModelScope.launch {
+                var creditCardTotal = BigDecimal.ZERO
+                var transferTotal = BigDecimal.ZERO
+                var investmentTotal = BigDecimal.ZERO
 
-        _uiState.value = _uiState.value.copy(
-            currentMonthCreditCard = creditCardTotal,
-            currentMonthTransfer = transferTotal,
-            currentMonthInvestment = investmentTotal
-        )
+                for (tx in transactions) {
+                    val converted = currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                    when (tx.transactionType) {
+                        com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT -> creditCardTotal += converted
+                        com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER -> transferTotal += converted
+                        com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT -> investmentTotal += converted
+                        else -> { /* skip */ }
+                    }
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    currentMonthCreditCard = creditCardTotal,
+                    currentMonthTransfer = transferTotal,
+                    currentMonthInvestment = investmentTotal
+                )
+            }
+        } else {
+            // Filter transactions by selected currency
+            val currencyTransactions = transactions.filter { it.currency == selectedCurrency }
+
+            val creditCardTotal = currencyTransactions
+                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
+                .sumOf { it.amount }
+            val transferTotal = currencyTransactions
+                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER }
+                .sumOf { it.amount }
+            val investmentTotal = currencyTransactions
+                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT }
+                .sumOf { it.amount }
+
+            _uiState.value = _uiState.value.copy(
+                currentMonthCreditCard = creditCardTotal,
+                currentMonthTransfer = transferTotal,
+                currentMonthInvestment = investmentTotal
+            )
+        }
     }
 
     private fun updateBreakdownForSelectedCurrency(
@@ -527,35 +637,191 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun updateUIStateForCurrency(selectedCurrency: String, availableCurrencies: List<String>) {
-        // Get breakdown for selected currency from stored maps
-        val currentBreakdown = currentMonthBreakdownMap[selectedCurrency] ?: TransactionRepository.MonthlyBreakdown(
-            total = BigDecimal.ZERO,
-            income = BigDecimal.ZERO,
-            expenses = BigDecimal.ZERO
-        )
+        if (_uiState.value.isUnifiedMode) {
+            // Aggregate all currencies, converting to selectedCurrency (displayCurrency)
+            viewModelScope.launch {
+                val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
+                val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
 
-        val lastBreakdown = lastMonthBreakdownMap[selectedCurrency] ?: TransactionRepository.MonthlyBreakdown(
-            total = BigDecimal.ZERO,
-            income = BigDecimal.ZERO,
-            expenses = BigDecimal.ZERO
-        )
+                _uiState.value = _uiState.value.copy(
+                    currentMonthTotal = currentBreakdown.total,
+                    currentMonthIncome = currentBreakdown.income,
+                    currentMonthExpenses = currentBreakdown.expenses,
+                    lastMonthTotal = lastBreakdown.total,
+                    lastMonthIncome = lastBreakdown.income,
+                    lastMonthExpenses = lastBreakdown.expenses,
+                    selectedCurrency = selectedCurrency,
+                    availableCurrencies = availableCurrencies
+                )
+                calculateMonthlyChange()
+            }
+        } else {
+            // Get breakdown for selected currency from stored maps
+            val currentBreakdown = currentMonthBreakdownMap[selectedCurrency] ?: TransactionRepository.MonthlyBreakdown(
+                total = BigDecimal.ZERO,
+                income = BigDecimal.ZERO,
+                expenses = BigDecimal.ZERO
+            )
 
-        _uiState.value = _uiState.value.copy(
-            currentMonthTotal = currentBreakdown.total,
-            currentMonthIncome = currentBreakdown.income,
-            currentMonthExpenses = currentBreakdown.expenses,
-            lastMonthTotal = lastBreakdown.total,
-            lastMonthIncome = lastBreakdown.income,
-            lastMonthExpenses = lastBreakdown.expenses,
-            selectedCurrency = selectedCurrency,
-            availableCurrencies = availableCurrencies
+            val lastBreakdown = lastMonthBreakdownMap[selectedCurrency] ?: TransactionRepository.MonthlyBreakdown(
+                total = BigDecimal.ZERO,
+                income = BigDecimal.ZERO,
+                expenses = BigDecimal.ZERO
+            )
+
+            _uiState.value = _uiState.value.copy(
+                currentMonthTotal = currentBreakdown.total,
+                currentMonthIncome = currentBreakdown.income,
+                currentMonthExpenses = currentBreakdown.expenses,
+                lastMonthTotal = lastBreakdown.total,
+                lastMonthIncome = lastBreakdown.income,
+                lastMonthExpenses = lastBreakdown.expenses,
+                selectedCurrency = selectedCurrency,
+                availableCurrencies = availableCurrencies
+            )
+            calculateMonthlyChange()
+        }
+    }
+
+    private suspend fun aggregateBreakdowns(
+        breakdownMap: Map<String, TransactionRepository.MonthlyBreakdown>,
+        targetCurrency: String
+    ): TransactionRepository.MonthlyBreakdown {
+        var totalTotal = BigDecimal.ZERO
+        var totalIncome = BigDecimal.ZERO
+        var totalExpenses = BigDecimal.ZERO
+
+        for ((currency, breakdown) in breakdownMap) {
+            if (currency == targetCurrency) {
+                totalTotal += breakdown.total
+                totalIncome += breakdown.income
+                totalExpenses += breakdown.expenses
+            } else {
+                totalTotal += currencyConversionService.convertAmount(breakdown.total, currency, targetCurrency)
+                totalIncome += currencyConversionService.convertAmount(breakdown.income, currency, targetCurrency)
+                totalExpenses += currencyConversionService.convertAmount(breakdown.expenses, currency, targetCurrency)
+            }
+        }
+
+        return TransactionRepository.MonthlyBreakdown(
+            total = totalTotal,
+            income = totalIncome,
+            expenses = totalExpenses
         )
-        calculateMonthlyChange()
     }
 
     override fun onCleared() {
         super.onCleared()
         inAppUpdateManager.cleanup()
+    }
+
+    private suspend fun mapRawToConvertedSpending(
+        raw: MonthlyBudgetSpendingRaw,
+        displayCurrency: String,
+        baseCurrency: String
+    ): MonthlyBudgetSpending {
+        // Convert budget limits from base currency to display currency
+        val convertedTotalLimit = currencyConversionService.convertAmount(raw.totalLimit, baseCurrency, displayCurrency)
+        val categoryLimitsMap = raw.categoryLimits.associate { it.categoryName to
+            currencyConversionService.convertAmount(it.limitAmount, baseCurrency, displayCurrency)
+        }
+
+        val expenseTransactions = raw.allTransactions.filter {
+            it.transaction.transactionType == TransactionType.EXPENSE ||
+                it.transaction.transactionType == TransactionType.CREDIT
+        }
+        val incomeTransactions = raw.allTransactions.filter {
+            it.transaction.transactionType == TransactionType.INCOME
+        }
+
+        var totalIncome = BigDecimal.ZERO
+        for (tx in incomeTransactions) {
+            totalIncome = totalIncome.add(
+                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
+            )
+        }
+
+        val categoryAmounts = mutableMapOf<String, BigDecimal>()
+        for (txWithSplits in expenseTransactions) {
+            val fromCurrency = txWithSplits.transaction.currency
+            txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                val categoryName = category.ifEmpty { "Others" }
+                categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
+            }
+        }
+
+        val totalSpent = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val remaining = convertedTotalLimit - totalSpent
+        val percentageUsed = if (convertedTotalLimit > BigDecimal.ZERO) {
+            (totalSpent.toFloat() / convertedTotalLimit.toFloat() * 100f).coerceAtLeast(0f)
+        } else 0f
+
+        val dailyAllowance = if (raw.daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+            remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+        } else BigDecimal.ZERO
+
+        val allCategories = (categoryLimitsMap.keys + categoryAmounts.keys).distinct()
+        val categorySpending = allCategories.map { categoryName ->
+            val spent = categoryAmounts[categoryName] ?: BigDecimal.ZERO
+            val catLimit = categoryLimitsMap[categoryName]
+            val catPercentage = if (catLimit != null && catLimit > BigDecimal.ZERO) {
+                (spent.toFloat() / catLimit.toFloat() * 100f).coerceAtLeast(0f)
+            } else null
+            val catDailySpend = if (raw.daysElapsed > 0 && spent > BigDecimal.ZERO) {
+                spent.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
+            } else BigDecimal.ZERO
+            val catRemaining = if (catLimit != null) catLimit - spent else null
+            val catDailyAllowance = if (catLimit != null && raw.daysRemaining > 0 && catRemaining != null && catRemaining > BigDecimal.ZERO) {
+                catRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+            } else null
+            CategorySpendingInfo(
+                categoryName = categoryName,
+                spent = spent,
+                limit = catLimit,
+                percentageUsed = catPercentage,
+                dailySpend = catDailySpend,
+                dailyAllowance = catDailyAllowance
+            )
+        }.sortedWith(compareByDescending<CategorySpendingInfo> { it.limit != null }.thenByDescending { it.spent })
+
+        val netSavings = totalIncome - totalSpent
+        val savingsRate = if (totalIncome > BigDecimal.ZERO) {
+            (netSavings.toFloat() / totalIncome.toFloat() * 100f)
+        } else 0f
+
+        var prevIncome = BigDecimal.ZERO
+        for (tx in raw.prevTransactions.filter { it.transaction.transactionType == TransactionType.INCOME }) {
+            prevIncome = prevIncome.add(
+                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
+            )
+        }
+        var prevExpenses = BigDecimal.ZERO
+        for (tx in raw.prevTransactions.filter {
+            it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT
+        }) {
+            prevExpenses = prevExpenses.add(
+                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
+            )
+        }
+        val prevSavings = prevIncome - prevExpenses
+        val savingsDelta = if (prevIncome > BigDecimal.ZERO || totalIncome > BigDecimal.ZERO) {
+            netSavings - prevSavings
+        } else null
+
+        return MonthlyBudgetSpending(
+            totalLimit = convertedTotalLimit,
+            totalSpent = totalSpent,
+            remaining = remaining,
+            percentageUsed = percentageUsed,
+            categorySpending = categorySpending,
+            daysRemaining = raw.daysRemaining,
+            dailyAllowance = dailyAllowance,
+            totalIncome = totalIncome,
+            netSavings = netSavings,
+            savingsRate = savingsRate,
+            savingsDelta = savingsDelta
+        )
     }
 }
 
@@ -581,7 +847,9 @@ data class HomeUiState(
     val totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     val selectedCurrency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
+    val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
-    val showBreakdownDialog: Boolean = false
+    val showBreakdownDialog: Boolean = false,
+    val isUnifiedMode: Boolean = false
 )

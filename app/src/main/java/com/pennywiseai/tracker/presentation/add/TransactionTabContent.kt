@@ -37,6 +37,7 @@ fun TransactionTabContent(
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    var showCurrencyMenu by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -46,17 +47,44 @@ fun TransactionTabContent(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Currency Selector
+        ExposedDropdownMenuBox(
+            expanded = showCurrencyMenu,
+            onExpandedChange = { showCurrencyMenu = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Currency") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(
+                expanded = showCurrencyMenu,
+                onDismissRequest = { showCurrencyMenu = false }
+            ) {
+                CurrencyFormatter.getSupportedCurrencies().forEach { currency ->
+                    DropdownMenuItem(
+                        text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
+                        onClick = {
+                            viewModel.updateTransactionCurrency(currency)
+                            showCurrencyMenu = false
+                        }
+                    )
+                }
+            }
+        }
+
         // Amount Input
         OutlinedTextField(
             value = uiState.amount,
             onValueChange = viewModel::updateTransactionAmount,
             label = { Text("Amount *") },
-            leadingIcon = { 
-                Icon(
-                    Icons.Default.CurrencyRupee, 
-                    contentDescription = null
-                ) 
-            },
+            prefix = { Text(CurrencyFormatter.getCurrencySymbol(uiState.currency)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),

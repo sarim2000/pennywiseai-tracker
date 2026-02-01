@@ -84,6 +84,8 @@ fun TransactionsScreen(
     val sortOption by viewModel.sortOption.collectAsState()
     val smsScanMonths by viewModel.smsScanMonths.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
+    val convertedAmounts by viewModel.convertedAmounts.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -471,6 +473,7 @@ fun TransactionsScreen(
                 currency = selectedCurrency,
                 availableCurrencies = availableCurrencies,
                 onCurrencySelected = { viewModel.selectCurrency(it) },
+                isUnifiedMode = isUnifiedMode,
                 isLoading = uiState.isLoading,
                 modifier = Modifier
                     .padding(horizontal = Dimensions.Padding.content)
@@ -607,6 +610,8 @@ fun TransactionsScreen(
                                     transaction = transaction,
                                     categoriesMap = categoriesMap,
                                     showDate = dateGroup == DateGroup.EARLIER,
+                                    convertedAmount = convertedAmounts[transaction.id],
+                                    displayCurrency = if (isUnifiedMode) selectedCurrency else null,
                                     onClick = { onTransactionClick(transaction.id) }
                                 )
                                 if (transaction != transactions.last()) {
@@ -701,6 +706,8 @@ private fun TransactionItem(
     transaction: TransactionEntity,
     categoriesMap: Map<String, CategoryEntity>,
     showDate: Boolean,
+    convertedAmount: BigDecimal? = null,
+    displayCurrency: String? = null,
     onClick: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -711,20 +718,20 @@ private fun TransactionItem(
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
     }
-    
+
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
     val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
     val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d • h:mm a")
-    
+
     // Always show both date and time
     val dateTimeText = transaction.dateTime.format(dateTimeFormatter)
-    
+
     // Build subtitle (type shown via icon, not text)
     val subtitleParts = buildList {
         add(dateTimeText)
         if (transaction.isRecurring) add("Recurring")
     }
-    
+
     ListItemCard(
         title = transaction.merchantName,
         subtitle = subtitleParts.joinToString(" • "),
@@ -776,14 +783,31 @@ private fun TransactionItem(
                         tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
                     )
                 }
-                
-                // Always show amount
-                Text(
-                    text = transaction.formatAmount(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = amountColor
-                )
+
+                // Amount display
+                if (convertedAmount != null && displayCurrency != null) {
+                    // Unified mode: show converted amount primary, original secondary
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = amountColor
+                        )
+                        Text(
+                            text = "(${transaction.formatAmount()})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Text(
+                        text = transaction.formatAmount(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = amountColor
+                    )
+                }
             }
         }
     )

@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -179,17 +180,23 @@ class CurrencyConversionService @Inject constructor(
                         }
 
                         if (rate != null) {
-                            val entity = ExchangeRateEntity(
-                                fromCurrency = fromCurrency,
-                                toCurrency = toCurrency,
-                                rate = rate,
-                                provider = response.provider,
-                                updatedAt = lastUpdateTime,
-                                updatedAtUnix = response.lastUpdateTimeUnix,
-                                expiresAt = nextUpdateTime, // Use the API's next update time
-                                expiresAtUnix = response.nextUpdateTimeUnix
-                            )
-                            exchangeRateDao.insertExchangeRate(entity)
+                            // Skip overwriting custom rates set by user
+                            val existing = exchangeRateDao.getExchangeRateIgnoringExpiry(fromCurrency, toCurrency)
+                            if (existing?.isCustomRate == true) {
+                                // Don't overwrite user's custom rate
+                            } else {
+                                val entity = ExchangeRateEntity(
+                                    fromCurrency = fromCurrency,
+                                    toCurrency = toCurrency,
+                                    rate = rate,
+                                    provider = response.provider,
+                                    updatedAt = lastUpdateTime,
+                                    updatedAtUnix = response.lastUpdateTimeUnix,
+                                    expiresAt = nextUpdateTime,
+                                    expiresAtUnix = response.nextUpdateTimeUnix
+                                )
+                                exchangeRateDao.insertExchangeRate(entity)
+                            }
                         }
                     }
                 }
@@ -357,6 +364,65 @@ class CurrencyConversionService @Inject constructor(
         }
 
         return convertedAmounts
+    }
+
+    /**
+     * Set a custom exchange rate for a currency pair.
+     * Custom rates are preserved across API refreshes.
+     */
+    suspend fun setCustomRate(fromCurrency: String, toCurrency: String, rate: BigDecimal) {
+        val farFutureExpiry = LocalDateTime.now().plusYears(100)
+        val entity = ExchangeRateEntity(
+            fromCurrency = fromCurrency,
+            toCurrency = toCurrency,
+            rate = rate,
+            provider = "Custom",
+            updatedAt = LocalDateTime.now(),
+            updatedAtUnix = System.currentTimeMillis() / 1000,
+            expiresAt = farFutureExpiry,
+            expiresAtUnix = farFutureExpiry.atZone(ZoneId.systemDefault()).toEpochSecond(),
+            isCustomRate = true
+        )
+
+        // Check if existing row exists to preserve its ID for REPLACE
+        val existing = exchangeRateDao.getExchangeRateIgnoringExpiry(fromCurrency, toCurrency)
+        val entityToInsert = if (existing != null) entity.copy(id = existing.id) else entity
+        exchangeRateDao.insertExchangeRate(entityToInsert)
+
+        val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
+        updateCache(cacheKey, rate)
+    }
+
+    /**
+     * Clear a custom rate, allowing API rates to take over again.
+     */
+    suspend fun clearCustomRate(fromCurrency: String, toCurrency: String) {
+        exchangeRateDao.clearCustomRateFlag(fromCurrency, toCurrency)
+        val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
+        rateCache.remove(cacheKey)
+    }
+
+    /**
+     * Clear all custom rates, resetting everything to API rates.
+     */
+    suspend fun clearAllCustomRates() {
+        exchangeRateDao.clearAllCustomRateFlags()
+        rateCache.clear()
+        lastCacheUpdate = LocalDateTime.MIN
+    }
+
+    /**
+     * Get all active exchange rates relevant to the user's currencies.
+     */
+    suspend fun getActiveRates(userCurrencies: List<String>): List<ExchangeRateEntity> {
+        return exchangeRateDao.getRatesForCurrencies(userCurrencies)
+    }
+
+    /**
+     * Get a Flow of all exchange rates in the database.
+     */
+    fun getAllRatesFlow(): Flow<List<ExchangeRateEntity>> {
+        return exchangeRateDao.getAllRatesFlow()
     }
 
     data class TransactionData(

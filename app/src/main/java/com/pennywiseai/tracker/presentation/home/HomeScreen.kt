@@ -232,6 +232,7 @@ fun HomeScreen(
                     UpcomingSubscriptionsCard(
                         subscriptions = uiState.upcomingSubscriptions,
                         totalAmount = uiState.upcomingSubscriptionsTotal,
+                        currency = uiState.selectedCurrency,
                         onClick = onNavigateToSubscriptions
                     )
                 }
@@ -336,6 +337,8 @@ fun HomeScreen(
                 ) { transaction ->
                     SimpleTransactionItem(
                         transaction = transaction,
+                        convertedAmount = uiState.recentTransactionConvertedAmounts[transaction.id],
+                        displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
                         onClick = { onTransactionClick(transaction.id) }
                     )
                 }
@@ -466,6 +469,7 @@ fun HomeScreen(
                 lastMonthIncome = uiState.lastMonthIncome,
                 lastMonthExpenses = uiState.lastMonthExpenses,
                 lastMonthTotal = uiState.lastMonthTotal,
+                currency = uiState.selectedCurrency,
                 onDismiss = { viewModel.hideBreakdownDialog() }
             )
         }
@@ -477,6 +481,8 @@ fun HomeScreen(
 @Composable
 private fun SimpleTransactionItem(
     transaction: TransactionEntity,
+    convertedAmount: BigDecimal? = null,
+    displayCurrency: String? = null,
     onClick: () -> Unit = {}
 ) {
     val amountColor = when (transaction.transactionType) {
@@ -486,14 +492,18 @@ private fun SimpleTransactionItem(
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
     }
-    
+
     val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d • h:mm a")
     val dateTimeText = transaction.dateTime.format(dateTimeFormatter)
-    
+
     ListItemCard(
         title = transaction.merchantName,
         subtitle = dateTimeText,
-        amount = transaction.formatAmount(),
+        amount = if (convertedAmount != null && displayCurrency != null) {
+            CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)
+        } else {
+            transaction.formatAmount()
+        },
         amountColor = amountColor,
         onClick = onClick,
         leadingContent = {
@@ -502,7 +512,24 @@ private fun SimpleTransactionItem(
                 size = 40.dp,
                 showBackground = true
             )
-        }
+        },
+        trailingContent = if (convertedAmount != null && displayCurrency != null) {
+            {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = amountColor
+                    )
+                    Text(
+                        text = "(${transaction.formatAmount()})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else null
     )
 }
 
@@ -558,15 +585,7 @@ private fun MonthSummaryCard(
     
     val currentMonth = now.month.name.lowercase().replaceFirstChar { it.uppercase() }
 
-    // Currency symbol mapping for display
-    val currencySymbols = mapOf(
-        "INR" to "₹",
-        "USD" to "$",
-        "AED" to "AED",
-        "NPR" to "₨",
-        "ETB" to "ብর"
-    )
-    val currencySymbol = currencySymbols[currency] ?: currency
+    val currencySymbol = CurrencyFormatter.getCurrencySymbol(currency)
 
     val titleText = "Cash Flow ($currencySymbol) • $currentMonth 1-${now.dayOfMonth}"
     
@@ -674,6 +693,7 @@ private fun BreakdownDialog(
     lastMonthIncome: BigDecimal,
     lastMonthExpenses: BigDecimal,
     lastMonthTotal: BigDecimal,
+    currency: String = "INR",
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
@@ -714,26 +734,29 @@ private fun BreakdownDialog(
                 BreakdownRow(
                     label = "Income",
                     amount = currentMonthIncome,
-                    isIncome = true
+                    isIncome = true,
+                    currency = currency
                 )
-                
+
                 BreakdownRow(
                     label = "Expenses",
                     amount = currentMonthExpenses,
-                    isIncome = false
+                    isIncome = false,
+                    currency = currency
                 )
-                
+
                 HorizontalDivider()
-                
+
                 BreakdownRow(
                     label = "Cash Flow",
                     amount = currentMonthTotal,
                     isIncome = currentMonthTotal >= BigDecimal.ZERO,
-                    isBold = true
+                    isBold = true,
+                    currency = currency
                 )
-                
+
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                
+
                 // Last Period Section
                 Text(
                     text = lastPeriod,
@@ -741,26 +764,29 @@ private fun BreakdownDialog(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 BreakdownRow(
                     label = "Income",
                     amount = lastMonthIncome,
-                    isIncome = true
+                    isIncome = true,
+                    currency = currency
                 )
-                
+
                 BreakdownRow(
                     label = "Expenses",
                     amount = lastMonthExpenses,
-                    isIncome = false
+                    isIncome = false,
+                    currency = currency
                 )
-                
+
                 HorizontalDivider()
-                
+
                 BreakdownRow(
                     label = "Cash Flow",
                     amount = lastMonthTotal,
                     isIncome = lastMonthTotal >= BigDecimal.ZERO,
-                    isBold = true
+                    isBold = true,
+                    currency = currency
                 )
                 
                 // Formula explanation
@@ -798,7 +824,8 @@ private fun BreakdownRow(
     label: String,
     amount: BigDecimal,
     isIncome: Boolean,
-    isBold: Boolean = false
+    isBold: Boolean = false,
+    currency: String = "INR"
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -810,7 +837,7 @@ private fun BreakdownRow(
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
         )
         Text(
-            text = "${if (isIncome) "+" else "-"}${CurrencyFormatter.formatCurrency(amount.abs())}",
+            text = "${if (isIncome) "+" else "-"}${CurrencyFormatter.formatCurrency(amount.abs(), currency)}",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
             color = if (isIncome) {
@@ -826,6 +853,7 @@ private fun BreakdownRow(
 private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
+    currency: String = "INR",
     onClick: () -> Unit = {}
 ) {
     Card(
@@ -861,7 +889,7 @@ private fun UpcomingSubscriptionsCard(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        text = "Monthly total: ${CurrencyFormatter.formatCurrency(totalAmount)}",
+                        text = "Monthly total: ${CurrencyFormatter.formatCurrency(totalAmount, currency)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
                     )
@@ -890,7 +918,7 @@ private fun TransactionSummaryCards(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // Enhanced Currency Selector (if multiple currencies available)
-        if (uiState.availableCurrencies.size > 1) {
+        if (uiState.availableCurrencies.size > 1 && !uiState.isUnifiedMode) {
             EnhancedCurrencySelector(
                 selectedCurrency = uiState.selectedCurrency,
                 availableCurrencies = uiState.availableCurrencies,
@@ -1033,15 +1061,6 @@ private fun EnhancedCurrencySelector(
     onCurrencySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Currency symbol mapping
-    val currencySymbols = mapOf(
-        "INR" to "₹",
-        "USD" to "$",
-        "AED" to "AED",
-        "NPR" to "₨",
-        "ETB" to "ብር"
-    )
-
     // Compact segmented button style
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -1061,7 +1080,7 @@ private fun EnhancedCurrencySelector(
         ) {
             availableCurrencies.forEach { currency ->
                 val isSelected = selectedCurrency == currency
-                val symbol = currencySymbols[currency] ?: currency
+                val symbol = CurrencyFormatter.getCurrencySymbol(currency)
 
                 Surface(
                     onClick = { onCurrencySelected(currency) },

@@ -64,6 +64,7 @@ fun MonthlyBudgetScreen(
         if (uiState.monthlyLimit == null) {
             BudgetSetupPrompt(
                 modifier = Modifier.padding(paddingValues),
+                currency = uiState.baseCurrency,
                 onSetBudget = { amount -> viewModel.setMonthlyLimit(amount) }
             )
         } else {
@@ -85,6 +86,7 @@ fun MonthlyBudgetScreen(
 @Composable
 private fun BudgetSetupPrompt(
     modifier: Modifier = Modifier,
+    currency: String = "INR",
     onSetBudget: (BigDecimal) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
@@ -133,7 +135,7 @@ private fun BudgetSetupPrompt(
                         }
                     },
                     label = { Text("Monthly Budget") },
-                    prefix = { Text("₹") },
+                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

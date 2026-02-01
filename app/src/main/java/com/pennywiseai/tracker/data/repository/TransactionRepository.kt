@@ -320,6 +320,19 @@ class TransactionRepository @Inject constructor(
         )
 
     /**
+     * Gets transactions with their splits for a date range across all currencies.
+     * Used for unified currency mode where all currencies are loaded and converted.
+     */
+    fun getTransactionsWithSplitsFiltered(
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): Flow<List<TransactionWithSplits>> =
+        transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
+            startDate.atStartOfDay(),
+            endDate.atTime(23, 59, 59)
+        )
+
+    /**
      * Gets a transaction with its splits synchronously.
      */
     suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits? =

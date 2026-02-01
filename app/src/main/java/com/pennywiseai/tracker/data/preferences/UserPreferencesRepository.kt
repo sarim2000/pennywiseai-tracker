@@ -54,6 +54,10 @@ class UserPreferencesRepository @Inject constructor(
 
         // Monthly Budget
         val MONTHLY_BUDGET_LIMIT = stringPreferencesKey("monthly_budget_limit")
+
+        // Unified Currency Mode
+        val UNIFIED_CURRENCY_MODE = booleanPreferencesKey("unified_currency_mode")
+        val DISPLAY_CURRENCY = stringPreferencesKey("display_currency")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -66,13 +70,27 @@ class UserPreferencesRepository @Inject constructor(
                 hasShownScanTutorial = preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] ?: false,
                 smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3, // Default to 3 months
                 smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false, // Default to false
-                baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR" // Default to INR
+                baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR", // Default to INR
+                unifiedCurrencyMode = preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] ?: false,
+                displayCurrency = preferences[PreferencesKeys.DISPLAY_CURRENCY]
+                    ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
             )
         }
 
     val baseCurrency: Flow<String> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
+        }
+
+    val unifiedCurrencyMode: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] ?: false
+        }
+
+    val displayCurrency: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.DISPLAY_CURRENCY]
+                ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
 
     val isDeveloperModeEnabled: Flow<Boolean> = context.dataStore.data
@@ -366,6 +384,19 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    // Unified Currency Mode
+    suspend fun setUnifiedCurrencyMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] = enabled
+        }
+    }
+
+    suspend fun setDisplayCurrency(currency: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DISPLAY_CURRENCY] = currency
+        }
+    }
+
     // Monthly Budget
     val monthlyBudgetLimit: Flow<java.math.BigDecimal?> = context.dataStore.data
         .map { preferences ->
@@ -391,5 +422,7 @@ data class UserPreferences(
     val hasShownScanTutorial: Boolean = false,
     val smsScanMonths: Int = 3, // Default to 3 months
     val smsScanAllTime: Boolean = false, // Default to false
-    val baseCurrency: String = "INR" // Default to INR
+    val baseCurrency: String = "INR", // Default to INR
+    val unifiedCurrencyMode: Boolean = false,
+    val displayCurrency: String = "INR"
 )

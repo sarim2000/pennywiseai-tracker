@@ -29,6 +29,7 @@ fun TransactionTotalsCard(
     currency: String,
     availableCurrencies: List<String> = emptyList(),
     onCurrencySelected: (String) -> Unit = {},
+    isUnifiedMode: Boolean = false,
     isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -59,7 +60,7 @@ fun TransactionTotalsCard(
                 .padding(Dimensions.Padding.content)
         ) {
             // Currency Selector (if multiple currencies available)
-            if (availableCurrencies.size > 1) {
+            if (availableCurrencies.size > 1 && !isUnifiedMode) {
                 CurrencySelector(
                     selectedCurrency = currency,
                     availableCurrencies = availableCurrencies,

@@ -34,6 +34,8 @@ import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,11 +61,14 @@ fun SettingsScreen(
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
+    val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "INR")
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     var showSmsScanDialog by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
     var showTimeoutDialog by remember { mutableStateOf(false) }
+    var showCurrencyDropdown by remember { mutableStateOf(false) }
+    val availableCurrencies = remember { CurrencyUtils.getAllSupportedCurrencies() }
     val context = LocalContext.current
     
     // File picker for import
@@ -139,6 +144,82 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                }
+            }
+        }
+
+        // General Settings Section
+        SectionHeader(title = "General")
+
+        PennyWiseCard(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                // Default Currency Selection
+                Column {
+                    Text(
+                        text = "Default Currency",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = "Currency used for conversions and calculations",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = showCurrencyDropdown,
+                        onExpandedChange = { showCurrencyDropdown = it }
+                    ) {
+                        OutlinedTextField(
+                            value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Currency") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = showCurrencyDropdown,
+                            onDismissRequest = { showCurrencyDropdown = false }
+                        ) {
+                            availableCurrencies.forEach { currency ->
+                                DropdownMenuItem(
+                                    text = { 
+                                        Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
+                                    },
+                                    onClick = {
+                                        settingsViewModel.updateBaseCurrency(currency)
+                                        showCurrencyDropdown = false
+                                    },
+                                    leadingIcon = if (currency == baseCurrency) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -56,7 +56,7 @@ class TransactionsViewModel @Inject constructor(
     private val _sortOption = MutableStateFlow(SortOption.DATE_NEWEST)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
-    private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
+    private val _selectedCurrency = MutableStateFlow("INR") // Will be initialized from preferences
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
 
     // Store custom date range as epoch days to survive process death
@@ -199,6 +199,12 @@ class TransactionsViewModel @Inject constructor(
     }
     
     init {
+        // Initialize selectedCurrency from baseCurrency preference
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _selectedCurrency.value = baseCurrency
+        }
+        
         // Manually combine all flows using transformLatest
         merge(
             searchQuery.debounce(300).map { "search" },
@@ -217,16 +223,37 @@ class TransactionsViewModel @Inject constructor(
                 val category = categoryFilter.value
                 val categories = categoriesFilter.value
                 val typeFilter = transactionTypeFilter.value
-                val currency = selectedCurrency.value
                 val sort = sortOption.value
 
-                // Get filtered transactions
+                // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter)
-                    .collect { transactions ->
-                        // Filter by currency
-                        val currencyFilteredTransactions = transactions.filter {
-                            it.currency.equals(currency, ignoreCase = true)
+                    .collect { allFilteredTransactions ->
+                        // Calculate available currencies from ALL filtered transactions (before currency filtering)
+                        val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
+                            allFilteredTransactions.map { it.currency }.distinct()
+                        )
+                        
+                        // Auto-select primary currency if current currency doesn't exist in available currencies
+                        val currentCurrency = selectedCurrency.value
+                        val finalCurrency = if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(currentCurrency)) {
+                            // Auto-select: prefer baseCurrency from preferences, then first available
+                            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+                            val newCurrency = if (allAvailableCurrencies.contains(baseCurrency)) {
+                                baseCurrency
+                            } else {
+                                allAvailableCurrencies.first()
+                            }
+                            _selectedCurrency.value = newCurrency
+                            newCurrency
+                        } else {
+                            currentCurrency
                         }
+                        
+                        // Now filter by the selected currency (which may have just been auto-selected)
+                        val currencyFilteredTransactions = allFilteredTransactions.filter {
+                            it.currency.equals(finalCurrency, ignoreCase = true)
+                        }
+                        
                         emit(sortTransactions(currencyFilteredTransactions, sort))
                     }
             }
@@ -238,12 +265,6 @@ class TransactionsViewModel @Inject constructor(
                 )
                 // Calculate totals for filtered transactions
                 _currencyGroupedTotals.value = calculateCurrencyGroupedTotals(transactions)
-
-                // Auto-select primary currency if not already selected or if current currency no longer exists
-                val currentCurrency = selectedCurrency.value
-                if (!_currencyGroupedTotals.value.availableCurrencies.contains(currentCurrency) && _currencyGroupedTotals.value.hasAnyCurrency()) {
-                    _selectedCurrency.value = _currencyGroupedTotals.value.getPrimaryCurrency()
-                }
             }
             .launchIn(viewModelScope)
     }

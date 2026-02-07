@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
 import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,6 +30,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -42,6 +45,7 @@ class HomeViewModel @Inject constructor(
     private val monthlyBudgetRepository: MonthlyBudgetRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     @ApplicationContext private val context: Context
@@ -63,6 +67,28 @@ class HomeViewModel @Inject constructor(
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     
     init {
+        // Initialize selectedCurrency from baseCurrency preference
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _uiState.value = _uiState.value.copy(selectedCurrency = baseCurrency)
+        }
+        
+        // Listen to baseCurrency changes and update selectedCurrency
+        userPreferencesRepository.baseCurrency
+            .onEach { baseCurrency ->
+                val currentSelected = _uiState.value.selectedCurrency
+                // Only update if the baseCurrency changed and is available in current currencies
+                // or if current selected currency is not in available currencies
+                val availableCurrencies = _uiState.value.availableCurrencies
+                if (baseCurrency != currentSelected) {
+                    // If baseCurrency is available, use it; otherwise keep current selection
+                    if (availableCurrencies.isEmpty() || availableCurrencies.contains(baseCurrency)) {
+                        selectCurrency(baseCurrency)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+        
         loadHomeData()
     }
     
@@ -514,16 +540,26 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        // Auto-select primary currency if not already selected or if current currency no longer exists
+        // Auto-select currency: prefer baseCurrency from preferences, then INR, then first available
         val currentSelectedCurrency = _uiState.value.selectedCurrency
-        val selectedCurrency = if (!availableCurrencies.contains(currentSelectedCurrency) && availableCurrencies.isNotEmpty()) {
-            if (availableCurrencies.contains("INR")) "INR" else availableCurrencies.first()
+        if (!availableCurrencies.contains(currentSelectedCurrency) && availableCurrencies.isNotEmpty()) {
+            // Need to get baseCurrency asynchronously
+            viewModelScope.launch {
+                val baseCurrency = userPreferencesRepository.baseCurrency.first()
+                val selectedCurrency = if (availableCurrencies.contains(baseCurrency)) {
+                    baseCurrency
+                } else if (availableCurrencies.contains("INR")) {
+                    "INR"
+                } else {
+                    availableCurrencies.first()
+                }
+                // Update UI state with values for selected currency
+                updateUIStateForCurrency(selectedCurrency, availableCurrencies)
+            }
         } else {
-            currentSelectedCurrency
+            // Update UI state with values for selected currency
+            updateUIStateForCurrency(currentSelectedCurrency, availableCurrencies)
         }
-
-        // Update UI state with values for selected currency
-        updateUIStateForCurrency(selectedCurrency, availableCurrencies)
     }
 
     private fun updateUIStateForCurrency(selectedCurrency: String, availableCurrencies: List<String>) {

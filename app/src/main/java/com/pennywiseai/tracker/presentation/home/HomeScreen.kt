@@ -67,7 +67,7 @@ import com.pennywiseai.tracker.ui.components.ListItemCard
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.AccountBalancesCard
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.theme.budget_safe_light
 import com.pennywiseai.tracker.ui.theme.budget_safe_dark
 import com.pennywiseai.tracker.ui.theme.budget_warning_light
@@ -215,11 +215,11 @@ fun HomeScreen(
                 }
             }
 
-            // Monthly Budget Card
-            uiState.monthlyBudgetSpending?.let { spending ->
+            // Budget Summary Card
+            uiState.budgetSummary?.let { summary ->
                 item {
-                    MonthlyBudgetHomeCard(
-                        spending = spending,
+                    BudgetSummaryHomeCard(
+                        summary = summary,
                         currency = uiState.selectedCurrency,
                         onClick = onNavigateToBudgets
                     )
@@ -1131,15 +1131,20 @@ private fun EnhancedCurrencySelector(
 }
 
 @Composable
-private fun MonthlyBudgetHomeCard(
-    spending: MonthlyBudgetSpending,
+private fun BudgetSummaryHomeCard(
+    summary: BudgetOverallSummary,
     currency: String,
     onClick: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
+    val limitRemaining = summary.totalLimitBudget - summary.totalLimitSpent
+    val pctUsed = if (summary.totalLimitBudget > BigDecimal.ZERO) {
+        (summary.totalLimitSpent.toFloat() / summary.totalLimitBudget.toFloat() * 100f)
+    } else 0f
+
     val progressColor = when {
-        spending.percentageUsed < 50f -> if (isDark) budget_safe_dark else budget_safe_light
-        spending.percentageUsed < 80f -> if (isDark) budget_warning_dark else budget_warning_light
+        pctUsed < 50f -> if (isDark) budget_safe_dark else budget_safe_light
+        pctUsed < 80f -> if (isDark) budget_warning_dark else budget_warning_light
         else -> if (isDark) budget_danger_dark else budget_danger_light
     }
 
@@ -1161,70 +1166,67 @@ private fun MonthlyBudgetHomeCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Monthly Budget",
+                    text = "Budget",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (spending.daysRemaining > 0 && spending.remaining > java.math.BigDecimal.ZERO) {
+                if (summary.daysRemaining > 0 && summary.dailyAllowance > BigDecimal.ZERO) {
                     Text(
-                        text = "${CurrencyFormatter.formatCurrency(spending.dailyAllowance, currency)}/day",
+                        text = "${CurrencyFormatter.formatCurrency(summary.dailyAllowance, currency)}/day",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = CurrencyFormatter.formatCurrency(spending.totalSpent, currency),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = progressColor
+            if (summary.totalLimitBudget > BigDecimal.ZERO) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(summary.totalLimitSpent, currency),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = progressColor
+                    )
+                    Text(
+                        text = "/ ${CurrencyFormatter.formatCurrency(summary.totalLimitBudget, currency)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+
+                LinearProgressIndicator(
+                    progress = { (pctUsed / 100f).coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp),
+                    color = progressColor,
+                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
                 )
+
                 Text(
-                    text = "/ ${CurrencyFormatter.formatCurrency(spending.totalLimit, currency)}",
+                    text = if (limitRemaining >= BigDecimal.ZERO) {
+                        "${CurrencyFormatter.formatCurrency(limitRemaining, currency)} remaining"
+                    } else {
+                        "${CurrencyFormatter.formatCurrency(limitRemaining.abs(), currency)} over budget"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
 
-            LinearProgressIndicator(
-                progress = { (spending.percentageUsed / 100f).coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = progressColor,
-                trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
-            )
-
-            Text(
-                text = if (spending.remaining >= java.math.BigDecimal.ZERO) {
-                    "${CurrencyFormatter.formatCurrency(spending.remaining, currency)} remaining"
-                } else {
-                    "${CurrencyFormatter.formatCurrency(spending.remaining.abs(), currency)} over budget"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-
-            if (spending.totalIncome > java.math.BigDecimal.ZERO) {
-                val savingsColor = if (spending.netSavings >= java.math.BigDecimal.ZERO) {
+            if (summary.totalIncome > BigDecimal.ZERO) {
+                val savingsColor = if (summary.netSavings >= BigDecimal.ZERO) {
                     if (isDark) budget_safe_dark else budget_safe_light
                 } else {
                     if (isDark) budget_danger_dark else budget_danger_light
                 }
-                val deltaText = spending.savingsDelta?.let { delta ->
-                    if (delta.compareTo(java.math.BigDecimal.ZERO) != 0) {
-                        " ${if (delta >= java.math.BigDecimal.ZERO) "↑" else "↓"}${CurrencyFormatter.formatCurrency(delta.abs(), currency)}"
-                    } else null
-                } ?: ""
 
                 Text(
-                    text = "${if (spending.netSavings >= java.math.BigDecimal.ZERO) "Saved" else "Overspent"} ${CurrencyFormatter.formatCurrency(spending.netSavings.abs(), currency)} (${String.format("%.0f", kotlin.math.abs(spending.savingsRate))}%)$deltaText",
+                    text = "${if (summary.netSavings >= BigDecimal.ZERO) "Saved" else "Overspent"} ${CurrencyFormatter.formatCurrency(summary.netSavings.abs(), currency)} (${String.format("%.0f", kotlin.math.abs(summary.savingsRate))}%)",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = savingsColor

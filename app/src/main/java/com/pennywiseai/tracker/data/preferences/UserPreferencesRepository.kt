@@ -58,6 +58,9 @@ class UserPreferencesRepository @Inject constructor(
         // Unified Currency Mode
         val UNIFIED_CURRENCY_MODE = booleanPreferencesKey("unified_currency_mode")
         val DISPLAY_CURRENCY = stringPreferencesKey("display_currency")
+
+        // Budget Groups Migration
+        val HAS_MIGRATED_TO_BUDGET_GROUPS = booleanPreferencesKey("has_migrated_to_budget_groups")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -394,6 +397,18 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDisplayCurrency(currency: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DISPLAY_CURRENCY] = currency
+        }
+    }
+
+    // Budget Groups Migration
+    val hasMigratedToBudgetGroups: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] ?: false
+        }
+
+    suspend fun setHasMigratedToBudgetGroups(migrated: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] = migrated
         }
     }
 

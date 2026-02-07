@@ -20,10 +20,12 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetSpendingRaw
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -49,7 +51,7 @@ class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val monthlyBudgetRepository: MonthlyBudgetRepository,
+    private val budgetGroupRepository: BudgetGroupRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -257,18 +259,18 @@ class HomeViewModel @Inject constructor(
             ) { unifiedMode, displayCurrency, baseCurrency ->
                 Triple(unifiedMode, displayCurrency, baseCurrency)
             }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency) ->
+                val today = LocalDate.now()
                 if (unifiedMode) {
-                    val today = LocalDate.now()
-                    monthlyBudgetRepository.getMonthSpendingAllCurrencies(today.year, today.monthValue)
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(today.year, today.monthValue)
                         .map { raw ->
-                            mapRawToConvertedSpending(raw, displayCurrency, baseCurrency)
+                            mapRawToConvertedSummary(raw, displayCurrency, baseCurrency)
                         }
                 } else {
-                    monthlyBudgetRepository.getCurrentMonthSpending(baseCurrency)
+                    budgetGroupRepository.getGroupSpending(today.year, today.monthValue, baseCurrency)
                 }
-            }.collect { spending ->
+            }.collect { summary ->
                 _uiState.value = _uiState.value.copy(
-                    monthlyBudgetSpending = if (spending.totalLimit > BigDecimal.ZERO) spending else null
+                    budgetSummary = if (summary.groups.isNotEmpty()) summary else null
                 )
             }
         }
@@ -715,25 +717,14 @@ class HomeViewModel @Inject constructor(
         inAppUpdateManager.cleanup()
     }
 
-    private suspend fun mapRawToConvertedSpending(
-        raw: MonthlyBudgetSpendingRaw,
+    private suspend fun mapRawToConvertedSummary(
+        raw: BudgetGroupSpendingRaw,
         displayCurrency: String,
         baseCurrency: String
-    ): MonthlyBudgetSpending {
-        // Convert budget limits from base currency to display currency
-        val convertedTotalLimit = currencyConversionService.convertAmount(raw.totalLimit, baseCurrency, displayCurrency)
-        val categoryLimitsMap = raw.categoryLimits.associate { it.categoryName to
-            currencyConversionService.convertAmount(it.limitAmount, baseCurrency, displayCurrency)
-        }
-
-        val expenseTransactions = raw.allTransactions.filter {
-            it.transaction.transactionType == TransactionType.EXPENSE ||
-                it.transaction.transactionType == TransactionType.CREDIT
-        }
+    ): BudgetOverallSummary {
         val incomeTransactions = raw.allTransactions.filter {
             it.transaction.transactionType == TransactionType.INCOME
         }
-
         var totalIncome = BigDecimal.ZERO
         for (tx in incomeTransactions) {
             totalIncome = totalIncome.add(
@@ -742,85 +733,86 @@ class HomeViewModel @Inject constructor(
         }
 
         val categoryAmounts = mutableMapOf<String, BigDecimal>()
-        for (txWithSplits in expenseTransactions) {
-            val fromCurrency = txWithSplits.transaction.currency
-            txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
-                val categoryName = category.ifEmpty { "Others" }
-                categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
+        raw.allTransactions.forEach { txWithSplits ->
+            if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+                val fromCurrency = txWithSplits.transaction.currency
+                txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                    val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                    val categoryName = category.ifEmpty { "Others" }
+                    categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
+                }
             }
         }
 
-        val totalSpent = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        val remaining = convertedTotalLimit - totalSpent
-        val percentageUsed = if (convertedTotalLimit > BigDecimal.ZERO) {
-            (totalSpent.toFloat() / convertedTotalLimit.toFloat() * 100f).coerceAtLeast(0f)
-        } else 0f
-
-        val dailyAllowance = if (raw.daysRemaining > 0 && remaining > BigDecimal.ZERO) {
-            remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
-        } else BigDecimal.ZERO
-
-        val allCategories = (categoryLimitsMap.keys + categoryAmounts.keys).distinct()
-        val categorySpending = allCategories.map { categoryName ->
-            val spent = categoryAmounts[categoryName] ?: BigDecimal.ZERO
-            val catLimit = categoryLimitsMap[categoryName]
-            val catPercentage = if (catLimit != null && catLimit > BigDecimal.ZERO) {
-                (spent.toFloat() / catLimit.toFloat() * 100f).coerceAtLeast(0f)
-            } else null
-            val catDailySpend = if (raw.daysElapsed > 0 && spent > BigDecimal.ZERO) {
-                spent.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
+        val groupSpendingList = raw.budgetsWithCategories.map { group ->
+            val catSpending = group.categories.map { cat ->
+                val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
+                val pctUsed = if (convertedBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / convertedBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+                val dailySpend = if (raw.daysElapsed > 0 && actual > BigDecimal.ZERO) {
+                    actual.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
+                BudgetCategorySpending(
+                    categoryName = cat.categoryName,
+                    budgetAmount = convertedBudget,
+                    actualAmount = actual,
+                    percentageUsed = pctUsed,
+                    dailySpend = dailySpend
+                )
+            }
+            val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val remaining = totalBudget - totalActual
+            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
+                (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
+            } else 0f
+            val dailyAllowance = if (raw.daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+                remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
-            val catRemaining = if (catLimit != null) catLimit - spent else null
-            val catDailyAllowance = if (catLimit != null && raw.daysRemaining > 0 && catRemaining != null && catRemaining > BigDecimal.ZERO) {
-                catRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
-            } else null
-            CategorySpendingInfo(
-                categoryName = categoryName,
-                spent = spent,
-                limit = catLimit,
-                percentageUsed = catPercentage,
-                dailySpend = catDailySpend,
-                dailyAllowance = catDailyAllowance
+            BudgetGroupSpending(
+                group = group,
+                categorySpending = catSpending,
+                totalBudget = totalBudget,
+                totalActual = totalActual,
+                remaining = remaining,
+                percentageUsed = pctUsed,
+                dailyAllowance = dailyAllowance,
+                daysRemaining = raw.daysRemaining,
+                daysElapsed = raw.daysElapsed
             )
-        }.sortedWith(compareByDescending<CategorySpendingInfo> { it.limit != null }.thenByDescending { it.spent })
+        }
 
-        val netSavings = totalIncome - totalSpent
+        val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+        val targetGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+        val expectedGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+
+        val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+        val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+        val netSavings = totalIncome - totalLimitSpent
         val savingsRate = if (totalIncome > BigDecimal.ZERO) {
             (netSavings.toFloat() / totalIncome.toFloat() * 100f)
         } else 0f
+        val limitRemaining = totalLimitBudget - totalLimitSpent
+        val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
+            limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+        } else BigDecimal.ZERO
 
-        var prevIncome = BigDecimal.ZERO
-        for (tx in raw.prevTransactions.filter { it.transaction.transactionType == TransactionType.INCOME }) {
-            prevIncome = prevIncome.add(
-                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
-            )
-        }
-        var prevExpenses = BigDecimal.ZERO
-        for (tx in raw.prevTransactions.filter {
-            it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT
-        }) {
-            prevExpenses = prevExpenses.add(
-                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
-            )
-        }
-        val prevSavings = prevIncome - prevExpenses
-        val savingsDelta = if (prevIncome > BigDecimal.ZERO || totalIncome > BigDecimal.ZERO) {
-            netSavings - prevSavings
-        } else null
-
-        return MonthlyBudgetSpending(
-            totalLimit = convertedTotalLimit,
-            totalSpent = totalSpent,
-            remaining = remaining,
-            percentageUsed = percentageUsed,
-            categorySpending = categorySpending,
-            daysRemaining = raw.daysRemaining,
-            dailyAllowance = dailyAllowance,
+        return BudgetOverallSummary(
+            groups = groupSpendingList,
             totalIncome = totalIncome,
+            totalLimitBudget = totalLimitBudget,
+            totalLimitSpent = totalLimitSpent,
+            totalTargetGoal = targetGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget },
+            totalTargetActual = targetGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual },
+            totalExpectedBudget = expectedGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget },
+            totalExpectedActual = expectedGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual },
             netSavings = netSavings,
             savingsRate = savingsRate,
-            savingsDelta = savingsDelta
+            dailyAllowance = dailyAllowance,
+            daysRemaining = raw.daysRemaining,
+            currency = displayCurrency
         )
     }
 }
@@ -840,7 +832,7 @@ data class HomeUiState(
     val recentTransactions: List<TransactionEntity> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
-    val monthlyBudgetSpending: MonthlyBudgetSpending? = null,
+    val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
     val totalBalance: BigDecimal = BigDecimal.ZERO,

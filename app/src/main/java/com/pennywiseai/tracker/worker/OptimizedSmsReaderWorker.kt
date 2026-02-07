@@ -1320,7 +1320,7 @@ private suspend fun processBalanceUpdate(
                 val logMsg = if (parsedTransaction.creditLimit != null) {
                     "Saved balance/credit limit (${
                         CurrencyFormatter.formatCurrency(
-                            parsedTransaction.creditLimit!!
+                            parsedTransaction.creditLimit!!, parsedTransaction.currency
                         )
                     }) for ${parsedTransaction.bankName} **$targetAccountLast4"
                 } else {

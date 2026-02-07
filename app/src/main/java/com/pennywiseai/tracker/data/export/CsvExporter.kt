@@ -68,18 +68,19 @@ class CsvExporter @Inject constructor(
                     // Write header
                     csvWriter.writeNext(arrayOf(
                         "Date",
-                        "Time", 
+                        "Time",
                         "Merchant",
                         "Category",
                         "Type",
                         "Amount",
+                        "Currency",
                         "Bank",
                         "Account",
                         "Balance After",
                         "Description",
                         "SMS Body"
                     ))
-                    
+
                     // Write transactions with progress updates
                     val totalTransactions = transactions.size
                     transactions.forEachIndexed { index, transaction ->
@@ -97,6 +98,7 @@ class CsvExporter @Inject constructor(
                                 TransactionType.INVESTMENT -> "Investment"
                             },
                             transaction.amount.toString(),
+                            transaction.currency,
                             transaction.bankName ?: "",
                             transaction.accountNumber ?: "",
                             transaction.balanceAfter?.toString() ?: "",
@@ -167,13 +169,14 @@ class CsvExporter @Inject constructor(
                     "Category",
                     "Type",
                     "Amount",
+                    "Currency",
                     "Bank",
                     "Account",
                     "Balance After",
                     "Description",
                     "SMS Body"
                 ))
-                
+
                 // Write transactions
                 transactions.forEach { transaction ->
                     csvWriter.writeNext(arrayOf(
@@ -189,6 +192,7 @@ class CsvExporter @Inject constructor(
                             TransactionType.INVESTMENT -> "Investment"
                         },
                         transaction.amount.toString(),
+                        transaction.currency,
                         transaction.bankName ?: "",
                         transaction.accountNumber ?: "",
                         transaction.balanceAfter?.toString() ?: "",

@@ -11,9 +11,12 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
+import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -23,7 +26,7 @@ import java.util.concurrent.TimeUnit
 class BudgetWidgetUpdateWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val monthlyBudgetRepository: MonthlyBudgetRepository,
+    private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService
 ) : CoroutineWorker(appContext, workerParams) {
@@ -62,76 +65,98 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             val displayCurrency = userPreferencesRepository.displayCurrency.first()
             val currency = if (isUnifiedMode) displayCurrency else baseCurrency
 
-            val spending = if (isUnifiedMode) {
-                // Get all-currencies spending and convert to display currency
-                val raw = monthlyBudgetRepository.getMonthSpendingAllCurrencies(
-                    java.time.LocalDate.now().year,
-                    java.time.LocalDate.now().monthValue
+            val today = java.time.LocalDate.now()
+
+            val summary = if (isUnifiedMode) {
+                val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(
+                    today.year, today.monthValue
                 ).first()
 
-                // Convert budget limit from base currency to display currency
-                val convertedTotalLimit = currencyConversionService.convertAmount(
-                    raw.totalLimit, baseCurrency, displayCurrency
-                )
-
-                // Aggregate expenses and income across currencies
-                var totalSpent = java.math.BigDecimal.ZERO
+                // Convert raw to summary with currency conversion
+                val incomeTransactions = raw.allTransactions.filter {
+                    it.transaction.transactionType == TransactionType.INCOME
+                }
                 var totalIncome = java.math.BigDecimal.ZERO
-
-                for (tx in raw.allTransactions) {
-                    val converted = currencyConversionService.convertAmount(
+                for (tx in incomeTransactions) {
+                    totalIncome += currencyConversionService.convertAmount(
                         tx.transaction.amount, tx.transaction.currency, displayCurrency
                     )
-                    when (tx.transaction.transactionType) {
-                        TransactionType.EXPENSE, TransactionType.CREDIT -> totalSpent += converted
-                        TransactionType.INCOME -> totalIncome += converted
-                        else -> totalSpent += converted
+                }
+
+                val categoryAmounts = mutableMapOf<String, java.math.BigDecimal>()
+                raw.allTransactions.forEach { txWithSplits ->
+                    if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+                        txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                            val converted = currencyConversionService.convertAmount(amount, txWithSplits.transaction.currency, displayCurrency)
+                            val categoryName = category.ifEmpty { "Others" }
+                            categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: java.math.BigDecimal.ZERO) + converted
+                        }
                     }
                 }
 
-                val remaining = convertedTotalLimit - totalSpent
-                val percentageUsed = if (convertedTotalLimit > java.math.BigDecimal.ZERO) {
-                    (totalSpent.toFloat() / convertedTotalLimit.toFloat() * 100f).coerceAtLeast(0f)
+                val groupSpendingList = raw.budgetsWithCategories.map { group ->
+                    val catSpending = group.categories.map { cat ->
+                        val actual = categoryAmounts[cat.categoryName] ?: java.math.BigDecimal.ZERO
+                        val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
+                        BudgetCategorySpending(cat.categoryName, convertedBudget, actual, 0f, java.math.BigDecimal.ZERO)
+                    }
+                    val totalBudget = catSpending.fold(java.math.BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                    val totalActual = catSpending.fold(java.math.BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+                    BudgetGroupSpending(group, catSpending, totalBudget, totalActual, totalBudget - totalActual, 0f, java.math.BigDecimal.ZERO, raw.daysRemaining, raw.daysElapsed)
+                }
+
+                val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitBudget = limitGroups.fold(java.math.BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+                val totalLimitSpent = limitGroups.fold(java.math.BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+                val limitRemaining = totalLimitBudget - totalLimitSpent
+                val pctUsed = if (totalLimitBudget > java.math.BigDecimal.ZERO) {
+                    (totalLimitSpent.toFloat() / totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
-                val dailyAllowance = if (raw.daysRemaining > 0 && remaining > java.math.BigDecimal.ZERO) {
-                    remaining.divide(java.math.BigDecimal(raw.daysRemaining), 0, java.math.RoundingMode.HALF_UP)
+                val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > java.math.BigDecimal.ZERO) {
+                    limitRemaining.divide(java.math.BigDecimal(raw.daysRemaining), 0, java.math.RoundingMode.HALF_UP)
                 } else java.math.BigDecimal.ZERO
-                val netSavings = totalIncome - totalSpent
+                val netSavings = totalIncome - totalLimitSpent
                 val savingsRate = if (totalIncome > java.math.BigDecimal.ZERO) {
                     (netSavings.toFloat() / totalIncome.toFloat() * 100f)
                 } else 0f
 
-                com.pennywiseai.tracker.data.repository.MonthlyBudgetSpending(
-                    totalLimit = convertedTotalLimit,
-                    totalSpent = totalSpent,
-                    remaining = remaining,
-                    percentageUsed = percentageUsed,
-                    categorySpending = emptyList(),
-                    daysRemaining = raw.daysRemaining,
+                BudgetWidgetData(
+                    totalSpent = totalLimitSpent,
+                    totalLimit = totalLimitBudget,
+                    remaining = limitRemaining,
+                    percentageUsed = pctUsed,
                     dailyAllowance = dailyAllowance,
                     totalIncome = totalIncome,
                     netSavings = netSavings,
                     savingsRate = savingsRate,
-                    savingsDelta = null
+                    savingsDelta = null,
+                    currency = currency
                 )
             } else {
-                monthlyBudgetRepository.getCurrentMonthSpending(currency).first()
+                val spending = budgetGroupRepository.getGroupSpending(
+                    today.year, today.monthValue, currency
+                ).first()
+
+                val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
+                val pctUsed = if (spending.totalLimitBudget > java.math.BigDecimal.ZERO) {
+                    (spending.totalLimitSpent.toFloat() / spending.totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+
+                BudgetWidgetData(
+                    totalSpent = spending.totalLimitSpent,
+                    totalLimit = spending.totalLimitBudget,
+                    remaining = limitRemaining,
+                    percentageUsed = pctUsed,
+                    dailyAllowance = spending.dailyAllowance,
+                    totalIncome = spending.totalIncome,
+                    netSavings = spending.netSavings,
+                    savingsRate = spending.savingsRate,
+                    savingsDelta = null,
+                    currency = currency
+                )
             }
 
-            val widgetData = BudgetWidgetData(
-                totalSpent = spending.totalSpent,
-                totalLimit = spending.totalLimit,
-                remaining = spending.remaining,
-                percentageUsed = spending.percentageUsed,
-                dailyAllowance = spending.dailyAllowance,
-                totalIncome = spending.totalIncome,
-                netSavings = spending.netSavings,
-                savingsRate = spending.savingsRate,
-                savingsDelta = spending.savingsDelta,
-                currency = currency
-            )
-
-            BudgetWidgetDataStore.update(applicationContext, widgetData)
+            BudgetWidgetDataStore.update(applicationContext, summary)
             BudgetWidget().updateAll(applicationContext)
 
             Result.success()

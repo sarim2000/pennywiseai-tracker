@@ -110,7 +110,7 @@ fun PennyWiseNavHost(
                     navController.navigate(Faq)
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(MonthlyBudget)
+                    navController.navigate(BudgetGroups)
                 },
                 onNavigateToExchangeRates = {
                     navController.navigate(ExchangeRates)
@@ -244,18 +244,18 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<MonthlyBudget>(
+        composable<BudgetGroups>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetScreen(
+            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                onNavigateToSettings = {
-                    navController.navigate(MonthlyBudgetSettings)
+                onNavigateToGroupEdit = { groupId ->
+                    navController.navigate(BudgetGroupEdit(groupId))
                 },
                 onNavigateToCategory = { category, yearMonth, currency ->
                     navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
@@ -263,6 +263,33 @@ fun PennyWiseNavHost(
                     }
                 }
             )
+        }
+
+        composable<BudgetGroupEdit>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<MonthlyBudget>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            // Redirect old budget screen to new budget groups
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(BudgetGroups) {
+                    popUpTo(MonthlyBudget) { inclusive = true }
+                }
+            }
         }
 
         composable<MonthlyBudgetSettings>(

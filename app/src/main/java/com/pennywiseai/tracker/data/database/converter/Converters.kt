@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.database.converter
 
 import androidx.room.TypeConverter
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -92,5 +93,15 @@ class Converters {
     @TypeConverter
     fun toBudgetPeriodType(value: String): BudgetPeriodType {
         return BudgetPeriodType.valueOf(value)
+    }
+
+    @TypeConverter
+    fun fromBudgetGroupType(value: BudgetGroupType): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toBudgetGroupType(value: String): BudgetGroupType {
+        return BudgetGroupType.valueOf(value)
     }
 }

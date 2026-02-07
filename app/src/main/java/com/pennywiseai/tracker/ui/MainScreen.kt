@@ -159,7 +159,7 @@ fun MainScreen(
                     },
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.MonthlyBudget
+                            com.pennywiseai.tracker.navigation.BudgetGroups
                         )
                     },
                     onNavigateToAddScreen = {
@@ -332,7 +332,7 @@ fun MainScreen(
                     },
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.MonthlyBudget
+                            com.pennywiseai.tracker.navigation.BudgetGroups
                         )
                     },
                     onNavigateToExchangeRates = {

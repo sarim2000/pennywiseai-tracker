@@ -47,7 +47,7 @@ echo -e "${GREEN}🚀 Starting release (${VERSION_BUMP} bump)${NC}"
 
 # 1. Get current version
 CURRENT_VERSION=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-CURRENT_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/[^0-9]*//g')
+CURRENT_CODE=$(grep "versionCode = " app/build.gradle.kts | head -1 | sed 's/[^0-9]*//g')
 echo "Current version: $CURRENT_VERSION (code: $CURRENT_CODE)"
 
 # 2. Calculate next version
@@ -175,12 +175,13 @@ fi
 
 # 5. Update version (versionName and versionCode)
 # Use sed -i '' for macOS, sed -i for Linux
+# Note: Use '/val /!' to skip lines containing "val " (avoids modifying copyChangelog task's versionCode)
 if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' "s/versionName = \".*\"/versionName = \"$NEXT_VERSION\"/" app/build.gradle.kts
-    sed -i '' "s/versionCode = .*/versionCode = $NEXT_CODE/" app/build.gradle.kts
+    sed -i '' '/val /!s/versionCode = .*/versionCode = '"$NEXT_CODE"'/' app/build.gradle.kts
 else
     sed -i "s/versionName = \".*\"/versionName = \"$NEXT_VERSION\"/" app/build.gradle.kts
-    sed -i "s/versionCode = .*/versionCode = $NEXT_CODE/" app/build.gradle.kts
+    sed -i '/val /!s/versionCode = .*/versionCode = '"$NEXT_CODE"'/' app/build.gradle.kts
 fi
 CHANGES_MADE=true  # Mark that we've made changes
 echo -e "${GREEN}✅ Version updated: $NEXT_VERSION (code: $NEXT_CODE)${NC}"

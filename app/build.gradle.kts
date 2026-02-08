@@ -147,7 +147,7 @@ ksp {
 val generatedAssetsDir = layout.buildDirectory.dir("generated/assets/changelog")
 
 tasks.register<Copy>("copyChangelog") {
-    val versionCode = 80
+    val versionCode = android.defaultConfig.versionCode
     val changelogDir = rootProject.file("fastlane/metadata/android/en-US/changelogs")
     val changelogFile = file("$changelogDir/$versionCode.txt")
     val defaultFile = file("$changelogDir/default.txt")

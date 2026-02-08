@@ -274,4 +274,16 @@ class BudgetGroupsViewModel @Inject constructor(
             com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }
+
+    fun moveGroupUp(budgetId: Long) {
+        viewModelScope.launch {
+            budgetGroupRepository.moveGroupUp(budgetId)
+        }
+    }
+
+    fun moveGroupDown(budgetId: Long) {
+        viewModelScope.launch {
+            budgetGroupRepository.moveGroupDown(budgetId)
+        }
+    }
 }

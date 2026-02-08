@@ -120,6 +120,43 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     (netSavings.toFloat() / totalIncome.toFloat() * 100f)
                 } else 0f
 
+                // Calculate previous month savings for delta
+                val limitCategoryNames = raw.budgetsWithCategories
+                    .filter { it.budget.groupType == BudgetGroupType.LIMIT }
+                    .flatMap { it.categories }
+                    .map { it.categoryName }
+                    .toSet()
+
+                val prevCategoryAmounts = mutableMapOf<String, java.math.BigDecimal>()
+                raw.prevTransactions.forEach { txWithSplits ->
+                    if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+                        txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                            val converted = currencyConversionService.convertAmount(
+                                amount, txWithSplits.transaction.currency, displayCurrency
+                            )
+                            val categoryName = category.ifEmpty { "Others" }
+                            prevCategoryAmounts[categoryName] =
+                                (prevCategoryAmounts[categoryName] ?: java.math.BigDecimal.ZERO) + converted
+                        }
+                    }
+                }
+
+                val prevLimitSpent = limitCategoryNames.fold(java.math.BigDecimal.ZERO) { acc, catName ->
+                    acc + (prevCategoryAmounts[catName] ?: java.math.BigDecimal.ZERO)
+                }
+
+                var prevIncome = java.math.BigDecimal.ZERO
+                raw.prevTransactions
+                    .filter { it.transaction.transactionType == TransactionType.INCOME }
+                    .forEach { tx ->
+                        prevIncome += currencyConversionService.convertAmount(
+                            tx.transaction.amount, tx.transaction.currency, displayCurrency
+                        )
+                    }
+
+                val prevSavings = prevIncome - prevLimitSpent
+                val savingsDelta = netSavings - prevSavings
+
                 BudgetWidgetData(
                     totalSpent = totalLimitSpent,
                     totalLimit = totalLimitBudget,
@@ -129,13 +166,21 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     totalIncome = totalIncome,
                     netSavings = netSavings,
                     savingsRate = savingsRate,
-                    savingsDelta = null,
+                    savingsDelta = savingsDelta,
                     currency = currency
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
                     today.year, today.monthValue, currency
                 ).first()
+
+                // Get previous month spending for delta calculation
+                val prevYearMonth = java.time.YearMonth.of(today.year, today.monthValue).minusMonths(1)
+                val prevSpending = budgetGroupRepository.getGroupSpending(
+                    prevYearMonth.year, prevYearMonth.monthValue, currency
+                ).first()
+
+                val savingsDelta = spending.netSavings - prevSpending.netSavings
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
                 val pctUsed = if (spending.totalLimitBudget > java.math.BigDecimal.ZERO) {
@@ -151,7 +196,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     totalIncome = spending.totalIncome,
                     netSavings = spending.netSavings,
                     savingsRate = spending.savingsRate,
-                    savingsDelta = null,
+                    savingsDelta = savingsDelta,
                     currency = currency
                 )
             }

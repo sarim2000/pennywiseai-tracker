@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -243,6 +245,7 @@ fun BudgetGroupEditScreen(
                 CategoryBudgetRow(
                     categoryName = cat.categoryName,
                     amount = cat.amount,
+                    currentSpending = cat.currentSpending,
                     currency = uiState.currency,
                     onAmountChange = { viewModel.updateCategoryAmount(cat.categoryName, it) },
                     onRemove = { viewModel.removeCategory(cat.categoryName) }
@@ -283,7 +286,7 @@ fun BudgetGroupEditScreen(
             item {
                 Spacer(modifier = Modifier.height(Spacing.md))
                 Button(
-                    onClick = { viewModel.save() },
+                    onClick = { viewModel.save(forceEmpty = false) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState.name.isNotBlank() && !uiState.isSaving
                 ) {
@@ -343,6 +346,27 @@ fun BudgetGroupEditScreen(
                 }
             )
         }
+
+        // Empty categories warning dialog
+        if (uiState.showEmptyCategoriesWarning) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissEmptyWarning() },
+                title = { Text("No Categories") },
+                text = { Text("This group has no categories. It won't track any spending. Are you sure you want to save it?") },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.save(forceEmpty = true) }
+                    ) {
+                        Text("Save Anyway")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissEmptyWarning() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -350,6 +374,7 @@ fun BudgetGroupEditScreen(
 private fun CategoryBudgetRow(
     categoryName: String,
     amount: BigDecimal,
+    currentSpending: BigDecimal,
     currency: String,
     onAmountChange: (BigDecimal) -> Unit,
     onRemove: () -> Unit
@@ -358,42 +383,56 @@ private fun CategoryBudgetRow(
         mutableStateOf(if (amount.compareTo(BigDecimal.ZERO) == 0) "" else amount.toPlainString())
     }
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        Text(
-            text = categoryName,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-
-        OutlinedTextField(
-            value = amountText,
-            onValueChange = { value ->
-                if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                    amountText = value
-                    val parsed = value.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    onAmountChange(parsed)
-                }
-            },
-            prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
-            singleLine = true,
-            modifier = Modifier.width(140.dp),
-            textStyle = MaterialTheme.typography.bodyMedium
-        )
-
-        IconButton(
-            onClick = onRemove,
-            modifier = Modifier.size(32.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = "Remove",
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.error
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = categoryName,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (currentSpending > BigDecimal.ZERO) {
+                    Text(
+                        text = "Spent: ${CurrencyFormatter.formatCurrency(currentSpending, currency)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { value ->
+                    if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        amountText = value
+                        val parsed = value.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                        onAmountChange(parsed)
+                    }
+                },
+                prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+                singleLine = true,
+                modifier = Modifier.width(140.dp),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
             )
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Remove",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

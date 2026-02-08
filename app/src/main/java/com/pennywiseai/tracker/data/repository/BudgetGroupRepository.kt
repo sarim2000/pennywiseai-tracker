@@ -380,4 +380,28 @@ class BudgetGroupRepository @Inject constructor(
             displayOrder = 0
         )
     }
+
+    suspend fun moveGroupUp(budgetId: Long) {
+        val groups = budgetDao.getActiveBudgetsWithCategories().first()
+            .sortedBy { it.budget.displayOrder }
+        val index = groups.indexOfFirst { it.budget.id == budgetId }
+        if (index > 0) {
+            val current = groups[index].budget
+            val above = groups[index - 1].budget
+            budgetDao.updateBudget(current.copy(displayOrder = above.displayOrder, updatedAt = LocalDateTime.now()))
+            budgetDao.updateBudget(above.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
+        }
+    }
+
+    suspend fun moveGroupDown(budgetId: Long) {
+        val groups = budgetDao.getActiveBudgetsWithCategories().first()
+            .sortedBy { it.budget.displayOrder }
+        val index = groups.indexOfFirst { it.budget.id == budgetId }
+        if (index >= 0 && index < groups.size - 1) {
+            val current = groups[index].budget
+            val below = groups[index + 1].budget
+            budgetDao.updateBudget(current.copy(displayOrder = below.displayOrder, updatedAt = LocalDateTime.now()))
+            budgetDao.updateBudget(below.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
+        }
+    }
 }

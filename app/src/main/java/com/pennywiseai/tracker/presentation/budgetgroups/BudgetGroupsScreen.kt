@@ -7,6 +7,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -96,6 +97,8 @@ fun BudgetGroupsScreen(
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
                 onDeleteGroup = { groupId -> viewModel.deleteGroup(groupId) },
+                onMoveUp = { groupId -> viewModel.moveGroupUp(groupId) },
+                onMoveDown = { groupId -> viewModel.moveGroupDown(groupId) },
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
@@ -235,12 +238,15 @@ private fun BudgetGroupsContent(
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onDeleteGroup: (Long) -> Unit,
+    onMoveUp: (Long) -> Unit,
+    onMoveDown: (Long) -> Unit,
     onCategoryClick: (String) -> Unit
 ) {
     val summary = uiState.summary ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
+    val groupCount = summary.groups.size
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -270,10 +276,10 @@ private fun BudgetGroupsContent(
         }
 
         // Group Cards
-        items(
+        itemsIndexed(
             items = summary.groups,
-            key = { it.group.budget.id }
-        ) { groupSpending ->
+            key = { _, group -> group.group.budget.id }
+        ) { index, groupSpending ->
             BudgetGroupCard(
                 groupSpending = groupSpending,
                 currency = uiState.currency,
@@ -282,6 +288,8 @@ private fun BudgetGroupsContent(
                     deleteGroupId = groupSpending.group.budget.id
                     deleteGroupName = groupSpending.group.budget.name
                 },
+                onMoveUp = if (index > 0) {{ onMoveUp(groupSpending.group.budget.id) }} else null,
+                onMoveDown = if (index < groupCount - 1) {{ onMoveDown(groupSpending.group.budget.id) }} else null,
                 onCategoryClick = onCategoryClick
             )
         }
@@ -482,6 +490,8 @@ private fun BudgetGroupCard(
     currency: String,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onMoveUp: (() -> Unit)?,
+    onMoveDown: (() -> Unit)?,
     onCategoryClick: (String) -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
@@ -597,6 +607,30 @@ private fun BudgetGroupCard(
                 }
 
                 Row {
+                    if (onMoveUp != null) {
+                        IconButton(
+                            onClick = onMoveUp,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Move up",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    if (onMoveDown != null) {
+                        IconButton(
+                            onClick = onMoveDown,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Move down",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = onDelete,
                         modifier = Modifier.size(24.dp)
@@ -608,7 +642,6 @@ private fun BudgetGroupCard(
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
                         onClick = onClick,
                         modifier = Modifier.size(24.dp)
@@ -675,30 +708,67 @@ private fun BudgetGroupCard(
             if (expanded && groupSpending.categorySpending.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 groupSpending.categorySpending.forEach { catSpending ->
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onCategoryClick(catSpending.categoryName) }
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 4.dp)
                     ) {
-                        Text(
-                            text = catSpending.categoryName,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (catSpending.budgetAmount > BigDecimal.ZERO) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "${CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency)} / ${CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)}",
+                                text = catSpending.categoryName,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                modifier = Modifier.weight(1f)
                             )
-                        } else {
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            if (catSpending.budgetAmount > BigDecimal.ZERO) {
+                                Text(
+                                    text = "${CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency)} / ${CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        // Category progress bar
+                        if (catSpending.budgetAmount > BigDecimal.ZERO) {
+                            val catPctUsed = catSpending.percentageUsed / 100f
+                            val catProgressColor = when (budget.groupType) {
+                                BudgetGroupType.LIMIT -> when {
+                                    catSpending.percentageUsed < 50f -> if (isDark) budget_safe_dark else budget_safe_light
+                                    catSpending.percentageUsed < 80f -> if (isDark) budget_warning_dark else budget_warning_light
+                                    else -> if (isDark) budget_danger_dark else budget_danger_light
+                                }
+                                BudgetGroupType.TARGET -> when {
+                                    catSpending.percentageUsed >= 100f -> if (isDark) budget_safe_dark else budget_safe_light
+                                    catSpending.percentageUsed >= 50f -> if (isDark) budget_warning_dark else budget_warning_light
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                BudgetGroupType.EXPECTED -> {
+                                    val deviation = kotlin.math.abs(catSpending.percentageUsed - 100f)
+                                    when {
+                                        deviation < 10f -> if (isDark) budget_safe_dark else budget_safe_light
+                                        deviation < 25f -> if (isDark) budget_warning_dark else budget_warning_light
+                                        else -> if (isDark) budget_danger_dark else budget_danger_light
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { catPctUsed.coerceIn(0f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp),
+                                color = catProgressColor,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         }
                     }

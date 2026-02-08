@@ -83,7 +83,8 @@ Supporting **47+ banks** across **10 countries** with **multi-currency** capabil
 - **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**
 
 ### 🇪🇹 Ethiopia (1 bank) - ETB ብር
-- **Commercial Bank of Ethiopia (CBE)**
+- **Commercial Bank of Ethiopia (CBE)**, **Zemen Bank**, **Dashen Bank**
+- **Telebirr** - Mobile money service
 
 ### 🇨🇴 Colombia (1 bank) - COP $
 - **Bancolombia**

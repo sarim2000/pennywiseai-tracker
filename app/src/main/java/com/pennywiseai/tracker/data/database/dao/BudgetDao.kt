@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.database.dao
 import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -93,4 +94,36 @@ interface BudgetDao {
 
     @Query("DELETE FROM budgets")
     suspend fun deleteAllBudgets()
+
+    // Budget Groups queries
+    @Transaction
+    @Query("SELECT * FROM budgets WHERE is_active = 1 ORDER BY display_order ASC, created_at DESC")
+    fun getActiveBudgetsWithCategories(): Flow<List<BudgetWithCategories>>
+
+    @Query("""
+        SELECT DISTINCT bc.category_name FROM budget_categories bc
+        INNER JOIN budgets b ON bc.budget_id = b.id
+        WHERE b.is_active = 1
+    """)
+    fun getAllAssignedCategoryNames(): Flow<List<String>>
+
+    @Query("""
+        SELECT b.* FROM budgets b
+        INNER JOIN budget_categories bc ON b.id = bc.budget_id
+        WHERE b.is_active = 1 AND bc.category_name = :categoryName
+        LIMIT 1
+    """)
+    suspend fun getActiveBudgetForCategory(categoryName: String): BudgetEntity?
+
+    @Query("UPDATE budget_categories SET budget_amount = :amount WHERE budget_id = :budgetId AND category_name = :categoryName")
+    suspend fun updateCategoryBudgetAmount(budgetId: Long, categoryName: String, amount: java.math.BigDecimal)
+
+    @Query("DELETE FROM budget_categories WHERE budget_id = :budgetId AND category_name = :categoryName")
+    suspend fun deleteCategoryFromBudget(budgetId: Long, categoryName: String)
+
+    @Query("UPDATE budgets SET limit_amount = :amount, updated_at = datetime('now') WHERE id = :budgetId")
+    suspend fun updateBudgetLimitAmount(budgetId: Long, amount: java.math.BigDecimal)
+
+    @Query("SELECT COUNT(*) FROM budgets WHERE is_active = 1")
+    suspend fun getActiveGroupCount(): Int
 }

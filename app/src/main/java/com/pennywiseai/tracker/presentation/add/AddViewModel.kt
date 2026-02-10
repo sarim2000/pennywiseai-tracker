@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
@@ -25,7 +26,8 @@ class AddViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
     
     // General UI State
@@ -41,6 +43,15 @@ class AddViewModel @Inject constructor(
     val subscriptionUiState: StateFlow<SubscriptionUiState> = _subscriptionUiState.asStateFlow()
     
     
+    init {
+        // Load base currency and set as default for both transaction and subscription
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _transactionUiState.update { it.copy(currency = baseCurrency) }
+            _subscriptionUiState.update { it.copy(currency = baseCurrency) }
+        }
+    }
+
     // Categories for dropdowns
     val categories = getCategoriesUseCase.execute()
         .stateIn(
@@ -142,6 +153,12 @@ class AddViewModel @Inject constructor(
             currentState.copy(isRecurring = isRecurring)
         }
     }
+
+    fun updateTransactionCurrency(currency: String) {
+        _transactionUiState.update { currentState ->
+            currentState.copy(currency = currency)
+        }
+    }
     
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
@@ -177,7 +194,8 @@ class AddViewModel @Inject constructor(
                     notes = state.notes.takeIf { it.isNotBlank() },
                     isRecurring = state.isRecurring,
                     bankName = selectedAccount?.bankName,
-                    accountLast4 = selectedAccount?.accountLast4
+                    accountLast4 = selectedAccount?.accountLast4,
+                    currency = state.currency
                 )
 
                 onSuccess()
@@ -247,6 +265,12 @@ class AddViewModel @Inject constructor(
             currentState.copy(notes = notes)
         }
     }
+
+    fun updateSubscriptionCurrency(currency: String) {
+        _subscriptionUiState.update { currentState ->
+            currentState.copy(currency = currency)
+        }
+    }
     
     fun saveSubscription(onSuccess: () -> Unit) {
         val state = _subscriptionUiState.value
@@ -289,7 +313,8 @@ class AddViewModel @Inject constructor(
                     category = state.category,
                     autoRenewal = false, // Not implemented yet
                     paymentReminder = false, // Not implemented yet
-                    notes = state.notes.takeIf { it.isNotBlank() }
+                    notes = state.notes.takeIf { it.isNotBlank() },
+                    currency = state.currency
                 )
                 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -354,7 +379,8 @@ data class TransactionUiState(
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val selectedAccount: AccountBalanceEntity? = null
+    val selectedAccount: AccountBalanceEntity? = null,
+    val currency: String = "INR"
 ) {
     val isValid: Boolean
         get() = amount.isNotBlank() && 
@@ -379,7 +405,8 @@ data class SubscriptionUiState(
     val categoryError: String? = null,
     val notes: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val currency: String = "INR"
 ) {
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&

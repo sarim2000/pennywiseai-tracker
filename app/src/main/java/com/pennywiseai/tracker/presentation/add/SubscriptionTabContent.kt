@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +27,7 @@ fun SubscriptionTabContent(
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
+    var showCurrencyMenu by remember { mutableStateOf(false) }
     
     val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
     
@@ -106,17 +108,44 @@ fun SubscriptionTabContent(
             singleLine = true
         )
         
+        // Currency Selector
+        ExposedDropdownMenuBox(
+            expanded = showCurrencyMenu,
+            onExpandedChange = { showCurrencyMenu = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Currency") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(
+                expanded = showCurrencyMenu,
+                onDismissRequest = { showCurrencyMenu = false }
+            ) {
+                CurrencyFormatter.getSupportedCurrencies().forEach { currency ->
+                    DropdownMenuItem(
+                        text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
+                        onClick = {
+                            viewModel.updateSubscriptionCurrency(currency)
+                            showCurrencyMenu = false
+                        }
+                    )
+                }
+            }
+        }
+
         // Amount Input
         OutlinedTextField(
             value = uiState.amount,
             onValueChange = viewModel::updateSubscriptionAmount,
             label = { Text("Amount *") },
-            leadingIcon = { 
-                Icon(
-                    Icons.Default.CurrencyRupee, 
-                    contentDescription = null
-                ) 
-            },
+            prefix = { Text(CurrencyFormatter.getCurrencySymbol(uiState.currency)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal
             ),

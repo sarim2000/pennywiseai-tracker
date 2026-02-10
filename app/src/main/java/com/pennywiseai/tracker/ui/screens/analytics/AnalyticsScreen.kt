@@ -45,6 +45,7 @@ fun AnalyticsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
+    val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
     var showAdvancedFilters by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
 
@@ -110,8 +111,8 @@ fun AnalyticsScreen(
             }
         }
 
-        // Currency Selector (if multiple currencies available)
-        if (availableCurrencies.size > 1) {
+        // Currency Selector (if multiple currencies available and not in unified mode)
+        if (availableCurrencies.size > 1 && !isUnifiedMode) {
             item {
                 CurrencyFilterRow(
                     selectedCurrency = selectedCurrency,

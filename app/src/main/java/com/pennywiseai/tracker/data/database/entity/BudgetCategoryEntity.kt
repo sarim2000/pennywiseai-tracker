@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.math.BigDecimal
 
 @Entity(
     tableName = "budget_categories",
@@ -30,5 +31,8 @@ data class BudgetCategoryEntity(
     val budgetId: Long,
 
     @ColumnInfo(name = "category_name")
-    val categoryName: String
+    val categoryName: String,
+
+    @ColumnInfo(name = "budget_amount", defaultValue = "0")
+    val budgetAmount: BigDecimal = BigDecimal.ZERO
 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -29,6 +30,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val userPreferencesRepository: UserPreferencesRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -177,11 +179,16 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private suspend fun determinePrimaryCurrency(transaction: TransactionEntity) {
-        val bankName = transaction.bankName
-        val primaryCurrency = if (!bankName.isNullOrEmpty()) {
-            com.pennywiseai.tracker.utils.CurrencyFormatter.getBankBaseCurrency(bankName)
+        val isUnified = userPreferencesRepository.unifiedCurrencyMode.first()
+        val primaryCurrency = if (isUnified) {
+            userPreferencesRepository.displayCurrency.first()
         } else {
-            transaction.currency.takeIf { it.isNotEmpty() } ?: "INR"
+            val bankName = transaction.bankName
+            if (!bankName.isNullOrEmpty()) {
+                com.pennywiseai.tracker.utils.CurrencyFormatter.getBankBaseCurrency(bankName)
+            } else {
+                transaction.currency.takeIf { it.isNotEmpty() } ?: "INR"
+            }
         }
         _primaryCurrency.value = primaryCurrency
     }

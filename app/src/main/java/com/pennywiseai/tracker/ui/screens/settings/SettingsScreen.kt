@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ fun SettingsScreen(
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToExchangeRates: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -64,9 +66,13 @@ fun SettingsScreen(
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "INR")
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
+    val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "INR")
+    val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     var showSmsScanDialog by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
     var showTimeoutDialog by remember { mutableStateOf(false) }
+    var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     val availableCurrencies = remember { CurrencyUtils.getAllSupportedCurrencies() }
     val context = LocalContext.current
@@ -148,7 +154,7 @@ fun SettingsScreen(
             }
         }
 
-        // General Settings Section
+       /* // General Settings Section
         SectionHeader(title = "General")
 
         PennyWiseCard(
@@ -172,7 +178,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    
+
                     ExposedDropdownMenuBox(
                         expanded = showCurrencyDropdown,
                         onExpandedChange = { showCurrencyDropdown = it }
@@ -200,7 +206,7 @@ fun SettingsScreen(
                         ) {
                             availableCurrencies.forEach { currency ->
                                 DropdownMenuItem(
-                                    text = { 
+                                    text = {
                                         Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
                                     },
                                     onClick = {
@@ -222,6 +228,217 @@ fun SettingsScreen(
                     }
                 }
             }
+        }*/
+
+        // Currency Section
+        SectionHeader(title = "Currency")
+
+        PennyWiseCard(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                // Unified Currency Mode Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Unified Currency Mode",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Convert all transactions to display currency",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = unifiedCurrencyMode,
+                        onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) }
+                    )
+                }
+
+                // Display Currency Selector (visible when unified mode ON)
+                AnimatedVisibility(visible = unifiedCurrencyMode) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDisplayCurrencyDialog = true },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Display Currency",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "All amounts shown in this currency",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = "${CurrencyFormatter.getCurrencySymbol(displayCurrency)} $displayCurrency",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Exchange Rates Navigation
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToExchangeRates() },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Exchange Rates",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "View and customize rates",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Navigate",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Default Currency Selection
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Default Currency",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Text(
+                            text = "Currency used for conversions and calculations",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+
+                        ExposedDropdownMenuBox(
+                            expanded = showCurrencyDropdown,
+                            onExpandedChange = { showCurrencyDropdown = it }
+                        ) {
+                            OutlinedTextField(
+                                value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Currency") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = showCurrencyDropdown,
+                                onDismissRequest = { showCurrencyDropdown = false }
+                            ) {
+                                availableCurrencies.forEach { currency ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
+                                        },
+                                        onClick = {
+                                            settingsViewModel.updateBaseCurrency(currency)
+                                            showCurrencyDropdown = false
+                                        },
+                                        leadingIcon = if (currency == baseCurrency) {
+                                            {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Display Currency Dialog
+        if (showDisplayCurrencyDialog) {
+            AlertDialog(
+                onDismissRequest = { showDisplayCurrencyDialog = false },
+                title = { Text("Display Currency") },
+                text = {
+                    Column {
+                        availableCurrencies.forEach { currency ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = currency == displayCurrency,
+                                        onClick = {
+                                            settingsViewModel.setDisplayCurrency(currency)
+                                            showDisplayCurrencyDialog = false
+                                        }
+                                    )
+                                    .padding(vertical = Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = currency == displayCurrency,
+                                    onClick = {
+                                        settingsViewModel.setDisplayCurrency(currency)
+                                        showDisplayCurrencyDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(
+                                    text = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
         // Security Section

@@ -52,4 +52,21 @@ interface ExchangeRateDao {
 
     @Query("SELECT MAX(expires_at_unix) FROM exchange_rates WHERE from_currency = :fromCurrency")
     suspend fun getMaxExpiryTimeUnix(fromCurrency: String): Long?
+
+    // Unified Currency Mode support
+
+    @Query("SELECT * FROM exchange_rates WHERE from_currency = :fromCurrency AND to_currency = :toCurrency")
+    suspend fun getExchangeRateIgnoringExpiry(fromCurrency: String, toCurrency: String): ExchangeRateEntity?
+
+    @Query("UPDATE exchange_rates SET is_custom_rate = 0 WHERE from_currency = :fromCurrency AND to_currency = :toCurrency")
+    suspend fun clearCustomRateFlag(fromCurrency: String, toCurrency: String)
+
+    @Query("UPDATE exchange_rates SET is_custom_rate = 0 WHERE is_custom_rate = 1")
+    suspend fun clearAllCustomRateFlags()
+
+    @Query("SELECT * FROM exchange_rates WHERE from_currency IN (:currencies) OR to_currency IN (:currencies) ORDER BY from_currency, to_currency")
+    suspend fun getRatesForCurrencies(currencies: List<String>): List<ExchangeRateEntity>
+
+    @Query("SELECT * FROM exchange_rates ORDER BY from_currency, to_currency")
+    fun getAllRatesFlow(): Flow<List<ExchangeRateEntity>>
 }

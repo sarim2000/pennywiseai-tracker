@@ -68,7 +68,8 @@ fun SubscriptionsScreen(
         item {
             TotalSubscriptionsSummary(
                 totalAmount = uiState.totalMonthlyAmount,
-                activeCount = uiState.activeSubscriptions.size
+                activeCount = uiState.activeSubscriptions.size,
+                currency = uiState.displayCurrency
             )
         }
         
@@ -80,6 +81,8 @@ fun SubscriptionsScreen(
             ) { subscription ->
                 SwipeableSubscriptionItem(
                     subscription = subscription,
+                    convertedAmount = uiState.convertedAmounts[subscription.id],
+                    displayCurrency = uiState.displayCurrency,
                     onHide = { viewModel.hideSubscription(subscription.id) }
                 )
             }
@@ -132,13 +135,18 @@ fun SubscriptionsScreen(
 @Composable
 private fun TotalSubscriptionsSummary(
     totalAmount: BigDecimal,
-    activeCount: Int
+    activeCount: Int,
+    currency: String? = null
 ) {
     val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
-    
+
     SummaryCard(
         title = "Monthly Subscriptions",
-        amount = CurrencyFormatter.formatCurrency(totalAmount),
+        amount = if (currency != null) {
+            CurrencyFormatter.formatCurrency(totalAmount, currency)
+        } else {
+            CurrencyFormatter.formatCurrency(totalAmount, "INR")
+        },
         subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
         amountColor = amountColor,
         containerColor = CardDefaults.cardColors(
@@ -151,6 +159,8 @@ private fun TotalSubscriptionsSummary(
 @Composable
 private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
+    convertedAmount: BigDecimal? = null,
+    displayCurrency: String? = null,
     onHide: () -> Unit
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -302,12 +312,28 @@ private fun SwipeableSubscriptionItem(
                             }
                         }
                         
-                        Text(
-                            text = subscription.formatAmount(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                        )
+                        if (convertedAmount != null && displayCurrency != null) {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                )
+                                Text(
+                                    text = "(${subscription.formatAmount()})",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = subscription.formatAmount(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                            )
+                        }
                     }
                 }
                 

@@ -29,7 +29,8 @@ import java.time.format.DateTimeFormatter
 fun MonthlyBudgetScreen(
     viewModel: MonthlyBudgetViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -63,6 +64,7 @@ fun MonthlyBudgetScreen(
         if (uiState.monthlyLimit == null) {
             BudgetSetupPrompt(
                 modifier = Modifier.padding(paddingValues),
+                currency = uiState.baseCurrency,
                 onSetBudget = { amount -> viewModel.setMonthlyLimit(amount) }
             )
         } else {
@@ -71,7 +73,11 @@ fun MonthlyBudgetScreen(
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
-                onEditBudget = onNavigateToSettings
+                onEditBudget = onNavigateToSettings,
+                onCategoryClick = { category ->
+                    val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
+                    onNavigateToCategory(category, yearMonth, uiState.currency)
+                }
             )
         }
     }
@@ -80,6 +86,7 @@ fun MonthlyBudgetScreen(
 @Composable
 private fun BudgetSetupPrompt(
     modifier: Modifier = Modifier,
+    currency: String = "INR",
     onSetBudget: (BigDecimal) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
@@ -128,7 +135,7 @@ private fun BudgetSetupPrompt(
                         }
                     },
                     label = { Text("Monthly Budget") },
-                    prefix = { Text("₹") },
+                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -156,7 +163,8 @@ private fun BudgetOverview(
     uiState: MonthlyBudgetUiState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onEditBudget: () -> Unit
+    onEditBudget: () -> Unit,
+    onCategoryClick: (String) -> Unit = {}
 ) {
     val spending = uiState.spending ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
@@ -230,7 +238,8 @@ private fun BudgetOverview(
         ) { categoryInfo ->
             CategorySpendingRow(
                 info = categoryInfo,
-                currency = uiState.currency
+                currency = uiState.currency,
+                onClick = { onCategoryClick(categoryInfo.categoryName) }
             )
         }
 
@@ -515,12 +524,14 @@ private fun IncomeSavingsCard(
 @Composable
 private fun CategorySpendingRow(
     info: CategorySpendingInfo,
-    currency: String
+    currency: String,
+    onClick: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val hasLimit = info.limit != null
 
     Card(
+        onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )

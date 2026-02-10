@@ -203,7 +203,7 @@ fun AddAccountScreen(
                 label = { Text("Current Balance *") },
                 placeholder = { Text("0.00") },
                 leadingIcon = {
-                    Icon(Icons.Default.CurrencyRupee, contentDescription = null)
+                    Icon(Icons.Default.Payments, contentDescription = null)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,

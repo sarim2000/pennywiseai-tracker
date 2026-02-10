@@ -76,7 +76,7 @@ fun MonthlyBudgetSettingsScreen(
                         }
                     },
                     label = { Text("Total Monthly Limit") },
-                    prefix = { Text("₹") },
+                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(uiState.baseCurrency)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -115,7 +115,7 @@ fun MonthlyBudgetSettingsScreen(
             ) { categoryLimit ->
                 CategoryLimitRow(
                     categoryLimit = categoryLimit,
-                    currency = uiState.currency,
+                    currency = uiState.baseCurrency,
                     onEdit = { editingCategory = categoryLimit },
                     onRemove = { viewModel.removeCategoryLimit(categoryLimit.categoryName) }
                 )
@@ -143,7 +143,7 @@ fun MonthlyBudgetSettingsScreen(
                             Text(
                                 text = CurrencyFormatter.formatCurrency(
                                     if (unallocated >= BigDecimal.ZERO) unallocated else BigDecimal.ZERO,
-                                    uiState.currency
+                                    uiState.baseCurrency
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
@@ -187,6 +187,7 @@ fun MonthlyBudgetSettingsScreen(
 
         AddCategoryLimitDialog(
             availableCategories = availableCategories.map { it.name },
+            currency = uiState.baseCurrency,
             onConfirm = { categoryName, amount ->
                 viewModel.setCategoryLimit(categoryName, amount)
                 showAddCategoryDialog = false
@@ -200,6 +201,7 @@ fun MonthlyBudgetSettingsScreen(
         EditCategoryLimitDialog(
             categoryName = category.categoryName,
             currentAmount = category.limitAmount,
+            currency = uiState.baseCurrency,
             onConfirm = { amount ->
                 viewModel.setCategoryLimit(category.categoryName, amount)
                 editingCategory = null
@@ -294,6 +296,7 @@ private fun CategoryLimitRow(
 @Composable
 private fun AddCategoryLimitDialog(
     availableCategories: List<String>,
+    currency: String = "INR",
     onConfirm: (String, BigDecimal) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -349,7 +352,7 @@ private fun AddCategoryLimitDialog(
                             }
                         },
                         label = { Text("Limit Amount") },
-                        prefix = { Text("₹") },
+                        prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -383,6 +386,7 @@ private fun AddCategoryLimitDialog(
 private fun EditCategoryLimitDialog(
     categoryName: String,
     currentAmount: BigDecimal,
+    currency: String = "INR",
     onConfirm: (BigDecimal) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -400,7 +404,7 @@ private fun EditCategoryLimitDialog(
                     }
                 },
                 label = { Text("Limit Amount") },
-                prefix = { Text("₹") },
+                prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )

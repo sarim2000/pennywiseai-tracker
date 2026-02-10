@@ -105,7 +105,7 @@ fun UnifiedAccountsCard(
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = CurrencyFormatter.formatCurrency(totalAvailableCredit),
+                        text = CurrencyFormatter.formatCurrency(totalAvailableCredit, selectedCurrency),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary

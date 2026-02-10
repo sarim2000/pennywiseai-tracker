@@ -44,5 +44,8 @@ data class ExchangeRateEntity(
     val expiresAt: LocalDateTime,
 
     @ColumnInfo(name = "expires_at_unix", defaultValue = "0")
-    val expiresAtUnix: Long = 0
+    val expiresAtUnix: Long = 0,
+
+    @ColumnInfo(name = "is_custom_rate", defaultValue = "0")
+    val isCustomRate: Boolean = false
 )

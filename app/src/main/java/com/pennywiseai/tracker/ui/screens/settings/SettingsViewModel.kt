@@ -25,10 +25,13 @@ import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.core.Constants
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
 import java.net.URLEncoder
@@ -41,6 +44,7 @@ class SettingsViewModel @Inject constructor(
     private val modelRepository: ModelRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val transactionRepository: TransactionRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter
 ) : ViewModel() {
@@ -75,6 +79,18 @@ class SettingsViewModel @Inject constructor(
     // SMS scan period state
     val smsScanMonths = userPreferencesRepository.smsScanMonths
     val smsScanAllTime = userPreferencesRepository.smsScanAllTime
+
+    // Unified Currency Mode
+    val unifiedCurrencyMode = userPreferencesRepository.unifiedCurrencyMode
+    val displayCurrency = userPreferencesRepository.displayCurrency
+
+    val availableCurrencies: StateFlow<List<String>> = transactionRepository.getAllCurrencies()
+        .map { currencies -> CurrencyUtils.sortCurrencies(currencies) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
     
     // Base currency state
     val baseCurrency = userPreferencesRepository.baseCurrency
@@ -361,6 +377,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
+    fun setUnifiedCurrencyMode(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setUnifiedCurrencyMode(enabled)
+        }
+    }
+
+    fun setDisplayCurrency(currency: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDisplayCurrency(currency)
+        }
+    }
+
     fun toggleDeveloperMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDeveloperModeEnabled(enabled)

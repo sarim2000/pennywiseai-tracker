@@ -124,6 +124,11 @@ object CurrencyFormatter {
     }
 
     /**
+     * Returns all supported currency codes
+     */
+    fun getSupportedCurrencies(): List<String> = CURRENCY_SYMBOLS.keys.toList()
+
+    /**
      * Gets the base currency for a bank using the BankParserFactory
      * Returns INR as default for unknown banks
      */

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService.TransactionData
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.ui.components.BalancePoint
@@ -26,7 +27,8 @@ class AccountDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
     
     private val bankName: String = savedStateHandle.get<String>("bankName") ?: ""
@@ -57,8 +59,10 @@ class AccountDetailViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 selectedDateRange,
-                transactionRepository.getTransactionsByAccount(bankName, accountLast4)
-            ) { dateRange, allTransactions ->
+                transactionRepository.getTransactionsByAccount(bankName, accountLast4),
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { dateRange, allTransactions, isUnified, displayCurrency ->
                 val (startDate, endDate) = getDateRangeValues(dateRange)
 
                 val filteredTransactions = if (dateRange == DateRange.ALL_TIME) {
@@ -70,14 +74,15 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
 
-                val primaryCurrency = getPrimaryCurrencyForAccount(bankName)
+                // Use display currency when unified, otherwise account's primary currency
+                val targetCurrency = if (isUnified) displayCurrency else getPrimaryCurrencyForAccount(bankName)
                 val hasMultipleCurrencies = filteredTransactions
                     .map { it.currency }
                     .distinct()
                     .size > 1
 
                 // Refresh exchange rates if we have multiple currencies
-                if (hasMultipleCurrencies) {
+                if (hasMultipleCurrencies || isUnified) {
                     val accountCurrencies = filteredTransactions.map { it.currency }.distinct()
                     currencyConversionService.refreshExchangeRatesForAccount(accountCurrencies)
                 }
@@ -87,11 +92,11 @@ class AccountDetailViewModel @Inject constructor(
                 var totalExpenses = BigDecimal.ZERO
 
                 filteredTransactions.forEach { transaction ->
-                    val convertedAmount = if (transaction.currency != primaryCurrency) {
+                    val convertedAmount = if (transaction.currency != targetCurrency) {
                         currencyConversionService.convertAmount(
                             amount = transaction.amount,
                             fromCurrency = transaction.currency,
-                            toCurrency = primaryCurrency
+                            toCurrency = targetCurrency
                         ) ?: transaction.amount
                     } else {
                         transaction.amount
@@ -110,7 +115,7 @@ class AccountDetailViewModel @Inject constructor(
                         totalIncome = totalIncome,
                         totalExpenses = totalExpenses,
                         netBalance = totalIncome - totalExpenses,
-                        primaryCurrency = primaryCurrency,
+                        primaryCurrency = targetCurrency,
                         hasMultipleCurrencies = hasMultipleCurrencies,
                         isLoading = false
                     )

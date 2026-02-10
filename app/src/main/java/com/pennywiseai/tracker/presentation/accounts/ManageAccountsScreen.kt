@@ -1113,7 +1113,11 @@ private fun UpdateCreditCardDialog(
                     label = { Text("Outstanding Balance") },
                     placeholder = { Text("0.00") },
                     leadingIcon = {
-                        Icon(Icons.Default.CurrencyRupee, contentDescription = null)
+                        Text(
+                            text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     },
                     supportingText = {
                         Text("Amount currently owed on the card")
@@ -1135,7 +1139,11 @@ private fun UpdateCreditCardDialog(
                     label = { Text("Credit Limit") },
                     placeholder = { Text("50000.00") },
                     leadingIcon = {
-                        Icon(Icons.Default.CurrencyRupee, contentDescription = null)
+                        Text(
+                            text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     },
                     supportingText = {
                         Text("Total credit limit of the card")

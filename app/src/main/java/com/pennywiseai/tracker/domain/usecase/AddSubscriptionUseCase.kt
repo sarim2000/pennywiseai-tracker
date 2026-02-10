@@ -20,7 +20,8 @@ class AddSubscriptionUseCase @Inject constructor(
         category: String,
         autoRenewal: Boolean = true,
         paymentReminder: Boolean = true,
-        notes: String? = null
+        notes: String? = null,
+        currency: String = "INR"
     ): Long {
         Log.d("AddSubscriptionUseCase", "Creating subscription entity...")
         
@@ -31,6 +32,7 @@ class AddSubscriptionUseCase @Inject constructor(
             state = SubscriptionState.ACTIVE, // Always active for manually added subscriptions
             bankName = "Manual Entry",
             category = category,
+            currency = currency,
             smsBody = notes, // Store user notes in smsBody field
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()

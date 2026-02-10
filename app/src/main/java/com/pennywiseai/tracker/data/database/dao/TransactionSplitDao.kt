@@ -53,6 +53,19 @@ interface TransactionSplitDao {
         currency: String
     ): Flow<List<TransactionWithSplits>>
 
+    @Transaction
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND date_time >= :startDate
+        AND date_time <= :endDate
+        ORDER BY date_time DESC
+    """)
+    fun getTransactionsWithSplitsAllCurrencies(
+        startDate: java.time.LocalDateTime,
+        endDate: java.time.LocalDateTime
+    ): Flow<List<TransactionWithSplits>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSplit(split: TransactionSplitEntity): Long
 

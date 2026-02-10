@@ -175,6 +175,65 @@ object BrandIcons {
         "zerodha" to R.drawable.ic_brand_zerodha,
         "zomato" to R.drawable.ic_brand_zomato,
         "zoom" to R.drawable.ic_brand_zoom,
+        // Banks - Indian
+        "saraswat bank" to R.drawable.ic_brand_saraswat_bank,
+        "indian bank" to R.drawable.ic_brand_indian_bank,
+        "karnataka bank" to R.drawable.ic_brand_karnataka_bank,
+        "kerala gramin bank" to R.drawable.ic_brand_kerala_gramin_bank,
+        "jupiter" to R.drawable.ic_brand_jupiter_bank,
+        "bank of india" to R.drawable.ic_brand_bank_of_india,
+        "hsbc" to R.drawable.ic_brand_hsbc_bank,
+        "central bank of india" to R.drawable.ic_brand_central_bank_of_india,
+        "south indian bank" to R.drawable.ic_brand_south_indian_bank,
+        "city union bank" to R.drawable.ic_brand_city_union_bank,
+        "indian overseas bank" to R.drawable.ic_brand_indian_overseas_bank,
+        "iob" to R.drawable.ic_brand_indian_overseas_bank,
+        "au bank" to R.drawable.ic_brand_au_bank,
+        "au small finance" to R.drawable.ic_brand_au_bank,
+        "standard chartered" to R.drawable.ic_brand_standard_chartered,
+        "equitas" to R.drawable.ic_brand_equitas_bank,
+        // Banks - Indian Fintech/Payments
+        "juspay" to R.drawable.ic_brand_juspay,
+        "india post payments bank" to R.drawable.ic_brand_ippb,
+        "ippb" to R.drawable.ic_brand_ippb,
+        // Banks - Credit Cards
+        "american express" to R.drawable.ic_brand_amex,
+        "amex" to R.drawable.ic_brand_amex,
+        // Banks - UAE
+        "adcb" to R.drawable.ic_brand_adcb,
+        "first abu dhabi" to R.drawable.ic_brand_fab_bank,
+        "fab bank" to R.drawable.ic_brand_fab_bank,
+        "emirates nbd" to R.drawable.ic_brand_emirates_nbd,
+        "liv bank" to R.drawable.ic_brand_liv_bank,
+        "mashreq" to R.drawable.ic_brand_mashreq_bank,
+        // Banks - USA
+        "citi bank" to R.drawable.ic_brand_citi_bank,
+        "citibank" to R.drawable.ic_brand_citi_bank,
+        "discover" to R.drawable.ic_brand_discover,
+        "charles schwab" to R.drawable.ic_brand_charles_schwab,
+        "schwab" to R.drawable.ic_brand_charles_schwab,
+        "navy federal" to R.drawable.ic_brand_navy_federal,
+        "huntington bank" to R.drawable.ic_brand_huntington_bank,
+        "huntington" to R.drawable.ic_brand_huntington_bank,
+        // Banks - Nepal
+        "laxmi sunrise" to R.drawable.ic_brand_laxmi_sunrise_bank,
+        "everest bank" to R.drawable.ic_brand_everest_bank,
+        "nmb bank" to R.drawable.ic_brand_nmb_bank,
+        "nabil bank" to R.drawable.ic_brand_nmb_bank,
+        "siddhartha bank" to R.drawable.ic_brand_siddhartha_bank,
+        // Banks - Africa / Mobile Money
+        "m-pesa" to R.drawable.ic_brand_mpesa,
+        "mpesa" to R.drawable.ic_brand_mpesa,
+        "selcom" to R.drawable.ic_brand_selcom_pesa,
+        "tigo pesa" to R.drawable.ic_brand_tigo_pesa,
+        "commercial bank of ethiopia" to R.drawable.ic_brand_cbe_bank,
+        // Banks - Other International
+        "dbs bank" to R.drawable.ic_brand_dbs_bank,
+        "dbs" to R.drawable.ic_brand_dbs_bank,
+        "bancolombia" to R.drawable.ic_brand_bancolombia,
+        "priorbank" to R.drawable.ic_brand_priorbank,
+        "alinma" to R.drawable.ic_brand_alinma_bank,
+        "cib egypt" to R.drawable.ic_brand_cib_egypt,
     )
     
     fun getIconResource(merchantName: String): Int? {
@@ -267,7 +326,28 @@ object BrandIcons {
         // Fitness
         merchantName.contains("cult", ignoreCase = true) -> "#FF3278"
         merchantName.contains("gym", ignoreCase = true) -> "#F15B2A"
-        
+
+        // Additional Banks
+        merchantName.contains("hsbc", ignoreCase = true) -> "#DB0011"
+        merchantName.contains("standard chartered", ignoreCase = true) -> "#0072AA"
+        merchantName.contains("dbs", ignoreCase = true) -> "#E21A1A"
+        merchantName.contains("amex", ignoreCase = true) -> "#006FCF"
+        merchantName.contains("american express", ignoreCase = true) -> "#006FCF"
+        merchantName.contains("citi", ignoreCase = true) -> "#003B70"
+        merchantName.contains("emirates nbd", ignoreCase = true) -> "#003366"
+        merchantName.contains("mashreq", ignoreCase = true) -> "#ED1C24"
+        merchantName.contains("adcb", ignoreCase = true) -> "#00263E"
+        merchantName.contains("navy federal", ignoreCase = true) -> "#003468"
+        merchantName.contains("huntington", ignoreCase = true) -> "#00703C"
+        merchantName.contains("m-pesa", ignoreCase = true) -> "#4DB848"
+        merchantName.contains("mpesa", ignoreCase = true) -> "#4DB848"
+        merchantName.contains("bancolombia", ignoreCase = true) -> "#FDDA24"
+        merchantName.contains("jupiter", ignoreCase = true) -> "#F26B5B"
+        merchantName.contains("equitas", ignoreCase = true) -> "#ED1C24"
+        merchantName.contains("au bank", ignoreCase = true) -> "#EC6608"
+        merchantName.contains("discover", ignoreCase = true) -> "#FF6000"
+        merchantName.contains("schwab", ignoreCase = true) -> "#00A0DF"
+
         else -> null
     }
 }

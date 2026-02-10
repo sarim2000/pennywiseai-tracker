@@ -503,7 +503,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                         accountBalanceRepository.insertBalance(balanceEntity)
                                         
                                         val logMsg = if (parsedTransaction.creditLimit != null) {
-                                            "Saved balance/credit limit (${CurrencyFormatter.formatCurrency(parsedTransaction.creditLimit!!)}) for ${parsedTransaction.bankName} **$targetAccountLast4"
+                                            "Saved balance/credit limit (${CurrencyFormatter.formatCurrency(parsedTransaction.creditLimit!!, parsedTransaction.currency)}) for ${parsedTransaction.bankName} **$targetAccountLast4"
                                         } else {
                                             "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4"
                                         }

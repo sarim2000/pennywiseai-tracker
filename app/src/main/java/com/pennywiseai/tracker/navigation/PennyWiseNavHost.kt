@@ -73,7 +73,22 @@ fun PennyWiseNavHost(
                 rootNavController = navController
             )
         }
-        
+
+        composable<HomeWithCategoryFilter>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) { backStackEntry ->
+            val args = backStackEntry.toRoute<HomeWithCategoryFilter>()
+            MainScreen(
+                rootNavController = navController,
+                initialCategory = args.category,
+                initialPeriod = args.period,
+                initialCurrency = args.currency
+            )
+        }
+
         composable<Settings>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
@@ -95,11 +110,14 @@ fun PennyWiseNavHost(
                     navController.navigate(Faq)
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(MonthlyBudget)
+                    navController.navigate(BudgetGroups)
+                },
+                onNavigateToExchangeRates = {
+                    navController.navigate(ExchangeRates)
                 }
             )
         }
-        
+
         composable<Categories>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
@@ -226,20 +244,52 @@ fun PennyWiseNavHost(
             )
         }
 
+        composable<BudgetGroups>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToGroupEdit = { groupId ->
+                    navController.navigate(BudgetGroupEdit(groupId))
+                },
+                onNavigateToCategory = { category, yearMonth, currency ->
+                    navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
+                        popUpTo(Home) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable<BudgetGroupEdit>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable<MonthlyBudget>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToSettings = {
-                    navController.navigate(MonthlyBudgetSettings)
+            // Redirect old budget screen to new budget groups
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(BudgetGroups) {
+                    popUpTo(MonthlyBudget) { inclusive = true }
                 }
-            )
+            }
         }
 
         composable<MonthlyBudgetSettings>(
@@ -249,6 +299,19 @@ fun PennyWiseNavHost(
             popExitTransition = { ExitTransition.None }
         ) {
             com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<ExchangeRates>(
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

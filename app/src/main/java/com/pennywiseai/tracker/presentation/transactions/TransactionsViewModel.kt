@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,6 +34,7 @@ class TransactionsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
+    private val currencyConversionService: CurrencyConversionService,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -58,6 +60,13 @@ class TransactionsViewModel @Inject constructor(
 
     private val _selectedCurrency = MutableStateFlow("INR") // Will be initialized from preferences
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
+
+    private val _isUnifiedMode = MutableStateFlow(false)
+    val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
+
+    // Map of transactionId -> converted amount in display currency (for unified mode)
+    private val _convertedAmounts = MutableStateFlow<Map<Long, BigDecimal>>(emptyMap())
+    val convertedAmounts: StateFlow<Map<Long, BigDecimal>> = _convertedAmounts.asStateFlow()
 
     // Store custom date range as epoch days to survive process death
     // Stored as Pair<Long, Long> (startEpochDay, endEpochDay) in SavedStateHandle
@@ -123,18 +132,49 @@ class TransactionsViewModel @Inject constructor(
     // Computed property for current selected currency totals
     val filteredTotals: StateFlow<FilteredTotals> = combine(
         _currencyGroupedTotals,
-        _selectedCurrency
-    ) { groupedTotals, currency ->
-        val currencyTotals = groupedTotals.getTotalsForCurrency(currency)
-        FilteredTotals(
-            income = currencyTotals.income,
-            expenses = currencyTotals.expenses,
-            credit = currencyTotals.credit,
-            transfer = currencyTotals.transfer,
-            investment = currencyTotals.investment,
-            netBalance = currencyTotals.netBalance,
-            transactionCount = currencyTotals.transactionCount
-        )
+        _selectedCurrency,
+        _isUnifiedMode
+    ) { groupedTotals, currency, isUnified ->
+        Triple(groupedTotals, currency, isUnified)
+    }.mapLatest { (groupedTotals, currency, isUnified) ->
+        if (isUnified && groupedTotals.totalsByCurrency.size > 1) {
+            // Aggregate all currencies converted to display currency
+            var income = BigDecimal.ZERO
+            var expenses = BigDecimal.ZERO
+            var credit = BigDecimal.ZERO
+            var transfer = BigDecimal.ZERO
+            var investment = BigDecimal.ZERO
+            var count = 0
+            for ((cur, totals) in groupedTotals.totalsByCurrency) {
+                if (cur == currency) {
+                    income += totals.income
+                    expenses += totals.expenses
+                    credit += totals.credit
+                    transfer += totals.transfer
+                    investment += totals.investment
+                } else {
+                    income += currencyConversionService.convertAmount(totals.income, cur, currency)
+                    expenses += currencyConversionService.convertAmount(totals.expenses, cur, currency)
+                    credit += currencyConversionService.convertAmount(totals.credit, cur, currency)
+                    transfer += currencyConversionService.convertAmount(totals.transfer, cur, currency)
+                    investment += currencyConversionService.convertAmount(totals.investment, cur, currency)
+                }
+                count += totals.transactionCount
+            }
+            val netBalance = income - expenses - credit - transfer - investment
+            FilteredTotals(income, expenses, credit, transfer, investment, netBalance, count)
+        } else {
+            val currencyTotals = groupedTotals.getTotalsForCurrency(currency)
+            FilteredTotals(
+                income = currencyTotals.income,
+                expenses = currencyTotals.expenses,
+                credit = currencyTotals.credit,
+                transfer = currencyTotals.transfer,
+                investment = currencyTotals.investment,
+                netBalance = currencyTotals.netBalance,
+                transactionCount = currencyTotals.transactionCount
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -201,10 +241,26 @@ class TransactionsViewModel @Inject constructor(
     init {
         // Initialize selectedCurrency from baseCurrency preference
         viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            _selectedCurrency.value = baseCurrency
         }
-        
+
+        // Load unified mode preferences
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            combine(
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { unifiedMode, displayCurrency ->
+                unifiedMode to displayCurrency
+            }.collect { (unifiedMode, displayCurrency) ->
+                _isUnifiedMode.value = unifiedMode
+                if (unifiedMode) {
+                    _selectedCurrency.value = displayCurrency
+                } else {
+                    _selectedCurrency.value = baseCurrency
+                }
+            }
+        }
+
         // Manually combine all flows using transformLatest
         merge(
             searchQuery.debounce(300).map { "search" },
@@ -213,6 +269,7 @@ class TransactionsViewModel @Inject constructor(
             categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },
             selectedCurrency.map { "currency" },
+            _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
             customDateRange.map { "customDate" }
         )
@@ -224,37 +281,43 @@ class TransactionsViewModel @Inject constructor(
                 val categories = categoriesFilter.value
                 val typeFilter = transactionTypeFilter.value
                 val sort = sortOption.value
+                val isUnified = _isUnifiedMode.value
 
                 // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter)
-                    .collect { allFilteredTransactions ->
-                        // Calculate available currencies from ALL filtered transactions (before currency filtering)
-                        val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
-                            allFilteredTransactions.map { it.currency }.distinct()
-                        )
-                        
-                        // Auto-select primary currency if current currency doesn't exist in available currencies
-                        val currentCurrency = selectedCurrency.value
-                        val finalCurrency = if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(currentCurrency)) {
-                            // Auto-select: prefer baseCurrency from preferences, then first available
-                            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-                            val newCurrency = if (allAvailableCurrencies.contains(baseCurrency)) {
-                                baseCurrency
-                            } else {
-                                allAvailableCurrencies.first()
-                            }
-                            _selectedCurrency.value = newCurrency
-                            newCurrency
+                    .collect { transactions ->
+                        if (isUnified) {
+                            // Show all transactions regardless of currency
+                            emit(sortTransactions(transactions, sort))
                         } else {
-                            currentCurrency
+                            // Calculate available currencies from ALL filtered transactions (before currency filtering)
+                            val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
+                                transactions.map { it.currency }.distinct()
+                            )
+
+                            // Auto-select primary currency if current currency doesn't exist in available currencies
+                            val currentCurrency = selectedCurrency.value
+                            val finalCurrency = if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(currentCurrency)) {
+                                // Auto-select: prefer baseCurrency from preferences, then first available
+                                val baseCurrency = userPreferencesRepository.baseCurrency.first()
+                                val newCurrency = if (allAvailableCurrencies.contains(baseCurrency)) {
+                                    baseCurrency
+                                } else {
+                                    allAvailableCurrencies.first()
+                                }
+                                _selectedCurrency.value = newCurrency
+                                newCurrency
+                            } else {
+                                currentCurrency
+                            }
+
+                            // Now filter by the selected currency (which may have just been auto-selected)
+                            val currencyFilteredTransactions = transactions.filter {
+                                it.currency.equals(finalCurrency, ignoreCase = true)
+                            }
+
+                            emit(sortTransactions(currencyFilteredTransactions, sort))
                         }
-                        
-                        // Now filter by the selected currency (which may have just been auto-selected)
-                        val currencyFilteredTransactions = allFilteredTransactions.filter {
-                            it.currency.equals(finalCurrency, ignoreCase = true)
-                        }
-                        
-                        emit(sortTransactions(currencyFilteredTransactions, sort))
                     }
             }
             .onEach { transactions ->
@@ -265,6 +328,28 @@ class TransactionsViewModel @Inject constructor(
                 )
                 // Calculate totals for filtered transactions
                 _currencyGroupedTotals.value = calculateCurrencyGroupedTotals(transactions)
+
+                // Auto-select primary currency if not already selected or if current currency no longer exists
+                if (!_isUnifiedMode.value) {
+                    val currentCurrency = selectedCurrency.value
+                    if (!_currencyGroupedTotals.value.availableCurrencies.contains(currentCurrency) && _currencyGroupedTotals.value.hasAnyCurrency()) {
+                        val baseCurrency = userPreferencesRepository.baseCurrency.first()
+                        _selectedCurrency.value = _currencyGroupedTotals.value.getPrimaryCurrency(baseCurrency)
+                    }
+                    _convertedAmounts.value = emptyMap()
+                } else {
+                    // Build converted amounts map for transactions in foreign currencies
+                    val displayCurrency = _selectedCurrency.value
+                    val converted = mutableMapOf<Long, BigDecimal>()
+                    for (tx in transactions) {
+                        if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
+                            converted[tx.id] = currencyConversionService.convertAmount(
+                                tx.amount, tx.currency, displayCurrency
+                            )
+                        }
+                    }
+                    _convertedAmounts.value = converted
+                }
             }
             .launchIn(viewModelScope)
     }

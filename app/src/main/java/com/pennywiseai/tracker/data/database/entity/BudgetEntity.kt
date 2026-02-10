@@ -47,6 +47,12 @@ data class BudgetEntity(
     @ColumnInfo(name = "color", defaultValue = "#1565C0")
     val color: String = "#1565C0",
 
+    @ColumnInfo(name = "group_type", defaultValue = "LIMIT")
+    val groupType: BudgetGroupType = BudgetGroupType.LIMIT,
+
+    @ColumnInfo(name = "display_order", defaultValue = "0")
+    val displayOrder: Int = 0,
+
     @ColumnInfo(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
@@ -58,4 +64,10 @@ enum class BudgetPeriodType {
     WEEKLY,
     MONTHLY,
     CUSTOM
+}
+
+enum class BudgetGroupType {
+    LIMIT,
+    TARGET,
+    EXPECTED
 }

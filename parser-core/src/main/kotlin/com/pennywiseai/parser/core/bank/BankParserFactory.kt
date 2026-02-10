@@ -73,7 +73,10 @@ object BankParserFactory {
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
         StandardCharteredBankParser(),  // Standard Chartered Bank (India)
-        EquitasBankParser()  // Equitas Small Finance Bank (India)
+        EquitasBankParser(),  // Equitas Small Finance Bank (India)
+        TelebirrParser(),  // Telebirr (Ethiopia)
+        ZemenBankParser(),  // Zemen Bank (Ethiopia)
+        DashenBankParser()  // Dashen Bank (Ethiopia)
         // Add more bank parsers here as we implement them
     )
 

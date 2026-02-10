@@ -19,7 +19,7 @@ class RuleTemplateService @Inject constructor() {
         return TransactionRule(
             id = UUID.randomUUID().toString(),
             name = "Small Payments to Food",
-            description = "Categorize small expense payments (under ₹200) as Food & Dining",
+            description = "Categorize small expense payments (under 200) as Food & Dining",
             priority = 100,
             conditions = listOf(
                 RuleCondition(
@@ -51,7 +51,7 @@ class RuleTemplateService @Inject constructor() {
         return TransactionRule(
             id = UUID.randomUUID().toString(),
             name = "UPI Cashback",
-            description = "Identify small UPI receipts (under ₹10) from NPCI as cashback",
+            description = "Identify small UPI receipts (under 10) from NPCI as cashback",
             priority = 50,
             conditions = listOf(
                 RuleCondition(

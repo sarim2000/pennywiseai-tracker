@@ -82,6 +82,20 @@ class KotakBankParserTest {
                     accountLast4 = "4444",
                     balance = BigDecimal("10000.00")
                 )
+            ),
+            ParserTestCase(
+                name = "Credit card spending with available limit",
+                message = "INR 20 spent on Kotak Credit Card x5236 on 23-JAN-2026 at UPI-638903921672-CORN. Avl limit INR 73733.02 Fraud? https://www.kotak.bank.in/KBANKT/querytxn",
+                sender = "TX-KOTAKB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("20"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "CORN",
+                    accountLast4 = "5236",
+                    isFromCard = true,
+                    creditLimit = BigDecimal("73733.02")
+                )
             )
         )
 

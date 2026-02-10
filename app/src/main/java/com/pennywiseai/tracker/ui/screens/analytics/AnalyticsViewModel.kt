@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.ui.screens.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
@@ -21,6 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val currencyConversionService: CurrencyConversionService,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
     
@@ -32,6 +36,26 @@ class AnalyticsViewModel @Inject constructor(
 
     private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
+
+    private val _isUnifiedMode = MutableStateFlow(false)
+    val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
+
+    init {
+        // Load unified mode preferences
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { unifiedMode, displayCurrency ->
+                unifiedMode to displayCurrency
+            }.collect { (unifiedMode, displayCurrency) ->
+                _isUnifiedMode.value = unifiedMode
+                if (unifiedMode) {
+                    _selectedCurrency.value = displayCurrency
+                }
+            }
+        }
+    }
 
     // Store custom date range as epoch days to survive process death
     // Stored as Pair<Long, Long> (startEpochDay, endEpochDay) in SavedStateHandle
@@ -59,10 +83,10 @@ class AnalyticsViewModel @Inject constructor(
         _selectedPeriod,
         customDateRange,
         _transactionTypeFilter,
-        _selectedCurrency
-    ) { period, customRange, typeFilter, currency ->
-        // Combine all filter states
-        FilterState(period, customRange, typeFilter, currency)
+        _selectedCurrency,
+        _isUnifiedMode
+    ) { period, customRange, typeFilter, currency, isUnified ->
+        FilterState(period, customRange, typeFilter, currency, isUnified)
     }.flatMapLatest { filterState ->
         // Determine date range based on selected period
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
@@ -114,12 +138,20 @@ class AnalyticsViewModel @Inject constructor(
                 }
 
                 // Load transactions with splits for proper category breakdown
-                transactionRepository.getTransactionsWithSplitsFiltered(
-                    startDate = dateRange.first,
-                    endDate = dateRange.second,
-                    currency = filterState.currency
-                ).map { txs -> txs to dbTransactionType }
-            }.map { (allTransactionsWithSplits, transactionTypeFilter) ->
+                if (filterState.isUnifiedMode) {
+                    // Unified mode: load ALL currencies
+                    transactionRepository.getTransactionsWithSplitsFiltered(
+                        startDate = dateRange.first,
+                        endDate = dateRange.second
+                    ).map { txs -> Triple(txs, dbTransactionType, true) }
+                } else {
+                    transactionRepository.getTransactionsWithSplitsFiltered(
+                        startDate = dateRange.first,
+                        endDate = dateRange.second,
+                        currency = filterState.currency
+                    ).map { txs -> Triple(txs, dbTransactionType, false) }
+                }
+            }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
                 // Filter by transaction type in memory (splits are already loaded)
                 val filteredTransactionsWithSplits = if (transactionTypeFilter != null) {
                     allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
@@ -128,21 +160,32 @@ class AnalyticsViewModel @Inject constructor(
                 }
 
                 val filteredTransactions = filteredTransactionsWithSplits.map { it.transaction }
+                val displayCurrency = _selectedCurrency.value
 
-                // Calculate total
-                val totalSpending = filteredTransactions.sumOf { it.amount.toDouble() }.toBigDecimal()
+                // Calculate total — convert if unified mode
+                var totalSpending = BigDecimal.ZERO
+                if (isUnified) {
+                    for (tx in filteredTransactions) {
+                        totalSpending += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                    }
+                } else {
+                    totalSpending = filteredTransactions.sumOf { it.amount.toDouble() }.toBigDecimal()
+                }
 
                 // Build category breakdown considering splits
-                // For transactions with splits, use split amounts per category
-                // For transactions without splits, use full amount for transaction category
                 val categoryAmounts = mutableMapOf<String, BigDecimal>()
                 val categoryTransactionCounts = mutableMapOf<String, Int>()
 
-                filteredTransactionsWithSplits.forEach { txWithSplits ->
+                for (txWithSplits in filteredTransactionsWithSplits) {
+                    val fromCurrency = txWithSplits.transaction.currency
                     txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                         val categoryName = category.ifEmpty { "Others" }
-                        categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + amount
-                        // Count as 1 transaction per category (even if split)
+                        val converted = if (isUnified) {
+                            currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                        } else {
+                            amount
+                        }
+                        categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
                         categoryTransactionCounts[categoryName] = (categoryTransactionCounts[categoryName] ?: 0) + 1
                     }
                 }
@@ -158,20 +201,29 @@ class AnalyticsViewModel @Inject constructor(
                     )
                 }.sortedByDescending { it.amount }
 
-                // Group by merchant
+                // Group by merchant — convert if unified
                 val merchantBreakdown = filteredTransactions
                     .groupBy { it.merchantName }
-                    .mapValues { (merchant, txns) ->
+                    .entries
+                    .map { (merchant, txns) ->
+                        val merchantAmount = if (isUnified) {
+                            var sum = BigDecimal.ZERO
+                            for (tx in txns) {
+                                sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                            }
+                            sum
+                        } else {
+                            txns.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        }
                         MerchantData(
                             name = merchant,
-                            amount = txns.sumOf { it.amount.toDouble() }.toBigDecimal(),
+                            amount = merchantAmount,
                             transactionCount = txns.size,
                             isSubscription = txns.any { it.isRecurring }
                         )
                     }
-                    .values
                     .sortedByDescending { it.amount }
-                    .take(10) // Top 10 merchants
+                    .take(10)
 
                 // Calculate average amount
                 val averageAmount = if (filteredTransactions.isNotEmpty()) {
@@ -191,7 +243,7 @@ class AnalyticsViewModel @Inject constructor(
                     averageAmount = averageAmount,
                     topCategory = topCategory?.name,
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
-                    currency = filterState.currency,
+                    currency = displayCurrency,
                     isLoading = false
                 )
             }
@@ -252,7 +304,8 @@ private data class FilterState(
     val period: TimePeriod,
     val customRange: Pair<LocalDate, LocalDate>?,
     val typeFilter: TransactionTypeFilter,
-    val currency: String
+    val currency: String,
+    val isUnifiedMode: Boolean = false
 )
 
 data class AnalyticsUiState(

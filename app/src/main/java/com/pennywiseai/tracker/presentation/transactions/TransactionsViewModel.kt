@@ -297,19 +297,25 @@ class TransactionsViewModel @Inject constructor(
 
                             // Auto-select primary currency if current currency doesn't exist in available currencies
                             val currentCurrency = selectedCurrency.value
-                            val finalCurrency = if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(currentCurrency)) {
-                                // Auto-select: prefer baseCurrency from preferences, then first available
-                                val baseCurrency = userPreferencesRepository.baseCurrency.first()
-                                val newCurrency = if (allAvailableCurrencies.contains(baseCurrency)) {
-                                    baseCurrency
+                            val finalCurrency =
+                                if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(
+                                        currentCurrency
+                                    )
+                                ) {
+                                    // Auto-select: prefer baseCurrency from preferences, then first available
+                                    val baseCurrency =
+                                        userPreferencesRepository.baseCurrency.first()
+                                    val newCurrency =
+                                        if (allAvailableCurrencies.contains(baseCurrency)) {
+                                            baseCurrency
+                                        } else {
+                                            allAvailableCurrencies.first()
+                                        }
+                                    _selectedCurrency.value = newCurrency
+                                    newCurrency
                                 } else {
-                                    allAvailableCurrencies.first()
+                                    currentCurrency
                                 }
-                                _selectedCurrency.value = newCurrency
-                                newCurrency
-                            } else {
-                                currentCurrency
-                            }
 
                             // Now filter by the selected currency (which may have just been auto-selected)
                             val currencyFilteredTransactions = transactions.filter {

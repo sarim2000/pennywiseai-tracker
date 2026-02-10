@@ -74,7 +74,6 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
-    val availableCurrencies = remember { CurrencyUtils.getAllSupportedCurrencies() }
     val context = LocalContext.current
     
     // File picker for import

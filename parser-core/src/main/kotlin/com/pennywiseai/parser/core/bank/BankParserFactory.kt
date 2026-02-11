@@ -76,7 +76,8 @@ object BankParserFactory {
         EquitasBankParser(),  // Equitas Small Finance Bank (India)
         TelebirrParser(),  // Telebirr (Ethiopia)
         ZemenBankParser(),  // Zemen Bank (Ethiopia)
-        DashenBankParser()  // Dashen Bank (Ethiopia)
+        DashenBankParser(),  // Dashen Bank (Ethiopia)
+        FaysalBankParser()  // Faysal Bank (Pakistan)
         // Add more bank parsers here as we implement them
     )
 

@@ -129,7 +129,10 @@ class AccountDetailViewModel @Inject constructor(
             accountBalanceRepository.getLatestBalanceFlow(bankName, accountLast4)
                 .collect { latestBalance ->
                     _uiState.update { state ->
-                        state.copy(currentBalance = latestBalance)
+                        state.copy(
+                            currentBalance = latestBalance,
+                            primaryCurrency = latestBalance?.currency ?: state.primaryCurrency
+                        )
                     }
                 }
         }

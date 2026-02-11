@@ -23,13 +23,16 @@ import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker
 
 @Composable
 fun PennyWiseApp(
     themeViewModel: ThemeViewModel = hiltViewModel(),
     appLockViewModel: AppLockViewModel = hiltViewModel(),
     editTransactionId: Long? = null,
-    onEditComplete: () -> Unit = {}
+    openAddTransaction: Boolean = false,
+    onEditComplete: () -> Unit = {},
+    onAddTransactionShortcutHandled: () -> Unit = {}
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
@@ -88,6 +91,21 @@ fun PennyWiseApp(
         editTransactionId?.let { transactionId ->
             navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId))
         }
+    }
+
+    // Navigate directly to Add Transaction when requested (e.g., from widget shortcut)
+    LaunchedEffect(openAddTransaction) {
+        if (openAddTransaction) {
+            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction) {
+                launchSingleTop = true
+            }
+            onAddTransactionShortcutHandled()
+        }
+    }
+
+    // Keep widgets current when app launches (covers upgrades/installs with existing widgets)
+    LaunchedEffect(Unit) {
+        RecentTransactionsWidgetUpdateWorker.enqueueOneShot(context.applicationContext)
     }
 
     PennyWiseTheme(

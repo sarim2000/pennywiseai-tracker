@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -23,17 +24,26 @@ class PermissionViewModel @Inject constructor(
     val uiState: StateFlow<PermissionUiState> = _uiState.asStateFlow()
     
     init {
-        checkPermissionStatus()
+        refreshPermissions()
         observeUserPreferences()
     }
     
-    private fun checkPermissionStatus() {
-        val hasPermission = ContextCompat.checkSelfPermission(
+    private fun refreshPermissions() {
+        val hasSmsPermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_SMS
         ) == PackageManager.PERMISSION_GRANTED
-        
-        _uiState.update { it.copy(hasPermission = hasPermission) }
+
+        val notificationAccess = NotificationManagerCompat
+            .getEnabledListenerPackages(context)
+            .contains(context.packageName)
+
+        _uiState.update {
+            it.copy(
+                hasPermission = hasSmsPermission,
+                hasNotificationAccess = notificationAccess
+            )
+        }
     }
     
     private fun observeUserPreferences() {
@@ -54,6 +64,10 @@ class PermissionViewModel @Inject constructor(
             }
         }
     }
+
+    fun refreshNotificationAccess() {
+        refreshPermissions()
+    }
     
     fun onSkipPermission() {
         viewModelScope.launch {
@@ -68,6 +82,7 @@ class PermissionViewModel @Inject constructor(
 
 data class PermissionUiState(
     val hasPermission: Boolean = false,
+    val hasNotificationAccess: Boolean = false,
     val hasSkippedPermission: Boolean = false,
     val showRationale: Boolean = false
 )

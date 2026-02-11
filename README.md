@@ -25,7 +25,7 @@ Turn bank SMS into a clean, searchable money timeline with on-device AI assistan
 
 ## Overview
 
-For Android users worldwide who want automatic expense tracking from bank SMS — clean categories, subscription detection, and clear insights. Supporting 40+ banks across 5 countries with multi-currency capabilities.
+For Android users worldwide who want automatic expense tracking from bank SMS — clean categories, subscription detection, and clear insights. Supporting 45+ banks across 11 countries with multi-currency capabilities.
 
 <a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">
   <img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" />
@@ -36,8 +36,8 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ### How it works
 
-1. Grant SMS permission (read‑only). No inbox changes, no messages sent.
-2. PennyWise parses transaction SMS, extracts amount, merchant, category, and date.
+1. Grant SMS permission (read‑only) and, optionally, notification access for supported bank apps. No inbox changes, no messages sent.
+2. PennyWise parses transaction SMS and bank app notifications, extracting amount, merchant, category, and date.
 3. View analytics, subscriptions, and the full transaction timeline — with on-device AI assistant for insights.
 
 ## Why PennyWise
@@ -49,10 +49,11 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 - **💬 On-device AI Assistant** - Ask questions like "What did I spend on food last month?" locally
 - **🏷️ Auto‑Categorization** - Clean merchant names and sensible categories
 - **📤 Data Export** - Export as CSV or PDF for taxes or records
+- **🔔 Notification Ingestion** - Parse whitelisted bank app notifications when SMS is delayed or unavailable
 
 ## Supported Banks & Countries
 
-Supporting **47+ banks** across **10 countries** with **multi-currency** capabilities:
+Supporting **48+ banks** across **11 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (35 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -61,6 +62,7 @@ Supporting **47+ banks** across **10 countries** with **multi-currency** capabil
 - **Canara Bank**, **Bank of Baroda**, **Bank of India**
 - **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
 - **IDFC First Bank**, **Union Bank**, **HSBC Bank**
+- **Standard Chartered Bank (India & Pakistan)**
 - **Central Bank of India**, **South Indian Bank**, **JK Bank**
 - **Indian Overseas Bank**, **Airtel Payments Bank**, **AMEX**
 - **OneCard**, **UCO Bank**, **AU Bank**, and more...
@@ -92,11 +94,15 @@ Supporting **47+ banks** across **10 countries** with **multi-currency** capabil
 ### 🇰🇪 Kenya (1 service) - KES Ksh
 - **M-PESA** - Mobile money service
 
+### 🇵🇰 Pakistan (2 banks) - PKR ₨
+- **Standard Chartered Bank** (India & Pakistan coverage)
+- **Faysal Bank**
+
 More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md)
 
 ## Privacy First
 
-All processing happens on your device using MediaPipe's LLM. Your financial data never leaves your phone. No servers, no uploads, no tracking.
+All processing happens on your device using MediaPipe's LLM. Your financial data never leaves your phone. No servers, no uploads, no tracking. SMS and notification access are scoped to bank senders/whitelisted bank apps only.
 
 ## Screenshots
 

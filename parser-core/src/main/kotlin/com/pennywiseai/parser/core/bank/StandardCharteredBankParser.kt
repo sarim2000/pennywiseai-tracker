@@ -23,11 +23,46 @@ class StandardCharteredBankParser : BankParser() {
                 upperSender.contains("STANCHART") ||
                 upperSender.contains("STANDARDCHARTERED") ||
                 upperSender.contains("STANDARD CHARTERED") ||
+                upperSender == "9220" || // Pakistan short code
                 // DLT patterns for transactions (-S suffix)
                 upperSender.matches(Regex("""^[A-Z]{2}-SCBANK-[A-Z]$"""))
     }
 
+    override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
+        val parsed = super.parse(smsBody, sender, timestamp) ?: return null
+        val currency = when {
+            smsBody.contains("PKR", ignoreCase = true) -> "PKR"
+            smsBody.contains("USD", ignoreCase = true) -> "USD"
+            else -> parsed.currency
+        }
+        return parsed.copy(currency = currency)
+    }
+
     override fun extractAmount(message: String): BigDecimal? {
+        // Pakistan formats: "PKR 55,000.00 sent to SCB PK A/C ****9901"
+        val pkrPattern = Regex(
+            """PKR\s+([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        pkrPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return amount.toBigDecimalOrNull()
+        }
+
+        // International spends: "USD 79.00 have been paid at ..."
+        val foreignCurrencyPattern = Regex(
+            """\b(?:USD)\s+([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        foreignCurrencyPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
         // Pattern 1: "is debited for Rs. 302.00"
         val debitPattern = Regex(
             """is debited for Rs\.\s*([0-9,]+(?:\.\d{2})?)""",
@@ -78,6 +113,19 @@ class StandardCharteredBankParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         return when {
+            lowerMessage.contains("payment of") && lowerMessage.contains("financing") -> TransactionType.EXPENSE
+            lowerMessage.contains("transaction of pkr") && lowerMessage.contains("using online banking") -> TransactionType.EXPENSE
+            lowerMessage.contains("withdrawn from account") -> TransactionType.EXPENSE
+            lowerMessage.contains("cash withdrawal transaction") -> TransactionType.EXPENSE
+            lowerMessage.contains("paid at") -> TransactionType.EXPENSE
+            lowerMessage.contains("transaction of pkr") && lowerMessage.contains("to") -> TransactionType.TRANSFER
+            lowerMessage.contains("sent to scb pk") && lowerMessage.contains("has been made into your account") -> TransactionType.INCOME
+            lowerMessage.contains("sent to scb pk") -> TransactionType.INCOME
+            lowerMessage.contains("electronic funds transfer") && lowerMessage.contains("into your account") -> TransactionType.INCOME
+            lowerMessage.contains("has been credited") -> TransactionType.INCOME
+            lowerMessage.contains("sent to scb pk") -> TransactionType.INCOME
+            lowerMessage.contains("electronic funds transfer") && lowerMessage.contains("into your account") -> TransactionType.INCOME
+            lowerMessage.contains("has been credited") -> TransactionType.INCOME
             lowerMessage.contains("is debited for") -> TransactionType.EXPENSE
             lowerMessage.contains("neft credit") -> TransactionType.INCOME
             lowerMessage.contains("rtgs credit") -> TransactionType.INCOME
@@ -88,6 +136,29 @@ class StandardCharteredBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        if (message.contains("sent to scb pk", ignoreCase = true)) {
+            return "RAAST Transfer"
+        }
+
+        if (message.contains("electronic funds transfer", ignoreCase = true)) {
+            // Let "from account <name>" override if available below; otherwise fallback
+            // after merchant extraction.
+        }
+
+        if (message.contains("financing facility", ignoreCase = true)) {
+            return "Financing Payment"
+        }
+
+        if (message.contains("ibft", ignoreCase = true)) {
+            // Defer to more specific patterns to capture sender name when present
+        }
+
+        if (message.contains("withdrawn", ignoreCase = true) ||
+            message.contains("cash withdrawal", ignoreCase = true)
+        ) {
+            return "ATM Cash Withdrawal"
+        }
+
         // Pattern 1: "credited to a/c XX1465" (for debit/UPI transfers)
         val upiTransferPattern = Regex(
             """and credited to a/c ([X\*]+\d+)""",
@@ -107,6 +178,65 @@ class StandardCharteredBankParser : BankParser() {
         }
         if (message.lowercase().contains("imps credit")) {
             return "IMPS Credit"
+        }
+
+        val paidAtPattern = Regex(
+            """paid at\s+([A-Za-z0-9\s\.\-]+?)\s+on""",
+            RegexOption.IGNORE_CASE
+        )
+        paidAtPattern.find(message)?.let { match ->
+            return cleanMerchantName(match.groupValues[1])
+        }
+
+        val transferToPattern = Regex(
+            """to\s+([A-Za-z0-9\*]+)(?:\s|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        transferToPattern.find(message)?.let { match ->
+            val dest = match.groupValues[1]
+            if (dest.isNotBlank()) {
+                val normalized = dest.lowercase()
+                if (normalized == "your" || normalized == "account" || normalized == "iban" || normalized == "acct") {
+                    // Ignore generic targets like "to your account"
+                    return@let
+                }
+                return when {
+                    dest.all { it == '*' } -> "Transfer"
+                    dest.startsWith("****") -> "Transfer to ${dest.takeLast(4)}"
+                    dest.length in 3..8 && dest.any { it.isLetter() } -> cleanMerchantName(dest)
+                    dest.length in 3..8 -> "Transfer to $dest"
+                    else -> "Transfer"
+                }
+            }
+        }
+
+        val fromAccountPattern = Regex(
+            """from account\s+[A-Za-z0-9\-\*xX]+(?:\s+([A-Z][A-Za-z0-9\s]+?))(?:\s+from\s+IBFT|\s+via|\s+on|\s*$)""",
+            RegexOption.IGNORE_CASE
+        )
+        fromAccountPattern.find(message)?.let { match ->
+            val name = match.groupValues.getOrNull(1)?.trim().orEmpty()
+            if (name.isNotEmpty()) {
+                return cleanMerchantName(name)
+            }
+        }
+
+        val genericFromAccountPattern = Regex(
+            """from account\s+[A-Za-z0-9\-\*xX]+""",
+            RegexOption.IGNORE_CASE
+        )
+        if (genericFromAccountPattern.containsMatchIn(message)) {
+            return "IBFT Transfer"
+        }
+
+        if (message.contains("RAAST", ignoreCase = true)) {
+            return "RAAST Transfer"
+        }
+
+        if (message.contains("IBFT", ignoreCase = true) ||
+            message.contains("electronic funds transfer", ignoreCase = true)
+        ) {
+            return "IBFT Transfer"
         }
 
         // Fall back to base class patterns
@@ -132,6 +262,55 @@ class StandardCharteredBankParser : BankParser() {
             return match.groupValues[1]
         }
 
+        // Pattern 3: "A/C ****9901" or "Account No. 0101xxx9901"
+        val maskedAccountPattern = Regex(
+            """(?:A/C\s*[*Xx]+|Account No\.\s*[0-9Xx\*]+|Acc\. Number\s*[0-9Xx\*]+|Iban\.\s*[*Xx]+)(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        maskedAccountPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 4: "credit/debit card no 53119xxxxxxxx1640" -> capture trailing last4
+        val cardPattern = Regex(
+            """card no\.?\s*[0-9Xx\*\s-]*?(\d{4})(?![0-9Xx])""",
+            RegexOption.IGNORE_CASE
+        )
+        cardPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 5: "your account 01-01***9901" -> capture trailing digits
+        val yourAccountPattern = Regex(
+            """your account\s+[0-9\-\*xX]+""",
+            RegexOption.IGNORE_CASE
+        )
+        yourAccountPattern.find(message)?.let { match ->
+            val digits = match.value.filter { it.isDigit() }
+            if (digits.length >= 4) return digits.takeLast(4)
+        }
+
+        // Pattern 6: "account 01-70***32-01" or similar with separators -> take last 4 digits from numeric portion
+        val flexibleAccountPattern = Regex(
+            """account\s+[0-9\-\*xX]+""",
+            RegexOption.IGNORE_CASE
+        )
+        flexibleAccountPattern.find(message)?.let { match ->
+            val digits = match.value.filter { it.isDigit() }
+            if (digits.length >= 4) return digits.takeLast(4)
+            if (digits.isNotEmpty()) return digits.takeLast(2)
+        }
+
+        // Pattern 7: legacy dash pattern fallback
+        val dashedAccountPattern = Regex(
+            """account\s+[0-9\-\*xX]+?(\d{2,4})""",
+            RegexOption.IGNORE_CASE
+        )
+        dashedAccountPattern.find(message)?.let { match ->
+            val digits = match.groupValues[1]
+            return if (digits.length >= 2) digits.takeLast(4) else null
+        }
+
         // Fall back to base class
         return super.extractAccountLast4(message)
     }
@@ -143,6 +322,16 @@ class StandardCharteredBankParser : BankParser() {
             RegexOption.IGNORE_CASE
         )
         upiRefPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        val txIdPattern = Regex("""TX ID ([A-Z0-9]+)""", RegexOption.IGNORE_CASE)
+        txIdPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        val transactionIdPattern = Regex("""Transaction ID:([A-Z0-9\-]+)""", RegexOption.IGNORE_CASE)
+        transactionIdPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
@@ -165,6 +354,15 @@ class StandardCharteredBankParser : BankParser() {
             }
         }
 
+        val availLimitPattern = Regex(
+            """Avail Limit\s*PKR\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        availLimitPattern.find(message)?.let { match ->
+            val balanceStr = match.groupValues[1].replace(",", "")
+            return balanceStr.toBigDecimalOrNull()
+        }
+
         // Fall back to base class patterns
         return super.extractBalance(message)
     }
@@ -177,7 +375,15 @@ class StandardCharteredBankParser : BankParser() {
             lowerMessage.contains("is credited for") ||
             lowerMessage.contains("neft credit") ||
             lowerMessage.contains("rtgs credit") ||
-            lowerMessage.contains("imps credit")
+            lowerMessage.contains("imps credit") ||
+            lowerMessage.contains("withdrawn from account") ||
+            lowerMessage.contains("cash withdrawal transaction") ||
+            lowerMessage.contains("paid at") ||
+            lowerMessage.contains("payment of") ||
+            lowerMessage.contains("transaction of pkr") ||
+            lowerMessage.contains("sent to scb pk") ||
+            lowerMessage.contains("electronic funds transfer") ||
+            lowerMessage.contains("has been credited")
         ) {
             return true
         }

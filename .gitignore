@@ -61,3 +61,5 @@ release.properties
 *.pem
 
 deploy.sh
+
+.idea/

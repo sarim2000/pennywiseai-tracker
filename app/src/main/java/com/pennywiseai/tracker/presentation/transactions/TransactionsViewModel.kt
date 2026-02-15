@@ -205,13 +205,22 @@ class TransactionsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 3
         )
-    
+
+    private val smsScanAllTime: StateFlow<Boolean> = userPreferencesRepository.smsScanAllTime
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     fun isShowingLimitedData(): Boolean {
+        if (smsScanAllTime.value) return false
+
         val currentPeriod = _selectedPeriod.value
         val scanMonthsValue = smsScanMonths.value
 
         return when (currentPeriod) {
-            TimePeriod.ALL -> true  // Always show for "All Time"
+            TimePeriod.ALL -> true
             TimePeriod.CURRENT_FY -> {
                 // Check if FY start is before scan period
                 val dateRange = getDateRangeForPeriod(TimePeriod.CURRENT_FY)

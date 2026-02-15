@@ -18,6 +18,7 @@ object CurrencyFormatter {
      */
     private val CURRENCY_SYMBOLS = mapOf(
         "INR" to "₹",
+        "PKR" to "Rs",
         "USD" to "$",
         "EUR" to "€",
         "GBP" to "£",
@@ -49,6 +50,7 @@ object CurrencyFormatter {
         "AUD" to Locale.Builder().setLanguage("en").setRegion("AU").build(),
         "JPY" to Locale.JAPAN,
         "CNY" to Locale.CHINA,
+        "PKR" to Locale.Builder().setLanguage("en").setRegion("PK").build(),
         "NPR" to Locale.Builder().setLanguage("ne").setRegion("NP").build(),
         "ETB" to Locale.Builder().setLanguage("am").setRegion("ET").build(),
         "THB" to Locale.Builder().setLanguage("th").setRegion("TH").build(),
@@ -61,6 +63,9 @@ object CurrencyFormatter {
      * Formats a BigDecimal amount as currency with the specified currency code
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
+        if (currencyCode == "PKR") {
+            return "${CURRENCY_SYMBOLS["PKR"]}${formatAmount(amount)}"
+        }
         return try {
             val locale = CURRENCY_LOCALES[currencyCode] ?: INDIAN_LOCALE
             val formatter = NumberFormat.getCurrencyInstance(locale)

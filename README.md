@@ -52,7 +52,7 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ## Supported Banks & Countries
 
-Supporting **49+ banks** across **11 countries** with **multi-currency** capabilities:
+Supporting **60+ banks** across **12 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (35 banks) - INR ₹
 - **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -91,6 +91,12 @@ Supporting **49+ banks** across **11 countries** with **multi-currency** capabil
 
 ### 🇮🇷 Iran (2 banks) - IRR ﷼
 - **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)** - Persian SMS support
+
+### 🇹🇭 Thailand (11 banks) - THB ฿
+- **Bangkok Bank (BBL)**, **Kasikorn Bank (KBank)**, **Siam Commercial Bank (SCB)**
+- **Krungthai Bank (KTB)**, **Krungsri (BAY)**, **TTB (TMBThanachart)**
+- **Government Savings Bank (GSB)**, **BAAC**, **UOB Thailand**
+- **CIMB Thai**, **KTC Credit Card** - Thai and English SMS support
 
 ### 🇰🇪 Kenya (1 service) - KES Ksh
 - **M-PESA** - Mobile money service

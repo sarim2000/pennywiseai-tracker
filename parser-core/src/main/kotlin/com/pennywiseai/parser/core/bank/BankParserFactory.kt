@@ -79,7 +79,18 @@ object BankParserFactory {
         DashenBankParser(),  // Dashen Bank (Ethiopia)
         FaysalBankParser(),  // Faysal Bank (Pakistan)
         MelliBankParser(),  // Melli Bank (Iran)
-        ParsianBankParser()  // Parsian Bank (Iran)
+        ParsianBankParser(),  // Parsian Bank (Iran)
+        BangkokBankParser(),  // Bangkok Bank (Thailand)
+        KasikornBankParser(),  // Kasikorn Bank (Thailand)
+        SiamCommercialBankParser(),  // Siam Commercial Bank (Thailand)
+        KrungThaiBankParser(),  // Krungthai Bank (Thailand)
+        KrungsriBankParser(),  // Krungsri / Bank of Ayudhya (Thailand)
+        TTBBankParser(),  // TMBThanachart Bank (Thailand)
+        GSBBankParser(),  // Government Savings Bank (Thailand)
+        BAACBankParser(),  // BAAC (Thailand)
+        UOBThailandParser(),  // UOB Thailand
+        CIMBThaiParser(),  // CIMB Thai (Thailand)
+        KTCCreditCardParser()  // KTC Credit Card (Thailand)
         // Add more bank parsers here as we implement them
     )
 

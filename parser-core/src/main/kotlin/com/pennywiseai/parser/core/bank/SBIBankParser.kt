@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.MandateInfo
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
+import java.text.Normalizer
 
 /**
  * Parser for State Bank of India (SBI) SMS messages
@@ -22,6 +23,8 @@ class SBIBankParser : BaseIndianBankParser() {
                 // Direct sender IDs
                 normalizedSender == "SBIBK" ||
                 normalizedSender == "SBIBNK" ||
+                // SBI Card RCS sender
+                normalizedSender.contains("SBI CARDS") ||
                 // DLT patterns for transactions (-S suffix)
                 normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-S$")) ||
                 // Other DLT patterns (OTP, Promotional, Govt)
@@ -32,61 +35,92 @@ class SBIBankParser : BaseIndianBankParser() {
     }
 
     // Check if this is a credit card message
-    private fun isCreditCardMessage(sender: String): Boolean {
-        return sender.uppercase().contains("SBICRD")
+    private fun isCreditCardMessage(sender: String, message: String): Boolean {
+        val upperSender = sender.uppercase()
+        return upperSender.contains("SBICRD") ||
+                upperSender.contains("SBI CARDS") ||
+                message.contains("Credit Card", ignoreCase = true)
     }
 
     // Extract credit card last 4 digits
     private fun extractCreditCardLast4(message: String): String? {
-        // Pattern: "ending with 1234"
-        val pattern = Regex("""ending\s+with\s+(\d{4})""", RegexOption.IGNORE_CASE)
-        pattern.find(message)?.let { match ->
-            return match.groupValues[1]
+        // Pattern: "ending with 1234" or "ending 1234"
+        val patterns = listOf(
+            Regex("""ending\s+with\s+(\d{4})""", RegexOption.IGNORE_CASE),
+            Regex("""ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
+        )
+        for (pattern in patterns) {
+            pattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
         }
         return null
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
-        val parsed = super.parse(smsBody, sender, timestamp) ?: return null
+        // Normalize Unicode text (SBI Card uses Mathematical Sans-Serif characters in RCS)
+        val normalizedBody = normalizeUnicodeText(smsBody)
+
+        val parsed = super.parse(normalizedBody, sender, timestamp) ?: return null
 
         // Handle credit card messages
-        if (isCreditCardMessage(sender)) {
+        if (isCreditCardMessage(sender, normalizedBody)) {
             // Extract credit card last 4 digits
-            val cardLast4 = extractCreditCardLast4(smsBody) ?: parsed.accountLast4
+            val cardLast4 = extractCreditCardLast4(normalizedBody) ?: parsed.accountLast4
 
             // Extract available limit for credit card messages
-            val creditLimit = extractAvailableLimit(smsBody) ?: parsed.creditLimit
+            val creditLimit = extractAvailableLimit(normalizedBody) ?: parsed.creditLimit
 
             // Determine transaction type based on message content
             val transactionType = when {
                 // Payment TO credit card (reducing debt)
-                smsBody.contains("payment of", ignoreCase = true) &&
-                        smsBody.contains("credited to your SBI Credit Card", ignoreCase = true) -> {
+                normalizedBody.contains("payment of", ignoreCase = true) &&
+                        normalizedBody.contains("credited to your SBI Credit Card", ignoreCase = true) -> {
                     TransactionType.INCOME  // Payment received by credit card
                 }
                 // Credit card spending
-                smsBody.contains("spent on", ignoreCase = true) -> {
+                normalizedBody.contains("spent on", ignoreCase = true) ||
+                        normalizedBody.contains("spent", ignoreCase = true) -> {
                     TransactionType.CREDIT  // Credit card expense
                 }
                 // Default for other credit card transactions
                 else -> TransactionType.CREDIT
             }
 
-            // Extract merchant for BBPS payments
+            // Extract merchant for credit card transactions
             val merchant = when {
-                smsBody.contains("via BBPS", ignoreCase = true) -> "BBPS Payment"
-                else -> parsed.merchant
+                normalizedBody.contains("via BBPS", ignoreCase = true) -> "BBPS Payment"
+                else -> extractCreditCardMerchant(normalizedBody) ?: parsed.merchant
             }
 
             return parsed.copy(
                 accountLast4 = cardLast4,
                 type = transactionType,
                 merchant = merchant ?: parsed.merchant,
-                creditLimit = creditLimit
+                creditLimit = creditLimit,
+                isFromCard = true
             )
         }
 
         return parsed
+    }
+
+    private fun normalizeUnicodeText(text: String): String {
+        // NFKD decomposes Unicode Math Sans-Serif characters to ASCII equivalents
+        return Normalizer.normalize(text, Normalizer.Form.NFKD)
+            .replace(Regex("[^\\p{ASCII}]"), "")
+    }
+
+    private fun extractCreditCardMerchant(message: String): String? {
+        // Pattern: "at MERCHANT on DD/MM/YY"
+        val atPattern = Regex("""at\s+([A-Za-z0-9\s&._-]+?)\s+on\s+\d""", RegexOption.IGNORE_CASE)
+        atPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+        return null
     }
 
     override fun extractAvailableLimit(message: String): BigDecimal? {
@@ -530,7 +564,9 @@ class SBIBankParser : BaseIndianBankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
-        val lowerMessage = message.lowercase()
+        // Normalize Unicode first (SBI Card uses Math Sans-Serif characters)
+        val normalizedMessage = normalizeUnicodeText(message)
+        val lowerMessage = normalizedMessage.lowercase()
 
         // Skip e-statement notifications
         if (lowerMessage.contains("e-statement of sbi credit card")) {
@@ -551,7 +587,7 @@ class SBIBankParser : BaseIndianBankParser() {
         }
 
         // Skip UPI-Mandate creation notifications
-        if (isEMandateNotification(message) || isUPIMandateNotification(message)) {
+        if (isEMandateNotification(normalizedMessage) || isUPIMandateNotification(normalizedMessage)) {
             return false
         }
 
@@ -560,8 +596,13 @@ class SBIBankParser : BaseIndianBankParser() {
             return true
         }
 
+        // SBI Credit Card spending
+        if (lowerMessage.contains("spent") && lowerMessage.contains("credit card")) {
+            return true
+        }
+
         // Fall back to base class for other checks
-        return super.isTransactionMessage(message)
+        return super.isTransactionMessage(normalizedMessage)
     }
 
     // ==========================================

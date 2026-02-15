@@ -61,3 +61,7 @@ release.properties
 *.pem
 
 deploy.sh
+
+# IDE folders
+.idea
+.vscode

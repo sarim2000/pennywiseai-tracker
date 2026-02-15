@@ -92,6 +92,9 @@ class SettingsViewModel @Inject constructor(
             initialValue = emptyList()
         )
     
+    // Base currency state
+    val baseCurrency = userPreferencesRepository.baseCurrency
+    
     // Unrecognized SMS state
     val unreportedSmsCount = unrecognizedSmsRepository.getUnreportedCount()
         .stateIn(
@@ -555,6 +558,12 @@ class SettingsViewModel @Inject constructor(
     
     fun clearImportExportMessage() {
         _importExportMessage.value = null
+    }
+    
+    fun updateBaseCurrency(currency: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateBaseCurrency(currency)
+        }
     }
 }
 

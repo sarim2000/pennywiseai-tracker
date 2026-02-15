@@ -15,8 +15,16 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
+    companion object {
+        const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
+    }
+
     // Transaction ID to edit when launched from notification
     var editTransactionId by mutableStateOf<Long?>(null)
+        private set
+
+    // Flag to navigate directly to Add Transaction when launched from a shortcut/widget
+    var openAddTransaction by mutableStateOf(false)
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,7 +40,9 @@ class MainActivity : FragmentActivity() {
         setContent {
             PennyWiseApp(
                 editTransactionId = editTransactionId,
-                onEditComplete = { editTransactionId = null }
+                openAddTransaction = openAddTransaction,
+                onEditComplete = { editTransactionId = null },
+                onAddTransactionShortcutHandled = { openAddTransaction = false }
             )
         }
     }
@@ -49,6 +59,9 @@ class MainActivity : FragmentActivity() {
             if (transactionId != -1L) {
                 editTransactionId = transactionId
             }
+        }
+        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true) {
+            openAddTransaction = true
         }
     }
 }

@@ -333,6 +333,8 @@ class SmsReaderWorker @AssistedInject constructor(
                                 savedCount++
                                 Log.d(TAG, "Saved new transaction with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
 
+                                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(applicationContext)
+
                                 // Save rule applications if any rules were applied
                                 if (ruleApplications.isNotEmpty()) {
                                     ruleRepository.saveRuleApplications(ruleApplications)

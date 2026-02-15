@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">Pennywise AI Tracker</string>
-    <string name="widget_name">Budget Overview</string>
-    <string name="widget_description">Shows your monthly budget progress, savings, and daily allowance at a glance.</string>
-    <string name="widget_loading">Loading budget…</string>
+    <string name="widget_name_budget">Budget Overview</string>
+    <string name="widget_description_budget">Shows your monthly budget progress, savings, and daily allowance at a glance.</string>
+    <string name="widget_loading">Loading widget…</string>
+    <string name="widget_name_recent">Recent Transactions</string>
+    <string name="widget_description_recent">View your monthly spend and latest transactions at a glance.</string>
 </resources>

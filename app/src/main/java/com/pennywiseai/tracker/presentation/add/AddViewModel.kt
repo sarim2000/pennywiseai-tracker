@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -12,6 +13,7 @@ import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -23,6 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
@@ -197,6 +200,8 @@ class AddViewModel @Inject constructor(
                     accountLast4 = selectedAccount?.accountLast4,
                     currency = state.currency
                 )
+
+                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
 
                 onSuccess()
             } catch (e: Exception) {

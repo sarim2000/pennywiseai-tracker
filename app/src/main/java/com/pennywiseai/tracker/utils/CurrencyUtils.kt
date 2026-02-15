@@ -83,4 +83,30 @@ object CurrencyUtils {
             }
         }
     }
+
+    /**
+     * Returns a comprehensive list of all supported currencies.
+     * Includes currencies from supported banks and common international currencies.
+     *
+     * @return List of currency codes sorted with INR first, then alphabetically
+     */
+    fun getAllSupportedCurrencies(): List<String> {
+        val currencies = listOf(
+            // Major currencies
+            "INR", "USD", "EUR", "GBP", "JPY", "CNY",
+            // Middle East
+            "AED", "SAR", "KWD",
+            // Asia Pacific
+            "SGD", "AUD", "THB", "MYR", "KRW", "NPR",
+            // Americas
+            "CAD",
+            // Africa
+            "ETB", "KES",
+            // Europe
+            "BYN",
+            // South America
+            "COP"
+        )
+        return sortCurrencies(currencies)
+    }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +65,7 @@ fun SettingsScreen(
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
+    val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "INR")
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
@@ -73,6 +76,7 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var hasNotificationAccess by remember { mutableStateOf(false) }
+    var showCurrencyDropdown by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val notificationAccessLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -165,6 +169,82 @@ fun SettingsScreen(
             }
         }
 
+       /* // General Settings Section
+        SectionHeader(title = "General")
+
+        PennyWiseCard(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                // Default Currency Selection
+                Column {
+                    Text(
+                        text = "Default Currency",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = "Currency used for conversions and calculations",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+
+                    ExposedDropdownMenuBox(
+                        expanded = showCurrencyDropdown,
+                        onExpandedChange = { showCurrencyDropdown = it }
+                    ) {
+                        OutlinedTextField(
+                            value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Currency") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = showCurrencyDropdown,
+                            onDismissRequest = { showCurrencyDropdown = false }
+                        ) {
+                            availableCurrencies.forEach { currency ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
+                                    },
+                                    onClick = {
+                                        settingsViewModel.updateBaseCurrency(currency)
+                                        showCurrencyDropdown = false
+                                    },
+                                    leadingIcon = if (currency == baseCurrency) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }*/
+
         // Currency Section
         SectionHeader(title = "Currency")
 
@@ -256,6 +336,77 @@ fun SettingsScreen(
                         contentDescription = "Navigate",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+
+                // Default Currency Selection
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Default Currency",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Text(
+                            text = "Currency used for conversions and calculations",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+
+                        ExposedDropdownMenuBox(
+                            expanded = showCurrencyDropdown,
+                            onExpandedChange = { showCurrencyDropdown = it }
+                        ) {
+                            OutlinedTextField(
+                                value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Currency") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = showCurrencyDropdown,
+                                onDismissRequest = { showCurrencyDropdown = false }
+                            ) {
+                                availableCurrencies.forEach { currency ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
+                                        },
+                                        onClick = {
+                                            settingsViewModel.updateBaseCurrency(currency)
+                                            showCurrencyDropdown = false
+                                        },
+                                        leadingIcon = if (currency == baseCurrency) {
+                                            {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

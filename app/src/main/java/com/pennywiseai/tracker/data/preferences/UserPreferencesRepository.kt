@@ -427,6 +427,12 @@ class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    suspend fun updateBaseCurrency(currency: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BASE_CURRENCY] = currency
+        }
+    }
 }
 
 data class UserPreferences(

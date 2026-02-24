@@ -22,7 +22,8 @@ data class BudgetGroupSpending(
     val percentageUsed: Float,
     val dailyAllowance: BigDecimal,
     val daysRemaining: Int,
-    val daysElapsed: Int
+    val daysElapsed: Int,
+    val isTrackingAllExpenses: Boolean = false
 )
 
 data class BudgetOverallSummary(

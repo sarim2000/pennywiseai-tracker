@@ -235,45 +235,77 @@ class BudgetGroupRepository @Inject constructor(
             }
         }
 
+        // Calculate total expenses for groups with no categories (track all expenses)
+        val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
+
         val groupSpendingList = groups.map { group ->
-            val assignedCategories = group.categories.map { it.categoryName }.toSet()
-            val catSpending = group.categories.map { cat ->
-                val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                val pctUsed = if (cat.budgetAmount > BigDecimal.ZERO) {
-                    (actual.toFloat() / cat.budgetAmount.toFloat() * 100f).coerceAtLeast(0f)
+            val isTrackingAll = group.categories.isEmpty()
+
+            if (isTrackingAll) {
+                // No categories selected - track ALL expenses
+                val totalBudget = group.budget.limitAmount
+                val totalActual = totalAllExpenses
+                val remaining = totalBudget - totalActual
+                val pctUsed = if (totalBudget > BigDecimal.ZERO) {
+                    (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
-                val dailySpend = if (daysElapsed > 0 && actual > BigDecimal.ZERO) {
-                    actual.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
+                val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+                    remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
-                BudgetCategorySpending(
-                    categoryName = cat.categoryName,
-                    budgetAmount = cat.budgetAmount,
-                    actualAmount = actual,
+
+                BudgetGroupSpending(
+                    group = group,
+                    categorySpending = emptyList(),
+                    totalBudget = totalBudget,
+                    totalActual = totalActual,
+                    remaining = remaining,
                     percentageUsed = pctUsed,
-                    dailySpend = dailySpend
+                    dailyAllowance = dailyAllowance,
+                    daysRemaining = daysRemaining,
+                    daysElapsed = daysElapsed,
+                    isTrackingAllExpenses = true
+                )
+            } else {
+                // Normal case: track specific categories
+                val catSpending = group.categories.map { cat ->
+                    val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                    val pctUsed = if (cat.budgetAmount > BigDecimal.ZERO) {
+                        (actual.toFloat() / cat.budgetAmount.toFloat() * 100f).coerceAtLeast(0f)
+                    } else 0f
+                    val dailySpend = if (daysElapsed > 0 && actual > BigDecimal.ZERO) {
+                        actual.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
+                    } else BigDecimal.ZERO
+                    BudgetCategorySpending(
+                        categoryName = cat.categoryName,
+                        budgetAmount = cat.budgetAmount,
+                        actualAmount = actual,
+                        percentageUsed = pctUsed,
+                        dailySpend = dailySpend
+                    )
+                }
+                val totalBudget = group.totalBudgetAmount
+                val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+                val remaining = totalBudget - totalActual
+                val pctUsed = if (totalBudget > BigDecimal.ZERO) {
+                    (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+                val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+                    remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
+
+                BudgetGroupSpending(
+                    group = group,
+                    categorySpending = catSpending,
+                    totalBudget = totalBudget,
+                    totalActual = totalActual,
+                    remaining = remaining,
+                    percentageUsed = pctUsed,
+                    dailyAllowance = dailyAllowance,
+                    daysRemaining = daysRemaining,
+                    daysElapsed = daysElapsed,
+                    isTrackingAllExpenses = false
                 )
             }
-            val totalBudget = group.totalBudgetAmount
-            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-            val remaining = totalBudget - totalActual
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
-            } else 0f
-            val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
-                remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
-            } else BigDecimal.ZERO
-
-            BudgetGroupSpending(
-                group = group,
-                categorySpending = catSpending,
-                totalBudget = totalBudget,
-                totalActual = totalActual,
-                remaining = remaining,
-                percentageUsed = pctUsed,
-                dailyAllowance = dailyAllowance,
-                daysRemaining = daysRemaining,
-                daysElapsed = daysElapsed
-            )
         }
 
         val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }

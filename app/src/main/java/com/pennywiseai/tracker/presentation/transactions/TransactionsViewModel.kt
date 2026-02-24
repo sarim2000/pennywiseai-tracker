@@ -186,6 +186,12 @@ class TransactionsViewModel @Inject constructor(
     
     // Track if initial filters have been applied to prevent resetting on back navigation
     private var hasAppliedInitialFilters = false
+
+    // Track the navigation params that were initially applied, to detect actual navigation changes
+    private var appliedNavigationParams: NavigationParams? = null
+
+    // Track budget navigation params similarly
+    private var appliedBudgetParams: BudgetParams? = null
     
     // Categories flow - will be used to map category names to colors
     val categories: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
@@ -455,7 +461,10 @@ class TransactionsViewModel @Inject constructor(
 
     fun resetFilters() {
         hasAppliedInitialFilters = false
+        appliedNavigationParams = null
+        appliedBudgetParams = null
         clearCategoryFilter()
+        clearCategoriesFilter()
         updateSearchQuery("")
         clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
@@ -516,7 +525,21 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?
     ) {
-        // This function can be called multiple times for navigation updates
+        // Create current params to compare
+        val currentParams = NavigationParams(category, merchant, period, currency)
+
+        // Only apply navigation filters if:
+        // 1. This is the first time (appliedNavigationParams is null)
+        // 2. OR the navigation params have actually changed (new navigation, not returning from detail)
+        if (appliedNavigationParams != null && appliedNavigationParams == currentParams) {
+            // Same params, user is returning from detail screen - don't reset their filters
+            return
+        }
+
+        // Store the current navigation params
+        appliedNavigationParams = currentParams
+
+        // Reset filters for new navigation
         clearCategoryFilter()
         updateSearchQuery("")
         selectPeriod(TimePeriod.THIS_MONTH)
@@ -563,6 +586,20 @@ class TransactionsViewModel @Inject constructor(
         categories: String?,  // Comma-separated
         transactionType: String?
     ) {
+        // Create current params to compare
+        val currentParams = BudgetParams(startDateEpochDay, endDateEpochDay, currency, categories, transactionType)
+
+        // Only apply budget filters if:
+        // 1. This is the first time (appliedBudgetParams is null)
+        // 2. OR the budget params have actually changed (new navigation, not returning from detail)
+        if (appliedBudgetParams != null && appliedBudgetParams == currentParams) {
+            // Same params, user is returning from detail screen - don't reset their filters
+            return
+        }
+
+        // Store the current budget params
+        appliedBudgetParams = currentParams
+
         // Clear existing filters first
         clearCategoryFilter()
         updateSearchQuery("")
@@ -900,4 +937,29 @@ data class FilteredTotals(
     val investment: BigDecimal = BigDecimal.ZERO,
     val netBalance: BigDecimal = BigDecimal.ZERO,
     val transactionCount: Int = 0
+)
+
+/**
+ * Tracks the navigation parameters that were applied.
+ * Used to detect if navigation params have actually changed vs
+ * just returning from a detail screen with the same params.
+ */
+private data class NavigationParams(
+    val category: String?,
+    val merchant: String?,
+    val period: String?,
+    val currency: String?
+)
+
+/**
+ * Tracks the budget navigation parameters that were applied.
+ * Used to detect if budget params have actually changed vs
+ * just returning from a detail screen with the same params.
+ */
+private data class BudgetParams(
+    val startDateEpochDay: Long,
+    val endDateEpochDay: Long,
+    val currency: String?,
+    val categories: String?,
+    val transactionType: String?
 )

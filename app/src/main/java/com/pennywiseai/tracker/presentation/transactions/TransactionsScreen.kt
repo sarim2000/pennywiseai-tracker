@@ -22,6 +22,8 @@ import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,9 +92,10 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
-    var showAdvancedFilters by remember { mutableStateOf(false) }
-    var showSortMenu by remember { mutableStateOf(false) }
-    var showDateRangePicker by remember { mutableStateOf(false) }
+    // Use rememberSaveable to preserve UI state across navigation
+    var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
+    var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }

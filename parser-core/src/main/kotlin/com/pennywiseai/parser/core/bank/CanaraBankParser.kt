@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
@@ -49,7 +50,20 @@ class CanaraBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern: paid thru A/C XX1234 on 08-8-25 16:41:00 to BMTC BUS KA57F6
+        // Pattern 1: RTGS/NEFT incoming - "by Sender AXIS MUTUAL FUND REDEMPTION PO, IFSC..."
+        // Extract the sender name before IFSC/comma
+        val rtgsSenderPattern = Regex(
+            """by\s+Sender\s+([^,]+?)(?:,\s*IFSC|,\s*Sender\s+A/c|\s*$)""",
+            RegexOption.IGNORE_CASE
+        )
+        rtgsSenderPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 2: UPI - paid thru A/C XX1234 on 08-8-25 16:41:00 to BMTC BUS KA57F6
         val upiMerchantPattern = Regex(
             """\sto\s+([^,]+?)(?:,\s*UPI|\.|-Canara)""",
             RegexOption.IGNORE_CASE
@@ -131,5 +145,18 @@ class CanaraBankParser : BaseIndianBankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    override fun extractTransactionType(message: String): TransactionType? {
+        val lowerMessage = message.lowercase()
+
+        // Mutual fund REDEMPTION credited = INCOME (money coming in from selling investment)
+        // This overrides the base class which would mark "mutual fund" as INVESTMENT
+        if (lowerMessage.contains("redemption") && lowerMessage.contains("credited")) {
+            return TransactionType.INCOME
+        }
+
+        // Fall back to base class
+        return super.extractTransactionType(message)
     }
 }

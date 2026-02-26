@@ -198,6 +198,14 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Pattern 0: NEFT/RTGS transfer to beneficiary - use "NEFT Transfer" as merchant
+        // These are outgoing transfers where we don't know the beneficiary name
+        if (message.contains("credited to the beneficiary", ignoreCase = true) ||
+            message.contains("credited to beneficiary", ignoreCase = true)
+        ) {
+            return "NEFT Transfer"
+        }
+
         // Pattern 1: Salary transactions - "Info INF*...*...* SAL ..."
         // Example: "Info INF*000169831922*IQBO SAL FE"
         val salaryPattern = Regex(
@@ -531,6 +539,14 @@ class ICICIBankParser : BaseIndianBankParser() {
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
+
+        // NEFT/RTGS transfer confirmation to sender - "credited to the beneficiary account"
+        // This means the sender's money was sent OUT to the beneficiary
+        if (lowerMessage.contains("credited to the beneficiary") ||
+            lowerMessage.contains("credited to beneficiary")
+        ) {
+            return TransactionType.TRANSFER
+        }
 
         // Credit card transactions - both "ICICI Bank Credit Card" and "ICICI Bank Card" with spent
         if ((lowerMessage.contains("icici bank credit card") ||

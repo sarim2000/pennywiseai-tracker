@@ -257,6 +257,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     
+    // Coil for image loading
+    implementation(libs.coil.compose)
+
+    // Haze blur effects
+    implementation(libs.haze)
+
+    // Compose Charts
+    implementation(libs.compose.charts)
+
     // Markdown support
     implementation(libs.markdown)
     

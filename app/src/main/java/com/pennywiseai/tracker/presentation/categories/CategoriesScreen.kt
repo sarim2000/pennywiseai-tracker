@@ -98,12 +98,11 @@ fun CategoriesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
-                .overScrollVertical()
-                .padding(paddingValues),
+                .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                 bottom = 100.dp // Space for FAB
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),

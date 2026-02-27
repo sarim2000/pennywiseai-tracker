@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
@@ -91,7 +92,8 @@ fun MonthlyBudgetScreen(
             )
         } else {
             BudgetOverview(
-                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState),
+                topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
@@ -182,6 +184,7 @@ private fun BudgetSetupPrompt(
 @Composable
 private fun BudgetOverview(
     modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
     uiState: MonthlyBudgetUiState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -195,7 +198,12 @@ private fun BudgetOverview(
     LazyColumn(
         state = lazyListState,
         modifier = modifier.fillMaxSize().overScrollVertical(),
-        contentPadding = PaddingValues(Dimensions.Padding.content),
+        contentPadding = PaddingValues(
+            start = Dimensions.Padding.content,
+            end = Dimensions.Padding.content,
+            top = Dimensions.Padding.content + topPadding,
+            bottom = 0.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {

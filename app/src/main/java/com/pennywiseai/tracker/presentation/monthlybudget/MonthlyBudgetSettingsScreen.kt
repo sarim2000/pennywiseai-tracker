@@ -74,9 +74,13 @@ fun MonthlyBudgetSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
-                .overScrollVertical()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(Dimensions.Padding.content),
+                .overScrollVertical(),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                bottom = 0.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {

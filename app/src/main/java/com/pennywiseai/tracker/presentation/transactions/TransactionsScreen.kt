@@ -252,7 +252,7 @@ fun TransactionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding())
         ) {
         // Search Bar with Sort Button
         Row(
@@ -569,8 +569,10 @@ fun TransactionsScreen(
                     state = listState,
                     modifier = Modifier.fillMaxSize().overScrollVertical(),
                     contentPadding = PaddingValues(
-                        horizontal = Dimensions.Padding.content,
-                        vertical = Spacing.md
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        top = Spacing.md,
+                        bottom = paddingValues.calculateBottomPadding()
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }

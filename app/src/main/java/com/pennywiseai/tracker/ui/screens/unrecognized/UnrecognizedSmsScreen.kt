@@ -70,7 +70,7 @@ fun UnrecognizedSmsScreen(
         modifier = Modifier
             .fillMaxSize()
             .hazeSource(hazeState)
-            .padding(paddingValues)
+            .padding(top = paddingValues.calculateTopPadding())
             .padding(Dimensions.Padding.content),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {

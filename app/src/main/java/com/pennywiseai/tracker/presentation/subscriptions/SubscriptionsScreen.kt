@@ -102,9 +102,13 @@ fun SubscriptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .overScrollVertical()
-                .hazeSource(hazeState)
-                .padding(paddingValues),
-            contentPadding = PaddingValues(Dimensions.Padding.content),
+                .hazeSource(hazeState),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                bottom = paddingValues.calculateBottomPadding()
+            ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {

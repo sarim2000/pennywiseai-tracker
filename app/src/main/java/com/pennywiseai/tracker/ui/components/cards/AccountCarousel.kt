@@ -143,7 +143,7 @@ private fun AccountCarouselCard(
         ) {
             BrandIcon(
                 merchantName = account.bankName,
-                size = 44.dp,
+                size = 48.dp,
                 showBackground = true
             )
 

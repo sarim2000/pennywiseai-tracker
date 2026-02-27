@@ -673,7 +673,7 @@ private fun ReceiptBadge(merchantName: String) {
         ) {
             BrandIcon(
                 merchantName = merchantName,
-                size = 32.dp,
+                size = 48.dp,
                 showBackground = true
             )
             Text(

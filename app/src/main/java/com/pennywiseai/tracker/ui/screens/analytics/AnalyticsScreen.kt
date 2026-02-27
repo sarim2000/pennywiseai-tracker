@@ -551,7 +551,7 @@ private fun MerchantListItem(
         leadingContent = {
             BrandIcon(
                 merchantName = merchant.name,
-                size = 40.dp,
+                size = 48.dp,
                 showBackground = true
             )
         },

@@ -81,7 +81,7 @@ fun TransactionItem(
         leadingContent = {
             BrandIcon(
                 merchantName = transaction.merchantName,
-                size = 40.dp,
+                size = 48.dp,
                 showBackground = true
             )
         },

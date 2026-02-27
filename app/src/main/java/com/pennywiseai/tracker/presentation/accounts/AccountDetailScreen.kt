@@ -373,7 +373,7 @@ private fun SummaryStatistics(
                     color = if (netBalance >= BigDecimal.ZERO) {
                         if (!isSystemInDarkTheme()) income_light else income_dark
                     } else {
-                        if (!isSystemInDarkTheme()) expense_light else income_dark
+                        if (!isSystemInDarkTheme()) expense_light else expense_dark
                     }
                 )
             }
@@ -489,7 +489,7 @@ private fun TransactionItem(
             ) {
                 BrandIcon(
                     merchantName = transaction.merchantName,
-                    size = 40.dp,
+                    size = 48.dp,
                     showBackground = true
                 )
                 

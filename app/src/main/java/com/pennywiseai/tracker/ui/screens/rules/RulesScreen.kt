@@ -2,9 +2,10 @@ package com.pennywiseai.tracker.ui.screens.rules
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -61,6 +62,7 @@ fun RulesScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Smart Rules",
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -124,105 +126,117 @@ fun RulesScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            val lazyListState = rememberLazyListState()
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
-                    .padding(paddingValues)
-                    .overScrollVertical()
-                    .verticalScroll(rememberScrollState())
-                    .padding(Dimensions.Padding.content),
+                    .hazeSource(state = hazeState)
+                    .overScrollVertical(),
+                contentPadding = PaddingValues(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                    bottom = 0.dp
+                ),
+                state = lazyListState,
+                flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Info Card
-                PennyWiseCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Dimensions.Padding.content),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                item {
+                    PennyWiseCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                        Column {
-                            Text(
-                                text = "Automatic Categorization",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.Padding.content),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Text(
-                                text = "Enable rules to automatically categorize your transactions based on patterns",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            Column {
+                                Text(
+                                    text = "Automatic Categorization",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Enable rules to automatically categorize your transactions based on patterns",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }
 
                 // Group rules by category for better organization
-                val groupedRules = rules.groupBy { rule ->
-                    when {
-                        rule.name.contains("Food", ignoreCase = true) ||
-                        rule.name.contains("Fuel", ignoreCase = true) -> "Daily Expenses"
+                item {
+                    val groupedRules = rules.groupBy { rule ->
+                        when {
+                            rule.name.contains("Food", ignoreCase = true) ||
+                            rule.name.contains("Fuel", ignoreCase = true) -> "Daily Expenses"
 
-                        rule.name.contains("Salary", ignoreCase = true) ||
-                        rule.name.contains("Cashback", ignoreCase = true) -> "Income & Cashback"
+                            rule.name.contains("Salary", ignoreCase = true) ||
+                            rule.name.contains("Cashback", ignoreCase = true) -> "Income & Cashback"
 
-                        rule.name.contains("Rent", ignoreCase = true) ||
-                        rule.name.contains("EMI", ignoreCase = true) ||
-                        rule.name.contains("Subscription", ignoreCase = true) -> "Recurring Payments"
+                            rule.name.contains("Rent", ignoreCase = true) ||
+                            rule.name.contains("EMI", ignoreCase = true) ||
+                            rule.name.contains("Subscription", ignoreCase = true) -> "Recurring Payments"
 
-                        rule.name.contains("Investment", ignoreCase = true) ||
-                        rule.name.contains("Transfer", ignoreCase = true) -> "Banking & Investments"
+                            rule.name.contains("Investment", ignoreCase = true) ||
+                            rule.name.contains("Transfer", ignoreCase = true) -> "Banking & Investments"
 
-                        rule.name.contains("Healthcare", ignoreCase = true) -> "Healthcare"
+                            rule.name.contains("Healthcare", ignoreCase = true) -> "Healthcare"
 
-                        else -> "Other"
+                            else -> "Other"
+                        }
                     }
-                }
 
-                groupedRules.forEach { (category, categoryRules) ->
-                    if (categoryRules.isNotEmpty()) {
-                        SectionHeader(title = category)
+                    groupedRules.forEach { (category, categoryRules) ->
+                        if (categoryRules.isNotEmpty()) {
+                            SectionHeader(title = category)
 
-                        categoryRules.forEach { rule ->
-                            RuleCard(
-                                rule = rule,
-                                onToggle = { isActive ->
-                                    viewModel.toggleRule(rule.id, isActive)
-                                },
-                                onEdit = {
-                                    onNavigateToEditRule(rule.id)
-                                },
-                                onDelete = {
-                                    viewModel.deleteRule(rule.id)
-                                },
-                                onApplyToPast = {
-                                    selectedRuleForBatch = rule
-                                    showBatchApplyDialog = true
-                                }
-                            )
+                            categoryRules.forEach { rule ->
+                                RuleCard(
+                                    rule = rule,
+                                    onToggle = { isActive ->
+                                        viewModel.toggleRule(rule.id, isActive)
+                                    },
+                                    onEdit = {
+                                        onNavigateToEditRule(rule.id)
+                                    },
+                                    onDelete = {
+                                        viewModel.deleteRule(rule.id)
+                                    },
+                                    onApplyToPast = {
+                                        selectedRuleForBatch = rule
+                                        showBatchApplyDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
                 // Help text at the bottom
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                Text(
-                    text = "Rules are applied automatically to new transactions. Higher priority rules run first.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.md)
-                )
+                item {
+                    Spacer(modifier = Modifier.height(Spacing.lg))
+                    Text(
+                        text = "Rules are applied automatically to new transactions. Higher priority rules run first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.md)
+                    )
+                }
             }
         }
     }

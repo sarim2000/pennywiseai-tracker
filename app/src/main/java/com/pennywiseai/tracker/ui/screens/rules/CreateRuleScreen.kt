@@ -140,6 +140,7 @@ fun CreateRuleScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = if (existingRule != null) "Edit Rule" else "Create Rule",
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.Close, contentDescription = "Close")

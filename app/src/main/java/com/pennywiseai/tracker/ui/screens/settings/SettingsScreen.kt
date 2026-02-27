@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,35 +39,34 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.orange_light
+import com.pennywiseai.tracker.ui.theme.orange_dark
+import com.pennywiseai.tracker.ui.theme.green_light
+import com.pennywiseai.tracker.ui.theme.green_dark
+import com.pennywiseai.tracker.ui.theme.teal_light
+import com.pennywiseai.tracker.ui.theme.teal_dark
+import com.pennywiseai.tracker.ui.theme.blue_light
+import com.pennywiseai.tracker.ui.theme.blue_dark
+import com.pennywiseai.tracker.ui.theme.indigo_light
+import com.pennywiseai.tracker.ui.theme.indigo_dark
+import com.pennywiseai.tracker.ui.theme.red_light
+import com.pennywiseai.tracker.ui.theme.red_dark
+import com.pennywiseai.tracker.ui.theme.pink_light
+import com.pennywiseai.tracker.ui.theme.pink_dark
+import com.pennywiseai.tracker.ui.theme.purple_light
+import com.pennywiseai.tracker.ui.theme.purple_dark
+import com.pennywiseai.tracker.ui.theme.cyan_light
+import com.pennywiseai.tracker.ui.theme.cyan_dark
+import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_dark
+import com.pennywiseai.tracker.ui.theme.grey_light
+import com.pennywiseai.tracker.ui.theme.grey_dark
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
-// Colored icon background colors
-private val orange_light = Color(0xFFFFF3E0)
-private val orange_dark = Color(0xFFE65100)
-private val green_light = Color(0xFFE8F5E9)
-private val green_dark = Color(0xFF2E7D32)
-private val teal_light = Color(0xFFE0F2F1)
-private val teal_dark = Color(0xFF00695C)
-private val blue_light = Color(0xFFE3F2FD)
-private val blue_dark = Color(0xFF1565C0)
-private val indigo_light = Color(0xFFE8EAF6)
-private val indigo_dark = Color(0xFF283593)
-private val red_light = Color(0xFFFFEBEE)
-private val red_dark = Color(0xFFC62828)
-private val pink_light = Color(0xFFFCE4EC)
-private val pink_dark = Color(0xFFAD1457)
-private val purple_light = Color(0xFFF3E5F5)
-private val purple_dark = Color(0xFF6A1B9A)
-private val cyan_light = Color(0xFFE0F7FA)
-private val cyan_dark = Color(0xFF00838F)
-private val yellow_light = Color(0xFFFFF8E1)
-private val yellow_dark = Color(0xFFF57F17)
-private val grey_light = Color(0xFFECEFF1)
-private val grey_dark = Color(0xFF546E7A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,6 +140,8 @@ fun SettingsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Settings",
+                hasBackButton = true,
+                navigationContent = { SettingsNavigationContent(onNavigateBack) },
                 hazeState = hazeState
             )
         }
@@ -712,12 +715,12 @@ private fun SettingsNavItem(
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -776,12 +779,12 @@ private fun SettingsSwitchRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -836,12 +839,12 @@ private fun SettingsDropdownItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -913,12 +916,12 @@ private fun AiChatSettingsItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(yellow_light),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(24.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1047,6 +1050,34 @@ private fun AiChatSettingsItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .animateContentSize()
+            .padding(start = 16.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onNavigateBack,
+            ),
+    ) {
+        IconButton(
+            onClick = onNavigateBack,
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onBackground
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ArrowBackIosNew,
+                contentDescription = "Back",
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

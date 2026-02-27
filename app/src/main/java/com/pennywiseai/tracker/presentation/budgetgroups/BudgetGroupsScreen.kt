@@ -81,6 +81,7 @@ fun BudgetGroupsScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Budget Groups",
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

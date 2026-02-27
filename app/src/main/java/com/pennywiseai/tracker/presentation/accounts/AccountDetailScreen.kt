@@ -62,6 +62,7 @@ fun AccountDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "${uiState.bankName} ••${uiState.accountLast4}",
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

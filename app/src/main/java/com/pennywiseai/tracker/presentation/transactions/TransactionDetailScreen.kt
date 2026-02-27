@@ -310,7 +310,8 @@ private fun TransactionDetailContent(
             .imePadding()
             .overScrollVertical()
             .verticalScroll(scrollState)
-            .padding(Dimensions.Padding.content)
+            .padding(horizontal = Dimensions.Padding.content)
+            .padding(top = Spacing.sm, bottom = Dimensions.Padding.content)
     ) {
         if (isEditMode) {
             EditableTransactionHeader(

@@ -59,6 +59,7 @@ fun MonthlyBudgetSettingsScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Budget Settings",
                 hasBackButton = true,
+                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

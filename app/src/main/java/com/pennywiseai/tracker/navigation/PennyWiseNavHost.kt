@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -29,7 +31,7 @@ fun PennyWiseNavHost(
     NavHost(
         navController = navController,
         startDestination = stableStartDestination,
-        modifier = modifier,
+        modifier = modifier.background(MaterialTheme.colorScheme.background),
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },

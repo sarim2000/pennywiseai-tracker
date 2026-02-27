@@ -41,8 +41,12 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.CollapsibleFilterRow
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.DateRangeUtils
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,9 +196,23 @@ fun TransactionsScreen(
             snackbarHostState.currentSnackbarData?.dismiss()
         }
     }
-    
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Transactions",
+                hazeState = hazeState
+            )
+        },
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -231,6 +249,7 @@ fun TransactionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .padding(paddingValues)
         ) {
         // Search Bar with Sort Button

@@ -86,9 +86,12 @@ class HomeViewModel @Inject constructor(
 
     private fun loadUserName() {
         userPreferencesRepository.userPreferences
-            .map { it.userName }
-            .onEach { name ->
-                _uiState.value = _uiState.value.copy(userName = name)
+            .onEach { prefs ->
+                _uiState.value = _uiState.value.copy(
+                    userName = prefs.userName,
+                    profileImageUri = prefs.profileImageUri,
+                    profileBackgroundColor = prefs.profileBackgroundColor
+                )
             }
             .launchIn(viewModelScope)
     }
@@ -924,6 +927,8 @@ class HomeViewModel @Inject constructor(
 
 data class HomeUiState(
     val userName: String = "User",
+    val profileImageUri: String? = null,
+    val profileBackgroundColor: Int = 0,
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,

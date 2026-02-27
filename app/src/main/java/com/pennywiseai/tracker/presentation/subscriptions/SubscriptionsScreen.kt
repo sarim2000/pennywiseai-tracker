@@ -26,7 +26,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
@@ -44,7 +48,12 @@ fun SubscriptionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
     // Show snackbar when subscription is hidden
     LaunchedEffect(uiState.lastHiddenSubscription) {
         uiState.lastHiddenSubscription?.let { subscription ->
@@ -58,78 +67,85 @@ fun SubscriptionsScreen(
             }
         }
     }
-    
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-        // Total Monthly Subscriptions Summary
-        item {
-            TotalSubscriptionsSummary(
-                totalAmount = uiState.totalMonthlyAmount,
-                activeCount = uiState.activeSubscriptions.size,
-                currency = uiState.displayCurrency
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Subscriptions",
+                hazeState = hazeState
             )
-        }
-        
-        // Active Subscriptions
-        if (uiState.activeSubscriptions.isNotEmpty()) {
-            items(
-                items = uiState.activeSubscriptions,
-                key = { it.id }
-            ) { subscription ->
-                SwipeableSubscriptionItem(
-                    subscription = subscription,
-                    convertedAmount = uiState.convertedAmounts[subscription.id],
-                    displayCurrency = uiState.displayCurrency,
-                    onHide = { viewModel.hideSubscription(subscription.id) }
+        },
+        floatingActionButton = {
+            SmallFloatingActionButton(
+                onClick = onAddSubscriptionClick,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Subscription"
                 )
             }
         }
-        
-        // Empty State
-        if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(Dimensions.Padding.content),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            // Total Monthly Subscriptions Summary
             item {
-                EmptySubscriptionsState()
+                TotalSubscriptionsSummary(
+                    totalAmount = uiState.totalMonthlyAmount,
+                    activeCount = uiState.activeSubscriptions.size,
+                    currency = uiState.displayCurrency
+                )
             }
-        }
-        
-        // Loading State
-        if (uiState.isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+
+            // Active Subscriptions
+            if (uiState.activeSubscriptions.isNotEmpty()) {
+                items(
+                    items = uiState.activeSubscriptions,
+                    key = { it.id }
+                ) { subscription ->
+                    SwipeableSubscriptionItem(
+                        subscription = subscription,
+                        convertedAmount = uiState.convertedAmounts[subscription.id],
+                        displayCurrency = uiState.displayCurrency,
+                        onHide = { viewModel.hideSubscription(subscription.id) }
+                    )
+                }
+            }
+
+            // Empty State
+            if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+                item {
+                    EmptySubscriptionsState()
+                }
+            }
+
+            // Loading State
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
-        }
-        
-        // Add Subscription FAB (consistent with other screens)
-        SmallFloatingActionButton(
-            onClick = onAddSubscriptionClick,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Subscription"
-            )
-        }
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 

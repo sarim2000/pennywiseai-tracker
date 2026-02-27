@@ -38,10 +38,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -95,16 +100,33 @@ fun AnalyticsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Analytics",
+                hazeState = hazeState
+            )
+        }
+    ) { paddingValues ->
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
-            top = Spacing.md,
+            top = paddingValues.calculateTopPadding() + Spacing.md,
             bottom = Dimensions.Component.bottomBarHeight + Spacing.md
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)

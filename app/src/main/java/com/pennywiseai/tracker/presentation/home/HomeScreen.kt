@@ -13,6 +13,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
@@ -30,7 +31,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
@@ -46,6 +46,8 @@ import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.GreetingCard
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -61,7 +63,6 @@ fun HomeScreen(
     navController: NavController,
     coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
-    topBarPadding: Dp = 0.dp,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
@@ -85,6 +86,13 @@ fun HomeScreen(
 
     // Haptic feedback
     val view = LocalView.current
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    // Haze state for TopAppBar blur
+    val hazeState = remember { HazeState() }
 
     // Haze state for banner blur effect
     val hazeStateBanner = remember { HazeState() }
@@ -157,10 +165,32 @@ fun HomeScreen(
     }
     
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "PennyWise",
+                isHomeScreen = true,
+                userName = uiState.userName,
+                profileImageUri = uiState.profileImageUri,
+                profileBackgroundColor = uiState.profileBackgroundColor,
+                hazeState = hazeState,
+                blurEffects = blurEffects,
+                extraInfoCard = {
+                    GreetingCard(
+                        userName = uiState.userName,
+                        profileImageUri = uiState.profileImageUri,
+                        profileBackgroundColor = uiState.profileBackgroundColor,
+                        onSettingsClick = onNavigateToSettings
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
         // Banner gradient at y=0 — paints behind the transparent TopAppBar
         if (coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(
@@ -175,7 +205,7 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = Dimensions.Padding.content + topBarPadding + paddingValues.calculateTopPadding(),
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                 bottom = Dimensions.Padding.content + 120.dp // Space for dual FABs (Add + Sync)
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)

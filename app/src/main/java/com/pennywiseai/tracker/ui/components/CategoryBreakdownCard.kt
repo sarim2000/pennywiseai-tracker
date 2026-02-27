@@ -1,16 +1,17 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,7 +28,7 @@ fun CategoryBreakdownCard(
     onCategoryClick: (CategoryData) -> Unit = {}
 ) {
     val maxAmount = categories.maxOfOrNull { it.amount } ?: java.math.BigDecimal.ZERO
-    
+
     PennyWiseCard(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -40,7 +41,7 @@ fun CategoryBreakdownCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
-            
+
             ExpandableList(
                 items = categories,
                 visibleItemCount = 5
@@ -63,9 +64,19 @@ private fun CategoryBar(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val barPercentage = if (maxAmount > java.math.BigDecimal.ZERO) {
+    val targetFraction = if (maxAmount > java.math.BigDecimal.ZERO) {
         (category.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
     } else 0f
+
+    // Animated progress bar fill
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (visible) targetFraction else 0f,
+        animationSpec = tween(800),
+        label = "category_bar_${category.name}"
+    )
 
     // Get category-specific color
     val categoryInfo = CategoryMapping.categories[category.name]
@@ -109,7 +120,7 @@ private fun CategoryBar(
             }
         }
 
-        // Progress bar with category-specific color
+        // Animated progress bar with rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,7 +130,7 @@ private fun CategoryBar(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(barPercentage)
+                    .fillMaxWidth(animatedFraction)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(4.dp))
                     .background(categoryColor)

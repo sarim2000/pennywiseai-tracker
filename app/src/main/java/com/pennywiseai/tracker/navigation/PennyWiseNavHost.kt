@@ -44,21 +44,23 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     navController.navigate(Home) {
+                        launchSingleTop = true
                         popUpTo(AppLock) { inclusive = true }
                     }
                 }
             )
         }
-        composable<Permission>(
+        composable<OnBoarding>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            com.pennywiseai.tracker.ui.screens.PermissionScreen(
-                onPermissionGranted = {
+            com.pennywiseai.tracker.ui.screens.onboarding.OnBoardingScreen(
+                onOnboardingComplete = {
                     navController.navigate(Home) {
-                        popUpTo(Permission) { inclusive = true }
+                        launchSingleTop = true
+                        popUpTo(OnBoarding) { inclusive = true }
                     }
                 }
             )
@@ -197,10 +199,14 @@ fun PennyWiseNavHost(
                     navController.popBackStack()
                 },
                 onNavigateToCreateRule = {
-                    navController.navigate(CreateRule())
+                    navController.navigate(CreateRule()) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToEditRule = { ruleId ->
-                    navController.navigate(CreateRule(ruleId = ruleId))
+                    navController.navigate(CreateRule(ruleId = ruleId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -255,10 +261,13 @@ fun PennyWiseNavHost(
                     navController.popBackStack()
                 },
                 onNavigateToGroupEdit = { groupId ->
-                    navController.navigate(BudgetGroupEdit(groupId))
+                    navController.navigate(BudgetGroupEdit(groupId)) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToCategory = { category, yearMonth, currency ->
                     navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
+                        launchSingleTop = true
                         popUpTo(Home) { inclusive = true }
                     }
                 }
@@ -287,6 +296,7 @@ fun PennyWiseNavHost(
             // Redirect old budget screen to new budget groups
             androidx.compose.runtime.LaunchedEffect(Unit) {
                 navController.navigate(BudgetGroups) {
+                    launchSingleTop = true
                     popUpTo(MonthlyBudget) { inclusive = true }
                 }
             }

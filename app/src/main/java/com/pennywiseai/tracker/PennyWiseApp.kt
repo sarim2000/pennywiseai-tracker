@@ -9,8 +9,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -18,7 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
-import com.pennywiseai.tracker.navigation.Permission
+import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
@@ -57,16 +57,27 @@ fun PennyWiseApp(
         }
     }
 
-    // Determine initial destination based on app lock and permissions
-    val startDestination = remember {
-        val hasSmsPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_SMS
-        ) == PackageManager.PERMISSION_GRANTED
+    // Wait for preferences to load before deciding start destination
+    if (themeUiState.isLoading) {
+        return
+    }
 
-        // Note: We can't check app lock or hasSkippedPermission here because they're async from DataStore
-        // App lock will be checked after initial load via LaunchedEffect
-        if (hasSmsPermission) Home else Permission
+    // Migrate existing users: if they already have SMS permission from the old flow,
+    // auto-complete onboarding so they aren't forced through it on update
+    LaunchedEffect(themeUiState.hasCompletedOnboarding) {
+        if (!themeUiState.hasCompletedOnboarding) {
+            val hasSmsPermission = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.READ_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (hasSmsPermission) {
+                themeViewModel.markOnboardingCompleted()
+            }
+        }
+    }
+
+    // Set correct start destination based on loaded preferences
+    val startDestination: Any = remember(themeUiState.hasCompletedOnboarding) {
+        if (themeUiState.hasCompletedOnboarding) Home else OnBoarding
     }
 
     // Observe lock state changes and navigate to lock screen if needed
@@ -110,7 +121,12 @@ fun PennyWiseApp(
 
     PennyWiseTheme(
         darkTheme = darkTheme,
-        dynamicColor = themeUiState.isDynamicColorEnabled
+        dynamicColor = themeUiState.isDynamicColorEnabled,
+        themeStyle = themeUiState.themeStyle,
+        accentColor = themeUiState.accentColor,
+        isAmoledMode = themeUiState.isAmoledMode,
+        appFont = themeUiState.appFont,
+        blurEffects = themeUiState.blurEffectsEnabled
     ) {
         PennyWiseNavHost(
             navController = navController,

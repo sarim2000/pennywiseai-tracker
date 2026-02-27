@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
@@ -301,7 +302,15 @@ private fun RegularTopAppBar(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (profileImageUri != null) {
+                            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
+                            if (avatarResId != null) {
+                                Image(
+                                    painter = painterResource(id = avatarResId),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else if (profileImageUri != null) {
                                 AsyncImage(
                                     model = profileImageUri,
                                     contentDescription = null,
@@ -309,11 +318,20 @@ private fun RegularTopAppBar(
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Image(
-                                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                                val initials = remember(userName) {
+                                    val parts = userName.trim().split("\\s+".toRegex())
+                                    if (parts.size >= 2) {
+                                        "${parts.first().first()}${parts.last().first()}".uppercase()
+                                    } else {
+                                        userName.trim().take(2).uppercase()
+                                    }
+                                }
+                                Text(
+                                    text = initials,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }

@@ -4,39 +4,63 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.clickable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
-import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+
+// Colored icon background colors
+private val orange_light = Color(0xFFFFF3E0)
+private val orange_dark = Color(0xFFE65100)
+private val green_light = Color(0xFFE8F5E9)
+private val green_dark = Color(0xFF2E7D32)
+private val teal_light = Color(0xFFE0F2F1)
+private val teal_dark = Color(0xFF00695C)
+private val blue_light = Color(0xFFE3F2FD)
+private val blue_dark = Color(0xFF1565C0)
+private val indigo_light = Color(0xFFE8EAF6)
+private val indigo_dark = Color(0xFF283593)
+private val red_light = Color(0xFFFFEBEE)
+private val red_dark = Color(0xFFC62828)
+private val pink_light = Color(0xFFFCE4EC)
+private val pink_dark = Color(0xFFAD1457)
+private val purple_light = Color(0xFFF3E5F5)
+private val purple_dark = Color(0xFF6A1B9A)
+private val cyan_light = Color(0xFFE0F7FA)
+private val cyan_dark = Color(0xFF00838F)
+private val yellow_light = Color(0xFFFFF8E1)
+private val yellow_dark = Color(0xFFF57F17)
+private val grey_light = Color(0xFFECEFF1)
+private val grey_dark = Color(0xFF546E7A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +75,7 @@ fun SettingsScreen(
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
+    onNavigateToAppearance: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -75,7 +100,7 @@ fun SettingsScreen(
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    
+
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -85,7 +110,7 @@ fun SettingsScreen(
             }
         }
     )
-    
+
     // File saver for export
     val exportSaveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -95,7 +120,7 @@ fun SettingsScreen(
             }
         }
     )
-    
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -105,1064 +130,308 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            // Theme Settings Section
-            SectionHeader(title = "Appearance")
-        
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                // Theme Mode Selection
-                Column {
-                    Text(
-                        text = "Theme",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    FilterChip(
-                        selected = themeUiState.isDarkTheme == null,
-                        onClick = { themeViewModel.updateDarkTheme(null) },
-                        label = { Text("System") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = themeUiState.isDarkTheme == false,
-                        onClick = { themeViewModel.updateDarkTheme(false) },
-                        label = { Text("Light") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = themeUiState.isDarkTheme == true,
-                        onClick = { themeViewModel.updateDarkTheme(true) },
-                        label = { Text("Dark") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                }
+            // ── Personalization ──
+            SectionHeader(title = "Personalization")
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.Palette,
+                    iconBgColor = orange_light,
+                    iconTint = orange_dark,
+                    title = "Appearance",
+                    subtitle = "Theme, colors, fonts & navigation",
+                    onClick = onNavigateToAppearance,
+                    position = ItemPosition.SINGLE
+                )
             }
-        }
 
-       /* // General Settings Section
-        SectionHeader(title = "General")
-
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                // Default Currency Selection
-                Column {
-                    Text(
-                        text = "Default Currency",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Text(
-                        text = "Currency used for conversions and calculations",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-
-                    ExposedDropdownMenuBox(
-                        expanded = showCurrencyDropdown,
-                        onExpandedChange = { showCurrencyDropdown = it }
-                    ) {
-                        OutlinedTextField(
-                            value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Currency") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = showCurrencyDropdown,
-                            onDismissRequest = { showCurrencyDropdown = false }
-                        ) {
-                            availableCurrencies.forEach { currency ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
-                                    },
-                                    onClick = {
-                                        settingsViewModel.updateBaseCurrency(currency)
-                                        showCurrencyDropdown = false
-                                    },
-                                    leadingIcon = if (currency == baseCurrency) {
-                                        {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    } else null
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }*/
-
-        // Currency Section
-        SectionHeader(title = "Currency")
-
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                // Unified Currency Mode Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Unified Currency Mode",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Convert all transactions to display currency",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = unifiedCurrencyMode,
-                        onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) }
-                    )
-                }
-
-                // Display Currency Selector (visible when unified mode ON)
+            // ── Currency ──
+            SectionHeader(title = "Currency")
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = Icons.Default.CurrencyExchange,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Unified Currency Mode",
+                    subtitle = "Convert all transactions to display currency",
+                    checked = unifiedCurrencyMode,
+                    onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) },
+                    position = ItemPosition.TOP
+                )
                 AnimatedVisibility(visible = unifiedCurrencyMode) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showDisplayCurrencyDialog = true },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Display Currency",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "All amounts shown in this currency",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Text(
-                            text = "${CurrencyFormatter.getCurrencySymbol(displayCurrency)} $displayCurrency",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                HorizontalDivider()
-
-                // Exchange Rates Navigation
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateToExchangeRates() },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Exchange Rates",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "View and customize rates",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Navigate",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    SettingsNavItem(
+                        icon = Icons.Default.AttachMoney,
+                        iconBgColor = teal_light,
+                        iconTint = teal_dark,
+                        title = "Display Currency",
+                        subtitle = "All amounts shown in this currency",
+                        onClick = { showDisplayCurrencyDialog = true },
+                        position = ItemPosition.MIDDLE,
+                        trailingText = "${CurrencyFormatter.getCurrencySymbol(displayCurrency)} $displayCurrency"
                     )
                 }
-
-                // Default Currency Selection
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                SettingsNavItem(
+                    icon = Icons.Default.SwapHoriz,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = "Exchange Rates",
+                    subtitle = "View and customize rates",
+                    onClick = onNavigateToExchangeRates,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsDropdownItem(
+                    icon = Icons.Default.Flag,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Default Currency",
+                    subtitle = "Currency used for conversions",
+                    currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                    expanded = showCurrencyDropdown,
+                    onExpandedChange = { showCurrencyDropdown = it },
+                    position = ItemPosition.BOTTOM
                 ) {
-                    Column {
-                        Text(
-                            text = "Default Currency",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            text = "Currency used for conversions and calculations",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-
-                        ExposedDropdownMenuBox(
-                            expanded = showCurrencyDropdown,
-                            onExpandedChange = { showCurrencyDropdown = it }
-                        ) {
-                            OutlinedTextField(
-                                value = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Currency") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyDropdown)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                                )
-                            )
-
-                            ExposedDropdownMenu(
-                                expanded = showCurrencyDropdown,
-                                onDismissRequest = { showCurrencyDropdown = false }
-                            ) {
-                                availableCurrencies.forEach { currency ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
-                                        },
-                                        onClick = {
-                                            settingsViewModel.updateBaseCurrency(currency)
-                                            showCurrencyDropdown = false
-                                        },
-                                        leadingIcon = if (currency == baseCurrency) {
-                                            {
-                                                Icon(
-                                                    Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        } else null
+                    availableCurrencies.forEach { currency ->
+                        DropdownMenuItem(
+                            text = {
+                                Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
+                            },
+                            onClick = {
+                                settingsViewModel.updateBaseCurrency(currency)
+                                showCurrencyDropdown = false
+                            },
+                            leadingIcon = if (currency == baseCurrency) {
+                                {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                            }
-                        }
+                            } else null
+                        )
                     }
                 }
             }
-        }
 
-        // Display Currency Dialog
-        if (showDisplayCurrencyDialog) {
-            AlertDialog(
-                onDismissRequest = { showDisplayCurrencyDialog = false },
-                title = { Text("Display Currency") },
-                text = {
-                    Column {
-                        availableCurrencies.forEach { currency ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .selectable(
-                                        selected = currency == displayCurrency,
-                                        onClick = {
-                                            settingsViewModel.setDisplayCurrency(currency)
-                                            showDisplayCurrencyDialog = false
-                                        }
-                                    )
-                                    .padding(vertical = Spacing.sm),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
+            // ── Security ──
+            SectionHeader(title = "Security")
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = Icons.Default.Lock,
+                    iconBgColor = red_light,
+                    iconTint = red_dark,
+                    title = "App Lock",
+                    subtitle = if (appLockUiState.canUseBiometric) {
+                        "Protect your data with biometric authentication"
+                    } else {
+                        appLockUiState.biometricCapability.getErrorMessage()
+                    },
+                    checked = appLockUiState.isLockEnabled,
+                    onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
+                    enabled = appLockUiState.canUseBiometric,
+                    position = if (appLockUiState.isLockEnabled) ItemPosition.TOP else ItemPosition.SINGLE
+                )
+                AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
+                    SettingsNavItem(
+                        icon = Icons.Default.Timer,
+                        iconBgColor = pink_light,
+                        iconTint = pink_dark,
+                        title = "Lock Timeout",
+                        subtitle = when (appLockUiState.timeoutMinutes) {
+                            0 -> "Lock immediately"
+                            1 -> "After 1 minute"
+                            else -> "After ${appLockUiState.timeoutMinutes} minutes"
+                        },
+                        onClick = { showTimeoutDialog = true },
+                        position = ItemPosition.BOTTOM
+                    )
+                }
+            }
+
+            // ── Data Management ──
+            SectionHeader(title = "Data Management")
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.AccountBalance,
+                    iconBgColor = red_light,
+                    iconTint = red_dark,
+                    title = "Manage Accounts",
+                    subtitle = "View and manage your bank accounts",
+                    onClick = onNavigateToManageAccounts,
+                    position = ItemPosition.TOP
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Category,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = "Categories",
+                    subtitle = "Manage expense and income categories",
+                    onClick = onNavigateToCategories,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.AutoAwesome,
+                    iconBgColor = orange_light,
+                    iconTint = orange_dark,
+                    title = "Smart Rules",
+                    subtitle = "Automatic transaction categorization",
+                    onClick = onNavigateToRules,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Budgets",
+                    subtitle = "Track spending limits by category",
+                    onClick = onNavigateToBudgets,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Upload,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = "Export Data",
+                    subtitle = "Backup all data to a file",
+                    onClick = { settingsViewModel.exportBackup() },
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Download,
+                    iconBgColor = cyan_light,
+                    iconTint = cyan_dark,
+                    title = "Import Data",
+                    subtitle = "Restore data from backup",
+                    onClick = { importLauncher.launch("*/*") },
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.CalendarMonth,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = "SMS Scan Period",
+                    subtitle = if (smsScanAllTime) "Scan all SMS messages" else "Scan last $smsScanMonths months",
+                    onClick = { showSmsScanDialog = true },
+                    position = ItemPosition.BOTTOM,
+                    trailingText = if (smsScanAllTime) "All Time" else "$smsScanMonths mo"
+                )
+            }
+
+            // ── AI Features ──
+            SectionHeader(title = "AI Features")
+            SettingsGroup {
+                AiChatSettingsItem(
+                    downloadState = downloadState,
+                    downloadProgress = downloadProgress,
+                    downloadedMB = downloadedMB,
+                    totalMB = totalMB,
+                    onDownload = { settingsViewModel.startModelDownload() },
+                    onCancel = { settingsViewModel.cancelDownload() },
+                    onDelete = { settingsViewModel.deleteModel() }
+                )
+            }
+
+            // ── Developer ──
+            SectionHeader(title = "Developer")
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = Icons.Default.Code,
+                    iconBgColor = grey_light,
+                    iconTint = grey_dark,
+                    title = "Developer Mode",
+                    subtitle = "Show technical information in chat",
+                    checked = isDeveloperModeEnabled,
+                    onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
+                    position = ItemPosition.SINGLE
+                )
+            }
+
+            // ── Support & Community ──
+            SectionHeader(title = "Support & Community")
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.AutoMirrored.Filled.Help,
+                    iconBgColor = pink_light,
+                    iconTint = pink_dark,
+                    title = "Help & FAQ",
+                    subtitle = "Frequently asked questions and help",
+                    onClick = onNavigateToFaq,
+                    position = ItemPosition.TOP
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.BugReport,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = "Report an Issue",
+                    subtitle = "Submit bug reports on GitHub",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
+                        context.startActivity(intent)
+                    },
+                    position = ItemPosition.BOTTOM,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                )
+            }
+
+            // App Version
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Text(
+                text = "PennyWise v${com.pennywiseai.tracker.BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+        }
+    }
+
+    // ── Dialogs ──
+
+    // Display Currency Dialog
+    if (showDisplayCurrencyDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisplayCurrencyDialog = false },
+            title = { Text("Display Currency") },
+            text = {
+                Column {
+                    availableCurrencies.forEach { currency ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
                                     selected = currency == displayCurrency,
                                     onClick = {
                                         settingsViewModel.setDisplayCurrency(currency)
                                         showDisplayCurrencyDialog = false
                                     }
                                 )
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(
-                                    text = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showDisplayCurrencyDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
-
-        // Security Section
-        SectionHeader(title = "Security")
-
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                // App Lock Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "App Lock",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = if (appLockUiState.canUseBiometric) {
-                                "Protect your data with biometric authentication"
-                            } else {
-                                appLockUiState.biometricCapability.getErrorMessage()
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (appLockUiState.canUseBiometric) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.error
-                            }
-                        )
-                    }
-                    Switch(
-                        checked = appLockUiState.isLockEnabled,
-                        onCheckedChange = { enabled ->
-                            appLockViewModel.setAppLockEnabled(enabled)
-                        },
-                        enabled = appLockUiState.canUseBiometric
-                    )
-                }
-
-                // Lock Timeout Setting (only show if app lock is enabled)
-                AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
-                    Column {
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showTimeoutDialog = true },
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .padding(vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Lock Timeout",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = when (appLockUiState.timeoutMinutes) {
-                                        0 -> "Lock immediately when app goes to background"
-                                        1 -> "Lock after 1 minute in background"
-                                        else -> "Lock after ${appLockUiState.timeoutMinutes} minutes in background"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Data Management Section
-        SectionHeader(title = "Data Management")
-        
-        // Manage Accounts
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToManageAccounts() }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.AccountBalance,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Manage Accounts",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "View and manage your bank accounts",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // Categories
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToCategories() }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Category,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Categories",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Manage expense and income categories",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Smart Rules
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToRules() }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Smart Rules",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Automatic transaction categorization",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Budgets
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToBudgets() }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.AccountBalanceWallet,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Budgets",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Track spending limits by category",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Export Data
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { settingsViewModel.exportBackup() }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Upload,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Export Data",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Backup all data to a file",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // Import Data
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { 
-                    importLauncher.launch("*/*")
-                }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Download,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Import Data",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Restore data from backup",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // SMS Scan Period
-        PennyWiseCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showSmsScanDialog = true }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "SMS Scan Period",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = if (smsScanAllTime) "Scan all SMS messages" else "Scan last $smsScanMonths months of messages",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Text(
-                    text = if (smsScanAllTime) "All Time" else "$smsScanMonths months",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        
-        // AI Features Section
-        SectionHeader(title = "AI Features")
-        
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "AI Chat Assistant",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = when (downloadState) {
-                                DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                                DownloadState.DOWNLOADING -> "Downloading Qwen model..."
-                                DownloadState.PAUSED -> "Download interrupted"
-                                DownloadState.COMPLETED -> "Qwen ready for chat"
-                                DownloadState.FAILED -> "Download failed"
-                                DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    // Action area based on state
-                    when (downloadState) {
-                        DownloadState.NOT_DOWNLOADED -> {
-                            Button(
-                                onClick = { settingsViewModel.startModelDownload() }
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null)
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Download")
-                            }
-                        }
-                        DownloadState.DOWNLOADING -> {
-                            Text(
-                                text = "$downloadProgress%",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        DownloadState.PAUSED -> {
-                            Button(
-                                onClick = { settingsViewModel.startModelDownload() }
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null)
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Retry")
-                            }
-                        }
-                        DownloadState.COMPLETED -> {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    contentDescription = "Downloaded",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                TextButton(
-                                    onClick = { settingsViewModel.deleteModel() }
-                                ) {
-                                    Text("Delete")
+                            RadioButton(
+                                selected = currency == displayCurrency,
+                                onClick = {
+                                    settingsViewModel.setDisplayCurrency(currency)
+                                    showDisplayCurrencyDialog = false
                                 }
-                            }
-                        }
-                        DownloadState.FAILED -> {
-                            Button(
-                                onClick = { settingsViewModel.startModelDownload() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Retry")
-                            }
-                        }
-                        DownloadState.ERROR_INSUFFICIENT_SPACE -> {
-                            Icon(
-                                Icons.Default.Error,
-                                contentDescription = "Error",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
                             )
-                        }
-                    }
-                }
-                
-                // Progress details during download
-                AnimatedVisibility(
-                    visible = downloadState == DownloadState.DOWNLOADING,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { downloadProgress / 100f },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
-                                text = "$downloadedMB MB / $totalMB MB",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
+                                style = MaterialTheme.typography.bodyLarge
                             )
                         }
-                        
-                        Button(
-                            onClick = { settingsViewModel.cancelDownload() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Cancel, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Cancel Download")
-                        }
                     }
                 }
-                
-                // Info about AI features
-                if (downloadState == DownloadState.NOT_DOWNLOADED || 
-                    downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE) {
-                    HorizontalDivider()
-                    Text(
-                        text = "Chat with Qwen AI about your expenses and get financial insights. " +
-                              "All conversations stay private on your device.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            },
+            confirmButton = {
+                TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                    Text("Cancel")
                 }
             }
-        }
-        
-        // Unrecognized Messages Section (only show if count > 0)
-        val unreportedCount by settingsViewModel.unreportedSmsCount.collectAsStateWithLifecycle()
-        
-        if (unreportedCount > 0) {
-            SectionHeader(title = "Help Improve PennyWise")
-            
-            PennyWiseCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { 
-                    Log.d("SettingsScreen", "Navigating to UnrecognizedSms screen")
-                    onNavigateToUnrecognizedSms() 
-                }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimensions.Padding.content),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Unrecognized Bank Messages",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "$unreportedCount message${if (unreportedCount > 1) "s" else ""} from potential banks",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ) {
-                            Text(unreportedCount.toString())
-                        }
-                        
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = "View Messages",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-        
-        // Developer Section
-        SectionHeader(title = "Developer")
-        
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Developer Mode",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Show technical information in chat",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = isDeveloperModeEnabled,
-                    onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) }
-                )
-            }
-        }
-        
-        // Support Section
-        SectionHeader(title = "Support & Community")
-
-        val context = LocalContext.current
-
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column {
-                // Help & FAQ
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = "Help & FAQ",
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    supportingContent = {
-                        Text("Frequently asked questions and help")
-                    },
-                    leadingContent = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Help,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingContent = {
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.clickable { onNavigateToFaq() }
-                )
-
-                HorizontalDivider()
-
-                // GitHub Issues
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = "Report an Issue",
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    supportingContent = {
-                        Text("Submit bug reports or bank requests on GitHub")
-                    },
-                    leadingContent = {
-                        Icon(
-                            Icons.Default.BugReport,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingContent = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
-                        context.startActivity(intent)
-                    }
-                )
-            }
-        }
-
-        // App Version
-        Spacer(modifier = Modifier.height(Spacing.md))
-        Text(
-            text = "PennyWise v${com.pennywiseai.tracker.BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(Spacing.md))
     }
 
     // SMS Scan Period Dialog
@@ -1179,8 +448,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
-                    
-                    // All Time option first, then period options including 24 months for 2 years coverage
+
                     val options = listOf(-1) + listOf(1, 2, 3, 6, 12, 24)
                     options.forEach { months ->
                         Row(
@@ -1189,12 +457,11 @@ fun SettingsScreen(
                                 .clickable {
                                     if (months == -1) {
                                         settingsViewModel.updateSmsScanAllTime(true)
-                                        showSmsScanDialog = false
                                     } else {
                                         settingsViewModel.updateSmsScanMonths(months)
                                         settingsViewModel.updateSmsScanAllTime(false)
-                                        showSmsScanDialog = false
                                     }
+                                    showSmsScanDialog = false
                                 }
                                 .padding(vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
@@ -1205,17 +472,16 @@ fun SettingsScreen(
                                 onClick = {
                                     if (months == -1) {
                                         settingsViewModel.updateSmsScanAllTime(true)
-                                        showSmsScanDialog = false
                                     } else {
                                         settingsViewModel.updateSmsScanMonths(months)
                                         settingsViewModel.updateSmsScanAllTime(false)
-                                        showSmsScanDialog = false
                                     }
+                                    showSmsScanDialog = false
                                 }
                             )
                             Spacer(modifier = Modifier.width(Spacing.md))
                             Text(
-                                text = when(months) {
+                                text = when (months) {
                                     -1 -> "All Time"
                                     1 -> "1 month"
                                     24 -> "2 years"
@@ -1234,19 +500,17 @@ fun SettingsScreen(
             }
         )
     }
-    
+
     // Show import/export message
     importExportMessage?.let { message ->
-        // Check if we have an exported file ready
         if (exportedBackupFile != null && message.contains("successfully! Choose")) {
             showExportOptionsDialog = true
         } else {
             LaunchedEffect(message) {
-                // Auto-clear message after 5 seconds
                 kotlinx.coroutines.delay(5000)
                 settingsViewModel.clearImportExportMessage()
             }
-            
+
             AlertDialog(
                 onDismissRequest = { settingsViewModel.clearImportExportMessage() },
                 title = { Text("Backup Status") },
@@ -1259,21 +523,21 @@ fun SettingsScreen(
             )
         }
     }
-    
+
     // Export options dialog
     if (showExportOptionsDialog && exportedBackupFile != null) {
         val timestamp = java.time.LocalDateTime.now().format(
             java.time.format.DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
         val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
-        
+
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showExportOptionsDialog = false
                 settingsViewModel.clearImportExportMessage()
             },
             title = { Text("Save Backup") },
-            text = { 
+            text = {
                 Column {
                     Text("Backup created successfully!")
                     Spacer(modifier = Modifier.height(8.dp))
@@ -1283,7 +547,7 @@ fun SettingsScreen(
             confirmButton = {
                 Row {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             exportSaveLauncher.launch(fileName)
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
@@ -1293,9 +557,9 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Save to Files")
                     }
-                    
+
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             settingsViewModel.shareBackup()
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
@@ -1309,7 +573,7 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { 
+                    onClick = {
                         showExportOptionsDialog = false
                         settingsViewModel.clearImportExportMessage()
                     }
@@ -1376,5 +640,391 @@ fun SettingsScreen(
             }
         )
     }
+}
+
+// ── Reusable Settings Components ──
+
+private enum class ItemPosition { TOP, MIDDLE, BOTTOM, SINGLE }
+
+private fun ItemPosition.toShape(): RoundedCornerShape = when (this) {
+    ItemPosition.TOP -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+    ItemPosition.MIDDLE -> RoundedCornerShape(4.dp)
+    ItemPosition.BOTTOM -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+    ItemPosition.SINGLE -> RoundedCornerShape(16.dp)
+}
+
+@Composable
+private fun SettingsGroup(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(1.5.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun SettingsNavItem(
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    position: ItemPosition,
+    trailingText: String? = null,
+    trailingIcon: ImageVector = Icons.Default.ChevronRight
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = position.toShape()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = Spacing.md, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Icon(
+                trailingIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    position: ItemPosition,
+    enabled: Boolean = true
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = position.toShape()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = enabled) { onCheckedChange(!checked) }
+                .padding(horizontal = Spacing.md, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.error
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsDropdownItem(
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    currentValue: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    position: ItemPosition,
+    dropdownContent: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = position.toShape()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = 14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(iconBgColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = onExpandedChange
+            ) {
+                OutlinedTextField(
+                    value = currentValue,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Currency") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { onExpandedChange(false) },
+                    content = dropdownContent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiChatSettingsItem(
+    downloadState: DownloadState,
+    downloadProgress: Int,
+    downloadedMB: Long,
+    totalMB: Long,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(yellow_light),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(18.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AI Chat Assistant",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = when (downloadState) {
+                            DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                            DownloadState.DOWNLOADING -> "Downloading Qwen model..."
+                            DownloadState.PAUSED -> "Download interrupted"
+                            DownloadState.COMPLETED -> "Qwen ready for chat"
+                            DownloadState.FAILED -> "Download failed"
+                            DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                when (downloadState) {
+                    DownloadState.NOT_DOWNLOADED -> {
+                        Button(onClick = onDownload) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Download")
+                        }
+                    }
+                    DownloadState.DOWNLOADING -> {
+                        Text(
+                            text = "$downloadProgress%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    DownloadState.PAUSED -> {
+                        Button(onClick = onDownload) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Retry")
+                        }
+                    }
+                    DownloadState.COMPLETED -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Downloaded",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            TextButton(onClick = onDelete) {
+                                Text("Delete")
+                            }
+                        }
+                    }
+                    DownloadState.FAILED -> {
+                        Button(
+                            onClick = onDownload,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Retry")
+                        }
+                    }
+                    DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = "Error",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Progress details during download
+            AnimatedVisibility(
+                visible = downloadState == DownloadState.DOWNLOADING,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    LinearProgressIndicator(
+                        progress = { downloadProgress / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "$downloadedMB MB / $totalMB MB",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Cancel, contentDescription = null)
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Cancel Download")
+                    }
+                }
+            }
+
+            // Info about AI features
+            if (downloadState == DownloadState.NOT_DOWNLOADED ||
+                downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE
+            ) {
+                HorizontalDivider()
+                Text(
+                    text = "Chat with Qwen AI about your expenses and get financial insights. " +
+                            "All conversations stay private on your device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }

@@ -114,7 +114,7 @@ fun RulesScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Info Card
-                Card(
+                PennyWiseCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer

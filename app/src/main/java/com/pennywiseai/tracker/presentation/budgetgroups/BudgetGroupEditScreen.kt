@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,12 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -50,11 +58,86 @@ fun BudgetGroupEditScreen(
         }
     }
 
-    PennyWiseScaffold(
-        title = if ((uiState.groupId ?: -1L) > 0) "Edit Group" else "New Group",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    val isEditing = (uiState.groupId ?: -1L) > 0
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (isEditing) "Edit Group" else "New Group",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = Dimensions.Elevation.bottomBar,
+                shadowElevation = Dimensions.Elevation.bottomBar,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    if (isEditing) {
+                        OutlinedButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimensions.Icon.small)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Delete")
+                        }
+                    }
+                    Button(
+                        onClick = { viewModel.save(forceEmpty = false) },
+                        modifier = Modifier.weight(if (isEditing) 1.5f else 1f),
+                        enabled = uiState.name.isNotBlank() && !uiState.isSaving,
+                        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        if (uiState.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(Dimensions.Icon.small),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                        }
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(if (isEditing) "Save Changes" else "Create Group")
+                    }
+                }
             }
         }
     ) { paddingValues ->
@@ -67,7 +150,7 @@ fun BudgetGroupEditScreen(
             ) {
                 CircularProgressIndicator()
             }
-            return@PennyWiseScaffold
+            return@Scaffold
         }
 
         LazyColumn(
@@ -75,140 +158,182 @@ fun BudgetGroupEditScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
-            // Group Name
+            // Budget Details Section
             item {
-                OutlinedTextField(
-                    value = uiState.name,
-                    onValueChange = { viewModel.updateName(it) },
-                    label = { Text("Group Name") },
-                    singleLine = true,
+                SectionHeaderV2(title = "Budget Details")
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // Type Selector
-            item {
-                Text(
-                    text = "Type",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    BudgetGroupType.entries.forEachIndexed { index, type ->
-                        SegmentedButton(
-                            selected = uiState.type == type,
-                            onClick = { viewModel.updateType(type) },
-                            shape = SegmentedButtonDefaults.itemShape(
-                                index = index,
-                                count = BudgetGroupType.entries.size
-                            )
-                        ) {
-                            Text(
-                                text = when (type) {
-                                    BudgetGroupType.LIMIT -> "Limit"
-                                    BudgetGroupType.TARGET -> "Target"
-                                    BudgetGroupType.EXPECTED -> "Expected"
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = when (uiState.type) {
-                        BudgetGroupType.LIMIT -> "Spending cap. Over = bad."
-                        BudgetGroupType.TARGET -> "Savings goal. Over = good."
-                        BudgetGroupType.EXPECTED -> "Fixed costs. Shows deviation."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Color Picker
-            item {
-                Text(
-                    text = "Color",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    items(PRESET_COLORS) { colorHex ->
-                        val color = try {
-                            Color(android.graphics.Color.parseColor(colorHex))
-                        } catch (e: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        }
-                        val isSelected = uiState.color == colorHex
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .then(
-                                    if (isSelected) {
-                                        Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                                .clickable { viewModel.updateColor(colorHex) },
-                            contentAlignment = Alignment.Center
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.name,
+                            onValueChange = { viewModel.updateName(it) },
+                            label = { Text("Group Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                        )
+
+                        // Currency Selector
+                        var showCurrencyMenu by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = showCurrencyMenu,
+                            onExpandedChange = { showCurrencyMenu = it },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (isSelected) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            OutlinedTextField(
+                                value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Currency") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = showCurrencyMenu,
+                                onDismissRequest = { showCurrencyMenu = false }
+                            ) {
+                                uiState.availableCurrencies.forEach { currency ->
+                                    DropdownMenuItem(
+                                        text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
+                                        onClick = {
+                                            viewModel.updateCurrency(currency)
+                                            showCurrencyMenu = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Currency Selector
+            // Type Selector Section
             item {
-                var showCurrencyMenu by remember { mutableStateOf(false) }
-                Text(
-                    text = "Currency",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
+                SectionHeaderV2(title = "Budget Type")
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                ExposedDropdownMenuBox(
-                    expanded = showCurrencyMenu,
-                    onExpandedChange = { showCurrencyMenu = it },
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    BudgetGroupType.entries.forEach { type ->
+                        val isSelected = uiState.type == type
+                        val typeInfo = getBudgetTypeInfo(type)
+                        val containerColor by animateColorAsState(
+                            targetValue = if (isSelected)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                            label = "typeCardColor"
+                        )
+
+                        PennyWiseCardV2(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { viewModel.updateType(type) },
+                            colors = CardDefaults.cardColors(containerColor = containerColor),
+                            border = if (isSelected) BorderStroke(
+                                2.dp,
+                                MaterialTheme.colorScheme.primary
+                            ) else null
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                Icon(
+                                    imageVector = typeInfo.icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = typeInfo.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isSelected)
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = typeInfo.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isSelected)
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(Dimensions.Icon.medium)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Color Picker Section
+            item {
+                SectionHeaderV2(title = "Color")
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = showCurrencyMenu,
-                        onDismissRequest = { showCurrencyMenu = false }
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        uiState.availableCurrencies.forEach { currency ->
-                            DropdownMenuItem(
-                                text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
-                                onClick = {
-                                    viewModel.updateCurrency(currency)
-                                    showCurrencyMenu = false
+                        items(PRESET_COLORS) { colorHex ->
+                            val color = try {
+                                Color(android.graphics.Color.parseColor(colorHex))
+                            } catch (e: Exception) {
+                                MaterialTheme.colorScheme.primary
+                            }
+                            val isSelected = uiState.color == colorHex
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(
+                                                3.dp,
+                                                MaterialTheme.colorScheme.onSurface,
+                                                CircleShape
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .clickable { viewModel.updateColor(colorHex) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -216,108 +341,99 @@ fun BudgetGroupEditScreen(
 
             // Categories Section
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Categories",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    val total = uiState.categories.fold(BigDecimal.ZERO) { acc, c -> acc + c.amount }
-                    if (total > BigDecimal.ZERO) {
-                        Text(
-                            text = "Total: ${CurrencyFormatter.formatCurrency(total, uiState.currency)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Category items
-            items(
-                items = uiState.categories,
-                key = { it.categoryName }
-            ) { cat ->
-                CategoryBudgetRow(
-                    categoryName = cat.categoryName,
-                    amount = cat.amount,
-                    currentSpending = cat.currentSpending,
-                    currency = uiState.currency,
-                    onAmountChange = { viewModel.updateCategoryAmount(cat.categoryName, it) },
-                    onRemove = { viewModel.removeCategory(cat.categoryName) }
-                )
-            }
-
-            // Add Category button
-            item {
-                Box {
-                    OutlinedButton(
-                        onClick = { showAddCategoryDropdown = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = uiState.availableCategories.isNotEmpty()
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Add Category")
-                    }
-
-                    DropdownMenu(
-                        expanded = showAddCategoryDropdown,
-                        onDismissRequest = { showAddCategoryDropdown = false }
-                    ) {
-                        uiState.availableCategories.forEach { categoryName ->
-                            DropdownMenuItem(
-                                text = { Text(categoryName) },
-                                onClick = {
-                                    viewModel.addCategory(categoryName)
-                                    showAddCategoryDropdown = false
-                                }
+                val total = uiState.categories.fold(BigDecimal.ZERO) { acc, c -> acc + c.amount }
+                SectionHeaderV2(
+                    title = "Categories",
+                    action = {
+                        if (total > BigDecimal.ZERO) {
+                            Text(
+                                text = "Total: ${CurrencyFormatter.formatCurrency(total, uiState.currency)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
                             )
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                PennyWiseCardV2(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        if (uiState.categories.isEmpty()) {
+                            Text(
+                                text = "No categories added yet. This group will track all expenses.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = Spacing.sm)
+                            )
+                        }
+
+                        uiState.categories.forEach { cat ->
+                            CategoryBudgetRow(
+                                categoryName = cat.categoryName,
+                                amount = cat.amount,
+                                currentSpending = cat.currentSpending,
+                                currency = uiState.currency,
+                                groupColor = uiState.color,
+                                onAmountChange = { viewModel.updateCategoryAmount(cat.categoryName, it) },
+                                onRemove = { viewModel.removeCategory(cat.categoryName) }
+                            )
+                            if (cat != uiState.categories.last()) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                        alpha = Dimensions.Alpha.divider
+                                    )
+                                )
+                            }
+                        }
+
+                        // Add Category button
+                        Box {
+                            FilledTonalButton(
+                                onClick = { showAddCategoryDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = uiState.availableCategories.isNotEmpty(),
+                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Add Category")
+                            }
+
+                            DropdownMenu(
+                                expanded = showAddCategoryDropdown,
+                                onDismissRequest = { showAddCategoryDropdown = false }
+                            ) {
+                                uiState.availableCategories.forEach { categoryName ->
+                                    DropdownMenuItem(
+                                        text = { Text(categoryName) },
+                                        onClick = {
+                                            viewModel.addCategory(categoryName)
+                                            showAddCategoryDropdown = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Save + Delete buttons
-            item {
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Button(
-                    onClick = { viewModel.save(forceEmpty = false) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.name.isNotBlank() && !uiState.isSaving
-                ) {
-                    if (uiState.isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                    }
-                    Text("Save")
-                }
-
-                if ((uiState.groupId ?: -1L) > 0) {
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    OutlinedButton(
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Delete Group")
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            // Bottom spacing for navigation bar
+            item { Spacer(modifier = Modifier.height(Spacing.md)) }
         }
 
         // Delete confirmation dialog
@@ -370,12 +486,39 @@ fun BudgetGroupEditScreen(
     }
 }
 
+private data class BudgetTypeInfo(
+    val title: String,
+    val description: String,
+    val icon: ImageVector
+)
+
+private fun getBudgetTypeInfo(type: BudgetGroupType): BudgetTypeInfo {
+    return when (type) {
+        BudgetGroupType.LIMIT -> BudgetTypeInfo(
+            title = "Limit",
+            description = "Spending cap. Over = bad.",
+            icon = Icons.Default.Block
+        )
+        BudgetGroupType.TARGET -> BudgetTypeInfo(
+            title = "Target",
+            description = "Savings goal. Over = good.",
+            icon = Icons.AutoMirrored.Filled.TrendingUp
+        )
+        BudgetGroupType.EXPECTED -> BudgetTypeInfo(
+            title = "Expected",
+            description = "Fixed costs. Shows deviation.",
+            icon = Icons.Default.Balance
+        )
+    }
+}
+
 @Composable
 private fun CategoryBudgetRow(
     categoryName: String,
     amount: BigDecimal,
     currentSpending: BigDecimal,
     currency: String,
+    groupColor: String,
     onAmountChange: (BigDecimal) -> Unit,
     onRemove: () -> Unit
 ) {
@@ -383,56 +526,68 @@ private fun CategoryBudgetRow(
         mutableStateOf(if (amount.compareTo(BigDecimal.ZERO) == 0) "" else amount.toPlainString())
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    val dotColor = try {
+        Color(android.graphics.Color.parseColor(groupColor))
+    } catch (e: Exception) {
+        MaterialTheme.colorScheme.primary
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = categoryName,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (currentSpending > BigDecimal.ZERO) {
-                    Text(
-                        text = "Spent: ${CurrencyFormatter.formatCurrency(currentSpending, currency)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        // Colored dot
+        Box(
+            modifier = Modifier
+                .size(Spacing.sm)
+                .clip(CircleShape)
+                .background(dotColor)
+        )
 
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { value ->
-                    if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                        amountText = value
-                        val parsed = value.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                        onAmountChange(parsed)
-                    }
-                },
-                prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
-                singleLine = true,
-                modifier = Modifier.width(140.dp),
-                textStyle = MaterialTheme.typography.bodyMedium,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = categoryName,
+                style = MaterialTheme.typography.bodyMedium
             )
-
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Remove",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.error
+            if (currentSpending > BigDecimal.ZERO) {
+                Text(
+                    text = "Spent: ${CurrencyFormatter.formatCurrency(currentSpending, currency)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+
+        OutlinedTextField(
+            value = amountText,
+            onValueChange = { value ->
+                if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                    amountText = value
+                    val parsed = value.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    onAmountChange(parsed)
+                }
+            },
+            prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+            singleLine = true,
+            modifier = Modifier.width(140.dp),
+            textStyle = MaterialTheme.typography.bodyMedium,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+        )
+
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.size(Dimensions.Component.chipHeight)
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Remove",
+                modifier = Modifier.size(Dimensions.Icon.small),
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

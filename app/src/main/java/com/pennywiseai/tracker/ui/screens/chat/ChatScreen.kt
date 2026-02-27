@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -427,13 +426,13 @@ fun TokenLimitWarning(
 ) {
     val backgroundColor = when {
         usagePercent >= 95 -> MaterialTheme.colorScheme.errorContainer
-        usagePercent >= 90 -> Color(0xFFFFF3E0) // Orange container
+        usagePercent >= 90 -> MaterialTheme.colorScheme.tertiaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer
     }
-    
+
     val contentColor = when {
         usagePercent >= 95 -> MaterialTheme.colorScheme.onErrorContainer
-        usagePercent >= 90 -> Color(0xFF5D4037) // Dark orange
+        usagePercent >= 90 -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
     

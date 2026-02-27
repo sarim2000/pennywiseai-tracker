@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
@@ -161,13 +162,7 @@ fun ManageAccountsScreen(
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Bank Accounts",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Bank Accounts")
                     }
 
                     items(visibleRegularAccounts) { account ->
@@ -207,13 +202,7 @@ fun ManageAccountsScreen(
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        Text(
-                            text = "Unlinked Cards",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Unlinked Cards")
                     }
                     
                     items(uiState.orphanedCards) { card ->
@@ -234,13 +223,7 @@ fun ManageAccountsScreen(
                 if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        Text(
-                            text = "Credit Cards",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Credit Cards")
                     }
 
                     items(visibleCreditCards) { card ->
@@ -281,8 +264,9 @@ fun ManageAccountsScreen(
                                 .fillMaxWidth()
                                 .clickable { showHiddenAccounts = !showHiddenAccounts },
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -526,19 +510,20 @@ private fun CreditCardItem(
     
     val utilizationColor = when {
         utilization > 70 -> MaterialTheme.colorScheme.error
-        utilization > 30 -> Color(0xFFFF9800) // Orange
-        else -> Color(0xFF4CAF50) // Green
+        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
     }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isHidden) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -765,11 +750,12 @@ private fun AccountItem(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isHidden) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1203,8 +1189,8 @@ private fun UpdateCreditCardDialog(
                                     fontWeight = FontWeight.Medium,
                                     color = when {
                                         utilization > 70 -> MaterialTheme.colorScheme.error
-                                        utilization > 30 -> Color(0xFFFF9800)
-                                        else -> Color(0xFF4CAF50)
+                                        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+                                        else -> MaterialTheme.colorScheme.primary
                                     }
                                 )
                             }

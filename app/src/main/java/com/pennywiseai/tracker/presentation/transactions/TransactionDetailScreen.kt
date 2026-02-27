@@ -1,54 +1,68 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import kotlinx.coroutines.launch
-import java.time.LocalDateTime
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
+import com.pennywiseai.tracker.ui.components.DashedLine
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
 import com.pennywiseai.tracker.ui.components.SplitItem
-import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.components.cards.ReceiptShape
+import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
+import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +128,7 @@ fun TransactionDetailScreen(
     val context = LocalContext.current
     
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             // Show FABs only when not in edit mode and transaction exists
@@ -271,34 +286,22 @@ private fun TransactionDetailContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .imePadding()  // Add IME padding to push content up when keyboard appears
+            .imePadding()
             .verticalScroll(scrollState)
             .padding(Dimensions.Padding.content)
     ) {
-        // Header with amount and merchant
         if (isEditMode) {
             EditableTransactionHeader(
                 transaction = transaction,
                 viewModel = viewModel
             )
-        } else {
-            TransactionHeader(transaction, accountPrimaryCurrency, convertedAmount)
-        }
-        
-        Spacer(modifier = Modifier.height(Spacing.lg))
-        
-        // SMS Body - Always read-only
-        if (!transaction.smsBody.isNullOrBlank()) {
-            SmsBodyCard(transaction.smsBody)
-            Spacer(modifier = Modifier.height(Spacing.md))
-        }
-        
-        // Extracted Information
-        if (isEditMode) {
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
             EditableExtractedInfoCard(
                 transaction = transaction,
                 applyToAllFromMerchant = applyToAllFromMerchant,
@@ -308,134 +311,521 @@ private fun TransactionDetailContent(
                 splits = splits,
                 showSplitEditor = showSplitEditor
             )
-        } else {
-            ExtractedInfoCard(transaction, splits, hasSplits, transaction.currency)
-        }
-        
-        Spacer(modifier = Modifier.height(Spacing.md))
-        
-        // Additional Details - Always read-only
-        if (transaction.balanceAfter != null || transaction.accountNumber != null ||
-            transaction.fromAccount != null || transaction.toAccount != null) {
-            AdditionalDetailsCard(viewModel,transaction)
-        }
-        
-        // Add extra bottom padding when in edit mode to ensure description field is visible above keyboard
-        if (isEditMode) {
+
             Spacer(modifier = Modifier.height(100.dp))
+        } else {
+            TransactionReceipt(
+                transaction = transaction,
+                primaryCurrency = accountPrimaryCurrency,
+                convertedAmount = convertedAmount,
+                viewModel = viewModel,
+                splits = splits,
+                hasSplits = hasSplits
+            )
         }
     }
 }
 
+// ==================== Receipt-style read-only view ====================
+
 @Composable
-private fun TransactionHeader(
+private fun TransactionReceipt(
     transaction: TransactionEntity,
     primaryCurrency: String,
-    convertedAmount: BigDecimal?
+    convertedAmount: BigDecimal?,
+    viewModel: TransactionDetailViewModel,
+    splits: List<SplitItem>,
+    hasSplits: Boolean
 ) {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
+    val density = LocalDensity.current
+    val cutoutRadius = 10.dp
+    val cutoutRadiusPx = with(density) { cutoutRadius.toPx() }
+    val scallopRadiusPx = with(density) { 6.dp.toPx() }
+
+    // Dynamic cutout offset — tracks the dashed separator position
+    var cutoutOffsetPx by remember { mutableFloatStateOf(with(density) { 420.dp.toPx() }) }
+
+    val dashedLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.lg, start = 12.dp, end = 12.dp)
     ) {
-        Column(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .animateContentSize(animationSpec = tween(durationMillis = 300))
+                .fillMaxWidth(),
+            shape = ReceiptShape(cutoutRadiusPx, cutoutOffsetPx, scallopRadiusPx),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shadowElevation = 4.dp,
+            tonalElevation = 2.dp
         ) {
-            // Brand Icon
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.lg),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Merchant badge with dashed lines
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    DashedLine(
+                        modifier = Modifier.weight(1f),
+                        color = dashedLineColor
+                    )
+                    ReceiptBadge(merchantName = transaction.merchantName)
+                    DashedLine(
+                        modifier = Modifier.weight(1f),
+                        color = dashedLineColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // Amount — immediately after merchant badge like Cashiro
+                val isDark = isSystemInDarkTheme()
+                val amountColor = when (transaction.transactionType) {
+                    TransactionType.INCOME -> if (isDark) income_dark else income_light
+                    TransactionType.EXPENSE -> if (isDark) expense_dark else expense_light
+                    TransactionType.CREDIT -> if (isDark) credit_dark else credit_light
+                    TransactionType.TRANSFER -> if (isDark) transfer_dark else transfer_light
+                    TransactionType.INVESTMENT -> if (isDark) investment_dark else investment_light
+                }
+                val sign = when (transaction.transactionType) {
+                    TransactionType.INCOME -> "+"
+                    TransactionType.EXPENSE -> "-"
+                    TransactionType.CREDIT -> ""
+                    TransactionType.TRANSFER -> ""
+                    TransactionType.INVESTMENT -> ""
+                }
+                val typeEmoji = when (transaction.transactionType) {
+                    TransactionType.EXPENSE -> "\uD83D\uDCB3 "
+                    TransactionType.CREDIT -> "\uD83D\uDCB3 "
+                    TransactionType.TRANSFER -> "\u2194\uFE0F "
+                    TransactionType.INVESTMENT -> "\uD83D\uDCC8 "
+                    TransactionType.INCOME -> "\uD83D\uDCB0 "
+                }
+
+                Text(
+                    text = "$typeEmoji$sign${transaction.formatAmount()}",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = amountColor,
+                    textAlign = TextAlign.Center
+                )
+
+                if (transaction.currency.isNotEmpty() &&
+                    !transaction.currency.equals(primaryCurrency, ignoreCase = true) &&
+                    convertedAmount != null
+                ) {
+                    Text(
+                        text = "\u2248 ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // Dashed separator — side notch cutouts align here
+                DashedLine(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content)
+                        .onGloballyPositioned { coordinates ->
+                            cutoutOffsetPx = coordinates.parentLayoutCoordinates
+                                ?.let { parent ->
+                                    coordinates.localToRoot(
+                                        androidx.compose.ui.geometry.Offset.Zero
+                                    ).y - parent.localToRoot(
+                                        androidx.compose.ui.geometry.Offset.Zero
+                                    ).y
+                                } ?: cutoutOffsetPx
+                        },
+                    color = dashedLineColor
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // Detail rows (below the separator)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    // Date & Time
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Date",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = transaction.dateTime.format(
+                                    DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val dt = transaction.dateTime
+                                val hour = if (dt.hour % 12 == 0) 12 else dt.hour % 12
+                                val minute = dt.minute
+                                val amPm = if (dt.hour < 12) "AM" else "PM"
+
+                                Box(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.primary.copy(0.2f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                ) {
+                                    Text(
+                                        text = String.format("%02d", hour),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        lineHeight = 16.sp,
+                                        modifier = Modifier.padding(5.dp)
+                                    )
+                                }
+                                Text(
+                                    text = ":",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 16.sp
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                ) {
+                                    Text(
+                                        text = String.format("%02d", minute),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 16.sp,
+                                        lineHeight = 16.sp,
+                                        modifier = Modifier.padding(5.dp)
+                                    )
+                                }
+                                Box(modifier = Modifier.padding(5.dp)) {
+                                    Text(
+                                        text = amPm,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Transaction Type
+                    ReceiptInfoRow(
+                        label = "Type",
+                        value = transaction.transactionType.name.lowercase()
+                            .replaceFirstChar { it.uppercase() }
+                    )
+
+                    // Category
+                    if (hasSplits && splits.isNotEmpty()) {
+                        ReceiptInfoRow(
+                            label = "Category",
+                            value = "Split (${splits.size} categories)"
+                        )
+                    } else {
+                        ReceiptInfoRow(
+                            label = "Category",
+                            value = transaction.category
+                        )
+                    }
+
+                    // Bank
+                    transaction.bankName?.let {
+                        ReceiptInfoRow(label = "Bank", value = it)
+                    }
+
+                    // Description
+                    transaction.description?.let {
+                        ReceiptInfoRow(label = "Description", value = it)
+                    }
+
+                    // Recurring
+                    if (transaction.isRecurring) {
+                        ReceiptInfoRow(label = "Status", value = "Recurring")
+                    }
+
+                    // Account info
+                    if (transaction.fromAccount != null && transaction.toAccount != null) {
+                        val maskedFrom = transaction.fromAccount.let { from ->
+                            if (from.length > 4) "*".repeat(from.length - 4) + from.takeLast(4) else from
+                        }
+                        val maskedTo = transaction.toAccount.let { to ->
+                            if (to.length > 4) "*".repeat(to.length - 4) + to.takeLast(4) else to
+                        }
+                        ReceiptTransferRow(fromValue = maskedFrom, toValue = maskedTo)
+                    } else {
+                        transaction.accountNumber?.let {
+                            if (transaction.fromAccount == null && transaction.toAccount == null) {
+                                val masked = if (it.length > 4) {
+                                    "*".repeat(it.length - 4) + it.takeLast(4)
+                                } else it
+                                ReceiptInfoRow(label = "Account", value = masked)
+                            }
+                        }
+                        transaction.fromAccount?.let { from ->
+                            val masked = if (from.length > 4) {
+                                "*".repeat(from.length - 4) + from.takeLast(4)
+                            } else from
+                            ReceiptInfoRow(label = "From", value = masked)
+                        }
+                        transaction.toAccount?.let { to ->
+                            val masked = if (to.length > 4) {
+                                "*".repeat(to.length - 4) + to.takeLast(4)
+                            } else to
+                            ReceiptInfoRow(label = "To", value = masked)
+                        }
+                    }
+                    transaction.balanceAfter?.let {
+                        ReceiptInfoRow(
+                            label = "Balance",
+                            value = CurrencyFormatter.formatCurrency(it, viewModel.primaryCurrency.value)
+                        )
+                    }
+
+                    // SMS sender
+                    transaction.smsSender?.let {
+                        ReceiptInfoRow(label = "Reference", value = it)
+                    }
+                }
+
+                // Expandable SMS body
+                if (!transaction.smsBody.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    ExpandableSmsSection(smsBody = transaction.smsBody)
+                }
+
+                // Split breakdown
+                if (hasSplits && splits.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    SplitBreakdownCard(
+                        splits = splits,
+                        currency = transaction.currency,
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReceiptBadge(merchantName: String) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shadowElevation = 2.dp,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
             BrandIcon(
-                merchantName = transaction.merchantName,
-                size = 64.dp,
+                merchantName = merchantName,
+                size = 32.dp,
                 showBackground = true
             )
-            
-            Spacer(modifier = Modifier.height(Spacing.md))
-            
-            // Merchant Name
             Text(
-                text = transaction.merchantName,
-                style = MaterialTheme.typography.headlineSmall,
+                text = merchantName,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
-            )
-            
-            // Amount with sign
-            val amountColor = when (transaction.transactionType) {
-                TransactionType.INCOME -> Color(0xFF4CAF50)
-                TransactionType.EXPENSE -> MaterialTheme.colorScheme.error
-                TransactionType.CREDIT -> Color(0xFFFF6B35)  // Orange for credit
-                TransactionType.TRANSFER -> Color(0xFF9C27B0)  // Purple for transfer
-                TransactionType.INVESTMENT -> Color(0xFF00796B)  // Teal for investment
-            }
-            val sign = when (transaction.transactionType) {
-                TransactionType.INCOME -> "+"
-                TransactionType.EXPENSE -> "-"
-                TransactionType.CREDIT -> "💳"
-                TransactionType.TRANSFER -> "↔"
-                TransactionType.INVESTMENT -> "📈"
-            }
-            
-            Text(
-                text = "$sign${transaction.formatAmount()}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
-            )
-
-            // Show converted amount if different from transaction currency
-            if (transaction.currency.isNotEmpty() && !transaction.currency.equals(primaryCurrency, ignoreCase = true) && convertedAmount != null) {
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-
-            // Date and Time
-            Text(
-                text = transaction.dateTime.format(
-                    DateTimeFormatter.ofPattern("MMMM d, yyyy • h:mm a")
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun SmsBodyCard(smsBody: String) {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
+private fun ReceiptInfoRow(
+    label: String,
+    value: String,
+    pillColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        DashedLine(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+        )
+        Box(
+            modifier = Modifier
+                .background(
+                    color = pillColor,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReceiptTransferRow(
+    fromValue: String,
+    toValue: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "FROM",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "TO",
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.End,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = fromValue,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            DashedLine(
+                modifier = Modifier.weight(1f).padding(horizontal = Spacing.xs),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = toValue,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpandableSmsSection(smsBody: String) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
+                .clickable { expanded = !expanded }
+                .padding(vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Chat,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
                 Text(
-                    text = "Original SMS",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = if (expanded) "Hide SMS" else "Show original SMS",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            
-            // SMS text in monospace font
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + slideInVertically(),
+            exit = fadeOut() + slideOutVertically()
+        ) {
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -448,221 +838,6 @@ private fun SmsBodyCard(smsBody: String) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ExtractedInfoCard(
-    transaction: TransactionEntity,
-    splits: List<SplitItem>,
-    hasSplits: Boolean,
-    currency: String
-) {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Analytics,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = "Extracted Information",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Category - show "Multiple Categories" if has splits
-            if (hasSplits && splits.isNotEmpty()) {
-                InfoRow(
-                    label = "Category",
-                    value = "Split (${splits.size} categories)",
-                    icon = Icons.Default.CallSplit
-                )
-            } else {
-                InfoRow(
-                    label = "Category",
-                    value = transaction.category,
-                    icon = Icons.Default.Category
-                )
-            }
-
-            // Bank
-            transaction.bankName?.let {
-                InfoRow(
-                    label = "Bank",
-                    value = it,
-                    icon = Icons.Default.AccountBalance
-                )
-            }
-
-            // Transaction Type
-            InfoRow(
-                label = "Type",
-                value = transaction.transactionType.name.lowercase().replaceFirstChar { it.uppercase() },
-                icon = when (transaction.transactionType) {
-                    TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-                    TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-                    TransactionType.CREDIT -> Icons.Default.CreditCard
-                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz
-                    TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
-                }
-            )
-
-            // Description
-            transaction.description?.let {
-                InfoRow(
-                    label = "Description",
-                    value = it,
-                    icon = Icons.Default.Description
-                )
-            }
-
-            // Recurring status
-            if (transaction.isRecurring) {
-                InfoRow(
-                    label = "Status",
-                    value = "Recurring Transaction",
-                    icon = Icons.Default.Repeat
-                )
-            }
-        }
-    }
-
-    // Show split breakdown card if transaction has splits
-    if (hasSplits && splits.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(Spacing.md))
-        SplitBreakdownCard(
-            splits = splits,
-            currency = currency,
-            modifier = Modifier.padding(horizontal = 0.dp)
-        )
-    }
-}
-
-@Composable
-private fun AdditionalDetailsCard(viewModel: TransactionDetailViewModel, transaction: TransactionEntity) {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = "Additional Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(Spacing.md))
-            
-            // Account Number (masked) - only show for non-transfer transactions
-            transaction.accountNumber?.let {
-                // Don't show generic account field when we have specific transfer accounts
-                if (transaction.fromAccount == null && transaction.toAccount == null) {
-                    val masked = if (it.length > 4) {
-                        "*".repeat(it.length - 4) + it.takeLast(4)
-                    } else it
-                    InfoRow(
-                        label = "Account",
-                        value = masked,
-                        icon = Icons.Default.CreditCard
-                    )
-                }
-            }
-            
-            // From Account (for transfers)
-            transaction.fromAccount?.let { from ->
-                val masked = if (from.length > 4) {
-                    "*".repeat(from.length - 4) + from.takeLast(4)
-                } else from
-                InfoRow(
-                    label = "From Account",
-                    value = masked,
-                    icon = Icons.Default.ArrowUpward
-                )
-            }
-
-            // To Account (for transfers)
-            transaction.toAccount?.let { to ->
-                val masked = if (to.length > 4) {
-                    "*".repeat(to.length - 4) + to.takeLast(4)
-                } else to
-                InfoRow(
-                    label = "To Account",
-                    value = masked,
-                    icon = Icons.Default.ArrowDownward
-                )
-            }
-
-            // Balance After
-            transaction.balanceAfter?.let {
-                InfoRow(
-                    label = "Balance After",
-                    value = CurrencyFormatter.formatCurrency(it,viewModel.primaryCurrency.value),
-                    icon = Icons.Default.AccountBalanceWallet
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(Dimensions.Icon.small)
-        )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Text(
-            text = "$label:",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(100.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -206,15 +207,13 @@ private fun SwipeableSubscriptionItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Card(
+                PennyWiseCardV2(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = !subscription.smsBody.isNullOrBlank()) {
                             showSmsBody = !showSmsBody
                         },
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    contentPadding = 0.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -339,11 +338,12 @@ private fun SwipeableSubscriptionItem(
                 
                 // SMS Body Display (expandable)
                 if (showSmsBody && !subscription.smsBody.isNullOrBlank()) {
-                    Card(
+                    PennyWiseCardV2(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        ),
+                        contentPadding = 0.dp
                     ) {
                         Column(
                             modifier = Modifier

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -137,14 +139,16 @@ fun ChatScreen(
                             state = listState,
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .overScrollVertical(),
                             contentPadding = PaddingValues(
                                 start = Dimensions.Padding.content,
                                 end = Dimensions.Padding.content,
                                 top = Dimensions.Padding.content,
                                 bottom = Spacing.lg
                             ),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
                             items(messages) { message ->
                                 ChatMessageItem(message = message)
@@ -302,7 +306,8 @@ fun ChatScreen(
                             state = listState,
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .overScrollVertical(),
                             contentPadding = PaddingValues(
                                 start = Dimensions.Padding.content,
                                 end = Dimensions.Padding.content,
@@ -310,6 +315,7 @@ fun ChatScreen(
                                 bottom = Spacing.lg
                             ),
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            flingBehavior = rememberOverscrollFlingBehavior { listState },
                             reverseLayout = false
                         ) {
                             // Example prompts when no messages

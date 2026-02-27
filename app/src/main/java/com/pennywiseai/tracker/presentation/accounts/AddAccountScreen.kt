@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ fun AddAccountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
             .verticalScroll(rememberScrollState())
             .padding(Dimensions.Padding.content),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)

@@ -15,7 +15,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -271,10 +274,13 @@ private fun BudgetGroupsContent(
     var deleteGroupName by remember { mutableStateOf("") }
     val groupCount = summary.groups.size
 
+    val lazyListState = rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = lazyListState,
+        modifier = modifier.fillMaxSize().overScrollVertical(),
         contentPadding = PaddingValues(Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
         // Month Selector
         item {

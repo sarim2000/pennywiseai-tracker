@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -224,6 +225,7 @@ private fun ProfileStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -391,6 +393,7 @@ private fun PermissionsStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -628,6 +631,7 @@ private fun AccountSetupStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally

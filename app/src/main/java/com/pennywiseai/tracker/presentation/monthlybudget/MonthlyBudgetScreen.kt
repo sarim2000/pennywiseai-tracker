@@ -3,7 +3,10 @@ package com.pennywiseai.tracker.presentation.monthlybudget
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -169,10 +172,13 @@ private fun BudgetOverview(
     val spending = uiState.spending ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
 
+    val lazyListState = rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        state = lazyListState,
+        modifier = modifier.fillMaxSize().overScrollVertical(),
         contentPadding = PaddingValues(Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
         // Month Selector
         item {

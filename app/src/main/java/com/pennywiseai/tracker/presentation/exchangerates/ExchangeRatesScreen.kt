@@ -3,7 +3,10 @@ package com.pennywiseai.tracker.presentation.exchangerates
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -85,12 +88,16 @@ fun ExchangeRatesScreen(
             }
 
             else -> {
+                val lazyListState = rememberLazyListState()
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
+                        .overScrollVertical()
                         .padding(paddingValues),
                     contentPadding = PaddingValues(Dimensions.Padding.content),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
                 ) {
                     // Last updated
                     uiState.lastUpdated?.let { lastUpdated ->

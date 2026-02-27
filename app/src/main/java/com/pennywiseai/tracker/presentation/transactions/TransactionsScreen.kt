@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -565,12 +567,13 @@ fun TransactionsScreen(
             else -> {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().overScrollVertical(),
                     contentPadding = PaddingValues(
                         horizontal = Dimensions.Padding.content,
                         vertical = Spacing.md
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
                     // Show info banner when viewing budget transactions
                     if (categoriesFilter != null) {

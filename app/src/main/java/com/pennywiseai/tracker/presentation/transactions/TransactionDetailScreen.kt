@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -291,6 +292,7 @@ private fun TransactionDetailContent(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
+            .overScrollVertical()
             .verticalScroll(scrollState)
             .padding(Dimensions.Padding.content)
     ) {

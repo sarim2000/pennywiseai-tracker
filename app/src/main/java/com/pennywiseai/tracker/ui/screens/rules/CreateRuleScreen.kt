@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -175,6 +176,7 @@ fun CreateRuleScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .imePadding() // Push content up when keyboard appears
+                .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)

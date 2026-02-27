@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -121,6 +123,7 @@ fun AnalyticsScreen(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
             .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(
@@ -129,7 +132,8 @@ fun AnalyticsScreen(
             top = paddingValues.calculateTopPadding() + Spacing.md,
             bottom = Dimensions.Component.bottomBarHeight + Spacing.md
         ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        flingBehavior = rememberOverscrollFlingBehavior { listState }
     ) {
         // Period Selector - Always visible
         item {

@@ -10,8 +10,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -153,12 +156,16 @@ fun BudgetGroupEditScreen(
             return@Scaffold
         }
 
+        val lazyListState = rememberLazyListState()
         LazyColumn(
+            state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .overScrollVertical()
                 .padding(paddingValues),
             contentPadding = PaddingValues(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
             // Budget Details Section
             item {

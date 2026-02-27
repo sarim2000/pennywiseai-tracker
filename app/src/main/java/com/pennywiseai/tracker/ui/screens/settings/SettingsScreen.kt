@@ -12,6 +12,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -147,6 +148,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
+                .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
                 .padding(Dimensions.Padding.content),

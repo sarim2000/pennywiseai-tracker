@@ -3,7 +3,10 @@ package com.pennywiseai.tracker.ui.screens.unrecognized
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -145,9 +148,12 @@ fun UnrecognizedSmsScreen(
                 }
             }
         } else {
+            val lazyListState = rememberLazyListState()
             LazyColumn(
+                state = lazyListState,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().overScrollVertical(),
+                flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
             ) {
                 items(
                     items = unrecognizedMessages,

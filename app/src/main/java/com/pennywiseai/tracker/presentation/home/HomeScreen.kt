@@ -13,6 +13,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +26,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,9 +52,14 @@ import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.GreetingCard
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -96,6 +105,9 @@ fun HomeScreen(
 
     // Haze state for banner blur effect
     val hazeStateBanner = remember { HazeState() }
+
+    // LazyColumn scroll state for overscroll physics
+    val lazyListState = rememberLazyListState()
 
     // Staggered entrance animation state — only animates on first composition
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
@@ -190,11 +202,12 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
-    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+    Box(modifier = Modifier.fillMaxSize()) {
         // Banner gradient at y=0 — paints behind the transparent TopAppBar
         if (coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(
                 coverStyle = coverStyle,
+                hazeStateBanner = hazeStateBanner,
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
@@ -203,7 +216,12 @@ fun HomeScreen(
 
         // LazyColumn scrolls over the banner
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .overScrollVertical(),
+            flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                 bottom = Dimensions.Padding.content + 120.dp // Space for dual FABs (Add + Sync)
@@ -276,7 +294,9 @@ fun HomeScreen(
                                         accountLast4 = accountLast4
                                     )
                                 )
-                            }
+                            },
+                            blurEffects = blurEffects,
+                            hazeState = hazeStateBanner
                         )
                     }
                 }
@@ -324,7 +344,9 @@ fun HomeScreen(
                                 subscriptions = uiState.upcomingSubscriptions,
                                 totalAmount = uiState.upcomingSubscriptionsTotal,
                                 currency = uiState.selectedCurrency,
-                                onClick = onNavigateToSubscriptions
+                                onClick = onNavigateToSubscriptions,
+                                blurEffects = blurEffects,
+                                hazeState = hazeStateBanner
                             )
                         }
                     }
@@ -497,7 +519,9 @@ fun HomeScreen(
                 ) {
                     com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
                         transactionHeatmap = uiState.transactionHeatmap,
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        blurEffects = blurEffects,
+                        hazeState = hazeStateBanner
                     )
                 }
             }
@@ -797,13 +821,37 @@ private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
     currency: String = "INR",
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
+    val containerColor = if (blurEffects)
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+    else MaterialTheme.colorScheme.secondaryContainer
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (blurEffects && hazeState != null) Modifier
+                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+                    .hazeEffect(
+                        state = hazeState,
+                        block = fun HazeEffectScope.() {
+                            style = HazeDefaults.style(
+                                backgroundColor = Color.Transparent,
+                                tint = HazeDefaults.tint(containerColor),
+                                blurRadius = 20.dp,
+                                noiseFactor = -1f,
+                            )
+                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
+                        }
+                    )
+                else Modifier
+            ),
         onClick = onClick,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = containerColor
         )
     ) {
         Row(

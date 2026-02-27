@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -227,6 +228,14 @@ private fun LargerTopAppBar(
                     }
                 ) else Modifier
             )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        themeColors.background,
+                        Color.Transparent
+                    )
+                )
+            )
             .windowInsetsPadding(WindowInsets.statusBars)
             .alpha(1f - collapsedFraction)
     )
@@ -390,6 +399,14 @@ private fun RegularTopAppBar(
                                 HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
                         }
                     ) else Modifier
+                )
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            Color.Transparent
+                        )
+                    )
                 )
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .alpha(collapsedFraction)

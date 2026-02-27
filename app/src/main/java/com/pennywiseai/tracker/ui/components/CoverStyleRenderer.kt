@@ -14,18 +14,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.effects.bottomFade
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @Composable
 fun CoverGradientBanner(
     coverStyle: CoverStyle,
     modifier: Modifier = Modifier,
-    isDark: Boolean = isSystemInDarkTheme()
+    isDark: Boolean = isSystemInDarkTheme(),
+    hazeStateBanner: HazeState? = null
 ) {
     if (coverStyle == CoverStyle.NONE) return
 
     val colors = getCoverGradientColors(coverStyle, isDark, forPreview = false)
-    // Single container with bottomFade applied at the container level
-    // to avoid multiple overlapping fade layers creating visible hard lines
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -36,6 +37,7 @@ fun CoverGradientBanner(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (hazeStateBanner != null) Modifier.hazeSource(hazeStateBanner) else Modifier)
                 .background(
                     Brush.horizontalGradient(colors = colors)
                 )

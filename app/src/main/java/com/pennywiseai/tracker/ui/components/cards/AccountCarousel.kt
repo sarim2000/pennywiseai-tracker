@@ -28,23 +28,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.formatBalance
 import com.pennywiseai.tracker.utils.formatCreditLimit
+import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.HazeEffectScope
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun AccountCarousel(
     bankAccounts: List<AccountBalanceEntity>,
     creditCards: List<AccountBalanceEntity>,
     onAccountClick: (bankName: String, accountLast4: String) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
     val allAccounts = bankAccounts + creditCards
 
@@ -56,7 +65,9 @@ fun AccountCarousel(
             account = account,
             isCreditCard = creditCards.contains(account),
             onClick = { onAccountClick(account.bankName, account.accountLast4) },
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier.fillMaxWidth(),
+            blurEffects = blurEffects,
+            hazeState = hazeState
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { allAccounts.size })
@@ -72,7 +83,9 @@ fun AccountCarousel(
                 account = account,
                 isCreditCard = creditCards.contains(account),
                 onClick = { onAccountClick(account.bankName, account.accountLast4) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                blurEffects = blurEffects,
+                hazeState = hazeState
             )
         }
     }
@@ -83,14 +96,35 @@ private fun AccountCarouselCard(
     account: AccountBalanceEntity,
     isCreditCard: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val containerColor = if (blurEffects)
+        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+    else MaterialTheme.colorScheme.surfaceContainerLow
     val accentColor = MaterialTheme.colorScheme.primary
 
     Surface(
         modifier = modifier
             .height(190.dp)
+            .then(
+                if (blurEffects && hazeState != null) Modifier
+                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+                    .hazeEffect(
+                        state = hazeState,
+                        block = fun HazeEffectScope.() {
+                            style = HazeDefaults.style(
+                                backgroundColor = Color.Transparent,
+                                tint = HazeDefaults.tint(containerColor),
+                                blurRadius = 20.dp,
+                                noiseFactor = -1f,
+                            )
+                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
+                        }
+                    )
+                else Modifier
+            )
             .clip(RoundedCornerShape(24.dp))
             .clickable(
                 onClick = onClick,

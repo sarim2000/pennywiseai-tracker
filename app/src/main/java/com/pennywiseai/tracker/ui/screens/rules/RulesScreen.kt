@@ -12,15 +12,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.SectionHeader
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
@@ -41,51 +45,42 @@ fun RulesScreen(
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
 
-    PennyWiseScaffold(
-        title = "Smart Rules",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Navigate back"
-                )
-            }
-        },
-        actions = {
-            // Optional: Add reset button for advanced users
-            var showResetDialog by remember { mutableStateOf(false) }
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
 
-            IconButton(
-                onClick = { showResetDialog = true }
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = "Reset to defaults"
-                )
-            }
+    // Reset dialog state needs to be outside the lambda
+    var showResetDialog by remember { mutableStateOf(false) }
 
-            if (showResetDialog) {
-                AlertDialog(
-                    onDismissRequest = { showResetDialog = false },
-                    title = { Text("Reset Rules") },
-                    text = { Text("Reset all rules to default settings? Your custom settings will be lost.") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.resetToDefaults()
-                                showResetDialog = false
-                            }
-                        ) {
-                            Text("Reset")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showResetDialog = false }) {
-                            Text("Cancel")
-                        }
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Smart Rules",
+                hasBackButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Navigate back"
+                        )
                     }
-                )
-            }
+                },
+                actionContent = {
+                    IconButton(
+                        onClick = { showResetDialog = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Reset to defaults"
+                        )
+                    }
+                },
+                hazeState = hazeState
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -96,6 +91,29 @@ fun RulesScreen(
             }
         }
     ) { paddingValues ->
+
+        if (showResetDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetDialog = false },
+                title = { Text("Reset Rules") },
+                text = { Text("Reset all rules to default settings? Your custom settings will be lost.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.resetToDefaults()
+                            showResetDialog = false
+                        }
+                    ) {
+                        Text("Reset")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -109,6 +127,7 @@ fun RulesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .hazeSource(hazeState)
                     .padding(paddingValues)
                     .overScrollVertical()
                     .verticalScroll(rememberScrollState())

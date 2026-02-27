@@ -13,12 +13,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryBudgetLimitEntity
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
@@ -42,12 +46,26 @@ fun MonthlyBudgetSettingsScreen(
     val currentLimit = budgetAmountText.toBigDecimalOrNull() ?: BigDecimal.ZERO
     val unallocated = currentLimit - allocatedTotal
 
-    PennyWiseScaffold(
-        title = "Budget Settings",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Budget Settings",
+                hasBackButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                hazeState = hazeState
+            )
         }
     ) { paddingValues ->
         val lazyListState = rememberLazyListState()
@@ -55,6 +73,7 @@ fun MonthlyBudgetSettingsScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .overScrollVertical()
                 .padding(paddingValues),
             contentPadding = PaddingValues(Dimensions.Padding.content),

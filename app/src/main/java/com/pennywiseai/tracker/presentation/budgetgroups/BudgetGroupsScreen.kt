@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -44,10 +45,13 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.GradientMeshCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -63,19 +67,25 @@ fun BudgetGroupsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = { Text("Budget Groups") },
-                navigationIcon = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Budget Groups",
+                hasBackButton = true,
+                navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
-                )
+                hazeState = hazeState
             )
         },
         floatingActionButton = {
@@ -84,13 +94,13 @@ fun BudgetGroupsScreen(
                     Icon(Icons.Default.Add, contentDescription = "Add Group")
                 }
             }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        }
     ) { paddingValues ->
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .hazeSource(hazeState)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -102,7 +112,7 @@ fun BudgetGroupsScreen(
         // Migration prompt
         if (uiState.needsMigration) {
             MigrationPrompt(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
                 onMigrate = { viewModel.migrateOldBudget() },
                 onSkip = {
                     viewModel.runSmartDefaults()
@@ -113,13 +123,13 @@ fun BudgetGroupsScreen(
 
         if (!uiState.hasGroups) {
             EmptyBudgetState(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
                 onSmartDefaults = { viewModel.runSmartDefaults() },
                 onCreateNew = { onNavigateToGroupEdit(-1L) }
             )
         } else {
             BudgetGroupsContent(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },

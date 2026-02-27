@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -52,14 +53,16 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.DashedLine
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.cards.ReceiptShape
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.formatAmount
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -127,9 +130,14 @@ fun TransactionDetailScreen(
     }
     
     val context = LocalContext.current
-    
+
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             // Show FABs only when not in edit mode and transaction exists
@@ -174,9 +182,12 @@ fun TransactionDetailScreen(
             }
         },
         topBar = {
-            TopAppBar(
-                title = { Text(if (isEditMode) "Edit Transaction" else "Transaction Details") },
-                navigationIcon = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = if (isEditMode) "Edit Transaction" else "Transaction Details",
+                hasBackButton = true,
+                navigationContent = {
                     IconButton(onClick = {
                         if (isEditMode) {
                             viewModel.cancelEdit()
@@ -190,7 +201,7 @@ fun TransactionDetailScreen(
                         )
                     }
                 },
-                actions = {
+                actionContent = {
                     if (!isEditMode && transaction != null) {
                         IconButton(onClick = { viewModel.enterEditMode() }) {
                             Icon(
@@ -213,7 +224,8 @@ fun TransactionDetailScreen(
                             }
                         }
                     }
-                }
+                },
+                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -231,6 +243,7 @@ fun TransactionDetailScreen(
                 splits = splits,
                 showSplitEditor = showSplitEditor,
                 hasSplits = hasSplits,
+                hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -284,6 +297,7 @@ private fun TransactionDetailContent(
     splits: List<SplitItem>,
     showSplitEditor: Boolean,
     hasSplits: Boolean,
+    hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -291,6 +305,7 @@ private fun TransactionDetailContent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .hazeSource(hazeState)
             .imePadding()
             .overScrollVertical()
             .verticalScroll(scrollState)

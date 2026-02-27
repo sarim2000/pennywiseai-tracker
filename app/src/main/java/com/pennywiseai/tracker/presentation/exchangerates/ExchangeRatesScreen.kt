@@ -15,13 +15,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -36,20 +40,34 @@ fun ExchangeRatesScreen(
 
     var editingRate by remember { mutableStateOf<ExchangeRateEntity?>(null) }
 
-    PennyWiseScaffold(
-        title = "Exchange Rates",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-        },
-        actions = {
-            IconButton(
-                onClick = { viewModel.refreshRates() },
-                enabled = !uiState.isRefreshing
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh rates")
-            }
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Exchange Rates",
+                hasBackButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actionContent = {
+                    IconButton(
+                        onClick = { viewModel.refreshRates() },
+                        enabled = !uiState.isRefreshing
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh rates")
+                    }
+                },
+                hazeState = hazeState
+            )
         }
     ) { paddingValues ->
         when {
@@ -93,6 +111,7 @@ fun ExchangeRatesScreen(
                     state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(hazeState)
                         .overScrollVertical()
                         .padding(paddingValues),
                     contentPadding = PaddingValues(Dimensions.Padding.content),

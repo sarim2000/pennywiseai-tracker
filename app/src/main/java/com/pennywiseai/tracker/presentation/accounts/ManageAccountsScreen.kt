@@ -19,16 +19,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,15 +53,43 @@ fun ManageAccountsScreen(
     var showHiddenAccounts by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var accountToEdit by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
-    
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Accounts",
+                hasBackButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                hazeState = hazeState
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToAddAccount,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Account")
+            }
+        }
+    ) { paddingValues ->
         if (uiState.accounts.isEmpty()) {
             // Empty State
             Box(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -88,7 +120,9 @@ fun ManageAccountsScreen(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .overScrollVertical(),
+                    .hazeSource(hazeState)
+                    .overScrollVertical()
+                    .padding(paddingValues),
                 contentPadding = PaddingValues(Dimensions.Padding.content),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -373,19 +407,8 @@ fun ManageAccountsScreen(
                 }
             }
         }
-
-        // FAB positioned at bottom end
-        FloatingActionButton(
-            onClick = onNavigateToAddAccount,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content),
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Account")
-        }
     }
-    
+
     // Update Balance Dialog
     if (showUpdateDialog && selectedAccount != null && selectedAccountEntity != null) {
         if (selectedAccountEntity!!.isCreditCard) {

@@ -700,57 +700,60 @@ fun HomeScreen(
         ModalBottomSheet(
             onDismissRequest = { showMenuSheet = false },
             sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 32.dp)
             ) {
-                // Settings
-                ListItem(
-                    headlineContent = { Text("Settings") },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.clickable {
+                // Title
+                Text(
+                    text = "More Options",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(bottom = Spacing.sm)
+                        .fillMaxWidth()
+                )
+
+                // Settings (Top)
+                MenuListItem(
+                    headline = "Settings",
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    position = ListItemPosition.Top,
+                    onClick = {
                         showMenuSheet = false
                         onNavigateToSettings()
                     }
                 )
 
-                // Join Discord
-                ListItem(
-                    headlineContent = { Text("Join Discord") },
-                    leadingContent = {
+                // Join Discord (Middle)
+                MenuListItem(
+                    headline = "Join Discord",
+                    icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_discord),
                             contentDescription = null,
-                            tint = Color(0xFF5865F2),
                             modifier = Modifier.size(24.dp)
                         )
                     },
-                    modifier = Modifier.clickable {
+                    position = ListItemPosition.Middle,
+                    onClick = {
                         showMenuSheet = false
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
                         context.startActivity(intent)
                     }
                 )
 
-                // Rate App
-                ListItem(
-                    headlineContent = { Text("Rate on Play Store") },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.clickable {
+                // Rate on Play Store (Bottom)
+                MenuListItem(
+                    headline = "Rate on Play Store",
+                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
+                    position = ListItemPosition.Bottom,
+                    onClick = {
                         showMenuSheet = false
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
@@ -1027,6 +1030,50 @@ private fun UpcomingSubscriptionsCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+private enum class ListItemPosition { Top, Middle, Bottom, Single }
+
+@Composable
+private fun ListItemPosition.toShape(): RoundedCornerShape = when (this) {
+    ListItemPosition.Top -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+    ListItemPosition.Middle -> RoundedCornerShape(4.dp)
+    ListItemPosition.Bottom -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+    ListItemPosition.Single -> RoundedCornerShape(16.dp)
+}
+
+@Composable
+private fun MenuListItem(
+    headline: String,
+    icon: @Composable () -> Unit,
+    position: ListItemPosition,
+    onClick: () -> Unit,
+) {
+    val shape = position.toShape()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 1.5.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.secondary
+            ) { icon() }
+            Text(
+                text = headline,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

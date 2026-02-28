@@ -84,7 +84,7 @@ fun PennyWiseBottomNavigation(
             ) {
                 HorizontalDivider(
                     thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.3f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.2f)
                 )
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface.copy(
@@ -193,7 +193,7 @@ fun PennyWiseBottomNavigation(
                                         blurRadius = 20.dp,
                                         noiseFactor = -1f,
                                     )
-    
+                                    blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
                                 }
                             ) else Modifier
                         )

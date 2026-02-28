@@ -15,6 +15,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -205,12 +207,38 @@ fun HomeScreen(
                 profileBackgroundColor = uiState.profileBackgroundColor,
                 hazeState = hazeState,
                 blurEffects = blurEffects,
+                actionContent = {
+                    val containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                shape = CircleShape
+                            )
+                            .clickable(
+                                onClick = { showMenuSheet = true },
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreHoriz,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.inverseSurface,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
                 extraInfoCard = {
                     GreetingCard(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
-                        onAvatarClick = { showMenuSheet = true }
+                        onAvatarClick = onNavigateToSettings,
                     )
                 }
             )

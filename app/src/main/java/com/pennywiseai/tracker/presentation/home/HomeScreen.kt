@@ -239,6 +239,7 @@ fun HomeScreen(
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToSettings,
+                        onMenuClick = { showMenuSheet = true },
                     )
                 }
             )

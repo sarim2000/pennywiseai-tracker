@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +41,8 @@ fun GreetingCard(
     userName: String = "User",
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
-    onAvatarClick: () -> Unit = {}
+    onAvatarClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
 ) {
     val subtitle = remember {
         val now = LocalDate.now()
@@ -135,6 +139,26 @@ fun GreetingCard(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+
+        // Hamburger menu button
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainer,
+                    CircleShape
+                )
+                .clickable(onClick = onMenuClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.MoreHoriz,
+                contentDescription = "More options",
+                tint = MaterialTheme.colorScheme.inverseSurface,
+                modifier = Modifier.size(24.dp)
             )
         }
 

@@ -200,7 +200,7 @@ private fun LargerTopAppBar(
         },
         actions = {
             BlurredAnimatedVisibility(
-                visible = true,
+                visible = !isHomeScreen,
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {

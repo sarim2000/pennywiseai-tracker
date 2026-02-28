@@ -4,6 +4,7 @@ import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.toParsedTransaction
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.time.Instant
@@ -11,6 +12,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first // Make sure to import this
 
 class UPIDeduplicator @Inject constructor(
     private val transactionRepository: TransactionRepository
@@ -41,10 +43,9 @@ class UPIDeduplicator @Inject constructor(
      */
     suspend fun checkForDuplicate(
         parsed: ParsedTransaction,
-        timestamp: Long
     ): DeduplicationResult {
         val transactionTime = LocalDateTime.ofInstant(
-            Instant.ofEpochMilli(timestamp),
+            Instant.ofEpochMilli(parsed.timestamp),
             ZoneId.systemDefault()
         )
 
@@ -100,6 +101,45 @@ class UPIDeduplicator @Inject constructor(
         // No duplicate found
         Log.d(TAG, "No duplicate found for: hash=$hash, ref=$upiReference, acc=$accountLast4")
         return DeduplicationResult.NotDuplicate
+    }
+
+    suspend fun scanAndRemoveDuplicates(): Int {
+        Log.d(TAG, "Starting deduplication scan...")
+        var duplicatesRemoved = 0
+
+        try {
+            // 1. Get the current list from the Flow once (snapshot)
+            val allTransactions = transactionRepository.getAllTransactions().first()
+
+            // 2. Keep track of what we have already "verified" during this scan
+            // This prevents the check from matching a transaction against itself.
+            val seenHashes = mutableSetOf<String>()
+
+            for (tx in allTransactions) {
+                if (tx.isDeleted) continue
+
+                val hash = tx.transactionHash ?: "" // Ensure your entity has the hash
+
+                // 3. Logic: If we haven't seen this hash yet in this loop,
+                // it's the "original". Don't delete it; just mark it as seen.
+                if (seenHashes.contains(hash)) {
+                    // If we HAVE seen it, it's a duplicate. Use your existing check:
+                    val result = checkForDuplicate(tx.toParsedTransaction())
+
+                    if (result is DeduplicationResult.Duplicate) {
+                        transactionRepository.deleteTransaction(tx, true)
+                        duplicatesRemoved++
+                        Log.d(TAG, "Removed duplicate: ${tx.id}")
+                    }
+                } else {
+                    seenHashes.add(hash)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during scan: ${e.message}")
+        }
+
+        return duplicatesRemoved
     }
 
 }

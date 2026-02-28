@@ -4,9 +4,11 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.pennywiseai.parser.core.ParsedTransaction
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import com.pennywiseai.parser.core.TransactionType
+import java.time.ZoneId
 
 @Entity(
     tableName = "transactions",
@@ -77,3 +79,30 @@ data class TransactionEntity(
     @ColumnInfo(name = "reference")
     val reference: String? = null
 )
+/**
+ * Maps TransactionEntity back to ParsedTransaction for validation/deduplication.
+ */
+fun TransactionEntity.toParsedTransaction(): ParsedTransaction {
+    // Convert LocalDateTime back to Long timestamp
+    val timestamp = this.dateTime
+        .atZone(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli()
+
+    return ParsedTransaction(
+        amount = this.amount,
+        merchant = this.merchantName,
+        type = this.transactionType,
+        timestamp = timestamp,
+        smsBody = this.smsBody ?: "",
+        sender = this.smsSender ?: "",
+        bankName = this.bankName ?: "",
+        accountLast4 = this.accountNumber,
+        balance = this.balanceAfter,
+        transactionHash = this.transactionHash,
+        reference = this.reference,
+        currency = this.currency ?: "INR",
+        fromAccount = this.fromAccount,
+        toAccount = this.toAccount
+    )
+}

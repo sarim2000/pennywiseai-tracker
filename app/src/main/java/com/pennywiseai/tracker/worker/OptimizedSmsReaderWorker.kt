@@ -429,6 +429,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         saver.join()
         progressMonitor.cancel()
+
+        // Final deduplication scan - catches duplicates that slipped through due to parallel processing
+        runFinalDeduplicationScan()
+    }
+
+    // ─── Final deduplication scan ───────────────────────────────────────────────────
+    
+    private suspend fun runFinalDeduplicationScan() {
+        try {
+            Log.d(TAG, "Running final deduplication scan...")
+            val duplicatesRemoved = upiDeduplicator.scanAndRemoveDuplicates()
+            if (duplicatesRemoved > 0) {
+                Log.d(TAG, "Removed $duplicatesRemoved duplicate transactions during final scan")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during final deduplication scan: ${e.message}")
+        }
     }
 
     // ─── Stage 2: Parse (plain fun — no suspend overhead on the hot path) ─────
@@ -554,7 +571,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val entity = parsed.toEntity()
 
             // Check for duplicates using UPIDeduplicator (hash, reference, account+amount+time)
-            val dedupResult = upiDeduplicator.checkForDuplicate(parsed, parsed.timestamp)
+            val dedupResult = upiDeduplicator.checkForDuplicate(parsed)
             if (dedupResult is UPIDeduplicator.DeduplicationResult.Duplicate) {
                 return false
             }

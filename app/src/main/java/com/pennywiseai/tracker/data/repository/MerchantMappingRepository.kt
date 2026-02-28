@@ -37,4 +37,17 @@ class MerchantMappingRepository @Inject constructor(
     suspend fun getMappingCount(): Int {
         return merchantMappingDao.getMappingCount()
     }
+
+    /**
+     * Returns all merchant→category mappings as a plain Map for O(1) lookup.
+     * Used by the SMS worker to pre-load the cache once per scan instead of
+     * hitting the DB once per transaction.
+     *
+     * Requires adding this query to MerchantMappingDao:
+     *   @Query("SELECT * FROM merchant_mappings")
+     *   suspend fun getAllMappingsList(): List<MerchantMappingEntity>
+     */
+    suspend fun getAllMappingsAsMap(): Map<String, String> {
+        return merchantMappingDao.getAllMappingsList().associate { it.merchantName to it.category }
+    }
 }

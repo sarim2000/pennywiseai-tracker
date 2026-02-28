@@ -79,11 +79,11 @@ class RecentTransactionsWidget : GlanceAppWidget() {
 
             Column(
                 modifier = GlanceModifier
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Summary(totalSpent = data.totalSpent, currency = data.currency)
 
-                Spacer(modifier = GlanceModifier.height(10.dp))
+                Spacer(modifier = GlanceModifier.height(12.dp))
 
                 if (data.transactions.isEmpty()) {
                     EmptyState()
@@ -99,14 +99,14 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .background(GlanceTheme.colors.primary)
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .background(GlanceTheme.colors.surfaceVariant)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = "Recent Transactions",
                 style = TextStyle(
-                    color = GlanceTheme.colors.onPrimary,
-                    fontSize = 14.sp,
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
             )
@@ -117,16 +117,16 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             ) {
                 Box(
                     modifier = GlanceModifier
-                        .size(28.dp)
-                        .cornerRadius(14.dp)
-                        .background(GlanceTheme.colors.surface)
+                        .size(36.dp)
+                        .cornerRadius(18.dp)
+                        .background(GlanceTheme.colors.primary)
                         .clickable(actionRunCallback<OpenAddTransactionAction>()),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.ic_widget_add),
                         contentDescription = "Add Transaction",
-                        modifier = GlanceModifier.size(16.dp)
+                        modifier = GlanceModifier.size(20.dp)
                     )
                 }
             }
@@ -142,7 +142,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = "Total spend this month",
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 12.sp
+                    fontSize = 13.sp
                 )
             )
             Spacer(modifier = GlanceModifier.height(4.dp))
@@ -150,7 +150,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = CurrencyFormatter.formatCurrency(totalSpent, currency),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurface,
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
             )
@@ -164,26 +164,31 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         ) {
             items(items) { item ->
                 TransactionRow(item)
-                Spacer(modifier = GlanceModifier.height(8.dp))
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(GlanceTheme.colors.surfaceVariant)
+                ) {}
+                Spacer(modifier = GlanceModifier.height(4.dp))
             }
         }
     }
 
     @Composable
     private fun TransactionRow(item: RecentTransactionItem) {
-        Box(
-            modifier = GlanceModifier.fillMaxWidth()
+        Row(
+            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .padding(end = 72.dp)
+                modifier = GlanceModifier.defaultWeight()
             ) {
                 Text(
                     text = item.title,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
                 )
@@ -192,7 +197,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                     text = item.subtitle,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurfaceVariant,
-                        fontSize = 10.sp
+                        fontSize = 12.sp
                     )
                 )
             }
@@ -203,20 +208,15 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 else -> ColorProvider(Color(0xFFD32F2F))
             }
 
-            Box(
-                modifier = GlanceModifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Text(
-                    text = CurrencyFormatter.formatCurrency(item.amount, item.currency),
-                    style = TextStyle(
-                        color = amountColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.End
-                    )
+            Text(
+                text = CurrencyFormatter.formatCurrency(item.amount, item.currency),
+                style = TextStyle(
+                    color = amountColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End
                 )
-            }
+            )
         }
     }
 
@@ -233,7 +233,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = "No transactions yet",
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 11.sp
+                    fontSize = 13.sp
                 )
             )
             Spacer(modifier = GlanceModifier.height(2.dp))
@@ -241,7 +241,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = "Tap + to add manually",
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 10.sp
+                    fontSize = 12.sp
                 )
             )
         }

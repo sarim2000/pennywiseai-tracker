@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -472,6 +472,7 @@ private fun TransactionItem(
         TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.BALANCE_UPDATE -> if (!isSystemInDarkTheme()) investment_light else investment_dark // TODO figure out if this should be here?
     }
     
     Card(

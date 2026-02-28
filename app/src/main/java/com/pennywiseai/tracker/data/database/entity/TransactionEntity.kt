@@ -4,8 +4,11 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.pennywiseai.parser.core.ParsedTransaction
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import com.pennywiseai.parser.core.TransactionType
+import java.time.ZoneId
 
 @Entity(
     tableName = "transactions",
@@ -71,13 +74,35 @@ data class TransactionEntity(
     val fromAccount: String? = null,
 
     @ColumnInfo(name = "to_account")
-    val toAccount: String? = null
-)
+    val toAccount: String? = null,
 
-enum class TransactionType {
-    INCOME,     // Money received
-    EXPENSE,    // Money spent from accounts
-    CREDIT,     // Credit card purchases
-    TRANSFER,   // Between own accounts
-    INVESTMENT  // Mutual funds, stocks, etc.
+    @ColumnInfo(name = "reference")
+    val reference: String? = null
+)
+/**
+ * Maps TransactionEntity back to ParsedTransaction for validation/deduplication.
+ */
+fun TransactionEntity.toParsedTransaction(): ParsedTransaction {
+    // Convert LocalDateTime back to Long timestamp
+    val timestamp = this.dateTime
+        .atZone(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli()
+
+    return ParsedTransaction(
+        amount = this.amount,
+        merchant = this.merchantName,
+        type = this.transactionType,
+        timestamp = timestamp,
+        smsBody = this.smsBody ?: "",
+        sender = this.smsSender ?: "",
+        bankName = this.bankName ?: "",
+        accountLast4 = this.accountNumber,
+        balance = this.balanceAfter,
+        transactionHash = this.transactionHash,
+        reference = this.reference,
+        currency = this.currency ?: "INR",
+        fromAccount = this.fromAccount,
+        toAccount = this.toAccount
+    )
 }

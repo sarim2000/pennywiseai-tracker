@@ -7,7 +7,7 @@ import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -38,7 +38,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val upiDeduplicator: UPIDeduplicator
 ) {
     companion object {
         private const val TAG = "SmsTransactionProcessor"
@@ -105,16 +106,10 @@ class SmsTransactionProcessor @Inject constructor(
             // Convert to entity
             val entity = parsedTransaction.toEntity()
 
-            // Check if this transaction was previously deleted by the user
-            val existingTransaction = transactionRepository.getTransactionByHash(entity.transactionHash)
-            if (existingTransaction != null) {
-                if (existingTransaction.isDeleted) {
-                    Log.d(TAG, "Skipping previously deleted transaction with hash: ${entity.transactionHash}")
-                    return ProcessingResult(false, reason = "Transaction was previously deleted")
-                }
-                // Transaction already exists and not deleted - normal deduplication
-                Log.d(TAG, "Transaction already exists: ${entity.transactionHash}")
-                return ProcessingResult(false, reason = "Duplicate transaction")
+            // Check for duplicates (hash, reference, account+amount+time)
+            val dedupResult = upiDeduplicator.checkForDuplicate(parsedTransaction)
+            if (dedupResult is UPIDeduplicator.DeduplicationResult.Duplicate) {
+                return ProcessingResult(false, reason = dedupResult.reason)
             }
 
             // Check for custom merchant mapping
@@ -285,6 +280,7 @@ class SmsTransactionProcessor @Inject constructor(
                             // Credit should be handled above, this is fallback
                             currentBalance
                         }
+                        TransactionType.BALANCE_UPDATE ->  {currentBalance}
                     }
                 }
             }

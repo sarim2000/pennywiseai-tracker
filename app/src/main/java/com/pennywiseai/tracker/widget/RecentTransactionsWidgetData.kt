@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.widget
 
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 data class RecentTransactionItem(

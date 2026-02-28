@@ -34,8 +34,8 @@ object RecentTransactionsWidgetDataStore {
                 val amount = prefs[amountKey(index)]?.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 val currency = prefs[currencyKey(index)] ?: prefs[CURRENCY] ?: "INR"
                 val type = prefs[typeKey(index)]
-                    ?.let { com.pennywiseai.tracker.data.database.entity.TransactionType.valueOf(it) }
-                    ?: com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE
+                    ?.let { com.pennywiseai.parser.core.TransactionType.valueOf(it) }
+                    ?: com.pennywiseai.parser.core.TransactionType.EXPENSE
                 RecentTransactionItem(
                     title = title,
                     subtitle = subtitle,

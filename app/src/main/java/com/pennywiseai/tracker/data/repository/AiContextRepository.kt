@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.model.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -70,6 +70,7 @@ class AiContextRepository @Inject constructor(
                 TransactionType.CREDIT -> totalExpense = totalExpense.add(transaction.amount) // Credit counts as expense
                 TransactionType.TRANSFER -> {} // Transfers don't affect income/expense totals
                 TransactionType.INVESTMENT -> {} // Investments are asset reallocation, not expenses
+                TransactionType.BALANCE_UPDATE -> {}
             }
         }
         

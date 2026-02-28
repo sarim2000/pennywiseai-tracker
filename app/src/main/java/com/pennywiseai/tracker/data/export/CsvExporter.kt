@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import com.opencsv.CSVWriter
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -96,6 +96,7 @@ class CsvExporter @Inject constructor(
                                 TransactionType.CREDIT -> "Credit Card"
                                 TransactionType.TRANSFER -> "Transfer"
                                 TransactionType.INVESTMENT -> "Investment"
+                                TransactionType.BALANCE_UPDATE -> ""
                             },
                             transaction.amount.toString(),
                             transaction.currency,
@@ -190,6 +191,8 @@ class CsvExporter @Inject constructor(
                             TransactionType.CREDIT -> "Credit Card"
                             TransactionType.TRANSFER -> "Transfer"
                             TransactionType.INVESTMENT -> "Investment"
+                            TransactionType.BALANCE_UPDATE -> ""
+
                         },
                         transaction.amount.toString(),
                         transaction.currency,

@@ -19,7 +19,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -668,9 +668,9 @@ class HomeViewModel @Inject constructor(
                 for (tx in transactions) {
                     val converted = currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
                     when (tx.transactionType) {
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT -> creditCardTotal += converted
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER -> transferTotal += converted
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT -> investmentTotal += converted
+                        com.pennywiseai.parser.core.TransactionType.CREDIT -> creditCardTotal += converted
+                        com.pennywiseai.parser.core.TransactionType.TRANSFER -> transferTotal += converted
+                        com.pennywiseai.parser.core.TransactionType.INVESTMENT -> investmentTotal += converted
                         else -> { /* skip */ }
                     }
                 }
@@ -686,13 +686,13 @@ class HomeViewModel @Inject constructor(
             val currencyTransactions = transactions.filter { it.currency == selectedCurrency }
 
             val creditCardTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
+                .filter { it.transactionType == com.pennywiseai.parser.core.TransactionType.CREDIT }
                 .sumOf { it.amount }
             val transferTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER }
+                .filter { it.transactionType == com.pennywiseai.parser.core.TransactionType.TRANSFER }
                 .sumOf { it.amount }
             val investmentTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT }
+                .filter { it.transactionType == com.pennywiseai.parser.core.TransactionType.INVESTMENT }
                 .sumOf { it.amount }
 
             _uiState.value = _uiState.value.copy(

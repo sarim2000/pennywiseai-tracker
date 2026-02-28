@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.domain.service
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString

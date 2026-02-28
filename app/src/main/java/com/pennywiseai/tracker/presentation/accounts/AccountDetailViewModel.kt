@@ -102,7 +102,7 @@ class AccountDetailViewModel @Inject constructor(
                         transaction.amount
                     }
 
-                    if (transaction.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) {
+                    if (transaction.transactionType == com.pennywiseai.parser.core.TransactionType.INCOME) {
                         totalIncome += convertedAmount
                     } else {
                         totalExpenses += convertedAmount

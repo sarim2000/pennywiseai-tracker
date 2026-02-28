@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.model
 
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime

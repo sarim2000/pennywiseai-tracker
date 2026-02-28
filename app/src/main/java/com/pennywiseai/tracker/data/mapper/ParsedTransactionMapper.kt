@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.mapper
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import java.time.Instant
 import java.time.LocalDateTime
@@ -50,7 +50,8 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
         updatedAt = LocalDateTime.now(),
         currency = currency,
         fromAccount = fromAccount,
-        toAccount = toAccount
+        toAccount = toAccount,
+        reference = reference
     )
 }
 

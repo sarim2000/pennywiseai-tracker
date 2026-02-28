@@ -143,3 +143,96 @@ Never use pii in comments, code anywhere
 # Test implementation standards for parsers
 - Parser tests must use the shared JUnit helpers under `ParserTestUtils`. For
   full guidance (examples, migration checklist), read `docs/parser-test-standards.md`.
+
+## Code Quality Standards
+
+### DRY (Don't Repeat Yourself)
+- Extract reusable logic into shared functions, utilities, or base classes
+- If you find yourself copying code 3+ times, create a reusable abstraction
+- Share common logic between bank parsers through base classes (`BaseIndianBankParser`, `UAEBankParser`)
+
+### Clean Code Principles
+- **Single Responsibility**: Each class/function should do one thing well
+- **Meaningful Names**: Use descriptive variable/method names that reveal intent
+- **Small Functions**: Prefer small, focused functions over large monolithic ones
+- **Low Coupling, High Cohesion**: Minimize dependencies between components
+- **Fail Fast**: Validate inputs early and throw clear errors
+- **No Magic Numbers**: Use constants or named values instead of hardcoded numbers
+- **Proper Error Handling**: Use sealed classes for result types, avoid empty catch blocks
+
+### Code Review Checklist
+Before submitting any change, verify:
+- [ ] No duplicated code patterns
+- [ ] Functions are small and focused (< 30 lines preferred)
+- [ ] Variable names are descriptive
+- [ ] No hardcoded values (strings, numbers) without constants
+- [ ] Error cases are handled properly
+- [ ] Code follows existing patterns in the codebase
+
+---
+
+## Kotlin Code Quality & Architecture Standards
+
+### 1. Core Principles (DRY & SOLID)
+
+- **Zero Duplication**: Extract reusable logic into shared utilities or base classes. If logic appears 3+ times, it **must** be abstracted.
+- **Composition over Inheritance**: Prefer interfaces and delegated properties over deep inheritance trees. Use `BaseIndianBankParser` only for truly shared lifecycle/state logic.
+- **Single Responsibility**: Every class/function must have one reason to change. Separate "Parsing Logic" from "Data Retrieval" and "Error Reporting."
+
+### 2. Idiomatic Kotlin & Clean Code
+
+- **Immutability**: Use `data class` with `val` by default. Avoid `var` unless state change is strictly required.
+- **Null Safety**: Avoid `!!`. Use safe calls `?.`, the Elvis operator `?:`, or `requireNotNull()` to fail fast with clear messages.
+- **Sealed Hierarchies**: Use `sealed class` or `sealed interface` for Result types (e.g., `ParserResult.Success`, `ParserResult.Failure`) to ensure exhaustive `when` statements.
+- **Meaningful Naming**:
+  - Functions: Verbs (`parseStatement`, `validateAmount`).
+  - Classes: Nouns (`HDFCParser`, `TransactionMapper`).
+  - Booleans: Prefixed with `is`, `has`, or `should`.
+
+### 3. Structural Guardrails
+
+- **Dependency Injection**: Pass dependencies (API clients, Configs) via constructors. Do not instantiate concrete implementations inside functions.
+- **Pure Functions**: Aim for logic that takes an input and returns an output without side effects. This makes unit testing trivial.
+- **No Magic Values**: Use `const val` or `companion object` constants. For specific bank identifiers, use `Enums`.
+- **Functional Style**: Use `.map`, `.filter`, and `.flatMap` instead of manual `for` loops where readability is improved.
+
+### 4. Code Review Checklist
+
+Before outputting code, verify:
+
+- [ ] **Method Length**: Is the function < 25 lines? (Break it down if not).
+- [ ] **Cognitive Load**: Is there deep nesting (if/else inside loops)? (Flatten it using guard clauses).
+- [ ] **Type Safety**: Are we using `String` for something that should be a `LocalDate` or `CurrencyUnit`?
+- [ ] **Error Handling**: Are exceptions caught and mapped to a domain-specific `Error` type?
+- [ ] **Extension Functions**: Could this logic be an extension function to keep the main class clean?
+
+### Example: Idiomatic Refactoring
+
+**Bad (Procedural & Brittle):**
+
+```kotlin
+fun parse(text: String): Double {
+    if (text != "") {
+        val split = text.split(" ")
+        return split[1].toDouble()
+    }
+    return 0.0
+}
+```
+
+**Good (Clean & Robust):**
+
+```kotlin
+fun parseAmount(rawText: String): ParserResult<Double> {
+    if (rawText.isBlank()) return ParserResult.Failure("Empty input")
+    
+    return runCatching {
+        rawText.split(DELIMITER)
+            .getOrNull(AMOUNT_INDEX)
+            ?.toDouble() 
+            ?: throw Exception("Missing amount segment")
+    }.fold(
+        onSuccess = { ParserResult.Success(it) },
+        onFailure = { ParserResult.Failure("Invalid format: ${it.message}") }
+    )
+}

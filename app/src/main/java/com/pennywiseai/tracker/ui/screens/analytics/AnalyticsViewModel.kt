@@ -147,11 +147,11 @@ class AnalyticsViewModel @Inject constructor(
                 // Convert TransactionTypeFilter to TransactionType for database query
                 val dbTransactionType = when (filterState.typeFilter) {
                     TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
+                    TransactionTypeFilter.INCOME -> com.pennywiseai.parser.core.TransactionType.INCOME
+                    TransactionTypeFilter.EXPENSE -> com.pennywiseai.parser.core.TransactionType.EXPENSE
+                    TransactionTypeFilter.CREDIT -> com.pennywiseai.parser.core.TransactionType.CREDIT
+                    TransactionTypeFilter.TRANSFER -> com.pennywiseai.parser.core.TransactionType.TRANSFER
+                    TransactionTypeFilter.INVESTMENT -> com.pennywiseai.parser.core.TransactionType.INVESTMENT
                 }
 
                 // Load transactions with splits for proper category breakdown

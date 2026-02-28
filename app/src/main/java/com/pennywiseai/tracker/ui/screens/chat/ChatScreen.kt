@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -19,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,8 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.ModelState
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.TokenUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -64,9 +70,30 @@ fun ChatScreen(
             }
         }
     }
-    
+
+    // Scroll behaviors for TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "PennyWise AI",
+                hazeState = hazeState
+            )
+        }
+    ) { paddingValues ->
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(paddingValues)
     ) {
         when (modelState) {
             ModelState.NOT_DOWNLOADED, ModelState.ERROR -> {
@@ -113,14 +140,16 @@ fun ChatScreen(
                             state = listState,
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .overScrollVertical(),
                             contentPadding = PaddingValues(
                                 start = Dimensions.Padding.content,
                                 end = Dimensions.Padding.content,
                                 top = Dimensions.Padding.content,
                                 bottom = Spacing.lg
                             ),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
                             items(messages) { message ->
                                 ChatMessageItem(message = message)
@@ -278,7 +307,8 @@ fun ChatScreen(
                             state = listState,
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .overScrollVertical(),
                             contentPadding = PaddingValues(
                                 start = Dimensions.Padding.content,
                                 end = Dimensions.Padding.content,
@@ -286,6 +316,7 @@ fun ChatScreen(
                                 bottom = Spacing.lg
                             ),
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            flingBehavior = rememberOverscrollFlingBehavior { listState },
                             reverseLayout = false
                         ) {
                             // Example prompts when no messages
@@ -416,6 +447,7 @@ fun ChatScreen(
             }
         }
     }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -427,13 +459,13 @@ fun TokenLimitWarning(
 ) {
     val backgroundColor = when {
         usagePercent >= 95 -> MaterialTheme.colorScheme.errorContainer
-        usagePercent >= 90 -> Color(0xFFFFF3E0) // Orange container
+        usagePercent >= 90 -> MaterialTheme.colorScheme.tertiaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer
     }
-    
+
     val contentColor = when {
         usagePercent >= 95 -> MaterialTheme.colorScheme.onErrorContainer
-        usagePercent >= 90 -> Color(0xFF5D4037) // Dark orange
+        usagePercent >= 90 -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
     

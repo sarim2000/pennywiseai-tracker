@@ -4,7 +4,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -13,16 +16,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryChip
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,26 +59,63 @@ fun CategoriesScreen(
     // Group categories by type
     val expenseCategories = categories.filter { !it.isIncome }
     val incomeCategories = categories.filter { it.isIncome }
-    
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Categories",
+                hasBackButton = true,
+                hasActionButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                hazeState = hazeState
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.showAddDialog() },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Category")
+            }
+        }
+    ) { paddingValues ->
+        val lazyListState = rememberLazyListState()
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
+                .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                 bottom = 100.dp // Space for FAB
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
             // Expense Categories Section
             if (expenseCategories.isNotEmpty()) {
                 item {
                     SectionHeader(title = "Expense Categories")
                 }
-                
+
                 items(
                     items = expenseCategories,
                     key = { it.id }
@@ -83,13 +127,13 @@ fun CategoriesScreen(
                     )
                 }
             }
-            
+
             // Income Categories Section
             if (incomeCategories.isNotEmpty()) {
                 item {
                     SectionHeader(title = "Income Categories")
                 }
-                
+
                 items(
                     items = incomeCategories,
                     key = { it.id }
@@ -102,24 +146,6 @@ fun CategoriesScreen(
                 }
             }
         }
-        
-        // FAB positioned at bottom end
-        FloatingActionButton(
-            onClick = { viewModel.showAddDialog() },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content),
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Category")
-        }
-        
-        // Snackbar
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
     
     // Add/Edit Dialog

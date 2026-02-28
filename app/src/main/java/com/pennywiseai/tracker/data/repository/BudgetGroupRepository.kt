@@ -347,49 +347,59 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun createSmartDefaults(baseCurrency: String) {
-        // Group 1: Spending (LIMIT)
+        // Default amounts based on typical monthly spending
+        // Users can customize these after creation
+        val isINR = baseCurrency.uppercase() == "INR" || baseCurrency == "₹"
+
+        // Multiplier: INR defaults vs USD/other defaults
+        val m = if (isINR) BigDecimal.ONE else BigDecimal("0.012") // ~1 USD = 83 INR
+
+        fun amount(inrAmount: Long): BigDecimal =
+            BigDecimal(inrAmount).multiply(m).setScale(0, RoundingMode.HALF_UP)
+
+        // Group 1: Spending (LIMIT) - discretionary spending you want to cap
         createGroup(
             name = "Spending",
             groupType = BudgetGroupType.LIMIT,
             color = "#1565C0",
             currency = baseCurrency,
             categories = listOf(
-                "Food & Dining" to BigDecimal.ZERO,
-                "Groceries" to BigDecimal.ZERO,
-                "Shopping" to BigDecimal.ZERO,
-                "Entertainment" to BigDecimal.ZERO,
-                "Personal Care" to BigDecimal.ZERO,
-                "Transportation" to BigDecimal.ZERO,
-                "Travel" to BigDecimal.ZERO,
-                "Others" to BigDecimal.ZERO
+                "Food & Dining" to amount(5000),
+                "Groceries" to amount(8000),
+                "Shopping" to amount(3000),
+                "Entertainment" to amount(2000),
+                "Personal Care" to amount(1000),
+                "Transportation" to amount(3000),
+                "Travel" to amount(5000),
+                "Others" to amount(3000)
             ),
             displayOrder = 0
         )
 
-        // Group 2: Fixed Costs (EXPECTED)
+        // Group 2: Fixed Costs (EXPECTED) - recurring bills
         createGroup(
             name = "Fixed Costs",
             groupType = BudgetGroupType.EXPECTED,
             color = "#4CAF50",
             currency = baseCurrency,
             categories = listOf(
-                "Bills & Utilities" to BigDecimal.ZERO,
-                "Mobile" to BigDecimal.ZERO,
-                "Insurance" to BigDecimal.ZERO,
-                "Education" to BigDecimal.ZERO
+                "Bills & Utilities" to amount(5000),
+                "Mobile" to amount(500),
+                "Insurance" to amount(2000),
+                "Education" to amount(3000)
             ),
             displayOrder = 1
         )
 
-        // Group 3: Investments (TARGET)
+        // Group 3: Investments (TARGET) - savings goals
         createGroup(
             name = "Investments",
             groupType = BudgetGroupType.TARGET,
             color = "#00D09C",
             currency = baseCurrency,
             categories = listOf(
-                "Investments" to BigDecimal.ZERO,
-                "Banking" to BigDecimal.ZERO
+                "Investments" to amount(10000),
+                "Banking" to amount(5000)
             ),
             displayOrder = 2
         )

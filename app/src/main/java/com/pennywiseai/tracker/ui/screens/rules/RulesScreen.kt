@@ -1,9 +1,12 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -11,15 +14,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.SectionHeader
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
@@ -40,51 +47,43 @@ fun RulesScreen(
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
 
-    PennyWiseScaffold(
-        title = "Smart Rules",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Navigate back"
-                )
-            }
-        },
-        actions = {
-            // Optional: Add reset button for advanced users
-            var showResetDialog by remember { mutableStateOf(false) }
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
 
-            IconButton(
-                onClick = { showResetDialog = true }
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = "Reset to defaults"
-                )
-            }
+    // Reset dialog state needs to be outside the lambda
+    var showResetDialog by remember { mutableStateOf(false) }
 
-            if (showResetDialog) {
-                AlertDialog(
-                    onDismissRequest = { showResetDialog = false },
-                    title = { Text("Reset Rules") },
-                    text = { Text("Reset all rules to default settings? Your custom settings will be lost.") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.resetToDefaults()
-                                showResetDialog = false
-                            }
-                        ) {
-                            Text("Reset")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showResetDialog = false }) {
-                            Text("Cancel")
-                        }
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Smart Rules",
+                hasBackButton = true,
+                hasActionButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Navigate back"
+                        )
                     }
-                )
-            }
+                },
+                actionContent = {
+                    IconButton(
+                        onClick = { showResetDialog = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Reset to defaults"
+                        )
+                    }
+                },
+                hazeState = hazeState
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -95,6 +94,29 @@ fun RulesScreen(
             }
         }
     ) { paddingValues ->
+
+        if (showResetDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetDialog = false },
+                title = { Text("Reset Rules") },
+                text = { Text("Reset all rules to default settings? Your custom settings will be lost.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.resetToDefaults()
+                            showResetDialog = false
+                        }
+                    ) {
+                        Text("Reset")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -105,103 +127,118 @@ fun RulesScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            val lazyListState = rememberLazyListState()
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .padding(Dimensions.Padding.content),
+                    .hazeSource(state = hazeState)
+                    .background(MaterialTheme.colorScheme.background)
+                    .overScrollVertical(),
+                contentPadding = PaddingValues(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                    bottom = 0.dp
+                ),
+                state = lazyListState,
+                flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Info Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Dimensions.Padding.content),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                item {
+                    PennyWiseCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                        Column {
-                            Text(
-                                text = "Automatic Categorization",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Dimensions.Padding.content),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Text(
-                                text = "Enable rules to automatically categorize your transactions based on patterns",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            Column {
+                                Text(
+                                    text = "Automatic Categorization",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Enable rules to automatically categorize your transactions based on patterns",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }
 
                 // Group rules by category for better organization
-                val groupedRules = rules.groupBy { rule ->
-                    when {
-                        rule.name.contains("Food", ignoreCase = true) ||
-                        rule.name.contains("Fuel", ignoreCase = true) -> "Daily Expenses"
+                item {
+                    val groupedRules = rules.groupBy { rule ->
+                        when {
+                            rule.name.contains("Food", ignoreCase = true) ||
+                            rule.name.contains("Fuel", ignoreCase = true) -> "Daily Expenses"
 
-                        rule.name.contains("Salary", ignoreCase = true) ||
-                        rule.name.contains("Cashback", ignoreCase = true) -> "Income & Cashback"
+                            rule.name.contains("Salary", ignoreCase = true) ||
+                            rule.name.contains("Cashback", ignoreCase = true) -> "Income & Cashback"
 
-                        rule.name.contains("Rent", ignoreCase = true) ||
-                        rule.name.contains("EMI", ignoreCase = true) ||
-                        rule.name.contains("Subscription", ignoreCase = true) -> "Recurring Payments"
+                            rule.name.contains("Rent", ignoreCase = true) ||
+                            rule.name.contains("EMI", ignoreCase = true) ||
+                            rule.name.contains("Subscription", ignoreCase = true) -> "Recurring Payments"
 
-                        rule.name.contains("Investment", ignoreCase = true) ||
-                        rule.name.contains("Transfer", ignoreCase = true) -> "Banking & Investments"
+                            rule.name.contains("Investment", ignoreCase = true) ||
+                            rule.name.contains("Transfer", ignoreCase = true) -> "Banking & Investments"
 
-                        rule.name.contains("Healthcare", ignoreCase = true) -> "Healthcare"
+                            rule.name.contains("Healthcare", ignoreCase = true) -> "Healthcare"
 
-                        else -> "Other"
+                            else -> "Other"
+                        }
                     }
-                }
 
-                groupedRules.forEach { (category, categoryRules) ->
-                    if (categoryRules.isNotEmpty()) {
-                        SectionHeader(title = category)
+                    groupedRules.forEach { (category, categoryRules) ->
+                        if (categoryRules.isNotEmpty()) {
+                            SectionHeader(title = category)
 
-                        categoryRules.forEach { rule ->
-                            RuleCard(
-                                rule = rule,
-                                onToggle = { isActive ->
-                                    viewModel.toggleRule(rule.id, isActive)
-                                },
-                                onEdit = {
-                                    onNavigateToEditRule(rule.id)
-                                },
-                                onDelete = {
-                                    viewModel.deleteRule(rule.id)
-                                },
-                                onApplyToPast = {
-                                    selectedRuleForBatch = rule
-                                    showBatchApplyDialog = true
-                                }
-                            )
+                            categoryRules.forEach { rule ->
+                                RuleCard(
+                                    rule = rule,
+                                    onToggle = { isActive ->
+                                        viewModel.toggleRule(rule.id, isActive)
+                                    },
+                                    onEdit = {
+                                        onNavigateToEditRule(rule.id)
+                                    },
+                                    onDelete = {
+                                        viewModel.deleteRule(rule.id)
+                                    },
+                                    onApplyToPast = {
+                                        selectedRuleForBatch = rule
+                                        showBatchApplyDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
                 // Help text at the bottom
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                Text(
-                    text = "Rules are applied automatically to new transactions. Higher priority rules run first.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.md)
-                )
+                item {
+                    Spacer(modifier = Modifier.height(Spacing.lg))
+                    Text(
+                        text = "Rules are applied automatically to new transactions. Higher priority rules run first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.md)
+                    )
+                }
             }
         }
     }

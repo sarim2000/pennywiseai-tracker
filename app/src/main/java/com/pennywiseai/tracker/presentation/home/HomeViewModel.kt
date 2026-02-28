@@ -81,6 +81,19 @@ class HomeViewModel @Inject constructor(
         loadBaseCurrency()
         loadUnifiedModePreferences()
         loadHomeData()
+        loadUserName()
+    }
+
+    private fun loadUserName() {
+        userPreferencesRepository.userPreferences
+            .onEach { prefs ->
+                _uiState.value = _uiState.value.copy(
+                    userName = prefs.userName,
+                    profileImageUri = prefs.profileImageUri,
+                    profileBackgroundColor = prefs.profileBackgroundColor
+                )
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun loadBaseCurrency() {
@@ -221,6 +234,64 @@ class HomeViewModel @Inject constructor(
             }
         }
         
+        viewModelScope.launch {
+            // Load balance history for sparkline (last 30 days)
+            val thirtyDaysAgo = LocalDate.now().minusDays(30)
+            transactionRepository.getTransactionsBetweenDates(
+                startDate = thirtyDaysAgo,
+                endDate = LocalDate.now()
+            ).collect { transactions ->
+                val selectedCurrency = _uiState.value.selectedCurrency
+                val isUnified = _uiState.value.isUnifiedMode
+
+                val sorted = transactions.sortedBy { it.dateTime }
+                var runningBalance = BigDecimal.ZERO
+                val dailyBalances = mutableMapOf<LocalDate, BigDecimal>()
+
+                for (tx in sorted) {
+                    val amount = if (isUnified && tx.currency != selectedCurrency) {
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                    } else if (!isUnified && tx.currency != selectedCurrency) {
+                        continue
+                    } else {
+                        tx.amount
+                    }
+                    runningBalance += when (tx.transactionType) {
+                        TransactionType.INCOME -> amount
+                        else -> -amount
+                    }
+                    dailyBalances[tx.dateTime.toLocalDate()] = runningBalance
+                }
+
+                // Fill gaps for days with no transactions
+                val history = mutableListOf<BigDecimal>()
+                var lastBalance = BigDecimal.ZERO
+                var day = thirtyDaysAgo
+                val today = LocalDate.now()
+                while (!day.isAfter(today)) {
+                    lastBalance = dailyBalances[day] ?: lastBalance
+                    history.add(lastBalance)
+                    day = day.plusDays(1)
+                }
+
+                _uiState.value = _uiState.value.copy(balanceHistory = history)
+            }
+        }
+
+        viewModelScope.launch {
+            // Load transaction heatmap (last 26 weeks / 182 days)
+            val heatmapStart = LocalDate.now().minusDays(182)
+            transactionRepository.getTransactionsBetweenDates(
+                startDate = heatmapStart,
+                endDate = LocalDate.now()
+            ).collect { transactions ->
+                val heatmap = transactions
+                    .groupBy { it.dateTime.toLocalDate().toEpochDay() }
+                    .mapValues { it.value.size }
+                _uiState.value = _uiState.value.copy(transactionHeatmap = heatmap)
+            }
+        }
+
         viewModelScope.launch {
             // Load recent transactions (last 3) with conversion for unified mode
             combine(
@@ -855,6 +926,9 @@ class HomeViewModel @Inject constructor(
 }
 
 data class HomeUiState(
+    val userName: String = "User",
+    val profileImageUri: String? = null,
+    val profileBackgroundColor: Int = 0,
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,
@@ -877,8 +951,10 @@ data class HomeUiState(
     val selectedCurrency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
+    val balanceHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
     val showBreakdownDialog: Boolean = false,
-    val isUnifiedMode: Boolean = false
+    val isUnifiedMode: Boolean = false,
+    val transactionHeatmap: Map<Long, Int> = emptyMap()
 )

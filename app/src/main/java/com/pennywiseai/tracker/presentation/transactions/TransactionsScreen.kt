@@ -2,13 +2,14 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -17,8 +18,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -40,17 +39,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.CollapsibleFilterRow
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import com.pennywiseai.tracker.utils.formatAmount
-import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,15 +135,19 @@ fun TransactionsScreen(
         )
     }
 
-    // Apply navigation filters when navigation parameters change (for deep links)
+    // Track if we've already processed these specific nav params
+    var processedNavParams by rememberSaveable { mutableStateOf(false) }
+
+    // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
     LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency) {
-        if (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null) {
+        if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
                 initialMerchant,
                 initialPeriod,
                 initialCurrency
             )
+            processedNavParams = true
         }
     }
 
@@ -196,9 +198,23 @@ fun TransactionsScreen(
             snackbarHostState.currentSnackbarData?.dismiss()
         }
     }
-    
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Transactions",
+                hazeState = hazeState
+            )
+        },
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -235,7 +251,8 @@ fun TransactionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .hazeSource(hazeState)
+                .padding(top = paddingValues.calculateTopPadding())
         ) {
         // Search Bar with Sort Button
         Row(
@@ -550,12 +567,15 @@ fun TransactionsScreen(
             else -> {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().overScrollVertical(),
                     contentPadding = PaddingValues(
-                        horizontal = Dimensions.Padding.content,
-                        vertical = Spacing.md
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        top = Spacing.md,
+                        bottom = paddingValues.calculateBottomPadding()
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
                     // Show info banner when viewing budget transactions
                     if (categoriesFilter != null) {
@@ -609,9 +629,8 @@ fun TransactionsScreen(
                                 items = transactions,
                                 key = { it.id }
                             ) { transaction ->
-                                TransactionItem(
+                                com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                     transaction = transaction,
-                                    categoriesMap = categoriesMap,
                                     showDate = dateGroup == DateGroup.EARLIER,
                                     convertedAmount = convertedAmounts[transaction.id],
                                     displayCurrency = if (isUnifiedMode) selectedCurrency else null,
@@ -703,127 +722,6 @@ private fun TransactionSearchBar(
     )
 }
 
-
-@Composable
-private fun TransactionItem(
-    transaction: TransactionEntity,
-    categoriesMap: Map<String, CategoryEntity>,
-    showDate: Boolean,
-    convertedAmount: BigDecimal? = null,
-    displayCurrency: String? = null,
-    onClick: () -> Unit = {}
-) {
-    var showMenu by remember { mutableStateOf(false) }
-    val amountColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (!isSystemInDarkTheme()) income_light else income_dark
-        TransactionType.EXPENSE -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-        TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
-        TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-        TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
-        TransactionType.BALANCE_UPDATE -> if (!isSystemInDarkTheme()) investment_light else investment_dark //TODO potentially remove this later
-
-    }
-
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d • h:mm a")
-
-    // Always show both date and time
-    val dateTimeText = transaction.dateTime.format(dateTimeFormatter)
-
-    // Build subtitle (type shown via icon, not text)
-    val subtitleParts = buildList {
-        add(dateTimeText)
-        if (transaction.isRecurring) add("Recurring")
-    }
-
-    ListItemCard(
-        title = transaction.merchantName,
-        subtitle = subtitleParts.joinToString(" • "),
-        amount = transaction.formatAmount(),
-        amountColor = amountColor,
-        onClick = onClick,
-        leadingContent = {
-            BrandIcon(
-                merchantName = transaction.merchantName,
-                size = 40.dp,
-                showBackground = true
-            )
-        },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                // Show icon for special transaction types
-                when (transaction.transactionType) {
-                    TransactionType.CREDIT -> Icon(
-                        Icons.Default.CreditCard,
-                        contentDescription = "Credit Card",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) credit_light else credit_dark
-                    )
-                    TransactionType.TRANSFER -> Icon(
-                        Icons.Default.SwapHoriz,
-                        contentDescription = "Transfer",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-                    )
-                    TransactionType.INVESTMENT -> Icon(
-                        Icons.AutoMirrored.Filled.ShowChart,
-                        contentDescription = "Investment",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
-                    )
-                    TransactionType.INCOME -> Icon(
-                        Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = "Income",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) income_light else income_dark
-                    )
-                    TransactionType.EXPENSE -> Icon(
-                        Icons.AutoMirrored.Filled.TrendingDown,
-                        contentDescription = "Expense",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                    )
-                    //TODO remove this code later
-                    TransactionType.BALANCE_UPDATE -> Icon(
-                        Icons.AutoMirrored.Filled.ShowChart,
-                        contentDescription = "Investment",
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
-                    )
-                }
-
-                // Amount display
-                if (convertedAmount != null && displayCurrency != null) {
-                    // Unified mode: show converted amount primary, original secondary
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = amountColor
-                        )
-                        Text(
-                            text = "(${transaction.formatAmount()})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    Text(
-                        text = transaction.formatAmount(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = amountColor
-                    )
-                }
-            }
-        }
-    )
-}
 
 @Composable
 private fun EmptyTransactionsState(

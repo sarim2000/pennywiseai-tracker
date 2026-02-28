@@ -17,7 +17,11 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import com.pennywiseai.tracker.ui.components.BalancePoint
+
+enum class ChartType { LINE, BAR, HEATMAP }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -40,7 +44,20 @@ class AnalyticsViewModel @Inject constructor(
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
+    private val _selectedChartType = MutableStateFlow(ChartType.LINE)
+    val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            userPreferencesRepository.getAnalyticsChartType().collect { saved ->
+                if (saved != null) {
+                    try {
+                        _selectedChartType.value = ChartType.valueOf(saved)
+                    } catch (_: IllegalArgumentException) { }
+                }
+            }
+        }
+
         // Load unified mode preferences
         viewModelScope.launch {
             combine(
@@ -244,7 +261,8 @@ class AnalyticsViewModel @Inject constructor(
                     topCategory = topCategory?.name,
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
                     currency = displayCurrency,
-                    isLoading = false
+                    isLoading = false,
+                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second)
                 )
             }
         }
@@ -264,6 +282,13 @@ class AnalyticsViewModel @Inject constructor(
 
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
+    }
+
+    fun setChartType(type: ChartType) {
+        _selectedChartType.value = type
+        viewModelScope.launch {
+            userPreferencesRepository.saveAnalyticsChartType(type.name)
+        }
     }
 
     /**
@@ -294,6 +319,64 @@ class AnalyticsViewModel @Inject constructor(
             _selectedPeriod.value = TimePeriod.THIS_MONTH
         }
     }
+
+    private fun calculateSpendingTrend(
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<BalancePoint> {
+        val selectedPeriod = _selectedPeriod.value
+        val trend = mutableListOf<BalancePoint>()
+        val currency = transactions.firstOrNull()?.currency ?: _selectedCurrency.value
+
+        when {
+            selectedPeriod == TimePeriod.ALL || selectedPeriod == TimePeriod.CURRENT_FY -> {
+                val actualStartDate = if (selectedPeriod == TimePeriod.ALL && transactions.isNotEmpty()) {
+                    val firstTxDate = transactions.minByOrNull { it.dateTime }?.dateTime?.toLocalDate() ?: startDate
+                    if (firstTxDate.isAfter(startDate)) firstTxDate.withDayOfMonth(1) else startDate
+                } else {
+                    startDate
+                }
+
+                val yearsInRange = ChronoUnit.YEARS.between(actualStartDate, endDate)
+                val aggregateByYear = selectedPeriod == TimePeriod.ALL && yearsInRange >= 2
+
+                if (aggregateByYear) {
+                    var currentYear = actualStartDate.withDayOfYear(1)
+                    val lastYear = endDate.withDayOfYear(1)
+                    while (!currentYear.isAfter(lastYear) && !currentYear.isAfter(LocalDate.now().withDayOfYear(1))) {
+                        val endOfYear = currentYear.withDayOfYear(currentYear.lengthOfYear())
+                        val totalAmount = transactions.filter {
+                            !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
+                        }.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        trend.add(BalancePoint(timestamp = currentYear.atStartOfDay(), balance = totalAmount, currency = currency))
+                        currentYear = currentYear.plusYears(1)
+                    }
+                } else {
+                    var currentMonth = actualStartDate.withDayOfMonth(1)
+                    val lastMonth = endDate.withDayOfMonth(1)
+                    while (!currentMonth.isAfter(lastMonth) && !currentMonth.isAfter(LocalDate.now().withDayOfMonth(1))) {
+                        val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+                        val totalAmount = transactions.filter {
+                            !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
+                        }.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        trend.add(BalancePoint(timestamp = currentMonth.atStartOfDay(), balance = totalAmount, currency = currency))
+                        currentMonth = currentMonth.plusMonths(1)
+                    }
+                }
+            }
+            else -> {
+                val transactionsByDate = transactions.groupBy { it.dateTime.toLocalDate() }
+                var currentDate = startDate
+                while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
+                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).sumOf { it.amount.toDouble() }.toBigDecimal()
+                    trend.add(BalancePoint(timestamp = currentDate.atStartOfDay(), balance = totalAmount, currency = currency))
+                    currentDate = currentDate.plusDays(1)
+                }
+            }
+        }
+        return trend
+    }
 }
 
 /**
@@ -317,7 +400,8 @@ data class AnalyticsUiState(
     val topCategory: String? = null,
     val topCategoryPercentage: Float = 0f,
     val currency: String = "INR",
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val spendingTrend: List<BalancePoint> = emptyList()
 )
 
 data class CategoryData(

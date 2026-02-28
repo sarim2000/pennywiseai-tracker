@@ -25,6 +25,10 @@ class UserPreferencesRepository @Inject constructor(
     private object PreferencesKeys {
         val DARK_THEME_ENABLED = booleanPreferencesKey("dark_theme_enabled")
         val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
+        val THEME_STYLE = stringPreferencesKey("theme_style")
+        val ACCENT_COLOR = stringPreferencesKey("accent_color")
+        val IS_AMOLED_MODE = booleanPreferencesKey("is_amoled_mode")
+        val APP_FONT = stringPreferencesKey("app_font")
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
@@ -61,6 +65,25 @@ class UserPreferencesRepository @Inject constructor(
 
         // Budget Groups Migration
         val HAS_MIGRATED_TO_BUDGET_GROUPS = booleanPreferencesKey("has_migrated_to_budget_groups")
+
+        // Blur Effects
+        val BLUR_EFFECTS_ENABLED = booleanPreferencesKey("blur_effects_enabled")
+
+        // Navigation Bar Style
+        val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
+
+        // Analytics Chart Type
+        val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
+
+        // Cover Style
+        val COVER_STYLE = stringPreferencesKey("cover_style")
+
+        // Profile & Onboarding
+        val USER_NAME = stringPreferencesKey("user_name")
+        val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
+        val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
+        val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
+        val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -68,15 +91,38 @@ class UserPreferencesRepository @Inject constructor(
             UserPreferences(
                 isDarkThemeEnabled = preferences[PreferencesKeys.DARK_THEME_ENABLED],
                 isDynamicColorEnabled = preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] ?: false,
+                themeStyle = preferences[PreferencesKeys.THEME_STYLE]?.let {
+                    try { ThemeStyle.valueOf(it) } catch (_: Exception) { ThemeStyle.DYNAMIC }
+                } ?: ThemeStyle.DYNAMIC,
+                accentColor = preferences[PreferencesKeys.ACCENT_COLOR]?.let {
+                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.BLUE }
+                } ?: AccentColor.BLUE,
+                isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
+                appFont = preferences[PreferencesKeys.APP_FONT]?.let {
+                    try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.SYSTEM }
+                } ?: AppFont.SYSTEM,
                 hasSkippedSmsPermission = preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] ?: false,
                 isDeveloperModeEnabled = preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false,
                 hasShownScanTutorial = preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] ?: false,
-                smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3, // Default to 3 months
-                smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false, // Default to false
-                baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR", // Default to INR
+                smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3,
+                smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false,
+                baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
                 unifiedCurrencyMode = preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] ?: false,
                 displayCurrency = preferences[PreferencesKeys.DISPLAY_CURRENCY]
-                    ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
+                    ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
+                blurEffectsEnabled = preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true,
+                navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
+                    try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
+                } ?: NavBarStyle.FLOATING,
+                coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
+                    try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
+                } ?: CoverStyle.AURORA,
+                userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
+                profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
+                    ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
+                profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
+                hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
+                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
             )
         }
 
@@ -116,7 +162,31 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] = enabled
         }
     }
-    
+
+    suspend fun updateThemeStyle(themeStyle: ThemeStyle) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THEME_STYLE] = themeStyle.name
+        }
+    }
+
+    suspend fun updateAccentColor(accentColor: AccentColor) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ACCENT_COLOR] = accentColor.name
+        }
+    }
+
+    suspend fun updateAmoledMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_AMOLED_MODE] = enabled
+        }
+    }
+
+    suspend fun updateAppFont(appFont: AppFont) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_FONT] = appFont.name
+        }
+    }
+
     suspend fun updateSkippedSmsPermission(skipped: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] = skipped
@@ -433,17 +503,104 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
         }
     }
+
+    // Blur Effects
+    val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true
+        }
+
+    suspend fun updateBlurEffectsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] = enabled
+        }
+    }
+
+    // Navigation Bar Style
+    suspend fun updateNavBarStyle(style: NavBarStyle) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.NAV_BAR_STYLE] = style.name
+        }
+    }
+
+    // Analytics Chart Type
+    suspend fun saveAnalyticsChartType(chartType: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] = chartType
+        }
+    }
+
+    fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
+
+    // Cover Style
+    suspend fun updateCoverStyle(style: CoverStyle) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.COVER_STYLE] = style.name
+        }
+    }
+
+    // Profile & Onboarding
+    suspend fun updateUserName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_NAME] = name
+        }
+    }
+
+    suspend fun updateProfileImageUri(uri: String?) {
+        context.dataStore.edit { preferences ->
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.PROFILE_IMAGE_URI)
+            } else {
+                preferences[PreferencesKeys.PROFILE_IMAGE_URI] = uri
+            }
+        }
+    }
+
+    suspend fun updateProfileBackgroundColor(color: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = color
+        }
+    }
+
+    suspend fun updateHasCompletedOnboarding(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+        }
+    }
+
+    suspend fun updateMainAccountKey(accountKey: String?) {
+        context.dataStore.edit { preferences ->
+            if (accountKey == null) {
+                preferences.remove(PreferencesKeys.MAIN_ACCOUNT_KEY)
+            } else {
+                preferences[PreferencesKeys.MAIN_ACCOUNT_KEY] = accountKey
+            }
+        }
+    }
 }
 
 data class UserPreferences(
     val isDarkThemeEnabled: Boolean? = null, // null means follow system
     val isDynamicColorEnabled: Boolean = false, // Default to custom brand colors
+    val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
+    val accentColor: AccentColor = AccentColor.BLUE,
+    val isAmoledMode: Boolean = false,
+    val appFont: AppFont = AppFont.SYSTEM,
     val hasSkippedSmsPermission: Boolean = false,
     val isDeveloperModeEnabled: Boolean = false,
     val hasShownScanTutorial: Boolean = false,
-    val smsScanMonths: Int = 3, // Default to 3 months
-    val smsScanAllTime: Boolean = false, // Default to false
-    val baseCurrency: String = "INR", // Default to INR
+    val smsScanMonths: Int = 3,
+    val smsScanAllTime: Boolean = false,
+    val baseCurrency: String = "INR",
     val unifiedCurrencyMode: Boolean = false,
-    val displayCurrency: String = "INR"
+    val displayCurrency: String = "INR",
+    val blurEffectsEnabled: Boolean = true,
+    val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
+    val coverStyle: CoverStyle = CoverStyle.AURORA,
+    val userName: String = "User",
+    val profileImageUri: String? = null,
+    val profileBackgroundColor: Int = 0,
+    val hasCompletedOnboarding: Boolean = false,
+    val mainAccountKey: String? = null
 )

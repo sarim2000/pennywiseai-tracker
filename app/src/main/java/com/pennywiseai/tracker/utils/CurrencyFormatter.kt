@@ -136,6 +136,28 @@ object CurrencyFormatter {
     fun getSupportedCurrencies(): List<String> = CURRENCY_SYMBOLS.keys.toList()
 
     /**
+     * Formats large currency values in abbreviated form for chart axes.
+     * Uses Indian notation (L/Cr) for INR/NPR/PKR, Western notation (K/M) for others.
+     */
+    fun formatAbbreviated(value: Double, currencyCode: String): String {
+        val symbol = getCurrencySymbol(currencyCode)
+        val absValue = kotlin.math.abs(value)
+        val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
+        return when {
+            useIndianNotation && absValue >= 1_00_00_000 ->
+                "${symbol}${String.format("%.1f", absValue / 1_00_00_000)}Cr"
+            useIndianNotation && absValue >= 1_00_000 ->
+                "${symbol}${String.format("%.1f", absValue / 1_00_000)}L"
+            absValue >= 10_000_000 ->
+                "${symbol}${String.format("%.1f", absValue / 1_000_000)}M"
+            absValue >= 1_000 ->
+                "${symbol}${String.format("%.1f", absValue / 1_000)}K"
+            absValue > 0 -> "${symbol}${absValue.toInt()}"
+            else -> "${symbol}0"
+        }
+    }
+
+    /**
      * Gets the base currency for a bank using the BankParserFactory
      * Returns INR as default for unknown banks
      */

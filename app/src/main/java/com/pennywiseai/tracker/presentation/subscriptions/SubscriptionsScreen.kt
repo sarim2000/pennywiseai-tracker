@@ -5,9 +5,13 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -25,7 +29,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
@@ -43,7 +51,13 @@ fun SubscriptionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+    val lazyListState = rememberLazyListState()
+
     // Show snackbar when subscription is hidden
     LaunchedEffect(uiState.lastHiddenSubscription) {
         uiState.lastHiddenSubscription?.let { subscription ->
@@ -57,78 +71,93 @@ fun SubscriptionsScreen(
             }
         }
     }
-    
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-        // Total Monthly Subscriptions Summary
-        item {
-            TotalSubscriptionsSummary(
-                totalAmount = uiState.totalMonthlyAmount,
-                activeCount = uiState.activeSubscriptions.size,
-                currency = uiState.displayCurrency
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Subscriptions",
+                hazeState = hazeState
             )
-        }
-        
-        // Active Subscriptions
-        if (uiState.activeSubscriptions.isNotEmpty()) {
-            items(
-                items = uiState.activeSubscriptions,
-                key = { it.id }
-            ) { subscription ->
-                SwipeableSubscriptionItem(
-                    subscription = subscription,
-                    convertedAmount = uiState.convertedAmounts[subscription.id],
-                    displayCurrency = uiState.displayCurrency,
-                    onHide = { viewModel.hideSubscription(subscription.id) }
+        },
+        floatingActionButton = {
+            SmallFloatingActionButton(
+                onClick = onAddSubscriptionClick,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Subscription"
                 )
             }
         }
-        
-        // Empty State
-        if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+    ) { paddingValues ->
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .overScrollVertical()
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                bottom = paddingValues.calculateBottomPadding()
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
+        ) {
+            // Total Monthly Subscriptions Summary
             item {
-                EmptySubscriptionsState()
+                TotalSubscriptionsSummary(
+                    totalAmount = uiState.totalMonthlyAmount,
+                    activeCount = uiState.activeSubscriptions.size,
+                    currency = uiState.displayCurrency
+                )
             }
-        }
-        
-        // Loading State
-        if (uiState.isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+
+            // Active Subscriptions
+            if (uiState.activeSubscriptions.isNotEmpty()) {
+                items(
+                    items = uiState.activeSubscriptions,
+                    key = { it.id }
+                ) { subscription ->
+                    SwipeableSubscriptionItem(
+                        subscription = subscription,
+                        convertedAmount = uiState.convertedAmounts[subscription.id],
+                        displayCurrency = uiState.displayCurrency,
+                        onHide = { viewModel.hideSubscription(subscription.id) }
+                    )
+                }
+            }
+
+            // Empty State
+            if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+                item {
+                    EmptySubscriptionsState()
+                }
+            }
+
+            // Loading State
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
-        }
-        
-        // Add Subscription FAB (consistent with other screens)
-        SmallFloatingActionButton(
-            onClick = onAddSubscriptionClick,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Subscription"
-            )
-        }
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -206,15 +235,13 @@ private fun SwipeableSubscriptionItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Card(
+                PennyWiseCardV2(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = !subscription.smsBody.isNullOrBlank()) {
                             showSmsBody = !showSmsBody
                         },
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    contentPadding = 0.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -339,11 +366,12 @@ private fun SwipeableSubscriptionItem(
                 
                 // SMS Body Display (expandable)
                 if (showSmsBody && !subscription.smsBody.isNullOrBlank()) {
-                    Card(
+                    PennyWiseCardV2(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        ),
+                        contentPadding = 0.dp
                     ) {
                         Column(
                             modifier = Modifier

@@ -1,21 +1,27 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
 
@@ -122,59 +128,76 @@ fun CreateRuleScreen(
         }
     )
 
-    PennyWiseScaffold(
-        title = if (existingRule != null) "Edit Rule" else "Create Rule",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.Close, contentDescription = "Close")
-            }
-        },
-        actions = {
-            TextButton(
-                onClick = {
-                    // Validate: rule name + all conditions have values + action is valid
-                    val areConditionsValid = conditions.isNotEmpty() &&
-                        conditions.all { it.value.isNotBlank() }
-                    val isActionValid = actionType == ActionType.BLOCK || actionValue.isNotBlank()
-                    val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
 
-                    if (isValid) {
-                        val rule = TransactionRule(
-                            id = existingRule?.id ?: UUID.randomUUID().toString(),
-                            name = ruleName,
-                            description = description.takeIf { it.isNotBlank() },
-                            priority = existingRule?.priority ?: 100,
-                            conditions = conditions.toList(),
-                            actions = listOf(
-                                RuleAction(
-                                    field = actionField,
-                                    actionType = actionType,
-                                    value = if (actionType == ActionType.BLOCK) "" else actionValue
-                                )
-                            ),
-                            isActive = existingRule?.isActive ?: true,
-                            isSystemTemplate = existingRule?.isSystemTemplate ?: false,
-                            createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        onSaveRule(rule)
-                        // Navigation is handled in PennyWiseNavHost after saving
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = if (existingRule != null) "Edit Rule" else "Create Rule",
+                hasBackButton = true,
+                hasActionButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 },
-                enabled = ruleName.isNotBlank() &&
-                         conditions.isNotEmpty() &&
-                         conditions.all { it.value.isNotBlank() } &&
-                         (actionType == ActionType.BLOCK || actionValue.isNotBlank())
-            ) {
-                Text("Save")
-            }
+                actionContent = {
+                    TextButton(
+                        onClick = {
+                            // Validate: rule name + all conditions have values + action is valid
+                            val areConditionsValid = conditions.isNotEmpty() &&
+                                conditions.all { it.value.isNotBlank() }
+                            val isActionValid = actionType == ActionType.BLOCK || actionValue.isNotBlank()
+                            val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
+
+                            if (isValid) {
+                                val rule = TransactionRule(
+                                    id = existingRule?.id ?: UUID.randomUUID().toString(),
+                                    name = ruleName,
+                                    description = description.takeIf { it.isNotBlank() },
+                                    priority = existingRule?.priority ?: 100,
+                                    conditions = conditions.toList(),
+                                    actions = listOf(
+                                        RuleAction(
+                                            field = actionField,
+                                            actionType = actionType,
+                                            value = if (actionType == ActionType.BLOCK) "" else actionValue
+                                        )
+                                    ),
+                                    isActive = existingRule?.isActive ?: true,
+                                    isSystemTemplate = existingRule?.isSystemTemplate ?: false,
+                                    createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                onSaveRule(rule)
+                            }
+                        },
+                        enabled = ruleName.isNotBlank() &&
+                                 conditions.isNotEmpty() &&
+                                 conditions.all { it.value.isNotBlank() } &&
+                                 (actionType == ActionType.BLOCK || actionValue.isNotBlank())
+                    ) {
+                        Text("Save")
+                    }
+                },
+                hazeState = hazeState
+            )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
-                .imePadding() // Push content up when keyboard appears
+                .imePadding()
+                .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)

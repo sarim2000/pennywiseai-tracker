@@ -1,19 +1,31 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,11 +40,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
+
+private enum class CategoryViewType { CHART, LIST }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,9 +68,12 @@ fun AnalyticsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
+    val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
     // Use rememberSaveable to preserve UI state across navigation
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
+    var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
+    var showChartTypeSelector by remember { mutableStateOf(false) }
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -66,20 +88,39 @@ fun AnalyticsScreen(
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
-    
-    Box(modifier = Modifier.fillMaxSize()) {
+
+    // Scroll behaviors for collapsible TopAppBar
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Analytics",
+                hazeState = hazeState
+            )
+        }
+    ) { paddingValues ->
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
+            .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
-            top = Spacing.md,
+            top = paddingValues.calculateTopPadding() + Spacing.md,
             bottom = Dimensions.Component.bottomBarHeight + Spacing.md
         ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        flingBehavior = rememberOverscrollFlingBehavior { listState }
     ) {
         // Period Selector - Always visible
         item {
@@ -191,7 +232,7 @@ fun AnalyticsScreen(
                 }
             }
         }
-        
+
         // Analytics Summary Card
         if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
             item {
@@ -206,20 +247,208 @@ fun AnalyticsScreen(
                 )
             }
         }
-        
-        // Category Breakdown Section
-        if (uiState.categoryBreakdown.isNotEmpty()) {
+
+        // Chart Section with Type Selector
+        if (uiState.spendingTrend.size >= 2) {
             item {
-                CategoryBreakdownCard(
-                    categories = uiState.categoryBreakdown,
-                    currency = selectedCurrency,
-                    onCategoryClick = { category ->
-                        onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    // Chart section header with subtle chart type button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Trends",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Button(
+                            onClick = { showChartTypeSelector = !showChartTypeSelector },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = when (chartType) {
+                                    ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                    ChartType.BAR -> Icons.Default.BarChart
+                                    ChartType.HEATMAP -> Icons.Default.GridView
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = when (chartType) {
+                                    ChartType.LINE -> "Line"
+                                    ChartType.BAR -> "Bar"
+                                    ChartType.HEATMAP -> "Heatmap"
+                                },
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
-                )
+
+                    // Expandable chart type selector card
+                    AnimatedVisibility(visible = showChartTypeSelector) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            ChartType.entries.forEach { type ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            viewModel.setChartType(type)
+                                            showChartTypeSelector = false
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = when (type) {
+                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                                ChartType.BAR -> Icons.Default.BarChart
+                                                ChartType.HEATMAP -> Icons.Default.GridView
+                                            },
+                                            contentDescription = null,
+                                            tint = if (chartType == type)
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = when (type) {
+                                                ChartType.LINE -> "Line Chart"
+                                                ChartType.BAR -> "Bar Chart"
+                                                ChartType.HEATMAP -> "Heatmap"
+                                            },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (chartType == type)
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    if (chartType == type) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Chart display with crossfade transition
+                    Crossfade(
+                        targetState = chartType,
+                        label = "chart_transition"
+                    ) { type ->
+                        when (type) {
+                            ChartType.LINE -> BalanceChart(
+                                primaryCurrency = selectedCurrency,
+                                balanceHistory = uiState.spendingTrend,
+                                height = 220
+                            )
+                            ChartType.BAR -> SpendingBarChart(
+                                primaryCurrency = selectedCurrency,
+                                data = uiState.spendingTrend,
+                                height = 220
+                            )
+                            ChartType.HEATMAP -> SpendingHeatmap(
+                                data = uiState.spendingTrend
+                            )
+                        }
+                    }
+                }
             }
         }
-        
+
+        // Category Breakdown Section with Pie/List toggle
+        if (uiState.categoryBreakdown.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    // Category section header with subtle view toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Top Categories",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        IconButton(onClick = {
+                            categoryViewType = if (categoryViewType == CategoryViewType.CHART) {
+                                CategoryViewType.LIST
+                            } else {
+                                CategoryViewType.CHART
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (categoryViewType == CategoryViewType.CHART)
+                                    Icons.AutoMirrored.Filled.List
+                                else Icons.Default.PieChart,
+                                contentDescription = "Toggle View",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    // Animated content swap
+                    AnimatedContent(
+                        targetState = categoryViewType,
+                        transitionSpec = {
+                            if (targetState == CategoryViewType.CHART) {
+                                (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                    (slideOutHorizontally { it } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                            } else {
+                                (slideInHorizontally { it } + fadeIn()) togetherWith
+                                    (slideOutHorizontally { -it } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                            }
+                        },
+                        label = "category_view_transition"
+                    ) { viewType ->
+                        when (viewType) {
+                            CategoryViewType.CHART -> CategoryPieChart(
+                                categories = uiState.categoryBreakdown,
+                                currency = selectedCurrency
+                            )
+                            CategoryViewType.LIST -> CategoryBreakdownCard(
+                                categories = uiState.categoryBreakdown,
+                                currency = selectedCurrency,
+                                onCategoryClick = { category ->
+                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Top Merchants Section
         if (uiState.topMerchants.isNotEmpty()) {
             item {
@@ -227,7 +456,7 @@ fun AnalyticsScreen(
                     title = "Top Merchants"
                 )
             }
-            
+
             // All Merchants with expandable list
             item {
                 ExpandableList(
@@ -245,8 +474,8 @@ fun AnalyticsScreen(
                 }
             }
         }
-        
-        
+
+
         // Empty state
         if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
             item {
@@ -254,21 +483,6 @@ fun AnalyticsScreen(
             }
         }
     }
-    
-//    // Chat FAB
-//    SmallFloatingActionButton(
-//        onClick = onNavigateToChat,
-//        modifier = Modifier
-//            .align(Alignment.BottomEnd)
-//            .padding(Dimensions.Padding.content),
-//        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-//        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-//    ) {
-//        Icon(
-//            imageVector = Icons.AutoMirrored.Filled.Chat,
-//            contentDescription = "Open AI Assistant"
-//        )
-//    }
     }
 
     if (showDateRangePicker) {
@@ -291,7 +505,7 @@ private fun CategoryListItem(
 ) {
     val categoryInfo = CategoryMapping.categories[category.name]
         ?: CategoryMapping.categories["Others"]!!
-    
+
     ListItemCard(
         leadingContent = {
             Box(
@@ -334,12 +548,12 @@ private fun MerchantListItem(
             append(" • Subscription")
         }
     }
-    
+
     ListItemCard(
         leadingContent = {
             BrandIcon(
                 merchantName = merchant.name,
-                size = 40.dp,
+                size = 48.dp,
                 showBackground = true
             )
         },

@@ -4,18 +4,24 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.core.view.WindowCompat
+import com.pennywiseai.tracker.data.preferences.AccentColor
+import com.pennywiseai.tracker.data.preferences.AppFont
+import com.pennywiseai.tracker.data.preferences.ThemeStyle
+import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
@@ -98,14 +104,27 @@ val ColorScheme.expense: Color
     @Composable
     get() = if (isSystemInDarkTheme()) expense_dark else expense_light
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PennyWiseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
+    accentColor: AccentColor = AccentColor.BLUE,
+    isAmoledMode: Boolean = false,
+    appFont: AppFont = AppFont.SYSTEM,
+    blurEffects: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    var colorScheme = when {
+        themeStyle == ThemeStyle.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        themeStyle == ThemeStyle.BRANDED -> {
+            if (darkTheme) getCustomDarkColorScheme(accentColor) else getCustomLightColorScheme(accentColor)
+        }
+        // Fallback for older Android without dynamic color support
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -114,15 +133,22 @@ fun PennyWiseTheme(
         else -> LightColorScheme
     }
 
+    // Apply AMOLED black if enabled in dark mode
+    if (darkTheme && isAmoledMode) {
+        colorScheme = colorScheme.copy(
+            background = amoled_background,
+            surface = amoled_surface,
+        )
+    }
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         val window = (view.context as Activity).window
-        val darkTheme = darkTheme
-        
+
         SideEffect {
             // Enable edge-to-edge display
             WindowCompat.setDecorFitsSystemWindows(window, false)
-            
+
             // Control whether status bar icons should be dark or light
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
             windowInsetsController.isAppearanceLightStatusBars = !darkTheme
@@ -130,10 +156,177 @@ fun PennyWiseTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
+    val fontFamily = when (appFont) {
+        AppFont.SYSTEM -> FontFamily.Default
+        AppFont.SN_PRO -> SNProFontFamily
+    }
+
+    CompositionLocalProvider(LocalBlurEffects provides blurEffects) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = getTypography(fontFamily = fontFamily),
+            shapes = Shapes,
+            content = content
+        )
+    }
+}
+
+fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
+    val primaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Latte_Rosewater
+        AccentColor.FLAMINGO -> Latte_Flamingo
+        AccentColor.PINK -> Latte_Pink
+        AccentColor.MAUVE -> Latte_Mauve
+        AccentColor.RED -> Latte_Red
+        AccentColor.PEACH -> Latte_Peach
+        AccentColor.YELLOW -> Latte_Yellow
+        AccentColor.GREEN -> Latte_Green
+        AccentColor.TEAL -> Latte_Teal
+        AccentColor.SAPPHIRE -> Latte_Sapphire
+        AccentColor.BLUE -> Latte_Blue
+        AccentColor.LAVENDER -> Latte_Lavender
+    }
+    val secondaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Latte_Rosewater_secondary
+        AccentColor.FLAMINGO -> Latte_Flamingo_secondary
+        AccentColor.PINK -> Latte_Pink_secondary
+        AccentColor.MAUVE -> Latte_Mauve_secondary
+        AccentColor.RED -> Latte_Red_secondary
+        AccentColor.PEACH -> Latte_Peach_secondary
+        AccentColor.YELLOW -> Latte_Yellow_secondary
+        AccentColor.GREEN -> Latte_Green_secondary
+        AccentColor.TEAL -> Latte_Teal_secondary
+        AccentColor.SAPPHIRE -> Latte_Sapphire_secondary
+        AccentColor.BLUE -> Latte_Blue_secondary
+        AccentColor.LAVENDER -> Latte_Lavender_secondary
+    }
+    val tertiaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Latte_Rosewater_tertiary
+        AccentColor.FLAMINGO -> Latte_Flamingo_tertiary
+        AccentColor.PINK -> Latte_Pink_tertiary
+        AccentColor.MAUVE -> Latte_Mauve_tertiary
+        AccentColor.RED -> Latte_Red_tertiary
+        AccentColor.PEACH -> Latte_Peach_tertiary
+        AccentColor.YELLOW -> Latte_Yellow_tertiary
+        AccentColor.GREEN -> Latte_Green_tertiary
+        AccentColor.TEAL -> Latte_Teal_tertiary
+        AccentColor.SAPPHIRE -> Latte_Sapphire_tertiary
+        AccentColor.BLUE -> Latte_Blue_tertiary
+        AccentColor.LAVENDER -> Latte_Lavender_tertiary
+    }
+
+    return lightColorScheme(
+        primary = primaryColor,
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = primaryColor,
+        onPrimaryContainer = Color(0xFFFFFFFF),
+        inversePrimary = Color(0xFF000000),
+        secondary = secondaryColor,
+        onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = secondaryColor,
+        onSecondaryContainer = Color(0xFFFFFFFF),
+        tertiary = tertiaryColor,
+        onTertiary = Color(0xFFFFFFFF),
+        tertiaryContainer = tertiaryColor,
+        onTertiaryContainer = Color(0xFFFFFFFF),
+        background = Color(0xFFE2E2E9),
+        onBackground = Color(0xFF1A1B20),
+        surface = Color(0xFFE5E5EA),
+        onSurface = Color(0xFF1A1B20),
+        surfaceVariant = Color(0xFFC4C6D0),
+        onSurfaceVariant = Color(0xFF44474F),
+        inverseSurface = Color(0xFF2F3036),
+        inverseOnSurface = Color(0xFFF0F0F7),
+        error = Latte_Red,
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Latte_Red,
+        onErrorContainer = Color(0xFFFFFFFF),
+        surfaceBright = Color(0xFFE8E9EC),
+        surfaceDim = Color(0xFFD9D9E0),
+        surfaceContainer = Color(0xFFF9F9FF),
+        surfaceContainerHigh = Color(0xFFE8E7EE),
+        surfaceContainerHighest = Color(0xFFE2E2E9),
+        surfaceContainerLow = Color(0xFFFFFFFF),
+        surfaceContainerLowest = Color(0xFFF9F9FF)
+    )
+}
+
+fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
+    val primaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim
+        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim
+        AccentColor.PINK -> Macchiato_Pink_dim
+        AccentColor.MAUVE -> Macchiato_Mauve_dim
+        AccentColor.RED -> Macchiato_Red_dim
+        AccentColor.PEACH -> Macchiato_Peach_dim
+        AccentColor.YELLOW -> Macchiato_Yellow_dim
+        AccentColor.GREEN -> Macchiato_Green_dim
+        AccentColor.TEAL -> Macchiato_Teal_dim
+        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim
+        AccentColor.BLUE -> Macchiato_Blue_dim
+        AccentColor.LAVENDER -> Macchiato_Lavender_dim
+    }
+    val secondaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_secondary
+        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_secondary
+        AccentColor.PINK -> Macchiato_Pink_dim_secondary
+        AccentColor.MAUVE -> Macchiato_Mauve_dim_secondary
+        AccentColor.RED -> Macchiato_Red_dim_secondary
+        AccentColor.PEACH -> Macchiato_Peach_dim_secondary
+        AccentColor.YELLOW -> Macchiato_Yellow_dim_secondary
+        AccentColor.GREEN -> Macchiato_Green_dim_secondary
+        AccentColor.TEAL -> Macchiato_Teal_dim_secondary
+        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_secondary
+        AccentColor.BLUE -> Macchiato_Blue_dim_secondary
+        AccentColor.LAVENDER -> Macchiato_Lavender_dim_secondary
+    }
+    val tertiaryColor = when (accent) {
+        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_tertiary
+        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_tertiary
+        AccentColor.PINK -> Macchiato_Pink_dim_tertiary
+        AccentColor.MAUVE -> Macchiato_Mauve_dim_tertiary
+        AccentColor.RED -> Macchiato_Red_dim_tertiary
+        AccentColor.PEACH -> Macchiato_Peach_dim_tertiary
+        AccentColor.YELLOW -> Macchiato_Yellow_dim_tertiary
+        AccentColor.GREEN -> Macchiato_Green_dim_tertiary
+        AccentColor.TEAL -> Macchiato_Teal_dim_tertiary
+        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_tertiary
+        AccentColor.BLUE -> Macchiato_Blue_dim_tertiary
+        AccentColor.LAVENDER -> Macchiato_Lavender_dim_tertiary
+    }
+
+    return darkColorScheme(
+        primary = primaryColor,
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = primaryColor,
+        onPrimaryContainer = Color(0xFFFFFFFF),
+        inversePrimary = Color(0xFFFFFFFF),
+        secondary = secondaryColor,
+        onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = secondaryColor,
+        onSecondaryContainer = Color(0xFFFFFFFF),
+        tertiary = tertiaryColor,
+        onTertiary = Color(0xFFFFFFFF),
+        tertiaryContainer = tertiaryColor,
+        onTertiaryContainer = Color(0xFFFFFFFF),
+        background = Color(0xFF111318),
+        onBackground = Color(0xFFE2E2E9),
+        surface = Color(0xFF111318),
+        onSurface = Color(0xFFE2E2E9),
+        surfaceVariant = Color(0xFF1E1F25),
+        onSurfaceVariant = Color(0xFFC4C6D0),
+        inverseSurface = Color(0xFFE2E2E9),
+        inverseOnSurface = Color(0xFF2F3036),
+        error = Macchiato_Red_dim,
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Macchiato_Red_dim,
+        onErrorContainer = Color(0xFFFFFFFF),
+        surfaceBright = Color(0xFF37393E),
+        surfaceDim = Color(0xFF0C0E13),
+        surfaceContainer = Color(0xFF1E1F25),
+        surfaceContainerHigh = Color(0xFF282A2F),
+        surfaceContainerHighest = Color(0xFF33353A),
+        surfaceContainerLow = Color(0xFF1E1F25),
+        surfaceContainerLowest = Color(0xFF1A1B20)
     )
 }

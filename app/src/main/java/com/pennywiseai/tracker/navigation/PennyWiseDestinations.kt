@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
 object AppLock
 
 @Serializable
+object OnBoarding
+
+@Serializable
 object Permission
 
 @Serializable

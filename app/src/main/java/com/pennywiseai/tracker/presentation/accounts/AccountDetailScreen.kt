@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -78,6 +79,7 @@ fun AccountDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,

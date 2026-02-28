@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.monthlybudget
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -75,6 +76,7 @@ fun MonthlyBudgetSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,

@@ -245,7 +245,7 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Banner gradient at y=0 — paints behind the transparent TopAppBar
         if (coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(

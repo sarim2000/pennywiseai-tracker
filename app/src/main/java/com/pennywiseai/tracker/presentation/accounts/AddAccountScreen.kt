@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,6 +61,7 @@ fun AddAccountScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)

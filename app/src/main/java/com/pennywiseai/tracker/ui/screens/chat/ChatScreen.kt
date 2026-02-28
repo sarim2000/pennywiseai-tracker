@@ -92,6 +92,7 @@ fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .hazeSource(hazeState)
+            .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
         when (modelState) {

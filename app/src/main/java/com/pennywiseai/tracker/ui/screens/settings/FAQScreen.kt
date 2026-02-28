@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.screens.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -169,6 +170,7 @@ fun FAQScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)

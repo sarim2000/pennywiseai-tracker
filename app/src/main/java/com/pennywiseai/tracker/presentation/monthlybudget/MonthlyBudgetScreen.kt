@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.monthlybudget
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -76,6 +77,7 @@ fun MonthlyBudgetScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -86,13 +88,13 @@ fun MonthlyBudgetScreen(
 
         if (uiState.monthlyLimit == null) {
             BudgetSetupPrompt(
-                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
                 currency = uiState.baseCurrency,
                 onSetBudget = { amount -> viewModel.setMonthlyLimit(amount) }
             )
         } else {
             BudgetOverview(
-                modifier = Modifier.hazeSource(hazeState),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },

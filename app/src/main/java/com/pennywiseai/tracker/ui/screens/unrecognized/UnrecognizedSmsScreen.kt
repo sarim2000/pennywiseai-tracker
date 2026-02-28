@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -71,6 +72,7 @@ fun UnrecognizedSmsScreen(
         modifier = Modifier
             .fillMaxSize()
             .hazeSource(hazeState)
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = paddingValues.calculateTopPadding())
             .padding(Dimensions.Padding.content),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)

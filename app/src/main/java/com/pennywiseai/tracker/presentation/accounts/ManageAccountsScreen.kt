@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -90,6 +91,7 @@ fun ManageAccountsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -122,6 +124,7 @@ fun ManageAccountsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
+                    .background(MaterialTheme.colorScheme.background)
                     .overScrollVertical(),
                 contentPadding = PaddingValues(
                     start = Dimensions.Padding.content,

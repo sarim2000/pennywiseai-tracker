@@ -168,6 +168,7 @@ fun BudgetGroupEditScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,

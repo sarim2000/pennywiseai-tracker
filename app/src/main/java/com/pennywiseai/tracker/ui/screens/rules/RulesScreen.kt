@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -131,6 +132,7 @@ fun RulesScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(state = hazeState)
+                    .background(MaterialTheme.colorScheme.background)
                     .overScrollVertical(),
                 contentPadding = PaddingValues(
                     start = Dimensions.Padding.content,

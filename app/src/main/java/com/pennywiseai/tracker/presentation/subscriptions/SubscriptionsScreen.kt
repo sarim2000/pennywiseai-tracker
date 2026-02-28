@@ -102,7 +102,8 @@ fun SubscriptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .overScrollVertical()
-                .hazeSource(hazeState),
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,

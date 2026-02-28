@@ -307,6 +307,7 @@ private fun TransactionDetailContent(
         modifier = modifier
             .fillMaxSize()
             .hazeSource(hazeState)
+            .background(MaterialTheme.colorScheme.background)
             .imePadding()
             .overScrollVertical()
             .verticalScroll(scrollState)

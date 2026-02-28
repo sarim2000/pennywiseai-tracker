@@ -103,6 +103,7 @@ fun BudgetGroupsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -114,7 +115,7 @@ fun BudgetGroupsScreen(
         // Migration prompt
         if (uiState.needsMigration) {
             MigrationPrompt(
-                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
                 onMigrate = { viewModel.migrateOldBudget() },
                 onSkip = {
                     viewModel.runSmartDefaults()
@@ -125,13 +126,13 @@ fun BudgetGroupsScreen(
 
         if (!uiState.hasGroups) {
             EmptyBudgetState(
-                modifier = Modifier.hazeSource(hazeState).padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
                 onSmartDefaults = { viewModel.runSmartDefaults() },
                 onCreateNew = { onNavigateToGroupEdit(-1L) }
             )
         } else {
             BudgetGroupsContent(
-                modifier = Modifier.hazeSource(hazeState),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },

@@ -114,15 +114,17 @@ All processing happens on your device using MediaPipe's LLM. Your financial data
 <td><img src="screenshots/home.png" width="160"/></td>
 <td><img src="screenshots/analytics-v2.png" width="160"/></td>
 <td><img src="screenshots/chat.png" width="160"/></td>
-<td><img src="screenshots/subscription-v2.png" width="160"/></td>
 <td><img src="screenshots/transactions.png" width="160"/></td>
+<td><img src="screenshots/transaction-detail.png" width="160"/></td>
+<td><img src="screenshots/appearance.png" width="160"/></td>
 </tr>
 <tr>
 <td align="center">Home</td>
 <td align="center">Analytics</td>
 <td align="center">AI Chat</td>
-<td align="center">Subscriptions</td>
 <td align="center">Transactions</td>
+<td align="center">Details</td>
+<td align="center">Appearance</td>
 </tr>
 </table>
 

@@ -107,7 +107,7 @@ class SmsTransactionProcessor @Inject constructor(
             val entity = parsedTransaction.toEntity()
 
             // Check for duplicates (hash, reference, account+amount+time)
-            val dedupResult = upiDeduplicator.checkDuplicateAndSave(parsedTransaction, parsedTransaction.timestamp)
+            val dedupResult = upiDeduplicator.checkForDuplicate(parsedTransaction, parsedTransaction.timestamp)
             if (dedupResult is UPIDeduplicator.DeduplicationResult.Duplicate) {
                 return ProcessingResult(false, reason = dedupResult.reason)
             }

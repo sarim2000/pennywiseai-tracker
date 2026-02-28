@@ -10,8 +10,9 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import javax.inject.Inject
 
-class UPIDeduplicator(
+class UPIDeduplicator @Inject constructor(
     private val transactionRepository: TransactionRepository
 ) {
     companion object {
@@ -28,8 +29,8 @@ class UPIDeduplicator(
     }
 
     /**
-     * Checks whether [parsed] is a duplicate of an already-saved transaction,
-     * and if not, saves it.
+     * Checks whether [parsed] is a duplicate of an already-saved transaction.
+     * Does NOT save - caller is responsible for saving after performing additional processing.
      *
      * Deduplication order:
      *  1. Hash match  — exact same SMS body / computed hash
@@ -38,7 +39,7 @@ class UPIDeduplicator(
      *     (e.g. SBI + South Indian Bank) each send an SMS for the same UPI credit/debit
      *     but with slightly different reference numbers.
      */
-    suspend fun checkDuplicateAndSave(
+    suspend fun checkForDuplicate(
         parsed: ParsedTransaction,
         timestamp: Long
     ): DeduplicationResult {
@@ -51,7 +52,6 @@ class UPIDeduplicator(
         val windowEnd   = transactionTime.plus(DEDUP_WINDOW_MINUTES, ChronoUnit.MINUTES)
 
         // ── Check 1: Hash-based deduplication (exact match) ──────────────────────
-        // Compute the hash without allocating a full entity yet.
         val hash = parsed.generateTransactionId()
         val existingByHash = transactionRepository.getTransactionByHash(hash)
         if (existingByHash != null) {
@@ -65,9 +65,6 @@ class UPIDeduplicator(
         }
 
         // ── Check 2: Reference-based deduplication ────────────────────────────────
-        // UPI transactions often generate SMS from both the UPI provider (e.g. SBI)
-        // and the linked bank (e.g. South Indian Bank). When references match exactly
-        // we can identify the duplicate regardless of which bank sent first.
         val upiReference = parsed.reference
         if (!upiReference.isNullOrBlank()) {
             val existingByRef = transactionRepository.getTransactionByReference(
@@ -83,17 +80,12 @@ class UPIDeduplicator(
         }
 
         // ── Check 3: Account + amount + type + time window fallback ───────────────
-        // Catches the case where reference numbers differ between banks for the same
-        // underlying UPI transaction (e.g. SBI ref 528902998134 vs SIB 528908998134).
-        // Applied to both INCOME and EXPENSE since debit SMS can also arrive from
-        // multiple sources (UPI app notification + bank SMS).
         val accountLast4 = parsed.accountLast4
         if (accountLast4 != null) {
-            val entityType = TransactionType.valueOf(parsed.type.name)
             val existingByAccountAmount = transactionRepository.getTransactionByAccountAmountTime(
                 accountLast4 = accountLast4,
                 amount       = parsed.amount,
-                transactionType         = entityType,
+                transactionType         = parsed.type,
                 startDate  = windowStart,
                 endDate    = windowEnd
             )
@@ -105,10 +97,8 @@ class UPIDeduplicator(
             }
         }
 
-        // ── No duplicate found — save and return ─────────────────────────────────
-        val entity = parsed.toEntity()
-        transactionRepository.insertTransaction(entity)
-        Log.d(TAG, "Saved new transaction: hash=$hash, ref=$upiReference, acc=$accountLast4")
+        // No duplicate found
+        Log.d(TAG, "No duplicate found for: hash=$hash, ref=$upiReference, acc=$accountLast4")
         return DeduplicationResult.NotDuplicate
     }
 

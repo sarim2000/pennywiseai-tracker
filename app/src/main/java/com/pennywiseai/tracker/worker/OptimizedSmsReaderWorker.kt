@@ -554,7 +554,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val entity = parsed.toEntity()
 
             // Check for duplicates using UPIDeduplicator (hash, reference, account+amount+time)
-            val dedupResult = upiDeduplicator.checkDuplicateAndSave(parsed, parsed.timestamp)
+            val dedupResult = upiDeduplicator.checkForDuplicate(parsed, parsed.timestamp)
             if (dedupResult is UPIDeduplicator.DeduplicationResult.Duplicate) {
                 return false
             }

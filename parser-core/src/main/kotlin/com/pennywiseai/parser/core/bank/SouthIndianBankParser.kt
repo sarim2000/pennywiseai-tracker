@@ -223,10 +223,10 @@ class SouthIndianBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Pattern for UPI reference in "Info: UPI/ICICI/528908998134/merchant" format
+        // Pattern for UPI reference in "Info: UPI/ICICI/528908998134/merchant" or "Info:UPI/SIBL/602592256228/ RAVEENDR" format
         if (message.contains("Info:", ignoreCase = true)) {
-            // Try UPI first
-            val upiRefPattern = Regex("""Info:\s*UPI/[^/]+/(\d{12})/?""", RegexOption.IGNORE_CASE)
+            // Try UPI first - handle "/123/", "/123/ ", or end of string after number
+            val upiRefPattern = Regex("""Info:\s*UPI/[^/]+/(\d{12})(?:/|\s|$)""", RegexOption.IGNORE_CASE)
             upiRefPattern.find(message)?.let { match ->
                 val ref = match.groupValues[1].trim()
                 if (ref.isNotEmpty()) {

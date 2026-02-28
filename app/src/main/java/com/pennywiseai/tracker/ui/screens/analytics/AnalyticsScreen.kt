@@ -3,8 +3,10 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,8 +49,14 @@ fun AnalyticsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
-    var showAdvancedFilters by remember { mutableStateOf(false) }
-    var showDateRangePicker by remember { mutableStateOf(false) }
+    // Use rememberSaveable to preserve UI state across navigation
+    var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
+    var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
+
+    // Remember scroll position across navigation
+    val listState = rememberSaveable(saver = LazyListState.Saver) {
+        LazyListState()
+    }
 
     // Calculate active filter count
     val activeFilterCount = if (transactionTypeFilter != TransactionTypeFilter.EXPENSE) 1 else 0
@@ -60,6 +69,7 @@ fun AnalyticsScreen(
     
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),

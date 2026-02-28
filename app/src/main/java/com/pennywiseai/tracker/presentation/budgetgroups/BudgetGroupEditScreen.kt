@@ -351,13 +351,13 @@ fun BudgetGroupEditScreen(
         if (uiState.showEmptyCategoriesWarning) {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissEmptyWarning() },
-                title = { Text("No Categories") },
-                text = { Text("This group has no categories. It won't track any spending. Are you sure you want to save it?") },
+                title = { Text("Track All Expenses") },
+                text = { Text("No categories selected. This group will track ALL expenses. You can add specific categories later to limit tracking.") },
                 confirmButton = {
                     Button(
                         onClick = { viewModel.save(forceEmpty = true) }
                     ) {
-                        Text("Save Anyway")
+                        Text("Save")
                     }
                 },
                 dismissButton = {

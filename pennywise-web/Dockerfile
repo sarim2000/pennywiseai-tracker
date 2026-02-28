@@ -10,6 +10,7 @@ COPY .parser-core/src /app/parser-core/src
 
 # Build and publish parser-core to local Maven
 WORKDIR /app/parser-core
+ENV GRADLE_OPTS="-Xmx1024m -XX:MaxMetaspaceSize=512m"
 RUN gradle publishToMavenLocal --no-daemon
 
 # Copy server gradle files

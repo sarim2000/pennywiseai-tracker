@@ -525,7 +525,10 @@ private fun BudgetGroupCard(
         }
     }
 
-    val statusText = when (budget.groupType) {
+    val statusText = if (groupSpending.isTrackingAllExpenses && groupSpending.totalBudget == BigDecimal.ZERO) {
+        // Tracking all expenses without a budget set
+        "Tracking all expenses"
+    } else when (budget.groupType) {
         BudgetGroupType.LIMIT -> {
             if (groupSpending.remaining >= BigDecimal.ZERO) {
                 "${CurrencyFormatter.formatCurrency(groupSpending.remaining, currency)} remaining"
@@ -603,6 +606,21 @@ private fun BudgetGroupCard(
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
+                    }
+                    // Show "All expenses" badge when tracking all categories
+                    if (groupSpending.isTrackingAllExpenses) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.padding(start = 4.dp)
+                        ) {
+                            Text(
+                                text = "All expenses",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
 
@@ -683,6 +701,25 @@ private fun BudgetGroupCard(
                     color = progressColor,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
+            } else if (groupSpending.isTrackingAllExpenses) {
+                // Show spending without budget limit
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "spent",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // Status text

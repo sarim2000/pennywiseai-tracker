@@ -1,8 +1,12 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,15 +20,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.SectionHeader
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,15 +54,45 @@ fun ManageAccountsScreen(
     var showHiddenAccounts by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var accountToEdit by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
-    
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Accounts",
+                hasBackButton = true,
+                hasActionButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                hazeState = hazeState
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToAddAccount,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Account")
+            }
+        }
+    ) { paddingValues ->
         if (uiState.accounts.isEmpty()) {
             // Empty State
             Box(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -79,11 +118,22 @@ fun ManageAccountsScreen(
                 }
             }
         } else {
+            val lazyListState = rememberLazyListState()
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(Dimensions.Padding.content),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .background(MaterialTheme.colorScheme.background)
+                    .overScrollVertical(),
+                contentPadding = PaddingValues(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                    bottom = 0.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
             ) {
                 // Show success message if available
                 uiState.successMessage?.let { message ->
@@ -161,13 +211,7 @@ fun ManageAccountsScreen(
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Bank Accounts",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Bank Accounts")
                     }
 
                     items(visibleRegularAccounts) { account ->
@@ -207,13 +251,7 @@ fun ManageAccountsScreen(
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        Text(
-                            text = "Unlinked Cards",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Unlinked Cards")
                     }
                     
                     items(uiState.orphanedCards) { card ->
@@ -234,13 +272,7 @@ fun ManageAccountsScreen(
                 if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        Text(
-                            text = "Credit Cards",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
+                        SectionHeader(title = "Credit Cards")
                     }
 
                     items(visibleCreditCards) { card ->
@@ -281,8 +313,9 @@ fun ManageAccountsScreen(
                                 .fillMaxWidth()
                                 .clickable { showHiddenAccounts = !showHiddenAccounts },
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -382,19 +415,8 @@ fun ManageAccountsScreen(
                 }
             }
         }
-
-        // FAB positioned at bottom end
-        FloatingActionButton(
-            onClick = onNavigateToAddAccount,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content),
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Account")
-        }
     }
-    
+
     // Update Balance Dialog
     if (showUpdateDialog && selectedAccount != null && selectedAccountEntity != null) {
         if (selectedAccountEntity!!.isCreditCard) {
@@ -526,19 +548,20 @@ private fun CreditCardItem(
     
     val utilizationColor = when {
         utilization > 70 -> MaterialTheme.colorScheme.error
-        utilization > 30 -> Color(0xFFFF9800) // Orange
-        else -> Color(0xFF4CAF50) // Green
+        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
     }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isHidden) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -765,11 +788,12 @@ private fun AccountItem(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isHidden) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1203,8 +1227,8 @@ private fun UpdateCreditCardDialog(
                                     fontWeight = FontWeight.Medium,
                                     color = when {
                                         utilization > 70 -> MaterialTheme.colorScheme.error
-                                        utilization > 30 -> Color(0xFFFF9800)
-                                        else -> Color(0xFF4CAF50)
+                                        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+                                        else -> MaterialTheme.colorScheme.primary
                                     }
                                 )
                             }

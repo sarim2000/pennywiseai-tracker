@@ -2,11 +2,14 @@ package com.pennywiseai.tracker.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -14,6 +17,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+
+/**
+ * Safe version of popBackStack that prevents rapid back presses from causing
+ * screen overlap. Only pops if the current entry is fully RESUMED.
+ */
+fun NavHostController.safePopBackStack() {
+    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+        popBackStack()
+    }
+}
 
 @Composable
 fun PennyWiseNavHost(
@@ -29,7 +42,7 @@ fun PennyWiseNavHost(
     NavHost(
         navController = navController,
         startDestination = stableStartDestination,
-        modifier = modifier,
+        modifier = modifier.background(MaterialTheme.colorScheme.background),
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
@@ -44,21 +57,23 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     navController.navigate(Home) {
+                        launchSingleTop = true
                         popUpTo(AppLock) { inclusive = true }
                     }
                 }
             )
         }
-        composable<Permission>(
+        composable<OnBoarding>(
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            com.pennywiseai.tracker.ui.screens.PermissionScreen(
-                onPermissionGranted = {
+            com.pennywiseai.tracker.ui.screens.onboarding.OnBoardingScreen(
+                onOnboardingComplete = {
                     navController.navigate(Home) {
-                        popUpTo(Permission) { inclusive = true }
+                        launchSingleTop = true
+                        popUpTo(OnBoarding) { inclusive = true }
                     }
                 }
             )
@@ -98,7 +113,7 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.ui.screens.settings.SettingsScreen(
                 themeViewModel = themeViewModel,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 },
                 onNavigateToCategories = {
                     navController.navigate(Categories)
@@ -126,7 +141,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -142,7 +157,7 @@ fun PennyWiseNavHost(
                 transactionId = transactionDetail.transactionId,
                 onNavigateBack = {
                     onEditComplete()
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -155,7 +170,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.add.AddScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -168,7 +183,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -181,7 +196,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.ui.screens.settings.FAQScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -194,13 +209,17 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.ui.screens.rules.RulesScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 },
                 onNavigateToCreateRule = {
-                    navController.navigate(CreateRule())
+                    navController.navigate(CreateRule()) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToEditRule = { ruleId ->
-                    navController.navigate(CreateRule(ruleId = ruleId))
+                    navController.navigate(CreateRule(ruleId = ruleId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -222,11 +241,11 @@ fun PennyWiseNavHost(
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 },
                 onSaveRule = { rule ->
                     rulesViewModel.createRule(rule)
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 },
                 existingRule = existingRule
             )
@@ -252,13 +271,16 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 },
                 onNavigateToGroupEdit = { groupId ->
-                    navController.navigate(BudgetGroupEdit(groupId))
+                    navController.navigate(BudgetGroupEdit(groupId)) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToCategory = { category, yearMonth, currency ->
                     navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
+                        launchSingleTop = true
                         popUpTo(Home) { inclusive = true }
                     }
                 }
@@ -273,7 +295,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -287,6 +309,7 @@ fun PennyWiseNavHost(
             // Redirect old budget screen to new budget groups
             androidx.compose.runtime.LaunchedEffect(Unit) {
                 navController.navigate(BudgetGroups) {
+                    launchSingleTop = true
                     popUpTo(MonthlyBudget) { inclusive = true }
                 }
             }
@@ -300,7 +323,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetSettingsScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }
@@ -313,7 +336,7 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }

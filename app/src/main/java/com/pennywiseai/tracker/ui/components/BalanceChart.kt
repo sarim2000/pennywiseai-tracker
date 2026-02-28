@@ -1,30 +1,36 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import ir.ehsannarmani.compose_charts.LineChart
+import ir.ehsannarmani.compose_charts.models.AnimationMode
+import ir.ehsannarmani.compose_charts.models.DividerProperties
+import ir.ehsannarmani.compose_charts.models.DotProperties
+import ir.ehsannarmani.compose_charts.models.DrawStyle
+import ir.ehsannarmani.compose_charts.models.GridProperties
+import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
+import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
+import ir.ehsannarmani.compose_charts.models.LabelProperties
+import ir.ehsannarmani.compose_charts.models.Line
+import ir.ehsannarmani.compose_charts.models.LineProperties
+import ir.ehsannarmani.compose_charts.models.StrokeStyle
+import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 data class BalancePoint(
     val timestamp: LocalDateTime,
@@ -41,195 +47,127 @@ fun BalanceChart(
 ) {
     if (balanceHistory.isEmpty()) return
 
-    // Sort by timestamp to ensure chronological order (oldest to newest)
     val sortedHistory = remember(balanceHistory) {
         balanceHistory.sortedBy { it.timestamp }
     }
 
-    // Apply data smoothing to reduce noise
     val smoothedHistory = remember(sortedHistory) {
         smoothBalanceData(sortedHistory)
     }
-    
-    val lineColor = MaterialTheme.colorScheme.primary
-    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    
-    // Calculate min and max for scaling using smoothed data
-    val maxBalance = smoothedHistory.maxOf { it.balance }
-    val minBalance = smoothedHistory.minOf { it.balance }
-    val balanceRange = maxBalance - minBalance
-    
-    // Add some padding to the range
-    val paddedMin = minBalance - (balanceRange * BigDecimal("0.1"))
-    val paddedMax = maxBalance + (balanceRange * BigDecimal("0.1"))
-    val paddedRange = paddedMax - paddedMin
-    
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height.dp),
-        color = backgroundColor,
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md)
-        ) {
-            // Y-axis labels (max and min balance)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = CurrencyFormatter.formatCurrency(paddedMax, primaryCurrency),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Balance Trend",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium
-                )
+
+    val themeColors = MaterialTheme.colorScheme
+
+    val chartValues = remember(smoothedHistory) {
+        smoothedHistory.map { it.balance.toDouble() }
+    }
+
+    val labels = remember(smoothedHistory) {
+        val isYearly = smoothedHistory.size > 1 && smoothedHistory.all { it.timestamp.dayOfYear == 1 }
+        val isMonthly = !isYearly && smoothedHistory.all { it.timestamp.dayOfMonth == 1 }
+        val spansMultipleYears = if (smoothedHistory.isNotEmpty()) {
+            smoothedHistory.first().timestamp.year != smoothedHistory.last().timestamp.year
+        } else false
+
+        smoothedHistory.map {
+            val date = it.timestamp
+            when {
+                isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
+                isMonthly && spansMultipleYears -> date.format(DateTimeFormatter.ofPattern("MMM yy"))
+                isMonthly -> date.format(DateTimeFormatter.ofPattern("MMM"))
+                else -> date.format(DateTimeFormatter.ofPattern("dd MMM"))
             }
-            
-            // Chart Canvas
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Canvas(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val canvasWidth = size.width
-                    val canvasHeight = size.height
-                    
-                    // Draw horizontal grid lines
-                    val gridLines = 4
-                    for (i in 0..gridLines) {
-                        val y = canvasHeight * (i.toFloat() / gridLines)
-                        drawLine(
-                            color = gridColor,
-                            start = Offset(0f, y),
-                            end = Offset(canvasWidth, y),
-                            strokeWidth = 1.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                        )
-                    }
-                    
-                    if (smoothedHistory.size < 2) {
-                        // Just draw a single point if we only have one data point
-                        val point = smoothedHistory.first()
-                        val y = canvasHeight * (1f - ((point.balance - paddedMin).toFloat() / paddedRange.toFloat()))
-                        drawCircle(
-                            color = lineColor,
-                            radius = 4.dp.toPx(),
-                            center = Offset(canvasWidth / 2, y)
-                        )
-                    } else {
-                        // Draw the line chart
-                        val path = Path()
-                        val points = mutableListOf<Offset>()
-
-                        smoothedHistory.forEachIndexed { index, point ->
-                            val x = canvasWidth * (index.toFloat() / (smoothedHistory.size - 1).coerceAtLeast(1))
-                            val y = canvasHeight * (1f - ((point.balance - paddedMin).toFloat() / paddedRange.toFloat()))
-
-                            val offset = Offset(x, y)
-                            points.add(offset)
-
-                            if (index == 0) {
-                                path.moveTo(x, y)
-                            } else {
-                                path.lineTo(x, y)
-                            }
-                        }
-                        
-                        // Draw gradient fill under the line
-                        val fillPath = Path().apply {
-                            addPath(path)
-                            lineTo(canvasWidth, canvasHeight)
-                            lineTo(0f, canvasHeight)
-                            close()
-                        }
-                        
-                        drawPath(
-                            path = fillPath,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    lineColor.copy(alpha = 0.3f),
-                                    lineColor.copy(alpha = 0.05f)
-                                ),
-                                startY = 0f,
-                                endY = canvasHeight
-                            )
-                        )
-                        
-                        // Draw the line
-                        drawPath(
-                            path = path,
-                            color = lineColor,
-                            style = Stroke(
-                                width = 2.dp.toPx(),
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
-                        )
-                        
-                        // Draw points
-                        points.forEach { point ->
-                            drawCircle(
-                                color = backgroundColor,
-                                radius = 4.dp.toPx(),
-                                center = point
-                            )
-                            drawCircle(
-                                color = lineColor,
-                                radius = 4.dp.toPx(),
-                                center = point,
-                                style = Stroke(width = 2.dp.toPx())
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // X-axis labels (dates) - oldest on left, newest on right
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                if (smoothedHistory.isNotEmpty()) {
-                    // First (oldest) date on the left
-                    Text(
-                        text = smoothedHistory.first().timestamp.format(
-                            DateTimeFormatter.ofPattern("MMM d")
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (smoothedHistory.size > 1) {
-                        // Last (newest) date on the right
-                        Text(
-                            text = smoothedHistory.last().timestamp.format(
-                                DateTimeFormatter.ofPattern("MMM d")
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            
-            // Min balance label
-            Text(
-                text = CurrencyFormatter.formatCurrency(paddedMin, primaryCurrency),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
+
+    LineChart(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height.dp)
+            .padding(vertical = Spacing.md),
+        data = listOf(
+            Line(
+                label = "Balance Trend",
+                values = chartValues,
+                color = SolidColor(themeColors.primary),
+                firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
+                secondGradientFillColor = Color.Transparent,
+                strokeAnimationSpec = tween(1500, easing = EaseInOutCubic),
+                gradientAnimationDelay = 750,
+                drawStyle = DrawStyle.Stroke(width = 2.dp),
+                curvedEdges = true,
+                dotProperties = DotProperties(
+                    enabled = true,
+                    color = SolidColor(themeColors.primary),
+                    strokeWidth = 3.dp,
+                    radius = 4.dp,
+                    strokeColor = SolidColor(themeColors.surface)
+                )
+            )
+        ),
+        dividerProperties = DividerProperties(
+            enabled = true,
+            xAxisProperties = LineProperties(
+                color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
+                thickness = 0.dp
+            ),
+            yAxisProperties = LineProperties(
+                color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
+                thickness = 0.dp
+            )
+        ),
+        indicatorProperties = HorizontalIndicatorProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(
+                fontSize = 10.sp,
+                color = themeColors.onSurfaceVariant.copy(0.6f),
+                textAlign = TextAlign.Center
+            ),
+            contentBuilder = { value ->
+                CurrencyFormatter.formatAbbreviated(abs(value), primaryCurrency)
+            }
+        ),
+        labelHelperProperties = LabelHelperProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(
+                fontSize = 10.sp,
+                color = themeColors.onSurface,
+                textAlign = TextAlign.End
+            ),
+        ),
+        labelProperties = LabelProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(
+                fontSize = 10.sp,
+                color = themeColors.onSurface.copy(0.6f),
+                textAlign = TextAlign.End
+            ),
+            labels = labels,
+            padding = 16.dp,
+            rotation = LabelProperties.Rotation(
+                mode = LabelProperties.Rotation.Mode.Force,
+                degree = -45f
+            )
+        ),
+        zeroLineProperties = ZeroLineProperties(
+            enabled = true,
+            style = StrokeStyle.Dashed(),
+            color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f)),
+        ),
+        gridProperties = GridProperties(
+            enabled = true,
+            xAxisProperties = GridProperties.AxisProperties(
+                enabled = true,
+                style = StrokeStyle.Dashed(),
+                color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
+            ),
+            yAxisProperties = GridProperties.AxisProperties(
+                enabled = true,
+                style = StrokeStyle.Dashed(),
+                color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
+            )
+        ),
+        animationMode = AnimationMode.Together(delayBuilder = { it * 200L }),
+    )
 }
 
 /**
@@ -238,20 +176,17 @@ fun BalanceChart(
  */
 private fun smoothBalanceData(
     balanceHistory: List<BalancePoint>,
-    maxPoints: Int = 50  // Maximum number of points to display
+    maxPoints: Int = 50
 ): List<BalancePoint> {
     if (balanceHistory.size <= maxPoints) {
         return balanceHistory
     }
 
-    // Calculate the time span of the data
     val timeSpan = balanceHistory.last().timestamp.toLocalDate()
         .toEpochDay() - balanceHistory.first().timestamp.toLocalDate().toEpochDay()
 
-    // Determine the aggregation interval based on time span and desired max points
     val intervalDays = maxOf(1, (timeSpan / maxPoints).toInt())
 
-    // Group data by intervals and calculate averages
     val groupedData = balanceHistory.groupBy { point ->
         val dayIndex = (point.timestamp.toLocalDate().toEpochDay() -
             balanceHistory.first().timestamp.toLocalDate().toEpochDay()) / intervalDays

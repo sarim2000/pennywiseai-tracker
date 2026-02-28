@@ -116,3 +116,129 @@ val budget_card_colors = listOf(
     Color(0xFFC2185B),  // Pink
     Color(0xFF455A64)   // Blue Grey
 )
+
+// Latte Theme Colors (Light) - Catppuccin-inspired accent palettes
+val Latte_Rosewater = Color(0xFFD29182)
+val Latte_Rosewater_secondary = Color(0xFF87CD94)
+val Latte_Rosewater_tertiary = Color(0xFFA79CDC)
+
+val Latte_Flamingo = Color(0xFFDD7878)
+val Latte_Flamingo_secondary = Color(0xFFDDAB78)
+val Latte_Flamingo_tertiary = Color(0xFFCB8EAD)
+
+val Latte_Pink = Color(0xFFDC84C6)
+val Latte_Pink_secondary = Color(0xFFD3748C)
+val Latte_Pink_tertiary = Color(0xFFAB86B7)
+
+val Latte_Mauve = Color(0xFF8D5DCB)
+val Latte_Mauve_secondary = Color(0xFFBA68C0)
+val Latte_Mauve_tertiary = Color(0xFF6168C7)
+
+val Latte_Red = Color(0xFFD03859)
+val Latte_Red_secondary = Color(0xFFD88666)
+val Latte_Red_tertiary = Color(0xFFE6B616)
+
+val Latte_Peach = Color(0xFFE25C0E)
+val Latte_Peach_secondary = Color(0xFFE3C81D)
+val Latte_Peach_tertiary = Color(0xFFE2B20E)
+
+val Latte_Yellow = Color(0xFFDF8E1D)
+val Latte_Yellow_secondary = Color(0xFFBFC76B)
+val Latte_Yellow_tertiary = Color(0xFFCC645B)
+
+val Latte_Green = Color(0xFF549E43)
+val Latte_Green_secondary = Color(0xFF4C7F5C)
+val Latte_Green_tertiary = Color(0xFF7BA02B)
+
+val Latte_Teal = Color(0xFF179299)
+val Latte_Teal_secondary = Color(0xFF2D5E9C)
+val Latte_Teal_tertiary = Color(0xFF369369)
+
+val Latte_Sapphire = Color(0xFF209FB5)
+val Latte_Sapphire_secondary = Color(0xFF93568A)
+val Latte_Sapphire_tertiary = Color(0xFFA1B437)
+
+val Latte_Blue = Color(0xFF007AFF)
+val Latte_Blue_secondary = Color(0xFF6866B8)
+val Latte_Blue_tertiary = Color(0xFF6DC468)
+
+val Latte_Lavender = Color(0xFF7287FD)
+val Latte_Lavender_secondary = Color(0xFFA38AD1)
+val Latte_Lavender_tertiary = Color(0xFFBA7AA8)
+
+// Macchiato Theme Colors (Dark dim) - for dark mode primary/secondary/tertiary
+val Macchiato_Rosewater_dim = Color(0xFFE1A091)
+val Macchiato_Rosewater_dim_secondary = Color(0xFF9EDDAA)
+val Macchiato_Rosewater_dim_tertiary = Color(0xFFAA9EDD)
+
+val Macchiato_Flamingo_dim = Color(0xFFE3897E)
+val Macchiato_Flamingo_dim_secondary = Color(0xFFE0B97B)
+val Macchiato_Flamingo_dim_tertiary = Color(0xFFD2789B)
+
+val Macchiato_Pink_dim = Color(0xFFDE85C5)
+val Macchiato_Pink_dim_secondary = Color(0xFFE39CAC)
+val Macchiato_Pink_dim_tertiary = Color(0xFFBA95E2)
+
+val Macchiato_Mauve_dim = Color(0xFFBC93F3)
+val Macchiato_Mauve_dim_secondary = Color(0xFFE398CE)
+val Macchiato_Mauve_dim_tertiary = Color(0xFF939AF3)
+
+val Macchiato_Red_dim = Color(0xFFFF7878)
+val Macchiato_Red_dim_secondary = Color(0xFFEEC398)
+val Macchiato_Red_dim_tertiary = Color(0xFFDCA58E)
+
+val Macchiato_Peach_dim = Color(0xFFF5A97F)
+val Macchiato_Peach_dim_secondary = Color(0xFFE6DA92)
+val Macchiato_Peach_dim_tertiary = Color(0xFFDF9192)
+
+val Macchiato_Yellow_dim = Color(0xFFEABD62)
+val Macchiato_Yellow_dim_secondary = Color(0xFFC7D971)
+val Macchiato_Yellow_dim_tertiary = Color(0xFFE29C8E)
+
+val Macchiato_Green_dim = Color(0xFF93B887)
+val Macchiato_Green_dim_secondary = Color(0xFF7CAD8F)
+val Macchiato_Green_dim_tertiary = Color(0xFFD0D57B)
+
+val Macchiato_Teal_dim = Color(0xFF5BBBCB)
+val Macchiato_Teal_dim_secondary = Color(0xFF7B9DDB)
+val Macchiato_Teal_dim_tertiary = Color(0xFF7EC1A9)
+
+val Macchiato_Sapphire_dim = Color(0xFF7DC4E4)
+val Macchiato_Sapphire_dim_secondary = Color(0xFF8191D5)
+val Macchiato_Sapphire_dim_tertiary = Color(0xFF54CDB6)
+
+val Macchiato_Blue_dim = Color(0xFF007AFF)
+val Macchiato_Blue_dim_secondary = Color(0xFF9190E6)
+val Macchiato_Blue_dim_tertiary = Color(0xFF93B887)
+
+val Macchiato_Lavender_dim = Color(0xFF979FE7)
+val Macchiato_Lavender_dim_secondary = Color(0xFFE2A5AB)
+val Macchiato_Lavender_dim_tertiary = Color(0xFF9FD199)
+
+// Settings Icon Background Colors
+val orange_light = Color(0xFFFFF3E0)
+val orange_dark = Color(0xFFE65100)
+val green_light = Color(0xFFE8F5E9)
+val green_dark = Color(0xFF2E7D32)
+val teal_light = Color(0xFFE0F2F1)
+val teal_dark = Color(0xFF00695C)
+val blue_light = Color(0xFFE3F2FD)
+val blue_dark = Color(0xFF1565C0)
+val indigo_light = Color(0xFFE8EAF6)
+val indigo_dark = Color(0xFF283593)
+val red_light = Color(0xFFFFEBEE)
+val red_dark = Color(0xFFC62828)
+val pink_light = Color(0xFFFCE4EC)
+val pink_dark = Color(0xFFAD1457)
+val purple_light = Color(0xFFF3E5F5)
+val purple_dark = Color(0xFF6A1B9A)
+val cyan_light = Color(0xFFE0F7FA)
+val cyan_dark = Color(0xFF00838F)
+val yellow_light = Color(0xFFFFF8E1)
+val yellow_dark = Color(0xFFF57F17)
+val grey_light = Color(0xFFECEFF1)
+val grey_dark = Color(0xFF546E7A)
+
+// AMOLED Dark Mode Colors
+val amoled_background = Color(0xFF000000)
+val amoled_surface = Color(0xFF000000)

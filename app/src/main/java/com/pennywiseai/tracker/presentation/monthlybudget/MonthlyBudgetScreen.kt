@@ -1,9 +1,13 @@
 package com.pennywiseai.tracker.presentation.monthlybudget
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -11,14 +15,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.theme.*
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -34,42 +43,59 @@ fun MonthlyBudgetScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    PennyWiseScaffold(
-        title = "Monthly Budget",
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-        },
-        actions = {
-            if (uiState.monthlyLimit != null) {
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = "Budget Settings")
-                }
-            }
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Monthly Budget",
+                hasBackButton = true,
+                hasActionButton = true,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actionContent = {
+                    if (uiState.monthlyLimit != null) {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Budget Settings")
+                        }
+                    }
+                },
+                hazeState = hazeState
+            )
         }
     ) { paddingValues ->
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
-            return@PennyWiseScaffold
+            return@Scaffold
         }
 
         if (uiState.monthlyLimit == null) {
             BudgetSetupPrompt(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
                 currency = uiState.baseCurrency,
                 onSetBudget = { amount -> viewModel.setMonthlyLimit(amount) }
             )
         } else {
             BudgetOverview(
-                modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
+                topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
@@ -160,6 +186,7 @@ private fun BudgetSetupPrompt(
 @Composable
 private fun BudgetOverview(
     modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
     uiState: MonthlyBudgetUiState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -169,10 +196,18 @@ private fun BudgetOverview(
     val spending = uiState.spending ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
 
+    val lazyListState = rememberLazyListState()
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        state = lazyListState,
+        modifier = modifier.fillMaxSize().overScrollVertical(),
+        contentPadding = PaddingValues(
+            start = Dimensions.Padding.content,
+            end = Dimensions.Padding.content,
+            top = Dimensions.Padding.content + topPadding,
+            bottom = 0.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
         // Month Selector
         item {

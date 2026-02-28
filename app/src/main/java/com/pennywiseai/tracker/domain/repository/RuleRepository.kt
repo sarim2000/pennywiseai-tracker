@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.domain.repository
 
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import kotlinx.coroutines.flow.Flow

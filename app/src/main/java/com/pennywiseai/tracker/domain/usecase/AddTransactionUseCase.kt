@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -110,6 +110,8 @@ class AddTransactionUseCase @Inject constructor(
                 TransactionType.EXPENSE, TransactionType.CREDIT -> currentAccount.balance - amount
                 TransactionType.TRANSFER -> currentAccount.balance - amount  // Simplified - from account
                 TransactionType.INVESTMENT -> currentAccount.balance - amount
+                TransactionType.BALANCE_UPDATE -> currentAccount.balance // nothing changes on balance update?
+
             }
 
             // Insert new balance record

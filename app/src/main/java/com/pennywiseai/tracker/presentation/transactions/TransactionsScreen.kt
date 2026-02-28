@@ -40,7 +40,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
@@ -720,6 +720,8 @@ private fun TransactionItem(
         TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.BALANCE_UPDATE -> if (!isSystemInDarkTheme()) investment_light else investment_dark //TODO potentially remove this later
+
     }
 
     val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
@@ -784,6 +786,13 @@ private fun TransactionItem(
                         contentDescription = "Expense",
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                    )
+                    //TODO remove this code later
+                    TransactionType.BALANCE_UPDATE -> Icon(
+                        Icons.AutoMirrored.Filled.ShowChart,
+                        contentDescription = "Investment",
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
                     )
                 }
 

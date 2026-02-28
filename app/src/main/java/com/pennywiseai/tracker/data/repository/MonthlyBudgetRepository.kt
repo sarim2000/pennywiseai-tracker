@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.data.database.dao.CategoryBudgetLimitDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.CategoryBudgetLimitEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

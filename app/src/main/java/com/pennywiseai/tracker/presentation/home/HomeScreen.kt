@@ -58,7 +58,7 @@ import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.theme.*
@@ -491,6 +491,8 @@ private fun SimpleTransactionItem(
         TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.BALANCE_UPDATE -> if (!isSystemInDarkTheme()) investment_light else investment_dark // TODO figure out if this should be here?
+
     }
 
     val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d • h:mm a")
@@ -609,6 +611,8 @@ private fun TransactionItem(
         TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
         TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
         TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.BALANCE_UPDATE -> if (!isSystemInDarkTheme()) investment_light else investment_dark // TODO figure out if this should be here?
+
     }
     
     // Get subtle background color based on transaction type
@@ -669,6 +673,13 @@ private fun TransactionItem(
                         contentDescription = "Expense",
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                    )
+                    //TODO figure out if this should be here?
+                    TransactionType.BALANCE_UPDATE -> Icon(
+                        Icons.Default.SwapHoriz,
+                        contentDescription = "",
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = if (!isSystemInDarkTheme()) investment_light else investment_dark
                     )
                 }
                 

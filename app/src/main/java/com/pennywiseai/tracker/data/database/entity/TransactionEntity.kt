@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import com.pennywiseai.parser.core.TransactionType
 
 @Entity(
     tableName = "transactions",
@@ -71,13 +72,8 @@ data class TransactionEntity(
     val fromAccount: String? = null,
 
     @ColumnInfo(name = "to_account")
-    val toAccount: String? = null
-)
+    val toAccount: String? = null,
 
-enum class TransactionType {
-    INCOME,     // Money received
-    EXPENSE,    // Money spent from accounts
-    CREDIT,     // Credit card purchases
-    TRANSFER,   // Between own accounts
-    INVESTMENT  // Mutual funds, stocks, etc.
-}
+    @ColumnInfo(name = "reference")
+    val reference: String? = null
+)

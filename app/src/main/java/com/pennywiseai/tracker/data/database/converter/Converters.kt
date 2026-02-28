@@ -4,7 +4,7 @@ import androidx.room.TypeConverter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime

@@ -12,8 +12,9 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.manager.UPIDeduplicator
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -29,6 +30,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.system.measureTimeMillis
 
@@ -61,7 +63,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val upiDeduplicator: UPIDeduplicator
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -550,7 +553,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         return try {
             val entity = parsed.toEntity()
 
-            if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return false
+            // Check for duplicates using UPIDeduplicator (hash, reference, account+amount+time)
+            val dedupResult = upiDeduplicator.checkDuplicateAndSave(parsed, parsed.timestamp)
+            if (dedupResult is UPIDeduplicator.DeduplicationResult.Duplicate) {
+                return false
+            }
 
             val customCategory = merchantMappingCache[entity.merchantName]
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity

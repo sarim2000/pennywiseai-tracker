@@ -36,7 +36,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
@@ -365,6 +365,7 @@ private fun TransactionHeader(
                 TransactionType.CREDIT -> Color(0xFFFF6B35)  // Orange for credit
                 TransactionType.TRANSFER -> Color(0xFF9C27B0)  // Purple for transfer
                 TransactionType.INVESTMENT -> Color(0xFF00796B)  // Teal for investment
+                TransactionType.BALANCE_UPDATE -> Color(0xFF00796B)  // TODO should this be here?
             }
             val sign = when (transaction.transactionType) {
                 TransactionType.INCOME -> "+"
@@ -372,6 +373,7 @@ private fun TransactionHeader(
                 TransactionType.CREDIT -> "💳"
                 TransactionType.TRANSFER -> "↔"
                 TransactionType.INVESTMENT -> "📈"
+                TransactionType.BALANCE_UPDATE -> "" // TODO should this be here?
             }
             
             Text(
@@ -519,6 +521,7 @@ private fun ExtractedInfoCard(
                     TransactionType.CREDIT -> Icons.Default.CreditCard
                     TransactionType.TRANSFER -> Icons.Default.SwapHoriz
                     TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
+                    TransactionType.BALANCE_UPDATE -> Icons.Default.Addchart //TODO should we show this?
                 }
             )
 

@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -133,6 +133,29 @@ class TransactionRepository @Inject constructor(
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
+
+    suspend fun getTransactionByReference(
+        reference: String,
+        amount: BigDecimal,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): TransactionEntity? =
+        transactionDao.getTransactionByReference(reference, amount.toPlainString(), startDate, endDate)
+
+    suspend fun getTransactionByAccountAmountTime(
+        accountLast4: String,
+        amount: BigDecimal,
+        transactionType: TransactionType,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): TransactionEntity? =
+        transactionDao.getTransactionByAccountAmountTime(
+            accountLast4,
+            amount.toPlainString(),
+            transactionType.name,
+            startDate,
+            endDate
+        )
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))

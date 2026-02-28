@@ -223,12 +223,18 @@ class SouthIndianBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Pattern for IMPS reference in "Info: IMPS/xxx/reference/merchant" format
-        if (message.contains("IMPS", ignoreCase = true) && message.contains(
-                "Info:",
-                ignoreCase = true
-            )
-        ) {
+        // Pattern for UPI reference in "Info: UPI/ICICI/528908998134/merchant" format
+        if (message.contains("Info:", ignoreCase = true)) {
+            // Try UPI first
+            val upiRefPattern = Regex("""Info:\s*UPI/[^/]+/(\d{12})/?""", RegexOption.IGNORE_CASE)
+            upiRefPattern.find(message)?.let { match ->
+                val ref = match.groupValues[1].trim()
+                if (ref.isNotEmpty()) {
+                    return ref
+                }
+            }
+            
+            // Pattern for IMPS reference in "Info: IMPS/xxx/reference/merchant" format
             val impsRefPattern = Regex("""Info:\s*IMPS/[^/]+/([^/]+)/""", RegexOption.IGNORE_CASE)
             impsRefPattern.find(message)?.let { match ->
                 val ref = match.groupValues[1].trim()

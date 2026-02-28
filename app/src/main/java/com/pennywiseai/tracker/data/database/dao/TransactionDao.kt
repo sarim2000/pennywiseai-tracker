@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.parser.core.TransactionType
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
@@ -182,4 +182,36 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND reference = :reference
+        AND amount = :amount
+        AND date_time BETWEEN :startDate AND :endDate
+        LIMIT 1
+    """)
+    suspend fun getTransactionByReference(
+        reference: String,
+        amount: String,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): TransactionEntity?
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND account_number = :accountLast4
+        AND amount = :amount
+        AND transaction_type = :transactionType
+        AND date_time BETWEEN :startDate AND :endDate
+        LIMIT 1
+    """)
+    suspend fun getTransactionByAccountAmountTime(
+        accountLast4: String,
+        amount: String,
+        transactionType: String,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): TransactionEntity?
 }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
@@ -63,6 +64,17 @@ fun MainScreen(
     val hazeState = remember { HazeState() }
 
     val isHomeScreen = baseRoute == "home"
+
+    // Back from non-Home tab goes to Home instead of popping (prevents overlap)
+    BackHandler(enabled = !isHomeScreen) {
+        navController.navigate("home") {
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     // Navigate to transactions with filter if provided
     LaunchedEffect(initialCategory) {

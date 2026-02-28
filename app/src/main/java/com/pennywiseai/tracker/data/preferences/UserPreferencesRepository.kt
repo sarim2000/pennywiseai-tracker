@@ -72,6 +72,9 @@ class UserPreferencesRepository @Inject constructor(
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
 
+        // Analytics Chart Type
+        val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
+
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
 
@@ -519,6 +522,16 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.NAV_BAR_STYLE] = style.name
         }
     }
+
+    // Analytics Chart Type
+    suspend fun saveAnalyticsChartType(chartType: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] = chartType
+        }
+    }
+
+    fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
 
     // Cover Style
     suspend fun updateCoverStyle(style: CoverStyle) {

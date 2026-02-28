@@ -77,9 +77,6 @@ fun SpendingHeatmap(
     }
 
     val scrollState = rememberScrollState()
-    LaunchedEffect(data) {
-        scrollState.scrollTo(scrollState.maxValue)
-    }
 
     val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
     val gapSize = 4.dp
@@ -99,6 +96,15 @@ fun SpendingHeatmap(
             val totalGaps = (totalWeeks - 1).coerceAtLeast(0) * gapSize.value
             val cellSize = ((availableWidth.value - totalGaps) / totalWeeks.coerceAtLeast(1))
                 .coerceIn(minCellSize.value, maxCellSize.value).dp
+
+            val gridWidth = totalWeeks * (cellSize + gapSize).value - gapSize.value
+            val gridFits = gridWidth <= (availableWidth - gapSize).value
+
+            if (!gridFits) {
+                LaunchedEffect(data) {
+                    scrollState.scrollTo(scrollState.maxValue)
+                }
+            }
 
             Column {
                 Row {
@@ -123,10 +129,12 @@ fun SpendingHeatmap(
                     Spacer(modifier = Modifier.width(gapSize))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = 8.dp)
+                        horizontalArrangement = if (gridFits) Arrangement.SpaceBetween else Arrangement.spacedBy(gapSize),
+                        modifier = if (gridFits) {
+                            Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        } else {
+                            Modifier.horizontalScroll(scrollState).padding(bottom = 8.dp)
+                        }
                     ) {
                         for (w in 0 until totalWeeks) {
                             Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {

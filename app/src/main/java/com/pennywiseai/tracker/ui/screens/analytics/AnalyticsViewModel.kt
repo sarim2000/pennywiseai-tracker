@@ -21,6 +21,8 @@ import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import com.pennywiseai.tracker.ui.components.BalancePoint
 
+enum class ChartType { LINE, BAR, HEATMAP }
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
@@ -42,7 +44,20 @@ class AnalyticsViewModel @Inject constructor(
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
+    private val _selectedChartType = MutableStateFlow(ChartType.LINE)
+    val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            userPreferencesRepository.getAnalyticsChartType().collect { saved ->
+                if (saved != null) {
+                    try {
+                        _selectedChartType.value = ChartType.valueOf(saved)
+                    } catch (_: IllegalArgumentException) { }
+                }
+            }
+        }
+
         // Load unified mode preferences
         viewModelScope.launch {
             combine(
@@ -267,6 +282,13 @@ class AnalyticsViewModel @Inject constructor(
 
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
+    }
+
+    fun setChartType(type: ChartType) {
+        _selectedChartType.value = type
+        viewModelScope.launch {
+            userPreferencesRepository.saveAnalyticsChartType(type.name)
+        }
     }
 
     /**

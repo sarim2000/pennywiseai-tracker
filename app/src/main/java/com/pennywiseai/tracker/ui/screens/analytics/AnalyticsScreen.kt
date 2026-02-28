@@ -51,7 +51,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 
-private enum class ChartType { LINE, BAR, HEATMAP }
 private enum class CategoryViewType { CHART, LIST }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,10 +68,10 @@ fun AnalyticsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
+    val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
     // Use rememberSaveable to preserve UI state across navigation
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
-    var chartType by rememberSaveable { mutableStateOf(ChartType.LINE) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var showChartTypeSelector by remember { mutableStateOf(false) }
 
@@ -311,7 +310,7 @@ fun AnalyticsScreen(
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
                                         .clickable {
-                                            chartType = type
+                                            viewModel.setChartType(type)
                                             showChartTypeSelector = false
                                         }
                                         .padding(horizontal = 16.dp, vertical = 12.dp),

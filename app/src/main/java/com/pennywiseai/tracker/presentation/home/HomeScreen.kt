@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -17,9 +18,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,8 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,6 +47,8 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.SectionHeader
@@ -92,6 +101,11 @@ fun HomeScreen(
 
     // State for full resync confirmation dialog
     var showFullResyncDialog by remember { mutableStateOf(false) }
+
+    // Bottom sheet menu state
+    var showMenuSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
 
     // Haptic feedback
     val view = LocalView.current
@@ -196,7 +210,7 @@ fun HomeScreen(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
-                        onSettingsClick = onNavigateToSettings
+                        onAvatarClick = { showMenuSheet = true }
                     )
                 }
             )
@@ -224,7 +238,7 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = Dimensions.Padding.content + 120.dp // Space for dual FABs (Add + Sync)
+                bottom = Dimensions.Padding.content + 200.dp // Space for dual FABs (Add + Sync) + bottom nav bar
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -531,7 +545,10 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(Dimensions.Padding.content),
+                .padding(
+                    end = Dimensions.Padding.content,
+                    bottom = 96.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.End
         ) {
@@ -646,6 +663,96 @@ fun HomeScreen(
                 currency = uiState.selectedCurrency,
                 onDismiss = { viewModel.hideBreakdownDialog() }
             )
+        }
+    }
+
+    // Avatar menu bottom sheet
+    if (showMenuSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showMenuSheet = false },
+            sheetState = sheetState,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                // Settings
+                ListItem(
+                    headlineContent = { Text("Settings") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showMenuSheet = false
+                        onNavigateToSettings()
+                    }
+                )
+
+                // Join Discord
+                ListItem(
+                    headlineContent = { Text("Join Discord") },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_discord),
+                            contentDescription = null,
+                            tint = Color(0xFF5865F2),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showMenuSheet = false
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
+                        context.startActivity(intent)
+                    }
+                )
+
+                // Rate App
+                ListItem(
+                    headlineContent = { Text("Rate on Play Store") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showMenuSheet = false
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
+                            context.startActivity(intent)
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
+                            context.startActivity(intent)
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Version footer
+                val versionName = remember {
+                    try {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                versionName?.let {
+                    Text(
+                        text = "v$it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
     }

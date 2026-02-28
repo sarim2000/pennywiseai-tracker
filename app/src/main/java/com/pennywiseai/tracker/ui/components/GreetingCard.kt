@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.pennywiseai.tracker.R
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
@@ -42,8 +38,7 @@ fun GreetingCard(
     userName: String = "User",
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
-    onSettingsClick: () -> Unit = {},
-    onDiscordClick: () -> Unit = {}
+    onAvatarClick: () -> Unit = {}
 ) {
     val subtitle = remember {
         val now = LocalDate.now()
@@ -84,7 +79,7 @@ fun GreetingCard(
                 .size(50.dp)
                 .clip(CircleShape)
                 .background(avatarBackground)
-                .clickable(onClick = onSettingsClick),
+                .clickable(onClick = onAvatarClick),
             contentAlignment = Alignment.Center
         ) {
             val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
@@ -143,27 +138,5 @@ fun GreetingCard(
             )
         }
 
-        // Action Icons
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_discord),
-                contentDescription = "Join Discord Community",
-                tint = Color(0xFF5865F2),
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable(onClick = onDiscordClick)
-            )
-            Icon(
-                imageVector = Icons.Rounded.Settings,
-                contentDescription = "Settings",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable(onClick = onSettingsClick)
-            )
-        }
     }
 }

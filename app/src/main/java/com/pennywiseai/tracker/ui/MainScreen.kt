@@ -37,6 +37,7 @@ import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
+import com.pennywiseai.tracker.navigation.safePopBackStack
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -228,7 +229,7 @@ fun MainScreen(
                     focusSearch = focusSearch,
                     initialTransactionType = transactionType,
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     },
                     onTransactionClick = { transactionId ->
                         rootNavController?.navigate(
@@ -251,9 +252,11 @@ fun MainScreen(
             composable("subscriptions") {
                 SubscriptionsScreen(
                     onNavigateBack = {
-                        if (!navController.popBackStack()) {
-                            navController.navigate("home") {
-                                popUpTo("home") { inclusive = true }
+                        if (navController.currentBackStackEntry?.lifecycle?.currentState == androidx.lifecycle.Lifecycle.State.RESUMED) {
+                            if (!navController.popBackStack()) {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
                             }
                         }
                     },
@@ -323,7 +326,7 @@ fun MainScreen(
                 SettingsScreen(
                     themeViewModel = themeViewModel,
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     },
                     onNavigateToCategories = {
                         navController.navigate("categories") {
@@ -371,7 +374,7 @@ fun MainScreen(
             composable("appearance") {
                 AppearanceScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     },
                     themeViewModel = themeViewModel
                 )
@@ -380,7 +383,7 @@ fun MainScreen(
             composable("categories") {
                 com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                 )
             }
@@ -388,7 +391,7 @@ fun MainScreen(
             composable("unrecognized_sms") {
                 com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                 )
             }
@@ -396,7 +399,7 @@ fun MainScreen(
             composable("faq") {
                 com.pennywiseai.tracker.ui.screens.settings.FAQScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                 )
             }
@@ -404,7 +407,7 @@ fun MainScreen(
             composable("manage_accounts") {
                 com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     },
                     onNavigateToAddAccount = {
                         navController.navigate("add_account") {
@@ -417,7 +420,7 @@ fun MainScreen(
             composable("add_account") {
                 com.pennywiseai.tracker.presentation.accounts.AddAccountScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                 )
             }

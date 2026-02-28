@@ -50,9 +50,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
-private enum class ChartType { LINE, BAR }
+private enum class ChartType { LINE, BAR, HEATMAP }
 private enum class CategoryViewType { CHART, LIST }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,17 +88,6 @@ fun AnalyticsScreen(
     val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
-    }
-
-    // Convert category data to BalancePoints for chart display
-    val chartData = remember(uiState.categoryBreakdown) {
-        uiState.categoryBreakdown.mapIndexed { index, category ->
-            BalancePoint(
-                timestamp = LocalDateTime.now().minusDays((uiState.categoryBreakdown.size - index).toLong()),
-                balance = category.amount,
-                currency = uiState.currency
-            )
-        }
     }
 
     // Scroll behaviors for collapsible TopAppBar
@@ -262,7 +250,7 @@ fun AnalyticsScreen(
         }
 
         // Chart Section with Type Selector
-        if (chartData.size >= 2) {
+        if (uiState.spendingTrend.size >= 2) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     // Chart section header with subtle chart type button
@@ -272,7 +260,7 @@ fun AnalyticsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Spending Trend",
+                            text = "Trends",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -286,15 +274,21 @@ fun AnalyticsScreen(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                         ) {
                             Icon(
-                                imageVector = if (chartType == ChartType.LINE)
-                                    Icons.AutoMirrored.Filled.ShowChart
-                                else Icons.Default.BarChart,
+                                imageVector = when (chartType) {
+                                    ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                    ChartType.BAR -> Icons.Default.BarChart
+                                    ChartType.HEATMAP -> Icons.Default.GridView
+                                },
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (chartType == ChartType.LINE) "Line" else "Bar",
+                                text = when (chartType) {
+                                    ChartType.LINE -> "Line"
+                                    ChartType.BAR -> "Bar"
+                                    ChartType.HEATMAP -> "Heatmap"
+                                },
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
@@ -329,16 +323,22 @@ fun AnalyticsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = if (type == ChartType.LINE)
-                                                Icons.AutoMirrored.Filled.ShowChart
-                                            else Icons.Default.BarChart,
+                                            imageVector = when (type) {
+                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                                ChartType.BAR -> Icons.Default.BarChart
+                                                ChartType.HEATMAP -> Icons.Default.GridView
+                                            },
                                             contentDescription = null,
                                             tint = if (chartType == type)
                                                 MaterialTheme.colorScheme.primary
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = if (type == ChartType.LINE) "Line Chart" else "Bar Chart",
+                                            text = when (type) {
+                                                ChartType.LINE -> "Line Chart"
+                                                ChartType.BAR -> "Bar Chart"
+                                                ChartType.HEATMAP -> "Heatmap"
+                                            },
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = if (chartType == type)
                                                 MaterialTheme.colorScheme.primary
@@ -366,13 +366,16 @@ fun AnalyticsScreen(
                         when (type) {
                             ChartType.LINE -> BalanceChart(
                                 primaryCurrency = selectedCurrency,
-                                balanceHistory = chartData,
+                                balanceHistory = uiState.spendingTrend,
                                 height = 220
                             )
                             ChartType.BAR -> SpendingBarChart(
                                 primaryCurrency = selectedCurrency,
-                                data = chartData,
+                                data = uiState.spendingTrend,
                                 height = 220
+                            )
+                            ChartType.HEATMAP -> SpendingHeatmap(
+                                data = uiState.spendingTrend
                             )
                         }
                     }

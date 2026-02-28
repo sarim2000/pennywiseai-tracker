@@ -82,85 +82,97 @@ fun SpendingHeatmap(
     }
 
     val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val gapSize = 4.dp
+    val dayLabelColumnWidth = 24.dp
+    val minCellSize = 20.dp
+    val maxCellSize = 28.dp
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier.padding(16.dp)
         ) {
-            Row {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    dayLabels.forEach { label ->
-                        Box(
-                            modifier = Modifier.size(20.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                }
+            val availableWidth = maxWidth - dayLabelColumnWidth
+            val totalGaps = (totalWeeks - 1).coerceAtLeast(0) * gapSize.value
+            val cellSize = ((availableWidth.value - totalGaps) / totalWeeks.coerceAtLeast(1))
+                .coerceIn(minCellSize.value, maxCellSize.value).dp
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .horizontalScroll(scrollState)
-                        .padding(bottom = 8.dp)
-                ) {
-                    for (w in 0 until totalWeeks) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            for (d in 0 until 7) {
-                                val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                val amount = groupedData[date] ?: 0.0
-                                val intensity = if (maxAmount > 0) (amount / maxAmount).toFloat().coerceIn(0f, 1f) else 0f
-
-                                val primary = MaterialTheme.colorScheme.primary
-                                val color = when {
-                                    date > endDate -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                    amount == 0.0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                    intensity < 0.25f -> primary.copy(alpha = 0.25f)
-                                    intensity < 0.5f -> primary.copy(alpha = 0.5f)
-                                    intensity < 0.75f -> primary.copy(alpha = 0.75f)
-                                    else -> primary
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(color)
+            Column {
+                Row {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(gapSize)
+                    ) {
+                        dayLabels.forEach { label ->
+                            Box(
+                                modifier = Modifier.size(cellSize),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             }
                         }
                     }
-                }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp)
-            ) {
-                monthLabels.forEach { (weekIndex, label) ->
-                    val xOffset = (weekIndex * 24).dp
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        modifier = Modifier.offset(x = xOffset)
-                    )
+                    Spacer(modifier = Modifier.width(gapSize))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(gapSize),
+                        modifier = Modifier
+                            .horizontalScroll(scrollState)
+                            .padding(bottom = 8.dp)
+                    ) {
+                        for (w in 0 until totalWeeks) {
+                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                for (d in 0 until 7) {
+                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                    val amount = groupedData[date] ?: 0.0
+                                    val intensity = if (maxAmount > 0) (amount / maxAmount).toFloat().coerceIn(0f, 1f) else 0f
+
+                                    val primary = MaterialTheme.colorScheme.primary
+                                    val emptyColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                    val color = when {
+                                        date > endDate -> emptyColor
+                                        amount == 0.0 -> emptyColor
+                                        intensity < 0.25f -> primary.copy(alpha = 0.25f)
+                                        intensity < 0.5f -> primary.copy(alpha = 0.5f)
+                                        intensity < 0.75f -> primary.copy(alpha = 0.75f)
+                                        else -> primary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(cellSize)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(color)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = dayLabelColumnWidth)
+                ) {
+                    monthLabels.forEach { (weekIndex, label) ->
+                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            modifier = Modifier.offset(x = xOffset)
+                        )
+                    }
                 }
             }
         }

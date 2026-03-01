@@ -110,7 +110,7 @@ fun PennyWiseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    accentColor: AccentColor = AccentColor.BLUE,
+    accentColor: AccentColor = AccentColor.SURFACE,
     isAmoledMode: Boolean = false,
     appFont: AppFont = AppFont.SYSTEM,
     blurEffects: Boolean = true,
@@ -173,46 +173,46 @@ fun PennyWiseTheme(
 
 fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
     val primaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Latte_Rosewater
-        AccentColor.FLAMINGO -> Latte_Flamingo
-        AccentColor.PINK -> Latte_Pink
-        AccentColor.MAUVE -> Latte_Mauve
-        AccentColor.RED -> Latte_Red
-        AccentColor.PEACH -> Latte_Peach
-        AccentColor.YELLOW -> Latte_Yellow
-        AccentColor.GREEN -> Latte_Green
-        AccentColor.TEAL -> Latte_Teal
-        AccentColor.SAPPHIRE -> Latte_Sapphire
-        AccentColor.BLUE -> Latte_Blue
-        AccentColor.LAVENDER -> Latte_Lavender
+        AccentColor.ROSE -> Dawn_Rose
+        AccentColor.IRIS -> Dawn_Iris
+        AccentColor.PINE -> Dawn_Pine
+        AccentColor.GOLD -> Dawn_Gold
+        AccentColor.LOVE -> Dawn_Love
+        AccentColor.FOAM -> Dawn_Foam
+        AccentColor.MUTED -> Dawn_Muted
+        AccentColor.SUBTLE -> Dawn_Subtle
+        AccentColor.TEXT -> Dawn_Text
+        AccentColor.HIGHLIGHT -> Dawn_Highlight
+        AccentColor.SURFACE -> Dawn_Surface
+        AccentColor.OVERLAY -> Dawn_Overlay
     }
     val secondaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Latte_Rosewater_secondary
-        AccentColor.FLAMINGO -> Latte_Flamingo_secondary
-        AccentColor.PINK -> Latte_Pink_secondary
-        AccentColor.MAUVE -> Latte_Mauve_secondary
-        AccentColor.RED -> Latte_Red_secondary
-        AccentColor.PEACH -> Latte_Peach_secondary
-        AccentColor.YELLOW -> Latte_Yellow_secondary
-        AccentColor.GREEN -> Latte_Green_secondary
-        AccentColor.TEAL -> Latte_Teal_secondary
-        AccentColor.SAPPHIRE -> Latte_Sapphire_secondary
-        AccentColor.BLUE -> Latte_Blue_secondary
-        AccentColor.LAVENDER -> Latte_Lavender_secondary
+        AccentColor.ROSE -> Dawn_Rose_secondary
+        AccentColor.IRIS -> Dawn_Iris_secondary
+        AccentColor.PINE -> Dawn_Pine_secondary
+        AccentColor.GOLD -> Dawn_Gold_secondary
+        AccentColor.LOVE -> Dawn_Love_secondary
+        AccentColor.FOAM -> Dawn_Foam_secondary
+        AccentColor.MUTED -> Dawn_Muted_secondary
+        AccentColor.SUBTLE -> Dawn_Subtle_secondary
+        AccentColor.TEXT -> Dawn_Text_secondary
+        AccentColor.HIGHLIGHT -> Dawn_Highlight_secondary
+        AccentColor.SURFACE -> Dawn_Surface_secondary
+        AccentColor.OVERLAY -> Dawn_Overlay_secondary
     }
     val tertiaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Latte_Rosewater_tertiary
-        AccentColor.FLAMINGO -> Latte_Flamingo_tertiary
-        AccentColor.PINK -> Latte_Pink_tertiary
-        AccentColor.MAUVE -> Latte_Mauve_tertiary
-        AccentColor.RED -> Latte_Red_tertiary
-        AccentColor.PEACH -> Latte_Peach_tertiary
-        AccentColor.YELLOW -> Latte_Yellow_tertiary
-        AccentColor.GREEN -> Latte_Green_tertiary
-        AccentColor.TEAL -> Latte_Teal_tertiary
-        AccentColor.SAPPHIRE -> Latte_Sapphire_tertiary
-        AccentColor.BLUE -> Latte_Blue_tertiary
-        AccentColor.LAVENDER -> Latte_Lavender_tertiary
+        AccentColor.ROSE -> Dawn_Rose_tertiary
+        AccentColor.IRIS -> Dawn_Iris_tertiary
+        AccentColor.PINE -> Dawn_Pine_tertiary
+        AccentColor.GOLD -> Dawn_Gold_tertiary
+        AccentColor.LOVE -> Dawn_Love_tertiary
+        AccentColor.FOAM -> Dawn_Foam_tertiary
+        AccentColor.MUTED -> Dawn_Muted_tertiary
+        AccentColor.SUBTLE -> Dawn_Subtle_tertiary
+        AccentColor.TEXT -> Dawn_Text_tertiary
+        AccentColor.HIGHLIGHT -> Dawn_Highlight_tertiary
+        AccentColor.SURFACE -> Dawn_Surface_tertiary
+        AccentColor.OVERLAY -> Dawn_Overlay_tertiary
     }
 
     return lightColorScheme(
@@ -229,70 +229,70 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         onTertiary = Color(0xFFFFFFFF),
         tertiaryContainer = tertiaryColor,
         onTertiaryContainer = Color(0xFFFFFFFF),
-        background = Color(0xFFE2E2E9),
-        onBackground = Color(0xFF1A1B20),
-        surface = Color(0xFFE5E5EA),
-        onSurface = Color(0xFF1A1B20),
-        surfaceVariant = Color(0xFFC4C6D0),
-        onSurfaceVariant = Color(0xFF44474F),
-        inverseSurface = Color(0xFF2F3036),
-        inverseOnSurface = Color(0xFFF0F0F7),
-        error = Latte_Red,
+        background = Color(0xFFFAF4ED),
+        onBackground = Color(0xFF575279),
+        surface = Color(0xFFFFFAF3),
+        onSurface = Color(0xFF575279),
+        surfaceVariant = Color(0xFFF2E9E1),
+        onSurfaceVariant = Color(0xFF6E6A86),
+        inverseSurface = Color(0xFF26233A),
+        inverseOnSurface = Color(0xFFE0DEF4),
+        error = Dawn_Love,
         onError = Color(0xFFFFFFFF),
-        errorContainer = Latte_Red,
+        errorContainer = Dawn_Love,
         onErrorContainer = Color(0xFFFFFFFF),
-        surfaceBright = Color(0xFFE8E9EC),
-        surfaceDim = Color(0xFFD9D9E0),
-        surfaceContainer = Color(0xFFF9F9FF),
-        surfaceContainerHigh = Color(0xFFE8E7EE),
-        surfaceContainerHighest = Color(0xFFE2E2E9),
-        surfaceContainerLow = Color(0xFFFFFFFF),
-        surfaceContainerLowest = Color(0xFFF9F9FF)
+        surfaceBright = Color(0xFFFFFAF3),
+        surfaceDim = Color(0xFFF2E9E1),
+        surfaceContainer = Color(0xFFFAF4ED),
+        surfaceContainerHigh = Color(0xFFF2E9E1),
+        surfaceContainerHighest = Color(0xFFE6DDD5),
+        surfaceContainerLow = Color(0xFFFFFAF3),
+        surfaceContainerLowest = Color(0xFFFFFFFF)
     )
 }
 
 fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
     val primaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim
-        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim
-        AccentColor.PINK -> Macchiato_Pink_dim
-        AccentColor.MAUVE -> Macchiato_Mauve_dim
-        AccentColor.RED -> Macchiato_Red_dim
-        AccentColor.PEACH -> Macchiato_Peach_dim
-        AccentColor.YELLOW -> Macchiato_Yellow_dim
-        AccentColor.GREEN -> Macchiato_Green_dim
-        AccentColor.TEAL -> Macchiato_Teal_dim
-        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim
-        AccentColor.BLUE -> Macchiato_Blue_dim
-        AccentColor.LAVENDER -> Macchiato_Lavender_dim
+        AccentColor.ROSE -> RosePine_Rose
+        AccentColor.IRIS -> RosePine_Iris
+        AccentColor.PINE -> RosePine_Pine
+        AccentColor.GOLD -> RosePine_Gold
+        AccentColor.LOVE -> RosePine_Love
+        AccentColor.FOAM -> RosePine_Foam
+        AccentColor.MUTED -> RosePine_Muted
+        AccentColor.SUBTLE -> RosePine_Subtle
+        AccentColor.TEXT -> RosePine_Text
+        AccentColor.HIGHLIGHT -> RosePine_Highlight
+        AccentColor.SURFACE -> RosePine_Surface
+        AccentColor.OVERLAY -> RosePine_Overlay
     }
     val secondaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_secondary
-        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_secondary
-        AccentColor.PINK -> Macchiato_Pink_dim_secondary
-        AccentColor.MAUVE -> Macchiato_Mauve_dim_secondary
-        AccentColor.RED -> Macchiato_Red_dim_secondary
-        AccentColor.PEACH -> Macchiato_Peach_dim_secondary
-        AccentColor.YELLOW -> Macchiato_Yellow_dim_secondary
-        AccentColor.GREEN -> Macchiato_Green_dim_secondary
-        AccentColor.TEAL -> Macchiato_Teal_dim_secondary
-        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_secondary
-        AccentColor.BLUE -> Macchiato_Blue_dim_secondary
-        AccentColor.LAVENDER -> Macchiato_Lavender_dim_secondary
+        AccentColor.ROSE -> RosePine_Rose_secondary
+        AccentColor.IRIS -> RosePine_Iris_secondary
+        AccentColor.PINE -> RosePine_Pine_secondary
+        AccentColor.GOLD -> RosePine_Gold_secondary
+        AccentColor.LOVE -> RosePine_Love_secondary
+        AccentColor.FOAM -> RosePine_Foam_secondary
+        AccentColor.MUTED -> RosePine_Muted_secondary
+        AccentColor.SUBTLE -> RosePine_Subtle_secondary
+        AccentColor.TEXT -> RosePine_Text_secondary
+        AccentColor.HIGHLIGHT -> RosePine_Highlight_secondary
+        AccentColor.SURFACE -> RosePine_Surface_secondary
+        AccentColor.OVERLAY -> RosePine_Overlay_secondary
     }
     val tertiaryColor = when (accent) {
-        AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_tertiary
-        AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_tertiary
-        AccentColor.PINK -> Macchiato_Pink_dim_tertiary
-        AccentColor.MAUVE -> Macchiato_Mauve_dim_tertiary
-        AccentColor.RED -> Macchiato_Red_dim_tertiary
-        AccentColor.PEACH -> Macchiato_Peach_dim_tertiary
-        AccentColor.YELLOW -> Macchiato_Yellow_dim_tertiary
-        AccentColor.GREEN -> Macchiato_Green_dim_tertiary
-        AccentColor.TEAL -> Macchiato_Teal_dim_tertiary
-        AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_tertiary
-        AccentColor.BLUE -> Macchiato_Blue_dim_tertiary
-        AccentColor.LAVENDER -> Macchiato_Lavender_dim_tertiary
+        AccentColor.ROSE -> RosePine_Rose_tertiary
+        AccentColor.IRIS -> RosePine_Iris_tertiary
+        AccentColor.PINE -> RosePine_Pine_tertiary
+        AccentColor.GOLD -> RosePine_Gold_tertiary
+        AccentColor.LOVE -> RosePine_Love_tertiary
+        AccentColor.FOAM -> RosePine_Foam_tertiary
+        AccentColor.MUTED -> RosePine_Muted_tertiary
+        AccentColor.SUBTLE -> RosePine_Subtle_tertiary
+        AccentColor.TEXT -> RosePine_Text_tertiary
+        AccentColor.HIGHLIGHT -> RosePine_Highlight_tertiary
+        AccentColor.SURFACE -> RosePine_Surface_tertiary
+        AccentColor.OVERLAY -> RosePine_Overlay_tertiary
     }
 
     return darkColorScheme(
@@ -309,24 +309,24 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         onTertiary = Color(0xFFFFFFFF),
         tertiaryContainer = tertiaryColor,
         onTertiaryContainer = Color(0xFFFFFFFF),
-        background = Color(0xFF111318),
-        onBackground = Color(0xFFE2E2E9),
-        surface = Color(0xFF111318),
-        onSurface = Color(0xFFE2E2E9),
-        surfaceVariant = Color(0xFF1E1F25),
-        onSurfaceVariant = Color(0xFFC4C6D0),
-        inverseSurface = Color(0xFFE2E2E9),
-        inverseOnSurface = Color(0xFF2F3036),
-        error = Macchiato_Red_dim,
+        background = Color(0xFF191724),
+        onBackground = Color(0xFFE0DEF4),
+        surface = Color(0xFF1F1D2E),
+        onSurface = Color(0xFFE0DEF4),
+        surfaceVariant = Color(0xFF26233A),
+        onSurfaceVariant = Color(0xFF908CAA),
+        inverseSurface = Color(0xFFE0DEF4),
+        inverseOnSurface = Color(0xFF26233A),
+        error = RosePine_Love,
         onError = Color(0xFFFFFFFF),
-        errorContainer = Macchiato_Red_dim,
+        errorContainer = RosePine_Love,
         onErrorContainer = Color(0xFFFFFFFF),
-        surfaceBright = Color(0xFF37393E),
-        surfaceDim = Color(0xFF0C0E13),
-        surfaceContainer = Color(0xFF1E1F25),
-        surfaceContainerHigh = Color(0xFF282A2F),
-        surfaceContainerHighest = Color(0xFF33353A),
-        surfaceContainerLow = Color(0xFF1E1F25),
-        surfaceContainerLowest = Color(0xFF1A1B20)
+        surfaceBright = Color(0xFF26233A),
+        surfaceDim = Color(0xFF191724),
+        surfaceContainer = Color(0xFF1F1D2E),
+        surfaceContainerHigh = Color(0xFF26233A),
+        surfaceContainerHighest = Color(0xFF403D52),
+        surfaceContainerLow = Color(0xFF1F1D2E),
+        surfaceContainerLowest = Color(0xFF191724)
     )
 }

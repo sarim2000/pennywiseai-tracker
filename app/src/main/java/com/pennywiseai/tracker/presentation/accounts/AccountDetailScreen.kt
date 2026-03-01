@@ -34,6 +34,7 @@ import androidx.navigation.NavController
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -134,7 +135,7 @@ fun AccountDetailScreen(
             
             // Transactions Header
             item {
-                SectionHeader(
+                SectionHeaderV2(
                     title = "Transactions (${uiState.transactions.size})"
                 )
             }

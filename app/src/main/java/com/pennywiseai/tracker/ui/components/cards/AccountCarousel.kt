@@ -1,26 +1,18 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -103,14 +94,14 @@ private fun AccountCarouselCard(
     val containerColor = if (blurEffects)
         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.surfaceContainerLow
-    val accentColor = MaterialTheme.colorScheme.primary
 
-    Surface(
+    val cardShape = RoundedCornerShape(16.dp)
+
+    PennyWiseCardV2(
         modifier = modifier
-            .height(190.dp)
             .then(
                 if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+                    .clip(cardShape)
                     .hazeEffect(
                         state = hazeState,
                         block = fun HazeEffectScope.() {
@@ -124,97 +115,78 @@ private fun AccountCarouselCard(
                         }
                     )
                 else Modifier
-            )
-            .clip(RoundedCornerShape(24.dp))
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
             ),
-        color = containerColor,
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(0.5.dp, accentColor.copy(alpha = 0.1f))
+        onClick = onClick,
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        contentPadding = Spacing.md
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+        // Top row: BrandIcon + Bank name + Account last4 + Account type chip
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             BrandIcon(
                 merchantName = account.bankName,
-                size = 48.dp,
+                size = 40.dp,
                 showBackground = true
             )
 
-            Column {
+            Text(
+                text = account.bankName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+
+            Text(
+                text = "••${account.accountLast4}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                maxLines = 1
+            )
+
+            // Account type chip
+            Surface(
+                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
                 Text(
-                    text = "${account.bankName.uppercase()} ••${account.accountLast4}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    letterSpacing = 1.sp
+                    text = if (isCreditCard) "Credit" else "Savings",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = if (isCreditCard) account.formatCreditLimit() else account.formatBalance(),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isCreditCard) "Credit Card" else "Savings account",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Surface(
-                        onClick = onClick,
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        border = BorderStroke(
-                            0.5.dp,
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = "View details",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
             }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        // Bottom row: Balance label on left, amount on right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (isCreditCard) "Outstanding" else "Balance",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+
+            Text(
+                text = if (isCreditCard) account.formatCreditLimit() else account.formatBalance(),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

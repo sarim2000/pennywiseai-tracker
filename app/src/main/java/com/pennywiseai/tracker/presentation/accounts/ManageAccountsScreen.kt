@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
@@ -211,7 +211,7 @@ fun ManageAccountsScreen(
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
-                        SectionHeader(title = "Bank Accounts")
+                        SectionHeaderV2(title = "Bank Accounts")
                     }
 
                     items(visibleRegularAccounts) { account ->
@@ -251,7 +251,7 @@ fun ManageAccountsScreen(
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeader(title = "Unlinked Cards")
+                        SectionHeaderV2(title = "Unlinked Cards")
                     }
                     
                     items(uiState.orphanedCards) { card ->
@@ -272,7 +272,7 @@ fun ManageAccountsScreen(
                 if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeader(title = "Credit Cards")
+                        SectionHeaderV2(title = "Credit Cards")
                     }
 
                     items(visibleCreditCards) { card ->

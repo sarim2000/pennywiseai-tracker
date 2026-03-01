@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,10 +50,7 @@ fun CategoryPieChart(
                 selectedColor = (CategoryMapping.categories[category.name]?.color
                     ?: Color.Gray).copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
+                scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500)
             )
         }
@@ -87,10 +82,7 @@ fun CategoryPieChart(
                     }
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
+                scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500),
                 style = Pie.Style.Stroke(width = 12.dp)
             )
@@ -157,6 +149,7 @@ private fun PieLegendItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .sizeIn(minHeight = 48.dp)
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(

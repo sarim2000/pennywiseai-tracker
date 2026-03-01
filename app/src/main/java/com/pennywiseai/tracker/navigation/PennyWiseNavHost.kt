@@ -2,9 +2,13 @@ package com.pennywiseai.tracker.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -15,6 +19,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
+import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 
@@ -38,7 +44,9 @@ fun PennyWiseNavHost(
 ) {
     // Use a stable start destination
     val stableStartDestination = remember { startDestination }
-    
+
+    SharedTransitionLayout {
+    CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
     NavHost(
         navController = navController,
         startDestination = stableStartDestination,
@@ -79,29 +87,33 @@ fun PennyWiseNavHost(
             )
         }
         composable<Home>(
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
+            enterTransition = { fadeIn() },
+            exitTransition = { fadeOut() },
+            popEnterTransition = { fadeIn() },
+            popExitTransition = { fadeOut() }
         ) {
-            MainScreen(
-                rootNavController = navController
-            )
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+                MainScreen(
+                    rootNavController = navController
+                )
+            }
         }
 
         composable<HomeWithCategoryFilter>(
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
+            enterTransition = { fadeIn() },
+            exitTransition = { fadeOut() },
+            popEnterTransition = { fadeIn() },
+            popExitTransition = { fadeOut() }
         ) { backStackEntry ->
             val args = backStackEntry.toRoute<HomeWithCategoryFilter>()
-            MainScreen(
-                rootNavController = navController,
-                initialCategory = args.category,
-                initialPeriod = args.period,
-                initialCurrency = args.currency
-            )
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+                MainScreen(
+                    rootNavController = navController,
+                    initialCategory = args.category,
+                    initialPeriod = args.period,
+                    initialCurrency = args.currency
+                )
+            }
         }
 
         composable<Settings>(
@@ -147,19 +159,21 @@ fun PennyWiseNavHost(
         }
         
         composable<TransactionDetail>(
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
+            enterTransition = { fadeIn() },
+            exitTransition = { fadeOut() },
+            popEnterTransition = { fadeIn() },
+            popExitTransition = { fadeOut() }
         ) { backStackEntry ->
             val transactionDetail = backStackEntry.toRoute<TransactionDetail>()
-            com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
-                transactionId = transactionDetail.transactionId,
-                onNavigateBack = {
-                    onEditComplete()
-                    navController.safePopBackStack()
-                }
-            )
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+                com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
+                    transactionId = transactionDetail.transactionId,
+                    onNavigateBack = {
+                        onEditComplete()
+                        navController.safePopBackStack()
+                    }
+                )
+            }
         }
         
         composable<AddTransaction>(
@@ -341,5 +355,7 @@ fun PennyWiseNavHost(
             )
         }
 
+    }
+    }
     }
 }

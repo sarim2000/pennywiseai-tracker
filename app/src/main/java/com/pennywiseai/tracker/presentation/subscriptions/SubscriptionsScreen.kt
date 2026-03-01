@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -169,7 +170,7 @@ private fun TotalSubscriptionsSummary(
 ) {
     val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
 
-    SummaryCard(
+    SummaryCardV2(
         title = "Monthly Subscriptions",
         amount = if (currency != null) {
             CurrencyFormatter.formatCurrency(totalAmount, currency)
@@ -178,7 +179,7 @@ private fun TotalSubscriptionsSummary(
         },
         subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
         amountColor = amountColor,
-        containerColor = CardDefaults.cardColors(
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     )

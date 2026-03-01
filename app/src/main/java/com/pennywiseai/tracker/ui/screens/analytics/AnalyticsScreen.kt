@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
@@ -452,7 +454,7 @@ fun AnalyticsScreen(
         // Top Merchants Section
         if (uiState.topMerchants.isNotEmpty()) {
             item {
-                SectionHeader(
+                SectionHeaderV2(
                     title = "Top Merchants"
                 )
             }
@@ -506,7 +508,7 @@ private fun CategoryListItem(
     val categoryInfo = CategoryMapping.categories[category.name]
         ?: CategoryMapping.categories["Others"]!!
 
-    ListItemCard(
+    ListItemCardV2(
         leadingContent = {
             Box(
                 modifier = Modifier
@@ -549,7 +551,7 @@ private fun MerchantListItem(
         }
     }
 
-    ListItemCard(
+    ListItemCardV2(
         leadingContent = {
             BrandIcon(
                 merchantName = merchant.name,
@@ -574,50 +576,13 @@ private fun EmptyAnalyticsState(
             .padding(Dimensions.Padding.content),
         contentAlignment = Alignment.Center
     ) {
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.empty),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = "No spending data yet",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text = "Scan your SMS to see spending insights",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Button(
-                    onClick = onScanSmsClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Sms,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Scan SMS")
-                }
-            }
-        }
+        PennyWiseEmptyState(
+            icon = Icons.AutoMirrored.Filled.ShowChart,
+            headline = "Not enough data yet",
+            description = "Your spending insights will appear here after your first week of tracking",
+            actionLabel = "Scan SMS",
+            onAction = onScanSmsClick
+        )
     }
 }
 

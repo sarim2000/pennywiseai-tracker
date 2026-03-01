@@ -36,7 +36,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.orange_light
@@ -159,7 +159,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             // ── Personalization ──
-            SectionHeader(title = "Personalization")
+            SectionHeaderV2(title = "Personalization")
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Palette,
@@ -173,7 +173,7 @@ fun SettingsScreen(
             }
 
             // ── Currency ──
-            SectionHeader(title = "Currency")
+            SectionHeaderV2(title = "Currency")
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.CurrencyExchange,
@@ -241,7 +241,7 @@ fun SettingsScreen(
             }
 
             // ── Security ──
-            SectionHeader(title = "Security")
+            SectionHeaderV2(title = "Security")
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Lock,
@@ -276,7 +276,7 @@ fun SettingsScreen(
             }
 
             // ── Data Management ──
-            SectionHeader(title = "Data Management")
+            SectionHeaderV2(title = "Data Management")
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.AccountBalance,
@@ -345,7 +345,7 @@ fun SettingsScreen(
             }
 
             // ── AI Features ──
-            SectionHeader(title = "AI Features")
+            SectionHeaderV2(title = "AI Features")
             SettingsGroup {
                 AiChatSettingsItem(
                     downloadState = downloadState,
@@ -359,7 +359,7 @@ fun SettingsScreen(
             }
 
             // ── Developer ──
-            SectionHeader(title = "Developer")
+            SectionHeaderV2(title = "Developer")
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
@@ -374,7 +374,7 @@ fun SettingsScreen(
             }
 
             // ── Support & Community ──
-            SectionHeader(title = "Support & Community")
+            SectionHeaderV2(title = "Support & Community")
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.AutoMirrored.Filled.Help,

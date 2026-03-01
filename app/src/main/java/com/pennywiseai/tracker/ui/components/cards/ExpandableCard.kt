@@ -1,9 +1,8 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
@@ -27,7 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -41,13 +43,11 @@ fun ExpandableCard(
     expandedContent: @Composable () -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(initialExpanded) }
+    val view = LocalView.current
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
+        animationSpec = tween(Dimensions.Animation.medium),
         label = "chevronRotation"
     )
 
@@ -59,7 +59,10 @@ fun ExpandableCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        expanded = !expanded
+                    }
                     .padding(vertical = Spacing.xs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -81,16 +84,10 @@ fun ExpandableCard(
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = tween(Dimensions.Animation.medium)
                 ),
                 exit = shrinkVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
+                    animationSpec = tween(Dimensions.Animation.short)
                 )
             ) {
                 Column(

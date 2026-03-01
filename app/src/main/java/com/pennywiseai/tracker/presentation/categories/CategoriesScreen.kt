@@ -25,7 +25,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -113,7 +113,7 @@ fun CategoriesScreen(
             // Expense Categories Section
             if (expenseCategories.isNotEmpty()) {
                 item {
-                    SectionHeader(title = "Expense Categories")
+                    SectionHeaderV2(title = "Expense Categories")
                 }
 
                 items(
@@ -131,7 +131,7 @@ fun CategoriesScreen(
             // Income Categories Section
             if (incomeCategories.isNotEmpty()) {
                 item {
-                    SectionHeader(title = "Income Categories")
+                    SectionHeaderV2(title = "Income Categories")
                 }
 
                 items(

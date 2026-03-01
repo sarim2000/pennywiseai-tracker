@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import java.time.LocalDate
 import java.time.LocalTime
@@ -74,13 +74,13 @@ fun GreetingCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Profile Avatar
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(avatarBackground)
                 .clickable(onClick = onAvatarClick),
@@ -129,38 +129,28 @@ fun GreetingCard(
         ) {
             Text(
                 text = userName.ifBlank { "User" },
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold
                 ),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
 
-        // Hamburger menu button
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainer,
-                    CircleShape
-                )
-                .clickable(onClick = onMenuClick),
-            contentAlignment = Alignment.Center
+        // Menu button — plain IconButton, no circular background
+        IconButton(
+            onClick = onMenuClick,
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Outlined.MoreHoriz,
                 contentDescription = "More options",
-                tint = MaterialTheme.colorScheme.inverseSurface,
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
     }
 }

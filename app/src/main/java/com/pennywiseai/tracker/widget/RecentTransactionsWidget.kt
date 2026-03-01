@@ -106,7 +106,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = "Recent Transactions",
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
             )
@@ -150,7 +150,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = CurrencyFormatter.formatCurrency(totalSpent, currency),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurface,
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             )
@@ -203,9 +203,9 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             }
 
             val amountColor = when (item.transactionType) {
-                TransactionType.INCOME -> ColorProvider(Color(0xFF2E7D32))
+                TransactionType.INCOME -> ColorProvider(Color(0xFF00796B))
                 TransactionType.TRANSFER -> GlanceTheme.colors.onSurfaceVariant
-                else -> ColorProvider(Color(0xFFD32F2F))
+                else -> ColorProvider(Color(0xFFC62828))
             }
 
             Text(

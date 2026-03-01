@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -76,16 +77,17 @@ fun SummaryCard(
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
                 text = amount,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = amountColor
+                color = amountColor,
+                letterSpacing = 0.5.sp
             )
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = Dimensions.Alpha.surface),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -128,8 +130,7 @@ fun ListItemCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = subtitle,
@@ -144,7 +145,7 @@ fun ListItemCard(
                 Text(
                     text = amount,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = amountColor
                 )
             }
@@ -168,9 +169,10 @@ fun SectionHeader(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 0.5.sp
         )
         if (action != null) {
             action()

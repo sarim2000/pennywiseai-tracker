@@ -11,8 +11,8 @@ object Dimensions {
     // Padding values (complementing Spacing.kt)
     object Padding {
         val content = 16.dp      // Standard content padding
-        val card = 20.dp         // Card internal padding
-        val empty = 32.dp        // Empty state padding
+        val card = 18.dp         // Card internal padding
+        val empty = 40.dp        // Empty state padding
         val fab = 16.dp          // FAB padding
     }
     
@@ -26,19 +26,19 @@ object Dimensions {
     
     // Alpha values for transparency
     object Alpha {
-        const val high = 0.87f
-        const val medium = 0.6f
+        const val high = 0.90f
+        const val medium = 0.55f
         const val disabled = 0.38f
         const val divider = 0.12f
-        const val surface = 0.7f
-        const val subtitle = 0.8f
+        const val surface = 0.65f
+        const val subtitle = 0.75f
     }
     
     // Icon sizes
     object Icon {
         val small = 16.dp
         val medium = 24.dp
-        val large = 48.dp
+        val large = 44.dp
         val extraLarge = 120.dp  // For empty states
     }
     
@@ -46,7 +46,7 @@ object Dimensions {
     object CornerRadius {
         val small = 4.dp
         val medium = 8.dp
-        val large = 12.dp
+        val large = 16.dp
         val full = 50.dp  // For circular elements
     }
     
@@ -72,8 +72,8 @@ object Dimensions {
     
     // Animation durations (in milliseconds)
     object Animation {
-        const val short = 150
-        const val medium = 300
-        const val long = 500
+        const val short = 120
+        const val medium = 250
+        const val long = 400
     }
 }

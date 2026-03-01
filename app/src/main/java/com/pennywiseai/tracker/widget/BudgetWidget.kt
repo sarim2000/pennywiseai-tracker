@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.os.Build
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,10 +30,10 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 
 class BudgetWidget : GlanceAppWidget() {
@@ -46,10 +46,22 @@ class BudgetWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = BudgetWidgetDataStore.getData(context).first()
+        val data = try {
+            withTimeoutOrNull(5000L) {
+                BudgetWidgetDataStore.getData(context).first()
+            } ?: BudgetWidgetData()
+        } catch (e: Exception) {
+            android.util.Log.e("BudgetWidget", "Failed to load widget data", e)
+            BudgetWidgetData()
+        }
 
         provideContent {
-            GlanceTheme {
+            GlanceTheme(
+                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    GlanceTheme.colors
+                else
+                    PennyWiseWidgetTheme.colors
+            ) {
                 BudgetWidgetContent(data)
             }
         }
@@ -105,18 +117,7 @@ class BudgetWidget : GlanceAppWidget() {
     private fun BudgetOverviewContent(data: BudgetWidgetData) {
         val size = LocalSize.current
         val isSmall = size.width < 280.dp
-
-        val statusColor = when {
-            data.percentageUsed > 90f -> ColorProvider(Color(0xFFC62828))
-            data.percentageUsed > 70f -> ColorProvider(Color(0xFFFF8F00))
-            else -> ColorProvider(Color(0xFF2E7D32))
-        }
-
-        val statusColorRaw = when {
-            data.percentageUsed > 90f -> Color(0xFFC62828)
-            data.percentageUsed > 70f -> Color(0xFFFF8F00)
-            else -> Color(0xFF2E7D32)
-        }
+        val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
 
         // Title row with percentage
         Row(
@@ -173,7 +174,7 @@ class BudgetWidget : GlanceAppWidget() {
                         .width(progressWidth.dp)
                         .height(8.dp)
                         .cornerRadius(4.dp)
-                        .background(ColorProvider(statusColorRaw))
+                        .background(statusColor)
                 )
             }
         }
@@ -230,11 +231,7 @@ class BudgetWidget : GlanceAppWidget() {
                 if (data.totalIncome > BigDecimal.ZERO) {
                     Spacer(modifier = GlanceModifier.defaultWeight())
 
-                    val savingsColor = if (data.netSavings >= BigDecimal.ZERO) {
-                        ColorProvider(Color(0xFF2E7D32))
-                    } else {
-                        ColorProvider(Color(0xFFC62828))
-                    }
+                    val savingsColor = PennyWiseWidgetTheme.savingsColor(data.netSavings >= BigDecimal.ZERO)
 
                     val savingsText = buildString {
                         append(if (data.netSavings >= BigDecimal.ZERO) "Saved " else "Over ")

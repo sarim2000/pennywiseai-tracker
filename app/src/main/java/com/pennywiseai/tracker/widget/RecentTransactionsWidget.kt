@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.os.Build
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,12 +39,12 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 class RecentTransactionsWidget : GlanceAppWidget() {
 
@@ -56,10 +56,22 @@ class RecentTransactionsWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = RecentTransactionsWidgetDataStore.getData(context).first()
+        val data = try {
+            withTimeoutOrNull(5000L) {
+                RecentTransactionsWidgetDataStore.getData(context).first()
+            } ?: RecentTransactionsWidgetData()
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionsWidget", "Failed to load widget data", e)
+            RecentTransactionsWidgetData()
+        }
 
         provideContent {
-            GlanceTheme {
+            GlanceTheme(
+                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    GlanceTheme.colors
+                else
+                    PennyWiseWidgetTheme.colors
+            ) {
                 RecentTransactionsContent(data)
             }
         }
@@ -203,9 +215,9 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             }
 
             val amountColor = when (item.transactionType) {
-                TransactionType.INCOME -> ColorProvider(Color(0xFF00796B))
+                TransactionType.INCOME -> PennyWiseWidgetTheme.transactionAmountColor(TransactionType.INCOME)
                 TransactionType.TRANSFER -> GlanceTheme.colors.onSurfaceVariant
-                else -> ColorProvider(Color(0xFFC62828))
+                else -> PennyWiseWidgetTheme.transactionAmountColor(item.transactionType)
             }
 
             Text(

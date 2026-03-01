@@ -316,6 +316,8 @@ fun HomeScreen(
                         currentMonthTotal = uiState.currentMonthTotal,
                         balanceHistory = uiState.balanceHistory,
                         availableCurrencies = uiState.availableCurrencies,
+                        isBalanceHidden = uiState.isBalanceHidden,
+                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                         onCurrencyClick = {
                             // Cycle through currencies when tapped
                             val currencies = uiState.availableCurrencies

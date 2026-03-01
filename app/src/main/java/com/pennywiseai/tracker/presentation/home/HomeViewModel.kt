@@ -82,6 +82,21 @@ class HomeViewModel @Inject constructor(
         loadUnifiedModePreferences()
         loadHomeData()
         loadUserName()
+        loadBalanceVisibility()
+    }
+
+    private fun loadBalanceVisibility() {
+        userPreferencesRepository.isBalanceHidden
+            .onEach { hidden ->
+                _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun toggleBalanceVisibility() {
+        viewModelScope.launch {
+            userPreferencesRepository.setBalanceHidden(!_uiState.value.isBalanceHidden)
+        }
     }
 
     private fun loadUserName() {
@@ -956,5 +971,6 @@ data class HomeUiState(
     val isScanning: Boolean = false,
     val showBreakdownDialog: Boolean = false,
     val isUnifiedMode: Boolean = false,
-    val transactionHeatmap: Map<Long, Int> = emptyMap()
+    val transactionHeatmap: Map<Long, Int> = emptyMap(),
+    val isBalanceHidden: Boolean = false
 )

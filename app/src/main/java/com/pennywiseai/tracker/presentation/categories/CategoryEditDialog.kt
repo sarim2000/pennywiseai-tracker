@@ -24,6 +24,11 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
+private fun isLightColor(color: Color): Boolean {
+    val luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue)
+    return luminance > 0.5
+}
+
 // Preset colors for categories
 private val presetColors = listOf(
     "#E53935", "#D81B60", "#8E24AA", "#5E35B1",
@@ -145,7 +150,7 @@ fun CategoryEditDialog(
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = "Selected",
-                                        tint = Color.White,
+                                        tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }

@@ -975,11 +975,12 @@ private fun BudgetCategoryPieChart(
         }
     }
 
-    val categoryColors = remember(categorySpending) {
+    val fallbackColor = MaterialTheme.colorScheme.outline
+    val categoryColors = remember(categorySpending, fallbackColor) {
         categorySpending.map { cat ->
             val info = CategoryMapping.categories[cat.categoryName]
                 ?: CategoryMapping.categories["Others"]
-            info?.color ?: Color(0xFF9E9E9E)
+            info?.color ?: fallbackColor
         }
     }
 

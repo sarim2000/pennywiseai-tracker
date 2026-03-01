@@ -66,6 +66,9 @@ class UserPreferencesRepository @Inject constructor(
         // Budget Groups Migration
         val HAS_MIGRATED_TO_BUDGET_GROUPS = booleanPreferencesKey("has_migrated_to_budget_groups")
 
+        // Balance Visibility
+        val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
+
         // Blur Effects
         val BLUR_EFFECTS_ENABLED = booleanPreferencesKey("blur_effects_enabled")
 
@@ -501,6 +504,18 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun updateBaseCurrency(currency: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
+        }
+    }
+
+    // Balance Visibility
+    val isBalanceHidden: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false
+        }
+
+    suspend fun setBalanceHidden(hidden: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
     }
 

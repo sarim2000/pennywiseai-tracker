@@ -151,7 +151,7 @@ fun BalanceCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             AnimatedCurrencyText(
                                 text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(totalBalance, currency),
@@ -164,13 +164,13 @@ fun BalanceCard(
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onToggleBalanceVisibility()
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(18.dp)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
@@ -241,7 +241,7 @@ fun BalanceCard(
                         // Balance at top as hero
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             AnimatedCurrencyText(
                                 text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(totalBalance, currency),
@@ -254,13 +254,13 @@ fun BalanceCard(
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onToggleBalanceVisibility()
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(18.dp)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
@@ -312,16 +312,18 @@ fun BalanceCard(
                             Spacer(modifier = Modifier.height(Spacing.sm))
                         }
 
-                        // Sparkline (full width, 100dp)
+                        // Sparkline (full width, 114dp)
                         if (balanceHistory.size >= 2) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(100.dp)
+                                    .height(114.dp)
                             ) {
                                 BalanceSparkline(
                                     data = balanceHistory,
-                                    lineColor = MaterialTheme.colorScheme.primary
+                                    lineColor = MaterialTheme.colorScheme.primary,
+                                    currency = currency,
+                                    isBalanceHidden = isBalanceHidden
                                 )
                             }
                         }

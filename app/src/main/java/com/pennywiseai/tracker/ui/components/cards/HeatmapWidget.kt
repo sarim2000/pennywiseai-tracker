@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
@@ -117,47 +119,87 @@ fun HeatmapWidget(
         Column {
             SectionHeaderV2(title = "Activity")
 
+            val cellSize = 14.dp
+            val gapSize = 4.dp
+            val dayLabelWidth = 20.dp
+
             Column(
-                modifier = Modifier
-                    .horizontalScroll(scrollState)
-                    .padding(top = Spacing.sm)
+                modifier = Modifier.padding(top = Spacing.sm)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    for (w in 0 until weeksToShow) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            for (d in 0 until 7) {
-                                val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                val epochDay = date.toEpochDay()
-                                val count = transactionHeatmap[epochDay] ?: 0
-
-                                val primary = MaterialTheme.colorScheme.primary
-                                val color = when {
-                                    date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                    count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                    count == 1 -> primary.copy(alpha = 0.25f)
-                                    count == 2 -> primary.copy(alpha = 0.5f)
-                                    count in 3..4 -> primary.copy(alpha = 0.75f)
-                                    else -> primary
+                Row {
+                    // Day-of-week labels (M, W, F)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(gapSize),
+                        modifier = Modifier.width(dayLabelWidth)
+                    ) {
+                        // Rows: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+                        for (d in 0 until 7) {
+                            val label = when (d) {
+                                0 -> "M"
+                                2 -> "W"
+                                4 -> "F"
+                                else -> null
+                            }
+                            Box(
+                                modifier = Modifier.size(cellSize),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (label != null) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
                                 }
+                            }
+                        }
+                    }
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(color)
-                                )
+                    // Heatmap grid
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(gapSize),
+                        modifier = Modifier
+                            .horizontalScroll(scrollState)
+                            .padding(bottom = 8.dp)
+                    ) {
+                        for (w in 0 until weeksToShow) {
+                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                for (d in 0 until 7) {
+                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                    val epochDay = date.toEpochDay()
+                                    val count = transactionHeatmap[epochDay] ?: 0
+
+                                    val primary = MaterialTheme.colorScheme.primary
+                                    val color = when {
+                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                        count == 1 -> primary.copy(alpha = 0.25f)
+                                        count == 2 -> primary.copy(alpha = 0.5f)
+                                        count in 3..4 -> primary.copy(alpha = 0.75f)
+                                        else -> primary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(cellSize)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(color)
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 // Month labels
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = dayLabelWidth)
+                ) {
                     monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * 18).dp
+                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,

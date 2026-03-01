@@ -68,6 +68,7 @@ import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
+import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
@@ -302,33 +303,39 @@ fun HomeScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    com.pennywiseai.tracker.ui.components.cards.BalanceCard(
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                        blurEffects = blurEffects,
-                        hazeState = hazeStateBanner,
-                        userName = uiState.userName,
-                        totalBalance = uiState.totalBalance,
-                        monthlyChange = uiState.monthlyChange,
-                        monthlyChangePercent = uiState.monthlyChangePercent,
-                        currency = uiState.selectedCurrency,
-                        currentMonthIncome = uiState.currentMonthIncome,
-                        currentMonthExpenses = uiState.currentMonthExpenses,
-                        currentMonthTotal = uiState.currentMonthTotal,
-                        balanceHistory = uiState.balanceHistory,
-                        availableCurrencies = uiState.availableCurrencies,
-                        isBalanceHidden = uiState.isBalanceHidden,
-                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                        onCurrencyClick = {
-                            // Cycle through currencies when tapped
-                            val currencies = uiState.availableCurrencies
-                            if (currencies.size > 1) {
-                                val currentIdx = currencies.indexOf(uiState.selectedCurrency)
-                                val nextIdx = (currentIdx + 1) % currencies.size
-                                viewModel.selectCurrency(currencies[nextIdx])
-                            }
-                        },
-                        onShowBreakdown = { viewModel.showBreakdownDialog() }
-                    )
+                    if (!uiState.isBalanceReady) {
+                        BalanceCardSkeleton(
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                    } else {
+                        com.pennywiseai.tracker.ui.components.cards.BalanceCard(
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            blurEffects = blurEffects,
+                            hazeState = hazeStateBanner,
+                            userName = uiState.userName,
+                            totalBalance = uiState.totalBalance,
+                            monthlyChange = uiState.monthlyChange,
+                            monthlyChangePercent = uiState.monthlyChangePercent,
+                            currency = uiState.selectedCurrency,
+                            currentMonthIncome = uiState.currentMonthIncome,
+                            currentMonthExpenses = uiState.currentMonthExpenses,
+                            currentMonthTotal = uiState.currentMonthTotal,
+                            balanceHistory = uiState.balanceHistory,
+                            availableCurrencies = uiState.availableCurrencies,
+                            isBalanceHidden = uiState.isBalanceHidden,
+                            onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                            onCurrencyClick = {
+                                // Cycle through currencies when tapped
+                                val currencies = uiState.availableCurrencies
+                                if (currencies.size > 1) {
+                                    val currentIdx = currencies.indexOf(uiState.selectedCurrency)
+                                    val nextIdx = (currentIdx + 1) % currencies.size
+                                    viewModel.selectCurrency(currencies[nextIdx])
+                                }
+                            },
+                            onShowBreakdown = { viewModel.showBreakdownDialog() }
+                        )
+                    }
                 }
             }
 

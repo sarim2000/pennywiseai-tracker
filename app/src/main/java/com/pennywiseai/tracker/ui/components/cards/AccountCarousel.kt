@@ -8,16 +8,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -91,6 +100,7 @@ private fun AccountCarouselCard(
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
+    var isAmountHidden by remember { mutableStateOf(true) }
     val containerColor = if (blurEffects)
         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.surfaceContainerLow
@@ -167,7 +177,7 @@ private fun AccountCarouselCard(
 
         Spacer(modifier = Modifier.height(Spacing.sm))
 
-        // Bottom row: Balance label on left, amount on right
+        // Bottom row: Balance label on left, amount + eye on right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -179,14 +189,35 @@ private fun AccountCarouselCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
 
-            Text(
-                text = if (isCreditCard) account.formatCreditLimit() else account.formatBalance(),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = if (isAmountHidden) "••••••"
+                           else if (isCreditCard) account.formatCreditLimit()
+                           else account.formatBalance(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+
+                IconButton(
+                    onClick = { isAmountHidden = !isAmountHidden },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isAmountHidden) Icons.Outlined.VisibilityOff
+                                      else Icons.Outlined.Visibility,
+                        contentDescription = if (isAmountHidden) "Show balance" else "Hide balance",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
         }
     }
 }

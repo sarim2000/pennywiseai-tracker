@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
-import android.content.res.Configuration
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -31,14 +30,7 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
-import com.pennywiseai.tracker.ui.theme.budget_danger_dark
-import com.pennywiseai.tracker.ui.theme.budget_danger_light
-import com.pennywiseai.tracker.ui.theme.budget_safe_dark
-import com.pennywiseai.tracker.ui.theme.budget_safe_light
-import com.pennywiseai.tracker.ui.theme.budget_warning_dark
-import com.pennywiseai.tracker.ui.theme.budget_warning_light
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -64,7 +56,12 @@ class BudgetWidget : GlanceAppWidget() {
         }
 
         provideContent {
-            GlanceTheme {
+            GlanceTheme(
+                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    GlanceTheme.colors
+                else
+                    PennyWiseWidgetTheme.colors
+            ) {
                 BudgetWidgetContent(data)
             }
         }
@@ -120,14 +117,7 @@ class BudgetWidget : GlanceAppWidget() {
     private fun BudgetOverviewContent(data: BudgetWidgetData) {
         val size = LocalSize.current
         val isSmall = size.width < 280.dp
-        val isDark = (LocalContext.current.resources.configuration.uiMode and
-            Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-
-        val statusColor = when {
-            data.percentageUsed > 90f -> ColorProvider(if (isDark) budget_danger_dark else budget_danger_light)
-            data.percentageUsed > 70f -> ColorProvider(if (isDark) budget_warning_dark else budget_warning_light)
-            else -> ColorProvider(if (isDark) budget_safe_dark else budget_safe_light)
-        }
+        val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
 
         // Title row with percentage
         Row(
@@ -241,11 +231,7 @@ class BudgetWidget : GlanceAppWidget() {
                 if (data.totalIncome > BigDecimal.ZERO) {
                     Spacer(modifier = GlanceModifier.defaultWeight())
 
-                    val savingsColor = if (data.netSavings >= BigDecimal.ZERO) {
-                        ColorProvider(if (isDark) budget_safe_dark else budget_safe_light)
-                    } else {
-                        ColorProvider(if (isDark) budget_danger_dark else budget_danger_light)
-                    }
+                    val savingsColor = PennyWiseWidgetTheme.savingsColor(data.netSavings >= BigDecimal.ZERO)
 
                     val savingsText = buildString {
                         append(if (data.netSavings >= BigDecimal.ZERO) "Saved " else "Over ")

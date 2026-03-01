@@ -5,6 +5,7 @@
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center_vertical"
+    android:theme="@android:style/Theme.DeviceDefault.DayNight"
     android:background="?android:attr/colorBackground">
 
     <LinearLayout
@@ -45,7 +46,7 @@
         android:layout_marginTop="8dp"
         android:background="#E0E0E0">
 
-        <View
+        <FrameLayout
             android:layout_width="160dp"
             android:layout_height="match_parent"
             android:background="#2E7D32" />

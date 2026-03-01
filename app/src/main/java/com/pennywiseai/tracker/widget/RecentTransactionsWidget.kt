@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.os.Build
 import android.content.Intent
-import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -12,7 +12,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.LocalContext
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -40,12 +39,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -72,7 +66,12 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         }
 
         provideContent {
-            GlanceTheme {
+            GlanceTheme(
+                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    GlanceTheme.colors
+                else
+                    PennyWiseWidgetTheme.colors
+            ) {
                 RecentTransactionsContent(data)
             }
         }
@@ -215,12 +214,10 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 )
             }
 
-            val isDark = (LocalContext.current.resources.configuration.uiMode and
-                Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
             val amountColor = when (item.transactionType) {
-                TransactionType.INCOME -> ColorProvider(if (isDark) income_dark else income_light)
+                TransactionType.INCOME -> PennyWiseWidgetTheme.transactionAmountColor(TransactionType.INCOME)
                 TransactionType.TRANSFER -> GlanceTheme.colors.onSurfaceVariant
-                else -> ColorProvider(if (isDark) expense_dark else expense_light)
+                else -> PennyWiseWidgetTheme.transactionAmountColor(item.transactionType)
             }
 
             Text(

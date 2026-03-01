@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
@@ -19,6 +18,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -36,19 +37,17 @@ fun SmsParsingProgressDialog(
 ) {
     if (isVisible && workInfo != null) {
         Dialog(onDismissRequest = { }) {
-            Card(
+            PennyWiseCardV2(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    .padding(Spacing.md),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                contentPadding = Spacing.lg
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     // Title
                     Text(
@@ -86,7 +85,7 @@ fun SmsParsingProgressDialog(
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text("Cancel Scan")
                         }
                     } else if (workInfo.state == WorkInfo.State.SUCCEEDED) {
@@ -126,7 +125,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // Main progress text
         if (totalMessages > 0) {
@@ -173,7 +172,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
         // Time information
         if (timeElapsed > 0) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Time elapsed
@@ -207,7 +206,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
         when (workInfo.state) {
             WorkInfo.State.RUNNING -> {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(
@@ -223,7 +222,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
             }
             WorkInfo.State.SUCCEEDED -> {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -241,7 +240,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
             }
             WorkInfo.State.FAILED -> {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -259,7 +258,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
             }
             WorkInfo.State.CANCELLED -> {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -278,7 +277,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
             else -> {
                 // For ENQUEUED or BLOCKED states
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(
@@ -321,7 +320,7 @@ fun SmsParsingProgressIndicator(
             Column(
                 modifier = modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 LinearProgressIndicator(
                     progress = { processedMessages.toFloat() / totalMessages.toFloat() },

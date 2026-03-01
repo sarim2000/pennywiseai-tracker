@@ -25,6 +25,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.repository.CategorySpendingInfo
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -281,15 +282,14 @@ private fun BudgetOverview(
         // Unallocated Budget Info
         if (uiState.unallocatedBudget > BigDecimal.ZERO && uiState.categoryLimits.isNotEmpty()) {
             item {
-                Card(
+                PennyWiseCardV2(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    ),
+                    contentPadding = Dimensions.Padding.content
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Dimensions.Padding.content),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -565,11 +565,12 @@ private fun CategorySpendingRow(
     val isDark = isSystemInDarkTheme()
     val hasLimit = info.limit != null
 
-    Card(
+    PennyWiseCardV2(
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        contentPadding = 0.dp
     ) {
         Column(
             modifier = Modifier

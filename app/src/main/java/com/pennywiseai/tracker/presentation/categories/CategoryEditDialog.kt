@@ -18,6 +18,7 @@ import androidx.compose.ui.window.Dialog
 import com.github.skydoves.colorpicker.compose.*
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryDot
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -42,11 +43,12 @@ fun CategoryEditDialog(
     }
     
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimensions.Padding.content),
-            shape = RoundedCornerShape(28.dp)
+            shape = RoundedCornerShape(28.dp),
+            contentPadding = 0.dp
         ) {
             Column(
                 modifier = Modifier
@@ -146,46 +148,41 @@ fun CategoryEditDialog(
                 }
                 
                 // Preview
-                Card(
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    ),
+                    contentPadding = Dimensions.Padding.content
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Dimensions.Padding.content)
+                    Text(
+                        text = "Preview",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
+                        // Show selected color
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(controller.selectedColor.value)
+                        )
                         Text(
-                            text = "Preview",
+                            text = name.ifBlank { "Category Name" },
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        // Show hex value
+                        Text(
+                            text = colorToHex(controller.selectedColor.value),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            // Show selected color
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(controller.selectedColor.value)
-                            )
-                            Text(
-                                text = name.ifBlank { "Category Name" },
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            // Show hex value
-                            Text(
-                                text = colorToHex(controller.selectedColor.value),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
                 

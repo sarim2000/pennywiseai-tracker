@@ -5,6 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -36,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -54,6 +61,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
@@ -552,6 +560,24 @@ fun HomeScreen(
             }
         }
         
+        // Scan FAB rotation animation
+        val infiniteTransition = rememberInfiniteTransition(label = "scan_rotation")
+        val rotationAngle by animateFloatAsState(
+            targetValue = if (uiState.isScanning) 1f else 0f,
+            animationSpec = tween(300),
+            label = "scan_trigger"
+        )
+        val continuousRotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "scan_rotation"
+        )
+        val scanRotation = if (uiState.isScanning) continuousRotation else 0f
+
         // FABs - Direct access (no speed dial)
         Column(
             modifier = Modifier
@@ -582,7 +608,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 FloatingActionButton(
-                    onClick = { viewModel.scanSmsMessages() },
+                    onClick = { },
                     modifier = Modifier
                         .spotlightTarget(onFabPositioned)
                         .combinedClickable(
@@ -599,7 +625,8 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sync,
-                        contentDescription = "Sync SMS (long press for full resync)"
+                        contentDescription = "Sync SMS (long press for full resync)",
+                        modifier = if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier
                     )
                 }
                 // Hint for long-press functionality - only show for new users (no transactions yet)
@@ -790,13 +817,14 @@ private fun BreakdownDialog(
     val lastPeriod = "${lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }} 1-${now.dayOfMonth}"
     
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.md), // Reduced horizontal padding for wider modal
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            contentPadding = 0.dp
         ) {
             Column(
                 modifier = Modifier
@@ -879,18 +907,18 @@ private fun BreakdownDialog(
                 
                 // Formula explanation
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Card(
+                PennyWiseCardV2(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = Spacing.sm
                 ) {
                     Text(
                         text = "Formula: Income - Expenses = Net Worth\n" +
                                "Green (+) = Savings | Red (-) = Overspending",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(Spacing.sm),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -950,7 +978,7 @@ private fun UpcomingSubscriptionsCard(
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.secondaryContainer
 
-    Card(
+    PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
             .then(
@@ -973,12 +1001,12 @@ private fun UpcomingSubscriptionsCard(
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = containerColor
-        )
+        ),
+        contentPadding = Dimensions.Padding.content
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

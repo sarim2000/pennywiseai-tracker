@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
@@ -360,7 +361,7 @@ fun ChatScreen(
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
-                            Card(
+                            PennyWiseCardV2(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = Dimensions.Padding.content),
@@ -370,8 +371,7 @@ fun ChatScreen(
                             ) {
                                 Row(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Dimensions.Padding.content),
+                                        .fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -538,7 +538,7 @@ fun DeveloperInfoCard(
         else -> MaterialTheme.colorScheme.primary
     }
     
-    Card(
+    PennyWiseCardV2(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimensions.Padding.content)
@@ -548,9 +548,6 @@ fun DeveloperInfoCard(
         ),
         onClick = { isExpanded = !isExpanded }
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.content)
-        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -606,9 +603,9 @@ fun DeveloperInfoCard(
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(Spacing.xs))
-                    
+
                     // Context usage
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -626,7 +623,7 @@ fun DeveloperInfoCard(
                             color = usageColor
                         )
                     }
-                    
+
                     LinearProgressIndicator(
                         progress = { chatStats.contextUsagePercent / 100f },
                         modifier = Modifier
@@ -637,7 +634,7 @@ fun DeveloperInfoCard(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         drawStopIndicator = {}
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -657,7 +654,6 @@ fun DeveloperInfoCard(
                     }
                 }
             }
-        }
     }
 }
 
@@ -669,17 +665,13 @@ fun TypingIndicator(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier.widthIn(max = 280.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
         ) {
             Row(
-                modifier = Modifier.padding(
-                    horizontal = Dimensions.Padding.content,
-                    vertical = Spacing.md
-                ),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -728,7 +720,7 @@ fun ChatMessageItem(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .animateContentSize(),
@@ -739,39 +731,35 @@ fun ChatMessageItem(
                     MaterialTheme.colorScheme.secondaryContainer
             )
         ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.content)
+            Text(
+                text = message.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (message.isUser)
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                else
+                    MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                Text(
-                    text = message.message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (message.isUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    if (isStreaming) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(12.dp),
-                            strokeWidth = 1.dp
-                        )
-                    }
-                    Text(
-                        text = timeFormat.format(Date(message.timestamp)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (message.isUser)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else
-                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                if (isStreaming) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.dp
                     )
                 }
+                Text(
+                    text = timeFormat.format(Date(message.timestamp)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (message.isUser)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    else
+                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
             }
         }
     }

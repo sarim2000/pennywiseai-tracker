@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CollapsibleFilterRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -386,18 +387,16 @@ fun TransactionsScreen(
         
         // Data scope info banner
         if (viewModel.isShowingLimitedData()) {
-            Card(
+            PennyWiseCardV2(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                )
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(Spacing.md)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

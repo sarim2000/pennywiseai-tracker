@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
@@ -41,14 +42,14 @@ fun SubscriptionTabContent(
     ) {
         // Error Card
         uiState.error?.let { errorMessage ->
-            Card(
+            PennyWiseCardV2(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer
-                )
+                ),
+                contentPadding = 12.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
@@ -67,14 +68,14 @@ fun SubscriptionTabContent(
         }
         
         // Info Card
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+            ),
+            contentPadding = 12.dp
         ) {
             Row(
-                modifier = Modifier.padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(

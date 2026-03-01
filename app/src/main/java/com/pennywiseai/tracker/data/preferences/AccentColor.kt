@@ -1,16 +1,16 @@
 package com.pennywiseai.tracker.data.preferences
 
 enum class AccentColor {
-    ROSEWATER,
-    FLAMINGO,
-    PINK,
-    MAUVE,
-    RED,
-    PEACH,
-    YELLOW,
-    GREEN,
-    TEAL,
-    SAPPHIRE,
-    BLUE,
-    LAVENDER
+    ROSE,
+    IRIS,
+    PINE,
+    GOLD,
+    LOVE,
+    FOAM,
+    MUTED,
+    SUBTLE,
+    TEXT,
+    HIGHLIGHT,
+    SURFACE,
+    OVERLAY
 }

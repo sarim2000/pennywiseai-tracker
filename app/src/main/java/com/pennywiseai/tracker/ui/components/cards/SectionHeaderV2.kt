@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -22,7 +24,8 @@ fun SectionHeaderV2(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.xs),
+            .padding(vertical = Spacing.xs)
+            .semantics { heading() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

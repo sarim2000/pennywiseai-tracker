@@ -24,7 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -205,7 +205,7 @@ fun RulesScreen(
 
                     groupedRules.forEach { (category, categoryRules) ->
                         if (categoryRules.isNotEmpty()) {
-                            SectionHeader(title = category)
+                            SectionHeaderV2(title = category)
 
                             categoryRules.forEach { rule ->
                                 RuleCard(

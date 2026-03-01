@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -42,6 +44,9 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CollapsibleFilterRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
@@ -98,6 +103,7 @@ fun TransactionsScreen(
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val view = LocalView.current
     
     // Calculate active filter count for advanced filters
     val activeFilterCount = listOf(
@@ -381,18 +387,16 @@ fun TransactionsScreen(
         
         // Data scope info banner
         if (viewModel.isShowingLimitedData()) {
-            Card(
+            PennyWiseCardV2(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                )
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(Spacing.md)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -441,7 +445,10 @@ fun TransactionsScreen(
                 items(TransactionTypeFilter.values().toList()) { typeFilter ->
                     FilterChip(
                         selected = transactionTypeFilter == typeFilter,
-                        onClick = { viewModel.setTransactionTypeFilter(typeFilter) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            viewModel.setTransactionTypeFilter(typeFilter)
+                        },
                         label = { Text(typeFilter.label) },
                         leadingIcon = if (transactionTypeFilter == typeFilter) {
                             {
@@ -548,13 +555,19 @@ fun TransactionsScreen(
         // Transaction List
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(Dimensions.Padding.content),
-                    contentAlignment = Alignment.Center
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        top = Spacing.md,
+                        bottom = paddingValues.calculateBottomPadding()
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
-                    CircularProgressIndicator()
+                    items(8) {
+                        TransactionItemSkeleton()
+                    }
                 }
             }
             uiState.transactions.isEmpty() -> {
@@ -618,7 +631,7 @@ fun TransactionsScreen(
                         uiState.groupedTransactions[dateGroup]?.let { transactions ->
                             // Date group header
                             item {
-                                SectionHeader(
+                                SectionHeaderV2(
                                     title = dateGroup.label,
                                     modifier = Modifier.padding(vertical = Spacing.sm)
                                 )
@@ -729,57 +742,31 @@ private fun EmptyTransactionsState(
     selectedPeriod: TimePeriod,
     onAddClick: () -> Unit = {}
 ) {
+    val headline = when {
+        searchQuery.isNotEmpty() -> "No results for \"$searchQuery\""
+        selectedPeriod != TimePeriod.ALL -> "Nothing for ${selectedPeriod.label.lowercase()}"
+        else -> "No transactions yet"
+    }
+    val description = when {
+        searchQuery.isNotEmpty() -> "Try a different search term or clear your filters"
+        selectedPeriod != TimePeriod.ALL -> "Try selecting a different time period"
+        else -> "Add your first transaction manually, or scan SMS from the home screen"
+    }
+    val actionLabel = if (searchQuery.isEmpty() && selectedPeriod == TimePeriod.ALL) "Add Transaction" else null
+    val onAction = if (actionLabel != null) onAddClick else null
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(Dimensions.Padding.content),
         contentAlignment = Alignment.Center
     ) {
-        PennyWiseCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.card),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                )
-                Text(
-                    text = when {
-                        searchQuery.isNotEmpty() -> "No transactions matching \"$searchQuery\""
-                        selectedPeriod != TimePeriod.ALL -> "No transactions for ${selectedPeriod.label.lowercase()}"
-                        else -> "No transactions yet"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (searchQuery.isEmpty() && selectedPeriod == TimePeriod.ALL) {
-                    Text(
-                        text = "Sync your SMS from the home screen, or add a transaction manually",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Button(onClick = onAddClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Add Transaction")
-                    }
-                }
-            }
-        }
+        PennyWiseEmptyState(
+            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+            headline = headline,
+            description = description,
+            actionLabel = actionLabel,
+            onAction = onAction
+        )
     }
 }

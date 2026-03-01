@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -69,14 +70,14 @@ fun AddAccountScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Info Card
-            Card(
+            PennyWiseCardV2(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                contentPadding = 12.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -96,14 +97,14 @@ fun AddAccountScreen(
             
             // Error Message
             formState.errorMessage?.let { error ->
-                Card(
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    contentPadding = 12.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(

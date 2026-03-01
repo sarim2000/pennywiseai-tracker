@@ -18,6 +18,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.ExportResult
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.DecimalFormat
@@ -38,16 +39,15 @@ fun ExportTransactionsDialog(
             onDismiss()
         }
     }) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = MaterialTheme.shapes.large
+            contentPadding = 24.dp
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Icon
@@ -98,15 +98,13 @@ fun ExportTransactionsDialog(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         // Summary info
-                        Card(
+                        PennyWiseCardV2(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = 12.dp
                         ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
                                 // Total transactions row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -146,10 +144,9 @@ fun ExportTransactionsDialog(
                                         )
                                     }
                                 }
-                            }
                         }
                     }
-                    
+
                     is ExportState.Exporting -> {
                         LinearProgressIndicator(
                             progress = { state.progress },
@@ -176,14 +173,14 @@ fun ExportTransactionsDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         // File info
-                        Card(
+                        PennyWiseCardV2(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer
                             ),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = 12.dp
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Row(

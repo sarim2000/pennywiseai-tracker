@@ -95,8 +95,8 @@ class UserPreferencesRepository @Inject constructor(
                     try { ThemeStyle.valueOf(it) } catch (_: Exception) { ThemeStyle.DYNAMIC }
                 } ?: ThemeStyle.DYNAMIC,
                 accentColor = preferences[PreferencesKeys.ACCENT_COLOR]?.let {
-                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.BLUE }
-                } ?: AccentColor.BLUE,
+                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.SURFACE }
+                } ?: AccentColor.SURFACE,
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
                 appFont = preferences[PreferencesKeys.APP_FONT]?.let {
                     try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.SYSTEM }
@@ -584,7 +584,7 @@ data class UserPreferences(
     val isDarkThemeEnabled: Boolean? = null, // null means follow system
     val isDynamicColorEnabled: Boolean = false, // Default to custom brand colors
     val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    val accentColor: AccentColor = AccentColor.BLUE,
+    val accentColor: AccentColor = AccentColor.SURFACE,
     val isAmoledMode: Boolean = false,
     val appFont: AppFont = AppFont.SYSTEM,
     val hasSkippedSmsPermission: Boolean = false,

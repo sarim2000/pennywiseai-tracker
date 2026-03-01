@@ -107,14 +107,14 @@ class BudgetWidget : GlanceAppWidget() {
         val isSmall = size.width < 280.dp
 
         val statusColor = when {
-            data.percentageUsed > 90f -> ColorProvider(Color(0xFFD32F2F))
-            data.percentageUsed > 70f -> ColorProvider(Color(0xFFF57C00))
+            data.percentageUsed > 90f -> ColorProvider(Color(0xFFC62828))
+            data.percentageUsed > 70f -> ColorProvider(Color(0xFFFF8F00))
             else -> ColorProvider(Color(0xFF2E7D32))
         }
 
         val statusColorRaw = when {
-            data.percentageUsed > 90f -> Color(0xFFD32F2F)
-            data.percentageUsed > 70f -> Color(0xFFF57C00)
+            data.percentageUsed > 90f -> Color(0xFFC62828)
+            data.percentageUsed > 70f -> Color(0xFFFF8F00)
             else -> Color(0xFF2E7D32)
         }
 
@@ -149,7 +149,7 @@ class BudgetWidget : GlanceAppWidget() {
             text = CurrencyFormatter.formatCurrency(data.totalSpent, data.currency),
             style = TextStyle(
                 color = statusColor,
-                fontSize = 28.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
         )
@@ -233,7 +233,7 @@ class BudgetWidget : GlanceAppWidget() {
                     val savingsColor = if (data.netSavings >= BigDecimal.ZERO) {
                         ColorProvider(Color(0xFF2E7D32))
                     } else {
-                        ColorProvider(Color(0xFFD32F2F))
+                        ColorProvider(Color(0xFFC62828))
                     }
 
                     val savingsText = buildString {

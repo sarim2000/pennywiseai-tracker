@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryBudgetLimitEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -157,15 +158,14 @@ fun MonthlyBudgetSettingsScreen(
             // Unallocated info
             if (uiState.categoryLimits.isNotEmpty() && currentLimit > BigDecimal.ZERO) {
                 item {
-                    Card(
+                    PennyWiseCardV2(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        ),
+                        contentPadding = Dimensions.Padding.content
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(Dimensions.Padding.content),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
@@ -279,10 +279,11 @@ private fun CategoryLimitRow(
     onEdit: () -> Unit,
     onRemove: () -> Unit
 ) {
-    Card(
+    PennyWiseCardV2(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        contentPadding = 0.dp
     ) {
         Row(
             modifier = Modifier

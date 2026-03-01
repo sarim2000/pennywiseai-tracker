@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.text.KeyboardOptions
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -48,19 +50,15 @@ fun BalanceHistoryDialog(
     val clipboard = LocalClipboardManager.current
     
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.8f),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            contentPadding = Dimensions.Padding.content
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(Dimensions.Padding.content)
-            ) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -87,18 +85,12 @@ fun BalanceHistoryDialog(
                 Spacer(modifier = Modifier.height(Spacing.md))
                 
                 if (balanceHistory.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No balance history available",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    PennyWiseEmptyState(
+                        icon = Icons.Default.History,
+                        headline = "No Balance History",
+                        description = "Balance records will appear here as transactions are processed.",
+                        modifier = Modifier.weight(1f)
+                    )
                 } else {
                     // Balance History List
                     LazyColumn(
@@ -161,7 +153,6 @@ fun BalanceHistoryDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.sm)
                 )
-            }
         }
     }
     
@@ -208,7 +199,7 @@ private fun BalanceHistoryItem(
     onToggleExpand: () -> Unit,
     clipboard: androidx.compose.ui.platform.ClipboardManager
 ) {
-    Card(
+    PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
@@ -216,17 +207,13 @@ private fun BalanceHistoryItem(
             containerColor = if (isLatest) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isLatest) 2.dp else 1.dp
-        )
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.md),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             // Header with date and badges
@@ -237,7 +224,7 @@ private fun BalanceHistoryItem(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     // Date with icon
                     Row(
@@ -274,34 +261,42 @@ private fun BalanceHistoryItem(
                                     text = "CURRENT",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                                 )
                             }
                         }
                         
                         // Source type badge
-                        val (sourceIcon, sourceText, sourceColor) = when (balance.sourceType) {
-                            "TRANSACTION" -> Triple("📱", "Transaction", MaterialTheme.colorScheme.tertiary)
-                            "SMS_BALANCE" -> Triple("💬", "Balance SMS", MaterialTheme.colorScheme.secondary)
-                            "CARD_LINK" -> Triple("💳", "Card Link", MaterialTheme.colorScheme.primary)
-                            "MANUAL" -> Triple("✏️", "Manual", MaterialTheme.colorScheme.onSurfaceVariant)
-                            else -> if (balance.transactionId != null) 
-                                Triple("📱", "Transaction", MaterialTheme.colorScheme.tertiary) 
-                            else 
-                                Triple("", "", MaterialTheme.colorScheme.onSurfaceVariant)
+                        val sourceInfo: Triple<androidx.compose.ui.graphics.vector.ImageVector?, String, androidx.compose.ui.graphics.Color> = when (balance.sourceType) {
+                            "TRANSACTION" -> Triple(Icons.Default.SwapHoriz, "Transaction", MaterialTheme.colorScheme.tertiary)
+                            "SMS_BALANCE" -> Triple(Icons.AutoMirrored.Filled.Message, "Balance SMS", MaterialTheme.colorScheme.secondary)
+                            "CARD_LINK" -> Triple(Icons.Default.CreditCard, "Card Link", MaterialTheme.colorScheme.primary)
+                            "MANUAL" -> Triple(Icons.Default.Edit, "Manual", MaterialTheme.colorScheme.onSurfaceVariant)
+                            else -> if (balance.transactionId != null)
+                                Triple(Icons.Default.SwapHoriz, "Transaction", MaterialTheme.colorScheme.tertiary)
+                            else
+                                Triple(null, "", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        
+                        val (sourceIcon, sourceText, sourceColor) = sourceInfo
+
                         if (sourceText.isNotEmpty()) {
                             Surface(
                                 color = sourceColor.copy(alpha = 0.12f),
                                 shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(sourceIcon, style = MaterialTheme.typography.labelSmall)
+                                    sourceIcon?.let {
+                                        Icon(
+                                            imageVector = it,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = sourceColor
+                                        )
+                                    }
                                     Text(
                                         text = sourceText,
                                         style = MaterialTheme.typography.labelSmall,
@@ -315,27 +310,19 @@ private fun BalanceHistoryItem(
                 
                 // Action buttons
                 if (editingId != balance.id && !isOnlyRecord) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        IconButton(
-                            onClick = onEditClick,
-                            modifier = Modifier.size(36.dp)
-                        ) {
+                    Row {
+                        IconButton(onClick = onEditClick) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "Edit",
+                                contentDescription = "Edit balance",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                        IconButton(
-                            onClick = onDeleteClick,
-                            modifier = Modifier.size(36.dp)
-                        ) {
+                        IconButton(onClick = onDeleteClick) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = "Delete balance",
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -385,7 +372,7 @@ private fun BalanceHistoryItem(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Save")
                         }
                         OutlinedButton(
@@ -393,7 +380,7 @@ private fun BalanceHistoryItem(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Cancel")
                         }
                     }
@@ -425,14 +412,13 @@ private fun BalanceHistoryItem(
             
             // SMS Source (if available)
             balance.smsSource?.let { smsSource ->
-                Card(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
                         .clickable { onToggleExpand() },
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Column(
                         modifier = Modifier
@@ -446,7 +432,7 @@ private fun BalanceHistoryItem(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -468,9 +454,9 @@ private fun BalanceHistoryItem(
                                         )
                                     }
                                 }
-                                
-                                Spacer(modifier = Modifier.height(4.dp))
-                                
+
+                                Spacer(modifier = Modifier.height(Spacing.xs))
+
                                 Text(
                                     text = if (isExpanded) smsSource else "${smsSource.take(80)}...",
                                     style = MaterialTheme.typography.bodySmall,
@@ -479,30 +465,29 @@ private fun BalanceHistoryItem(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            
+
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 if (isExpanded) {
                                     IconButton(
                                         onClick = {
                                             clipboard.setText(AnnotatedString(smsSource))
-                                        },
-                                        modifier = Modifier.size(32.dp)
+                                        }
                                     ) {
                                         Icon(
                                             Icons.Default.ContentCopy,
-                                            contentDescription = "Copy",
+                                            contentDescription = "Copy SMS text",
                                             modifier = Modifier.size(16.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
-                                
+
                                 Icon(
                                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                    contentDescription = if (isExpanded) "Collapse SMS source" else "Expand SMS source",
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -28,7 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,27 +96,11 @@ fun ManageAccountsScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalance,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "No accounts yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Add an account to get started",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                PennyWiseEmptyState(
+                    icon = Icons.Default.AccountBalance,
+                    headline = "No Accounts",
+                    description = "Add your first bank account to start tracking."
+                )
             }
         } else {
             val lazyListState = rememberLazyListState()
@@ -211,7 +196,7 @@ fun ManageAccountsScreen(
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
-                        SectionHeader(title = "Bank Accounts")
+                        SectionHeaderV2(title = "Bank Accounts")
                     }
 
                     items(visibleRegularAccounts) { account ->
@@ -251,7 +236,7 @@ fun ManageAccountsScreen(
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeader(title = "Unlinked Cards")
+                        SectionHeaderV2(title = "Unlinked Cards")
                     }
                     
                     items(uiState.orphanedCards) { card ->
@@ -272,7 +257,7 @@ fun ManageAccountsScreen(
                 if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeader(title = "Credit Cards")
+                        SectionHeaderV2(title = "Credit Cards")
                     }
 
                     items(visibleCreditCards) { card ->
@@ -705,7 +690,7 @@ private fun CreditCardItem(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(if (isManualAccount) "Edit" else "Update")
                 }
 
@@ -895,7 +880,12 @@ private fun AccountItem(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("💳", style = MaterialTheme.typography.bodyMedium)
+                                    Icon(
+                                        imageVector = Icons.Default.CreditCard,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                     Column {
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -956,7 +946,7 @@ private fun AccountItem(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(if (isManualAccount) "Edit" else "Update Balance")
                 }
 
@@ -1288,7 +1278,11 @@ private fun OrphanedCardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                Text("💳", style = MaterialTheme.typography.titleMedium)
+                    Icon(
+                        imageVector = Icons.Default.CreditCard,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "${card.bankName} ••${card.cardLast4}",
@@ -1336,7 +1330,7 @@ private fun OrphanedCardItem(
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Link")
                     }
                     
@@ -1351,7 +1345,7 @@ private fun OrphanedCardItem(
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Delete")
                     }
                 }

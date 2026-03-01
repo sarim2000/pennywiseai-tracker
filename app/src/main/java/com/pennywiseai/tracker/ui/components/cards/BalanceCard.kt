@@ -1,15 +1,14 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -28,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,9 +38,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
@@ -55,6 +52,7 @@ import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
 import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
+import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -78,13 +76,11 @@ fun BalanceCard(
     hazeState: HazeState = remember { HazeState() },
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
+    val view = LocalView.current
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
+        animationSpec = tween(Dimensions.Animation.medium),
         label = "chevronRotation"
     )
 
@@ -102,15 +98,15 @@ fun BalanceCard(
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
+    val changeSign = if (isPositive) "+" else ""
+    val changeText = "$changeSign${CurrencyFormatter.formatCurrency(monthlyChange, currency)} ($monthlyChangePercent%)"
+
     Box(modifier = modifier.fillMaxWidth()) {
         PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = tween(Dimensions.Animation.medium)
                 )
                 .then(
                     if (blurEffects) Modifier
@@ -129,7 +125,10 @@ fun BalanceCard(
                         )
                     else Modifier
                 ),
-            onClick = { isExpanded = !isExpanded },
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                isExpanded = !isExpanded
+            },
             colors = CardDefaults.cardColors(
                 containerColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor.copy(alpha = 0.92f)
             )
@@ -139,145 +138,143 @@ fun BalanceCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (!isExpanded) {
-                    // ── Collapsed View ──
-                    Row(
+                    // ── Collapsed View ── Balance is the hero, no sparkline
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = Spacing.xs),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(bottom = Spacing.xs)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = userName,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            // Monthly change indicator
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (isPositive) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                                    contentDescription = null,
-                                    tint = changeColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "${CurrencyFormatter.formatCurrency(monthlyChange.abs(), currency)} this month",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.alpha(0.6f),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
+                        AnimatedCurrencyText(
+                            text = CurrencyFormatter.formatCurrency(totalBalance, currency),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                        // Right side: balance + sparkline
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+
+                        // Currency chip + monthly change pill
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(totalBalance, currency),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            if (balanceHistory.size >= 2) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(80.dp)
-                                        .height(30.dp)
-                                ) {
-                                    BalanceSparkline(
-                                        data = balanceHistory,
-                                        lineColor = MaterialTheme.colorScheme.primary
+                            // Currency chip
+                            if (availableCurrencies.size > 1) {
+                                Surface(
+                                    onClick = onCurrencyClick,
+                                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                                    border = BorderStroke(
+                                        0.5.dp,
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                                     )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = Spacing.sm,
+                                            vertical = Spacing.xs
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text(
+                                            text = currency,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Change currency",
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
+                            }
+
+                            // Monthly change pill
+                            Surface(
+                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    text = changeText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = changeColor,
+                                    modifier = Modifier.padding(
+                                        horizontal = Spacing.sm,
+                                        vertical = Spacing.xs
+                                    )
+                                )
                             }
                         }
                     }
                 } else {
                     // ── Expanded View ──
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "$userName \u2022 Net Worth ($currencySymbol)",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.alpha(0.5f),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "$currentMonth 1-${now.dayOfMonth}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.alpha(0.4f),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        // Balance at top as hero
+                        AnimatedCurrencyText(
+                            text = CurrencyFormatter.formatCurrency(totalBalance, currency),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                            Column(
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(totalBalance, currency),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    lineHeight = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                // Currency selector chip
-                                if (availableCurrencies.size > 1) {
-                                    Spacer(modifier = Modifier.height(Spacing.xs))
-                                    Surface(
-                                        onClick = onCurrencyClick,
-                                        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
-                                        border = BorderStroke(
-                                            0.5.dp,
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                        )
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(
-                                                horizontal = 8.dp,
-                                                vertical = 4.dp
-                                            ),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                text = currency,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                            Icon(
-                                                imageVector = Icons.Default.KeyboardArrowDown,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // Date range label
+                        Text(
+                            text = "$currentMonth 1\u2013${now.dayOfMonth}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.alpha(0.4f),
+                            fontWeight = FontWeight.Medium
+                        )
 
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Sparkline (larger in expanded view)
+                        // Currency selector
+                        if (availableCurrencies.size > 1) {
+                            Surface(
+                                onClick = onCurrencyClick,
+                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                                border = BorderStroke(
+                                    0.5.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(
+                                        horizontal = Spacing.sm,
+                                        vertical = Spacing.xs
+                                    ),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                                ) {
+                                    Text(
+                                        text = currency,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = "Change currency",
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                        }
+
+                        // Sparkline (full width, 100dp)
                         if (balanceHistory.size >= 2) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(120.dp)
+                                    .height(100.dp)
                             ) {
                                 BalanceSparkline(
                                     data = balanceHistory,
@@ -292,40 +289,33 @@ fun BalanceCard(
                         )
                         Spacer(modifier = Modifier.height(Spacing.md))
 
-                        // Summary row: Income | Expenses | Net
+                        // Summary row: Income | Expenses | Net — with colored accent bars
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Min),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
+                            val incomeColor = if (isDark) income_dark else income_light
+                            val expenseColor = if (isDark) expense_dark else expense_light
+                            val netColor = if (currentMonthTotal >= BigDecimal.ZERO) {
+                                if (isDark) income_dark else income_light
+                            } else {
+                                if (isDark) expense_dark else expense_light
+                            }
+
                             SummaryItem(
-                                label = "INCOME",
+                                label = "Income",
                                 value = CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
-                                color = if (isDark) income_dark else income_light
-                            )
-                            VerticalDivider(
-                                modifier = Modifier.height(30.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                accentColor = incomeColor
                             )
                             SummaryItem(
-                                label = "EXPENSES",
+                                label = "Expenses",
                                 value = CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                color = if (isDark) expense_dark else expense_light
-                            )
-                            VerticalDivider(
-                                modifier = Modifier.height(30.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                accentColor = expenseColor
                             )
                             SummaryItem(
-                                label = "NET",
+                                label = "Net",
                                 value = CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
-                                color = if (currentMonthTotal >= BigDecimal.ZERO) {
-                                    if (isDark) income_dark else income_light
-                                } else {
-                                    if (isDark) expense_dark else expense_light
-                                }
+                                accentColor = netColor
                             )
                         }
 
@@ -351,22 +341,33 @@ fun BalanceCard(
 private fun SummaryItem(
     label: String,
     value: String,
-    color: androidx.compose.ui.graphics.Color
+    accentColor: Color
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            color = color,
-            fontWeight = FontWeight.Bold,
+    Row {
+        // Colored left-border accent bar
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(36.dp)
+                .background(
+                    color = accentColor,
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.small)
+                )
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            fontWeight = FontWeight.Bold,
-            fontSize = 10.sp
-        )
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Column {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                color = accentColor,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
-

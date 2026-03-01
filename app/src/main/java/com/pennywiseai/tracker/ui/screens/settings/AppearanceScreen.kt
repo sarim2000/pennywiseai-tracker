@@ -67,83 +67,83 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.Latte_Blue
-import com.pennywiseai.tracker.ui.theme.Latte_Blue_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Blue_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Flamingo
-import com.pennywiseai.tracker.ui.theme.Latte_Flamingo_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Flamingo_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Green
-import com.pennywiseai.tracker.ui.theme.Latte_Green_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Green_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Lavender
-import com.pennywiseai.tracker.ui.theme.Latte_Lavender_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Lavender_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Mauve
-import com.pennywiseai.tracker.ui.theme.Latte_Mauve_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Mauve_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Peach
-import com.pennywiseai.tracker.ui.theme.Latte_Peach_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Peach_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Pink
-import com.pennywiseai.tracker.ui.theme.Latte_Pink_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Pink_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Red
-import com.pennywiseai.tracker.ui.theme.Latte_Red_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Red_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Rosewater
-import com.pennywiseai.tracker.ui.theme.Latte_Rosewater_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Rosewater_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Sapphire
-import com.pennywiseai.tracker.ui.theme.Latte_Sapphire_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Sapphire_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Teal
-import com.pennywiseai.tracker.ui.theme.Latte_Teal_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Teal_tertiary
-import com.pennywiseai.tracker.ui.theme.Latte_Yellow
-import com.pennywiseai.tracker.ui.theme.Latte_Yellow_secondary
-import com.pennywiseai.tracker.ui.theme.Latte_Yellow_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Blue_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Blue_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Blue_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Flamingo_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Flamingo_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Flamingo_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Green_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Green_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Green_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Lavender_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Lavender_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Lavender_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Mauve_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Mauve_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Mauve_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Peach_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Peach_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Peach_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Pink_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Pink_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Pink_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Red_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Red_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Red_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Rosewater_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Rosewater_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Rosewater_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Sapphire_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Sapphire_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Sapphire_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Teal_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Teal_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Teal_dim_tertiary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Yellow_dim
-import com.pennywiseai.tracker.ui.theme.Macchiato_Yellow_dim_secondary
-import com.pennywiseai.tracker.ui.theme.Macchiato_Yellow_dim_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Foam
+import com.pennywiseai.tracker.ui.theme.Dawn_Foam_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Foam_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Gold
+import com.pennywiseai.tracker.ui.theme.Dawn_Gold_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Gold_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Highlight
+import com.pennywiseai.tracker.ui.theme.Dawn_Highlight_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Highlight_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Iris
+import com.pennywiseai.tracker.ui.theme.Dawn_Iris_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Iris_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Love
+import com.pennywiseai.tracker.ui.theme.Dawn_Love_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Love_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Muted
+import com.pennywiseai.tracker.ui.theme.Dawn_Muted_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Muted_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Overlay
+import com.pennywiseai.tracker.ui.theme.Dawn_Overlay_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Overlay_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Pine
+import com.pennywiseai.tracker.ui.theme.Dawn_Pine_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Pine_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Rose
+import com.pennywiseai.tracker.ui.theme.Dawn_Rose_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Rose_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Subtle
+import com.pennywiseai.tracker.ui.theme.Dawn_Subtle_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Subtle_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Surface
+import com.pennywiseai.tracker.ui.theme.Dawn_Surface_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Surface_tertiary
+import com.pennywiseai.tracker.ui.theme.Dawn_Text
+import com.pennywiseai.tracker.ui.theme.Dawn_Text_secondary
+import com.pennywiseai.tracker.ui.theme.Dawn_Text_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Foam
+import com.pennywiseai.tracker.ui.theme.RosePine_Foam_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Foam_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Gold
+import com.pennywiseai.tracker.ui.theme.RosePine_Gold_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Gold_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Highlight
+import com.pennywiseai.tracker.ui.theme.RosePine_Highlight_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Highlight_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Iris
+import com.pennywiseai.tracker.ui.theme.RosePine_Iris_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Iris_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Love
+import com.pennywiseai.tracker.ui.theme.RosePine_Love_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Love_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Muted
+import com.pennywiseai.tracker.ui.theme.RosePine_Muted_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Muted_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Overlay
+import com.pennywiseai.tracker.ui.theme.RosePine_Overlay_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Overlay_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Pine
+import com.pennywiseai.tracker.ui.theme.RosePine_Pine_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Pine_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Rose
+import com.pennywiseai.tracker.ui.theme.RosePine_Rose_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Rose_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Subtle
+import com.pennywiseai.tracker.ui.theme.RosePine_Subtle_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Subtle_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Surface
+import com.pennywiseai.tracker.ui.theme.RosePine_Surface_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Surface_tertiary
+import com.pennywiseai.tracker.ui.theme.RosePine_Text
+import com.pennywiseai.tracker.ui.theme.RosePine_Text_secondary
+import com.pennywiseai.tracker.ui.theme.RosePine_Text_tertiary
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -290,7 +290,7 @@ fun AppearanceScreen(
                 }
 
                 // Navigation Style Section
-                SectionHeader(
+                SectionHeaderV2(
                     title = "Navigation",
                     modifier = Modifier.padding(start = Spacing.xl, top = Spacing.md)
                 )
@@ -300,7 +300,7 @@ fun AppearanceScreen(
                 )
 
                 // Cover Style Section
-                SectionHeader(
+                SectionHeaderV2(
                     title = "Cover Style",
                     modifier = Modifier.padding(start = Spacing.xl)
                 )
@@ -311,7 +311,7 @@ fun AppearanceScreen(
                 )
 
                 // Font Selection Section
-                SectionHeader(
+                SectionHeaderV2(
                     title = "Fonts",
                     modifier = Modifier.padding(start = Spacing.xl)
                 )
@@ -509,7 +509,7 @@ private fun ThemeStyleSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Catppuccin Colors",
+                        text = "Rose Pine Colors",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == ThemeStyle.BRANDED)
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -857,33 +857,33 @@ private fun FontSelector(
 private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
-            AccentColor.ROSEWATER -> Macchiato_Rosewater_dim
-            AccentColor.FLAMINGO -> Macchiato_Flamingo_dim
-            AccentColor.PINK -> Macchiato_Pink_dim
-            AccentColor.MAUVE -> Macchiato_Mauve_dim
-            AccentColor.RED -> Macchiato_Red_dim
-            AccentColor.PEACH -> Macchiato_Peach_dim
-            AccentColor.YELLOW -> Macchiato_Yellow_dim
-            AccentColor.GREEN -> Macchiato_Green_dim
-            AccentColor.TEAL -> Macchiato_Teal_dim
-            AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim
-            AccentColor.BLUE -> Macchiato_Blue_dim
-            AccentColor.LAVENDER -> Macchiato_Lavender_dim
+            AccentColor.ROSE -> RosePine_Rose
+            AccentColor.IRIS -> RosePine_Iris
+            AccentColor.PINE -> RosePine_Pine
+            AccentColor.GOLD -> RosePine_Gold
+            AccentColor.LOVE -> RosePine_Love
+            AccentColor.FOAM -> RosePine_Foam
+            AccentColor.MUTED -> RosePine_Muted
+            AccentColor.SUBTLE -> RosePine_Subtle
+            AccentColor.TEXT -> RosePine_Text
+            AccentColor.HIGHLIGHT -> RosePine_Highlight
+            AccentColor.SURFACE -> RosePine_Surface
+            AccentColor.OVERLAY -> RosePine_Overlay
         }
     } else {
         when (accent) {
-            AccentColor.ROSEWATER -> Latte_Rosewater
-            AccentColor.FLAMINGO -> Latte_Flamingo
-            AccentColor.PINK -> Latte_Pink
-            AccentColor.MAUVE -> Latte_Mauve
-            AccentColor.RED -> Latte_Red
-            AccentColor.PEACH -> Latte_Peach
-            AccentColor.YELLOW -> Latte_Yellow
-            AccentColor.GREEN -> Latte_Green
-            AccentColor.TEAL -> Latte_Teal
-            AccentColor.SAPPHIRE -> Latte_Sapphire
-            AccentColor.BLUE -> Latte_Blue
-            AccentColor.LAVENDER -> Latte_Lavender
+            AccentColor.ROSE -> Dawn_Rose
+            AccentColor.IRIS -> Dawn_Iris
+            AccentColor.PINE -> Dawn_Pine
+            AccentColor.GOLD -> Dawn_Gold
+            AccentColor.LOVE -> Dawn_Love
+            AccentColor.FOAM -> Dawn_Foam
+            AccentColor.MUTED -> Dawn_Muted
+            AccentColor.SUBTLE -> Dawn_Subtle
+            AccentColor.TEXT -> Dawn_Text
+            AccentColor.HIGHLIGHT -> Dawn_Highlight
+            AccentColor.SURFACE -> Dawn_Surface
+            AccentColor.OVERLAY -> Dawn_Overlay
         }
     }
 }
@@ -892,33 +892,33 @@ private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Colo
 private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
-            AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_secondary
-            AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_secondary
-            AccentColor.PINK -> Macchiato_Pink_dim_secondary
-            AccentColor.MAUVE -> Macchiato_Mauve_dim_secondary
-            AccentColor.RED -> Macchiato_Red_dim_secondary
-            AccentColor.PEACH -> Macchiato_Peach_dim_secondary
-            AccentColor.YELLOW -> Macchiato_Yellow_dim_secondary
-            AccentColor.GREEN -> Macchiato_Green_dim_secondary
-            AccentColor.TEAL -> Macchiato_Teal_dim_secondary
-            AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_secondary
-            AccentColor.BLUE -> Macchiato_Blue_dim_secondary
-            AccentColor.LAVENDER -> Macchiato_Lavender_dim_secondary
+            AccentColor.ROSE -> RosePine_Rose_secondary
+            AccentColor.IRIS -> RosePine_Iris_secondary
+            AccentColor.PINE -> RosePine_Pine_secondary
+            AccentColor.GOLD -> RosePine_Gold_secondary
+            AccentColor.LOVE -> RosePine_Love_secondary
+            AccentColor.FOAM -> RosePine_Foam_secondary
+            AccentColor.MUTED -> RosePine_Muted_secondary
+            AccentColor.SUBTLE -> RosePine_Subtle_secondary
+            AccentColor.TEXT -> RosePine_Text_secondary
+            AccentColor.HIGHLIGHT -> RosePine_Highlight_secondary
+            AccentColor.SURFACE -> RosePine_Surface_secondary
+            AccentColor.OVERLAY -> RosePine_Overlay_secondary
         }
     } else {
         when (accent) {
-            AccentColor.ROSEWATER -> Latte_Rosewater_secondary
-            AccentColor.FLAMINGO -> Latte_Flamingo_secondary
-            AccentColor.PINK -> Latte_Pink_secondary
-            AccentColor.MAUVE -> Latte_Mauve_secondary
-            AccentColor.RED -> Latte_Red_secondary
-            AccentColor.PEACH -> Latte_Peach_secondary
-            AccentColor.YELLOW -> Latte_Yellow_secondary
-            AccentColor.GREEN -> Latte_Green_secondary
-            AccentColor.TEAL -> Latte_Teal_secondary
-            AccentColor.SAPPHIRE -> Latte_Sapphire_secondary
-            AccentColor.BLUE -> Latte_Blue_secondary
-            AccentColor.LAVENDER -> Latte_Lavender_secondary
+            AccentColor.ROSE -> Dawn_Rose_secondary
+            AccentColor.IRIS -> Dawn_Iris_secondary
+            AccentColor.PINE -> Dawn_Pine_secondary
+            AccentColor.GOLD -> Dawn_Gold_secondary
+            AccentColor.LOVE -> Dawn_Love_secondary
+            AccentColor.FOAM -> Dawn_Foam_secondary
+            AccentColor.MUTED -> Dawn_Muted_secondary
+            AccentColor.SUBTLE -> Dawn_Subtle_secondary
+            AccentColor.TEXT -> Dawn_Text_secondary
+            AccentColor.HIGHLIGHT -> Dawn_Highlight_secondary
+            AccentColor.SURFACE -> Dawn_Surface_secondary
+            AccentColor.OVERLAY -> Dawn_Overlay_secondary
         }
     }
 }
@@ -927,33 +927,33 @@ private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): C
 private fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
-            AccentColor.ROSEWATER -> Macchiato_Rosewater_dim_tertiary
-            AccentColor.FLAMINGO -> Macchiato_Flamingo_dim_tertiary
-            AccentColor.PINK -> Macchiato_Pink_dim_tertiary
-            AccentColor.MAUVE -> Macchiato_Mauve_dim_tertiary
-            AccentColor.RED -> Macchiato_Red_dim_tertiary
-            AccentColor.PEACH -> Macchiato_Peach_dim_tertiary
-            AccentColor.YELLOW -> Macchiato_Yellow_dim_tertiary
-            AccentColor.GREEN -> Macchiato_Green_dim_tertiary
-            AccentColor.TEAL -> Macchiato_Teal_dim_tertiary
-            AccentColor.SAPPHIRE -> Macchiato_Sapphire_dim_tertiary
-            AccentColor.BLUE -> Macchiato_Blue_dim_tertiary
-            AccentColor.LAVENDER -> Macchiato_Lavender_dim_tertiary
+            AccentColor.ROSE -> RosePine_Rose_tertiary
+            AccentColor.IRIS -> RosePine_Iris_tertiary
+            AccentColor.PINE -> RosePine_Pine_tertiary
+            AccentColor.GOLD -> RosePine_Gold_tertiary
+            AccentColor.LOVE -> RosePine_Love_tertiary
+            AccentColor.FOAM -> RosePine_Foam_tertiary
+            AccentColor.MUTED -> RosePine_Muted_tertiary
+            AccentColor.SUBTLE -> RosePine_Subtle_tertiary
+            AccentColor.TEXT -> RosePine_Text_tertiary
+            AccentColor.HIGHLIGHT -> RosePine_Highlight_tertiary
+            AccentColor.SURFACE -> RosePine_Surface_tertiary
+            AccentColor.OVERLAY -> RosePine_Overlay_tertiary
         }
     } else {
         when (accent) {
-            AccentColor.ROSEWATER -> Latte_Rosewater_tertiary
-            AccentColor.FLAMINGO -> Latte_Flamingo_tertiary
-            AccentColor.PINK -> Latte_Pink_tertiary
-            AccentColor.MAUVE -> Latte_Mauve_tertiary
-            AccentColor.RED -> Latte_Red_tertiary
-            AccentColor.PEACH -> Latte_Peach_tertiary
-            AccentColor.YELLOW -> Latte_Yellow_tertiary
-            AccentColor.GREEN -> Latte_Green_tertiary
-            AccentColor.TEAL -> Latte_Teal_tertiary
-            AccentColor.SAPPHIRE -> Latte_Sapphire_tertiary
-            AccentColor.BLUE -> Latte_Blue_tertiary
-            AccentColor.LAVENDER -> Latte_Lavender_tertiary
+            AccentColor.ROSE -> Dawn_Rose_tertiary
+            AccentColor.IRIS -> Dawn_Iris_tertiary
+            AccentColor.PINE -> Dawn_Pine_tertiary
+            AccentColor.GOLD -> Dawn_Gold_tertiary
+            AccentColor.LOVE -> Dawn_Love_tertiary
+            AccentColor.FOAM -> Dawn_Foam_tertiary
+            AccentColor.MUTED -> Dawn_Muted_tertiary
+            AccentColor.SUBTLE -> Dawn_Subtle_tertiary
+            AccentColor.TEXT -> Dawn_Text_tertiary
+            AccentColor.HIGHLIGHT -> Dawn_Highlight_tertiary
+            AccentColor.SURFACE -> Dawn_Surface_tertiary
+            AccentColor.OVERLAY -> Dawn_Overlay_tertiary
         }
     }
 }

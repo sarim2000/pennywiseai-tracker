@@ -174,7 +174,7 @@ fun BudgetGroupEditScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = 0.dp
+                bottom = paddingValues.calculateBottomPadding() + Spacing.md
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -450,9 +450,6 @@ fun BudgetGroupEditScreen(
                     }
                 }
             }
-
-            // Bottom spacing for navigation bar
-            item { Spacer(modifier = Modifier.height(Spacing.md)) }
         }
 
         // Delete confirmation dialog

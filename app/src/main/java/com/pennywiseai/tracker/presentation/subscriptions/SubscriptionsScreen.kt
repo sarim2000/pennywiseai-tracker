@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -140,7 +141,11 @@ fun SubscriptionsScreen(
             // Empty State
             if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
                 item {
-                    EmptySubscriptionsState()
+                    PennyWiseEmptyState(
+                        icon = Icons.Default.Subscriptions,
+                        headline = "No subscriptions detected yet",
+                        description = "Sync your SMS to detect subscriptions"
+                    )
                 }
             }
 
@@ -169,7 +174,7 @@ private fun TotalSubscriptionsSummary(
 ) {
     val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
 
-    SummaryCard(
+    SummaryCardV2(
         title = "Monthly Subscriptions",
         amount = if (currency != null) {
             CurrencyFormatter.formatCurrency(totalAmount, currency)
@@ -178,7 +183,7 @@ private fun TotalSubscriptionsSummary(
         },
         subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
         amountColor = amountColor,
-        containerColor = CardDefaults.cardColors(
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     )
@@ -419,35 +424,3 @@ private fun SwipeableSubscriptionItem(
     )
 }
 
-@Composable
-private fun EmptySubscriptionsState() {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.empty),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Default.Subscriptions,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            Text(
-                text = "No subscriptions detected yet",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Text(
-                text = "Sync your SMS to detect subscriptions",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

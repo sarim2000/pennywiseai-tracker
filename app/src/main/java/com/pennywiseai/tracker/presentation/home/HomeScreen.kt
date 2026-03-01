@@ -2,15 +2,21 @@ package com.pennywiseai.tracker.presentation.home
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
+import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
@@ -35,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -53,11 +61,14 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
-import com.pennywiseai.tracker.ui.components.SectionHeader
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
@@ -76,7 +87,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -111,6 +122,13 @@ fun HomeScreen(
 
     // Haptic feedback
     val view = LocalView.current
+
+    // Haptic on successful SMS scan completion
+    LaunchedEffect(smsScanWorkInfo?.state) {
+        if (smsScanWorkInfo?.state == WorkInfo.State.SUCCEEDED) {
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        }
+    }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -271,7 +289,7 @@ fun HomeScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // Balance Card
+            // 1. Balance Card (0ms delay)
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
@@ -311,46 +329,13 @@ fun HomeScreen(
                     )
                 }
             }
-            
-            // Account Carousel (Credit Cards + Bank Accounts)
-            if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(50); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        AccountCarousel(
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            bankAccounts = uiState.accountBalances,
-                            creditCards = uiState.creditCards,
-                            onAccountClick = { bankName, accountLast4 ->
-                                navController.navigate(
-                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                        bankName = bankName,
-                                        accountLast4 = accountLast4
-                                    )
-                                )
-                            },
-                            blurEffects = blurEffects,
-                            hazeState = hazeStateBanner
-                        )
-                    }
-                }
-            }
 
-            // Budget Carousel
+            // 2. Budget Carousel (50ms delay)
             uiState.budgetSummary?.let { summary ->
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(100); visible.value = true }
+                        if (!hasAnimated) { delay(50); visible.value = true }
                     }
                     AnimatedVisibility(
                         visible = visible.value,
@@ -368,39 +353,11 @@ fun HomeScreen(
                 }
             }
 
-            // Upcoming Subscriptions Alert
-            if (uiState.upcomingSubscriptions.isNotEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(150); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                            UpcomingSubscriptionsCard(
-                                subscriptions = uiState.upcomingSubscriptions,
-                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                currency = uiState.selectedCurrency,
-                                onClick = onNavigateToSubscriptions,
-                                blurEffects = blurEffects,
-                                hazeState = hazeStateBanner
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // Recent Transactions Section
+            // 3. Recent Transactions Section (100ms delay)
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(200); visible.value = true }
+                    if (!hasAnimated) { delay(100); visible.value = true }
                 }
                 AnimatedVisibility(
                     visible = visible.value,
@@ -416,7 +373,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
-                        SectionHeader(
+                        SectionHeaderV2(
                             title = "Recent Transactions",
                             action = {
                                 Row(
@@ -445,24 +402,23 @@ fun HomeScreen(
                     }
                 }
             }
-            
+
             if (uiState.isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Dimensions.Padding.content)
-                            .height(Dimensions.Component.minTouchTarget * 2),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
-                        CircularProgressIndicator()
+                        repeat(5) {
+                            TransactionItemSkeleton()
+                        }
                     }
                 }
             } else if (uiState.recentTransactions.isEmpty()) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(250); visible.value = true }
+                        if (!hasAnimated) { delay(150); visible.value = true }
                     }
                     AnimatedVisibility(
                         visible = visible.value,
@@ -471,57 +427,30 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        PennyWiseCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimensions.Padding.content)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(Dimensions.Padding.card),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Sync,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                )
-                                Text(
-                                    text = "No transactions yet",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Tap the sync button below to scan your SMS and automatically detect transactions",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                                Button(
-                                    onClick = { viewModel.scanSmsMessages() },
-                                    modifier = Modifier.padding(top = Spacing.xs)
+                        PennyWiseEmptyState(
+                            icon = Icons.Default.Sync,
+                            headline = "No transactions yet",
+                            description = "Scan your SMS to get started — we'll find your transactions automatically",
+                            actionLabel = "Scan Now",
+                            onAction = { viewModel.scanSmsMessages() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            ghostContent = {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Sync,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text("Scan SMS")
+                                    repeat(3) {
+                                        TransactionItemSkeleton()
+                                    }
                                 }
                             }
-                        }
+                        )
                     }
                 }
             } else {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(250); visible.value = true }
+                        if (!hasAnimated) { delay(150); visible.value = true }
                     }
                     AnimatedVisibility(
                         visible = visible.value,
@@ -547,7 +476,68 @@ fun HomeScreen(
                 }
             }
 
-            // Heatmap Widget - at the bottom of the home screen
+            // 4. Account Carousel (200ms delay)
+            if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
+                item {
+                    val visible = remember { mutableStateOf(hasAnimated) }
+                    LaunchedEffect(Unit) {
+                        if (!hasAnimated) { delay(200); visible.value = true }
+                    }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { slideOffsetPx },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        AccountCarousel(
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            bankAccounts = uiState.accountBalances,
+                            creditCards = uiState.creditCards,
+                            onAccountClick = { bankName, accountLast4 ->
+                                navController.navigate(
+                                    com.pennywiseai.tracker.navigation.AccountDetail(
+                                        bankName = bankName,
+                                        accountLast4 = accountLast4
+                                    )
+                                )
+                            },
+                            blurEffects = blurEffects,
+                            hazeState = hazeStateBanner
+                        )
+                    }
+                }
+            }
+
+            // 5. Upcoming Subscriptions Alert (250ms delay)
+            if (uiState.upcomingSubscriptions.isNotEmpty()) {
+                item {
+                    val visible = remember { mutableStateOf(hasAnimated) }
+                    LaunchedEffect(Unit) {
+                        if (!hasAnimated) { delay(250); visible.value = true }
+                    }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { slideOffsetPx },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                            UpcomingSubscriptionsCard(
+                                subscriptions = uiState.upcomingSubscriptions,
+                                totalAmount = uiState.upcomingSubscriptionsTotal,
+                                currency = uiState.selectedCurrency,
+                                onClick = onNavigateToSubscriptions,
+                                blurEffects = blurEffects,
+                                hazeState = hazeStateBanner
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 6. Heatmap Widget (300ms delay)
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
@@ -570,6 +560,24 @@ fun HomeScreen(
             }
         }
         
+        // Scan FAB rotation animation
+        val infiniteTransition = rememberInfiniteTransition(label = "scan_rotation")
+        val rotationAngle by animateFloatAsState(
+            targetValue = if (uiState.isScanning) 1f else 0f,
+            animationSpec = tween(300),
+            label = "scan_trigger"
+        )
+        val continuousRotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "scan_rotation"
+        )
+        val scanRotation = if (uiState.isScanning) continuousRotation else 0f
+
         // FABs - Direct access (no speed dial)
         Column(
             modifier = Modifier
@@ -599,26 +607,35 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                FloatingActionButton(
-                    onClick = { viewModel.scanSmsMessages() },
+                Surface(
                     modifier = Modifier
                         .spotlightTarget(onFabPositioned)
-                        .combinedClickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { viewModel.scanSmsMessages() },
-                            onLongClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                showFullResyncDialog = true
-                            }
-                        ),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        .size(56.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { viewModel.scanSmsMessages() },
+                                onLongPress = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    showFullResyncDialog = true
+                                }
+                            )
+                        },
+                    shape = FloatingActionButtonDefaults.shape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 6.dp,
+                    tonalElevation = 6.dp,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Sync,
-                        contentDescription = "Sync SMS (long press for full resync)"
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sync SMS (long press for full resync)",
+                            modifier = if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
                 // Hint for long-press functionality - only show for new users (no transactions yet)
                 if (uiState.recentTransactions.isEmpty() && !uiState.isLoading) {
@@ -808,13 +825,14 @@ private fun BreakdownDialog(
     val lastPeriod = "${lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }} 1-${now.dayOfMonth}"
     
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.md), // Reduced horizontal padding for wider modal
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            contentPadding = 0.dp
         ) {
             Column(
                 modifier = Modifier
@@ -897,18 +915,18 @@ private fun BreakdownDialog(
                 
                 // Formula explanation
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Card(
+                PennyWiseCardV2(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = Spacing.sm
                 ) {
                     Text(
                         text = "Formula: Income - Expenses = Net Worth\n" +
                                "Green (+) = Savings | Red (-) = Overspending",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(Spacing.sm),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -968,7 +986,7 @@ private fun UpcomingSubscriptionsCard(
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.secondaryContainer
 
-    Card(
+    PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
             .then(
@@ -991,12 +1009,12 @@ private fun UpcomingSubscriptionsCard(
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = containerColor
-        )
+        ),
+        contentPadding = Dimensions.Padding.content
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

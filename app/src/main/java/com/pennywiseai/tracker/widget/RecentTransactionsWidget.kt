@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.widget
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -12,6 +12,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -41,10 +42,15 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
+import com.pennywiseai.tracker.ui.theme.expense_dark
+import com.pennywiseai.tracker.ui.theme.expense_light
+import com.pennywiseai.tracker.ui.theme.income_dark
+import com.pennywiseai.tracker.ui.theme.income_light
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 class RecentTransactionsWidget : GlanceAppWidget() {
 
@@ -56,7 +62,14 @@ class RecentTransactionsWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = RecentTransactionsWidgetDataStore.getData(context).first()
+        val data = try {
+            withTimeoutOrNull(5000L) {
+                RecentTransactionsWidgetDataStore.getData(context).first()
+            } ?: RecentTransactionsWidgetData()
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionsWidget", "Failed to load widget data", e)
+            RecentTransactionsWidgetData()
+        }
 
         provideContent {
             GlanceTheme {
@@ -202,10 +215,12 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 )
             }
 
+            val isDark = (LocalContext.current.resources.configuration.uiMode and
+                Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
             val amountColor = when (item.transactionType) {
-                TransactionType.INCOME -> ColorProvider(Color(0xFF00796B))
+                TransactionType.INCOME -> ColorProvider(if (isDark) income_dark else income_light)
                 TransactionType.TRANSFER -> GlanceTheme.colors.onSurfaceVariant
-                else -> ColorProvider(Color(0xFFC62828))
+                else -> ColorProvider(if (isDark) expense_dark else expense_light)
             }
 
             Text(

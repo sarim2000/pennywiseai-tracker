@@ -1,14 +1,15 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -32,8 +33,15 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
+import com.pennywiseai.tracker.ui.theme.budget_danger_dark
+import com.pennywiseai.tracker.ui.theme.budget_danger_light
+import com.pennywiseai.tracker.ui.theme.budget_safe_dark
+import com.pennywiseai.tracker.ui.theme.budget_safe_light
+import com.pennywiseai.tracker.ui.theme.budget_warning_dark
+import com.pennywiseai.tracker.ui.theme.budget_warning_light
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 
 class BudgetWidget : GlanceAppWidget() {
@@ -46,7 +54,14 @@ class BudgetWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = BudgetWidgetDataStore.getData(context).first()
+        val data = try {
+            withTimeoutOrNull(5000L) {
+                BudgetWidgetDataStore.getData(context).first()
+            } ?: BudgetWidgetData()
+        } catch (e: Exception) {
+            android.util.Log.e("BudgetWidget", "Failed to load widget data", e)
+            BudgetWidgetData()
+        }
 
         provideContent {
             GlanceTheme {
@@ -105,17 +120,13 @@ class BudgetWidget : GlanceAppWidget() {
     private fun BudgetOverviewContent(data: BudgetWidgetData) {
         val size = LocalSize.current
         val isSmall = size.width < 280.dp
+        val isDark = (LocalContext.current.resources.configuration.uiMode and
+            Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
         val statusColor = when {
-            data.percentageUsed > 90f -> ColorProvider(Color(0xFFC62828))
-            data.percentageUsed > 70f -> ColorProvider(Color(0xFFFF8F00))
-            else -> ColorProvider(Color(0xFF2E7D32))
-        }
-
-        val statusColorRaw = when {
-            data.percentageUsed > 90f -> Color(0xFFC62828)
-            data.percentageUsed > 70f -> Color(0xFFFF8F00)
-            else -> Color(0xFF2E7D32)
+            data.percentageUsed > 90f -> ColorProvider(if (isDark) budget_danger_dark else budget_danger_light)
+            data.percentageUsed > 70f -> ColorProvider(if (isDark) budget_warning_dark else budget_warning_light)
+            else -> ColorProvider(if (isDark) budget_safe_dark else budget_safe_light)
         }
 
         // Title row with percentage
@@ -173,7 +184,7 @@ class BudgetWidget : GlanceAppWidget() {
                         .width(progressWidth.dp)
                         .height(8.dp)
                         .cornerRadius(4.dp)
-                        .background(ColorProvider(statusColorRaw))
+                        .background(statusColor)
                 )
             }
         }
@@ -231,9 +242,9 @@ class BudgetWidget : GlanceAppWidget() {
                     Spacer(modifier = GlanceModifier.defaultWeight())
 
                     val savingsColor = if (data.netSavings >= BigDecimal.ZERO) {
-                        ColorProvider(Color(0xFF2E7D32))
+                        ColorProvider(if (isDark) budget_safe_dark else budget_safe_light)
                     } else {
-                        ColorProvider(Color(0xFFC62828))
+                        ColorProvider(if (isDark) budget_danger_dark else budget_danger_light)
                     }
 
                     val savingsText = buildString {

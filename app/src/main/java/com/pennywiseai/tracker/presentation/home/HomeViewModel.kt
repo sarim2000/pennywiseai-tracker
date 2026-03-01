@@ -304,6 +304,7 @@ class HomeViewModel @Inject constructor(
                     }
                     runningBalance += when (tx.transactionType) {
                         TransactionType.INCOME -> amount
+                        TransactionType.TRANSFER, TransactionType.INVESTMENT -> BigDecimal.ZERO
                         else -> -amount
                     }
                     dailyBalances[tx.dateTime.toLocalDate()] = runningBalance
@@ -894,7 +895,9 @@ class HomeViewModel @Inject constructor(
 
         val categoryAmounts = mutableMapOf<String, BigDecimal>()
         raw.allTransactions.forEach { txWithSplits ->
-            if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+            if (txWithSplits.transaction.transactionType != TransactionType.INCOME &&
+                txWithSplits.transaction.transactionType != TransactionType.TRANSFER &&
+                txWithSplits.transaction.transactionType != TransactionType.INVESTMENT) {
                 val fromCurrency = txWithSplits.transaction.currency
                 txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                     val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)

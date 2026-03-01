@@ -212,7 +212,8 @@ fun TransactionDetailScreen(
                             if (isSaving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(Dimensions.Icon.small),
-                                    strokeWidth = 2.dp
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             } else {
                                 Text("Save")
@@ -260,7 +261,8 @@ fun TransactionDetailScreen(
                     if (isDeleting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     } else {
                         Text(

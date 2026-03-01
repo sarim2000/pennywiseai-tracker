@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.rotate
@@ -35,6 +36,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -143,7 +145,11 @@ fun AccountDetailScreen(
             // Transaction List
             if (uiState.transactions.isEmpty() && !uiState.isLoading) {
                 item {
-                    EmptyTransactionsState()
+                    PennyWiseEmptyState(
+                        icon = Icons.Outlined.Receipt,
+                        headline = "No transactions",
+                        description = "Transactions for this account will appear here"
+                    )
                 }
             } else {
                 items(
@@ -165,13 +171,12 @@ fun AccountDetailScreen(
             // Loading State
             if (uiState.isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
-                        CircularProgressIndicator()
+                        repeat(5) {
+                            TransactionItemSkeleton()
+                        }
                     }
                 }
             }
@@ -572,35 +577,3 @@ private fun TransactionItem(
     }
 }
 
-@Composable
-private fun EmptyTransactionsState() {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.empty),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Default.Receipt,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            Text(
-                text = "No transactions found",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Text(
-                text = "Transactions for this account will appear here",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

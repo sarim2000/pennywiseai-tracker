@@ -1233,6 +1233,10 @@ private suspend fun processBalanceUpdate(
             )
 
             val newBalance = when {
+                parsedTransaction.balance != null -> {
+                    parsedTransaction.balance!!
+                }
+
                 isCreditCard -> {
                     val currentBalance = existingAccount?.balance ?: BigDecimal.ZERO
                     currentBalance + parsedTransaction.amount
@@ -1241,10 +1245,6 @@ private suspend fun processBalanceUpdate(
                 existingAccount?.isCreditCard == true && parsedTransaction.type.toEntityType() == TransactionType.INCOME -> {
                     val currentBalance = existingAccount.balance ?: BigDecimal.ZERO
                     (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
-                }
-
-                parsedTransaction.balance != null -> {
-                    parsedTransaction.balance!!
                 }
 
                 else -> {
@@ -1269,9 +1269,9 @@ private suspend fun processBalanceUpdate(
             }
 
             val balanceSource = when {
+                parsedTransaction.balance != null -> "From SMS"
                 isCreditCard -> "Calculated (Credit Card)"
                 existingAccount?.isCreditCard == true && parsedTransaction.type.toEntityType() == TransactionType.INCOME -> "Calculated (CC Payment)"
-                parsedTransaction.balance != null -> "From SMS"
                 else -> "Calculated (${parsedTransaction.type.toEntityType()})"
             }
 

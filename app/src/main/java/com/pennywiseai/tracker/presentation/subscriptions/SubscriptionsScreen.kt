@@ -141,7 +141,11 @@ fun SubscriptionsScreen(
             // Empty State
             if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
                 item {
-                    EmptySubscriptionsState()
+                    PennyWiseEmptyState(
+                        icon = Icons.Default.Subscriptions,
+                        headline = "No subscriptions detected yet",
+                        description = "Sync your SMS to detect subscriptions"
+                    )
                 }
             }
 
@@ -420,35 +424,3 @@ private fun SwipeableSubscriptionItem(
     )
 }
 
-@Composable
-private fun EmptySubscriptionsState() {
-    PennyWiseCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.empty),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Default.Subscriptions,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            Text(
-                text = "No subscriptions detected yet",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Text(
-                text = "Sync your SMS to detect subscriptions",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

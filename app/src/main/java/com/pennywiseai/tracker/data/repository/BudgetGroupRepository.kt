@@ -227,7 +227,9 @@ class BudgetGroupRepository @Inject constructor(
         // Build category → amount map from all transactions (not just expenses)
         val categoryAmounts = mutableMapOf<String, BigDecimal>()
         allTransactions.forEach { txWithSplits ->
-            if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+            if (txWithSplits.transaction.transactionType != TransactionType.INCOME &&
+                txWithSplits.transaction.transactionType != TransactionType.TRANSFER &&
+                txWithSplits.transaction.transactionType != TransactionType.INVESTMENT) {
                 txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                     val categoryName = category.ifEmpty { "Others" }
                     categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + amount

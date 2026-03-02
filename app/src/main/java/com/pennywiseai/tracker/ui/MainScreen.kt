@@ -154,6 +154,11 @@ fun MainScreen(
                             com.pennywiseai.tracker.navigation.BudgetGroups
                         )
                     },
+                    onNavigateToManageAccounts = {
+                        navController.navigate("manage_accounts") {
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToAddScreen = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.AddTransaction

@@ -102,14 +102,14 @@ class PNBBankParser : BaseIndianBankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         val acPattern = Regex(
-            """A/c\s+(?:XX|X\*+)?(\d{4})""",
+            """A/c\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

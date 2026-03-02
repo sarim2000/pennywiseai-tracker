@@ -135,25 +135,34 @@ class CentralBankOfIndiaParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: account XX3113 (last 4 visible)
+        // Pattern 1: A/c xxxxxx1234 (CBoI NEFT format)
+        val acSlashPattern = Regex(
+            """A/c\s+([xX*\d]+)""",
+            RegexOption.IGNORE_CASE
+        )
+        acSlashPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
+        }
+
+        // Pattern 2: account XX3113
         val pattern1 = Regex(
-            """account\s+[X*]*(\d{4})""",
+            """account\s+([xX*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         pattern1.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: A/C ending XXXX
+        // Pattern 3: A/C ending XXXX
         val pattern2 = Regex(
-            """A/C\s+ending\s+[X*]*(\d{4})""",
+            """A/C\s+ending\s+([xX*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         pattern2.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

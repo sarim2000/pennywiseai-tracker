@@ -180,66 +180,34 @@ class AxisBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "A/c no. XXNNNN" or "A/c no. XXxxxxy" - extract everything after "A/c no."
-        // Handle both uppercase X and lowercase x patterns
+        // Pattern 1: "A/c no. XXNNNN" or "A/c no. XXxxxxy"
         val acNoPattern = Regex(
-            """A/c\s+no\.\s+([X\*xX]+[a-zA-Z\d]+)""",
+            """A/c\s+no\.\s+([X*xX\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            // Extract all alphanumeric characters (to preserve patterns like "xxxy")
-            val digitsAndLetters = accountStr.filter { it.isLetterOrDigit() }
-
-            // If it contains lowercase letters at the end (like "xxxy"), return last 4 chars as-is
-            if (digitsAndLetters.any { it in 'a'..'z' }) {
-                return if (digitsAndLetters.length >= 4) {
-                    digitsAndLetters.takeLast(4).lowercase()
-                } else {
-                    digitsAndLetters.lowercase()
-                }
-            }
-
-            // Otherwise, extract only digits (for patterns like XX1234)
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: "Card no. XXNNNN" - for credit card spending messages
+        // Pattern 2: "Card no. XXNNNN"
         val cardNoPattern = Regex(
-            """Card\s+no\.\s+([X\*]*\d+)""",
+            """Card\s+no\.\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         cardNoPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 3: "Credit Card XXNNNN"
         val creditCardPattern = Regex(
-            """Credit\s+Card\s+([X\*]*\d+)""",
+            """Credit\s+Card\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         creditCardPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

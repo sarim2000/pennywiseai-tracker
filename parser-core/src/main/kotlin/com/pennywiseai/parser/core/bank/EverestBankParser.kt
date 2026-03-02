@@ -141,20 +141,15 @@ class EverestBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern: "Your A/c {Account}" - but {Account} is a placeholder
-        // Since the actual account number is masked in the examples,
-        // we'll look for any account-like patterns
-
         val accountPattern = Regex("""A/c\s+([^\s]+)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
             val account = match.groupValues[1].trim()
-            // If it's not a placeholder, extract last 4 digits
-            if (account != "{Account}" && account.length >= 4) {
-                return account.takeLast(4)
+            if (account != "{Account}") {
+                return extractLast4Digits(account)
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

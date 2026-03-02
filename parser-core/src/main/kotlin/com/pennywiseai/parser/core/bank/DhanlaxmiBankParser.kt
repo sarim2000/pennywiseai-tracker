@@ -73,23 +73,23 @@ class DhanlaxmiBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "A/c XXXX1234" or "A/c XX1234"
         val acPattern = Regex(
-            """A/c\s+X+(\d{4})""",
+            """A/c\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: "a/c no. XXXXXXXX1234"
         val acNoPattern = Regex(
-            """a/c\s+no\.\s*X+(\d{4})""",
+            """a/c\s+no\.\s*([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

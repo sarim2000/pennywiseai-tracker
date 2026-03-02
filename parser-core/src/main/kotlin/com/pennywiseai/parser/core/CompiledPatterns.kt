@@ -20,15 +20,15 @@ object CompiledPatterns {
 
     object Account {
         val AC_WITH_MASK = Regex(
-            """(?:A/c|Account|Acct)(?:\s+No)?\.?\s+(?:XX+|\*+)?(\d{3,4})""",
+            """(?:A/c|Account|Acct)(?:\s+No)?\.?\s+(\S+)""",
             RegexOption.IGNORE_CASE
         )
-        val CARD_WITH_MASK = Regex("""Card\s+(?:XX+|\*+)?(\d{4})""", RegexOption.IGNORE_CASE)
-        // GENERIC_ACCOUNT removed - it was too loose and caused false positives
-        // by capturing dates, amounts, and reference numbers as account numbers.
-        // Bank-specific parsers should define their own patterns instead.
-        // Only use specific masked patterns that require XX or * prefix
-        val ALL_PATTERNS = listOf(AC_WITH_MASK, CARD_WITH_MASK)
+        val CARD_WITH_MASK = Regex("""Card\s+(\S+)""", RegexOption.IGNORE_CASE)
+        val ENDING_PATTERN = Regex(
+            """(?:ending|ends with|ending with)\s+(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        val ALL_PATTERNS = listOf(AC_WITH_MASK, CARD_WITH_MASK, ENDING_PATTERN)
     }
 
     object Balance {
@@ -85,13 +85,13 @@ object CompiledPatterns {
         )
 
         val ACCOUNT_DEPOSITED = Regex(
-            """deposited\s+in\s+(?:HDFC\s+Bank\s+)?A/c\s+(?:XX+)?(\d+)""",
+            """deposited\s+in\s+(?:HDFC\s+Bank\s+)?A/c\s+(?:XX+)?(\d{3,6})""",
             RegexOption.IGNORE_CASE
         )
         val ACCOUNT_FROM =
-            Regex("""from\s+(?:HDFC\s+Bank\s+)?A/c\s+(?:XX+)?(\d+)""", RegexOption.IGNORE_CASE)
-        val ACCOUNT_SIMPLE = Regex("""HDFC\s+Bank\s+A/c\s+(\d+)""", RegexOption.IGNORE_CASE)
-        val ACCOUNT_GENERIC = Regex("""A/c\s+(?:XX+)?(\d+)""", RegexOption.IGNORE_CASE)
+            Regex("""from\s+(?:HDFC\s+Bank\s+)?A/c\s+(?:XX+)?(\d{3,6})""", RegexOption.IGNORE_CASE)
+        val ACCOUNT_SIMPLE = Regex("""HDFC\s+Bank\s+A/c\s+(\d{3,6})""", RegexOption.IGNORE_CASE)
+        val ACCOUNT_GENERIC = Regex("""A/c\s+(?:XX+)(\d{3,4})""", RegexOption.IGNORE_CASE)
 
         val AMOUNT_WILL_DEDUCT = Regex(
             """Rs\.?\s*([0-9,]+(?:\.\d{2})?)\s+will\s+be\s+deducted""",

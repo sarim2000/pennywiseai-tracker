@@ -101,13 +101,7 @@ class AMEXBankParser : BankParser() {
             RegexOption.IGNORE_CASE
         )
         cardPattern.find(message)?.let { match ->
-            val cardNumber = match.groupValues[1]
-            // If it's a 5-digit number, take last 4
-            return if (cardNumber.length >= 4) {
-                cardNumber.takeLast(4)
-            } else {
-                cardNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Alternative pattern: "card ending XXXX"
@@ -119,8 +113,7 @@ class AMEXBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun isTransactionMessage(message: String): Boolean {

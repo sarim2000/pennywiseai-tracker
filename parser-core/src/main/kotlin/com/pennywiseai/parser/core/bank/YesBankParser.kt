@@ -86,16 +86,11 @@ class YesBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern for "YES BANK Card XXXXX" where X can be X or actual digit
         val cardPattern = Regex(
-            """YES\s+BANK\s+Card\s+[X]*(\d+)""",
+            """YES\s+BANK\s+Card\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         cardPattern.find(message)?.let { match ->
-            val cardNumber = match.groupValues[1]
-            return if (cardNumber.length >= 4) {
-                cardNumber.takeLast(4)
-            } else {
-                cardNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern for SMS BLKCC instruction (contains last 4 digits)
@@ -107,8 +102,7 @@ class YesBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractAvailableLimit(message: String): BigDecimal? {

@@ -211,53 +211,42 @@ class IndusIndBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "IndusInd Account 20XXXXX1234" - extract last 4 digits
+        // Pattern 1: "IndusInd Account 20XXXXX1234"
         val indusIndAccountPattern = Regex(
-            """IndusInd\s+Account\s+\d+X+(\d{4})""",
+            """IndusInd\s+Account\s+([\dX]+)""",
             RegexOption.IGNORE_CASE
         )
         indusIndAccountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: "account XXXXXXX1234" - X's followed by 4 digits
+        // Pattern 2: "account XXXXXXX1234"
         val accountXPattern = Regex(
-            """account\s+X{5,}(\d{4})""",
+            """account\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountXPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 3: IndusInd balance/alerts often mask accounts like: "A/C 2134***12345"
+        // Pattern 3: "A/C 2134***12345" - masked accounts
         val maskedPattern = Regex(
-            """A/?C\s+([0-9]{2,})[\*xX#]+(\d{4,})""",
+            """A/?C\s+([\d*xX#]+)""",
             RegexOption.IGNORE_CASE
         )
         maskedPattern.find(message)?.let { match ->
-            val trailing = match.groupValues[2]
-            // Always normalize to last 4 digits for account matching consistency
-            return if (trailing.length >= 4) trailing.takeLast(4) else trailing
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 4: "A/c *XX1234" -> capture trailing digits after masked Xs or *
+        // Pattern 4: "A/c *XX1234"
         val starMaskPattern = Regex(
-            """A/?c\s+\*?X+\s*(\d{4,6})""",
+            """A/?c\s+([*X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         starMaskPattern.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            return if (digits.length >= 4) digits.takeLast(4) else digits
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // For ACH/NACH messages, treat as account transaction and defer to default account
-        val lower = message.lowercase()
-        if (lower.contains("ach db") || lower.contains("ach cr") || lower.contains("nach")) {
-            return null
-        }
-
-        // DO NOT fallback to base implementation - base patterns are too generic
-        // and can cause false positives. Better to return null than wrong account.
         return null
     }
 

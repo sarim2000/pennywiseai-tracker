@@ -30,7 +30,7 @@ class LivBankParserTest {
                     currency = "AED",
                     type = TransactionType.INCOME,
                     merchant = "Account Credit",
-                    accountLast4 = "O1",  // After filtering X's, last visible chars
+                    accountLast4 = "5711",  // After filtering X's, last visible chars
                     balance = BigDecimal("4377.01"),
                     isFromCard = false
                 )
@@ -62,7 +62,7 @@ class LivBankParserTest {
                     currency = "AED",
                     type = TransactionType.INCOME,
                     merchant = "Account Credit",
-                    accountLast4 = "O1",
+                    accountLast4 = "5711",
                     balance = BigDecimal("15000.00"),
                     isFromCard = false
                 )
@@ -110,7 +110,7 @@ class LivBankParserTest {
                     currency = "AED",
                     type = TransactionType.INCOME,
                     merchant = "Account Credit",
-                    accountLast4 = "O1",
+                    accountLast4 = "5711",
                     balance = BigDecimal("5000.00"),
                     isFromCard = false
                 )
@@ -187,7 +187,7 @@ class LivBankParserTest {
                     currency = "USD",
                     type = TransactionType.INCOME,
                     merchant = "Account Credit",
-                    accountLast4 = "O1",
+                    accountLast4 = "5711",
                     balance = BigDecimal("6000.00"),
                     isFromCard = false
                 )

@@ -89,18 +89,10 @@ class OldHickoryParser : BankParser() {
         // Pattern: "ACCOUNT NAME (part of ACCOUNT#)" - extract account identifier
         val accountPattern = Regex("""\(part of\s+([^)]+)\)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
-            val accountInfo = match.groupValues[1].trim()
-            // If it contains digits, try to extract last 4
-            val digitPattern = Regex("""(\d{4,})""")
-            digitPattern.find(accountInfo)?.let { digitMatch ->
-                val digits = digitMatch.groupValues[1]
-                return if (digits.length >= 4) digits.takeLast(4) else digits
-            }
-            // Otherwise return the account identifier as-is
-            return accountInfo
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

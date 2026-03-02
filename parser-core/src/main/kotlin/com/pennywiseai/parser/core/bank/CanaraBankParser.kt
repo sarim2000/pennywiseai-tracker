@@ -87,14 +87,14 @@ class CanaraBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern: account XXX123 or A/C XX1234
         val accountPattern = Regex(
-            """(?:account|A/C)\s+(?:XX|X\*+)?(\d{3,4})""",
+            """(?:account|A/C)\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

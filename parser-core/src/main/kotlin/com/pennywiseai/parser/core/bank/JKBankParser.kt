@@ -439,28 +439,23 @@ class JKBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // JK Bank specific account patterns
         val jkBankPatterns = listOf(
-            // Your A/c XXXXXXXX1111
-            Regex("""Your\s+A\/c\s+[X]+(\d{4})""", RegexOption.IGNORE_CASE),
+            // Your A/c XXXXXXXX1111 or A/c XX1111
+            Regex("""A\/c\s+([X\d]+)""", RegexOption.IGNORE_CASE),
             // JK Bank A/c no. XXXXXXXX9651
-            Regex("""JK\s+Bank\s+A\/c\s+no\.\s+[X]+(\d{4})""", RegexOption.IGNORE_CASE),
-            // A/c XXX8953 (3 X's followed by 4 digits)
-            Regex("""A\/c\s+X{3}(\d{4})""", RegexOption.IGNORE_CASE),
-            // A/c XXXXXXXX1111 or A/c XX1111
-            Regex("""A\/c\s+[X]*(\d{4})""", RegexOption.IGNORE_CASE),
+            Regex("""JK\s+Bank\s+A\/c\s+no\.\s+([X\d]+)""", RegexOption.IGNORE_CASE),
             // Account XXXXXXXX1111
-            Regex("""Account\s+[X]+(\d{4})""", RegexOption.IGNORE_CASE),
+            Regex("""Account\s+([X\d]+)""", RegexOption.IGNORE_CASE),
             // from A/c ending 1111
             Regex("""A\/c\s+ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in jkBankPatterns) {
             pattern.find(message)?.let { match ->
-                return match.groupValues[1]
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        // Fall back to base extraction
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

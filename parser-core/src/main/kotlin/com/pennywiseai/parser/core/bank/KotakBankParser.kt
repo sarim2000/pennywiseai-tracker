@@ -244,7 +244,7 @@ class KotakBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractAvailableLimit(message: String): BigDecimal? {

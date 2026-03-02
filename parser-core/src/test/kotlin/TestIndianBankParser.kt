@@ -90,6 +90,32 @@ class IndianBankParserTest {
                     type = TransactionType.INCOME,
                     accountLast4 = "9012"
                 )
+            ),
+            // User bug report: NEFT credit with short mask format
+            ParserTestCase(
+                name = "NEFT credit - short mask A/c XX1234",
+                message = "Rs. 21,000 credited to A/c XX1234 on 28/02/2026 at 21:06:00 UTR:IDFBXX90280/NEFT/GXCO TECH / Avl Bal- Rs. 21,532.08 CR -Indian Bank",
+                sender = "BV-INDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("21000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("21532.08")
+                )
+            ),
+            // User bug report: NEFT credit with long unmasked account - must extract LAST 4 digits
+            ParserTestCase(
+                name = "NEFT credit - long account A/c XXX56781234 extracts last 4",
+                message = "Your A/c XXX56781234 is credited by Rs. 21,000 Total Bal : Rs. 21,532.08 CR Clr Bal : Rs. 21,532.08 CR as on:28/02/2026 21:06 -IndianBank",
+                sender = "BV-INDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("21000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("21532.08")
+                )
             )
         )
 

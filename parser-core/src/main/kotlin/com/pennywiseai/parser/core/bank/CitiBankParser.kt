@@ -86,7 +86,7 @@ class CitiBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

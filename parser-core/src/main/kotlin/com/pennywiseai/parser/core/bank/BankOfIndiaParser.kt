@@ -244,26 +244,31 @@ class BankOfIndiaParser : BaseIndianBankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: A/cXX5468 or A/c XX5468 (BOI format)
-        val accountPattern = Regex("""A/c\s*(?:XX|X\*+)?(\d{4})""", RegexOption.IGNORE_CASE)
-        accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+        val accountSlashPattern = Regex("""A/c\s*([X*\d]+)""", RegexOption.IGNORE_CASE)
+        accountSlashPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: Account ending 1234
+        // Pattern 2: "your account XX5468" (BOI cash deposit format)
+        val accountWordPattern = Regex("""account\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
+        accountWordPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
+        }
+
+        // Pattern 3: Account ending 1234
         val endingPattern = Regex("""(?:Account|A/c)\s+ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
         endingPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
-        // Pattern 3: A/c No. XX1234
+        // Pattern 4: A/c No. XX1234
         val accountNoPattern =
-            Regex("""A/c\s+No\.?\s*(?:XX|X\*+)?(\d{4})""", RegexOption.IGNORE_CASE)
+            Regex("""A/c\s+No\.?\s*([X*\d]+)""", RegexOption.IGNORE_CASE)
         accountNoPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

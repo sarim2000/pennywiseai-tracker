@@ -147,7 +147,7 @@ class CIBEgyptParser : BankParser() {
             return match.groupValues[1]
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

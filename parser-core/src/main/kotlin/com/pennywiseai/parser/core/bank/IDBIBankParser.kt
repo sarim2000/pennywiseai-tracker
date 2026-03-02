@@ -124,26 +124,19 @@ class IDBIBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "Acct XX1234"
-        val acctPattern = Regex(
-            """Acct\s+(?:XX|X\*+)?(\d{3,4})""",
-            RegexOption.IGNORE_CASE
+        // Pattern 1: "Acct XX1234" or "IDBI Bank Acct XX1234"
+        val acctPatterns = listOf(
+            Regex("""IDBI\s+Bank\s+Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
         )
-        acctPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+
+        for (pattern in acctPatterns) {
+            pattern.find(message)?.let { match ->
+                return extractLast4Digits(match.groupValues[1])
+            }
         }
 
-        // Pattern 2: "IDBI Bank Acct XX1234"
-        val bankAcctPattern = Regex(
-            """IDBI\s+Bank\s+Acct\s+(?:XX|X\*+)?(\d{3,4})""",
-            RegexOption.IGNORE_CASE
-        )
-        bankAcctPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

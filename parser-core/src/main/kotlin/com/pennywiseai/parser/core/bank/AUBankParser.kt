@@ -173,16 +173,10 @@ class AUBankParser : BaseIndianBankParser() {
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            val accountNumber = match.groupValues[1]
-            return if (accountNumber.length >= 4) {
-                accountNumber.takeLast(4)
-            } else {
-                accountNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class patterns
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

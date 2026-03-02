@@ -268,7 +268,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

@@ -96,19 +96,19 @@ class CBEBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern: "Account 1*********9388" - extract last 4 digits
-        val accountPattern = Regex("""Account\s+\d?\*+(\d{4})""", RegexOption.IGNORE_CASE)
-        accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+        // Pattern: "Account 1*********9388" or "from your account 1*********9388"
+        val accountPatterns = listOf(
+            Regex("""Account\s+([\d*]+)""", RegexOption.IGNORE_CASE),
+            Regex("""your account\s+([\d*]+)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in accountPatterns) {
+            pattern.find(message)?.let { match ->
+                return extractLast4Digits(match.groupValues[1])
+            }
         }
 
-        // Alternative pattern: "from your account 1*********9388"
-        val yourAccountPattern = Regex("""your account\s+\d?\*+(\d{4})""", RegexOption.IGNORE_CASE)
-        yourAccountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

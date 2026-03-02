@@ -43,7 +43,7 @@ class KeralaGraminBankParserTest {
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "UPI Payment",
-                    accountLast4 = "0123",
+                    accountLast4 = "123",
                     reference = "529807237409"
                 )
             ),

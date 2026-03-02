@@ -101,6 +101,7 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
+    onNavigateToManageAccounts: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
@@ -499,21 +500,32 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        AccountCarousel(
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            bankAccounts = uiState.accountBalances,
-                            creditCards = uiState.creditCards,
-                            onAccountClick = { bankName, accountLast4 ->
-                                navController.navigate(
-                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                        bankName = bankName,
-                                        accountLast4 = accountLast4
+                        Column {
+                            SectionHeaderV2(
+                                title = "Bank Accounts",
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                action = {
+                                    TextButton(onClick = onNavigateToManageAccounts) {
+                                        Text("Manage")
+                                    }
+                                }
+                            )
+                            AccountCarousel(
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                bankAccounts = uiState.accountBalances,
+                                creditCards = uiState.creditCards,
+                                onAccountClick = { bankName, accountLast4 ->
+                                    navController.navigate(
+                                        com.pennywiseai.tracker.navigation.AccountDetail(
+                                            bankName = bankName,
+                                            accountLast4 = accountLast4
+                                        )
                                     )
-                                )
-                            },
-                            blurEffects = blurEffects,
-                            hazeState = hazeStateBanner
-                        )
+                                },
+                                blurEffects = blurEffects,
+                                hazeState = hazeStateBanner
+                            )
+                        }
                     }
                 }
             }
@@ -532,15 +544,26 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                            UpcomingSubscriptionsCard(
-                                subscriptions = uiState.upcomingSubscriptions,
-                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                currency = uiState.selectedCurrency,
-                                onClick = onNavigateToSubscriptions,
-                                blurEffects = blurEffects,
-                                hazeState = hazeStateBanner
+                        Column {
+                            SectionHeaderV2(
+                                title = "Upcoming Subscriptions",
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                action = {
+                                    TextButton(onClick = onNavigateToSubscriptions) {
+                                        Text("View All")
+                                    }
+                                }
                             )
+                            Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                UpcomingSubscriptionsCard(
+                                    subscriptions = uiState.upcomingSubscriptions,
+                                    totalAmount = uiState.upcomingSubscriptionsTotal,
+                                    currency = uiState.selectedCurrency,
+                                    onClick = onNavigateToSubscriptions,
+                                    blurEffects = blurEffects,
+                                    hazeState = hazeStateBanner
+                                )
+                            }
                         }
                     }
                 }

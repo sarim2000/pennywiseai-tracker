@@ -205,7 +205,7 @@ private fun BalanceHistoryItem(
             .animateContentSize(),
         colors = CardDefaults.cardColors(
             containerColor = if (isLatest) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.surfaceContainerHigh
             } else {
                 MaterialTheme.colorScheme.surfaceContainerLow
             }
@@ -417,7 +417,7 @@ private fun BalanceHistoryItem(
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
                         .clickable { onToggleExpand() },
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = MaterialTheme.shapes.small
                 ) {
                     Column(

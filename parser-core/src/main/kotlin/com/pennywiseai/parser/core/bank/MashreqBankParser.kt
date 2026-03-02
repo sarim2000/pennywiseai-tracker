@@ -106,26 +106,22 @@ class MashreqBankParser : UAEBankParser() {
         // Mashreq patterns for card/account extraction
         val patterns = listOf(
             // "Card ending XXXX" or "Card ending 1234"
-            Regex("""Card ending\s+([X\d]{4})""", RegexOption.IGNORE_CASE),
+            Regex("""Card ending\s+([X\d]+)""", RegexOption.IGNORE_CASE),
 
             // "card no. XXXX" or "card number XXXX"
-            Regex("""card\s+(?:no\.|number)\s+([X\d]{4})""", RegexOption.IGNORE_CASE),
+            Regex("""card\s+(?:no\.|number)\s+([X\d]+)""", RegexOption.IGNORE_CASE),
 
             // Generic account pattern
-            Regex("""account\s+(?:no\.|number)?\s*([X\d]{4})""", RegexOption.IGNORE_CASE)
+            Regex("""account\s+(?:no\.|number)?\s*([X\d]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
             pattern.find(message)?.let { match ->
-                val accountStr = match.groupValues[1].replace("X", "")
-                // Only return if we have actual digits (not all Xs)
-                if (accountStr.any { it.isDigit() }) {
-                    return accountStr
-                }
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

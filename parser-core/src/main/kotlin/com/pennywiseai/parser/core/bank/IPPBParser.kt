@@ -38,20 +38,14 @@ class IPPBParser : BankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: A/C X1234 or a/c X1234
         val accountPattern = Regex(
-            """[Aa]/[Cc]\s+X?(\d+)""",
+            """[Aa]/[Cc]\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            val accountNumber = match.groupValues[1]
-            // Return last 4 digits or the full number if less than 4 digits
-            return if (accountNumber.length >= 4) {
-                accountNumber.takeLast(4)
-            } else {
-                accountNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

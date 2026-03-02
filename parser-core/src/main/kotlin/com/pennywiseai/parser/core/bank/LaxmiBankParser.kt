@@ -93,16 +93,10 @@ class LaxmiBankParser : BankParser() {
         // Pattern: "Your #12344560 has been"
         val accountPattern = Regex("""Your\s+#(\d+)\s+has\s+been""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
-            val accountNumber = match.groupValues[1]
-            // Return last 4 digits if account number is longer than 4
-            return if (accountNumber.length > 4) {
-                accountNumber.takeLast(4)
-            } else {
-                accountNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

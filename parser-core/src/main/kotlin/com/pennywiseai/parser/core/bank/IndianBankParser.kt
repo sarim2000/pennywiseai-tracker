@@ -145,26 +145,25 @@ class IndianBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: A/c *1234
-        val pattern1 = Regex("""A/c\s+\*(\d{4})""", RegexOption.IGNORE_CASE)
+        // Pattern 1: A/c *1234 or A/c XX1234
+        val pattern1 = Regex("""A/c\s+([*X\d]+)""", RegexOption.IGNORE_CASE)
         pattern1.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: Account XX1234 or XXXX1234
-        val pattern2 = Regex("""Account\s+X*(\d{4})""", RegexOption.IGNORE_CASE)
+        val pattern2 = Regex("""Account\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
         pattern2.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 3: A/c ending 1234
         val pattern3 = Regex("""A/c\s+ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
         pattern3.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {
@@ -197,9 +196,9 @@ class IndianBankParser : BaseIndianBankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Pattern 1: Bal Rs. 50000.00
+        // Pattern 1: Bal Rs. 50000.00 or Bal- Rs. 50000.00 or Total Bal : Rs. 50000.00
         val balPattern1 =
-            Regex("""Bal\s+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            Regex("""Bal[:\s-]+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         balPattern1.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {

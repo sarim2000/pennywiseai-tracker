@@ -56,12 +56,15 @@ abstract class BankParser {
             null
         }
 
+        val rawAccountLast4 = extractAccountLast4(smsBody)
+        val safeAccountLast4 = rawAccountLast4?.let { extractLast4Digits(it) } ?: rawAccountLast4
+
         return ParsedTransaction(
             amount = amount,
             type = type,
             merchant = extractMerchant(smsBody, sender),
             reference = extractReference(smsBody),
-            accountLast4 = extractAccountLast4(smsBody),
+            accountLast4 = safeAccountLast4,
             balance = extractBalance(smsBody),
             creditLimit = availableLimit,  // TODO: This is actually available limit, will be fixed in SmsReaderWorker
             smsBody = smsBody,
@@ -286,16 +289,26 @@ abstract class BankParser {
     }
 
     /**
+     * Extracts last 4 digits from a raw captured string.
+     * Filters to digits only, takes last 4. Returns null if fewer than 3 digits.
+     */
+    protected fun extractLast4Digits(raw: String): String? {
+        val digits = raw.filter { it.isDigit() }
+        val last4 = digits.takeLast(4)
+        return if (last4.length >= 3) last4 else null
+    }
+
+    /**
      * Extracts last 4 digits of account number.
      */
     protected open fun extractAccountLast4(message: String): String? {
         for (pattern in CompiledPatterns.Account.ALL_PATTERNS) {
             pattern.find(message)?.let { match ->
-                val accountLast4 = match.groupValues[1]
+                val rawCapture = match.groupValues[1]
+                val last4 = extractLast4Digits(rawCapture)
 
-                // Validate that this is actually an account number, not a date or RRN
-                if (isValidAccountLast4(accountLast4, match.value, message)) {
-                    return accountLast4
+                if (last4 != null && isValidAccountLast4(last4, match.value, message)) {
+                    return last4
                 }
             }
         }

@@ -207,27 +207,16 @@ class BankOfBarodaParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
-        // Pattern 1: A/C XXXXXX (6 digits shown)
-        val sixDigitPattern = Regex(
-            """A/C\s+X*(\d{6})""",
+        // Pattern 1: A/C or A/c with masked account number
+        val acPattern = Regex(
+            """A/[Cc]\s+([X.*\d]+)""",
             RegexOption.IGNORE_CASE
         )
-        sixDigitPattern.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            // Return last 4 of the 6 digits shown
-            return digits.takeLast(4)
+        acPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: A/c ...xxxx
-        val maskedPattern = Regex(
-            """A/c\s+\.+(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        maskedPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

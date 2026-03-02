@@ -131,18 +131,17 @@ class CityUnionBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern: "Your a/c no. XXXXXXXXXXXXXXX" or "Savings No XXXXXXXXXXXXXXX"
         val accountPatterns = listOf(
-            Regex("""Your\s+a/c\s+no\.\s+[X]*(\d{3,4})""", RegexOption.IGNORE_CASE),
-            Regex("""Savings\s+No\s+[X]*(\d{3,4})""", RegexOption.IGNORE_CASE)
+            Regex("""Your\s+a/c\s+no\.\s+([X\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Savings\s+No\s+([X\d]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in accountPatterns) {
             pattern.find(message)?.let { match ->
-                val digits = match.groupValues[1]
-                return if (digits.length >= 4) digits.takeLast(4) else digits
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

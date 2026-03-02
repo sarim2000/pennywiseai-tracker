@@ -138,7 +138,7 @@ class AllNewParsersTest {
                     currency = "USD",
                     type = TransactionType.EXPENSE,
                     merchant = "Account: ACCOUNT NAME",
-                    accountLast4 = "ACCOUNT#",
+                    accountLast4 = null,
                     reference = "Alert threshold: $0.00"
                 ),
                 shouldHandle = true,

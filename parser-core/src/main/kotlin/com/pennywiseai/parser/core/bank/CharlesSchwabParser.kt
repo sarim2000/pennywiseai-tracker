@@ -222,7 +222,7 @@ class CharlesSchwabParser : BankParser() {
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun isTransactionMessage(message: String): Boolean {

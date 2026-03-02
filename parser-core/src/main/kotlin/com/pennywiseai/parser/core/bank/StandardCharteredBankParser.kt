@@ -237,62 +237,59 @@ class StandardCharteredBankParser : BankParser() {
     override fun extractAccountLast4(message: String): String? {
         // India Pattern 1: "Your a/c XX3421"
         val acPattern = Regex(
-            """Your a/c ([X*]+)(\d{4})""",
+            """Your a/c ([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acPattern.find(message)?.let { match ->
-            return match.groupValues[2]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // India Pattern 2: "in your account 123xxxx7655"
         val accountPattern = Regex(
-            """in your account (?:\d+[xX*]+)?(\d{4})""",
+            """in your account ([0-9xX*]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pakistan Pattern 3: "A/C ****9901" or "Account No. 0101xxx9901"
         val maskedAccountPattern = Regex(
-            """(?:A/C\s*[*Xx]+|Account No\.\s*[0-9Xx*]+|Acc\. Number\s*[0-9Xx*]+|Iban\.\s*[*Xx]+)(\d{4})""",
+            """(?:A/C\s*|Account No\.\s*|Acc\. Number\s*|Iban\.\s*)([0-9Xx*]+)""",
             RegexOption.IGNORE_CASE
         )
         maskedAccountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pakistan Pattern 4: "credit/debit card no 53119xxxxxxxx1640"
         val cardPattern = Regex(
-            """card no\.?\s*[0-9Xx*\s-]*?(\d{4})(?![0-9Xx])""",
+            """card no\.?\s*([0-9Xx*\s-]+)""",
             RegexOption.IGNORE_CASE
         )
         cardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pakistan Pattern 5: "your account 01-01***9901"
         val yourAccountPattern = Regex(
-            """your account\s+[0-9\-*xX]+""",
+            """your account\s+([0-9\-*xX]+)""",
             RegexOption.IGNORE_CASE
         )
         yourAccountPattern.find(message)?.let { match ->
-            val digits = match.value.filter { it.isDigit() }
-            if (digits.length >= 4) return digits.takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pakistan Pattern 6: "account 01-70***32-01"
         val flexibleAccountPattern = Regex(
-            """account\s+[0-9\-*xX]+""",
+            """account\s+([0-9\-*xX]+)""",
             RegexOption.IGNORE_CASE
         )
         flexibleAccountPattern.find(message)?.let { match ->
-            val digits = match.value.filter { it.isDigit() }
-            if (digits.length >= 4) return digits.takeLast(4)
-            if (digits.isNotEmpty()) return digits.takeLast(2)
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

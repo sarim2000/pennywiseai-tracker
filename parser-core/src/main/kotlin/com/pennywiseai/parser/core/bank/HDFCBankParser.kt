@@ -303,31 +303,25 @@ class HDFCBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern for "Card x####" format in withdrawals
+        // Pattern for "Card x####" format in withdrawals — already exactly 4 digits
         val cardPattern = Regex("""Card\s+x(\d{4})""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
-        // Pattern for "BLOCK DC ####" format
+        // Pattern for "BLOCK DC ####" format — already exactly 4 digits
         val blockDCPattern = Regex("""BLOCK\s+DC\s+(\d{4})""", RegexOption.IGNORE_CASE)
         blockDCPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
-        // Additional pattern for "HDFC Bank XXNNNN" format (without A/c prefix)
-        val hdfcBankPattern = Regex("""HDFC\s+Bank\s+([X\*]*\d+)""", RegexOption.IGNORE_CASE)
+        // Pattern for "HDFC Bank XXNNNN" format — require mask prefix, cap digits
+        val hdfcBankPattern = Regex("""HDFC\s+Bank\s+([X\*]+\d{3,6})""", RegexOption.IGNORE_CASE)
         hdfcBankPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // HDFC specific patterns
+        // HDFC specific patterns from CompiledPatterns
         val hdfcPatterns = listOf(
             CompiledPatterns.HDFC.ACCOUNT_DEPOSITED,
             CompiledPatterns.HDFC.ACCOUNT_FROM,
@@ -337,17 +331,11 @@ class HDFCBankParser : BaseIndianBankParser() {
 
         for (pattern in hdfcPatterns) {
             pattern.find(message)?.let { match ->
-                val accountStr = match.groupValues[1]
-                // Take last 4 digits for consistency
-                return if (accountStr.length >= 4) {
-                    accountStr.takeLast(4)
-                } else {
-                    accountStr
-                }
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

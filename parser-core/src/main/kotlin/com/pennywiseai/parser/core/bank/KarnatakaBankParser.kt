@@ -102,31 +102,25 @@ class KarnatakaBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "Account x001234x" or "Account XX1234X"
+        // Capture everything after keyword, filter to digits, take last 4
         val accountPattern1 = Regex(
-            """Account\s+[xX]*([0-9]{4,6})[xX]*""",
+            """Account\s+([xX\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern1.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            // Return last 4 digits if more than 4
-            return if (digits.length > 4) {
-                digits.takeLast(4)
-            } else {
-                digits
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: "a/c XX1234"
         val accountPattern2 = Regex(
-            """a/c\s+[xX]{0,2}([0-9]{4,6})""",
+            """a/c\s+([xX\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern2.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

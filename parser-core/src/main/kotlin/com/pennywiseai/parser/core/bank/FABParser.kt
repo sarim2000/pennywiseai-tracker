@@ -357,21 +357,17 @@ open class FABParser : UAEBankParser() {
     // Extract standard account patterns (for non-transfer transactions)
     private fun extractStandardAccountLast4(message: String): String? {
         val patterns = listOf(
-            Regex("""Card\s+No\s+([X\d]{4})""", RegexOption.IGNORE_CASE),
-            Regex("""Account\s+([X\d]{4})\*{0,2}""", RegexOption.IGNORE_CASE),
-            Regex("""Account\s+[X\*]+(\d{4})""", RegexOption.IGNORE_CASE)
+            Regex("""Card\s+No\s+([X\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Account\s+([X\d*]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
             pattern.find(message)?.let { match ->
-                val accountStr = match.groupValues[1].replace("X", "")
-                if (accountStr.isNotEmpty()) {
-                    return accountStr
-                }
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     // Extract from and to accounts for transfer transactions
@@ -396,7 +392,7 @@ open class FABParser : UAEBankParser() {
         val extractAccount = { patterns: List<Regex>, default: String? ->
             patterns.firstNotNullOfOrNull { pattern ->
                 pattern.find(message)?.groupValues?.get(1)?.let { account ->
-                    account.replace("X", "").takeLast(4)
+                    extractLast4Digits(account)
                 }
             } ?: default
         }

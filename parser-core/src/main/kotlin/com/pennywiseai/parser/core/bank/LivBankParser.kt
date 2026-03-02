@@ -101,19 +101,14 @@ class LivBankParser : UAEBankParser() {
             return it.groupValues[1]
         }
 
-        // Pattern 2: Account number (may be alphanumeric)
-        // "account 095XXX71XXXO1" - extract last 4 characters (can include letters)
-        val accountPattern = Regex("""account\s+[0-9X]+([0-9A-Z]{2,4})""", RegexOption.IGNORE_CASE)
+        // Pattern 2: Account number (may be alphanumeric with masks)
+        // "account 095XXX71XXXO1" - capture everything, filter to digits, take last 4
+        val accountPattern = Regex("""account\s+([0-9A-Z]+)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
-            val last4 = match.groupValues[1]
-            // Filter out all X's, keep only actual digits/letters
-            val cleanLast4 = last4.replace("X", "", ignoreCase = true)
-            if (cleanLast4.isNotEmpty()) {
-                return cleanLast4.takeLast(4)
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

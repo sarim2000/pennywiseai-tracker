@@ -136,26 +136,19 @@ class OneCardParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern: "card ending XXXX" or "card ending XXXX"
-        val cardEndingPattern = Regex(
-            """card\s+ending\s+[X]*(\d{4})""",
-            RegexOption.IGNORE_CASE
+        // Pattern: "card ending XXXX" or "on card XXXX"
+        val cardPatterns = listOf(
+            Regex("""card\s+ending\s+([X\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""on\s+card\s+([X\d]+)""", RegexOption.IGNORE_CASE)
         )
-        cardEndingPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+
+        for (pattern in cardPatterns) {
+            pattern.find(message)?.let { match ->
+                return extractLast4Digits(match.groupValues[1])
+            }
         }
 
-        // Alternative pattern: "on card XXXX"
-        val onCardPattern = Regex(
-            """on\s+card\s+[X]*(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        onCardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun isTransactionMessage(message: String): Boolean {

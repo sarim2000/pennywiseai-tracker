@@ -185,52 +185,44 @@ class HSBCBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "A/c 074-260***-006" format (Issue #118)
-        // Match account numbers with dashes and asterisks
+        // Capture everything after A/c keyword, filter to digits, take last 4
         val acNoPattern = Regex(
-            """A/c\s+\d+-\d+\*+-(\d+)""",
+            """A/c\s+([\d\-*]+)""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
-            val lastPart = match.groupValues[1]
-            // Pad with leading zero if needed to make it 4 digits
-            return lastPart.padStart(4, '0')
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: "Debit Card XXXXX71xx" format
-        // Handle mixed digits and 'x' characters
+        // Handle mixed digits and 'x' characters - extract digits only, take last 4
         val debitCardPattern = Regex(
-            """Debit\s+Card\s+[X*]+(\d+[xX]*)""",
+            """Debit\s+Card\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         debitCardPattern.find(message)?.let { match ->
-            val cardNum = match.groupValues[1]
-            // Return last 4 characters as-is (may include 'x')
-            return if (cardNum.length >= 4) {
-                cardNum.takeLast(4).lowercase()
-            } else {
-                cardNum.lowercase()
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 3: "creditcard xxxxx1234" or "credit card xxxxx1234"
         val creditCardPattern = Regex(
-            """credit\s*card\s+[xX*]+(\d{4})""",
+            """credit\s*card\s+([xX*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         creditCardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 4: account XXXXXX1234
         val accountPattern = Regex(
-            """account\s+[X*]+(\d{4})""",
+            """account\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

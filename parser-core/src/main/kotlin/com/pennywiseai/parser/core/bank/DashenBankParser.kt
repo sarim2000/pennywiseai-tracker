@@ -90,12 +90,13 @@ class DashenBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Dashen masks accounts as "5387********011" or "5387*****9011"
-        val pattern = Regex("""(\d{4})\*+\d+""", RegexOption.IGNORE_CASE)
+        // Capture full masked string, filter to digits, take last 4
+        val pattern = Regex("""(\d{4}\*+\d+)""", RegexOption.IGNORE_CASE)
         pattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

@@ -94,8 +94,7 @@ class JupiterBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractReference(message: String): String? {

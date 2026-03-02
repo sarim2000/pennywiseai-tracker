@@ -96,8 +96,7 @@ class HuntingtonBankParser : BankParser() {
             return match.groupValues[1]
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

@@ -129,16 +129,11 @@ class NMBBankParser : BankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: "A/C 01000000055" - extract last 4 digits
         val accountLongPattern = Regex(
-            """A/C\s+(\d{8,})""",
+            """A/C\s+(\d{4,})""",
             RegexOption.IGNORE_CASE
         )
         accountLongPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            return if (accountStr.length >= 4) {
-                accountStr.takeLast(4)
-            } else {
-                accountStr
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: "A/C 0#16" - special format with # separator
@@ -147,16 +142,8 @@ class NMBBankParser : BankParser() {
             RegexOption.IGNORE_CASE
         )
         accountHashPattern.find(message)?.let { match ->
-            // Combine both parts for last 4 digits
-            val part1 = match.groupValues[1]
-            val part2 = match.groupValues[2]
-            val combined = part1 + part2
-            // Pad with leading zeros if needed to get 4 digits
-            return if (combined.length >= 4) {
-                combined.takeLast(4)
-            } else {
-                combined.padStart(4, '0')
-            }
+            val combined = match.groupValues[1] + match.groupValues[2]
+            return extractLast4Digits(combined)
         }
 
         // Pattern 3: For transfers, extract destination account
@@ -165,12 +152,7 @@ class NMBBankParser : BankParser() {
             RegexOption.IGNORE_CASE
         )
         toAccountPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            return if (accountStr.length >= 4) {
-                accountStr.takeLast(4)
-            } else {
-                accountStr
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         return null

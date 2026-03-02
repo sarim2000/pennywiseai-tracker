@@ -100,15 +100,14 @@ class EquitasBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern: "Equitas A/c 12XX" or "A/c XX1234"
         val acPattern = Regex(
-            """(?:Equitas\s+)?A/c\s+[X]*(\d{2,4})""",
+            """(?:Equitas\s+)?A/c\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         acPattern.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            return if (digits.length >= 4) digits.takeLast(4) else digits
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

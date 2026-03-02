@@ -129,9 +129,9 @@ fun SpendingHeatmap(
                     Spacer(modifier = Modifier.width(gapSize))
 
                     Row(
-                        horizontalArrangement = if (gridFits) Arrangement.SpaceBetween else Arrangement.spacedBy(gapSize),
+                        horizontalArrangement = Arrangement.spacedBy(gapSize),
                         modifier = if (gridFits) {
-                            Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                            Modifier.padding(bottom = 8.dp)
                         } else {
                             Modifier.horizontalScroll(scrollState).padding(bottom = 8.dp)
                         }

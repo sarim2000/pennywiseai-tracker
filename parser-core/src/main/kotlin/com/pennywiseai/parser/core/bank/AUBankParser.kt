@@ -84,7 +84,19 @@ class AUBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: UPI transactions - extract name from Ref UPI/.../.../.../name(account)
+        // Pattern 1: UPI/DR or UPI/CR format without Ref prefix: UPI/DR/ref/MERCHANT/IFSC/acct
+        val upiDrCrPattern = Regex(
+            """UPI/(?:DR|CR)/\d+/([^/]+)/[A-Z]{4}\d*/\d+""",
+            RegexOption.IGNORE_CASE
+        )
+        upiDrCrPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 2: UPI transactions - extract name from Ref UPI/.../.../.../name(account)
         val upiPattern = Regex(
             """Ref\s+UPI/[^/]+/[^/]+/[^/]+\s+([^(]+)\([^)]+\)""",
             RegexOption.IGNORE_CASE
@@ -96,7 +108,7 @@ class AUBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Pattern 2: Alternative UPI format - name in parentheses
+        // Pattern 3: Alternative UPI format - name in parentheses
         val upiParenPattern = Regex(
             """UPI/[^/]+/[^/]+/[^/]+\s+[^(]*\(([^)]+)\)""",
             RegexOption.IGNORE_CASE
@@ -108,14 +120,14 @@ class AUBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Pattern 3: ATM transactions
+        // Pattern 4: ATM transactions
         if (message.contains("ATM", ignoreCase = true) ||
             message.contains("withdrawn", ignoreCase = true)
         ) {
             return "ATM Withdrawal"
         }
 
-        // Pattern 4: General "to/from" patterns
+        // Pattern 5: General "to/from" patterns
         val toPattern = Regex(
             """(?:to|from)\s+([^.\n]+?)(?:\.\s*|$)""",
             RegexOption.IGNORE_CASE
@@ -155,9 +167,9 @@ class AUBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern for account number: "A/c XXXXX"
+        // Pattern for account number: "A/c XXXXX" or "A/c X7013" (with mask characters)
         val accountPattern = Regex(
-            """A/c\s+(\d+)""",
+            """A/c\s+[A-Za-z]*(\d+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->

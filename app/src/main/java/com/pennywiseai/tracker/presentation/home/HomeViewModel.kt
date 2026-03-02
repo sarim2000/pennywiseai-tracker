@@ -479,11 +479,28 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+            // Determine if balance is ready (all conversions successful)
+            val accountCurrencies = regularAccounts.map { it.currency }.distinct()
+            val creditCardCurrencies = creditCards.map { it.currency }.distinct()
+            val allAccountCurrencies = (accountCurrencies + creditCardCurrencies).distinct()
+            val needsConversion = allAccountCurrencies.size > 1 &&
+                allAccountCurrencies.any { it != selectedCurrency }
+            val balanceReady = if (needsConversion) {
+                allAccountCurrencies
+                    .filter { it != selectedCurrency }
+                    .all { currency ->
+                        currencyConversionService.hasValidRate(currency, selectedCurrency)
+                    }
+            } else {
+                true
+            }
+
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
                 totalBalance = totalBalance,
-                totalAvailableCredit = totalAvailableCredit
+                totalAvailableCredit = totalAvailableCredit,
+                isBalanceReady = balanceReady
             )
         }
     }
@@ -602,12 +619,25 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+            // Determine if balance is ready (all conversions successful)
+            val needsConversion = allAccountCurrencies.size > 1 &&
+                allAccountCurrencies.any { it != selectedCurrency }
+            val balanceReady = if (needsConversion) {
+                allAccountCurrencies
+                    .filter { it != selectedCurrency }
+                    .all { currency ->
+                        currencyConversionService.hasValidRate(currency, selectedCurrency)
+                    }
+            } else {
+                true
+            }
+
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
                 totalBalance = totalBalanceInSelectedCurrency,
                 totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
-                isBalanceReady = true
+                isBalanceReady = balanceReady
             )
         }
     }

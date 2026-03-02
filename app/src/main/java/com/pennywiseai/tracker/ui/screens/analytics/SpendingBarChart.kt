@@ -129,6 +129,15 @@ fun SpendingBarChart(
         val actualTotalWidth = barThickness * barCount + totalSpacing
         val startOffset = chartLeft + (chartWidth - actualTotalWidth) / 2f
 
+        // Calculate label skip interval to prevent overlap
+        val sampleLabel = if (chartData.isNotEmpty()) {
+            textMeasurer.measure(chartData.first().label, labelStyle)
+        } else null
+        val labelWidth = sampleLabel?.size?.width?.toFloat() ?: 40f
+        val barStep = barThickness + 8.dp.toPx()
+        val labelsPerWidth = (labelWidth * 1.3f) / barStep
+        val labelSkip = labelsPerWidth.toInt().coerceAtLeast(1)
+
         chartData.forEachIndexed { index, bar ->
             val barHeight = ((bar.value / maxValue) * chartHeight * progress).toFloat()
             val x = startOffset + index * (barThickness + 8.dp.toPx())
@@ -158,16 +167,18 @@ fun SpendingBarChart(
                 }
             }
 
-            // Draw x-axis label (rotated text approximated with angled placement)
-            val labelText = bar.label
-            val labelMeasured = textMeasurer.measure(labelText, labelStyle)
-            val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
-            val labelY = chartBottom + 8.dp.toPx()
-            if (labelY + labelMeasured.size.height <= size.height) {
-                drawText(
-                    textLayoutResult = labelMeasured,
-                    topLeft = Offset(labelX, labelY)
-                )
+            // Draw x-axis label — skip labels to prevent overlap
+            if (index % labelSkip == 0 || index == chartData.size - 1) {
+                val labelText = bar.label
+                val labelMeasured = textMeasurer.measure(labelText, labelStyle)
+                val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
+                val labelY = chartBottom + 8.dp.toPx()
+                if (labelY + labelMeasured.size.height <= size.height) {
+                    drawText(
+                        textLayoutResult = labelMeasured,
+                        topLeft = Offset(labelX, labelY)
+                    )
+                }
             }
         }
     }

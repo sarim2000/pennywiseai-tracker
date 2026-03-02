@@ -69,13 +69,19 @@ fun AnalyticsSummaryCard(
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
+                    val isLongAmount = formattedTotal.length > 14
                     Text(
-                        text = CurrencyFormatter.formatCurrency(totalAmount, currency),
-                        style = MaterialTheme.typography.headlineLarge,
+                        text = formattedTotal,
+                        style = if (isLongAmount) {
+                            MaterialTheme.typography.headlineMedium
+                        } else {
+                            MaterialTheme.typography.headlineLarge
+                        },
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Clip
                     )
                 }
 

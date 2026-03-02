@@ -283,52 +283,76 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Load balance history for sparkline (last 30 days) from actual account balances
             val thirtyDaysAgo = LocalDate.now().minusDays(30)
-            val startDateTime = thirtyDaysAgo.minusDays(7).atStartOfDay()
+            val startDateTime = thirtyDaysAgo.atStartOfDay()
 
-            accountBalanceRepository.getBalancesFromDate(startDateTime).collect { allBalances ->
+            combine(
+                accountBalanceRepository.getBalancesFromDate(startDateTime),
+                accountBalanceRepository.getAllLatestBalances()
+            ) { recentBalances, allLatestBalances ->
+                Pair(recentBalances, allLatestBalances)
+            }.collect { (recentBalances, allLatestBalances) ->
                 val selectedCurrency = _uiState.value.selectedCurrency
                 val isUnified = _uiState.value.isUnifiedMode
                 val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
-                val relevantBalances = allBalances.filter { bal ->
-                    val accountKey = "${bal.bankName}_${bal.accountLast4}"
-                    !hiddenAccounts.contains(accountKey) &&
-                    !bal.isCreditCard &&
-                    (isUnified || bal.currency == selectedCurrency)
+                fun isRelevant(bankName: String, accountLast4: String, isCreditCard: Boolean, currency: String): Boolean {
+                    val accountKey = "${bankName}_${accountLast4}"
+                    return !hiddenAccounts.contains(accountKey) &&
+                        !isCreditCard &&
+                        (isUnified || currency == selectedCurrency)
                 }
 
-                if (relevantBalances.isEmpty()) {
+                suspend fun convertBalance(balance: BigDecimal, currency: String): BigDecimal {
+                    return if (isUnified && currency != selectedCurrency) {
+                        currencyConversionService.convertAmount(balance, currency, selectedCurrency)
+                    } else {
+                        balance
+                    }
+                }
+
+                // Build timelines from recent balances (within 30-day window)
+                val relevantRecent = recentBalances.filter { bal ->
+                    isRelevant(bal.bankName, bal.accountLast4, bal.isCreditCard, bal.currency)
+                }
+
+                val accountTimelines = mutableMapOf<String, MutableList<Pair<LocalDate, BigDecimal>>>()
+                for (bal in relevantRecent) {
+                    val key = "${bal.bankName}_${bal.accountLast4}"
+                    val amount = convertBalance(bal.balance, bal.currency)
+                    accountTimelines.getOrPut(key) { mutableListOf() }
+                        .add(Pair(bal.timestamp.toLocalDate(), amount))
+                }
+                accountTimelines.values.forEach { it.sortBy { pair -> pair.first } }
+
+                // Seed initial balances from ALL latest balances (covers accounts with old updates)
+                val latestBalancePerAccount = mutableMapOf<String, BigDecimal>()
+                for (bal in allLatestBalances) {
+                    if (!isRelevant(bal.bankName, bal.accountLast4, bal.isCreditCard, bal.currency)) continue
+                    val key = "${bal.bankName}_${bal.accountLast4}"
+                    val hasTimelineEntry = accountTimelines.containsKey(key)
+                    if (!hasTimelineEntry) {
+                        // Account has no updates in the 30-day window — use its latest known balance
+                        latestBalancePerAccount[key] = convertBalance(bal.balance, bal.currency)
+                    }
+                }
+
+                // For accounts with timeline entries starting after day 1, seed with the first entry's value
+                for ((key, timeline) in accountTimelines) {
+                    if (!latestBalancePerAccount.containsKey(key) && timeline.isNotEmpty()) {
+                        latestBalancePerAccount[key] = timeline.first().second
+                    }
+                }
+
+                if (latestBalancePerAccount.isEmpty() && accountTimelines.isEmpty()) {
                     _uiState.value = _uiState.value.copy(balanceHistory = emptyList())
                     calculateMonthlyChange()
                     return@collect
                 }
 
-                val accountTimelines = mutableMapOf<String, MutableList<Pair<LocalDate, BigDecimal>>>()
-                for (bal in relevantBalances) {
-                    val key = "${bal.bankName}_${bal.accountLast4}"
-                    val amount = if (isUnified && bal.currency != selectedCurrency) {
-                        currencyConversionService.convertAmount(bal.balance, bal.currency, selectedCurrency)
-                    } else {
-                        bal.balance
-                    }
-                    accountTimelines.getOrPut(key) { mutableListOf() }
-                        .add(Pair(bal.timestamp.toLocalDate(), amount))
-                }
-
-                accountTimelines.values.forEach { it.sortBy { pair -> pair.first } }
-
+                // Build daily totals
                 val history = mutableListOf<BigDecimal>()
                 var day = thirtyDaysAgo
                 val today = LocalDate.now()
-
-                val latestBalancePerAccount = mutableMapOf<String, BigDecimal>()
-
-                for ((key, timeline) in accountTimelines) {
-                    val beforeWindow = timeline.filter { it.first < thirtyDaysAgo }
-                    if (beforeWindow.isNotEmpty()) {
-                        latestBalancePerAccount[key] = beforeWindow.last().second
-                    }
-                }
 
                 while (!day.isAfter(today)) {
                     for ((key, timeline) in accountTimelines) {
@@ -828,9 +852,10 @@ class HomeViewModel @Inject constructor(
             lastMonthBreakdownMap = breakdownByCurrency
         }
 
-        // Update available currencies from all stored data
-        val allCurrencies = (currentMonthBreakdownMap.keys + lastMonthBreakdownMap.keys).distinct()
-        val availableCurrencies = allCurrencies.sortedWith { a, b ->
+        // Update available currencies — merge transaction currencies with existing account currencies
+        val transactionCurrencies = (currentMonthBreakdownMap.keys + lastMonthBreakdownMap.keys)
+        val existingCurrencies = _uiState.value.availableCurrencies
+        val availableCurrencies = (existingCurrencies + transactionCurrencies).distinct().sortedWith { a, b ->
             when {
                 a == "INR" -> -1 // INR first
                 b == "INR" -> 1

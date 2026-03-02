@@ -6,6 +6,7 @@ package com.pennywiseai.parser.core.bank
 object BankParserFactory {
 
     private val parsers = listOf(
+        HDFCMutualFundParser(),  // HDFC Mutual Fund (must be before HDFCBankParser to avoid interception by HDFC's broad DLT pattern)
         HDFCBankParser(),
         SBIBankParser(),
         SaraswatBankParser(),

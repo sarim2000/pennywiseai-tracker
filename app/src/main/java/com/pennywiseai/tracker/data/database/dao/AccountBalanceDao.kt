@@ -148,6 +148,13 @@ interface AccountBalanceDao {
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int
 
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE timestamp >= :startDate
+        ORDER BY timestamp ASC
+    """)
+    fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>>
+
     @Query("DELETE FROM account_balances WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int
 

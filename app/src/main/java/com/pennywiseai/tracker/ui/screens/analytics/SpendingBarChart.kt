@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.ceil
 
 @Composable
 fun SpendingBarChart(
@@ -87,9 +88,10 @@ fun SpendingBarChart(
 
         val yAxisWidth = 48.dp.toPx()
         val xLabelHeight = 40.dp.toPx()
-        val valueLabelReserve = 16.dp.toPx()
+        val valueLabelReserve = 24.dp.toPx()
+        val rightPadding = 24.dp.toPx()
         val chartLeft = yAxisWidth
-        val chartRight = size.width
+        val chartRight = size.width - rightPadding
         val chartTop = valueLabelReserve
         val chartBottom = size.height - xLabelHeight
         val chartHeight = chartBottom - chartTop
@@ -129,6 +131,13 @@ fun SpendingBarChart(
         val actualTotalWidth = barThickness * barCount + totalSpacing
         val startOffset = chartLeft + (chartWidth - actualTotalWidth) / 2f
 
+        // X-axis label thinning: measure a representative label to calculate step
+        val sampleLabelMeasured = textMeasurer.measure(chartData.first().label, labelStyle)
+        val typicalLabelWidth = sampleLabelMeasured.size.width.toFloat()
+        val minGap = 8.dp.toPx()
+        val maxLabels = (chartWidth / (typicalLabelWidth + minGap)).toInt().coerceAtLeast(2)
+        val labelStep = if (barCount > maxLabels) ceil(barCount.toFloat() / maxLabels).toInt() else 1
+
         chartData.forEachIndexed { index, bar ->
             val barHeight = ((bar.value / maxValue) * chartHeight * progress).toFloat()
             val x = startOffset + index * (barThickness + 8.dp.toPx())
@@ -144,11 +153,14 @@ fun SpendingBarChart(
                 )
             }
 
-            // Draw value label above bar
+            // Draw value label above bar (clamped to avoid Y-axis and right-edge overlap)
             if (bar.value > 0 && barHeight > 4.dp.toPx() && progress > 0.5f) {
                 val valueText = formatCompactValue(bar.value, primaryCurrency)
                 val valueMeasured = textMeasurer.measure(valueText, valueLabelStyle)
-                val labelX = x + barThickness / 2f - valueMeasured.size.width / 2f
+                val rawLabelX = x + barThickness / 2f - valueMeasured.size.width / 2f
+                val minLabelX = yAxisWidth + 4.dp.toPx()
+                val maxLabelX = size.width - 4.dp.toPx() - valueMeasured.size.width
+                val labelX = rawLabelX.coerceIn(minLabelX, maxLabelX)
                 val labelY = barTop - 4.dp.toPx() - valueMeasured.size.height
                 if (labelY >= 0f) {
                     drawText(
@@ -158,16 +170,17 @@ fun SpendingBarChart(
                 }
             }
 
-            // Draw x-axis label (rotated text approximated with angled placement)
-            val labelText = bar.label
-            val labelMeasured = textMeasurer.measure(labelText, labelStyle)
-            val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
-            val labelY = chartBottom + 8.dp.toPx()
-            if (labelY + labelMeasured.size.height <= size.height) {
-                drawText(
-                    textLayoutResult = labelMeasured,
-                    topLeft = Offset(labelX, labelY)
-                )
+            // Draw x-axis label — only every Nth label to avoid overlap
+            if (index % labelStep == 0 || index == barCount - 1) {
+                val labelMeasured = textMeasurer.measure(bar.label, labelStyle)
+                val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
+                val labelY = chartBottom + 8.dp.toPx()
+                if (labelY + labelMeasured.size.height <= size.height) {
+                    drawText(
+                        textLayoutResult = labelMeasured,
+                        topLeft = Offset(labelX, labelY)
+                    )
+                }
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -22,12 +23,17 @@ fun BalanceSparkline(
     lineColor: Color,
     modifier: Modifier = Modifier,
     currency: String = "INR",
-    isBalanceHidden: Boolean = false
+    isBalanceHidden: Boolean = false,
+    comparisonData: List<BigDecimal>? = null,
+    comparisonLineColor: Color = Color.Gray
 ) {
     if (data.size < 2) return
 
-    val max = data.maxOf { it }.toFloat()
-    val min = data.minOf { it }.toFloat()
+    // Compute min/max from both datasets for shared Y scale
+    val hasComparison = comparisonData != null && comparisonData.size >= 2
+    val allValues = if (hasComparison) data + comparisonData!! else data
+    val max = allValues.maxOf { it }.toFloat()
+    val min = allValues.minOf { it }.toFloat()
     val range = (max - min).takeIf { it > 0f } ?: 1f
 
     val textMeasurer = rememberTextMeasurer()
@@ -47,6 +53,36 @@ fun BalanceSparkline(
         val chartHeight = height - labelHeight
         val stepX = width / (data.size - 1)
 
+        // Draw comparison line FIRST (behind main line)
+        if (hasComparison) {
+            val compData = comparisonData!!
+            val compStepX = if (compData.size > 1) width / (compData.size - 1) else width
+            val compPath = Path()
+
+            compData.forEachIndexed { index, value ->
+                val x = index * compStepX
+                val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+
+                if (index == 0) {
+                    compPath.moveTo(x, y)
+                } else {
+                    val prevX = (index - 1) * compStepX
+                    val prevValue = compData[index - 1]
+                    val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+                    val midX = (prevX + x) / 2f
+                    compPath.cubicTo(midX, prevY, midX, y, x, y)
+                }
+            }
+
+            val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()), 0f)
+            drawPath(
+                path = compPath,
+                color = comparisonLineColor,
+                style = Stroke(width = 1.5.dp.toPx(), pathEffect = dashEffect)
+            )
+        }
+
+        // Draw main line
         val linePath = Path()
 
         data.forEachIndexed { index, value ->
@@ -64,14 +100,13 @@ fun BalanceSparkline(
             }
         }
 
-        // Draw the line
         drawPath(
             path = linePath,
             color = lineColor,
             style = Stroke(width = 2.dp.toPx())
         )
 
-        // Gradient fill under the line
+        // Gradient fill under the main line
         val fillPath = Path().apply {
             addPath(linePath)
             lineTo(width, chartHeight)

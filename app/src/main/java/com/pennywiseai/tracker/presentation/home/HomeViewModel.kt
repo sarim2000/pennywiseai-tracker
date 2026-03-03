@@ -281,94 +281,93 @@ class HomeViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            // Load balance history for sparkline (last 30 days) from actual account balances
-            val thirtyDaysAgo = LocalDate.now().minusDays(30)
-            val startDateTime = thirtyDaysAgo.atStartOfDay()
+            // Load cumulative spending sparkline for current month + last month comparison
+            val now = LocalDate.now()
+            val firstOfMonth = now.withDayOfMonth(1)
+            val lastMonthStart = firstOfMonth.minusMonths(1)
 
-            combine(
-                accountBalanceRepository.getBalancesFromDate(startDateTime),
-                accountBalanceRepository.getAllLatestBalances()
-            ) { recentBalances, allLatestBalances ->
-                Pair(recentBalances, allLatestBalances)
-            }.collect { (recentBalances, allLatestBalances) ->
+            transactionRepository.getTransactionsBetweenDates(
+                startDate = lastMonthStart,
+                endDate = now
+            ).collect { allTransactions ->
                 val selectedCurrency = _uiState.value.selectedCurrency
                 val isUnified = _uiState.value.isUnifiedMode
-                val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
-                fun isRelevant(bankName: String, accountLast4: String, isCreditCard: Boolean, currency: String): Boolean {
-                    val accountKey = "${bankName}_${accountLast4}"
-                    return !hiddenAccounts.contains(accountKey) &&
-                        !isCreditCard &&
-                        (isUnified || currency == selectedCurrency)
+                // Split into current month and last month
+                val currentMonthTxs = allTransactions.filter { it.dateTime.toLocalDate() >= firstOfMonth }
+                val lastMonthTxs = allTransactions.filter {
+                    val d = it.dateTime.toLocalDate()
+                    d >= lastMonthStart && d < firstOfMonth
                 }
 
-                suspend fun convertBalance(balance: BigDecimal, currency: String): BigDecimal {
-                    return if (isUnified && currency != selectedCurrency) {
-                        currencyConversionService.convertAmount(balance, currency, selectedCurrency)
+                // Filter to EXPENSE only, respect currency/unified mode
+                val currentExpenses = if (isUnified) {
+                    currentMonthTxs.filter { it.transactionType == TransactionType.EXPENSE }
+                } else {
+                    currentMonthTxs.filter {
+                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency
+                    }
+                }
+
+                // Group by day and sum amounts (convert if unified mode)
+                val dailySums = mutableMapOf<LocalDate, BigDecimal>()
+                for (tx in currentExpenses) {
+                    val day = tx.dateTime.toLocalDate()
+                    val amount = if (isUnified && tx.currency != selectedCurrency) {
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
                     } else {
-                        balance
+                        tx.amount
                     }
+                    dailySums[day] = (dailySums[day] ?: BigDecimal.ZERO) + amount
                 }
 
-                // Build timelines from recent balances (within 30-day window)
-                val relevantRecent = recentBalances.filter { bal ->
-                    isRelevant(bal.bankName, bal.accountLast4, bal.isCreditCard, bal.currency)
-                }
-
-                val accountTimelines = mutableMapOf<String, MutableList<Pair<LocalDate, BigDecimal>>>()
-                for (bal in relevantRecent) {
-                    val key = "${bal.bankName}_${bal.accountLast4}"
-                    val amount = convertBalance(bal.balance, bal.currency)
-                    accountTimelines.getOrPut(key) { mutableListOf() }
-                        .add(Pair(bal.timestamp.toLocalDate(), amount))
-                }
-                accountTimelines.values.forEach { it.sortBy { pair -> pair.first } }
-
-                // Seed initial balances from ALL latest balances (covers accounts with old updates)
-                val latestBalancePerAccount = mutableMapOf<String, BigDecimal>()
-                for (bal in allLatestBalances) {
-                    if (!isRelevant(bal.bankName, bal.accountLast4, bal.isCreditCard, bal.currency)) continue
-                    val key = "${bal.bankName}_${bal.accountLast4}"
-                    val hasTimelineEntry = accountTimelines.containsKey(key)
-                    if (!hasTimelineEntry) {
-                        // Account has no updates in the 30-day window — use its latest known balance
-                        latestBalancePerAccount[key] = convertBalance(bal.balance, bal.currency)
-                    }
-                }
-
-                // For accounts with timeline entries starting after day 1, seed with the first entry's value
-                for ((key, timeline) in accountTimelines) {
-                    if (!latestBalancePerAccount.containsKey(key) && timeline.isNotEmpty()) {
-                        latestBalancePerAccount[key] = timeline.first().second
-                    }
-                }
-
-                if (latestBalancePerAccount.isEmpty() && accountTimelines.isEmpty()) {
-                    _uiState.value = _uiState.value.copy(balanceHistory = emptyList())
-                    calculateMonthlyChange()
-                    return@collect
-                }
-
-                // Build daily totals
-                val history = mutableListOf<BigDecimal>()
-                var day = thirtyDaysAgo
-                val today = LocalDate.now()
-
-                while (!day.isAfter(today)) {
-                    for ((key, timeline) in accountTimelines) {
-                        val dayBalances = timeline.filter { it.first == day }
-                        if (dayBalances.isNotEmpty()) {
-                            latestBalancePerAccount[key] = dayBalances.last().second
-                        }
-                    }
-
-                    val dailyTotal = latestBalancePerAccount.values.fold(BigDecimal.ZERO) { acc, bal -> acc + bal }
-                    history.add(dailyTotal)
-
+                // Build cumulative list: one entry per day from 1st to today
+                val cumulativeList = mutableListOf<BigDecimal>()
+                var cumulative = BigDecimal.ZERO
+                var day = firstOfMonth
+                while (!day.isAfter(now)) {
+                    cumulative += (dailySums[day] ?: BigDecimal.ZERO)
+                    cumulativeList.add(cumulative)
                     day = day.plusDays(1)
                 }
 
-                _uiState.value = _uiState.value.copy(balanceHistory = history)
+                // Build last month's cumulative spending (same day count for comparison)
+                val lastMonthExpenses = if (isUnified) {
+                    lastMonthTxs.filter { it.transactionType == TransactionType.EXPENSE }
+                } else {
+                    lastMonthTxs.filter {
+                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency
+                    }
+                }
+
+                val lastMonthDailySums = mutableMapOf<LocalDate, BigDecimal>()
+                for (tx in lastMonthExpenses) {
+                    val txDay = tx.dateTime.toLocalDate()
+                    val amount = if (isUnified && tx.currency != selectedCurrency) {
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                    } else {
+                        tx.amount
+                    }
+                    lastMonthDailySums[txDay] = (lastMonthDailySums[txDay] ?: BigDecimal.ZERO) + amount
+                }
+
+                val daysToInclude = now.dayOfMonth
+                val lastMonthCumulative = mutableListOf<BigDecimal>()
+                var lastCum = BigDecimal.ZERO
+                var lastDay = lastMonthStart
+                var dayCount = 0
+                while (dayCount < daysToInclude && lastDay < firstOfMonth) {
+                    lastCum += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
+                    lastMonthCumulative.add(lastCum)
+                    lastDay = lastDay.plusDays(1)
+                    dayCount++
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    spendingHistory = cumulativeList,
+                    balanceHistory = cumulativeList,
+                    lastMonthSpendingHistory = lastMonthCumulative
+                )
                 calculateMonthlyChange()
             }
         }
@@ -470,26 +469,18 @@ class HomeViewModel @Inject constructor(
     }
     
     private fun calculateMonthlyChange() {
-        val history = _uiState.value.balanceHistory
-        if (history.size >= 2) {
-            val currentBalance = history.last()
-            val pastBalance = history.first()
-            val change = currentBalance - pastBalance
-            val changePercent = if (pastBalance != BigDecimal.ZERO) {
-                change.multiply(BigDecimal(100)).divide(pastBalance, 0, RoundingMode.HALF_UP).toInt()
-            } else {
-                0
-            }
-            _uiState.value = _uiState.value.copy(
-                monthlyChange = change,
-                monthlyChangePercent = changePercent
-            )
+        val currentExpenses = _uiState.value.currentMonthExpenses
+        val lastExpenses = _uiState.value.lastMonthExpenses
+        val change = currentExpenses - lastExpenses
+        val changePercent = if (lastExpenses != BigDecimal.ZERO) {
+            change.multiply(BigDecimal(100)).divide(lastExpenses, 0, RoundingMode.HALF_UP).toInt()
         } else {
-            _uiState.value = _uiState.value.copy(
-                monthlyChange = BigDecimal.ZERO,
-                monthlyChangePercent = 0
-            )
+            0
         }
+        _uiState.value = _uiState.value.copy(
+            monthlyChange = change,
+            monthlyChangePercent = changePercent
+        )
     }
     
     fun refreshHiddenAccounts() {
@@ -902,6 +893,7 @@ class HomeViewModel @Inject constructor(
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies
                 )
+                calculateMonthlyChange()
             }
         } else {
             // Get breakdown for selected currency from stored maps
@@ -927,6 +919,7 @@ class HomeViewModel @Inject constructor(
                 selectedCurrency = selectedCurrency,
                 availableCurrencies = availableCurrencies
             )
+            calculateMonthlyChange()
         }
     }
 
@@ -1090,6 +1083,7 @@ data class HomeUiState(
     val selectedCurrency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
+    val spendingHistory: List<BigDecimal> = emptyList(),
     val balanceHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
@@ -1097,5 +1091,6 @@ data class HomeUiState(
     val isUnifiedMode: Boolean = false,
     val transactionHeatmap: Map<Long, Int> = emptyMap(),
     val isBalanceHidden: Boolean = true,
-    val isBalanceReady: Boolean = false
+    val isBalanceReady: Boolean = false,
+    val lastMonthSpendingHistory: List<BigDecimal> = emptyList()
 )

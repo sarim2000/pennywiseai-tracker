@@ -241,4 +241,12 @@ val grey_dark = Color(0xFF546E7A)
 
 // AMOLED Dark Mode Colors
 val amoled_background = Color(0xFF000000)
-val amoled_surface = Color(0xFF000000)
+val amoled_surface = Color(0xFF0A0A0A)
+val amoled_surfaceVariant = Color(0xFF121212)
+val amoled_surfaceContainerLowest = Color(0xFF000000)
+val amoled_surfaceContainerLow = Color(0xFF0A0A0A)
+val amoled_surfaceContainer = Color(0xFF111111)
+val amoled_surfaceContainerHigh = Color(0xFF1A1A1A)
+val amoled_surfaceContainerHighest = Color(0xFF222222)
+val amoled_surfaceBright = Color(0xFF1A1A1A)
+val amoled_surfaceDim = Color(0xFF050505)

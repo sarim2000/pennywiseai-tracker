@@ -92,7 +92,7 @@ fun AnalyticsSummaryCard(
                             color = MaterialTheme.colorScheme.tertiaryContainer,
                             shape = RoundedCornerShape(Spacing.sm)
                         )
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +150,7 @@ fun AnalyticsSummaryCard(
                         Text(
                             text = " /day",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }

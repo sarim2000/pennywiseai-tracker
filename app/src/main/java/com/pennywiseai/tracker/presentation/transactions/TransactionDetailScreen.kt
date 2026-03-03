@@ -625,7 +625,7 @@ private fun DetailInfoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.xs, vertical = 12.dp),
+            .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -658,7 +658,7 @@ private fun TransferFlowRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.xs, vertical = 12.dp),
+            .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
@@ -678,7 +678,7 @@ private fun TransferFlowRow(
                 text = fromValue,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = Spacing.sm)
             )
         }
 
@@ -698,7 +698,7 @@ private fun TransferFlowRow(
                 text = toValue,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = Spacing.sm)
             )
         }
     }
@@ -718,7 +718,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = Spacing.md, vertical = 12.dp),
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {

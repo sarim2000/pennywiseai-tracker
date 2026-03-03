@@ -156,7 +156,7 @@ private fun AccountCarouselCard(
             Text(
                 text = "••${account.accountLast4}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 maxLines = 1
             )
 
@@ -186,7 +186,7 @@ private fun AccountCarouselCard(
             Text(
                 text = if (isCreditCard) "Outstanding" else "Balance",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
             Row(

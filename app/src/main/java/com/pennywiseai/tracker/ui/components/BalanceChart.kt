@@ -119,7 +119,7 @@ fun BalanceChart(
             enabled = true,
             textStyle = TextStyle.Default.copy(
                 fontSize = 10.sp,
-                color = themeColors.onSurfaceVariant.copy(0.6f),
+                color = themeColors.onSurfaceVariant.copy(0.7f),
                 textAlign = TextAlign.Center
             ),
             contentBuilder = { value ->
@@ -138,7 +138,7 @@ fun BalanceChart(
             enabled = true,
             textStyle = TextStyle.Default.copy(
                 fontSize = 10.sp,
-                color = themeColors.onSurface.copy(0.6f),
+                color = themeColors.onSurface.copy(0.7f),
                 textAlign = TextAlign.End
             ),
             labels = labels,

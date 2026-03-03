@@ -378,7 +378,7 @@ fun HomeScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         HorizontalDivider(
                             thickness = 0.5.dp,
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -829,7 +829,7 @@ fun HomeScreen(
                     Text(
                         text = "v$it",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )

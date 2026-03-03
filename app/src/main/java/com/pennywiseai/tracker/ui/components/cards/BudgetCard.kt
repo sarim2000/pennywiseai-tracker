@@ -254,7 +254,7 @@ fun BudgetCard(
                 Text(
                     text = "remaining",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
         }
@@ -277,7 +277,7 @@ fun BudgetCard(
                 Text(
                     text = if (isTarget) "Saved" else "Spent",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Text(
                     text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
@@ -305,7 +305,7 @@ fun BudgetCard(
                 Text(
                     text = if (isTarget) "Goal" else "Limit",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Text(
                     text = CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency),
@@ -325,7 +325,7 @@ fun BudgetCard(
         Text(
             text = "${groupSpending.daysRemaining} days remaining",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )

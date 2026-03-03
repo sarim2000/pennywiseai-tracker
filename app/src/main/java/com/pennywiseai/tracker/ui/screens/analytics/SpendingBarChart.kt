@@ -41,9 +41,9 @@ fun SpendingBarChart(
 
     val barColor = themeColors.primary.copy(alpha = 0.8f)
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
-    val labelColor = themeColors.onSurface.copy(alpha = 0.6f)
+    val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
     val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
-    val indicatorColor = themeColors.onSurfaceVariant.copy(alpha = 0.6f)
+    val indicatorColor = themeColors.onSurfaceVariant.copy(alpha = 0.7f)
 
     val labelStyle = TextStyle(fontSize = 10.sp, color = labelColor, textAlign = TextAlign.Center)
     val valueLabelStyle = TextStyle(fontSize = 10.sp, color = valueLabelColor, textAlign = TextAlign.Center)

@@ -83,7 +83,7 @@ fun BalanceChart(
         modifier = modifier
             .fillMaxWidth()
             .height(height.dp)
-            .padding(vertical = Spacing.md),
+            .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
                 label = "Balance Trend",

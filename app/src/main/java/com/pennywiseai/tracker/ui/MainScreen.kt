@@ -372,6 +372,11 @@ fun MainScreen(
                         navController.navigate("appearance") {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToImportStatement = {
+                        navController.navigate("import_statement") {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -418,6 +423,14 @@ fun MainScreen(
                         navController.navigate("add_account") {
                             launchSingleTop = true
                         }
+                    }
+                )
+            }
+
+            composable("import_statement") {
+                com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
+                    onNavigateBack = {
+                        navController.safePopBackStack()
                     }
                 )
             }

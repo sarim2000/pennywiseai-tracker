@@ -28,6 +28,7 @@ lifecycleViewmodelCompose = "2.10.0"
 markdown = "0.7.3"
 navVersion = "2.9.6"
 opencsv = "5.12.0"
+pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
 reviewKtx = "2.0.2"
 roomVersion = "2.8.4"
@@ -86,6 +87,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVer
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 opencsv = { module = "com.opencsv:opencsv", version.ref = "opencsv" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 review = { module = "com.google.android.play:review", version.ref = "review" }
 review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtx" }
 tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "tasksGenai" }

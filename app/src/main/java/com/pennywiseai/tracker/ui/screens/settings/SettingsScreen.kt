@@ -82,6 +82,7 @@ fun SettingsScreen(
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
+    onNavigateToImportStatement: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
@@ -330,6 +331,15 @@ fun SettingsScreen(
                     title = "Import Data",
                     subtitle = "Restore data from backup",
                     onClick = { importLauncher.launch("*/*") },
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Description,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Import Statement",
+                    subtitle = "Import from GPay, PhonePe",
+                    onClick = onNavigateToImportStatement,
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(

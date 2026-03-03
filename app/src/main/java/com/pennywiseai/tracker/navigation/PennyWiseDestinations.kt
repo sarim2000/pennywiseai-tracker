@@ -72,3 +72,6 @@ object BudgetGroups
 
 @Serializable
 data class BudgetGroupEdit(val groupId: Long = -1L)
+
+@Serializable
+object ImportStatement

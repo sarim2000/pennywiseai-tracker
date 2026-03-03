@@ -144,6 +144,9 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToExchangeRates = {
                     navController.navigate(ExchangeRates)
+                },
+                onNavigateToImportStatement = {
+                    navController.navigate(ImportStatement)
                 }
             )
         }
@@ -352,6 +355,19 @@ fun PennyWiseNavHost(
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
         ) {
             com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                }
+            )
+        }
+
+        composable<ImportStatement>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
                 }

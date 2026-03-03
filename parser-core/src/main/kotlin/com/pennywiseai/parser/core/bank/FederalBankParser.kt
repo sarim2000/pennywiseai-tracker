@@ -548,6 +548,7 @@ class FederalBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Card-specific patterns
         if (detectIsCard(message)) {
             // Pattern 1: "credit card ending with 1234"

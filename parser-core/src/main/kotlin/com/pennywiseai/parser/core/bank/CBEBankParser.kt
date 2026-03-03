@@ -96,6 +96,7 @@ class CBEBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Account 1*********9388" or "from your account 1*********9388"
         val accountPatterns = listOf(
             Regex("""Account\s+([\d*]+)""", RegexOption.IGNORE_CASE),

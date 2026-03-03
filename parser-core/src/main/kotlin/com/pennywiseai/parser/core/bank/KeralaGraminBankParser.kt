@@ -96,6 +96,7 @@ class KeralaGraminBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Your a/c no. XXXX12345" or "Account XXXX123"
         val accountPattern = Regex(
             """(?:a/c no\.|Account)\s+([X\d]+)""",

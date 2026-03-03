@@ -71,6 +71,7 @@ class DhanlaxmiBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "A/c XXXX1234" or "A/c XX1234"
         val acPattern = Regex(
             """A/c\s+([X\d]+)""",

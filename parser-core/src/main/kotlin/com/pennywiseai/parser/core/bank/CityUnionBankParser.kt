@@ -129,6 +129,7 @@ class CityUnionBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Your a/c no. XXXXXXXXXXXXXXX" or "Savings No XXXXXXXXXXXXXXX"
         val accountPatterns = listOf(
             Regex("""Your\s+a/c\s+no\.\s+([X\d]+)""", RegexOption.IGNORE_CASE),

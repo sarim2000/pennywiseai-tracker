@@ -101,6 +101,7 @@ class KarnatakaBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "Account x001234x" or "Account XX1234X"
         // Capture everything after keyword, filter to digits, take last 4
         val accountPattern1 = Regex(

@@ -152,6 +152,7 @@ class UnionBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Union Bank format: "A/c *1234" or "A/C X1234"
         val accountPatterns = listOf(
             Regex("""A/[Cc]\s*[*X](\d{4})""", RegexOption.IGNORE_CASE),

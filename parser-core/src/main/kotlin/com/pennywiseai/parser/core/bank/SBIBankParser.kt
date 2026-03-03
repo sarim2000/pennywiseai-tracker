@@ -431,6 +431,7 @@ class SBIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern for debit card: "by SBI Debit Card <last4>"
         val debitCardPattern =
             Regex("""by\s+SBI\s+Debit\s+Card\s+([\w\-]+)""", RegexOption.IGNORE_CASE)

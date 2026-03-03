@@ -141,6 +141,7 @@ class EverestBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         val accountPattern = Regex("""A/c\s+([^\s]+)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
             val account = match.groupValues[1].trim()

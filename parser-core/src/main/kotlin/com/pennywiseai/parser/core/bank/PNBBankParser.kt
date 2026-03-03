@@ -101,6 +101,7 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         val acPattern = Regex(
             """A/c\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE

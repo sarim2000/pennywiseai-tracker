@@ -127,6 +127,7 @@ class NMBBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "A/C 01000000055" - extract last 4 digits
         val accountLongPattern = Regex(
             """A/C\s+(\d{4,})""",

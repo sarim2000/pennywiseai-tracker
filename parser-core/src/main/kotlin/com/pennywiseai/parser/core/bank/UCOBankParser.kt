@@ -74,6 +74,7 @@ class UCOBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // UCO Bank format: "A/c XX1111"
         val accountPatterns = listOf(
             Regex("""A/c\s+([X*\d]+)""", RegexOption.IGNORE_CASE),

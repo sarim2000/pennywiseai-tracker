@@ -85,6 +85,7 @@ class CanaraBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: account XXX123 or A/C XX1234
         val accountPattern = Regex(
             """(?:account|A/C)\s+([X*\d]+)""",

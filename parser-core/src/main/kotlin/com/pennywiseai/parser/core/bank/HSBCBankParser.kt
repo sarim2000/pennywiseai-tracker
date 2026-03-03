@@ -184,6 +184,7 @@ class HSBCBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "A/c 074-260***-006" format (Issue #118)
         // Capture everything after A/c keyword, filter to digits, take last 4
         val acNoPattern = Regex(

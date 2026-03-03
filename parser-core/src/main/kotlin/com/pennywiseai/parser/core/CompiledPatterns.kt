@@ -28,7 +28,11 @@ object CompiledPatterns {
             """(?:ending|ends with|ending with)\s+(\d{4})""",
             RegexOption.IGNORE_CASE
         )
-        val ALL_PATTERNS = listOf(AC_WITH_MASK, CARD_WITH_MASK, ENDING_PATTERN)
+        val AC_NO_SLASH = Regex("""(?<![/])AC\s+(\S+)""", RegexOption.IGNORE_CASE)
+        val DEBIT_CREDIT_CARD = Regex("""(?:debit|credit)\s+card\s+(\S+)""", RegexOption.IGNORE_CASE)
+        val YOUR_ACCOUNT = Regex("""Your\s+(?:a/c|account|acct|card|#)\s*(\S+)""", RegexOption.IGNORE_CASE)
+        val LINKED_ACCOUNT = Regex("""linked\s+(?:a/c|account|acct)\s+(\S+)""", RegexOption.IGNORE_CASE)
+        val ALL_PATTERNS = listOf(AC_WITH_MASK, CARD_WITH_MASK, ENDING_PATTERN, AC_NO_SLASH, DEBIT_CREDIT_CARD, YOUR_ACCOUNT, LINKED_ACCOUNT)
     }
 
     object Balance {

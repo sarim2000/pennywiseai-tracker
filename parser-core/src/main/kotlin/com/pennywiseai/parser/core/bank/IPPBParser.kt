@@ -36,6 +36,7 @@ class IPPBParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: A/C X1234 or a/c X1234
         val accountPattern = Regex(
             """[Aa]/[Cc]\s+([X\d]+)""",

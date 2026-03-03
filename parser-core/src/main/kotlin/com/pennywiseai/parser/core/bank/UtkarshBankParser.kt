@@ -55,6 +55,7 @@ class UtkarshBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern for SuperCard xxxx
         val cardPattern = Regex("""SuperCard\s+([xX*\d]+)""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let { match ->

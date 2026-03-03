@@ -97,6 +97,7 @@ class PriorbankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Karta 6***6666" - extract digits only
         val kartaPattern = Regex(
             """Karta\s+[6-9][\*]+(\d{4})""",

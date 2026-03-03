@@ -84,6 +84,7 @@ class YesBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern for "YES BANK Card XXXXX" where X can be X or actual digit
         val cardPattern = Regex(
             """YES\s+BANK\s+Card\s+([X\d]+)""",

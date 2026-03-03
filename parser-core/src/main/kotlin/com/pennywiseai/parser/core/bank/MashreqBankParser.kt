@@ -103,6 +103,7 @@ class MashreqBankParser : UAEBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Mashreq patterns for card/account extraction
         val patterns = listOf(
             // "Card ending XXXX" or "Card ending 1234"

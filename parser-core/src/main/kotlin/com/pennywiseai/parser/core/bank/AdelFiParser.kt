@@ -49,6 +49,7 @@ class AdelFiParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Account shown as "**1234"
         val accountPattern = Regex("""\*\*(\d{4})""")
         return accountPattern.find(message)?.groupValues?.get(1)

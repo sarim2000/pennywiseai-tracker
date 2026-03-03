@@ -86,6 +86,7 @@ class JioPaymentsBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: JPB A/c x4288
         val jpbPattern = Regex(
             """JPB\s+A/c\s+([x\d]+)""",

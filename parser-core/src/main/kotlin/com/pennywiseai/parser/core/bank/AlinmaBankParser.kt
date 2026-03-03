@@ -125,6 +125,7 @@ class AlinmaBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "حساب: **XXXX" or "حساب: **0000" (حساب = account)
         val accountPattern = Regex(
             """حساب:\s*\*+(\d{4})"""

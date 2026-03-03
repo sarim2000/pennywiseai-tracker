@@ -267,6 +267,7 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: Credit Card ending XX1234
         val cardEndingPattern = Regex(
             """Credit\s+Card\s+ending\s+([X\d]+)""",

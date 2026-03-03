@@ -124,6 +124,7 @@ class IDBIBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "Acct XX1234" or "IDBI Bank Acct XX1234"
         val acctPatterns = listOf(
             Regex("""IDBI\s+Bank\s+Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE),

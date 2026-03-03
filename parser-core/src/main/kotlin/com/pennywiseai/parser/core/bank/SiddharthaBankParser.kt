@@ -107,6 +107,7 @@ class SiddharthaBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "AC ###XXXX1234" or "AC XXXX1234" - capture masked string, extract last 4 digits
         val accountPattern = Regex(
             """AC\s+([X#\d]+)""",

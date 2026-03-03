@@ -303,6 +303,7 @@ class HDFCBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern for "Card x####" format in withdrawals — already exactly 4 digits
         val cardPattern = Regex("""Card\s+x(\d{4})""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let { match ->

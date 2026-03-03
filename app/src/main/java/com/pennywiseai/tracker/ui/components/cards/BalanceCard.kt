@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -58,7 +57,6 @@ import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.time.LocalDate
 
 @Composable
 fun BalanceCard(
@@ -72,6 +70,7 @@ fun BalanceCard(
     currentMonthTotal: BigDecimal,
     balanceHistory: List<BigDecimal>,
     availableCurrencies: List<String>,
+    isUnifiedMode: Boolean = false,
     onCurrencyClick: () -> Unit,
     onShowBreakdown: () -> Unit,
     isBalanceHidden: Boolean = false,
@@ -96,10 +95,6 @@ fun BalanceCard(
     } else {
         if (isDark) expense_dark else expense_light
     }
-
-    val now = LocalDate.now()
-    val currentMonth = now.month.name.lowercase().replaceFirstChar { it.uppercase() }
-    val currencySymbol = CurrencyFormatter.getCurrencySymbol(currency)
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
@@ -149,6 +144,13 @@ fun BalanceCard(
                             .fillMaxWidth()
                             .padding(bottom = Spacing.xs)
                     ) {
+                        Text(
+                            text = "Total Balance",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -183,7 +185,7 @@ fun BalanceCard(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             // Currency chip
-                            if (availableCurrencies.size > 1) {
+                            if (availableCurrencies.size > 1 && !isUnifiedMode) {
                                 Surface(
                                     onClick = onCurrencyClick,
                                     shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
@@ -220,7 +222,7 @@ fun BalanceCard(
                             // Monthly change pill
                             Surface(
                                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                color = MaterialTheme.colorScheme.secondaryContainer
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest
                             ) {
                                 Text(
                                     text = if (isBalanceHidden) "••••" else changeText,
@@ -238,6 +240,15 @@ fun BalanceCard(
                 } else {
                     // ── Expanded View ──
                     Column(modifier = Modifier.fillMaxWidth()) {
+                        // Total Balance label
+                        Text(
+                            text = "Total Balance",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+
                         // Balance at top as hero
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -265,74 +276,79 @@ fun BalanceCard(
                             }
                         }
 
-                        // Date range label
-                        Text(
-                            text = "$currentMonth 1\u2013${now.dayOfMonth}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.alpha(0.4f),
-                            fontWeight = FontWeight.Medium
-                        )
-
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Currency selector
-                        if (availableCurrencies.size > 1) {
+                        // Currency chip + monthly change pill
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            // Currency chip
+                            if (availableCurrencies.size > 1 && !isUnifiedMode) {
+                                Surface(
+                                    onClick = onCurrencyClick,
+                                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                                    border = BorderStroke(
+                                        0.5.dp,
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = Spacing.sm,
+                                            vertical = Spacing.xs
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                                    ) {
+                                        Text(
+                                            text = currency,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Change currency",
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Monthly change pill
                             Surface(
-                                onClick = onCurrencyClick,
                                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
-                                border = BorderStroke(
-                                    0.5.dp,
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                )
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest
                             ) {
-                                Row(
+                                Text(
+                                    text = if (isBalanceHidden) "••••" else changeText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = changeColor,
                                     modifier = Modifier.padding(
                                         horizontal = Spacing.sm,
                                         vertical = Spacing.xs
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                                ) {
-                                    Text(
-                                        text = currency,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
-                                    Icon(
-                                        imageVector = Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "Change currency",
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                        }
-
-                        // Sparkline (full width, 114dp)
-                        if (balanceHistory.size >= 2) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(114.dp)
-                            ) {
-                                BalanceSparkline(
-                                    data = balanceHistory,
-                                    lineColor = MaterialTheme.colorScheme.primary,
-                                    currency = currency,
-                                    isBalanceHidden = isBalanceHidden
                                 )
                             }
                         }
-
                         Spacer(modifier = Modifier.height(Spacing.sm))
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
                         Spacer(modifier = Modifier.height(Spacing.md))
+
+                        // "This month" section label
+                        Text(
+                            text = "This month",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         // Summary row: Income | Expenses | Net — with colored accent bars
                         Row(

@@ -125,6 +125,10 @@ class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4)
     }
 
+    fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>> {
+        return accountBalanceDao.getBalancesFromDate(startDate)
+    }
+
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.deleteAccount(bankName, accountLast4)
     }

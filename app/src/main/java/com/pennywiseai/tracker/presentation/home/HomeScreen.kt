@@ -323,6 +323,7 @@ fun HomeScreen(
                             currentMonthTotal = uiState.currentMonthTotal,
                             balanceHistory = uiState.balanceHistory,
                             availableCurrencies = uiState.availableCurrencies,
+                            isUnifiedMode = uiState.isUnifiedMode,
                             isBalanceHidden = uiState.isBalanceHidden,
                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                             onCurrencyClick = {

@@ -160,11 +160,12 @@ fun BudgetCard(
             ) {
                 val strokeWidth = 10.dp.toPx()
                 val padding = strokeWidth / 2
-                val arcSize = Size(
-                    width = size.width - strokeWidth,
-                    height = (size.height - padding) * 2
+                val diameter = (size.height - padding) * 2
+                val arcSize = Size(diameter, diameter)
+                val topLeft = Offset(
+                    x = (size.width - diameter) / 2,
+                    y = padding
                 )
-                val topLeft = Offset(padding, padding)
 
                 // Background track
                 drawArc(

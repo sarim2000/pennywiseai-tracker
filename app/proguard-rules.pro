@@ -117,3 +117,12 @@
 
 # SLF4J (used by OpenCSV)
 -dontwarn org.slf4j.impl.StaticLoggerBinder
+
+# PDFBox Android (used for PDF statement parsing)
+-keep class com.tom_roush.pdfbox.** { *; }
+-dontwarn com.tom_roush.pdfbox.filter.JPXFilter
+-dontwarn com.tom_roush.pdfbox.pdmodel.graphics.image.SampledImageReader
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn org.bouncycastle.**
+-dontwarn org.apache.harmony.**
+-dontwarn javax.xml.stream.**

@@ -4,6 +4,7 @@ import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.flow.Flow
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Dao
@@ -169,9 +170,9 @@ interface TransactionDao {
     ): Flow<List<TransactionEntity>>
     
     @Query("""
-        SELECT * FROM transactions 
-        WHERE is_deleted = 0 
-        AND bank_name = :bankName 
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND bank_name = :bankName
         AND account_number = :accountLast4
         AND date_time BETWEEN :startDate AND :endDate
         ORDER BY date_time DESC
@@ -182,4 +183,19 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
+    suspend fun getTransactionByReference(reference: String): TransactionEntity?
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND amount = :amount
+        AND date_time BETWEEN :dateStart AND :dateEnd
+    """)
+    suspend fun getTransactionByAmountAndDate(
+        amount: BigDecimal,
+        dateStart: LocalDateTime,
+        dateEnd: LocalDateTime
+    ): List<TransactionEntity>
 }

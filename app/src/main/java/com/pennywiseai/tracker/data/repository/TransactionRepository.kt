@@ -133,6 +133,16 @@ class TransactionRepository @Inject constructor(
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
+
+    suspend fun getTransactionByReference(reference: String): TransactionEntity? =
+        transactionDao.getTransactionByReference(reference)
+
+    suspend fun getTransactionByAmountAndDate(
+        amount: BigDecimal,
+        dateStart: LocalDateTime,
+        dateEnd: LocalDateTime
+    ): List<TransactionEntity> =
+        transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))

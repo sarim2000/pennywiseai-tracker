@@ -98,6 +98,10 @@ android {
 
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -274,5 +278,8 @@ dependencies {
     
     // OpenCSV for CSV export
     implementation(libs.opencsv)
+
+    // PDFBox Android for PDF statement parsing
+    implementation(libs.pdfbox.android)
     testImplementation(kotlin("test"))
 }

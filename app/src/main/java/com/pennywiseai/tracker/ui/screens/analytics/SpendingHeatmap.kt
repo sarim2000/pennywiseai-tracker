@@ -120,7 +120,7 @@ fun SpendingHeatmap(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -176,7 +176,7 @@ fun SpendingHeatmap(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontSize = 11.sp,
                             modifier = Modifier.offset(x = xOffset)
                         )

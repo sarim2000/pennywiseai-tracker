@@ -684,7 +684,7 @@ private fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(1.5.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
         content = content
     )
 }
@@ -710,7 +710,7 @@ private fun SettingsNavItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = Spacing.md, vertical = 14.dp),
+                .padding(horizontal = Spacing.md, vertical = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -774,7 +774,7 @@ private fun SettingsSwitchRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = enabled) { onCheckedChange(!checked) }
-                .padding(horizontal = Spacing.md, vertical = 14.dp),
+                .padding(horizontal = Spacing.md, vertical = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -831,7 +831,7 @@ private fun SettingsDropdownItem(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = 14.dp)
+                .padding(horizontal = Spacing.md, vertical = Spacing.md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

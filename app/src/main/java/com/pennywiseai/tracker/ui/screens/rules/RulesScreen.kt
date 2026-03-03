@@ -536,7 +536,9 @@ private fun BatchApplyDialog(
                             )
                         }
 
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = Spacing.sm)
+                        )
 
                         Text(
                             text = "Transactions processed: ${result.totalProcessed}",

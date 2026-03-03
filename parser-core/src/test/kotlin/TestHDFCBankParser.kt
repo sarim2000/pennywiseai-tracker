@@ -22,7 +22,7 @@ class HDFCBankParserTest {
             ParserTestCase(
                 name = "Bill Alert Notification - Should Not Parse",
                 message = """New Bill Alert:
-Your AUBA00000NAT3Q Bill 8078064625 of Rs.3953.72 is due on 05-Nov-2025. To pay, login to HDFC Bank Net/Mobile Banking>BillPay
+Your XUBA00000TST1A Bill 1234567890 of Rs.1500.00 is due on 15-Jan-2026. To pay, login to HDFC Bank Net/Mobile Banking>BillPay
 T&C. Ignore if paid""",
                 sender = "CP-HDFCBK-S",
                 shouldParse = false
@@ -39,6 +39,19 @@ T&C. Ignore if paid""",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     accountLast4 = "1234",
                     reference = "123456789012"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Sent from A/C with asterisk mask",
+                message = "Sent Rs.15000.00 From HDFC Bank A/C *1234 To TEST MERCHANT PVT LTD On 01/01/26 Ref 567890567890 Not You? Call 18005556789/SMS BLOCK UPI to 7305556789",
+                sender = "HDFCBK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    accountLast4 = "1234",
+                    merchant = "TEST MERCHANT"
                 )
             )
         )

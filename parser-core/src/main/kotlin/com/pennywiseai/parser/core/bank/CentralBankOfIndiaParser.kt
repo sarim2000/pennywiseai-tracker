@@ -135,6 +135,7 @@ class CentralBankOfIndiaParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: A/c xxxxxx1234 (CBoI NEFT format)
         val acSlashPattern = Regex(
             """A/c\s+([xX*\d]+)""",

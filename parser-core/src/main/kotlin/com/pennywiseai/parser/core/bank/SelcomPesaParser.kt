@@ -179,6 +179,7 @@ class SelcomPesaParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "card ending with 8318" or "card ending 1915"
         val cardPattern = Regex(
             """card\s+ending\s+(?:with\s+)?(\d{4})""",

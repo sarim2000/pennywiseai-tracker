@@ -209,6 +209,7 @@ class CharlesSchwabParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "account ending xxx" where xxx are last 4 digits
         val patterns = listOf(
             Regex("""account ending (\d{4})""", RegexOption.IGNORE_CASE),

@@ -136,6 +136,7 @@ class OneCardParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "card ending XXXX" or "on card XXXX"
         val cardPatterns = listOf(
             Regex("""card\s+ending\s+([X\d]+)""", RegexOption.IGNORE_CASE),

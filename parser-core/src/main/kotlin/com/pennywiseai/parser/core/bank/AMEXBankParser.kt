@@ -95,6 +95,7 @@ class AMEXBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "AMEX card ** 91000" - extract the last part
         val cardPattern = Regex(
             """AMEX\s+card\s+\*+\s*(\d+)""",

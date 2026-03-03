@@ -211,6 +211,7 @@ class IndusIndBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "IndusInd Account 20XXXXX1234"
         val indusIndAccountPattern = Regex(
             """IndusInd\s+Account\s+([\dX]+)""",

@@ -46,6 +46,7 @@ class DBSBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "account no ********1234" or "a/c ****1234"
         val patterns = listOf(
             Regex("""account\s+no\s+\*+(\d{4})""", RegexOption.IGNORE_CASE),

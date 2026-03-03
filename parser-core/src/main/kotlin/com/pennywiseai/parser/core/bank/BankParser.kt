@@ -338,22 +338,6 @@ abstract class BankParser {
             }
         }
 
-        // Check if it's part of an RRN (Reference Number) - typically 12 digits
-        val rrnPatterns = listOf(
-            Regex("""RRN\s+(?:No\.?)?(\d{8,16})""", RegexOption.IGNORE_CASE),  // "RRN No.503612315893"
-            Regex("""Ref\s+(?:No\.?)?(\d{8,16})""", RegexOption.IGNORE_CASE)   // "Ref No.503612315893"
-        )
-
-        for (rrnPattern in rrnPatterns) {
-            rrnPattern.find(fullMessage)?.let { rrnMatch ->
-                val rrnNumber = rrnMatch.groupValues[1]
-                // If our last4 is part of this RRN, reject it
-                if (rrnNumber.contains(last4)) {
-                    return false
-                }
-            }
-        }
-
         // Check if it's a standalone year (2024, 2025, etc.)
         if (last4.toIntOrNull() in 2000..2099) {
             // Only reject if it appears to be a year in date context

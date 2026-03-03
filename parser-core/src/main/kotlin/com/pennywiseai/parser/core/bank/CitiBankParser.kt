@@ -80,6 +80,7 @@ class CitiBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "card ending in 1234"
         val cardPattern = Regex("""card ending in\s+(\d{4})""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let { match ->

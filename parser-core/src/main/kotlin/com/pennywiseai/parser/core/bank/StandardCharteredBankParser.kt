@@ -235,6 +235,7 @@ class StandardCharteredBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // India Pattern 1: "Your a/c XX3421"
         val acPattern = Regex(
             """Your a/c ([X*\d]+)""",

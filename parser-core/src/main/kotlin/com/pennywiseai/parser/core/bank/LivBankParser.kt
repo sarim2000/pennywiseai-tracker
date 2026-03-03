@@ -95,6 +95,7 @@ class LivBankParser : UAEBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "Debit Card ending XXXX" or "Credit Card ending XXXX"
         val cardPattern = Regex("""(?:Debit|Credit)\s+Card ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let {

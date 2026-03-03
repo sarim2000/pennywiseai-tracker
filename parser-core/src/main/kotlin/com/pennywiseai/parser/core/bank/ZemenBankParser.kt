@@ -155,6 +155,7 @@ class ZemenBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Zemen masks accounts as "109xxxxxxxx7018" or inside parentheses "(109xxxxxxxx7018)"
         val patterns = listOf(
             Regex("""\b\d{3}x+(\d{4})\b""", RegexOption.IGNORE_CASE),

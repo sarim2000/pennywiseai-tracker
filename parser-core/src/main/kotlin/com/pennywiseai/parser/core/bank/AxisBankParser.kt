@@ -180,6 +180,7 @@ class AxisBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "A/c no. XXNNNN" or "A/c no. XXxxxxy"
         val acNoPattern = Regex(
             """A/c\s+no\.\s+([X*xX\d]+)""",

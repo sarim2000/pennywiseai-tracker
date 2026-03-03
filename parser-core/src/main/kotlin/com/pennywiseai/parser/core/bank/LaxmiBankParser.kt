@@ -90,6 +90,7 @@ class LaxmiBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Your #12344560 has been"
         val accountPattern = Regex("""Your\s+#(\d+)\s+has\s+been""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->

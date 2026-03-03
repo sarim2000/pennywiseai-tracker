@@ -78,6 +78,7 @@ class HuntingtonBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Acct CK0000" - extract the last 4 digits from the account number
         val accountPattern = Regex(
             """Acct\s+CK(\d{4})""",

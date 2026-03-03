@@ -76,6 +76,7 @@ class JupiterBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "ending 6852"
         val endingPattern = Regex(
             """ending\s+(\d{4})""",

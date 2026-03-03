@@ -198,6 +198,7 @@ class BankOfBarodaParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 0: BOBCARD ending 1234 (Credit card format)
         val bobCardPattern = Regex(
             """BOBCARD\s+ending\s+(\d{4})""",

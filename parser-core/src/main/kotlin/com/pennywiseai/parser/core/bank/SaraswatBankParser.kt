@@ -118,6 +118,7 @@ class SaraswatBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "A/c no. 013460" or "A/c no. ending with 013460"
         val accountNoPattern =
             Regex("""A/c\s+no\.\s+(?:ending\s+with\s+)?(\d{4,6})""", RegexOption.IGNORE_CASE)

@@ -58,6 +58,7 @@ class EmiratesNBDParser : UAEBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "ending 9074" or "A/C xxxx9074"
         val endingPattern = Regex("""ending\s+(\d{4})""", RegexOption.IGNORE_CASE)
         endingPattern.find(message)?.let {

@@ -104,6 +104,7 @@ abstract class BaseThailandBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "A/C xNNNN" or "บช xNNNN"
         val pattern = Regex("""(?:A/C|บช)\s*x(\d{4})""", RegexOption.IGNORE_CASE)
         pattern.find(message)?.let { match ->

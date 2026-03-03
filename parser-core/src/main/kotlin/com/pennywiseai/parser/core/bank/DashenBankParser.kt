@@ -89,6 +89,7 @@ class DashenBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Dashen masks accounts as "5387********011" or "5387*****9011"
         // Capture full masked string, filter to digits, take last 4
         val pattern = Regex("""(\d{4}\*+\d+)""", RegexOption.IGNORE_CASE)

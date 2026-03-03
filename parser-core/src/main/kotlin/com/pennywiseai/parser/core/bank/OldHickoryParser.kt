@@ -86,6 +86,7 @@ class OldHickoryParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "ACCOUNT NAME (part of ACCOUNT#)" - extract account identifier
         val accountPattern = Regex("""\(part of\s+([^)]+)\)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->

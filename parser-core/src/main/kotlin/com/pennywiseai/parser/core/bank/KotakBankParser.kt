@@ -228,6 +228,7 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Kotak credit card pattern: "Credit Card x5236" or "Credit Card XX5236"
         val kotakCardPattern = Regex(
             """Credit\s+Card\s+[xX*]*(\d{4})""",

@@ -123,6 +123,7 @@ class IndianOverseasBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Your a/c no. XXXXX92"
         val accountPattern = Regex(
             """a/c\s+no\.\s+([X\d]+)""",

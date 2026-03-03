@@ -437,6 +437,7 @@ class JKBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // JK Bank specific account patterns
         val jkBankPatterns = listOf(
             // Your A/c XXXXXXXX1111 or A/c XX1111

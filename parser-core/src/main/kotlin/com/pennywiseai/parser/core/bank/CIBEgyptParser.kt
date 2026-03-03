@@ -138,6 +138,7 @@ class CIBEgyptParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "credit card ending with#8016" or "credit card#8016"
         val cardEndingPattern = Regex(
             """(?:credit\s+card|card)\s*(?:ending\s+with)?#(\d{4})""",

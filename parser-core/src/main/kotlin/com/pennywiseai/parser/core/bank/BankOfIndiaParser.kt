@@ -243,6 +243,7 @@ class BankOfIndiaParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: A/cXX5468 or A/c XX5468 (BOI format)
         val accountSlashPattern = Regex("""A/c\s*([X*\d]+)""", RegexOption.IGNORE_CASE)
         accountSlashPattern.find(message)?.let { match ->

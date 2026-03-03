@@ -98,6 +98,7 @@ class EquitasBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "Equitas A/c 12XX" or "A/c XX1234"
         val acPattern = Regex(
             """(?:Equitas\s+)?A/c\s+([X\d]+)""",

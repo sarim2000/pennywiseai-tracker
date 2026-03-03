@@ -85,6 +85,7 @@ class NavyFederalParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern: "on debit card xxxx" or "on credit card xxxx"
         val patterns = listOf(
             Regex("""on debit card (\d{4})""", RegexOption.IGNORE_CASE),

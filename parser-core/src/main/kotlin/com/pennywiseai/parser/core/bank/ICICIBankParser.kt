@@ -311,6 +311,7 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         // Pattern 1: "ICICI Bank Card XXNNNN"
         val cardPattern = Regex(
             """ICICI\s+Bank\s+Card\s+([X*\d]+)""",

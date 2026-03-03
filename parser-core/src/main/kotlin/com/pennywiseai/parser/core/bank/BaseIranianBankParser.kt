@@ -73,6 +73,7 @@ abstract class BaseIranianBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        super.extractAccountLast4(message)?.let { return it }
         val cardPattern = Regex("""\d{4}[-\s]?(\d{4})""")
         cardPattern.find(message)?.let { match ->
             return match.groupValues[1]

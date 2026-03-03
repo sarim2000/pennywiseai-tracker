@@ -138,6 +138,14 @@ fun PennyWiseTheme(
         colorScheme = colorScheme.copy(
             background = amoled_background,
             surface = amoled_surface,
+            surfaceVariant = amoled_surfaceVariant,
+            surfaceBright = amoled_surfaceBright,
+            surfaceDim = amoled_surfaceDim,
+            surfaceContainerLowest = amoled_surfaceContainerLowest,
+            surfaceContainerLow = amoled_surfaceContainerLow,
+            surfaceContainer = amoled_surfaceContainer,
+            surfaceContainerHigh = amoled_surfaceContainerHigh,
+            surfaceContainerHighest = amoled_surfaceContainerHighest,
         )
     }
 
@@ -169,6 +177,32 @@ fun PennyWiseTheme(
             content = content
         )
     }
+}
+
+private fun relativeLuminance(color: Color): Double {
+    fun linearize(c: Float): Double {
+        return if (c <= 0.03928f) (c / 12.92).toDouble()
+        else Math.pow(((c + 0.055) / 1.055), 2.4)
+    }
+    val r = linearize(color.red)
+    val g = linearize(color.green)
+    val b = linearize(color.blue)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+private fun contrastRatio(l1: Double, l2: Double): Double {
+    val lighter = maxOf(l1, l2)
+    val darker = minOf(l1, l2)
+    return (lighter + 0.05) / (darker + 0.05)
+}
+
+private fun onColorFor(bg: Color, darkOnColor: Color, lightOnColor: Color = Color.White): Color {
+    val bgLum = relativeLuminance(bg)
+    val lightLum = relativeLuminance(lightOnColor)
+    val darkLum = relativeLuminance(darkOnColor)
+    val lightContrast = contrastRatio(bgLum, lightLum)
+    val darkContrast = contrastRatio(bgLum, darkLum)
+    return if (lightContrast >= darkContrast) lightOnColor else darkOnColor
 }
 
 fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
@@ -215,20 +249,22 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.OVERLAY -> Dawn_Overlay_tertiary
     }
 
+    val dawnDarkOnColor = Dawn_Text
+
     return lightColorScheme(
         primary = primaryColor,
-        onPrimary = Color(0xFFFFFFFF),
+        onPrimary = onColorFor(primaryColor, dawnDarkOnColor),
         primaryContainer = primaryColor,
-        onPrimaryContainer = Color(0xFFFFFFFF),
+        onPrimaryContainer = onColorFor(primaryColor, dawnDarkOnColor),
         inversePrimary = Color(0xFF000000),
         secondary = secondaryColor,
-        onSecondary = Color(0xFFFFFFFF),
+        onSecondary = onColorFor(secondaryColor, dawnDarkOnColor),
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = Color(0xFFFFFFFF),
+        onSecondaryContainer = onColorFor(secondaryColor, dawnDarkOnColor),
         tertiary = tertiaryColor,
-        onTertiary = Color(0xFFFFFFFF),
+        onTertiary = onColorFor(tertiaryColor, dawnDarkOnColor),
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = Color(0xFFFFFFFF),
+        onTertiaryContainer = onColorFor(tertiaryColor, dawnDarkOnColor),
         background = Color(0xFFFAF4ED),
         onBackground = Color(0xFF575279),
         surface = Color(0xFFFFFAF3),
@@ -238,9 +274,9 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         inverseSurface = Color(0xFF26233A),
         inverseOnSurface = Color(0xFFE0DEF4),
         error = Dawn_Love,
-        onError = Color(0xFFFFFFFF),
+        onError = onColorFor(Dawn_Love, dawnDarkOnColor),
         errorContainer = Dawn_Love,
-        onErrorContainer = Color(0xFFFFFFFF),
+        onErrorContainer = onColorFor(Dawn_Love, dawnDarkOnColor),
         surfaceBright = Color(0xFFFFFAF3),
         surfaceDim = Color(0xFFF2E9E1),
         surfaceContainer = Color(0xFFFAF4ED),
@@ -295,20 +331,22 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.OVERLAY -> RosePine_Overlay_tertiary
     }
 
+    val rosePineDarkOnColor = Color(0xFF191724)
+
     return darkColorScheme(
         primary = primaryColor,
-        onPrimary = Color(0xFFFFFFFF),
+        onPrimary = onColorFor(primaryColor, rosePineDarkOnColor),
         primaryContainer = primaryColor,
-        onPrimaryContainer = Color(0xFFFFFFFF),
+        onPrimaryContainer = onColorFor(primaryColor, rosePineDarkOnColor),
         inversePrimary = Color(0xFFFFFFFF),
         secondary = secondaryColor,
-        onSecondary = Color(0xFFFFFFFF),
+        onSecondary = onColorFor(secondaryColor, rosePineDarkOnColor),
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = Color(0xFFFFFFFF),
+        onSecondaryContainer = onColorFor(secondaryColor, rosePineDarkOnColor),
         tertiary = tertiaryColor,
-        onTertiary = Color(0xFFFFFFFF),
+        onTertiary = onColorFor(tertiaryColor, rosePineDarkOnColor),
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = Color(0xFFFFFFFF),
+        onTertiaryContainer = onColorFor(tertiaryColor, rosePineDarkOnColor),
         background = Color(0xFF191724),
         onBackground = Color(0xFFE0DEF4),
         surface = Color(0xFF1F1D2E),
@@ -318,9 +356,9 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         inverseSurface = Color(0xFFE0DEF4),
         inverseOnSurface = Color(0xFF26233A),
         error = RosePine_Love,
-        onError = Color(0xFFFFFFFF),
+        onError = onColorFor(RosePine_Love, rosePineDarkOnColor),
         errorContainer = RosePine_Love,
-        onErrorContainer = Color(0xFFFFFFFF),
+        onErrorContainer = onColorFor(RosePine_Love, rosePineDarkOnColor),
         surfaceBright = Color(0xFF26233A),
         surfaceDim = Color(0xFF191724),
         surfaceContainer = Color(0xFF1F1D2E),

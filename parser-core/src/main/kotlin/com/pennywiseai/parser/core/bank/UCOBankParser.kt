@@ -76,20 +76,18 @@ class UCOBankParser : BankParser() {
     override fun extractAccountLast4(message: String): String? {
         // UCO Bank format: "A/c XX1111"
         val accountPatterns = listOf(
-            Regex("""A/c\s+[X]{2}(\d{4})""", RegexOption.IGNORE_CASE),
-            Regex("""Account\s+[X]{2}(\d{4})""", RegexOption.IGNORE_CASE),
-            Regex("""Acc\s+[X]{2}(\d{4})""", RegexOption.IGNORE_CASE),
-            // Also handle variations with asterisks
-            Regex("""A/c\s+[*]{2}(\d{4})""", RegexOption.IGNORE_CASE)
+            Regex("""A/c\s+([X*\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Account\s+([X*\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Acc\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in accountPatterns) {
             pattern.find(message)?.let { match ->
-                return match.groupValues[1]
+                return extractLast4Digits(match.groupValues[1])
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

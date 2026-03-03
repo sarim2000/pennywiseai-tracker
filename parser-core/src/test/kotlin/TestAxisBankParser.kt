@@ -186,7 +186,7 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "BURGRILL",
-                    accountLast4 = "xxxy"
+                    accountLast4 = null
                 )
             ),
 
@@ -199,7 +199,7 @@ Not you? SMS BLOCK 6018 to 919951860002""",
                     currency = "INR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "RESTAURANT XY",
-                    accountLast4 = "xxxy"
+                    accountLast4 = null
                 )
             ),
 

@@ -27,7 +27,7 @@ class DashenBankParserTest {
                     amount = BigDecimal("700.00"),
                     currency = "ETB",
                     type = TransactionType.EXPENSE,
-                    accountLast4 = "5387",
+                    accountLast4 = "7011",
                     balance = BigDecimal("1846.06"),
                     reference = "https://receipt.dashensuperapp.com/receipt/387WDTS252240001"
                 )
@@ -40,7 +40,7 @@ class DashenBankParserTest {
                     amount = BigDecimal("9500.00"),
                     currency = "ETB",
                     type = TransactionType.EXPENSE,
-                    accountLast4 = "5387",
+                    accountLast4 = "7011",
                     balance = BigDecimal("120.93"),
                     merchant = "Telebirr account +251922222222",
                     reference = "https://receipt.dashensuperapp.com/receipt/387LTWS2535300WM"
@@ -55,7 +55,7 @@ class DashenBankParserTest {
                     currency = "ETB",
                     type = TransactionType.INCOME,
                     merchant = "PERSON NAME",
-                    accountLast4 = "5387",
+                    accountLast4 = "7011",
                     balance = BigDecimal("11846.06")
                 )
             ),
@@ -68,7 +68,7 @@ class DashenBankParserTest {
                     currency = "ETB",
                     type = TransactionType.INCOME,
                     merchant = "telebirr account number 251922222222 ",
-                    accountLast4 = "5387",
+                    accountLast4 = "9011",
                     balance = BigDecimal("543.49"),
                     reference = "2209012000164277"
                 )

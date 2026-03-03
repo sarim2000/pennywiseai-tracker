@@ -96,18 +96,13 @@ class KeralaGraminBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "Your a/c no. XXXX12345" or "Account XXXX123"
+        // Pattern: "Your a/c no. XXXX12345" or "Account XXXX123"
         val accountPattern = Regex(
-            """(?:a/c no\.|Account)\s+(?:XXXX|XX)(\d{3,5})""",
+            """(?:a/c no\.|Account)\s+([X\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            val digits = match.groupValues[1]
-            return if (digits.length >= 4) {
-                digits.takeLast(4)
-            } else {
-                digits.padStart(4, '0')
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         return null

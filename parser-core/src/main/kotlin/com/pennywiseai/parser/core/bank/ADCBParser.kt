@@ -222,69 +222,51 @@ class ADCBParser : FABParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // ADCB patterns for account extraction
+        // Broaden captures to include mask characters, let extractLast4Digits handle filtering
         val adcbPatterns = listOf(
             // For debit card transactions, prioritize account number over card number for consistency
-            // Debit card: "Your debit card XXX0830 linked to acc. XXX810001" (extract 6-digit account)
+            // Debit card: "Your debit card XXX0830 linked to acc. XXX810001"
             Regex(
-                """debit card\s+[X\*]+(\d{4})\s+linked to acc\.?\s*[X\*]+(\d{6})""",
+                """debit card\s+([X\*\d]+)\s+linked to acc\.?\s*([X\*\d]+)""",
                 RegexOption.IGNORE_CASE
             ),
 
-            // General linked account pattern: "linked to acc. XXX810001" (extract 6-digit account)
-            Regex("""linked to acc\.?\s*[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
+            // General linked account pattern: "linked to acc. XXX810001"
+            Regex("""linked to acc\.?\s*([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
-            // ATM withdrawals: "withdrawn from acc. XXX810001" (extract 6-digit account)
-            Regex("""withdrawn from acc\.?\s*[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
+            // ATM withdrawals: "withdrawn from acc. XXX810001"
+            Regex("""withdrawn from acc\.?\s*([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
-            // ATM deposits: "in your account XXX810001" (extract 6-digit account)
-            Regex("""in your account\s+[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
+            // ATM deposits: "in your account XXX810001"
+            Regex("""in your account\s+([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
-            // Transfers: "from acc. no. XXX810001" (extract 6-digit account)
-            Regex("""from acc\.?\s*no\.?\s*[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
+            // Transfers: "from acc. no. XXX810001"
+            Regex("""from acc\.?\s*no\.?\s*([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
-            // Account number: "account number XXX810001" (extract 6-digit account)
-            Regex("""account (?:number\s*)?[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
+            // Account number: "account number XXX810001"
+            Regex("""account (?:number\s*)?([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
-            // Dr/Cr transactions: "on your account number XXX810001" (extract 6-digit account)
-            Regex("""on your account number\s+[X\*]+(\d{6})""", RegexOption.IGNORE_CASE),
-
-            // Fallback to 4-digit patterns for older messages or different format
-            Regex(
-                """debit card\s+[X\*]+(\d{4})\s+linked to acc\.?\s*[X\*]+(\d{4})""",
-                RegexOption.IGNORE_CASE
-            ),
-            Regex("""withdrawn from acc\.?\s*[X\*]+(\d{4})""", RegexOption.IGNORE_CASE),
-            Regex("""in your account\s+[X\*]+(\d{4})""", RegexOption.IGNORE_CASE),
-            Regex("""from acc\.?\s*no\.?\s*[X\*]+(\d{4})""", RegexOption.IGNORE_CASE),
-            Regex("""account (?:number\s*)?[X\*]+(\d{4})""", RegexOption.IGNORE_CASE),
+            // Dr/Cr transactions: "on your account number XXX810001"
+            Regex("""on your account number\s+([X\*\d]+)""", RegexOption.IGNORE_CASE),
 
             // Standard card pattern (last resort)
-            Regex("""Card\s+[X\*]+(\d{4})""", RegexOption.IGNORE_CASE)
+            Regex("""Card\s+([X\*\d]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in adcbPatterns) {
             pattern.find(message)?.let { match ->
-                // Extract the appropriate group based on pattern
-                val accountNumber = when {
-                    // For patterns with 2 groups (card + account), return account (group 2)
-                    match.groupValues.size > 2 && match.groupValues[2].isNotEmpty() -> {
-                        match.groupValues[2]  // Return 6-digit account number
-                    }
-                    // For patterns with 1 group, return that group
-                    match.groupValues[1].isNotEmpty() -> {
-                        match.groupValues[1]  // Return account number (could be 4 or 6 digits)
-                    }
-
-                    else -> null
+                // For patterns with 2 groups (card + account), prefer account (group 2)
+                val raw = if (match.groupValues.size > 2 && match.groupValues[2].isNotEmpty()) {
+                    match.groupValues[2]
+                } else {
+                    match.groupValues[1]
                 }
-
-                if (accountNumber != null && accountNumber.isNotEmpty()) {
-                    return accountNumber
-                }
+                val result = extractLast4Digits(raw)
+                if (result != null) return result
             }
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

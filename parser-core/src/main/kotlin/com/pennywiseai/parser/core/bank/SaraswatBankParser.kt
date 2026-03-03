@@ -122,27 +122,23 @@ class SaraswatBankParser : BaseIndianBankParser() {
         val accountNoPattern =
             Regex("""A/c\s+no\.\s+(?:ending\s+with\s+)?(\d{4,6})""", RegexOption.IGNORE_CASE)
         accountNoPattern.find(message)?.let { match ->
-            val accountNumber = match.groupValues[1]
-            // Return last 4 digits
-            return accountNumber.takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: "account no. ending with 013460"
         val endingWithPattern =
             Regex("""account\s+no\.\s+ending\s+with\s+(\d{4,6})""", RegexOption.IGNORE_CASE)
         endingWithPattern.find(message)?.let { match ->
-            val accountNumber = match.groupValues[1]
-            return accountNumber.takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 3: "A/c *1234"
-        val pattern3 = Regex("""A/c\s+\*(\d{4})""", RegexOption.IGNORE_CASE)
+        val pattern3 = Regex("""A/c\s+([*\d]+)""", RegexOption.IGNORE_CASE)
         pattern3.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

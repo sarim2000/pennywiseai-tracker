@@ -27,7 +27,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "MERCHANT123",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("200.75")
                 )
             ),
@@ -41,7 +41,7 @@ class ADCBParserTest {
                     currency = "USD",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "ONLINEPLATFORM",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("150.50")
                 )
             ),
@@ -55,7 +55,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "ATM Deposit: LOCATION123",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("5200.25")
                 )
             ),
@@ -69,7 +69,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.TRANSFER,
                     merchant = "Transfer via ADCB Banking",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("2000.00")
                 )
             ),
@@ -83,7 +83,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     merchant = "Account Credit",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("220.25")
                 )
             ),
@@ -97,7 +97,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "Account Debit",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("13697.16")
                 )
             ),
@@ -111,7 +111,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "ATM Withdrawal: BANK123",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("1200.75")
                 )
             ),
@@ -125,7 +125,7 @@ class ADCBParserTest {
                     currency = "EUR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "ATM Withdrawal: SHOPPINGMALL",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("150.50")
                 )
             ),
@@ -139,7 +139,7 @@ class ADCBParserTest {
                     currency = "GBP",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "ATM Withdrawal: LOCATION123",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("250.25")
                 )
             ),
@@ -153,7 +153,7 @@ class ADCBParserTest {
                     currency = "THB",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "SHOPPING MALL",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("321.56")
                 )
             ),
@@ -167,7 +167,7 @@ class ADCBParserTest {
                     currency = "AED",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
                     merchant = "TRANSPORT SERVICE",
-                    accountLast4 = "810001",
+                    accountLast4 = "0001",
                     balance = BigDecimal("2928.77")
                 )
             ),

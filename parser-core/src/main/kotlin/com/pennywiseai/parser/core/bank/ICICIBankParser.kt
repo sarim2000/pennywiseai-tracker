@@ -311,94 +311,69 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern 1: "ICICI Bank Card XXNNNN" - for card transactions
+        // Pattern 1: "ICICI Bank Card XXNNNN"
         val cardPattern = Regex(
-            """ICICI\s+Bank\s+Card\s+[X\*]*(\d+)""",
+            """ICICI\s+Bank\s+Card\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         cardPattern.find(message)?.let { match ->
-            val cardNumber = match.groupValues[1]
-            return if (cardNumber.length >= 4) {
-                cardNumber.takeLast(4)
-            } else {
-                cardNumber
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 2: "ICICI Bank Credit Card XX1234" or ending with digits
+        // Pattern 2: "ICICI Bank Credit Card XX1234"
         val creditCardPattern = Regex(
-            """ICICI\s+Bank\s+Credit\s+Card\s+[X\*]*(\d{4})""",
+            """ICICI\s+Bank\s+Credit\s+Card\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         creditCardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 3: "ICICI Bank Account XXNNNN" or "ICICI Bank Account XX566"
+        // Pattern 3: "ICICI Bank Account XXNNNN"
         val accountPattern = Regex(
-            """ICICI\s+Bank\s+Account\s+([X\*]*\d+)""",
+            """ICICI\s+Bank\s+Account\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         accountPattern.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else if (digitsOnly.isNotEmpty()) {
-                digitsOnly
-            } else {
-                null
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 4: "ICICI Bank Acct XXNNNN" - more specific pattern first
+        // Pattern 4: "ICICI Bank Acct XXNNNN"
         val bankAcctPattern = Regex(
-            """ICICI\s+Bank\s+Acct\s+[X\*]*(\d{3,4})""",
+            """ICICI\s+Bank\s+Acct\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         bankAcctPattern.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 5: "ICICI Bank Acc XX921" - short "Acc" format
+        // Pattern 5: "ICICI Bank Acc XX921"
         val bankAccPattern = Regex(
-            """ICICI\s+Bank\s+Acc\s+[X\*]*(\d{3,4})""",
+            """ICICI\s+Bank\s+Acc\s+([X*\d]+)""",
             RegexOption.IGNORE_CASE
         )
         bankAccPattern.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 6: "Acct XX1234" - ONLY when followed by specific ICICI patterns
-        // Must be exactly XX followed by 3-4 digits to avoid false positives
-        val acctXXPattern = Regex(
-            """Acct\s+XX(\d{3,4})(?:\s|$|[,;.])""",
+        // Pattern 6: "Acct XX1234" or "Acct *1234"
+        val acctPattern = Regex(
+            """Acct\s+([X*\d]+)(?:\s|$|[,;.])""",
             RegexOption.IGNORE_CASE
         )
-        acctXXPattern.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
+        acctPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 7: "Acc XX921" - short form with XX mask
-        val accXXPattern = Regex(
-            """Acc\s+XX(\d{3,4})(?:\s|$|[,;.])""",
+        // Pattern 7: "Acc XX921"
+        val accPattern = Regex(
+            """Acc\s+([X*\d]+)(?:\s|$|[,;.])""",
             RegexOption.IGNORE_CASE
         )
-        accXXPattern.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
+        accPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 8: "Acct *1234" - asterisk masked pattern
-        val acctStarPattern = Regex(
-            """Acct\s+\*+(\d{3,4})(?:\s|$|[,;.])""",
-            RegexOption.IGNORE_CASE
-        )
-        acctStarPattern.find(message)?.let { match ->
-            return match.groupValues[1].takeLast(4)
-        }
-
-        // DO NOT fall back to base class - base class patterns are too generic
-        // and cause false positives. Better to return null than wrong account.
         return null
     }
 

@@ -548,7 +548,7 @@ class FederalBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Only extract card numbers if this is actually a card transaction
+        // Card-specific patterns
         if (detectIsCard(message)) {
             // Pattern 1: "credit card ending with 1234"
             val endingWithPattern = Regex(
@@ -567,10 +567,36 @@ class FederalBankParser : BaseIndianBankParser() {
             cardPattern.find(message)?.let { match ->
                 return match.groupValues[1]
             }
+
+            // Pattern 3: "Federal Bank Debit Card 3456" (e-mandate format)
+            val emandateCardPattern = Regex(
+                """(?:Federal\s+Bank\s+)?(?:Debit|Credit)\s+Card\s+(\d{4})""",
+                RegexOption.IGNORE_CASE
+            )
+            emandateCardPattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
         }
 
-        // For non-card transactions, try base class patterns
-        return super.extractAccountLast4(message)
+        // Non-card: A/c XX4567
+        val acPattern = Regex(
+            """A/c\s+([X*\d]+)""",
+            RegexOption.IGNORE_CASE
+        )
+        acPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
+        }
+
+        // Non-card: Account XXXXXXXX1896
+        val accountPattern = Regex(
+            """Account\s+([X*\d]+)""",
+            RegexOption.IGNORE_CASE
+        )
+        accountPattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
+        }
+
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

@@ -88,23 +88,23 @@ class JioPaymentsBankParser : BankParser() {
     override fun extractAccountLast4(message: String): String? {
         // Pattern 1: JPB A/c x4288
         val jpbPattern = Regex(
-            """JPB\s+A/c\s+x(\d{4})""",
+            """JPB\s+A/c\s+([x\d]+)""",
             RegexOption.IGNORE_CASE
         )
         jpbPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: from x4288
         val fromPattern = Regex(
-            """from\s+x(\d{4})""",
+            """from\s+([x\d]+)""",
             RegexOption.IGNORE_CASE
         )
         fromPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

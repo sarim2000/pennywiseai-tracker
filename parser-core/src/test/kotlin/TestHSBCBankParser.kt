@@ -44,7 +44,7 @@ class HSBCBankParserTest {
                     currency = "INR",
                     type = TransactionType.INCOME,
                     merchant = "AXIS A/c ***1234 of Jane Smith",
-                    accountLast4 = "0789",
+                    accountLast4 = "6789",
                     balance = BigDecimal("50000.00"),
                     reference = "NEFT12345678901"
                 )
@@ -60,7 +60,7 @@ class HSBCBankParserTest {
                     currency = "INR",
                     type = TransactionType.EXPENSE,
                     merchant = "IKEA INDIA",
-                    accountLast4 = "71xx"
+                    accountLast4 = null
                 )
             ),
 

@@ -25,7 +25,7 @@ Turn bank SMS into a clean, searchable money timeline with on-device AI assistan
 
 ## Overview
 
-For Android users worldwide who want automatic expense tracking from bank SMS — clean categories, subscription detection, and clear insights. Supporting 40+ banks across 5 countries with multi-currency capabilities.
+Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no cloud, no effort.
 
 <a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">
   <img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" />
@@ -36,42 +36,89 @@ For Android users worldwide who want automatic expense tracking from bank SMS �
 
 ### How it works
 
-1. Grant SMS permission (read‑only). No inbox changes, no messages sent.
-2. PennyWise parses transaction SMS, extracts amount, merchant, category, and date.
-3. View analytics, subscriptions, and the full transaction timeline — with on-device AI assistant for insights.
+1. **Grant SMS permission** (read-only) — no account creation, no inbox changes, no messages sent.
+2. **PennyWise parses your transactions instantly** — extracts amount, merchant, category, and date. New SMS are detected in real-time.
+3. **Get insights** — analytics, budgets, subscriptions, and an on-device AI assistant you can ask anything.
 
 ## Why PennyWise
 
-- **🤖 Smart SMS Parsing** - Automatically extracts transaction details from 40+ banks across 5 countries
-- **🌍 Multi-Currency Support** - Native support for ₹, $, د.إ, ₨, ብር with proper localization
-- **📊 Clear Insights** - Analytics and charts to instantly see where money goes
-- **🔄 Subscription Tracking** - Detects and monitors recurring payments
-- **💬 On-device AI Assistant** - Ask questions like "What did I spend on food last month?" locally
-- **🏷️ Auto‑Categorization** - Clean merchant names and sensible categories
-- **📤 Data Export** - Export as CSV or PDF for taxes or records
+**Key Differentiators**
+
+- **🔒 100% On-Device & Private** — All AI processing runs locally, no cloud, no servers, no tracking
+- **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
+- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no hidden costs
+
+**Core Features**
+
+- **🤖 Smart SMS Parsing** — 85+ banks across 14 countries with real-time detection of incoming SMS
+- **🌍 Multi-Currency** — Native support for INR, USD, AED, THB, NPR, ETB, and more with exchange rate management
+- **💬 On-Device AI Assistant** — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
+- **🏷️ Auto-Categorization & Smart Rules** — Pattern-based rules that auto-categorize transactions
+- **💰 Budget Tracking** — Multiple budget groups (Limit/Target/Expected types), daily allowance, category-level budgets
+- **📊 Analytics & Charts** — Bar charts, line trends, heatmaps, category breakdowns, top merchants, custom date ranges
+- **🏦 Multi-Account & Balance Tracking** — Track multiple bank accounts with live balance from SMS and balance history
+- **🔄 Subscription Detection** — Automatic recurring payment detection with due date alerts
+- **🎨 Custom Categories** — Create your own with custom colors and icons
+
+**More Features**
+
+- **🔐 Biometric App Lock** — Fingerprint/face unlock with configurable timeout
+- **📱 Home Screen Widgets** — Budget progress and recent transactions at a glance
+- **📤 Data Export & Backup** — CSV export for taxes, full backup/restore (.pennywisebackup)
+- **🎭 Material You Theming** — Dynamic colors, multiple cover styles (Aurora, Gradient, Wave), light/dark/system themes
+- **✏️ Manual Transactions** — Add and edit transactions manually
+- **🔍 Search & Filters** — Filter by category, merchant, period, currency, transaction type
+- **🎯 Guided Onboarding** — Spotlight tutorial for first-time users
 
 ## Supported Banks & Countries
 
-Supporting **60+ banks** across **12 countries** with **multi-currency** capabilities:
+Supporting **85+ banks** across **14 countries** with **multi-currency** capabilities:
 
-### 🇮🇳 India (35 banks) - INR ₹
-- **HDFC Bank**, **State Bank of India (SBI)**, **ICICI Bank**
+### 🇮🇳 India (44 banks) - INR ₹
+- **HDFC Bank**, **HDFC Mutual Fund**, **State Bank of India (SBI)**, **ICICI Bank**
 - **Axis Bank**, **Punjab National Bank (PNB)**, **IDBI Bank**
 - **Indian Bank**, **Federal Bank**, **Karnataka Bank**, **Kerala Gramin Bank**
 - **Canara Bank**, **Bank of Baroda**, **Bank of India**
-- **Jupiter (CSB Bank)**, **Amazon Pay (Juspay)**, **Kotak Bank**
+- **Jupiter (CSB Bank)**, **Juspay**, **Kotak Bank**
 - **IDFC First Bank**, **Union Bank**, **HSBC Bank**
 - **Central Bank of India**, **South Indian Bank**, **JK Bank**
 - **Indian Overseas Bank**, **Airtel Payments Bank**, **AMEX**
-- **OneCard**, **UCO Bank**, **AU Bank**, and more...
+- **OneCard**, **UCO Bank**, **AU Bank**, **Yes Bank**, **Bandhan Bank**
+- **IndusInd Bank**, **Dhanlaxmi Bank**, **Equitas Small Finance Bank**
+- **DBS Bank**, **Saraswat Bank**, **City Union Bank**
+- **Slice**, **LazyPay**, **Utkarsh Bank**
+- **Jio Payments Bank**, **JioPay**, **India Post Payments Bank (IPPB)**
+- **Standard Chartered Bank**
 
-### 🇺🇸 USA (4 banks) - USD $
+### 🇺🇸 USA (7 banks) - USD $
 - **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
+- **Navy Federal Credit Union**, **AdelFi Credit Union**, **Huntington Bank**
 
-### 🇦🇪 UAE (3 banks) - AED د.إ
-- **First Abu Dhabi Bank (FAB)**
-- **Abu Dhabi Commercial Bank (ADCB)**
-- **Mashreq Bank**
+### 🇦🇪 UAE (5 banks) - AED د.إ
+- **First Abu Dhabi Bank (FAB)**, **Abu Dhabi Commercial Bank (ADCB)**
+- **Emirates NBD**, **Liv Bank**, **Mashreq Bank**
+
+### 🇹🇭 Thailand (11 banks) - THB ฿
+- **Bangkok Bank (BBL)**, **Kasikorn Bank (KBank)**, **Siam Commercial Bank (SCB)**
+- **Krungthai Bank (KTB)**, **Krungsri (BAY)**, **TTB (TMBThanachart)**
+- **Government Savings Bank (GSB)**, **BAAC**, **UOB Thailand**
+- **CIMB Thai**, **KTC Credit Card** - Thai and English SMS support
+
+### 🇳🇵 Nepal (4 banks) - NPR ₨
+- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**, **Siddhartha Bank**
+
+### 🇪🇹 Ethiopia (4 services) - ETB ብር
+- **Commercial Bank of Ethiopia (CBE)**, **Zemen Bank**, **Dashen Bank**
+- **Telebirr** - Mobile money service
+
+### 🇹🇿 Tanzania (3 services) - TZS
+- **M-Pesa Tanzania**, **Selcom Pesa**, **Tigo Pesa / Mixx by Yas**
+
+### 🇵🇰 Pakistan (2 banks) - PKR ₨
+- **Standard Chartered Bank**, **Faysal Bank**
+
+### 🇮🇷 Iran (2 banks) - IRR ﷼
+- **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)** - Persian SMS support
 
 ### 🇸🇦 Saudi Arabia (1 bank) - SAR ﷼
 - **Alinma Bank (بنك الإنماء)** - Arabic SMS support
@@ -79,24 +126,11 @@ Supporting **60+ banks** across **12 countries** with **multi-currency** capabil
 ### 🇧🇾 Belarus (1 bank) - BYN Br
 - **Priorbank** - Russian/Belarusian SMS support
 
-### 🇳🇵 Nepal (3 banks) - NPR ₨
-- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**
-
-### 🇪🇹 Ethiopia (1 bank) - ETB ብር
-- **Commercial Bank of Ethiopia (CBE)**, **Zemen Bank**, **Dashen Bank**
-- **Telebirr** - Mobile money service
-
 ### 🇨🇴 Colombia (1 bank) - COP $
 - **Bancolombia**
 
-### 🇮🇷 Iran (2 banks) - IRR ﷼
-- **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)** - Persian SMS support
-
-### 🇹🇭 Thailand (11 banks) - THB ฿
-- **Bangkok Bank (BBL)**, **Kasikorn Bank (KBank)**, **Siam Commercial Bank (SCB)**
-- **Krungthai Bank (KTB)**, **Krungsri (BAY)**, **TTB (TMBThanachart)**
-- **Government Savings Bank (GSB)**, **BAAC**, **UOB Thailand**
-- **CIMB Thai**, **KTC Credit Card** - Thai and English SMS support
+### 🇪🇬 Egypt (1 bank) - EGP E£
+- **CIB (Commercial International Bank)**
 
 ### 🇰🇪 Kenya (1 service) - KES Ksh
 - **M-PESA** - Mobile money service
@@ -105,26 +139,45 @@ More banks being added regularly! [Request your bank →](https://github.com/sar
 
 ## Privacy First
 
-All processing happens on your device using MediaPipe's LLM. Your financial data never leaves your phone. No servers, no uploads, no tracking.
+All AI processing happens on your device using MediaPipe's Qwen 2.5 model — no cloud, no API calls, no data leaving your phone. There are no accounts to create, no sign-ups, no servers collecting your data. Your SMS and financial information stay entirely on your device. The entire codebase is open source (AGPL v3) so anyone can verify exactly what the app does.
 
 ## Screenshots
 
+**Light Theme**
+
 <table>
 <tr>
-<td><img src="screenshots/home.png" width="160"/></td>
-<td><img src="screenshots/analytics-v2.png" width="160"/></td>
-<td><img src="screenshots/chat.png" width="160"/></td>
-<td><img src="screenshots/transactions.png" width="160"/></td>
-<td><img src="screenshots/transaction-detail.png" width="160"/></td>
-<td><img src="screenshots/appearance.png" width="160"/></td>
+<td><img src="screenshots/home-light.png" width="160"/></td>
+<td><img src="screenshots/analytics-light.png" width="160"/></td>
+<td><img src="screenshots/analytics-scroll-light.png" width="160"/></td>
+<td><img src="screenshots/transaction-detail-light.png" width="160"/></td>
+<td><img src="screenshots/chat-light.png" width="160"/></td>
 </tr>
 <tr>
 <td align="center">Home</td>
 <td align="center">Analytics</td>
-<td align="center">AI Chat</td>
-<td align="center">Transactions</td>
+<td align="center">Categories</td>
 <td align="center">Details</td>
-<td align="center">Appearance</td>
+<td align="center">AI Chat</td>
+</tr>
+</table>
+
+**Dark Theme**
+
+<table>
+<tr>
+<td><img src="screenshots/home-dark.png" width="160"/></td>
+<td><img src="screenshots/analytics-dark.png" width="160"/></td>
+<td><img src="screenshots/account-detail-dark.png" width="160"/></td>
+<td><img src="screenshots/accounts-dark.png" width="160"/></td>
+<td><img src="screenshots/chat-dark.png" width="160"/></td>
+</tr>
+<tr>
+<td align="center">Home</td>
+<td align="center">Analytics</td>
+<td align="center">Account Detail</td>
+<td align="center">Accounts</td>
+<td align="center">AI Chat</td>
 </tr>
 </table>
 

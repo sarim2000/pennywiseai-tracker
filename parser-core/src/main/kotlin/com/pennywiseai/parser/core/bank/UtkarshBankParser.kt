@@ -56,17 +56,17 @@ class UtkarshBankParser : BaseIndianBankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // Pattern for SuperCard xxxx
-        val cardPattern = Regex("""SuperCard\s+[xX*]*(\d{4})""", RegexOption.IGNORE_CASE)
+        val cardPattern = Regex("""SuperCard\s+([xX*\d]+)""", RegexOption.IGNORE_CASE)
         cardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern for account XXXX
-        val accountPattern = Regex("""(?:account|a/c)\s+[xX*]*(\d{4})""", RegexOption.IGNORE_CASE)
+        val accountPattern = Regex("""(?:account|a/c)\s+([xX*\d]+)""", RegexOption.IGNORE_CASE)
         accountPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        return super.extractAccountLast4(message)
+        return null
     }
 }

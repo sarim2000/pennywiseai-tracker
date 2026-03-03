@@ -431,33 +431,17 @@ class SBIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern for debit card: "by SBI Debit Card <last4>" - can be digits or redacted
+        // Pattern for debit card: "by SBI Debit Card <last4>"
         val debitCardPattern =
             Regex("""by\s+SBI\s+Debit\s+Card\s+([\w\-]+)""", RegexOption.IGNORE_CASE)
         debitCardPattern.find(message)?.let { match ->
-            val cardInfo = match.groupValues[1]
-            // If it's all digits and 4 characters, return as is
-            // Otherwise try to extract last 4 digits if present
-            return if (cardInfo.matches(Regex("""\d{4}"""))) {
-                cardInfo
-            } else {
-                // Extract last 4 digits if available
-                val digits = cardInfo.filter { it.isDigit() }
-                if (digits.length >= 4) digits.takeLast(4) else cardInfo
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Pattern 1: A/c XNNNN or A/c XXNNNN - extract everything after A/c
-        val pattern1 = Regex("""A/c\s+([X\*]*\d+)""", RegexOption.IGNORE_CASE)
+        // Pattern 1: A/c XNNNN or A/c XXNNNN
+        val pattern1 = Regex("""A/c\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
         pattern1.find(message)?.let { match ->
-            val accountStr = match.groupValues[1]
-            // Extract just the digits and take last 4
-            val digitsOnly = accountStr.filter { it.isDigit() }
-            return if (digitsOnly.length >= 4) {
-                digitsOnly.takeLast(4)
-            } else {
-                digitsOnly
-            }
+            return extractLast4Digits(match.groupValues[1])
         }
 
         // Pattern 2: from A/c ending 1234
@@ -467,13 +451,12 @@ class SBIBankParser : BaseIndianBankParser() {
         }
 
         // Pattern 3: a/c no. XX1234
-        val pattern3 = Regex("""a/c\s+no\.?\s+(?:XX|X\*+)?(\d{4})""", RegexOption.IGNORE_CASE)
+        val pattern3 = Regex("""a/c\s+no\.?\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
         pattern3.find(message)?.let { match ->
-            return match.groupValues[1]
+            return extractLast4Digits(match.groupValues[1])
         }
 
-        // Fall back to base class
-        return super.extractAccountLast4(message)
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

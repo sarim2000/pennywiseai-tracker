@@ -14,4 +14,12 @@ class RoomSharedAccountRepository(
     override fun observeCards(): Flow<List<SharedCardEntity>> = cardDao.observeAll()
     override suspend fun insertBalance(balance: SharedAccountBalanceEntity): Long = balanceDao.insert(balance)
     override suspend fun upsertCard(card: SharedCardEntity): Long = cardDao.upsert(card)
+    override suspend fun getLatestBalance(bankName: String, accountLast4: String): SharedAccountBalanceEntity? =
+        balanceDao.getLatest(bankName, accountLast4)
+    override suspend fun getDistinctAccounts(): List<SharedAccountBalanceEntity> =
+        balanceDao.getDistinctAccounts()
+    override suspend fun deleteBalanceById(id: Long) = balanceDao.deleteById(id)
+    override suspend fun deleteByAccount(bankName: String, accountLast4: String) =
+        balanceDao.deleteByAccount(bankName, accountLast4)
+    override suspend fun deleteCardById(id: Long) = cardDao.deleteById(id)
 }

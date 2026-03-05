@@ -20,6 +20,11 @@ class RoomSharedBudgetRepository(
 
     override suspend fun upsertBudget(budget: SharedBudgetEntity): Long = budgetDao.upsertBudget(budget)
 
+    override suspend fun deleteBudget(id: Long) {
+        budgetDao.deleteBudgetCategories(id)
+        budgetDao.deleteBudget(id)
+    }
+
     override suspend fun replaceBudgetCategories(budgetId: Long, categories: List<SharedBudgetCategoryEntity>) {
         budgetDao.deleteBudgetCategories(budgetId)
         if (categories.isNotEmpty()) {

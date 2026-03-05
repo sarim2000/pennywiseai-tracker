@@ -1,6 +1,8 @@
 package com.pennywiseai.shared
 
 import com.pennywiseai.shared.data.SharedDataGraph
+import com.pennywiseai.shared.data.local.entity.SharedBudgetCategoryEntity
+import com.pennywiseai.shared.data.local.entity.SharedBudgetEntity
 import com.pennywiseai.shared.data.local.entity.SharedSubscriptionEntity
 import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
@@ -13,6 +15,54 @@ import com.pennywiseai.shared.domain.usecase.TransactionMutationResult
 import com.pennywiseai.shared.domain.usecase.UpdateManualTransactionUseCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+
+data class SharedCategoryItem(
+    val id: Long,
+    val name: String,
+    val colorHex: String,
+    val isSystem: Boolean,
+    val isIncome: Boolean,
+    val displayOrder: Int
+)
+
+data class SharedBudgetItem(
+    val id: Long,
+    val name: String,
+    val limitMinor: Long,
+    val spentMinor: Long,
+    val periodType: String,
+    val groupType: String,
+    val currency: String,
+    val isActive: Boolean,
+    val categoryBreakdowns: List<SharedBudgetCategoryBreakdown>
+)
+
+data class SharedBudgetCategoryBreakdown(
+    val categoryName: String,
+    val limitMinor: Long,
+    val spentMinor: Long
+)
+
+data class SharedAccountItem(
+    val bankName: String,
+    val accountLast4: String,
+    val balanceMinor: Long,
+    val currency: String,
+    val accountType: String?,
+    val isCreditCard: Boolean,
+    val lastUpdatedEpochMillis: Long
+)
+
+data class SharedCardItem(
+    val id: Long,
+    val cardLast4: String,
+    val cardType: String,
+    val bankName: String,
+    val accountLast4: String?,
+    val isActive: Boolean,
+    val lastBalanceMinor: Long?,
+    val currency: String
+)
 
 data class SharedHomeSnapshot(
     val categories: List<String>,
@@ -237,6 +287,324 @@ class PennyWiseSharedFacade {
         }
     }
 
+    fun getAllCategories(): List<SharedCategoryItem> {
+        return try {
+            runBlocking {
+                graph.categoryRepository.observeCategories().first().map { it.toCategoryItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun createCategory(name: String, colorHex: String, isIncome: Boolean): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.categoryRepository.insertCategory(
+                    com.pennywiseai.shared.data.model.SharedCategory(
+                        name = name,
+                        colorHex = colorHex,
+                        isSystem = false,
+                        isIncome = isIncome,
+                        displayOrder = 999,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun updateCategory(id: Long, name: String, colorHex: String, isIncome: Boolean): Boolean {
+        return try {
+            runBlocking {
+                val existing = graph.categoryRepository.getById(id) ?: return@runBlocking false
+                if (existing.isSystem) return@runBlocking false
+                graph.categoryRepository.updateCategory(
+                    existing.copy(
+                        name = name,
+                        colorHex = colorHex,
+                        isIncome = isIncome,
+                        updatedAtEpochMillis = currentTimeMillis()
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteCategory(id: Long): Boolean {
+        return try {
+            runBlocking {
+                graph.categoryRepository.deleteCategory(id)
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    // ── Budget methods ──────────────────────────────────────────
+
+    fun getAllBudgets(): List<SharedBudgetItem> {
+        return try {
+            runBlocking {
+                val budgets = graph.budgetRepository.observeBudgets().first()
+                val transactions = graph.transactionRepository.observeTransactions().first()
+                budgets.map { budget ->
+                    val categories = graph.budgetRepository.observeBudgetCategories(budget.id).first()
+                    val categoryNames = categories.map { it.categoryName }.toSet()
+                    val periodTxns = transactions.filter { txn ->
+                        txn.occurredAtEpochMillis in budget.startEpochMillis..budget.endEpochMillis &&
+                            txn.transactionType != SharedTransactionType.INCOME &&
+                            (categoryNames.isEmpty() || txn.category in categoryNames)
+                    }
+                    val totalSpent = periodTxns.sumOf { it.amountMinor }
+                    val breakdowns = categories.map { cat ->
+                        val catSpent = periodTxns.filter { it.category == cat.categoryName }.sumOf { it.amountMinor }
+                        SharedBudgetCategoryBreakdown(cat.categoryName, cat.budgetAmountMinor, catSpent)
+                    }
+                    SharedBudgetItem(
+                        id = budget.id,
+                        name = budget.name,
+                        limitMinor = budget.limitMinor,
+                        spentMinor = totalSpent,
+                        periodType = budget.periodType,
+                        groupType = budget.groupType,
+                        currency = budget.currency,
+                        isActive = budget.isActive,
+                        categoryBreakdowns = breakdowns
+                    )
+                }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun getBudgetDetail(budgetId: Long): SharedBudgetItem? {
+        return getAllBudgets().firstOrNull { it.id == budgetId }
+    }
+
+    fun createBudget(
+        name: String,
+        limitMinor: Long,
+        periodType: String,
+        startEpochMillis: Long,
+        endEpochMillis: Long,
+        groupType: String = "LIMIT",
+        currency: String = "INR",
+        categoryLimits: List<SharedBudgetCategoryBreakdown> = emptyList()
+    ): Long {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                val budgetId = graph.budgetRepository.upsertBudget(
+                    SharedBudgetEntity(
+                        name = name.trim(),
+                        limitMinor = limitMinor,
+                        periodType = periodType,
+                        startEpochMillis = startEpochMillis,
+                        endEpochMillis = endEpochMillis,
+                        groupType = groupType,
+                        currency = currency,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                if (categoryLimits.isNotEmpty()) {
+                    graph.budgetRepository.replaceBudgetCategories(
+                        budgetId = budgetId,
+                        categories = categoryLimits.map { cl ->
+                            SharedBudgetCategoryEntity(
+                                budgetId = budgetId,
+                                categoryName = cl.categoryName,
+                                budgetAmountMinor = cl.limitMinor
+                            )
+                        }
+                    )
+                }
+                budgetId
+            }
+        } catch (_: Throwable) {
+            -1L
+        }
+    }
+
+    fun updateBudget(
+        id: Long,
+        name: String,
+        limitMinor: Long,
+        periodType: String,
+        startEpochMillis: Long,
+        endEpochMillis: Long,
+        groupType: String = "LIMIT",
+        currency: String = "INR",
+        categoryLimits: List<SharedBudgetCategoryBreakdown> = emptyList()
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.budgetRepository.upsertBudget(
+                    SharedBudgetEntity(
+                        id = id,
+                        name = name.trim(),
+                        limitMinor = limitMinor,
+                        periodType = periodType,
+                        startEpochMillis = startEpochMillis,
+                        endEpochMillis = endEpochMillis,
+                        groupType = groupType,
+                        currency = currency,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                graph.budgetRepository.replaceBudgetCategories(
+                    budgetId = id,
+                    categories = categoryLimits.map { cl ->
+                        SharedBudgetCategoryEntity(
+                            budgetId = id,
+                            categoryName = cl.categoryName,
+                            budgetAmountMinor = cl.limitMinor
+                        )
+                    }
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteBudget(id: Long): Boolean {
+        return try {
+            runBlocking {
+                graph.budgetRepository.deleteBudget(id)
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    // ── Account methods ────────────────────────────────────────
+
+    fun getAllAccounts(): List<SharedAccountItem> {
+        return try {
+            runBlocking {
+                graph.accountRepository.getDistinctAccounts().map { it.toAccountItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun createAccount(
+        bankName: String,
+        accountLast4: String,
+        accountType: String = "SAVINGS",
+        balanceMinor: Long = 0L,
+        currency: String = "INR"
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.accountRepository.insertBalance(
+                    com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity(
+                        bankName = bankName.trim(),
+                        accountLast4 = accountLast4.trim(),
+                        timestampEpochMillis = now,
+                        balanceMinor = balanceMinor,
+                        accountType = accountType,
+                        isCreditCard = accountType.equals("CREDIT", ignoreCase = true),
+                        currency = currency,
+                        createdAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteAccount(bankName: String, accountLast4: String): Boolean {
+        return try {
+            runBlocking {
+                graph.accountRepository.deleteByAccount(bankName, accountLast4)
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun getAccountTransactions(bankName: String, accountLast4: String): List<SharedRecentTransactionItem> {
+        return try {
+            runBlocking {
+                graph.transactionRepository.observeTransactions().first()
+                    .filter { it.bankName == bankName && it.accountLast4 == accountLast4 }
+                    .map { it.toItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    // ── Card methods ─────────────────────────────────────────
+
+    fun getAllCards(): List<SharedCardItem> {
+        return try {
+            runBlocking {
+                graph.accountRepository.observeCards().first().map { it.toCardItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun createCard(
+        cardLast4: String,
+        cardType: String = "CREDIT",
+        bankName: String,
+        accountLast4: String? = null
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.accountRepository.upsertCard(
+                    com.pennywiseai.shared.data.local.entity.SharedCardEntity(
+                        cardLast4 = cardLast4.trim(),
+                        cardType = cardType,
+                        bankName = bankName.trim(),
+                        accountLast4 = accountLast4?.trim(),
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteCard(cardId: Long): Boolean {
+        return try {
+            runBlocking {
+                graph.accountRepository.deleteCardById(cardId)
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     fun addSubscriptionAndLoadHome(
         merchantName: String,
         amountMinor: Long,
@@ -346,4 +714,37 @@ class PennyWiseSharedFacade {
         val fractionText = fraction.toString().padStart(2, '0')
         return "$whole.$fractionText"
     }
+
+    private fun com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity.toAccountItem() =
+        SharedAccountItem(
+            bankName = bankName,
+            accountLast4 = accountLast4,
+            balanceMinor = balanceMinor,
+            currency = currency,
+            accountType = accountType,
+            isCreditCard = isCreditCard,
+            lastUpdatedEpochMillis = timestampEpochMillis
+        )
+
+    private fun com.pennywiseai.shared.data.local.entity.SharedCardEntity.toCardItem() =
+        SharedCardItem(
+            id = id,
+            cardLast4 = cardLast4,
+            cardType = cardType,
+            bankName = bankName,
+            accountLast4 = accountLast4,
+            isActive = isActive,
+            lastBalanceMinor = lastBalanceMinor,
+            currency = currency
+        )
+
+    private fun com.pennywiseai.shared.data.model.SharedCategory.toCategoryItem() =
+        SharedCategoryItem(
+            id = id,
+            name = name,
+            colorHex = colorHex,
+            isSystem = isSystem,
+            isIncome = isIncome,
+            displayOrder = displayOrder
+        )
 }

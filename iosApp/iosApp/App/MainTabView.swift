@@ -49,8 +49,7 @@ struct MainTabView: View {
             .tag(AppTab.analytics)
 
             NavigationStack {
-                SettingsPlaceholderScreen()
-                    .navigationTitle("Settings")
+                SettingsScreen()
             }
             .tabItem {
                 Label(AppTab.settings.rawValue, systemImage: AppTab.settings.icon)

@@ -4,7 +4,6 @@ import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.MandateInfo
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
 /**
  * HDFC Bank specific parser.

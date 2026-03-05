@@ -2,9 +2,9 @@ package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.parser.core.md5Hex
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.security.MessageDigest
 
 /**
  * Jammu & Kashmir Bank (JK Bank) specific parser.
@@ -107,9 +107,7 @@ class JKBankParser : BaseIndianBankParser() {
             }
         }
 
-        return MessageDigest.getInstance("MD5")
-            .digest(hashData.toByteArray())
-            .joinToString("") { "%02x".format(it) }
+        return md5Hex(hashData)
     }
 
     private fun extractJKBankReference(message: String): String? {

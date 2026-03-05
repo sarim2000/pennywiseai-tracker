@@ -35,6 +35,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.toJavaLocalDateTime
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
@@ -193,7 +194,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                             bankName = balanceUpdateInfo.bankName,
                                             accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                                             balance = balanceUpdateInfo.balance,
-                                            timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
+                                            timestamp = balanceUpdateInfo.asOfDate?.toJavaLocalDateTime() ?: smsDateTime,
                                             currency = parser.getCurrency()
                                         )
                                         Log.d(TAG, "Saved balance update for ${balanceUpdateInfo.bankName}")
@@ -214,7 +215,7 @@ class SmsReaderWorker @AssistedInject constructor(
                                             bankName = balanceUpdateInfo.bankName,
                                             accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                                             balance = balanceUpdateInfo.balance,
-                                            timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
+                                            timestamp = balanceUpdateInfo.asOfDate?.toJavaLocalDateTime() ?: smsDateTime,
                                             currency = parser.getCurrency()
                                         )
                                         Log.d(TAG, "Saved balance update for ${balanceUpdateInfo.bankName}")

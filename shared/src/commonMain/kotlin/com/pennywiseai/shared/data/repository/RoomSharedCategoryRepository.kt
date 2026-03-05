@@ -16,10 +16,23 @@ class RoomSharedCategoryRepository(
     override fun observeCategoriesByIncomeType(isIncome: Boolean): Flow<List<SharedCategory>> =
         dao.observeCategoriesByIncomeType(isIncome).map { list -> list.map { it.toDomain() } }
 
+    override suspend fun getById(id: Long): SharedCategory? =
+        dao.getById(id)?.toDomain()
+
     override suspend fun countCategories(): Int =
         dao.countCategories()
 
     override suspend fun insertCategories(categories: List<SharedCategory>) {
         dao.insertAll(categories.map { it.toEntity() })
     }
+
+    override suspend fun insertCategory(category: SharedCategory): Long =
+        dao.insert(category.toEntity())
+
+    override suspend fun updateCategory(category: SharedCategory) {
+        dao.update(category.toEntity())
+    }
+
+    override suspend fun deleteCategory(id: Long): Boolean =
+        dao.deleteNonSystem(id) > 0
 }

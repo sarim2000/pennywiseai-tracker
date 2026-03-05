@@ -11,5 +11,6 @@ interface SharedBudgetRepository {
     fun observeCategoryLimits(): Flow<List<SharedCategoryBudgetLimitEntity>>
     suspend fun upsertBudget(budget: SharedBudgetEntity): Long
     suspend fun replaceBudgetCategories(budgetId: Long, categories: List<SharedBudgetCategoryEntity>)
+    suspend fun deleteBudget(id: Long)
     suspend fun upsertCategoryLimit(limit: SharedCategoryBudgetLimitEntity)
 }

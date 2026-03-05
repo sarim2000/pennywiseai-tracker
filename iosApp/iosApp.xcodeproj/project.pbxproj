@@ -28,6 +28,18 @@
 		EE0004002D39B001007A8A11 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001002D39B001007A8A11 /* AppColors.swift */; };
 		EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002002D39B001007A8A11 /* AppTypography.swift */; };
 		EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0003002D39B001007A8A11 /* AppSpacing.swift */; };
+		FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0001002D39B001007A8A11 /* SettingsScreen.swift */; };
+		FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0002002D39B001007A8A11 /* CategoriesScreen.swift */; };
+		FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */; };
+		FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */; };
+		GG0005002D39B001007A8A11 /* BudgetListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0001002D39B001007A8A11 /* BudgetListScreen.swift */; };
+		GG0006002D39B001007A8A11 /* BudgetDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */; };
+		GG0007002D39B001007A8A11 /* AddEditBudgetScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */; };
+		GG0008002D39B001007A8A11 /* BudgetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0004002D39B001007A8A11 /* BudgetViewModel.swift */; };
+		HH0005002D39B001007A8A11 /* AccountListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0001002D39B001007A8A11 /* AccountListScreen.swift */; };
+		HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */; };
+		HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */; };
+		HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0004002D39B001007A8A11 /* AccountsViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +66,18 @@
 		EE0001002D39B001007A8A11 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		EE0002002D39B001007A8A11 /* AppTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTypography.swift; sourceTree = "<group>"; };
 		EE0003002D39B001007A8A11 /* AppSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSpacing.swift; sourceTree = "<group>"; };
+		FF0001002D39B001007A8A11 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		FF0002002D39B001007A8A11 /* CategoriesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesScreen.swift; sourceTree = "<group>"; };
+		FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditCategoryScreen.swift; sourceTree = "<group>"; };
+		FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
+		GG0001002D39B001007A8A11 /* BudgetListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListScreen.swift; sourceTree = "<group>"; };
+		GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailScreen.swift; sourceTree = "<group>"; };
+		GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditBudgetScreen.swift; sourceTree = "<group>"; };
+		GG0004002D39B001007A8A11 /* BudgetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetViewModel.swift; sourceTree = "<group>"; };
+		HH0001002D39B001007A8A11 /* AccountListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountListScreen.swift; sourceTree = "<group>"; };
+		HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDetailScreen.swift; sourceTree = "<group>"; };
+		HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditAccountScreen.swift; sourceTree = "<group>"; };
+		HH0004002D39B001007A8A11 /* AccountsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +145,8 @@
 			children = (
 				DD0003002D39B001007A8A11 /* Home */,
 				DD0004002D39B001007A8A11 /* Transactions */,
+				HH0009002D39B001007A8A11 /* Accounts */,
+				GG0009002D39B001007A8A11 /* Budgets */,
 				DD0005002D39B001007A8A11 /* Analytics */,
 				DD0006002D39B001007A8A11 /* Settings */,
 			);
@@ -145,6 +171,26 @@
 			path = Transactions;
 			sourceTree = "<group>";
 		};
+		HH0009002D39B001007A8A11 /* Accounts */ = {
+			isa = PBXGroup;
+			children = (
+				HH0001002D39B001007A8A11 /* AccountListScreen.swift */,
+				HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */,
+				HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */,
+			);
+			path = Accounts;
+			sourceTree = "<group>";
+		};
+		GG0009002D39B001007A8A11 /* Budgets */ = {
+			isa = PBXGroup;
+			children = (
+				GG0001002D39B001007A8A11 /* BudgetListScreen.swift */,
+				GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */,
+				GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */,
+			);
+			path = Budgets;
+			sourceTree = "<group>";
+		};
 		DD0005002D39B001007A8A11 /* Analytics */ = {
 			isa = PBXGroup;
 			children = (
@@ -157,6 +203,9 @@
 			isa = PBXGroup;
 			children = (
 				BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */,
+				FF0001002D39B001007A8A11 /* SettingsScreen.swift */,
+				FF0002002D39B001007A8A11 /* CategoriesScreen.swift */,
+				FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -178,6 +227,9 @@
 			isa = PBXGroup;
 			children = (
 				BB0011002D39B001007A8A11 /* HomeViewModel.swift */,
+				HH0004002D39B001007A8A11 /* AccountsViewModel.swift */,
+				GG0004002D39B001007A8A11 /* BudgetViewModel.swift */,
+				FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -311,6 +363,18 @@
 				EE0004002D39B001007A8A11 /* AppColors.swift in Sources */,
 				EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */,
 				EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */,
+				FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */,
+				FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */,
+				FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */,
+				FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */,
+				GG0005002D39B001007A8A11 /* BudgetListScreen.swift in Sources */,
+				GG0006002D39B001007A8A11 /* BudgetDetailScreen.swift in Sources */,
+				GG0007002D39B001007A8A11 /* AddEditBudgetScreen.swift in Sources */,
+				GG0008002D39B001007A8A11 /* BudgetViewModel.swift in Sources */,
+				HH0005002D39B001007A8A11 /* AccountListScreen.swift in Sources */,
+				HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */,
+				HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */,
+				HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

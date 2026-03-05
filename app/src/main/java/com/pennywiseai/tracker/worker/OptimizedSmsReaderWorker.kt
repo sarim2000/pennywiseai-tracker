@@ -42,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.toJavaLocalDateTime
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
@@ -927,7 +928,7 @@ private suspend fun processSubscriptionNotifications(
                             bankName = balanceUpdateInfo.bankName,
                             accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                             balance = balanceUpdateInfo.balance,
-                            timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
+                            timestamp = balanceUpdateInfo.asOfDate?.toJavaLocalDateTime() ?: smsDateTime,
                             currency = parser.getCurrency()
                         )
                         Log.d(TAG, "Saved balance update for ${balanceUpdateInfo.bankName}")
@@ -996,7 +997,7 @@ private suspend fun processSubscriptionNotifications(
                             bankName = balanceUpdateInfo.bankName,
                             accountLast4 = balanceUpdateInfo.accountLast4 ?: "XXXX",
                             balance = balanceUpdateInfo.balance,
-                            timestamp = balanceUpdateInfo.asOfDate ?: smsDateTime,
+                            timestamp = balanceUpdateInfo.asOfDate?.toJavaLocalDateTime() ?: smsDateTime,
                             currency = parser.getCurrency()
                         )
                         Log.d(TAG, "Saved balance update for ${balanceUpdateInfo.bankName}")

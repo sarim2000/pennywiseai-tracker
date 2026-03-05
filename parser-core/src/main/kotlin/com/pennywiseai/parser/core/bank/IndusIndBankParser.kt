@@ -1,8 +1,8 @@
 package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.TransactionType
+import kotlinx.datetime.LocalDateTime
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
 /**
  * Parser for IndusInd Bank SMS messages (India)
@@ -123,7 +123,7 @@ class IndusIndBankParser : BaseIndianBankParser() {
                     ampm == "AM" && hour == 12 -> 0
                     else -> hour
                 }
-                LocalDateTime.of(year, month, day, hour, minute)
+                LocalDateTime(year, month, day, hour, minute)
             }.getOrNull()
         }
 

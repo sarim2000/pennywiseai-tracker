@@ -5,9 +5,14 @@ import com.pennywiseai.shared.data.model.SharedTransactionType
 class PhonePeSharedStatementParser : SharedStatementParser {
     companion object {
         private val phonepeKeywords = listOf("phonepe", "phone pe")
-        private val amountPattern = Regex("""[₹Rs.]+\s*([\d,]+(?:\.\d{1,2})?)""")
+        // Anchored amount pattern: must start with ₹/Rs/Rs. and capture only one number.
+        // Uses (?!\d) negative lookahead to stop at number boundaries when PDF text
+        // concatenates columns (e.g. "395.0012345.00" from debit+balance columns).
+        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+\.\d{2})(?!\d)""")
         private val txnPattern = Regex("""(?:Transaction\s+ID|UTR(?:\s+No)?)[:\s]*([A-Za-z0-9]+)""", RegexOption.IGNORE_CASE)
         private val merchantPattern = Regex("""(?:Paid\s+to|Sent\s+to|Transferred\s+to|Received\s+from)\s+(.+?)(?:\n|$)""", RegexOption.IGNORE_CASE)
+        // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
+        private const val MAX_AMOUNT_MINOR = 1_000_000_000L
     }
 
     override fun canHandle(text: String): Boolean {
@@ -43,6 +48,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
 
     private fun parseBlock(block: String): SharedParsedStatementTransaction? {
         val amountMinor = amountPattern.find(block)?.groupValues?.getOrNull(1)?.let(::amountToMinor) ?: return null
+        if (amountMinor <= 0 || amountMinor > MAX_AMOUNT_MINOR) return null
         val upper = block.uppercase()
         val type = when {
             upper.contains("DEBIT") || upper.contains("PAID TO") || upper.contains("SENT TO") || upper.contains("TRANSFERRED TO") -> SharedTransactionType.EXPENSE

@@ -56,7 +56,7 @@ struct AddEditBudgetScreen: View {
         Section("Budget Info") {
             TextField("Budget Name", text: $name)
             HStack {
-                Text("INR")
+                Text(CurrencyManager.shared.displayCurrency)
                     .foregroundStyle(.secondary)
                 TextField("Total Limit", text: $totalLimitText)
                     .keyboardType(.numberPad)
@@ -85,7 +85,7 @@ struct AddEditBudgetScreen: View {
                 Text("Loading categories...")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(viewModel.categories, id: \.self) { category in
+                ForEach(viewModel.categories, id: \.self) { (category: String) in
                     Button {
                         toggleCategory(category)
                     } label: {
@@ -98,7 +98,7 @@ struct AddEditBudgetScreen: View {
                             Spacer()
                             if selectedCategories.contains(category) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.accent)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
                     }
@@ -109,7 +109,7 @@ struct AddEditBudgetScreen: View {
 
     private var categoryLimitsSection: some View {
         Section("Category Limits") {
-            ForEach(Array(selectedCategories).sorted(), id: \.self) { category in
+            ForEach(Array(selectedCategories).sorted(), id: \.self) { (category: String) in
                 HStack {
                     Circle()
                         .fill(AppColors.categoryColor(for: category))
@@ -118,7 +118,7 @@ struct AddEditBudgetScreen: View {
                         .font(AppTypography.body)
                     Spacer()
                     HStack {
-                        Text("INR")
+                        Text(CurrencyManager.shared.displayCurrency)
                             .font(AppTypography.caption)
                             .foregroundStyle(.secondary)
                         TextField("Amount", text: binding(for: category))
@@ -179,7 +179,7 @@ struct AddEditBudgetScreen: View {
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,
                 groupType: groupType,
-                currency: "INR",
+                currency: CurrencyManager.shared.displayCurrency,
                 categoryLimits: catLimits
             )
         } else {
@@ -190,7 +190,7 @@ struct AddEditBudgetScreen: View {
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,
                 groupType: groupType,
-                currency: "INR",
+                currency: CurrencyManager.shared.displayCurrency,
                 categoryLimits: catLimits
             )
         }

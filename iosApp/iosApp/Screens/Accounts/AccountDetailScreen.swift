@@ -99,7 +99,7 @@ struct AccountDetailScreen: View {
                     .foregroundStyle(.secondary)
                 Text(AmountFormatter.format(
                     minorUnits: currentAccount?.balanceMinor ?? 0,
-                    currency: currentAccount?.currency ?? "INR"
+                    currency: currentAccount?.currency ?? CurrencyManager.shared.displayCurrency
                 ))
                 .font(AppTypography.amountLarge)
             }

@@ -80,7 +80,7 @@ struct AccountListScreen: View {
                 .foregroundStyle(.secondary)
             Text(AmountFormatter.format(
                 minorUnits: viewModel.totalBalanceMinor,
-                currency: viewModel.accounts.first?.currency ?? "INR"
+                currency: viewModel.accounts.first?.currency ?? CurrencyManager.shared.displayCurrency
             ))
             .font(AppTypography.amountLarge)
             .foregroundStyle(.primary)

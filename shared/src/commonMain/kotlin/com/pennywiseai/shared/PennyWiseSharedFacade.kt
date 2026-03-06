@@ -605,6 +605,27 @@ class PennyWiseSharedFacade {
         }
     }
 
+    // ── Analytics methods ────────────────────────────────────
+
+    fun getTransactionsForPeriod(
+        startDateMs: Long,
+        endDateMs: Long,
+        type: String? = null
+    ): List<SharedRecentTransactionItem> {
+        return try {
+            runBlocking {
+                graph.transactionRepository.observeTransactions().first()
+                    .filter { txn ->
+                        txn.occurredAtEpochMillis in startDateMs..endDateMs &&
+                            (type == null || txn.transactionType.name.equals(type, ignoreCase = true))
+                    }
+                    .map { it.toItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
     fun addSubscriptionAndLoadHome(
         merchantName: String,
         amountMinor: Long,

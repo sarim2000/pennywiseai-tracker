@@ -8,6 +8,6 @@ enum AmountFormatter {
     }
 
     static func format(minorUnits: Int64, currency: String) -> String {
-        "\(currency) \(format(minorUnits: minorUnits))"
+        CurrencyFormatter.format(amountMinor: minorUnits, currencyCode: currency)
     }
 }

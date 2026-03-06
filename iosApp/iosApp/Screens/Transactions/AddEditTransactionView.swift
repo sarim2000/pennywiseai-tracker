@@ -12,7 +12,7 @@ struct AddEditTransactionView: View {
     @State private var amountText = ""
     @State private var selectedType = "EXPENSE"
     @State private var selectedCategory = "Others"
-    @State private var selectedCurrency = "INR"
+    @State private var selectedCurrency = CurrencyManager.shared.displayCurrency
     @State private var selectedDate = Date()
     @State private var bankName = ""
     @State private var accountLast4 = ""
@@ -21,7 +21,7 @@ struct AddEditTransactionView: View {
     @State private var errorMessage: String?
 
     private let transactionTypes = ["INCOME", "EXPENSE", "CREDIT", "TRANSFER", "INVESTMENT"]
-    private let currencies = ["INR", "USD", "EUR", "GBP", "AED", "SGD", "CAD", "AUD", "JPY", "CNY"]
+    private let currencies = CurrencyPickerScreen.currencies.map(\.code)
 
     private var isEditing: Bool { editingTransactionId != nil }
 

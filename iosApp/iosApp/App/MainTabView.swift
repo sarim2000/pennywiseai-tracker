@@ -40,8 +40,7 @@ struct MainTabView: View {
             .tag(AppTab.transactions)
 
             NavigationStack {
-                AnalyticsPlaceholderScreen()
-                    .navigationTitle("Analytics")
+                AnalyticsScreen()
             }
             .tabItem {
                 Label(AppTab.analytics.rawValue, systemImage: AppTab.analytics.icon)

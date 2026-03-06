@@ -33,9 +33,11 @@ struct GreetingCard: View {
                     .fill(themeManager.accentColor)
                     .frame(width: 44, height: 44)
 
-                Image(systemName: avatarSymbol)
-                    .font(.system(size: 20))
-                    .foregroundStyle(.white)
+                Image(avatarImageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 30)
+                    .clipShape(Circle())
             }
 
             // Greeting text

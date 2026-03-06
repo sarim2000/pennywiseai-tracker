@@ -364,6 +364,11 @@ struct SettingsScreen: View {
             return
         }
 
+        #if DEBUG
+        print("[PDF Import] Extracted text length: \(fullText.count)")
+        print("[PDF Import] First 500 chars:\n\(String(fullText.prefix(500)))")
+        #endif
+
         let facade = PennyWiseSharedFacade()
         let snapshot = facade.importStatementTextAndLoadHome(statementText: fullText)
         if snapshot.lastImportParsed > 0 {

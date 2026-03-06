@@ -5,12 +5,16 @@ import com.pennywiseai.shared.data.model.SharedTransactionType
 class GPaySharedStatementParser : SharedStatementParser {
     companion object {
         private val keywords = listOf("gpay", "google pay")
-        private val amountPattern = Regex("""[₹Rs.]+\s*([\d,]+(?:\.\d{1,2})?)""")
+        // Anchored amount pattern: requires ₹/Rs prefix, captures exactly one number
+        // with (?!\d) lookahead to prevent matching across concatenated PDF columns
+        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+\.\d{2})(?!\d)""")
         private val upiPattern = Regex("""UPI\s+[Tt]ransaction\s+ID\s*[:\-]?\s*(\d+)""")
         private val paidToPattern = Regex("""Paid\s+to\s+(.+?)(?:\n|$)""")
         private val receivedFromPattern = Regex("""Received\s+from\s+(.+?)(?:\n|$)""")
         private val paidByPattern = Regex("""Paid\s+by\s+(.+?)(?:\n|$)""")
         private val accountLast4Pattern = Regex("""[Xx*]+(\d{4})""")
+        // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
+        private const val MAX_AMOUNT_MINOR = 1_000_000_000L
     }
 
     override fun canHandle(text: String): Boolean {
@@ -43,6 +47,7 @@ class GPaySharedStatementParser : SharedStatementParser {
 
     private fun parseBlock(block: String): SharedParsedStatementTransaction? {
         val amountMinor = amountPattern.find(block)?.groupValues?.getOrNull(1)?.let(::amountToMinor) ?: return null
+        if (amountMinor <= 0 || amountMinor > MAX_AMOUNT_MINOR) return null
         val type = when {
             block.trimStart().startsWith("Paid to", true) -> SharedTransactionType.EXPENSE
             block.trimStart().startsWith("Received from", true) -> SharedTransactionType.INCOME

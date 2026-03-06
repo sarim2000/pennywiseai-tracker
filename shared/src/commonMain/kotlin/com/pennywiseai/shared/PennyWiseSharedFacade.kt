@@ -119,7 +119,7 @@ class PennyWiseSharedFacade {
     private val graph by lazy { SharedDataGraph.create() }
     private val createUseCase by lazy { CreateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
     private val updateUseCase by lazy { UpdateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
-    private val importStatementUseCase by lazy { ImportStatementUseCase(graph.transactionRepository) }
+    private val importStatementUseCase by lazy { ImportStatementUseCase(graph.transactionRepository, graph.accountRepository) }
 
     fun initializeAndLoadHome(): SharedHomeSnapshot = safeSnapshot {
         runBlocking {

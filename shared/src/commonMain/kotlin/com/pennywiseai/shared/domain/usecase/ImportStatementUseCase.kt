@@ -1,6 +1,8 @@
 package com.pennywiseai.shared.domain.usecase
 
+import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.model.SharedTransaction
+import com.pennywiseai.shared.data.repository.SharedAccountRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.statement.SharedPdfTextExtractor
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
@@ -8,7 +10,8 @@ import com.pennywiseai.shared.data.statement.SharedStatementParserFactory
 import com.pennywiseai.shared.data.util.currentTimeMillis
 
 class ImportStatementUseCase(
-    private val transactionRepository: SharedTransactionRepository
+    private val transactionRepository: SharedTransactionRepository,
+    private val accountRepository: SharedAccountRepository
 ) {
     suspend fun importFromPdfPath(filePath: String): SharedStatementImportResult {
         return importFromText(SharedPdfTextExtractor.extractText(filePath))
@@ -66,13 +69,44 @@ class ImportStatementUseCase(
             )
         }
 
-        if (toInsert.isNotEmpty()) transactionRepository.insertAll(toInsert)
+        if (toInsert.isNotEmpty()) {
+            transactionRepository.insertAll(toInsert)
+            autoCreateAccounts(toInsert)
+        }
 
         return SharedStatementImportResult.Success(
             imported = toInsert.size,
             skippedDuplicates = skippedByHash + skippedByReference + skippedByAmountDate,
             totalParsed = parsedTransactions.size
         )
+    }
+
+    private suspend fun autoCreateAccounts(imported: List<SharedTransaction>) {
+        val existingAccounts = accountRepository.getDistinctAccounts()
+        val existingKeys = existingAccounts.map { "${it.bankName}|${it.accountLast4}" }.toSet()
+
+        val newAccountKeys = imported
+            .filter { !it.bankName.isNullOrBlank() && !it.accountLast4.isNullOrBlank() }
+            .map { "${it.bankName}|${it.accountLast4}" }
+            .distinct()
+            .filter { it !in existingKeys }
+
+        val now = currentTimeMillis()
+        for (key in newAccountKeys) {
+            val (bankName, last4) = key.split("|")
+            accountRepository.insertBalance(
+                SharedAccountBalanceEntity(
+                    bankName = bankName,
+                    accountLast4 = last4,
+                    timestampEpochMillis = now,
+                    balanceMinor = 0L,
+                    accountType = "SAVINGS",
+                    isCreditCard = false,
+                    currency = "INR",
+                    createdAtEpochMillis = now
+                )
+            )
+        }
     }
 
     private fun buildImportHash(raw: String, amountMinor: Long, timestamp: Long): String =

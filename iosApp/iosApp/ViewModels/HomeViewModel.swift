@@ -8,6 +8,7 @@ class HomeViewModel: ObservableObject {
     @Published var recentTransactions: [SharedRecentTransactionItem] = []
     @Published var transactionCount: Int = 0
     @Published var subscriptionCount: Int = 0
+    @Published var subscriptionMonthlyTotal: Int64 = 0
     @Published var budgetCount: Int = 0
     @Published var accountCount: Int = 0
     @Published var monthlyIncomeMinor: Int64 = 0
@@ -23,6 +24,9 @@ class HomeViewModel: ObservableObject {
         apply(snapshot: snapshot)
         budgets = facade.getAllBudgets()
         accounts = facade.getAllAccounts()
+        let subs = facade.getAllSubscriptions()
+        subscriptionMonthlyTotal = subs.filter { $0.state == "active" }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
     }
 
     func addTransaction(

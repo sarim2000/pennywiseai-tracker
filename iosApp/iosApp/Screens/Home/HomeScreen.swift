@@ -46,6 +46,13 @@ struct HomeScreen: View {
                             .offset(y: appeared ? 0 : 14)
                     }
 
+                    // Subscription Summary
+                    if viewModel.subscriptionCount > 0 {
+                        subscriptionSummaryCard
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 15)
+                    }
+
                     // Recent Transactions
                     recentTransactionsSection
                         .opacity(appeared ? 1 : 0)
@@ -149,6 +156,36 @@ struct HomeScreen: View {
                 .foregroundStyle(.green)
                 .font(.footnote)
         }
+    }
+
+    // MARK: - Subscription Summary
+
+    @ViewBuilder
+    private var subscriptionSummaryCard: some View {
+        HStack {
+            Label {
+                Text("Subscriptions")
+                    .font(AppTypography.body)
+            } icon: {
+                Image(systemName: "repeat")
+                    .foregroundStyle(.indigo)
+            }
+            Spacer()
+            Text("\(viewModel.subscriptionCount)")
+                .font(AppTypography.caption)
+                .padding(.horizontal, AppSpacing.sm)
+                .padding(.vertical, AppSpacing.xs)
+                .background(Capsule().fill(Color.indigo.opacity(0.15)))
+                .foregroundStyle(.indigo)
+            Text(CurrencyFormatter.format(
+                amountMinor: viewModel.subscriptionMonthlyTotal,
+                currencyCode: CurrencyManager.shared.displayCurrency
+            ))
+            .font(AppTypography.headline)
+            .foregroundStyle(.primary)
+        }
+        .padding(AppSpacing.md)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
     }
 
     // MARK: - Floating Add Button

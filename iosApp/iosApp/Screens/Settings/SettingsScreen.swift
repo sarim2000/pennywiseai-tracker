@@ -84,6 +84,40 @@ struct SettingsScreen: View {
                     }
                 }
 
+                NavigationLink {
+                    SubscriptionsScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Subscriptions")
+                                .font(AppTypography.body)
+                            Text("Track recurring payments")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "repeat")
+                            .foregroundStyle(.indigo)
+                    }
+                }
+
+                NavigationLink {
+                    RulesScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Smart Rules")
+                                .font(AppTypography.body)
+                            Text("Auto-categorize transactions")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "wand.and.stars")
+                            .foregroundStyle(.pink)
+                    }
+                }
+
                 Button {
                     exportImportManager.exportBackup()
                 } label: {

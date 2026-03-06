@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SpendingSummaryCard: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let monthlyExpenseMinor: Int64
     let monthlyIncomeMinor: Int64
     let monthlyNetMinor: Int64
@@ -50,6 +51,7 @@ struct SpendingSummaryCard: View {
 }
 
 private struct SummaryColumn: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let label: String
     let amountMinor: Int64
     let accentColor: Color

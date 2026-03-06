@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TopMerchantsList: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let merchants: [MerchantRankingItem]
 
     var body: some View {

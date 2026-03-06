@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AnalyticsScreen: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     @StateObject private var viewModel = AnalyticsViewModel()
 
     var body: some View {

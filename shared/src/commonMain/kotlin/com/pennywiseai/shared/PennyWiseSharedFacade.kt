@@ -64,6 +64,17 @@ data class SharedCardItem(
     val currency: String
 )
 
+data class SharedSubscriptionItem(
+    val id: Long,
+    val merchantName: String,
+    val amountMinor: Long,
+    val category: String?,
+    val currency: String,
+    val state: String,
+    val nextPaymentEpochMillis: Long?,
+    val createdAtEpochMillis: Long
+)
+
 data class SharedHomeSnapshot(
     val categories: List<String>,
     val recentTransactions: List<SharedRecentTransactionItem>,
@@ -647,6 +658,95 @@ class PennyWiseSharedFacade {
             loadHomeSnapshot()
         }
     }
+
+    // ── Subscription CRUD methods ──────────────────────────────
+
+    fun getAllSubscriptions(): List<SharedSubscriptionItem> {
+        return try {
+            runBlocking {
+                graph.subscriptionRepository.observeAll().first().map { it.toSubscriptionItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun createSubscription(
+        merchantName: String,
+        amountMinor: Long,
+        category: String? = null,
+        currency: String = "INR"
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.subscriptionRepository.upsert(
+                    SharedSubscriptionEntity(
+                        merchantName = merchantName.trim(),
+                        amountMinor = amountMinor,
+                        category = category,
+                        currency = currency,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun updateSubscription(
+        id: Long,
+        merchantName: String,
+        amountMinor: Long,
+        category: String? = null,
+        currency: String = "INR"
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.subscriptionRepository.upsert(
+                    SharedSubscriptionEntity(
+                        id = id,
+                        merchantName = merchantName.trim(),
+                        amountMinor = amountMinor,
+                        category = category,
+                        currency = currency,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteSubscription(id: Long): Boolean {
+        return try {
+            runBlocking {
+                graph.subscriptionRepository.deleteById(id)
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun SharedSubscriptionEntity.toSubscriptionItem() =
+        SharedSubscriptionItem(
+            id = id,
+            merchantName = merchantName,
+            amountMinor = amountMinor,
+            category = category,
+            currency = currency,
+            state = state,
+            nextPaymentEpochMillis = nextPaymentEpochMillis,
+            createdAtEpochMillis = createdAtEpochMillis
+        )
 
     private suspend fun loadHomeSnapshot(
         lastError: String? = null,

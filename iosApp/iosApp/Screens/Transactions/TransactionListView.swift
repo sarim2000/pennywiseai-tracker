@@ -410,20 +410,26 @@ private struct FilterChipView: View {
 struct TransactionRowView: View {
     let item: SharedRecentTransactionItem
 
+    private var iconInfo: CategoryIconInfo {
+        AppColors.categoryIcon(for: item.category)
+    }
+
     var body: some View {
         HStack(spacing: AppSpacing.md) {
-            Image(systemName: AppColors.transactionIcon(for: item.transactionType))
-                .foregroundStyle(AppColors.transactionColor(for: item.transactionType))
-                .font(.title3)
+            ZStack {
+                Circle()
+                    .fill(iconInfo.color.opacity(0.15))
+                    .frame(width: 42, height: 42)
+                Image(systemName: iconInfo.systemName)
+                    .font(.system(size: 18))
+                    .foregroundColor(iconInfo.color)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.merchantName)
                     .font(AppTypography.body)
                     .lineLimit(1)
                 HStack(spacing: AppSpacing.xs) {
-                    Circle()
-                        .fill(AppColors.categoryColor(for: item.category))
-                        .frame(width: 6, height: 6)
                     Text(item.category)
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)

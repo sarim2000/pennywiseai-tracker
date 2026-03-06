@@ -1,5 +1,10 @@
 import SwiftUI
 
+struct CategoryIconInfo {
+    let systemName: String
+    let color: Color
+}
+
 enum AppColors {
 
     // MARK: - Transaction Type Colors (adaptive light/dark)
@@ -40,26 +45,57 @@ enum AppColors {
         }
     }
 
-    // MARK: - Category Colors
+    // MARK: - Category Icons & Colors
 
-    static let categoryFood = Color(hex: 0xFF7043)
-    static let categoryTransport = Color(hex: 0x5C6BC0)
-    static let categoryShopping = Color(hex: 0xAB47BC)
-    static let categoryBills = Color(hex: 0x42A5F5)
-    static let categoryEntertainment = Color(hex: 0xEC407A)
-    static let categoryHealth = Color(hex: 0x26A69A)
-    static let categoryOther = Color(hex: 0x78909C)
+    static func categoryIcon(for name: String) -> CategoryIconInfo {
+        switch name.lowercased() {
+        case "food", "food & dining", "dining":
+            return CategoryIconInfo(systemName: "fork.knife", color: Color(hex: 0xFC8019))
+        case "groceries":
+            return CategoryIconInfo(systemName: "cart.fill", color: Color(hex: 0x5AC85A))
+        case "transport", "transportation":
+            return CategoryIconInfo(systemName: "car.fill", color: Color(hex: 0x37474F))
+        case "shopping":
+            return CategoryIconInfo(systemName: "bag.fill", color: Color(hex: 0xFF9900))
+        case "bills", "utilities", "bills & utilities":
+            return CategoryIconInfo(systemName: "doc.text.fill", color: Color(hex: 0x4CAF50))
+        case "entertainment":
+            return CategoryIconInfo(systemName: "film.fill", color: Color(hex: 0xE50914))
+        case "health", "healthcare", "medical":
+            return CategoryIconInfo(systemName: "cross.case.fill", color: Color(hex: 0x10847E))
+        case "investments", "investment":
+            return CategoryIconInfo(systemName: "chart.line.uptrend.xyaxis", color: Color(hex: 0x00D09C))
+        case "banking":
+            return CategoryIconInfo(systemName: "building.columns.fill", color: Color(hex: 0x004C8F))
+        case "personal care":
+            return CategoryIconInfo(systemName: "face.smiling.fill", color: Color(hex: 0x6A4C93))
+        case "education":
+            return CategoryIconInfo(systemName: "graduationcap.fill", color: Color(hex: 0x673AB7))
+        case "mobile", "mobile & recharge", "recharge":
+            return CategoryIconInfo(systemName: "iphone", color: Color(hex: 0x2A3890))
+        case "fitness":
+            return CategoryIconInfo(systemName: "figure.walk", color: Color(hex: 0xFF3278))
+        case "insurance":
+            return CategoryIconInfo(systemName: "shield.fill", color: Color(hex: 0x0066CC))
+        case "tax":
+            return CategoryIconInfo(systemName: "wallet.pass.fill", color: Color(hex: 0x795548))
+        case "bank charges":
+            return CategoryIconInfo(systemName: "banknote", color: Color(hex: 0x9E9E9E))
+        case "credit card payment":
+            return CategoryIconInfo(systemName: "creditcard.fill", color: Color(hex: 0x1565C0))
+        case "salary":
+            return CategoryIconInfo(systemName: "indianrupeesign.circle.fill", color: Color(hex: 0x2E7D32))
+        case "other income":
+            return CategoryIconInfo(systemName: "plus.circle.fill", color: Color(hex: 0x388E3C))
+        case "travel":
+            return CategoryIconInfo(systemName: "airplane", color: Color(hex: 0x00BCD4))
+        default:
+            return CategoryIconInfo(systemName: "square.grid.2x2.fill", color: Color(hex: 0x757575))
+        }
+    }
 
     static func categoryColor(for name: String) -> Color {
-        switch name.lowercased() {
-        case "food", "food & dining", "dining": return categoryFood
-        case "transport", "transportation", "travel": return categoryTransport
-        case "shopping": return categoryShopping
-        case "bills", "utilities", "bills & utilities": return categoryBills
-        case "entertainment": return categoryEntertainment
-        case "health", "healthcare", "medical": return categoryHealth
-        default: return categoryOther
-        }
+        return categoryIcon(for: name).color
     }
 
     // MARK: - Budget Progress Colors

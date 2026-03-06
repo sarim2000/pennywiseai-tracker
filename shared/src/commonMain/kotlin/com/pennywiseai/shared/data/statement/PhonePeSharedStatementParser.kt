@@ -10,9 +10,22 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         // concatenates columns (e.g. "395.0012345.00" from debit+balance columns).
         private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+\.\d{2})(?!\d)""")
         private val txnPattern = Regex("""(?:Transaction\s+ID|UTR(?:\s+No)?)[:\s]*([A-Za-z0-9]+)""", RegexOption.IGNORE_CASE)
-        private val merchantPattern = Regex("""(?:Paid\s+to|Sent\s+to|Transferred\s+to|Received\s+from)\s+(.+?)(?:\n|$)""", RegexOption.IGNORE_CASE)
+        // Merchant pattern: stops at Transaction ID, UTR, Paid by, or newline/end
+        private val merchantPattern = Regex("""(?:Paid\s+to|Sent\s+to|Transferred\s+to|Received\s+from)\s+(.+?)(?:\s+Transaction|\s+UTR|\s+Paid\s+by|\n|$)""", RegexOption.IGNORE_CASE)
+        // Date pattern: matches "Mar 02, 2026 08:49 pm" or "02 Mar, 2026 08:49 pm"
+        private val datePattern = Regex("""((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec),?\s+\d{4})\s*(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))?""")
+        // Date-only pattern for block splitting (lookahead to not consume text)
+        private val dateStartPattern = Regex("""(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}""")
+        // Account last4 pattern: "Paid by XXXXXX0093" -> "0093"
+        private val accountPattern = Regex("""(?:Paid\s+by|Received\s+by)\s+X+(\d{4})""", RegexOption.IGNORE_CASE)
         // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
         private const val MAX_AMOUNT_MINOR = 1_000_000_000L
+
+        private val MONTH_MAP = mapOf(
+            "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4,
+            "may" to 5, "jun" to 6, "jul" to 7, "aug" to 8,
+            "sep" to 9, "oct" to 10, "nov" to 11, "dec" to 12
+        )
     }
 
     override fun canHandle(text: String): Boolean {
@@ -25,6 +38,23 @@ class PhonePeSharedStatementParser : SharedStatementParser {
     }
 
     private fun splitBlocks(text: String): List<String> {
+        // Split on date patterns that start each transaction in PhonePe PDFs.
+        // Each transaction begins with a date like "Mar 02, 2026".
+        val matches = dateStartPattern.findAll(text).toList()
+        if (matches.isEmpty()) return fallbackSplitBlocks(text)
+
+        val blocks = mutableListOf<String>()
+        for (i in matches.indices) {
+            val start = matches[i].range.first
+            val end = if (i + 1 < matches.size) matches[i + 1].range.first else text.length
+            val block = text.substring(start, end).trim()
+            if (block.isNotEmpty()) blocks.add(block)
+        }
+        return blocks
+    }
+
+    // Fallback to the old splitting logic when no dates are found
+    private fun fallbackSplitBlocks(text: String): List<String> {
         val blocks = mutableListOf<String>()
         var current = StringBuilder()
         var inBlock = false
@@ -55,15 +85,80 @@ class PhonePeSharedStatementParser : SharedStatementParser {
             upper.contains("CREDIT") || upper.contains("RECEIVED FROM") -> SharedTransactionType.INCOME
             else -> return null
         }
+        val timestamp = extractTimestamp(block) ?: fallbackTimestamp()
+        val accountLast4 = accountPattern.find(block)?.groupValues?.getOrNull(1)
         return SharedParsedStatementTransaction(
             amountMinor = amountMinor,
             transactionType = type,
             merchant = merchantPattern.find(block)?.groupValues?.getOrNull(1)?.trim(),
             reference = txnPattern.find(block)?.groupValues?.getOrNull(1),
-            accountLast4 = null,
+            accountLast4 = accountLast4,
             bankName = "PhonePe",
-            timestampEpochMillis = fallbackTimestamp(),
+            timestampEpochMillis = timestamp,
             rawText = block.trim()
         )
+    }
+
+    private fun extractTimestamp(block: String): Long? {
+        val match = datePattern.find(block) ?: return null
+        val dateStr = match.groupValues[1].trim()
+        val timeStr = match.groupValues.getOrNull(2)?.trim()
+        return parseDateTime(dateStr, timeStr)
+    }
+
+    private fun parseDateTime(dateStr: String, timeStr: String?): Long? {
+        // Parse date part: "Mar 02, 2026" or "02 Mar, 2026"
+        val cleaned = dateStr.replace(",", "").trim()
+        val parts = cleaned.split(Regex("\\s+"))
+        if (parts.size < 3) return null
+
+        val month: Int
+        val day: Int
+        val year: Int
+
+        val firstAsMonth = MONTH_MAP[parts[0].lowercase()]
+        if (firstAsMonth != null) {
+            // "Mar 02 2026"
+            month = firstAsMonth
+            day = parts[1].toIntOrNull() ?: return null
+            year = parts[2].toIntOrNull() ?: return null
+        } else {
+            // "02 Mar 2026"
+            day = parts[0].toIntOrNull() ?: return null
+            month = MONTH_MAP[parts[1].lowercase()] ?: return null
+            year = parts[2].toIntOrNull() ?: return null
+        }
+
+        // Parse time part: "08:49 pm" or "8:49 AM"
+        var hour = 0
+        var minute = 0
+        if (!timeStr.isNullOrBlank()) {
+            val timeCleaned = timeStr.trim().lowercase()
+            val isPm = timeCleaned.contains("pm")
+            val timeDigits = timeCleaned.replace(Regex("[^0-9:]"), "")
+            val timeParts = timeDigits.split(":")
+            if (timeParts.size >= 2) {
+                hour = timeParts[0].toIntOrNull() ?: 0
+                minute = timeParts[1].toIntOrNull() ?: 0
+                if (isPm && hour < 12) hour += 12
+                if (!isPm && hour == 12) hour = 0
+            }
+        }
+
+        // Convert to epoch millis (UTC-based, IST = UTC+5:30)
+        return dateToEpochMillis(year, month, day, hour, minute)
+    }
+
+    private fun dateToEpochMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long {
+        // Days from Unix epoch (1970-01-01) to the given date
+        // Using a simple algorithm to compute days since epoch
+        val y = if (month <= 2) year - 1 else year
+        val m = if (month <= 2) month + 9 else month - 3
+        val daysSinceEpoch = 365L * y + y / 4 - y / 100 + y / 400 + (m * 306 + 5) / 10 + (day - 1) - 719468L
+
+        val timeMillis = (hour * 3600L + minute * 60L) * 1000L
+        val istOffsetMillis = 5 * 3600_000L + 30 * 60_000L // IST = UTC+5:30
+
+        return daysSinceEpoch * 86_400_000L + timeMillis - istOffsetMillis
     }
 }

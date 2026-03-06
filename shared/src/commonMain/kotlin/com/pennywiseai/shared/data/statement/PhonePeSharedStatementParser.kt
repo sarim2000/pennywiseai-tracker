@@ -13,9 +13,11 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         // Merchant pattern: stops at Transaction ID, UTR, Paid by, or newline/end
         private val merchantPattern = Regex("""(?:Paid\s+to|Sent\s+to|Transferred\s+to|Received\s+from)\s+(.+?)(?:\s+Transaction|\s+UTR|\s+Paid\s+by|\n|$)""", RegexOption.IGNORE_CASE)
         // Date pattern: matches "Mar 02, 2026 08:49 pm" or "02 Mar, 2026 08:49 pm"
-        private val datePattern = Regex("""((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec),?\s+\d{4})\s*(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))?""")
+        // Uses [\s,]+ to handle PDFKit whitespace variations (newlines, tabs, extra spaces)
+        private val datePattern = Regex("""((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s,]+\d{1,2}[\s,]+\d{4}|\d{1,2}[\s,]+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s,]+\d{4})[\s]*(\d{1,2}:\d{2}[\s]*(?:am|pm|AM|PM))?""")
         // Date-only pattern for block splitting (lookahead to not consume text)
-        private val dateStartPattern = Regex("""(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}""")
+        // Uses [\s,]+ to handle PDFKit whitespace variations
+        private val dateStartPattern = Regex("""(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s,]+\d{1,2}[\s,]+\d{4}""")
         // Account last4 pattern: "Paid by XXXXXX0093" -> "0093"
         private val accountPattern = Regex("""(?:Paid\s+by|Received\s+by)\s+X+(\d{4})""", RegexOption.IGNORE_CASE)
         // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
@@ -34,7 +36,12 @@ class PhonePeSharedStatementParser : SharedStatementParser {
     }
 
     override fun parse(text: String): List<SharedParsedStatementTransaction> {
-        return splitBlocks(text).mapNotNull { parseBlock(it) }
+        val blocks = splitBlocks(text)
+        println("[PhonePe Parser] Found ${blocks.size} blocks")
+        blocks.take(3).forEachIndexed { i, block ->
+            println("[PhonePe Parser] Block #${i + 1} (first 200 chars): ${block.take(200)}")
+        }
+        return blocks.mapNotNull { parseBlock(it) }
     }
 
     private fun splitBlocks(text: String): List<String> {
@@ -100,16 +107,24 @@ class PhonePeSharedStatementParser : SharedStatementParser {
     }
 
     private fun extractTimestamp(block: String): Long? {
-        val match = datePattern.find(block) ?: return null
+        val match = datePattern.find(block)
+        if (match == null) {
+            println("[PhonePe Parser] WARNING: No date found in block: ${block.take(100)}")
+            return null
+        }
         val dateStr = match.groupValues[1].trim()
         val timeStr = match.groupValues.getOrNull(2)?.trim()
-        return parseDateTime(dateStr, timeStr)
+        println("[PhonePe Parser] Parsed date='$dateStr' time='$timeStr'")
+        val result = parseDateTime(dateStr, timeStr)
+        println("[PhonePe Parser] Epoch millis = $result")
+        return result
     }
 
     private fun parseDateTime(dateStr: String, timeStr: String?): Long? {
         // Parse date part: "Mar 02, 2026" or "02 Mar, 2026"
-        val cleaned = dateStr.replace(",", "").trim()
-        val parts = cleaned.split(Regex("\\s+"))
+        // Handle PDFKit whitespace variations (newlines, tabs, multiple commas/spaces)
+        val cleaned = dateStr.replace(",", " ").trim()
+        val parts = cleaned.split(Regex("[\\s]+")).filter { it.isNotEmpty() }
         if (parts.size < 3) return null
 
         val month: Int

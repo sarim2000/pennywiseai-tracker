@@ -364,9 +364,16 @@ struct SettingsScreen: View {
             return
         }
 
+        // PDFKit concatenates table columns without separators.
+        // Split concatenated amounts: "395.0012,345.00" → "395.00\n12,345.00"
+        // Also handles currency symbol junctions: "395.00₹12,345.00" → "395.00\n₹12,345.00"
+        fullText = fullText
+            .replacingOccurrences(of: #"(\.\d{2})(\d)"#, with: "$1\n$2", options: .regularExpression)
+            .replacingOccurrences(of: #"(\.\d{2})([₹R])"#, with: "$1\n$2", options: .regularExpression)
+
         #if DEBUG
         print("[PDF Import] Extracted text length: \(fullText.count)")
-        print("[PDF Import] First 500 chars:\n\(String(fullText.prefix(500)))")
+        print("[PDF Import] First 1000 chars:\n\(String(fullText.prefix(1000)))")
         #endif
 
         let facade = PennyWiseSharedFacade()

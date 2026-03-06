@@ -8,7 +8,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         // Anchored amount pattern: must start with ₹/Rs/Rs. and capture only one number.
         // Uses (?!\d) negative lookahead to stop at number boundaries when PDF text
         // concatenates columns (e.g. "395.0012345.00" from debit+balance columns).
-        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+\.\d{2})(?!\d)""")
+        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+(?:\.\d{1,2})?)(?!\d)""")
         private val txnPattern = Regex("""(?:Transaction\s+ID|UTR(?:\s+No)?)[:\s]*([A-Za-z0-9]+)""", RegexOption.IGNORE_CASE)
         // Merchant pattern: stops at Transaction ID, UTR, Paid by, or newline/end
         private val merchantPattern = Regex("""(?:Paid\s+to|Sent\s+to|Transferred\s+to|Received\s+from)\s+(.+?)(?:\s+Transaction|\s+UTR|\s+Paid\s+by|\n|$)""", RegexOption.IGNORE_CASE)

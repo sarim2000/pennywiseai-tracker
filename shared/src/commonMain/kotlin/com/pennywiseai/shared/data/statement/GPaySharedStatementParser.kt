@@ -7,7 +7,7 @@ class GPaySharedStatementParser : SharedStatementParser {
         private val keywords = listOf("gpay", "google pay")
         // Anchored amount pattern: requires ₹/Rs prefix, captures exactly one number
         // with (?!\d) lookahead to prevent matching across concatenated PDF columns
-        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+\.\d{2})(?!\d)""")
+        private val amountPattern = Regex("""(?:₹|Rs\.?\s*)([\d,]+(?:\.\d{1,2})?)(?!\d)""")
         private val upiPattern = Regex("""UPI\s+[Tt]ransaction\s+ID\s*[:\-]?\s*(\d+)""")
         private val paidToPattern = Regex("""Paid\s+to\s+(.+?)(?:\n|$)""")
         private val receivedFromPattern = Regex("""Received\s+from\s+(.+?)(?:\n|$)""")

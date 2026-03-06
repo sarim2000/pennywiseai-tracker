@@ -26,7 +26,7 @@ struct MainTabView: View {
         ZStack {
             TabView(selection: $selectedTab) {
                 NavigationStack {
-                    HomeScreen()
+                    HomeScreen(onSeeAllTransactions: { selectedTab = .transactions })
                         .navigationTitle("PennyWise")
                 }
                 .tabItem {

@@ -10,6 +10,7 @@ struct AddEditAccountScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var bankName = ""
+    @State private var originalBankName = ""
     @State private var accountLast4 = ""
     @State private var accountType = "SAVINGS"
     @State private var balanceText = ""
@@ -25,7 +26,6 @@ struct AddEditAccountScreen: View {
             Section("Account Details") {
                 TextField("Bank Name", text: $bankName)
                     .autocorrectionDisabled()
-                    .disabled(isEditing)
 
                 TextField("Last 4 Digits", text: $accountLast4)
                     .keyboardType(.numberPad)
@@ -69,6 +69,7 @@ struct AddEditAccountScreen: View {
         .onAppear {
             if let account = editAccount {
                 bankName = account.bankName
+                originalBankName = account.bankName
                 accountLast4 = account.accountLast4
                 accountType = account.accountType ?? "SAVINGS"
                 currency = account.currency
@@ -85,9 +86,17 @@ struct AddEditAccountScreen: View {
     }
 
     private func saveAccount() {
+        let trimmedName = bankName.trimmingCharacters(in: .whitespaces)
         let balanceMinor = parseBalanceMinor(balanceText)
+        if isEditing && trimmedName != originalBankName {
+            _ = viewModel.renameAccount(
+                oldBankName: originalBankName,
+                newBankName: trimmedName,
+                accountLast4: accountLast4
+            )
+        }
         _ = viewModel.createAccount(
-            bankName: bankName.trimmingCharacters(in: .whitespaces),
+            bankName: trimmedName,
             accountLast4: accountLast4,
             accountType: accountType,
             balanceMinor: balanceMinor,

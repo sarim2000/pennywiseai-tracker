@@ -562,6 +562,17 @@ class PennyWiseSharedFacade {
         }
     }
 
+    fun renameAccount(oldBankName: String, newBankName: String, accountLast4: String): Boolean {
+        return try {
+            runBlocking {
+                graph.accountRepository.renameAccount(oldBankName, newBankName, accountLast4)
+            }
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     fun deleteAccount(bankName: String, accountLast4: String): Boolean {
         return try {
             runBlocking {

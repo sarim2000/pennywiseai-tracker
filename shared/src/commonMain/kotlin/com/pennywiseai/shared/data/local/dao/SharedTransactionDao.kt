@@ -45,4 +45,7 @@ interface SharedTransactionDao {
 
     @Query("DELETE FROM shared_transactions")
     suspend fun deleteAll()
+
+    @Query("UPDATE shared_transactions SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
+    suspend fun renameAccountInTransactions(oldBankName: String, newBankName: String, accountLast4: String)
 }

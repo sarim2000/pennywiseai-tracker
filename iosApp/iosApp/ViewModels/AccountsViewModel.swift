@@ -42,6 +42,12 @@ class AccountsViewModel: ObservableObject {
         return success
     }
 
+    func renameAccount(oldBankName: String, newBankName: String, accountLast4: String) -> Bool {
+        let success = facade.renameAccount(oldBankName: oldBankName, newBankName: newBankName, accountLast4: accountLast4)
+        if success { loadAccounts() }
+        return success
+    }
+
     func deleteAccount(bankName: String, accountLast4: String) {
         _ = facade.deleteAccount(bankName: bankName, accountLast4: accountLast4)
         loadAccounts()

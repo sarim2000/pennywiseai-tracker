@@ -25,6 +25,8 @@
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
     </dict>
+    <key>NSFaceIDUsageDescription</key>
+    <string>PennyWise uses Face ID to protect your financial data</string>
     <key>UILaunchScreen</key>
     <dict/>
 </dict>

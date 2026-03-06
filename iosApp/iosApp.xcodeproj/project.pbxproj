@@ -49,6 +49,14 @@
 		JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0001002D39B001007A8A11 /* CurrencyManager.swift */; };
 		JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */; };
 		JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */; };
+		LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0001002D39B001007A8A11 /* ThemeManager.swift */; };
+		LL0004002D39B001007A8A11 /* AppearanceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0003002D39B001007A8A11 /* AppearanceScreen.swift */; };
+		MM0003002D39B001007A8A11 /* FAQScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM0001002D39B001007A8A11 /* FAQScreen.swift */; };
+		MM0004002D39B001007A8A11 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM0002002D39B001007A8A11 /* AboutScreen.swift */; };
+		NN0003002D39B001007A8A11 /* AppLockManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN0001002D39B001007A8A11 /* AppLockManager.swift */; };
+		NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN0002002D39B001007A8A11 /* LockScreenView.swift */; };
+		OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0001002D39B001007A8A11 /* ExportImportManager.swift */; };
+		OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0002002D39B001007A8A11 /* DocumentPicker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -96,6 +104,14 @@
 		JJ0001002D39B001007A8A11 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
 		JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
 		JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyPickerScreen.swift; sourceTree = "<group>"; };
+		LL0001002D39B001007A8A11 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		LL0003002D39B001007A8A11 /* AppearanceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceScreen.swift; sourceTree = "<group>"; };
+		MM0001002D39B001007A8A11 /* FAQScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQScreen.swift; sourceTree = "<group>"; };
+		MM0002002D39B001007A8A11 /* AboutScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutScreen.swift; sourceTree = "<group>"; };
+		NN0001002D39B001007A8A11 /* AppLockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockManager.swift; sourceTree = "<group>"; };
+		NN0002002D39B001007A8A11 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
+		OO0001002D39B001007A8A11 /* ExportImportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportImportManager.swift; sourceTree = "<group>"; };
+		OO0002002D39B001007A8A11 /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -230,6 +246,12 @@
 				FF0002002D39B001007A8A11 /* CategoriesScreen.swift */,
 				FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */,
 				JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */,
+				LL0003002D39B001007A8A11 /* AppearanceScreen.swift */,
+				NN0001002D39B001007A8A11 /* AppLockManager.swift */,
+				MM0001002D39B001007A8A11 /* FAQScreen.swift */,
+				MM0002002D39B001007A8A11 /* AboutScreen.swift */,
+				OO0001002D39B001007A8A11 /* ExportImportManager.swift */,
+				OO0002002D39B001007A8A11 /* DocumentPicker.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -243,6 +265,7 @@
 				BB0009002D39B001007A8A11 /* StatPill.swift */,
 				BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */,
 				BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */,
+				NN0002002D39B001007A8A11 /* LockScreenView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -276,6 +299,7 @@
 				EE0001002D39B001007A8A11 /* AppColors.swift */,
 				EE0002002D39B001007A8A11 /* AppTypography.swift */,
 				EE0003002D39B001007A8A11 /* AppSpacing.swift */,
+				LL0001002D39B001007A8A11 /* ThemeManager.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -411,6 +435,14 @@
 				JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */,
 				JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */,
 				JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */,
+				NN0003002D39B001007A8A11 /* AppLockManager.swift in Sources */,
+				NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */,
+				LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */,
+				LL0004002D39B001007A8A11 /* AppearanceScreen.swift in Sources */,
+				MM0003002D39B001007A8A11 /* FAQScreen.swift in Sources */,
+				MM0004002D39B001007A8A11 /* AboutScreen.swift in Sources */,
+				OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */,
+				OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -3,9 +3,35 @@ import Shared
 
 struct SettingsScreen: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
+    @ObservedObject private var appLockManager = AppLockManager.shared
+    @StateObject private var exportImportManager = ExportImportManager()
+    @State private var showingDocumentPicker = false
 
     var body: some View {
         List {
+            // MARK: - Personalization
+
+            Section("Personalization") {
+                NavigationLink {
+                    AppearanceScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Appearance")
+                                .font(AppTypography.body)
+                            Text("Theme, accent color, dark mode")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "paintbrush.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            // MARK: - Data Management
+
             Section("Data Management") {
                 NavigationLink {
                     CategoriesScreen(facade: PennyWiseSharedFacade())
@@ -57,7 +83,45 @@ struct SettingsScreen: View {
                             .foregroundStyle(.blue)
                     }
                 }
+
+                Button {
+                    exportImportManager.exportBackup()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Export Backup")
+                                .font(AppTypography.body)
+                            Text("Save your data as a JSON file")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundStyle(.teal)
+                    }
+                }
+                .disabled(exportImportManager.isExporting)
+
+                Button {
+                    showingDocumentPicker = true
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Import Backup")
+                                .font(AppTypography.body)
+                            Text("Restore from a backup file")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "square.and.arrow.down")
+                            .foregroundStyle(.teal)
+                    }
+                }
+                .disabled(exportImportManager.isImporting)
             }
+
+            // MARK: - Preferences
 
             Section("Preferences") {
                 NavigationLink {
@@ -82,32 +146,134 @@ struct SettingsScreen: View {
                             .foregroundStyle(.teal)
                     }
                 }
-
-                Label {
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("Theme")
-                            .font(AppTypography.body)
-                        Text("Coming soon")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "paintbrush.fill")
-                        .foregroundStyle(.orange)
-                }
-                .foregroundStyle(.secondary)
             }
 
+            // MARK: - Security
+
+            if appLockManager.canUseBiometric {
+                Section("Security") {
+                    Toggle(isOn: $appLockManager.appLockEnabled) {
+                        Label {
+                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                Text("App Lock")
+                                    .font(AppTypography.body)
+                                Text("Require \(appLockManager.biometricType) to open")
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.red)
+                        }
+                    }
+
+                    if appLockManager.appLockEnabled {
+                        Picker(selection: $appLockManager.lockTimeoutMinutes) {
+                            Text("Immediately").tag(0)
+                            Text("After 1 minute").tag(1)
+                            Text("After 5 minutes").tag(5)
+                            Text("After 15 minutes").tag(15)
+                        } label: {
+                            Label {
+                                Text("Lock Timeout")
+                                    .font(AppTypography.body)
+                            } icon: {
+                                Image(systemName: "clock.fill")
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // MARK: - Support
+
+            Section("Support") {
+                NavigationLink {
+                    FAQScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("FAQ")
+                                .font(AppTypography.body)
+                            Text("Frequently asked questions")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "questionmark.circle.fill")
+                            .foregroundStyle(.blue)
+                    }
+                }
+
+                Button {
+                    if let url = URL(string: "https://github.com/nicekid1/pennywiseai-tracker/issues/new/choose") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Report an Issue")
+                                .font(AppTypography.body)
+                                .foregroundStyle(.primary)
+                            Text("Open a bug report on GitHub")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "ladybug.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            // MARK: - About
+
             Section("About") {
-                Label {
-                    Text("Version 1.0")
-                        .font(AppTypography.body)
-                } icon: {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(.gray)
+                NavigationLink {
+                    AboutScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("About PennyWise")
+                                .font(AppTypography.body)
+                            Text("Version, links, and credits")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
                 }
             }
         }
         .navigationTitle("Settings")
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker { url in
+                exportImportManager.importBackup(from: url)
+            }
+        }
+        .overlay {
+            if let message = exportImportManager.statusMessage {
+                VStack {
+                    Spacer()
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .padding(AppSpacing.md)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.bottom, AppSpacing.lg)
+                }
+                .onTapGesture {
+                    exportImportManager.statusMessage = nil
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                        exportImportManager.statusMessage = nil
+                    }
+                }
+            }
+        }
     }
 }

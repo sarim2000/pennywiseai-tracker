@@ -8,6 +8,7 @@ import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
+import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ImportStatementUseCase
 import com.pennywiseai.shared.domain.usecase.ManualTransactionInput
@@ -902,8 +903,9 @@ class PennyWiseSharedFacade {
         val accounts = graph.accountRepository.observeBalances().first()
         val recentTransactions = transactions.take(10).map { it.toItem() }
 
-        val monthStart = monthStartEpochMillis()
+        val monthStart = monthStartEpochMillisIST()
         val thisMonthTxns = transactions.filter { it.occurredAtEpochMillis >= monthStart }
+        println("[HomeSnapshot] monthStart=$monthStart, thisMonthTxnCount=${thisMonthTxns.size}, totalTxns=${transactions.size}")
         val monthlyIncome = thisMonthTxns
             .filter { it.transactionType == SharedTransactionType.INCOME }
             .sumOf { it.amountMinor }

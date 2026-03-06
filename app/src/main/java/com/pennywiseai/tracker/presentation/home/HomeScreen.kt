@@ -324,6 +324,7 @@ fun HomeScreen(
                             balanceHistory = uiState.balanceHistory,
                             spendingHistory = uiState.spendingHistory,
                             lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
+                            lastMonthSpending = uiState.lastMonthExpenses,
                             availableCurrencies = uiState.availableCurrencies,
                             isUnifiedMode = uiState.isUnifiedMode,
                             isBalanceHidden = uiState.isBalanceHidden,

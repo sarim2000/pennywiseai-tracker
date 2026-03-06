@@ -61,7 +61,7 @@ class GPaySharedStatementParser : SharedStatementParser {
         val reference = upiPattern.find(block)?.groupValues?.getOrNull(1)
         val paidByText = paidByPattern.find(block)?.groupValues?.getOrNull(1).orEmpty()
         val accountLast4 = accountLast4Pattern.find(paidByText)?.groupValues?.getOrNull(1)
-        val bankName = paidByText.replace(accountLast4Pattern, "").replace(Regex("""[•\-–]"""), "").trim().ifEmpty { "Google Pay" }
+        val bankName = paidByText.replace(accountLast4Pattern, "").replace(Regex("""[•\-–]"""), "").trim().ifEmpty { "UPI (GPay)" }
         return SharedParsedStatementTransaction(
             amountMinor = amountMinor,
             transactionType = type,

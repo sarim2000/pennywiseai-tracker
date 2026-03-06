@@ -242,6 +242,15 @@ class PennyWiseSharedFacade {
 
     fun importStatementTextAndLoadHome(statementText: String): SharedHomeSnapshot = safeSnapshot {
         runBlocking {
+            // Debug: parse and print first 3 transactions with timestamps
+            val debugParser = com.pennywiseai.shared.data.statement.SharedStatementParserFactory.getParser(statementText)
+            if (debugParser != null) {
+                val debugParsed = debugParser.parse(statementText)
+                debugParsed.take(3).forEachIndexed { i, tx ->
+                    println("[PennyWise DEBUG] Tx #${i + 1}: merchant=${tx.merchant}, amount=${tx.amountMinor}, timestamp=${tx.timestampEpochMillis}, type=${tx.transactionType}, bank=${tx.bankName}")
+                }
+            }
+
             when (val result = importStatementUseCase.importFromText(statementText)) {
                 is SharedStatementImportResult.Success -> {
                     loadHomeSnapshot(

@@ -6,21 +6,26 @@ struct TransactionRow: View {
     var onViewDetails: (() -> Void)?
     var onEdit: (() -> Void)?
 
+    private var iconInfo: CategoryIconInfo {
+        AppColors.categoryIcon(for: item.category)
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.md) {
-            Image(systemName: AppColors.transactionIcon(for: item.transactionType))
-                .font(.title3)
-                .foregroundStyle(AppColors.transactionColor(for: item.transactionType))
-                .frame(width: 28)
+            ZStack {
+                Circle()
+                    .fill(iconInfo.color.opacity(0.15))
+                    .frame(width: 42, height: 42)
+                Image(systemName: iconInfo.systemName)
+                    .font(.system(size: 18))
+                    .foregroundColor(iconInfo.color)
+            }
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(item.merchantName)
                     .font(AppTypography.body)
                     .lineLimit(1)
                 HStack(spacing: AppSpacing.xs) {
-                    Circle()
-                        .fill(AppColors.categoryColor(for: item.category))
-                        .frame(width: 8, height: 8)
                     Text(item.category)
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)

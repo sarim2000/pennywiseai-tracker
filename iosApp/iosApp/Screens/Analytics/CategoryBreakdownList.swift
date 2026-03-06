@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CategoryBreakdownList: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let categories: [CategoryBreakdownItem]
 
     var body: some View {

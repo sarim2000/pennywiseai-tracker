@@ -2,6 +2,7 @@ import Shared
 import SwiftUI
 
 struct AccountListScreen: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     @StateObject private var viewModel = AccountsViewModel()
     @State private var showAddAccount = false
     @State private var showAddCard = false

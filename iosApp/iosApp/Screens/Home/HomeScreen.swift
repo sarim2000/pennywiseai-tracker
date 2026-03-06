@@ -6,6 +6,9 @@ extension SharedRecentTransactionItem: @retroactive Identifiable {
 }
 
 struct HomeScreen: View {
+    var onSeeAllTransactions: (() -> Void)? = nil
+
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     @StateObject private var viewModel = HomeViewModel()
     @State private var showAddTransaction = false
     @State private var selectedDetail: SharedRecentTransactionItem?
@@ -70,10 +73,10 @@ struct HomeScreen: View {
                 Text("Recent Transactions")
                     .font(AppTypography.headline)
                 Spacer()
-                // "See All" could switch to Transactions tab
-                Text("See All")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.blue)
+                Button("See All") {
+                    onSeeAllTransactions?()
+                }
+                .font(AppTypography.caption)
             }
 
             if viewModel.recentTransactions.isEmpty {

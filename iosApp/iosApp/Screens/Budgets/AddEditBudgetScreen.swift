@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AddEditBudgetScreen: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     @ObservedObject var viewModel: BudgetViewModel
     var editingBudget: BudgetItem?
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AnalyticsSummaryCard: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let summary: AnalyticsSummaryData
 
     var body: some View {

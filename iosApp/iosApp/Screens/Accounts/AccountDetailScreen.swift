@@ -2,6 +2,7 @@ import Shared
 import SwiftUI
 
 struct AccountDetailScreen: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
     let bankName: String
     let accountLast4: String
     @ObservedObject var viewModel: AccountsViewModel

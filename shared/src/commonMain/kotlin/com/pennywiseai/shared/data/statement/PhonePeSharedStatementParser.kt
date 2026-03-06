@@ -93,7 +93,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
             merchant = merchantPattern.find(block)?.groupValues?.getOrNull(1)?.trim(),
             reference = txnPattern.find(block)?.groupValues?.getOrNull(1),
             accountLast4 = accountLast4,
-            bankName = "PhonePe",
+            bankName = "UPI (PhonePe)",
             timestampEpochMillis = timestamp,
             rawText = block.trim()
         )

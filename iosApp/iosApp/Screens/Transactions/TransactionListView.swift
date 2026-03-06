@@ -41,13 +41,6 @@ enum TransactionTypeFilter: String, CaseIterable {
     }
 }
 
-enum DateGroupKey: String, CaseIterable {
-    case today = "Today"
-    case yesterday = "Yesterday"
-    case thisWeek = "This Week"
-    case earlier = "Earlier"
-}
-
 // MARK: - TransactionListView
 
 struct TransactionListView: View {
@@ -101,34 +94,29 @@ struct TransactionListView: View {
         return result
     }
 
-    private var groupedTransactions: [(key: DateGroupKey, items: [SharedRecentTransactionItem])] {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfToday = calendar.startOfDay(for: now)
-        let startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
-        let startOfWeek = calendar.dateComponents([.calendar, .yearForWeekOfYear, .weekOfYear], from: now).date!
+    private var groupedByMonth: [(key: String, items: [SharedRecentTransactionItem])] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
 
-        var groups: [DateGroupKey: [SharedRecentTransactionItem]] = [:]
+        var groups: [String: [SharedRecentTransactionItem]] = [:]
+        var order: [String] = []
 
         for item in filteredTransactions {
-            let date = Date(epochMillis: item.occurredAtEpochMillis)
-            let group: DateGroupKey
-            if date >= startOfToday {
-                group = .today
-            } else if date >= startOfYesterday {
-                group = .yesterday
-            } else if date >= startOfWeek {
-                group = .thisWeek
-            } else {
-                group = .earlier
+            let date = Date(timeIntervalSince1970: Double(item.occurredAtEpochMillis) / 1000.0)
+            let monthKey = formatter.string(from: date)
+            if groups[monthKey] == nil {
+                groups[monthKey] = []
+                order.append(monthKey)
             }
-            groups[group, default: []].append(item)
+            groups[monthKey]?.append(item)
         }
 
-        return DateGroupKey.allCases.compactMap { key in
-            guard let items = groups[key], !items.isEmpty else { return nil }
-            return (key: key, items: items)
+        // Sort items within each group by date (most recent first)
+        for key in order {
+            groups[key]?.sort { $0.occurredAtEpochMillis > $1.occurredAtEpochMillis }
         }
+
+        return order.map { (key: $0, items: groups[$0] ?? []) }
     }
 
     var body: some View {
@@ -240,7 +228,7 @@ struct TransactionListView: View {
 
     @ViewBuilder
     private var transactionList: some View {
-        let groups = groupedTransactions
+        let groups = groupedByMonth
         if filteredTransactions.isEmpty {
             emptyState
         } else {
@@ -269,7 +257,7 @@ struct TransactionListView: View {
                             }
                         }
                     } header: {
-                        SectionHeaderView(title: group.key.rawValue)
+                        SectionHeaderView(title: group.key)
                     }
                 }
             }

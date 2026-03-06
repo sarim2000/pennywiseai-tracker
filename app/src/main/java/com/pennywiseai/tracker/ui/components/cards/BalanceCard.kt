@@ -72,6 +72,7 @@ fun BalanceCard(
     balanceHistory: List<BigDecimal>,
     spendingHistory: List<BigDecimal> = emptyList(),
     lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
+    lastMonthSpending: BigDecimal = BigDecimal.ZERO,
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean = false,
     onCurrencyClick: () -> Unit,
@@ -102,8 +103,8 @@ fun BalanceCard(
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
-    val changeSign = if (isPositive) "+" else ""
-    val changeText = "$changeSign${CurrencyFormatter.formatCurrency(monthlyChange, currency)} ($monthlyChangePercent%)"
+    val absPercent = kotlin.math.abs(monthlyChangePercent)
+    val changeText = if (isPositive) "$absPercent% more vs last month" else "$absPercent% less vs last month"
 
     Box(modifier = modifier.fillMaxWidth()) {
         PennyWiseCardV2(
@@ -279,6 +280,13 @@ fun BalanceCard(
                                 )
                             }
                         }
+
+                        // Last month subtitle
+                        Text(
+                            text = if (isBalanceHidden) "Last month: ••••" else "Last month: ${CurrencyFormatter.formatCurrency(lastMonthSpending, currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
 
                         Spacer(modifier = Modifier.height(Spacing.sm))
 

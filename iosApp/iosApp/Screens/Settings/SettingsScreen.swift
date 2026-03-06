@@ -1,4 +1,5 @@
 import SwiftUI
+import PDFKit
 import Shared
 
 struct SettingsScreen: View {
@@ -6,6 +7,8 @@ struct SettingsScreen: View {
     @ObservedObject private var appLockManager = AppLockManager.shared
     @StateObject private var exportImportManager = ExportImportManager()
     @State private var showingDocumentPicker = false
+    @State private var showingStatementPicker = false
+    @State private var statementImportResult: String? = nil
 
     var body: some View {
         List {
@@ -115,6 +118,23 @@ struct SettingsScreen: View {
                     } icon: {
                         Image(systemName: "wand.and.stars")
                             .foregroundStyle(.pink)
+                    }
+                }
+
+                Button {
+                    showingStatementPicker = true
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Import Bank Statement")
+                                .font(AppTypography.body)
+                            Text("Import GPay, PhonePe, or bank PDF")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .foregroundStyle(.orange)
                     }
                 }
 
@@ -288,6 +308,21 @@ struct SettingsScreen: View {
                 exportImportManager.importBackup(from: url)
             }
         }
+        .sheet(isPresented: $showingStatementPicker) {
+            PDFDocumentPicker { url in
+                importBankStatement(from: url)
+            }
+        }
+        .alert("Import Result", isPresented: Binding(
+            get: { statementImportResult != nil },
+            set: { if !$0 { statementImportResult = nil } }
+        )) {
+            Button("OK") { statementImportResult = nil }
+        } message: {
+            if let result = statementImportResult {
+                Text(result)
+            }
+        }
         .overlay {
             if let message = exportImportManager.statusMessage {
                 VStack {
@@ -308,6 +343,35 @@ struct SettingsScreen: View {
                     }
                 }
             }
+        }
+    }
+
+    private func importBankStatement(from url: URL) {
+        guard let pdfDocument = PDFDocument(url: url) else {
+            statementImportResult = "Could not open PDF file"
+            return
+        }
+
+        var fullText = ""
+        for i in 0..<pdfDocument.pageCount {
+            if let page = pdfDocument.page(at: i), let pageText = page.string {
+                fullText += pageText + "\n"
+            }
+        }
+
+        guard !fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            statementImportResult = "No text found in PDF"
+            return
+        }
+
+        let facade = PennyWiseSharedFacade()
+        let snapshot = facade.importStatementTextAndLoadHome(statementText: fullText)
+        if snapshot.lastImportParsed > 0 {
+            statementImportResult = "\(snapshot.lastImportImported) transactions imported, \(snapshot.lastImportSkipped) skipped"
+        } else if let error = snapshot.lastError {
+            statementImportResult = error
+        } else {
+            statementImportResult = "No transactions found in this statement"
         }
     }
 }

@@ -2,6 +2,8 @@ import SwiftUI
 import Shared
 
 struct SettingsScreen: View {
+    @ObservedObject private var currencyManager = CurrencyManager.shared
+
     var body: some View {
         List {
             Section("Data Management") {
@@ -57,7 +59,30 @@ struct SettingsScreen: View {
                 }
             }
 
-            Section("Appearance") {
+            Section("Preferences") {
+                NavigationLink {
+                    CurrencyPickerScreen()
+                } label: {
+                    Label {
+                        HStack {
+                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                Text("Currency")
+                                    .font(AppTypography.body)
+                                Text("Display currency for amounts")
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(currencyManager.displayCurrency)
+                                .font(AppTypography.body)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "dollarsign.circle.fill")
+                            .foregroundStyle(.teal)
+                    }
+                }
+
                 Label {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Theme")

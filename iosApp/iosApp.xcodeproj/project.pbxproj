@@ -11,7 +11,13 @@
 		A30B8F7B2D39B001007A8A11 /* Shared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B50B8F7B2D39B001007A8A11 /* Shared.framework */; };
 		AA0001002D39B001007A8A11 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001002D39B001007A8A11 /* MainTabView.swift */; };
 		AA0002002D39B001007A8A11 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002002D39B001007A8A11 /* HomeScreen.swift */; };
-		AA0004002D39B001007A8A11 /* AnalyticsPlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0004002D39B001007A8A11 /* AnalyticsPlaceholderScreen.swift */; };
+		KK0008002D39B001007A8A11 /* AnalyticsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */; };
+		KK0009002D39B001007A8A11 /* AnalyticsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */; };
+		KK0010002D39B001007A8A11 /* SpendingTrendsChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */; };
+		KK0011002D39B001007A8A11 /* CategoryPieChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0004002D39B001007A8A11 /* CategoryPieChart.swift */; };
+		KK0012002D39B001007A8A11 /* CategoryBreakdownList.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */; };
+		KK0013002D39B001007A8A11 /* TopMerchantsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0006002D39B001007A8A11 /* TopMerchantsList.swift */; };
+		KK0014002D39B001007A8A11 /* AnalyticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */; };
 		AA0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */; };
 		AA0006002D39B001007A8A11 /* TransactionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0006002D39B001007A8A11 /* TransactionRow.swift */; };
 		AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0007002D39B001007A8A11 /* CategoryChip.swift */; };
@@ -40,6 +46,9 @@
 		HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */; };
 		HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */; };
 		HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0004002D39B001007A8A11 /* AccountsViewModel.swift */; };
+		JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0001002D39B001007A8A11 /* CurrencyManager.swift */; };
+		JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */; };
+		JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,7 +58,13 @@
 		B50B8F7B2D39B001007A8A11 /* Shared.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Shared.framework; sourceTree = "<group>"; };
 		BB0001002D39B001007A8A11 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		BB0002002D39B001007A8A11 /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
-		BB0004002D39B001007A8A11 /* AnalyticsPlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsPlaceholderScreen.swift; sourceTree = "<group>"; };
+		KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsScreen.swift; sourceTree = "<group>"; };
+		KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsSummaryCard.swift; sourceTree = "<group>"; };
+		KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingTrendsChart.swift; sourceTree = "<group>"; };
+		KK0004002D39B001007A8A11 /* CategoryPieChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPieChart.swift; sourceTree = "<group>"; };
+		KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBreakdownList.swift; sourceTree = "<group>"; };
+		KK0006002D39B001007A8A11 /* TopMerchantsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopMerchantsList.swift; sourceTree = "<group>"; };
+		KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsViewModel.swift; sourceTree = "<group>"; };
 		BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPlaceholderScreen.swift; sourceTree = "<group>"; };
 		BB0006002D39B001007A8A11 /* TransactionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRow.swift; sourceTree = "<group>"; };
 		BB0007002D39B001007A8A11 /* CategoryChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryChip.swift; sourceTree = "<group>"; };
@@ -78,6 +93,9 @@
 		HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDetailScreen.swift; sourceTree = "<group>"; };
 		HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditAccountScreen.swift; sourceTree = "<group>"; };
 		HH0004002D39B001007A8A11 /* AccountsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsViewModel.swift; sourceTree = "<group>"; };
+		JJ0001002D39B001007A8A11 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
+		JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
+		JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyPickerScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,7 +212,12 @@
 		DD0005002D39B001007A8A11 /* Analytics */ = {
 			isa = PBXGroup;
 			children = (
-				BB0004002D39B001007A8A11 /* AnalyticsPlaceholderScreen.swift */,
+				KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */,
+				KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */,
+				KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */,
+				KK0004002D39B001007A8A11 /* CategoryPieChart.swift */,
+				KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */,
+				KK0006002D39B001007A8A11 /* TopMerchantsList.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -206,6 +229,7 @@
 				FF0001002D39B001007A8A11 /* SettingsScreen.swift */,
 				FF0002002D39B001007A8A11 /* CategoriesScreen.swift */,
 				FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */,
+				JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -230,6 +254,7 @@
 				HH0004002D39B001007A8A11 /* AccountsViewModel.swift */,
 				GG0004002D39B001007A8A11 /* BudgetViewModel.swift */,
 				FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */,
+				KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -239,6 +264,8 @@
 			children = (
 				BB0012002D39B001007A8A11 /* DateFormatting.swift */,
 				BB0013002D39B001007A8A11 /* AmountFormatting.swift */,
+				JJ0001002D39B001007A8A11 /* CurrencyManager.swift */,
+				JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -346,7 +373,13 @@
 				A20B8F7B2D39B001007A8A11 /* iosAppApp.swift in Sources */,
 				AA0001002D39B001007A8A11 /* MainTabView.swift in Sources */,
 				AA0002002D39B001007A8A11 /* HomeScreen.swift in Sources */,
-				AA0004002D39B001007A8A11 /* AnalyticsPlaceholderScreen.swift in Sources */,
+				KK0008002D39B001007A8A11 /* AnalyticsScreen.swift in Sources */,
+				KK0009002D39B001007A8A11 /* AnalyticsSummaryCard.swift in Sources */,
+				KK0010002D39B001007A8A11 /* SpendingTrendsChart.swift in Sources */,
+				KK0011002D39B001007A8A11 /* CategoryPieChart.swift in Sources */,
+				KK0012002D39B001007A8A11 /* CategoryBreakdownList.swift in Sources */,
+				KK0013002D39B001007A8A11 /* TopMerchantsList.swift in Sources */,
+				KK0014002D39B001007A8A11 /* AnalyticsViewModel.swift in Sources */,
 				AA0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift in Sources */,
 				AA0006002D39B001007A8A11 /* TransactionRow.swift in Sources */,
 				AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */,
@@ -375,6 +408,9 @@
 				HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */,
 				HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */,
 				HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */,
+				JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */,
+				JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */,
+				JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

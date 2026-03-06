@@ -13,10 +13,10 @@ struct AddEditAccountScreen: View {
     @State private var accountLast4 = ""
     @State private var accountType = "SAVINGS"
     @State private var balanceText = ""
-    @State private var currency = "INR"
+    @State private var currency = CurrencyManager.shared.displayCurrency
 
     private let accountTypes = ["SAVINGS", "CURRENT", "CREDIT"]
-    private let currencies = ["INR", "USD", "EUR", "GBP", "AED", "SGD", "CAD", "AUD", "JPY", "CNY"]
+    private let currencies = CurrencyPickerScreen.currencies.map(\.code)
 
     private var isEditing: Bool { editAccount != nil }
 

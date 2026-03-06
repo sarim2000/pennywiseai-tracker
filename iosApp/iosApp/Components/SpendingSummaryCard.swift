@@ -15,7 +15,7 @@ struct SpendingSummaryCard: View {
 
                 AmountText(
                     amountMinor: monthlyExpenseMinor,
-                    currency: "INR",
+                    currency: CurrencyManager.shared.displayCurrency,
                     font: AppTypography.amountLarge
                 )
             }
@@ -61,7 +61,7 @@ private struct SummaryColumn: View {
                 .frame(width: 3, height: 32)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(AmountFormatter.format(minorUnits: amountMinor, currency: "INR"))
+                Text(AmountFormatter.format(minorUnits: amountMinor, currency: CurrencyManager.shared.displayCurrency))
                     .font(AppTypography.amountSmall)
                     .foregroundStyle(accentColor)
                 Text(label)

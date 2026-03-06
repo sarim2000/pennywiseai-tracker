@@ -41,4 +41,7 @@ interface SharedAccountBalanceDao {
 
     @Query("DELETE FROM shared_account_balances WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("UPDATE shared_account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
+    suspend fun renameAccount(oldBankName: String, newBankName: String, accountLast4: String)
 }

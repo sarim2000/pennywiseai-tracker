@@ -51,7 +51,7 @@ class SharedDataGraph private constructor(
                 transactionRepository = RoomSharedTransactionRepository(database.transactionDao()),
                 categoryRepository = RoomSharedCategoryRepository(database.categoryDao()),
                 subscriptionRepository = RoomSharedSubscriptionRepository(database.subscriptionDao()),
-                accountRepository = RoomSharedAccountRepository(database.accountBalanceDao(), database.cardDao()),
+                accountRepository = RoomSharedAccountRepository(database.accountBalanceDao(), database.cardDao(), database.transactionDao()),
                 splitRepository = RoomSharedSplitRepository(database.transactionSplitDao()),
                 merchantMappingRepository = RoomSharedMerchantMappingRepository(database.merchantMappingDao()),
                 ruleRepository = RoomSharedRuleRepository(database.ruleDao(), database.ruleApplicationDao()),

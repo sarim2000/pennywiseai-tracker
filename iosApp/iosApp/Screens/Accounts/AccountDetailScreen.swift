@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AccountDetailScreen: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
-    let bankName: String
+    @State var bankName: String
     let accountLast4: String
     @ObservedObject var viewModel: AccountsViewModel
     @State private var showEditSheet = false
@@ -46,6 +46,9 @@ struct AccountDetailScreen: View {
                     editAccount: currentAccount,
                     onSave: {
                         viewModel.loadAccounts()
+                        if let updated = viewModel.accounts.first(where: { $0.accountLast4 == accountLast4 }) {
+                            bankName = updated.bankName
+                        }
                         viewModel.loadAccountTransactions(
                             bankName: bankName,
                             accountLast4: accountLast4

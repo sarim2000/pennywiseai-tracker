@@ -14,4 +14,5 @@ interface SharedAccountRepository {
     suspend fun deleteBalanceById(id: Long)
     suspend fun deleteByAccount(bankName: String, accountLast4: String)
     suspend fun deleteCardById(id: Long)
+    suspend fun renameAccount(oldBankName: String, newBankName: String, accountLast4: String)
 }

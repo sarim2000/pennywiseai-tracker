@@ -18,6 +18,11 @@ struct HomeScreen: View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                    // Greeting Card
+                    GreetingCard()
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 10)
+
                     // Spending Summary Card
                     SpendingSummaryCard(
                         monthlyExpenseMinor: viewModel.monthlyExpenseMinor,

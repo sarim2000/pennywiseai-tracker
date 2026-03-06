@@ -57,6 +57,15 @@
 		NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN0002002D39B001007A8A11 /* LockScreenView.swift */; };
 		OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0001002D39B001007A8A11 /* ExportImportManager.swift */; };
 		OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0002002D39B001007A8A11 /* DocumentPicker.swift */; };
+		PP0002002D39B001007A8A11 /* GreetingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP0001002D39B001007A8A11 /* GreetingCard.swift */; };
+		QQ0006002D39B001007A8A11 /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */; };
+		QQ0007002D39B001007A8A11 /* WelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0002002D39B001007A8A11 /* WelcomeStep.swift */; };
+		QQ0008002D39B001007A8A11 /* ProfileStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0003002D39B001007A8A11 /* ProfileStep.swift */; };
+		QQ0009002D39B001007A8A11 /* ImportStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0004002D39B001007A8A11 /* ImportStep.swift */; };
+		QQ0010002D39B001007A8A11 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */; };
+		RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */; };
+		RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */; };
+		RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -112,6 +121,15 @@
 		NN0002002D39B001007A8A11 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
 		OO0001002D39B001007A8A11 /* ExportImportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportImportManager.swift; sourceTree = "<group>"; };
 		OO0002002D39B001007A8A11 /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
+		PP0001002D39B001007A8A11 /* GreetingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingCard.swift; sourceTree = "<group>"; };
+		QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
+		QQ0002002D39B001007A8A11 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
+		QQ0003002D39B001007A8A11 /* ProfileStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStep.swift; sourceTree = "<group>"; };
+		QQ0004002D39B001007A8A11 /* ImportStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportStep.swift; sourceTree = "<group>"; };
+		QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsScreen.swift; sourceTree = "<group>"; };
+		RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditSubscriptionScreen.swift; sourceTree = "<group>"; };
+		RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -183,6 +201,8 @@
 				GG0009002D39B001007A8A11 /* Budgets */,
 				DD0005002D39B001007A8A11 /* Analytics */,
 				DD0006002D39B001007A8A11 /* Settings */,
+				RR0007002D39B001007A8A11 /* Subscriptions */,
+				QQ0011002D39B001007A8A11 /* Onboarding */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -265,6 +285,7 @@
 				BB0009002D39B001007A8A11 /* StatPill.swift */,
 				BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */,
 				BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */,
+				PP0001002D39B001007A8A11 /* GreetingCard.swift */,
 				NN0002002D39B001007A8A11 /* LockScreenView.swift */,
 			);
 			path = Components;
@@ -278,6 +299,8 @@
 				GG0004002D39B001007A8A11 /* BudgetViewModel.swift */,
 				FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */,
 				KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */,
+				RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */,
+				QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -302,6 +325,26 @@
 				LL0001002D39B001007A8A11 /* ThemeManager.swift */,
 			);
 			path = Theme;
+			sourceTree = "<group>";
+		};
+	QQ0011002D39B001007A8A11 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */,
+				QQ0002002D39B001007A8A11 /* WelcomeStep.swift */,
+				QQ0003002D39B001007A8A11 /* ProfileStep.swift */,
+				QQ0004002D39B001007A8A11 /* ImportStep.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		RR0007002D39B001007A8A11 /* Subscriptions */ = {
+			isa = PBXGroup;
+			children = (
+				RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */,
+				RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */,
+			);
+			path = Subscriptions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -443,6 +486,15 @@
 				MM0004002D39B001007A8A11 /* AboutScreen.swift in Sources */,
 				OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */,
 				OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */,
+				PP0002002D39B001007A8A11 /* GreetingCard.swift in Sources */,
+				QQ0006002D39B001007A8A11 /* OnboardingScreen.swift in Sources */,
+				QQ0007002D39B001007A8A11 /* WelcomeStep.swift in Sources */,
+				QQ0008002D39B001007A8A11 /* ProfileStep.swift in Sources */,
+				QQ0009002D39B001007A8A11 /* ImportStep.swift in Sources */,
+				QQ0010002D39B001007A8A11 /* OnboardingViewModel.swift in Sources */,
+				RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */,
+				RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */,
+				RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

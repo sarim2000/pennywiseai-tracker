@@ -7,12 +7,62 @@ enum CurrencyFormatter {
     // Zero-decimal currencies (no fractional units)
     private static let zeroDecimalCurrencies: Set<String> = ["JPY", "KRW", "VND", "CLP", "ISK", "UGX"]
 
+    private static let currencySymbols: [String: String] = [
+        "INR": "₹",
+        "USD": "$",
+        "EUR": "€",
+        "GBP": "£",
+        "JPY": "¥",
+        "CNY": "¥",
+        "KRW": "₩",
+        "THB": "฿",
+        "AED": "د.إ",
+        "SAR": "﷼",
+        "PKR": "₨",
+        "NPR": "₨",
+        "BDT": "৳",
+        "LKR": "₨",
+        "SGD": "S$",
+        "MYR": "RM",
+        "IDR": "Rp",
+        "PHP": "₱",
+        "VND": "₫",
+        "TWD": "NT$",
+        "HKD": "HK$",
+        "CAD": "CA$",
+        "AUD": "A$",
+        "NZD": "NZ$",
+        "CHF": "CHF",
+        "SEK": "kr",
+        "NOK": "kr",
+        "DKK": "kr",
+        "PLN": "zł",
+        "CZK": "Kč",
+        "HUF": "Ft",
+        "RUB": "₽",
+        "TRY": "₺",
+        "BRL": "R$",
+        "MXN": "MX$",
+        "ZAR": "R",
+        "KES": "KSh",
+        "NGN": "₦",
+        "EGP": "E£",
+        "KWD": "د.ك",
+        "BHD": "BD",
+        "OMR": "OMR",
+        "QAR": "QR",
+        "ILS": "₪",
+        "JOD": "JD"
+    ]
+
     static func symbol(for currencyCode: String) -> String {
-        let locale = localeForCurrency(currencyCode)
+        if let known = currencySymbols[currencyCode] {
+            return known
+        }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
-        formatter.locale = locale
+        formatter.locale = localeForCurrency(currencyCode)
         return formatter.currencySymbol ?? currencyCode
     }
 
@@ -30,6 +80,7 @@ enum CurrencyFormatter {
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         formatter.locale = localeForCurrency(currencyCode)
+        formatter.currencySymbol = symbol(for: currencyCode)
         formatter.minimumFractionDigits = isZeroDecimal ? 0 : 0
         formatter.maximumFractionDigits = isZeroDecimal ? 0 : 2
 

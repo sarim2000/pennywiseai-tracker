@@ -64,6 +64,15 @@ data class SharedCardItem(
     val currency: String
 )
 
+data class SharedRuleItem(
+    val id: String,
+    val name: String,
+    val conditionsJson: String,
+    val actionsJson: String,
+    val isEnabled: Boolean,
+    val priority: Int
+)
+
 data class SharedSubscriptionItem(
     val id: Long,
     val merchantName: String,
@@ -735,6 +744,118 @@ class PennyWiseSharedFacade {
             false
         }
     }
+
+    // ── Rule CRUD methods ──────────────────────────────────────
+
+    fun getAllRules(): List<SharedRuleItem> {
+        return try {
+            runBlocking {
+                graph.ruleRepository.observeRules().first().map { it.toRuleItem() }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    fun createRule(
+        name: String,
+        conditionsJson: String,
+        actionsJson: String,
+        priority: Int
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                val id = "rule_${currentTimeMillis()}"
+                graph.ruleRepository.upsertRule(
+                    com.pennywiseai.shared.data.local.entity.SharedRuleEntity(
+                        id = id,
+                        name = name.trim(),
+                        conditionsJson = conditionsJson,
+                        actionsJson = actionsJson,
+                        isActive = true,
+                        isSystemTemplate = false,
+                        priority = priority,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun updateRule(
+        id: String,
+        name: String,
+        conditionsJson: String,
+        actionsJson: String,
+        isEnabled: Boolean,
+        priority: Int
+    ): Boolean {
+        return try {
+            runBlocking {
+                val now = currentTimeMillis()
+                graph.ruleRepository.upsertRule(
+                    com.pennywiseai.shared.data.local.entity.SharedRuleEntity(
+                        id = id,
+                        name = name.trim(),
+                        conditionsJson = conditionsJson,
+                        actionsJson = actionsJson,
+                        isActive = isEnabled,
+                        isSystemTemplate = false,
+                        priority = priority,
+                        createdAtEpochMillis = now,
+                        updatedAtEpochMillis = now
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun toggleRule(id: String, isEnabled: Boolean): Boolean {
+        return try {
+            runBlocking {
+                val rules = graph.ruleRepository.observeRules().first()
+                val existing = rules.firstOrNull { it.id == id } ?: return@runBlocking false
+                graph.ruleRepository.upsertRule(
+                    existing.copy(
+                        isActive = isEnabled,
+                        updatedAtEpochMillis = currentTimeMillis()
+                    )
+                )
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun deleteRule(id: String): Boolean {
+        return try {
+            runBlocking {
+                graph.ruleRepository.deleteRuleById(id)
+                true
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun com.pennywiseai.shared.data.local.entity.SharedRuleEntity.toRuleItem() =
+        SharedRuleItem(
+            id = id,
+            name = name,
+            conditionsJson = conditionsJson,
+            actionsJson = actionsJson,
+            isEnabled = isActive,
+            priority = priority
+        )
 
     private fun SharedSubscriptionEntity.toSubscriptionItem() =
         SharedSubscriptionItem(

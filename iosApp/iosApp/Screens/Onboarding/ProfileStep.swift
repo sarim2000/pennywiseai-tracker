@@ -5,14 +5,14 @@ struct ProfileStep: View {
     @AppStorage("userAvatarIndex") private var userAvatarIndex: Int = 0
     @ObservedObject private var themeManager = ThemeManager.shared
 
-    private let avatarIcons: [String] = [
-        "person.fill", "figure.walk", "figure.run",
-        "brain.head.profile", "face.smiling", "star.fill",
-        "heart.fill", "leaf.fill", "flame.fill",
-        "bolt.fill", "music.note", "gamecontroller.fill"
+    private let avatarImages: [String] = [
+        "avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5",
+        "avatar_6", "avatar_7", "avatar_8", "avatar_9", "avatar_10"
     ]
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: AppSpacing.md), count: 4)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: AppSpacing.md), count: 5)
+
+    @FocusState private var isNameFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -25,10 +25,20 @@ struct ProfileStep: View {
                         .font(AppTypography.title)
                         .multilineTextAlignment(.center)
 
-                    TextField("Your name", text: $userName)
-                        .textFieldStyle(.roundedBorder)
+                    Text("Enter your name to personalize the app")
                         .font(AppTypography.body)
-                        .padding(.horizontal, AppSpacing.xl)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    TextField("", text: Binding(
+                        get: { userName == "User" && !isNameFocused ? "" : userName },
+                        set: { userName = $0 }
+                    ), prompt: Text("Enter your name").foregroundColor(.secondary))
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 18))
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.xs)
+                        .focused($isNameFocused)
                 }
 
                 VStack(spacing: AppSpacing.md) {
@@ -36,7 +46,7 @@ struct ProfileStep: View {
                         .font(AppTypography.headline)
 
                     LazyVGrid(columns: columns, spacing: AppSpacing.md) {
-                        ForEach(0..<avatarIcons.count, id: \.self) { index in
+                        ForEach(0..<avatarImages.count, id: \.self) { index in
                             avatarButton(index: index)
                         }
                     }
@@ -55,10 +65,12 @@ struct ProfileStep: View {
                 userAvatarIndex = index
             }
         } label: {
-            Image(systemName: avatarIcons[index])
-                .font(.title2)
-                .foregroundColor(userAvatarIndex == index ? .white : themeManager.accentColor)
-                .frame(width: 56, height: 56)
+            Image(avatarImages[index])
+                .resizable()
+                .scaledToFit()
+                .frame(width: 48, height: 48)
+                .clipShape(Circle())
+                .frame(width: 64, height: 64)
                 .background(
                     Circle()
                         .fill(userAvatarIndex == index ? themeManager.accentColor : themeManager.accentColor.opacity(0.15))

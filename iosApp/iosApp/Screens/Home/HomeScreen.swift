@@ -32,6 +32,20 @@ struct HomeScreen: View {
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 12)
 
+                    // Budget Carousel
+                    if !viewModel.budgets.isEmpty {
+                        BudgetCarousel(budgets: viewModel.budgets)
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 14)
+                    }
+
+                    // Account Carousel
+                    if !viewModel.accounts.isEmpty {
+                        AccountCarousel(accounts: viewModel.accounts)
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 14)
+                    }
+
                     // Recent Transactions
                     recentTransactionsSection
                         .opacity(appeared ? 1 : 0)

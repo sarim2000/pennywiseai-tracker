@@ -8,5 +8,6 @@ interface SharedRuleRepository {
     fun observeRules(): Flow<List<SharedRuleEntity>>
     fun observeRuleApplications(): Flow<List<SharedRuleApplicationEntity>>
     suspend fun upsertRule(rule: SharedRuleEntity)
+    suspend fun deleteRuleById(ruleId: String)
     suspend fun addApplication(application: SharedRuleApplicationEntity)
 }

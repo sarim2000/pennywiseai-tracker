@@ -5,10 +5,9 @@ struct GreetingCard: View {
     @AppStorage("userName") private var userName: String = "User"
     @AppStorage("userAvatarIndex") private var userAvatarIndex: Int = 0
 
-    private static let avatarSymbols = [
-        "person.fill", "figure.walk", "figure.run", "brain.head.profile",
-        "face.smiling", "star.fill", "heart.fill", "leaf.fill",
-        "flame.fill", "bolt.fill", "music.note", "gamecontroller.fill"
+    private static let avatarImages = [
+        "avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5",
+        "avatar_6", "avatar_7", "avatar_8", "avatar_9", "avatar_10"
     ]
 
     private var greeting: String {
@@ -21,9 +20,9 @@ struct GreetingCard: View {
         }
     }
 
-    private var avatarSymbol: String {
-        let index = max(0, min(userAvatarIndex, Self.avatarSymbols.count - 1))
-        return Self.avatarSymbols[index]
+    private var avatarImageName: String {
+        let index = max(0, min(userAvatarIndex, Self.avatarImages.count - 1))
+        return Self.avatarImages[index]
     }
 
     var body: some View {

@@ -66,6 +66,12 @@
 		RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */; };
 		RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */; };
 		RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */; };
+		TT0002002D39B001007A8A11 /* BudgetCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TT0001002D39B001007A8A11 /* BudgetCarousel.swift */; };
+		TT0004002D39B001007A8A11 /* AccountCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TT0003002D39B001007A8A11 /* AccountCarousel.swift */; };
+		UU0001002D39B001007A8A11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = UU0002002D39B001007A8A11 /* Assets.xcassets */; };
+		SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0001002D39B001007A8A11 /* RulesScreen.swift */; };
+		SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */; };
+		SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0003002D39B001007A8A11 /* RulesViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -130,6 +136,12 @@
 		RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsScreen.swift; sourceTree = "<group>"; };
 		RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditSubscriptionScreen.swift; sourceTree = "<group>"; };
 		RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsViewModel.swift; sourceTree = "<group>"; };
+		TT0001002D39B001007A8A11 /* BudgetCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCarousel.swift; sourceTree = "<group>"; };
+		TT0003002D39B001007A8A11 /* AccountCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCarousel.swift; sourceTree = "<group>"; };
+		UU0002002D39B001007A8A11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		SS0001002D39B001007A8A11 /* RulesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesScreen.swift; sourceTree = "<group>"; };
+		SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditRuleScreen.swift; sourceTree = "<group>"; };
+		SS0003002D39B001007A8A11 /* RulesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +174,7 @@
 				DD0007002D39B001007A8A11 /* Components */,
 				DD0008002D39B001007A8A11 /* ViewModels */,
 				DD0009002D39B001007A8A11 /* Extensions */,
+				UU0002002D39B001007A8A11 /* Assets.xcassets */,
 				B20B8F7B2D39B001007A8A11 /* iosAppApp.swift */,
 				B40B8F7B2D39B001007A8A11 /* Info.plist */,
 			);
@@ -272,6 +285,8 @@
 				MM0002002D39B001007A8A11 /* AboutScreen.swift */,
 				OO0001002D39B001007A8A11 /* ExportImportManager.swift */,
 				OO0002002D39B001007A8A11 /* DocumentPicker.swift */,
+				SS0001002D39B001007A8A11 /* RulesScreen.swift */,
+				SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -287,6 +302,8 @@
 				BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */,
 				PP0001002D39B001007A8A11 /* GreetingCard.swift */,
 				NN0002002D39B001007A8A11 /* LockScreenView.swift */,
+				TT0001002D39B001007A8A11 /* BudgetCarousel.swift */,
+				TT0003002D39B001007A8A11 /* AccountCarousel.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -301,6 +318,7 @@
 				KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */,
 				RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */,
 				QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */,
+				SS0003002D39B001007A8A11 /* RulesViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -406,6 +424,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				UU0001002D39B001007A8A11 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -495,6 +514,11 @@
 				RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */,
 				RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */,
 				RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */,
+				TT0002002D39B001007A8A11 /* BudgetCarousel.swift in Sources */,
+				TT0004002D39B001007A8A11 /* AccountCarousel.swift in Sources */,
+				SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */,
+				SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */,
+				SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

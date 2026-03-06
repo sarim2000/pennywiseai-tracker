@@ -13,12 +13,16 @@ class HomeViewModel: ObservableObject {
     @Published var monthlyIncomeMinor: Int64 = 0
     @Published var monthlyExpenseMinor: Int64 = 0
     @Published var monthlyNetMinor: Int64 = 0
+    @Published var budgets: [SharedBudgetItem] = []
+    @Published var accounts: [SharedAccountItem] = []
     @Published var errorMessage: String?
     @Published var importResultText: String?
 
     func loadHome() {
         let snapshot = facade.initializeAndLoadHome()
         apply(snapshot: snapshot)
+        budgets = facade.getAllBudgets()
+        accounts = facade.getAllAccounts()
     }
 
     func addTransaction(

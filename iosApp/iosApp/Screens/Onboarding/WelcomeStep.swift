@@ -7,9 +7,11 @@ struct WelcomeStep: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            Image(systemName: "chart.bar.doc.horizontal")
-                .font(.system(size: 80))
-                .foregroundColor(themeManager.accentColor)
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 100, height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
 
             VStack(spacing: AppSpacing.sm) {
                 Text("Welcome to PennyWise")

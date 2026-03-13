@@ -5,6 +5,7 @@ struct OnboardingScreen: View {
 
     @StateObject private var viewModel = OnboardingViewModel()
     @ObservedObject private var themeManager = ThemeManager.shared
+    @Environment(\.isAmoledActive) private var isAmoled
 
     private let totalSteps = 3
 
@@ -27,7 +28,7 @@ struct OnboardingScreen: View {
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.lg)
         }
-        .background(Color(.systemBackground))
+        .background(AppColors.background(isAmoled: isAmoled))
     }
 
     @ViewBuilder

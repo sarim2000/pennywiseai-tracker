@@ -2,7 +2,7 @@ import Foundation
 import Shared
 
 class RulesViewModel: ObservableObject {
-    private let facade = PennyWiseSharedFacade()
+    private let facade = PennyWiseSharedFacade.companion.shared
 
     @Published var rules: [SharedRuleItem] = []
     @Published var categories: [String] = []

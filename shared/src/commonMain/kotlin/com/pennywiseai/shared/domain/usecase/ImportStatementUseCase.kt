@@ -8,6 +8,7 @@ import com.pennywiseai.shared.data.statement.SharedPdfTextExtractor
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.statement.SharedStatementParserFactory
 import com.pennywiseai.shared.data.util.currentTimeMillis
+import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 
 class ImportStatementUseCase(
     private val transactionRepository: SharedTransactionRepository,
@@ -54,7 +55,10 @@ class ImportStatementUseCase(
             SharedTransaction(
                 amountMinor = parsed.amountMinor,
                 merchantName = parsed.merchant ?: "Unknown Merchant",
-                category = "Others",
+                category = SharedCategoryMapping.determineCategory(
+                    parsed.merchant ?: "Unknown Merchant",
+                    parsed.transactionType.name
+                ),
                 transactionType = parsed.transactionType,
                 occurredAtEpochMillis = parsed.timestampEpochMillis,
                 note = null,

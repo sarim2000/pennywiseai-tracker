@@ -5,6 +5,7 @@ struct TransactionRow: View {
     let item: SharedRecentTransactionItem
     var onViewDetails: (() -> Void)?
     var onEdit: (() -> Void)?
+    @Environment(\.isAmoledActive) private var isAmoled
 
     private var iconInfo: CategoryIconInfo {
         AppColors.categoryIcon(for: item.category)
@@ -60,7 +61,7 @@ struct TransactionRow: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemBackground))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 }

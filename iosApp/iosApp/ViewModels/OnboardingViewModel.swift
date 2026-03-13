@@ -7,7 +7,7 @@ class OnboardingViewModel: ObservableObject {
     @Published var importResult: String?
     @Published var isImporting = false
 
-    private let facade = PennyWiseSharedFacade()
+    private let facade = PennyWiseSharedFacade.companion.shared
 
     func importPDF(url: URL) {
         isImporting = true

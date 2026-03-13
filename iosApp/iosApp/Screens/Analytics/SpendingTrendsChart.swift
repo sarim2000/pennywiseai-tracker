@@ -3,6 +3,7 @@ import Charts
 
 struct SpendingTrendsChart: View {
     let data: [DailySpendingItem]
+    @Environment(\.isAmoledActive) private var isAmoled
 
     private var maxAmount: Int64 {
         data.map(\.totalMinor).max() ?? 0
@@ -20,7 +21,7 @@ struct SpendingTrendsChart: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 

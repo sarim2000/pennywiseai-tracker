@@ -9,6 +9,7 @@ struct SettingsScreen: View {
     @State private var showingDocumentPicker = false
     @State private var showingStatementPicker = false
     @State private var statementImportResult: String? = nil
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         List {
@@ -37,7 +38,7 @@ struct SettingsScreen: View {
 
             Section("Data Management") {
                 NavigationLink {
-                    CategoriesScreen(facade: PennyWiseSharedFacade())
+                    CategoriesScreen(facade: PennyWiseSharedFacade.companion.shared)
                 } label: {
                     Label {
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -302,6 +303,8 @@ struct SettingsScreen: View {
                 }
             }
         }
+        .scrollContentBackground(isAmoled ? .hidden : .visible)
+        .background(isAmoled ? AppColors.amoledBackground : Color.clear)
         .navigationTitle("Settings")
         .sheet(isPresented: $showingDocumentPicker) {
             DocumentPicker { url in
@@ -376,7 +379,7 @@ struct SettingsScreen: View {
         print("[PDF Import] First 1000 chars:\n\(String(fullText.prefix(1000)))")
         #endif
 
-        let facade = PennyWiseSharedFacade()
+        let facade = PennyWiseSharedFacade.companion.shared
         let snapshot = facade.importStatementTextAndLoadHome(statementText: fullText)
         if snapshot.lastImportParsed > 0 {
             statementImportResult = "\(snapshot.lastImportImported) transactions imported, \(snapshot.lastImportSkipped) skipped"

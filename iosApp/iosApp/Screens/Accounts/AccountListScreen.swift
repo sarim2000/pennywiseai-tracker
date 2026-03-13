@@ -7,6 +7,7 @@ struct AccountListScreen: View {
     @State private var showAddAccount = false
     @State private var showAddCard = false
     @State private var appeared = false
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         ScrollView {
@@ -92,7 +93,7 @@ struct AccountListScreen: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.lg)
-        .background(Color(.secondarySystemBackground))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
     }
 
@@ -187,6 +188,7 @@ struct AccountListScreen: View {
 
 private struct AccountRow: View {
     let account: SharedAccountItem
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         HStack(spacing: AppSpacing.md) {
@@ -221,7 +223,7 @@ private struct AccountRow: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemBackground))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 }
@@ -230,6 +232,7 @@ private struct AccountRow: View {
 
 private struct CardRow: View {
     let card: SharedCardItem
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         HStack(spacing: AppSpacing.md) {
@@ -259,7 +262,7 @@ private struct CardRow: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemBackground))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 }

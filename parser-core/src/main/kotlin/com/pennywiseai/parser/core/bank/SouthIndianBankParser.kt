@@ -2,8 +2,11 @@ package com.pennywiseai.parser.core.bank
 
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
 /**
  * South Indian Bank specific parser.
@@ -63,10 +66,8 @@ class SouthIndianBankParser : BaseIndianBankParser() {
         val balance = extractBalance(smsBody)
 
         // Parse date/time from message if available, otherwise use SMS timestamp
-        val dateTime = extractDateTime(smsBody) ?: LocalDateTime.ofInstant(
-            java.time.Instant.ofEpochMilli(timestamp),
-            java.time.ZoneId.systemDefault()
-        )
+        val dateTime = extractDateTime(smsBody) ?: Instant.fromEpochMilliseconds(timestamp)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
 
         return ParsedTransaction(
             amount = amount,
@@ -327,7 +328,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
                         val minute = timeParts[1].toInt()
                         val second = timeParts[2].toInt()
 
-                        LocalDateTime.of(year, month, day, hour, minute, second)
+                        LocalDateTime(year, month, day, hour, minute, second)
                     } else {
                         null
                     }

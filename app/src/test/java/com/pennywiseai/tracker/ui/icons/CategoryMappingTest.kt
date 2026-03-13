@@ -74,15 +74,10 @@ class CategoryMappingTest {
 
         // Test some should remain as Others (too generic)
         assertEquals("Others", getCategory("Twin Made"))
-        findDuplicateKeywords()
     }
 }
 
 // Helper function to test categorization
 private fun getCategory(merchantName: String): String {
     return com.pennywiseai.tracker.ui.icons.CategoryMapping.getCategory(merchantName)
-}
-
-private fun findDuplicateKeywords(): Set<String> {
-    return com.pennywiseai.tracker.ui.icons.CategoryMapping.findDuplicateKeywords()
 }

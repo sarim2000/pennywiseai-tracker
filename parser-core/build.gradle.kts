@@ -1,17 +1,38 @@
 plugins {
-    kotlin("jvm")
+    kotlin("multiplatform")
     `maven-publish`
 }
 
 group = "com.pennywiseai"
 version = "0.1.0-SNAPSHOT"
 
-// Use root project's Java toolchain; avoid forcing downloads here
+kotlin {
+    jvm()
+    iosArm64()
+    iosSimulatorArm64()
+
+    sourceSets {
+        commonMain.dependencies {
+            api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+        }
+        val jvmMain by getting {
+            kotlin.srcDir("src/main/kotlin")
+        }
+        val jvmTest by getting {
+            kotlin.srcDir("src/test/kotlin")
+            resources.srcDir("src/test/resources")
+            dependencies {
+                implementation("org.junit.jupiter:junit-jupiter:5.10.0")
+                runtimeOnly("org.junit.platform:junit-platform-launcher")
+            }
+        }
+    }
+}
 
 publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
+        create<MavenPublication>("mavenKotlin") {
+            from(components["kotlin"])
             groupId = group.toString()
             artifactId = "parser-core"
             version = version.toString()
@@ -19,13 +40,7 @@ publishing {
     }
 }
 
-dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-// Configure JUnit testing
-tasks.test {
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     useJUnitPlatform()
 
     testLogging {
@@ -43,12 +58,11 @@ tasks.test {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 
-    // Optional: Fail fast on first test failure (remove if you want to see all failures)
-    // failFast = true
-
-    // Optional: Run tests in parallel for faster execution
     maxParallelForks = maxOf(1, Runtime.getRuntime().availableProcessors() / 2)
 }
 
-
-
+// Keep compatibility with existing CI/scripts that invoke :parser-core:test
+tasks.register("test") {
+    group = "verification"
+    dependsOn("jvmTest")
+}

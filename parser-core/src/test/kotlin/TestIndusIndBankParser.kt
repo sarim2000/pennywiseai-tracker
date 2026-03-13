@@ -234,7 +234,7 @@ class IndusIndBankParserTest {
         org.junit.jupiter.api.Assertions.assertEquals(java.math.BigDecimal("1234.56"), info.balance)
 
         // Date parsed (dd/MM/yy hh:mm a)
-        val expectedDate = java.time.LocalDateTime.of(2025, 10, 5, 4, 10)
+        val expectedDate = kotlinx.datetime.LocalDateTime(2025, 10, 5, 4, 10)
         org.junit.jupiter.api.Assertions.assertEquals(expectedDate, info.asOfDate)
     }
 

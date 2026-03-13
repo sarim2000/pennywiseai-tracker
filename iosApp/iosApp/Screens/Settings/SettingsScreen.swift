@@ -3,7 +3,6 @@ import PDFKit
 import Shared
 
 struct SettingsScreen: View {
-    @ObservedObject private var currencyManager = CurrencyManager.shared
     @ObservedObject private var appLockManager = AppLockManager.shared
     @StateObject private var exportImportManager = ExportImportManager()
     @State private var showingDocumentPicker = false
@@ -174,33 +173,6 @@ struct SettingsScreen: View {
                     }
                 }
                 .disabled(exportImportManager.isImporting)
-            }
-
-            // MARK: - Preferences
-
-            Section("Preferences") {
-                NavigationLink {
-                    CurrencyPickerScreen()
-                } label: {
-                    Label {
-                        HStack {
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                                Text("Currency")
-                                    .font(AppTypography.body)
-                                Text("Display currency for amounts")
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(currencyManager.displayCurrency)
-                                .font(AppTypography.body)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .foregroundStyle(.teal)
-                    }
-                }
             }
 
             // MARK: - Security

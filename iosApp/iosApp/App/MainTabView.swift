@@ -22,10 +22,19 @@ struct MainTabView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var appLockManager = AppLockManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var isAmoled: Bool {
+        themeManager.isAmoledActive(for: colorScheme)
+    }
 
     var body: some View {
         if hasCompletedOnboarding {
             ZStack {
+                if isAmoled {
+                    AppColors.amoledBackground.ignoresSafeArea()
+                }
+
                 TabView(selection: $selectedTab) {
                     NavigationStack {
                         HomeScreen(onSeeAllTransactions: { selectedTab = .transactions })
@@ -37,7 +46,7 @@ struct MainTabView: View {
                     .tag(AppTab.home)
 
                     NavigationStack {
-                        TransactionListView(facade: PennyWiseSharedFacade())
+                        TransactionListView(facade: PennyWiseSharedFacade.companion.shared)
                     }
                     .tabItem {
                         Label(AppTab.transactions.rawValue, systemImage: AppTab.transactions.icon)
@@ -66,6 +75,7 @@ struct MainTabView: View {
                     LockScreenView()
                 }
             }
+            .environment(\.isAmoledActive, isAmoled)
             .preferredColorScheme(themeManager.colorScheme)
         } else {
             OnboardingScreen {

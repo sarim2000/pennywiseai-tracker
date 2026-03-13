@@ -3,6 +3,7 @@ import SwiftUI
 struct StatPill: View {
     let title: String
     let value: String
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -15,7 +16,7 @@ struct StatPill: View {
         }
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, 6)
-        .background(Color(.tertiarySystemBackground))
+        .background(AppColors.tertiaryBackground(isAmoled: isAmoled))
         .clipShape(Capsule())
     }
 }

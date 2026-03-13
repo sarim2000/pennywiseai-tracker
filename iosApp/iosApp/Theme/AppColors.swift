@@ -98,6 +98,42 @@ enum AppColors {
         return categoryIcon(for: name).color
     }
 
+    // MARK: - AMOLED Dark Mode Colors (matching Android)
+
+    static let amoledBackground = Color(hex: 0x000000)
+    static let amoledSurface = Color(hex: 0x0A0A0A)
+    static let amoledSurfaceVariant = Color(hex: 0x121212)
+    static let amoledSurfaceContainerLowest = Color(hex: 0x000000)
+    static let amoledSurfaceContainerLow = Color(hex: 0x0A0A0A)
+    static let amoledSurfaceContainer = Color(hex: 0x111111)
+    static let amoledSurfaceContainerHigh = Color(hex: 0x1A1A1A)
+    static let amoledSurfaceContainerHighest = Color(hex: 0x222222)
+
+    /// Adaptive background: pure black in AMOLED dark mode, system default otherwise
+    static func background(isAmoled: Bool) -> Color {
+        isAmoled ? amoledBackground : Color(.systemBackground)
+    }
+
+    /// Adaptive surface: near-black in AMOLED dark mode
+    static func surface(isAmoled: Bool) -> Color {
+        isAmoled ? amoledSurface : Color(.secondarySystemBackground)
+    }
+
+    /// Adaptive grouped background
+    static func groupedBackground(isAmoled: Bool) -> Color {
+        isAmoled ? amoledBackground : Color(.systemGroupedBackground)
+    }
+
+    /// Adaptive secondary grouped background (cards within grouped views)
+    static func secondaryGroupedBackground(isAmoled: Bool) -> Color {
+        isAmoled ? amoledSurfaceVariant : Color(.secondarySystemGroupedBackground)
+    }
+
+    /// Adaptive tertiary background
+    static func tertiaryBackground(isAmoled: Bool) -> Color {
+        isAmoled ? amoledSurfaceContainerHigh : Color(.tertiarySystemBackground)
+    }
+
     // MARK: - Budget Progress Colors
 
     static let budgetSafe = Color.budgetSafeColor
@@ -130,6 +166,19 @@ extension Color {
         self.init(uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
         })
+    }
+}
+
+// MARK: - AMOLED Environment Key
+
+private struct AmoledActiveKey: EnvironmentKey {
+    static let defaultValue: Bool = false
+}
+
+extension EnvironmentValues {
+    var isAmoledActive: Bool {
+        get { self[AmoledActiveKey.self] }
+        set { self[AmoledActiveKey.self] = newValue }
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoryBreakdownList: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
     let categories: [CategoryBreakdownItem]
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -21,7 +22,7 @@ struct CategoryBreakdownList: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 

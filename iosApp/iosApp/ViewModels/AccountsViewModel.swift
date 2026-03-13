@@ -2,7 +2,7 @@ import Foundation
 import Shared
 
 class AccountsViewModel: ObservableObject {
-    let facade = PennyWiseSharedFacade()
+    let facade = PennyWiseSharedFacade.companion.shared
 
     @Published var accounts: [SharedAccountItem] = []
     @Published var cards: [SharedCardItem] = []

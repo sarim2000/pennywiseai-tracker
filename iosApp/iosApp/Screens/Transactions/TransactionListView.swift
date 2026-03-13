@@ -374,6 +374,7 @@ private struct FilterChipView: View {
     var dotColor: Color? = nil
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         Button(action: action) {
@@ -392,7 +393,7 @@ private struct FilterChipView: View {
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, 6)
-            .background(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
+            .background(isSelected ? Color.accentColor : AppColors.surface(isAmoled: isAmoled))
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(Capsule())
             .overlay(

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppearanceScreen: View {
     @ObservedObject private var themeManager = ThemeManager.shared
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         List {
@@ -36,6 +37,8 @@ struct AppearanceScreen: View {
                 }
             }
         }
+        .scrollContentBackground(isAmoled ? .hidden : .visible)
+        .background(isAmoled ? AppColors.amoledBackground : Color.clear)
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
     }

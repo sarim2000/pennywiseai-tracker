@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CategoryPieChart: View {
     let categories: [CategoryBreakdownItem]
+    @Environment(\.isAmoledActive) private var isAmoled
 
     private var topCategories: [CategoryBreakdownItem] {
         let top = Array(categories.prefix(7))
@@ -38,7 +39,7 @@ struct CategoryPieChart: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 

@@ -3,7 +3,7 @@ import SwiftUI
 import Shared
 
 final class ExportImportManager: ObservableObject {
-    private let facade = PennyWiseSharedFacade()
+    private let facade = PennyWiseSharedFacade.companion.shared
 
     @Published var isExporting = false
     @Published var isImporting = false

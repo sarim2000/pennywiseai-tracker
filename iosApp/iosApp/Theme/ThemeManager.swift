@@ -19,6 +19,11 @@ final class ThemeManager: ObservableObject {
         AccentColorOption.all.first { $0.key == accentColorKey }?.color ?? AccentColorOption.all[0].color
     }
 
+    /// Whether AMOLED pure-black mode should be active for the given color scheme
+    func isAmoledActive(for scheme: ColorScheme) -> Bool {
+        isAmoledDark && scheme == .dark
+    }
+
     private init() {}
 }
 

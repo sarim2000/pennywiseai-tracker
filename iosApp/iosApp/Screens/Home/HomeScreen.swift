@@ -13,6 +13,7 @@ struct HomeScreen: View {
     @State private var showAddTransaction = false
     @State private var selectedDetail: SharedRecentTransactionItem?
     @State private var appeared = false
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -185,7 +186,7 @@ struct HomeScreen: View {
             .foregroundStyle(.primary)
         }
         .padding(AppSpacing.md)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.secondaryGroupedBackground(isAmoled: isAmoled)))
     }
 
     // MARK: - Floating Add Button

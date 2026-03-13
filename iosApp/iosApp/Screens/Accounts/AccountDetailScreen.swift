@@ -8,6 +8,7 @@ struct AccountDetailScreen: View {
     @ObservedObject var viewModel: AccountsViewModel
     @State private var showEditSheet = false
     @State private var selectedTransaction: SharedRecentTransactionItem?
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         ScrollView {
@@ -116,7 +117,7 @@ struct AccountDetailScreen: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.lg)
-        .background(Color(.secondarySystemBackground))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
     }
 

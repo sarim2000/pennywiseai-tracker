@@ -182,6 +182,7 @@ tasks.matching { it.name.contains("lint") || it.name.contains("Lint") }.configur
 dependencies {
     // Local modules
     implementation(project(":parser-core"))
+    implementation(project(":shared"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -4,7 +4,7 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -75,25 +75,11 @@ private fun normalizeMerchantName(name: String): String {
 
 /**
  * Determines the category based on merchant name and transaction type.
+ * Delegates to SharedCategoryMapping (single source of truth).
  */
 private fun determineCategory(merchant: String?, type: TransactionType): String {
     val merchantName = merchant ?: return "Others"
-
-    // Special handling for income transactions
-    if (type == TransactionType.INCOME) {
-        val merchantLower = merchantName.lowercase()
-        return when {
-            merchantLower.contains("salary") -> "Salary"
-            merchantLower.contains("refund") -> "Refunds"
-            merchantLower.contains("cashback") -> "Cashback"
-            merchantLower.contains("interest") -> "Interest"
-            merchantLower.contains("dividend") -> "Dividends"
-            else -> "Income"
-        }
-    }
-
-    // Use unified category mapping for expenses
-    return CategoryMapping.getCategory(merchantName)
+    return SharedCategoryMapping.determineCategory(merchantName, type.name)
 }
 
 /**

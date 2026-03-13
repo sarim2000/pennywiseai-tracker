@@ -31,6 +31,9 @@
 		DD0014002D39B001007A8A11 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002D39B001007A8A11 /* TransactionListView.swift */; };
 		DD0015002D39B001007A8A11 /* TransactionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002002D39B001007A8A11 /* TransactionDetailView.swift */; };
 		DD0016002D39B001007A8A11 /* AddEditTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */; };
+		DD0017002D39B001007A8A11 /* CsvExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0004002D39B001007A8A11 /* CsvExporter.swift */; };
+		VV0001002D39B001007A8A11 /* TransactionTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */; };
+		SK0001002D39B001007A8A11 /* TransactionRowSkeleton.swift in Sources */ = {isa = PBXBuildFile; fileRef = SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */; };
 		EE0004002D39B001007A8A11 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001002D39B001007A8A11 /* AppColors.swift */; };
 		EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002002D39B001007A8A11 /* AppTypography.swift */; };
 		EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0003002D39B001007A8A11 /* AppSpacing.swift */; };
@@ -101,6 +104,7 @@
 		CC0001002D39B001007A8A11 /* TransactionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>"; };
 		CC0002002D39B001007A8A11 /* TransactionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailView.swift; sourceTree = "<group>"; };
 		CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditTransactionView.swift; sourceTree = "<group>"; };
+		CC0004002D39B001007A8A11 /* CsvExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CsvExporter.swift; sourceTree = "<group>"; };
 		EE0001002D39B001007A8A11 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		EE0002002D39B001007A8A11 /* AppTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTypography.swift; sourceTree = "<group>"; };
 		EE0003002D39B001007A8A11 /* AppSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSpacing.swift; sourceTree = "<group>"; };
@@ -138,6 +142,8 @@
 		RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsViewModel.swift; sourceTree = "<group>"; };
 		TT0001002D39B001007A8A11 /* BudgetCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCarousel.swift; sourceTree = "<group>"; };
 		TT0003002D39B001007A8A11 /* AccountCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCarousel.swift; sourceTree = "<group>"; };
+		VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTotalsCard.swift; sourceTree = "<group>"; };
+		SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRowSkeleton.swift; sourceTree = "<group>"; };
 		UU0002002D39B001007A8A11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		SS0001002D39B001007A8A11 /* RulesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesScreen.swift; sourceTree = "<group>"; };
 		SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditRuleScreen.swift; sourceTree = "<group>"; };
@@ -234,6 +240,7 @@
 				CC0001002D39B001007A8A11 /* TransactionListView.swift */,
 				CC0002002D39B001007A8A11 /* TransactionDetailView.swift */,
 				CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */,
+				CC0004002D39B001007A8A11 /* CsvExporter.swift */,
 			);
 			path = Transactions;
 			sourceTree = "<group>";
@@ -304,6 +311,8 @@
 				NN0002002D39B001007A8A11 /* LockScreenView.swift */,
 				TT0001002D39B001007A8A11 /* BudgetCarousel.swift */,
 				TT0003002D39B001007A8A11 /* AccountCarousel.swift */,
+				VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */,
+				SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -479,6 +488,7 @@
 				DD0014002D39B001007A8A11 /* TransactionListView.swift in Sources */,
 				DD0015002D39B001007A8A11 /* TransactionDetailView.swift in Sources */,
 				DD0016002D39B001007A8A11 /* AddEditTransactionView.swift in Sources */,
+				DD0017002D39B001007A8A11 /* CsvExporter.swift in Sources */,
 				EE0004002D39B001007A8A11 /* AppColors.swift in Sources */,
 				EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */,
 				EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */,
@@ -519,6 +529,8 @@
 				SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */,
 				SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */,
 				SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */,
+				VV0001002D39B001007A8A11 /* TransactionTotalsCard.swift in Sources */,
+				SK0001002D39B001007A8A11 /* TransactionRowSkeleton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

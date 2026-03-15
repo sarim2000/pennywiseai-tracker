@@ -1110,11 +1110,11 @@ private fun MenuListItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 1.5.dp)
+            .padding(horizontal = Dimensions.Padding.content, vertical = 2.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

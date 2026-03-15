@@ -58,6 +58,7 @@ import dev.chrisbanes.haze.hazeSource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
+    modifier: Modifier = Modifier,
     initialCategory: String? = null,
     initialMerchant: String? = null,
     initialPeriod: String? = null,
@@ -211,7 +212,7 @@ fun TransactionsScreen(
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(

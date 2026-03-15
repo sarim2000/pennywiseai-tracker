@@ -402,7 +402,7 @@ fun ChatScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(Dimensions.Padding.content)
-                                    .padding(bottom = 80.dp),
+                                    .padding(bottom = Dimensions.Component.bottomBarHeight),
                                 verticalAlignment = Alignment.Bottom
                             ) {
                                 OutlinedTextField(

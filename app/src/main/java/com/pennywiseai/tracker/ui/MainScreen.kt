@@ -227,6 +227,7 @@ fun MainScreen(
                 val transactionType = backStackEntry.arguments?.getString("type")
 
                 TransactionsScreen(
+                    modifier = Modifier.imePadding(),
                     initialCategory = category,
                     initialMerchant = merchant,
                     initialPeriod = period,

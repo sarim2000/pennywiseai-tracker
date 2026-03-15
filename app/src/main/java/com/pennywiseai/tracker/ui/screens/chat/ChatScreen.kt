@@ -54,6 +54,9 @@ fun ChatScreen(
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
+    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
+    val downloadedMB by viewModel.downloadedMB.collectAsStateWithLifecycle()
+    val totalMB by viewModel.totalMB.collectAsStateWithLifecycle()
     
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -96,7 +99,8 @@ fun ChatScreen(
             .padding(paddingValues)
     ) {
         when (modelState) {
-            ModelState.NOT_DOWNLOADED, ModelState.ERROR -> {
+            ModelState.NOT_DOWNLOADED, ModelState.DOWNLOADING, ModelState.ERROR -> {
+                val isDownloading = modelState == ModelState.DOWNLOADING
                 // Show existing messages if any, but disable input
                 Column(
                     modifier = Modifier.fillMaxSize()
@@ -111,7 +115,8 @@ fun ChatScreen(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             ) {
                                 Icon(
                                     Icons.Default.CloudDownload,
@@ -120,17 +125,46 @@ fun ChatScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "Qwen Model Required",
+                                    text = if (isDownloading) "Downloading Model..." else "AI Model Required",
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                                 Text(
-                                    text = "Download the AI model from Settings to start chatting",
+                                    text = if (isDownloading) "${downloadedMB} MB / ${totalMB} MB" else "Download the AI model to start chatting",
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Button(onClick = onNavigateToSettings) {
-                                    Text("Go to Settings")
+                                if (isDownloading) {
+                                    LinearProgressIndicator(
+                                        progress = { downloadProgress / 100f },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(8.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                        drawStopIndicator = {}
+                                    )
+                                    OutlinedButton(onClick = { viewModel.cancelDownload() }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text("Cancel")
+                                    }
+                                } else {
+                                    Button(onClick = { viewModel.startModelDownload() }) {
+                                        Icon(
+                                            Icons.Default.Download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text("Download (${totalMB} MB)")
+                                    }
+                                }
+                                TextButton(onClick = onNavigateToSettings) {
+                                    Text("Settings")
                                 }
                             }
                         }
@@ -156,64 +190,87 @@ fun ChatScreen(
                             }
                         }
                     }
-                    
+
                     // Show model required banner at bottom
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.tertiaryContainer,
                         tonalElevation = 3.dp
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(Dimensions.Padding.content),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Model Required",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Download to continue chatting",
-                                    style = MaterialTheme.typography.bodySmall
+                        if (isDownloading) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Dimensions.Padding.content),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Downloading Model...",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${downloadedMB} MB / ${totalMB} MB",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                    OutlinedButton(
+                                        onClick = { viewModel.cancelDownload() },
+                                        modifier = Modifier.padding(start = Spacing.sm)
+                                    ) {
+                                        Text("Cancel")
+                                    }
+                                }
+                                LinearProgressIndicator(
+                                    progress = { downloadProgress / 100f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    drawStopIndicator = {}
                                 )
                             }
-                            Button(
-                                onClick = onNavigateToSettings,
-                                modifier = Modifier.padding(start = Spacing.sm)
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Dimensions.Padding.content),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Download")
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Model Required",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Download to continue chatting",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Button(
+                                    onClick = { viewModel.startModelDownload() },
+                                    modifier = Modifier.padding(start = Spacing.sm)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Download")
+                                }
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
-                }
-            }
-
-            ModelState.DOWNLOADING -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        CircularProgressIndicator()
-                        Text(
-                            text = "Downloading Model...",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            text = "Check Settings for progress",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
 
@@ -565,7 +622,7 @@ fun DeveloperInfoCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Qwen 2.5 • ${chatStats.messageCount} messages",
+                        text = "Gemma 3 • ${chatStats.messageCount} messages",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

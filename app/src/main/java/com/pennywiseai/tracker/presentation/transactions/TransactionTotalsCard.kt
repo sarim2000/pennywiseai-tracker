@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,7 +63,7 @@ fun TransactionTotalsCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.sm)
+                .padding(Spacing.xs)
         ) {
             // Currency Selector (if multiple currencies available)
             if (availableCurrencies.size > 1 && !isUnifiedMode) {
@@ -71,10 +72,9 @@ fun TransactionTotalsCard(
                     availableCurrencies = availableCurrencies,
                     onCurrencySelected = onCurrencySelected,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.sm)
+                        .padding(horizontal = Spacing.xs)
                 )
-                Spacer(modifier = Modifier.height(Spacing.sm))
+                Spacer(modifier = Modifier.height(Spacing.xs))
             }
 
             // Totals Row with individual backgrounds
@@ -95,7 +95,7 @@ fun TransactionTotalsCard(
                                 bottomEnd = Spacing.xs
                             )
                         )
-                        .padding(Spacing.sm),
+                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
                     contentAlignment = Alignment.Center
                 ) {
                     TotalColumn(
@@ -122,7 +122,7 @@ fun TransactionTotalsCard(
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
                             shape = RoundedCornerShape(Spacing.xs)
                         )
-                        .padding(Spacing.sm),
+                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
                     contentAlignment = Alignment.Center
                 ) {
                     TotalColumn(
@@ -165,7 +165,7 @@ fun TransactionTotalsCard(
                                 bottomEnd = Spacing.md
                             )
                         )
-                        .padding(Spacing.sm),
+                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
                     contentAlignment = Alignment.Center
                 ) {
                     TotalColumn(
@@ -214,7 +214,7 @@ private fun TotalColumn(
         }
         Text(
             text = amount,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = color,
             textAlign = TextAlign.Center,
@@ -240,24 +240,31 @@ private fun CurrencySelector(
         onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
-        OutlinedTextField(
-            value = selectedCurrency,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Currency") },
-            trailingIcon = {
+        Surface(
+            shape = RoundedCornerShape(Spacing.sm),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .clickable { expanded = !expanded }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Text(
+                    text = selectedCurrency,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = "Select currency",
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            ),
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
-        )
+            }
+        }
 
         ExposedDropdownMenu(
             expanded = expanded,

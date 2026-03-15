@@ -67,7 +67,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.income
 
 @Composable
 fun OnBoardingScreen(
@@ -454,9 +456,10 @@ private fun PermissionsStep(
         Spacer(modifier = Modifier.height(Spacing.xl))
 
         if (uiState.smsPermissionGranted) {
+            val incomeColor = MaterialTheme.colorScheme.income
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -468,13 +471,13 @@ private fun PermissionsStep(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                        tint = incomeColor
                     )
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = "Permissions granted! Tap Continue to proceed.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = incomeColor
                     )
                 }
             }

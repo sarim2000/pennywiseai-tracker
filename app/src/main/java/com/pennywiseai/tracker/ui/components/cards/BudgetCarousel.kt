@@ -50,8 +50,8 @@ fun BudgetCarousel(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 24.dp),
-                pageSpacing = 12.dp
+                contentPadding = PaddingValues(horizontal = Spacing.lg),
+                pageSpacing = Spacing.md
             ) { page ->
                 val pageOffset = (
                     (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
@@ -82,8 +82,8 @@ fun BudgetCarousel(
                     val isActive = pagerState.currentPage == index
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(if (isActive) 8.dp else 6.dp)
+                            .padding(horizontal = Spacing.xs)
+                            .size(if (isActive) Spacing.sm else Spacing.xs)
                             .clip(CircleShape)
                             .background(
                                 if (isActive) MaterialTheme.colorScheme.primary

@@ -61,9 +61,7 @@ fun TransactionTotalsCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.xs)
+            modifier = Modifier.fillMaxWidth()
         ) {
             // Currency Selector (if multiple currencies available)
             if (availableCurrencies.size > 1 && !isUnifiedMode) {
@@ -203,7 +201,7 @@ private fun TotalColumn(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             icon?.invoke()
             Text(

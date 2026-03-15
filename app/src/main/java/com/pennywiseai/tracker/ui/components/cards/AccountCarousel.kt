@@ -170,7 +170,7 @@ private fun AccountCarouselCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 )
             }
         }
@@ -191,7 +191,7 @@ private fun AccountCarouselCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
                     text = if (isAmountHidden) "••••••"
@@ -207,7 +207,7 @@ private fun AccountCarouselCard(
 
                 IconButton(
                     onClick = { isAmountHidden = !isAmountHidden },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(
                         imageVector = if (isAmountHidden) Icons.Outlined.VisibilityOff

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -290,7 +291,7 @@ private fun SplitRow(
         IconButton(
             onClick = onRemove,
             enabled = canRemove,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
                 Icons.Default.Close,

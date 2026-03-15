@@ -154,8 +154,7 @@ fun RulesScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(Dimensions.Padding.content),
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
                             Icon(
@@ -279,8 +278,7 @@ private fun RuleCard(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {

@@ -33,7 +33,6 @@ fun CategoryBreakdownCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Text(
@@ -88,7 +87,7 @@ private fun CategoryBar(
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(vertical = Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Row(

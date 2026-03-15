@@ -61,7 +61,6 @@ import com.pennywiseai.tracker.ui.theme.yellow_light
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.grey_light
 import com.pennywiseai.tracker.ui.theme.grey_dark
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -130,11 +129,11 @@ fun SettingsScreen(
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehaviorLarge = scrollBehaviorSmall
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = modifier,
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(

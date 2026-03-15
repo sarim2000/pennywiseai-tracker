@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
  * A composable that displays a category with a colored dot indicator.
@@ -31,9 +32,9 @@ fun CategoryChip(
         // Colored dot indicator
         CategoryDot(
             color = category.color,
-            modifier = Modifier.padding(end = if (showText) 6.dp else 0.dp)
+            modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
         )
-        
+
         // Category name
         if (showText) {
             Text(
@@ -83,9 +84,9 @@ fun CategoryChip(
         // Colored dot indicator
         CategoryDot(
             color = categoryColor,
-            modifier = Modifier.padding(end = if (showText) 6.dp else 0.dp)
+            modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
         )
-        
+
         // Category name
         if (showText) {
             Text(

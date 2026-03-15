@@ -33,7 +33,6 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.TokenUtils
@@ -74,11 +73,11 @@ fun ChatScreen(
 
     // Scroll behaviors for TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehaviorLarge = scrollBehaviorSmall
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = modifier,
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
@@ -190,6 +189,7 @@ fun ChatScreen(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
                 }
             }
 
@@ -401,8 +401,7 @@ fun ChatScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(Dimensions.Padding.content)
-                                    .padding(bottom = Dimensions.Component.bottomBarHeight),
+                                    .padding(Dimensions.Padding.content),
                                 verticalAlignment = Alignment.Bottom
                             ) {
                                 OutlinedTextField(
@@ -443,6 +442,7 @@ fun ChatScreen(
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
                     }
                 }
             }

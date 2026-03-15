@@ -785,7 +785,7 @@ fun HomeScreen(
 
                 // Join Discord (Middle)
                 MenuListItem(
-                    headline = "Join Discord",
+                    headline = "Join Discord for feedback",
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_discord),

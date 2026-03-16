@@ -40,6 +40,9 @@
 |------|-----------------|---------|
 | **Credit** | `Rs.XXX credited to A/c` | Rs.5000 credited to A/c XX1234 |
 | **Credit** | `A/c XXXX-credited by Rs.XXX` | A/c X9338-credited by Rs.500 |
+| **Credit** | `has credit for MERCHANT of Rs XXX` | has credit for SHOP of Rs 10,000.00 |
+| **Credit** | `has a credit by Cheque of Rs XXX` | has a credit by Cheque of Rs 12,07,000.00 |
+| **Credit** | `Credited INR XXX` | Credited INR 9,000.00 |
 | **Debit** | `Rs.XXX debited from A/c` | Rs.2000 debited from A/c XX1234 |
 | **Debit** | `A/C XXXX debited by XXX` | A/C X9474 debited by 370.0 |
 | **UPI Send** | `trf to MERCHANT` | debited by 100 trf to SHOPKEEPER |
@@ -83,7 +86,10 @@
 | Type | Template Pattern | Example |
 |------|-----------------|---------|
 | **Credit** | `credited by Rs XXX` | PNB A/c XX5678 credited by Rs 3000 |
-| **Debit** | `debited by Rs XXX` | PNB A/c XX5678 debited by Rs 1000 |
+| **Debit** | `Ac XX1234 Debited with Rs.XXX` | Ac XX1234 Debited with Rs.5000.00 |
+| **Debit** | `initial amount of Rs. 2.00 has been debited` | auto pay facility... An initial amount of Rs. 2.00 has been debited |
+| **Mandate** | `UPI-Mandate is successfully created` | Your UPI-Mandate is successfully created towards Google |
+| **Debit** | `debited with Rs.XXX thru card XX1234` | debited with Rs.5000.00 thru card XX9239 |
 | **ATM** | `ATM withdrawal Rs XXX` | ATM withdrawal Rs 2000 from A/c XX5678 |
 
 ### IDFC First Bank
@@ -105,7 +111,7 @@
 | **Axis** | `AXIS`, `AXISBK`, `XX-AXIS-S`, `XX-AXISBK-S` |
 | **Indian Bank** | `INDBNK`, `INDIAN`, `XX-INDBNK-S` (e.g., `AD-INDBNK-S`) |
 | **Federal** | `FEDERA`, `FEDERALBNK`, `XX-FEDERA-S` |
-| **PNB** | `PNB`, `PNBSMS`, `XX-PNB-S` |
+| **PNB** | `PNB`, `PNBSMS`, `XX-PNB-S`, `XX-PNBSMS-S` |
 | **IDBI** | `IDBI`, `IDBIBNK`, `XX-IDBI-S` |
 | **Karnataka** | `KARNBK`, `KARNATAKA`, `XX-KARNBK-S` |
 | **Canara** | `CANBNK`, `CANARA`, `XX-CANBNK-S` |
@@ -128,7 +134,7 @@
 | **SBI** | `Bal: Rs XXX` | Bal: Rs 5000 |
 | **Indian Bank** | `Bal Rs. XXX` | Bal Rs. 50000.00 |
 | **Indian Bank** | `Available Balance: Rs. XXX` | Available Balance: Rs. 25000 |
-| **PNB** | `Bal INR XXX` or `Bal Rs.XXX` | Bal INR 5000.00 |
+| **PNB** | `Aval Bal Rs.XX.XX CR` or `Bal XX.XX CR` | Aval Bal Rs.27000.00 CR |
 | **IDBI** | `Bal Rs XXX` | Bal Rs 3694.38 |
 | **IDFC First** | `New Bal :INR XXX` | New Bal :INR 15000.00 |
 | **Karnataka Bank** | `Balance is Rs.XXX` | Balance is Rs.705.92 |
@@ -160,9 +166,9 @@ These banks rely on the base parser patterns which look for:
 | **Account** | Last 4 digits of account | All banks ✅ |
 | **Merchant** | Merchant/Sender name | All banks ✅ |
 | **Balance** | Available balance after transaction | Most banks (except ICICI) |
-| **Reference** | Transaction reference/ID | Most banks (except Federal, PNB) |
+| **Reference** | Transaction reference/ID | Most banks (except Federal) |
 | **UPI ID** | VPA for UPI transactions | HDFC, SBI, ICICI, Axis, Indian |
-| **Card Number** | Last 4 digits of card | HDFC, ICICI |
+| **Card Number** | Last 4 digits of card | HDFC, ICICI, PNB |
 | **ATM Location** | ATM withdrawal location | HDFC, SBI, Axis, Indian, PNB |
 | **Date/Time** | Transaction timestamp | Parsed from SMS timestamp |
 

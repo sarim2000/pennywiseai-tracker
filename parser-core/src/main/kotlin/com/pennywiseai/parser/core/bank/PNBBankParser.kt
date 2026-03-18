@@ -42,6 +42,20 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
+        // Handle "a/c no XX340 is debited for Rs 7519" pattern
+        val debitedForPattern = Regex(
+            """debited\s+for\s+(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        debitedForPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
         // Handle explicit debit of initial amount in auto-pay messages
         val initialDebitPattern = Regex(
             """initial\s+amount\s+of\s+(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)\s+has\s+been\s+debited""",
@@ -171,6 +185,18 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        // Handle "a/c no XX340" pattern (current message format)
+        val acNoPattern = Regex(
+            """a/c\s+no\s+([X\*]{0,2})(\d{2,4})""",
+            RegexOption.IGNORE_CASE
+        )
+        acNoPattern.find(message)?.let { match ->
+            val xPrefix = match.groupValues[1]
+            val digits = match.groupValues[2]
+            // Combine X prefix with digits
+            return xPrefix + digits
+        }
+
         // Handle variations: Ac, A/c, Card followed by X/dots/spaces and then digits (4 to 16)
         val acPattern = Regex(
             """(?:A/c(?:\s*No\.)?|Ac|Card)\s*(?:[X\*]+)?(\d{4,16})""",
@@ -184,6 +210,15 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
+        // Handle IMPS reference: "IMPS Ref no 606701245043"
+        val impsRefPattern = Regex(
+            """IMPS\s+Ref\s+no\.?\s+([0-9]+)""",
+            RegexOption.IGNORE_CASE
+        )
+        impsRefPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         val neftRefPattern = Regex(
             """ref\s+no\.\s+([A-Z0-9]+)""",
             RegexOption.IGNORE_CASE
@@ -247,6 +282,10 @@ class PNBBankParser : BaseIndianBankParser() {
         }
 
         if (lowerMessage.contains("register for e-statement")) {
+            return true
+        }
+
+        if (lowerMessage.contains("imps") && lowerMessage.contains("debited")) {
             return true
         }
 

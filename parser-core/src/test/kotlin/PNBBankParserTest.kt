@@ -94,6 +94,18 @@ class PNBBankParserTest {
                     accountLast4 = "4356",
                     merchant = "Google"
                 )
+            ),
+            ParserTestCase(
+                name = "IMPS transfer debit message",
+                message = "Your a/c no XX123 is debited for Rs 1000 on 01-01-25 12:00:00 and a/c XX456 credited (IMPS Ref no 123456789012) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1000"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "123",
+                    reference = "123456789012"
+                )
             )
         )
 

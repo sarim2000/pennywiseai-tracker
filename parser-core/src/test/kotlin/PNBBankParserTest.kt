@@ -97,14 +97,55 @@ class PNBBankParserTest {
             ),
             ParserTestCase(
                 name = "IMPS transfer debit message",
-                message = "Your a/c no XX123 is debited for Rs 1000 on 01-01-25 12:00:00 and a/c XX456 credited (IMPS Ref no 123456789012) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
+                message = "Your a/c no XX1234 is debited for Rs 1000 on 01-01-25 12:00:00 and a/c XX456 credited (IMPS Ref no 123456789012) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
                 sender = "VM-PNBSMS-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1000"),
                     currency = "INR",
                     type = TransactionType.EXPENSE,
-                    accountLast4 = "123",
-                    reference = "123456789012"
+                    accountLast4 = "1234",
+                    reference = "123456789012",
+                    merchant = "IMPS Transfer"
+                )
+            ),
+            ParserTestCase(
+                name = "IMPS transfer debit to different account",
+                message = "Your a/c no XX847 is debited for Rs 3200 on 11-07-25 03:14:52 and a/c XX291 credited (IMPS Ref no 712845931206) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3200"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "847",
+                    reference = "712845931206",
+                    merchant = "IMPS Transfer"
+                )
+            ),
+            ParserTestCase(
+                name = "IMPS transfer original message format",
+                message = "Your a/c no XX847 is debited for Rs 6140 on 15-07-25 09:37:44 and a/c XX583 credited (IMPS Ref no 713092476185) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("6140"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "847",
+                    reference = "713092476185",
+                    merchant = "IMPS Transfer"
+                )
+            ),
+            ParserTestCase(
+                name = "UPI credit message with Ref ID",
+                message = "Ac XX7582 Credited with Rs.4750.00 11-07-2025 08:53:21 thru UPI . Aval Bal Rs.82431.67 CR. (UPI Ref ID:714628305917) Helpline 18001800/18002021-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4750.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "7582",
+                    reference = "714628305917",
+                    balance = BigDecimal("82431.67"),
+                    merchant = "UPI Transaction"
                 )
             )
         )

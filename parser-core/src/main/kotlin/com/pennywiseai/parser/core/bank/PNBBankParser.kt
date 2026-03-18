@@ -134,6 +134,11 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Handle IMPS transactions early to avoid base class patterns matching phone numbers
+        if (message.contains("IMPS", ignoreCase = true)) {
+            return "IMPS Transfer"
+        }
+
         // Extract merchant from Auto-Pay activation: from Google Clouds
         val fromMerchantPattern = Regex(
             """auto\s+pay.*?activated.*?from\s+([^.]+?)(?:\s+An\s+initial|\.|$)""",
@@ -158,17 +163,6 @@ class PNBBankParser : BaseIndianBankParser() {
             return "Card ${match.groupValues[1]}"
         }
 
-        val fromPattern = Regex(
-            """From\s+([^/]+)/""",
-            RegexOption.IGNORE_CASE
-        )
-        fromPattern.find(message)?.let { match ->
-            val merchant = cleanMerchantName(match.groupValues[1].trim())
-            if (isValidMerchantName(merchant)) {
-                return merchant
-            }
-        }
-
         if (message.contains("PNB ATM", ignoreCase = true)) {
             return "PNB ATM Withdrawal"
         }
@@ -185,19 +179,16 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Handle "a/c no XX340" pattern (current message format)
+        // Handle "a/c no XX340" or "A/c XX1234" patterns - capture digits only
         val acNoPattern = Regex(
-            """a/c\s+no\s+([X\*]{0,2})(\d{2,4})""",
+            """(?:a/c\s+no|A/c)\s+[X*]+(\d{2,4})""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
-            val xPrefix = match.groupValues[1]
-            val digits = match.groupValues[2]
-            // Combine X prefix with digits
-            return xPrefix + digits
+            return match.groupValues[1]
         }
 
-        // Handle variations: Ac, A/c, Card followed by X/dots/spaces and then digits (4 to 16)
+        // Handle variations: Ac, Card followed by X/dots/spaces and then digits (4 to 16)
         val acPattern = Regex(
             """(?:A/c(?:\s*No\.)?|Ac|Card)\s*(?:[X\*]+)?(\d{4,16})""",
             RegexOption.IGNORE_CASE
@@ -211,12 +202,23 @@ class PNBBankParser : BaseIndianBankParser() {
 
     override fun extractReference(message: String): String? {
         // Handle IMPS reference: "IMPS Ref no 606701245043"
-        val impsRefPattern = Regex(
-            """IMPS\s+Ref\s+no\.?\s+([0-9]+)""",
-            RegexOption.IGNORE_CASE
-        )
-        impsRefPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+        if (message.contains("IMPS", ignoreCase = true)) {
+            // More flexible pattern: IMPS followed by any word then reference number
+            val impsRefPattern = Regex(
+                """IMPS\s+\w*\s*Ref\s*(?:no\.?\s*)?(\d{6,})""",
+                RegexOption.IGNORE_CASE
+            )
+            impsRefPattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
+            // Fallback: find a 12-digit number after IMPS (IMPS refs are 12 digits)
+            val impsFallback = Regex(
+                """IMPS[^0-9]*(\d{12,})""",
+                RegexOption.IGNORE_CASE
+            )
+            impsFallback.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
         }
 
         val neftRefPattern = Regex(
@@ -227,6 +229,16 @@ class PNBBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
+        // Handle UPI Ref ID: "(UPI Ref ID:606379499474)"
+        val upiRefIdPattern = Regex(
+            """UPI\s+Ref\s+ID:?\s*(\d+)""",
+            RegexOption.IGNORE_CASE
+        )
+        upiRefIdPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Handle "UPI: <number>" format
         val upiRefPattern = Regex(
             """UPI:\s*([0-9]+)""",
             RegexOption.IGNORE_CASE
@@ -235,7 +247,9 @@ class PNBBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
-        return super.extractReference(message)
+        // For PNB IMPS messages, do NOT fall back to base class patterns
+        // as they may match "-PNB" at the end of the message
+        return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {

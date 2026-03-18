@@ -155,7 +155,7 @@ ksp {
 }
 
 // Copy changelog from fastlane to generated assets for What's New dialog
-val generatedAssetsDir = layout.buildDirectory.dir("generated/assets/changelog")
+val generatedAssetsDir = File(buildDir, "generated/assets/changelog")
 
 tasks.register<Copy>("copyChangelog") {
     val versionCode = android.defaultConfig.versionCode

@@ -256,7 +256,7 @@ class UserPreferencesRepository @Inject constructor(
 
     val smsScanAllTime: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false
+            preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true
         }
 
     suspend fun updateSmsScanAllTime(allTime: Boolean) {
@@ -267,7 +267,7 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun getSmsScanAllTime(): Boolean {
         return context.dataStore.data
-            .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false }
+            .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true }
             .first()
     }
     
@@ -606,7 +606,7 @@ data class UserPreferences(
     val isDeveloperModeEnabled: Boolean = false,
     val hasShownScanTutorial: Boolean = false,
     val smsScanMonths: Int = 3,
-    val smsScanAllTime: Boolean = false,
+    val smsScanAllTime: Boolean = true,
     val baseCurrency: String = "INR",
     val unifiedCurrencyMode: Boolean = false,
     val displayCurrency: String = "INR",

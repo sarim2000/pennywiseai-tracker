@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.0"
+agp = "9.0.1"
 appUpdate = "2.1.0"
 appUpdateKtx = "2.1.0"
 biometric = "1.1.0"

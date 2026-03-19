@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.screens.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -105,7 +107,21 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
+    var hasNotificationAccess by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val notificationAccessLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        hasNotificationAccess = NotificationManagerCompat
+            .getEnabledListenerPackages(context)
+            .contains(context.packageName)
+    }
+
+    LaunchedEffect(Unit) {
+        hasNotificationAccess = NotificationManagerCompat
+            .getEnabledListenerPackages(context)
+            .contains(context.packageName)
+    }
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -351,6 +367,70 @@ fun SettingsScreen(
                     position = ItemPosition.BOTTOM,
                     trailingText = if (smsScanAllTime) "All Time" else "$smsScanMonths mo"
                 )
+            }
+
+            // ── Notifications ──
+            SectionHeaderV2(title = "Notifications")
+            SettingsGroup {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.md, vertical = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(indigo_light),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Notifications, contentDescription = null, tint = indigo_dark, modifier = Modifier.size(24.dp))
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Bank Notification Access",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Enable to parse bank app notifications when SMS is unavailable.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (hasNotificationAccess) {
+                                AssistChip(
+                                    onClick = {},
+                                    enabled = false,
+                                    label = { Text("Enabled") }
+                                )
+                            }
+                        }
+
+                        if (!hasNotificationAccess) {
+                            Button(
+                                onClick = {
+                                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                    notificationAccessLauncher.launch(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Open Notification Access Settings")
+                            }
+                        }
+                    }
+                }
             }
 
             // ── AI Features ──

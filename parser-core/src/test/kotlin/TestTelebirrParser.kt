@@ -21,14 +21,14 @@ class TelebirrParserTest {
         val testCases = listOf(
             ParserTestCase(
                 name = "Received telebirr transaction",
-                message = "Dear [Name] You have received ETB 1,000.00 from PERSON NME(2519****2078)  on 31/01/2026 16:51:21. Your transaction number is DAV4D0PVWS. Your current E-Money Account balance is ETB 9,719.23. Thank you for using telebirr Ethio telecom",
+                message = "Dear Name You have received ETB 1,000.00 from PERSON NME(2519****2078)  on 31/01/2026 16:51:21. Your transaction number is DAV4D0PVWS. Your current E-Money Account balance is ETB 9,719.23. Thank you for using telebirr Ethio telecom",
                 sender = "127",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1000.00"),
                     currency = "ETB",
                     type = TransactionType.INCOME,
                     merchant = "PERSON NME (2519****2078)",
-                    accountLast4 = "[Name]",
+                    accountLast4 = "Name",
                     balance = BigDecimal("9719.23"),
                     reference = "DAV4D0PVWS"
                 )
@@ -143,6 +143,20 @@ class TelebirrParserTest {
                     accountLast4 = "[Name]",
                     balance = BigDecimal("1841.23"),
                     reference = "DB69IPQY2T"
+                )
+            ),
+            ParserTestCase(
+                name = "fuel payment expense transaction",
+                message = "Dear NAME You have paid ETB 2,560.00 for fuel purchased from 555552 - JOHN SMITH NAME for plate number  3AA33 on 17/03/2026 08:20:45. Your transaction number is  DCH7UPHXGG. Your current balance is ETB 112.52. To download your payment information please click this link: https://transactioninfo.ethiotelecom.et/receipt/DCH7UPHXGG You can also use telebirr to pay traffic fines, electricity, water, DSTV, CANAL+ and other payments. Thank you for using telebirr Ethio telecom",
+                sender = "127",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2560.00"),
+                    currency = "ETB",
+                    type = TransactionType.EXPENSE,
+                    merchant = "for fuel purchased from 555552 - JOHN SMITH NAME for plate number  3AA33",
+                    accountLast4 = "NAME",
+                    balance = BigDecimal("112.52"),
+                    reference = "DCH7UPHXGG"
                 )
             ),
         )

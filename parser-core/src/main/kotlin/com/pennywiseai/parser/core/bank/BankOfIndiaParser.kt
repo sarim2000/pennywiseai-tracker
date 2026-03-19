@@ -163,6 +163,18 @@ class BankOfIndiaParser : BaseIndianBankParser() {
             }
         }
 
+        // Pattern for NEFT inward: "By NEFTINWARD ref/MERCHANT_NAME"
+        val neftInwardPattern = Regex(
+            """By\s+NEFTINWARD\s+[^/]+/(.+?)(?:\s*\.Avl|\s*\.|-BOI|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        neftInwardPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 1: "credited to MERCHANT via UPI" (for debits)
         val creditedToPattern = Regex(
             """credited\s+to\s+([^.\n]+?)(?:\s+via|\s+Ref|\s+on|$)""",

@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
@@ -60,19 +61,18 @@ class JupiterBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // For Jupiter/CSB credit card transactions, the merchant info is usually not in the message
-        // These are typically just marked as credit card transactions
+        return super.extractMerchant(message, sender)
+    }
 
+    override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
-        // Check for specific transaction types
-        return when {
-            lowerMessage.contains("edge csb bank rupay credit card") -> "Credit Card Payment"
-            lowerMessage.contains("jupiter csb edge") -> "Credit Card Payment"
-            lowerMessage.contains("credit card") -> "Credit Card Payment"
-            lowerMessage.contains("upi") -> "UPI Transaction"
-            else -> super.extractMerchant(message, sender) ?: "Jupiter Transaction"
+        if (lowerMessage.contains("credit card") &&
+            (lowerMessage.contains("debited") || lowerMessage.contains("spent") || lowerMessage.contains("charged"))) {
+            return TransactionType.CREDIT
         }
+
+        return super.extractTransactionType(message)
     }
 
     override fun extractAccountLast4(message: String): String? {

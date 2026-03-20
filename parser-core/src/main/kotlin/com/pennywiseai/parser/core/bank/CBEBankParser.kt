@@ -89,9 +89,10 @@ class CBEBankParser : BankParser() {
             }
         }
 
-        // Pattern 1: "from Be***" (credit transaction), but avoid matching "from your account".
-        val fromPattern = Regex("""from\s+(?!your\s+account\b)([^,\s]+\*{0,3}[^,\s]*)""", RegexOption.IGNORE_CASE)
-        fromPattern.find(message)?.let { match ->
+        // Pattern 1: "from Salary Payment, on 15/09/2025" — merchant can be multiple words before ", on" + date.
+        val fromCreditWithDatePattern =
+            Regex("""from\s+(?!your\s+account\b)(.+?), on\s+\d{2}/\d{2}/\d{4}""", RegexOption.IGNORE_CASE)
+        fromCreditWithDatePattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) {
                 return cleanMerchantName(merchant.replace("*", ""))

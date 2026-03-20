@@ -66,7 +66,7 @@ class CBEBankParserTest {
                     amount = BigDecimal("5000.00"),
                     currency = "ETB",
                     type = TransactionType.INCOME,
-                    merchant = "Salary",
+                    merchant = "Salary Payment",
                     accountLast4 = "1234",
                     balance = BigDecimal("8000.00"),
                     reference = "ABC123456"
@@ -80,7 +80,7 @@ class CBEBankParserTest {
                     amount = BigDecimal("125500.50"),
                     currency = "ETB",
                     type = TransactionType.INCOME,
-                    merchant = "Business",
+                    merchant = "Business Payment",
                     accountLast4 = "5678",
                     balance = BigDecimal("130000.75")
                 )
@@ -99,7 +99,7 @@ class CBEBankParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Large amount credit",
+                name = "Large amount debit",
                 message = "Dear Name your Account 1*********2222 has been debited with ETB10,000.00. Service charge of  ETB 10.00 and VAT(15%) of ETB1.50 and Disaster Fund (5%) of ETB0.50 with a total of ETB 10012.00. Your Current Balance is ETB 10,215.54. Thank you for Banking with CBE! https://apps.cbe.com.et:100/?id=FT260708LN6D7462222",
                 sender = "CBE",
                 expected = ExpectedTransaction(

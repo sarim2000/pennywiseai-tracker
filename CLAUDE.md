@@ -87,8 +87,9 @@ Bank parsers are now in the `parser-core` module for reusability across platform
 - Use `com.pennywiseai.tracker.data.mapper.toEntity()` to convert ParsedTransaction to TransactionEntity
 - The mapper handles type conversions between modules
 
-## Supported Banks (48 parsers)
+## Supported Banks (51 parsers)
 - Airtel Payments Bank
+- **Al Rajhi Bank (Saudi Arabia)** - Arabic SMS support
 - **Alinma Bank (Saudi Arabia)** - Arabic SMS support
 - American Express (AMEX)
 - Axis Bank
@@ -120,6 +121,7 @@ Bank parsers are now in the `parser-core` module for reusability across platform
 - LazyPay
 - **Liv Bank (UAE)** - Digital bank
 - Mashreq Bank
+- **mBank CZ (Czech Republic)** - Czech SMS support
 - **M-PESA (Kenya)** - Mobile money service
 - **Navy Federal Credit Union (USA)** - NFCU
 - **NMB Bank / Nabil Bank (Nepal)**

@@ -121,7 +121,7 @@ class PennyWiseSharedFacade {
         val shared: PennyWiseSharedFacade by lazy { PennyWiseSharedFacade() }
     }
 
-    private val graph by lazy { SharedDataGraph.getInstance() }
+    private val graph by lazy { SharedDataGraph.instance }
     private val createUseCase by lazy { CreateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
     private val updateUseCase by lazy { UpdateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
     private val importStatementUseCase by lazy { ImportStatementUseCase(graph.transactionRepository, graph.accountRepository) }

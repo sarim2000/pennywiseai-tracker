@@ -44,9 +44,7 @@ class SharedDataGraph private constructor(
     }
 
     companion object {
-        private val instance: SharedDataGraph by lazy { create() }
-
-        fun getInstance(): SharedDataGraph = instance
+        val instance: SharedDataGraph by lazy { create() }
 
         fun create(factory: SharedDatabaseFactory = SharedDatabaseFactory()): SharedDataGraph {
             val database = factory.createDatabase()

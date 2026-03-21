@@ -372,65 +372,19 @@ fun SettingsScreen(
             // ── Notifications ──
             SectionHeaderV2(title = "Notifications")
             SettingsGroup {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.md, vertical = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(indigo_light),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Notifications, contentDescription = null, tint = indigo_dark, modifier = Modifier.size(24.dp))
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Bank Notification Access",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Enable to parse bank app notifications when SMS is unavailable.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (hasNotificationAccess) {
-                                AssistChip(
-                                    onClick = {},
-                                    enabled = false,
-                                    label = { Text("Enabled") }
-                                )
-                            }
-                        }
-
-                        if (!hasNotificationAccess) {
-                            Button(
-                                onClick = {
-                                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                                    notificationAccessLauncher.launch(intent)
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Open Notification Access Settings")
-                            }
-                        }
-                    }
-                }
+                SettingsNavItem(
+                    icon = Icons.Default.Notifications,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Bank Notification Access",
+                    subtitle = if (hasNotificationAccess) "Enabled" else "Tap to enable bank app notifications",
+                    onClick = {
+                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        notificationAccessLauncher.launch(intent)
+                    },
+                    position = ItemPosition.SINGLE,
+                    trailingText = if (hasNotificationAccess) "On" else "Off"
+                )
             }
 
             // ── AI Features ──

@@ -41,6 +41,19 @@ class AUBankParserTest {
                     accountLast4 = "7890",
                     balance = BigDecimal("10000.00")
                 )
+            ),
+            ParserTestCase(
+                name = "Credit card spend",
+                message = "INR 259.90 spent at TELEGRAM PREMIUM on AU Bank Credit Card x1234 21-03-2026 05:49:40 PM. Not you? Call 180012001500 or SMS PBLOCK 1234 to 5676767",
+                sender = "VM-AUBANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("259.90"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "TELEGRAM PREMIUM",
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
             )
         )
 

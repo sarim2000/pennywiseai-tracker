@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.repository.BankNotificationRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.worker.BankNotificationRetryWorker
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -116,6 +117,7 @@ class BankNotificationListenerService : NotificationListenerService() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to process bank notification", e)
+                BankNotificationRetryWorker.enqueue(applicationContext)
             }
         }
     }

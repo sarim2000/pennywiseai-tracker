@@ -25,7 +25,10 @@ class BankNotificationRepository @Inject constructor(
             ZoneId.systemDefault()
         )
 
-        val messageHash = hash("$packageName|$senderAlias|$messageBody")
+        // Bucket timestamp to the nearest minute so identical recurring
+        // notifications at different times produce distinct hashes.
+        val timeBucket = postedAtMillis / 60_000
+        val messageHash = hash("$packageName|$senderAlias|$timeBucket|$messageBody")
 
         val entity = BankNotificationEntity(
             packageName = packageName,

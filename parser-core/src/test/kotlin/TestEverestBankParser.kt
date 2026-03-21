@@ -93,6 +93,30 @@ class EverestBankParserTest {
                     merchant = "E-commerce",
                     accountLast4 = "5566"
                 )
+            ),
+            ParserTestCase(
+                name = "ATM withdrawal via EBL_ALERT",
+                message = "Dear Customer, Your A/c ###439 is debited by NPR 4,000.00 For: CWDR/606308002664/202603040849. Never Share Password/OTP With Anyone",
+                sender = "EBL_ALERT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4000.00"),
+                    currency = "NPR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ATM Withdrawal",
+                    accountLast4 = "439"
+                )
+            ),
+            ParserTestCase(
+                name = "Fonepay IBFT credit via EBL_ALERT",
+                message = "Dear Customer, Your A/c ###439 is credited by NPR 1,000.00 For: FPY:IBFT:1354024319:5245:EVBLN. Never Share Password/OTP With Anyone",
+                sender = "EBL_ALERT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1000.00"),
+                    currency = "NPR",
+                    type = TransactionType.INCOME,
+                    merchant = "Fonepay IBFT",
+                    accountLast4 = "439"
+                )
             )
         )
 
@@ -101,6 +125,7 @@ class EverestBankParserTest {
             "UJJ SH" to true,
             "CWRD" to true,
             "EVEREST" to true,
+            "EBL_ALERT" to true,
             "UNKNOWN" to false
         )
 

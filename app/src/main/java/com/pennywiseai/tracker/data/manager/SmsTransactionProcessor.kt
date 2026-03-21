@@ -240,7 +240,7 @@ class SmsTransactionProcessor @Inject constructor(
                 when {
                     card.cardType == CardType.CREDIT -> parsedTransaction.accountLast4
                     card.cardType == CardType.DEBIT && card.accountLast4 != null -> card.accountLast4
-                    else -> null
+                    else -> parsedTransaction.accountLast4
                 }
             }
         } else {

@@ -205,15 +205,19 @@ class ManageAccountsViewModel @Inject constructor(
     
     fun updateAccountBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
         viewModelScope.launch {
-            // Get the latest balance to preserve credit limit
+            // Get the latest balance to preserve existing account properties
             val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
-            
+
             accountBalanceRepository.insertBalance(
                 AccountBalanceEntity(
                     bankName = bankName,
                     accountLast4 = accountLast4,
                     balance = newBalance,
                     creditLimit = latestBalance?.creditLimit,
+                    isCreditCard = latestBalance?.isCreditCard ?: false,
+                    currency = latestBalance?.currency ?: "INR",
+                    accountType = latestBalance?.accountType,
+                    sourceType = "MANUAL",
                     timestamp = LocalDateTime.now()
                 )
             )

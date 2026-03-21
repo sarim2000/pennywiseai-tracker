@@ -11,8 +11,8 @@ import android.app.Notification
 object BankNotificationConfig {
 
     private val allowedPackages: Map<String, String> = mapOf(
-        // Faysal Bank (Pakistan)
-        "com.avanza.ambitwizfbl" to "com.avanza.ambitwizfbl"
+        // Faysal Bank (Pakistan) – alias must match FaysalBankParser.canHandle()
+        "com.avanza.ambitwizfbl" to "FaysalBank"
     )
 
     fun isAllowed(packageName: String): Boolean =

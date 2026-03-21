@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.budget_danger_dark
 import com.pennywiseai.tracker.ui.theme.budget_danger_light
@@ -99,8 +100,7 @@ fun BudgetCard(
 
     PennyWiseCardV2(
         modifier = modifier,
-        onClick = onClick,
-        contentPadding = Spacing.md
+        onClick = onClick
     ) {
         // Header: Budget name + status dot
         Row(
@@ -122,7 +122,7 @@ fun BudgetCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Canvas(modifier = Modifier.size(8.dp)) {
                     drawCircle(color = progressColor)
@@ -239,7 +239,7 @@ fun BudgetCard(
             // Center text inside the arc
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = Spacing.sm)
             ) {
                 Text(
                     text = CurrencyFormatter.formatCurrency(remaining, currency),
@@ -292,7 +292,7 @@ fun BudgetCard(
 
             VerticalDivider(
                 modifier = Modifier
-                    .height(32.dp)
+                    .height(Dimensions.Component.minTouchTarget)
                     .padding(horizontal = Spacing.xs),
                 color = MaterialTheme.colorScheme.outlineVariant
             )

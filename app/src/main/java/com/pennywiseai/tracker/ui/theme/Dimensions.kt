@@ -38,6 +38,7 @@ object Dimensions {
     object Icon {
         val small = 16.dp
         val medium = 24.dp
+        val list = 40.dp        // List item leading visuals (Material 3 standard)
         val large = 44.dp
         val extraLarge = 120.dp  // For empty states
     }

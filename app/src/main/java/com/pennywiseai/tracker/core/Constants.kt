@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.core
 
+import com.pennywiseai.tracker.BuildConfig
+
 /**
  * Application-wide constants to avoid hardcoded values
  */
@@ -69,11 +71,11 @@ object Constants {
      * LLM Model Configuration
      */
     object ModelDownload {
-        const val MODEL_URL = "https://d3q489kjw0f759.cloudfront.net/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.task"
-        const val MODEL_FILE_NAME = "qwen2.5-1.5b-instruct.task"
-        const val MODEL_SIZE_MB = 1536L // 1536 MB
-        const val MODEL_SIZE_BYTES = 1_610_613_760L // 1536 MB in bytes
-        const val REQUIRED_SPACE_BYTES = 2_013_771_776L // ~2GB (2x model size for safety)
+        val MODEL_URL: String get() = BuildConfig.MODEL_URL
+        const val MODEL_FILE_NAME = "gemma3-1b-it-q4.task"
+        const val MODEL_SIZE_MB = 529L // 529 MB
+        const val MODEL_SIZE_BYTES = 554_661_246L // 529 MB in bytes
+        const val REQUIRED_SPACE_BYTES = 1_109_322_492L // ~1.0GB (2x model size for safety)
     }
 
     /**

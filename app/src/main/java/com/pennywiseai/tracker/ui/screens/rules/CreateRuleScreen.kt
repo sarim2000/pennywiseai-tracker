@@ -321,7 +321,7 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 conditions = conditions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,

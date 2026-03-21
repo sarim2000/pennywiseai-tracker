@@ -105,7 +105,7 @@ fun TransactionItem(
             BrandIcon(
                 merchantName = transaction.merchantName,
                 modifier = iconModifier,
-                size = 42.dp,
+                size = Dimensions.Icon.list,
                 showBackground = true
             )
         },

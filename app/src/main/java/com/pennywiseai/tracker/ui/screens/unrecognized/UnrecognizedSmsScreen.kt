@@ -82,7 +82,6 @@ fun UnrecognizedSmsScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(Dimensions.Padding.content),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Row(
@@ -257,7 +256,6 @@ private fun UnrecognizedSmsItem(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             // Header with sender and date

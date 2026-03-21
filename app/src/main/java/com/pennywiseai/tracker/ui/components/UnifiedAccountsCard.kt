@@ -37,9 +37,7 @@ fun UnifiedAccountsCard(
     PennyWiseCard(
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.content)
-        ) {
+        Column {
             // Header
             Text(
                 text = "Accounts Overview",

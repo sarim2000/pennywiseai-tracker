@@ -256,9 +256,15 @@ class SettingsViewModel @Inject constructor(
                 return@launch
             }
             
+            // Clean up any stale partial file — DownloadManager stays PENDING if destination exists
+            val existingFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
+            if (existingFile.exists()) {
+                existingFile.delete()
+            }
+
             // Create download request
             val request = DownloadManager.Request(Uri.parse(Constants.ModelDownload.MODEL_URL))
-                .setTitle("Qwen 2.5 Chat Model")
+                .setTitle("Gemma 3 Chat Model")
                 .setDescription("Downloading AI chat assistant for PennyWise")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
@@ -293,13 +299,13 @@ class SettingsViewModel @Inject constructor(
                     
                     if (bytesColumnIndex != -1 && totalBytesColumnIndex != -1) {
                         val bytesDownloaded = cursor.getLong(bytesColumnIndex)
-                        val bytesTotal = cursor.getLong(totalBytesColumnIndex)
-                        
-                        // Calculate progress
-                        val progress = if (bytesTotal > 0) {
-                            (bytesDownloaded * 100 / bytesTotal).toInt()
-                        } else 0
-                        
+                        val rawBytesTotal = cursor.getLong(totalBytesColumnIndex)
+
+                        // Fallback to known model size when DownloadManager reports 0
+                        val bytesTotal = if (rawBytesTotal > 0) rawBytesTotal else Constants.ModelDownload.MODEL_SIZE_BYTES
+
+                        val progress = (bytesDownloaded * 100 / bytesTotal).toInt()
+
                         _downloadProgress.value = progress
                         _downloadedMB.value = bytesDownloaded / (1024 * 1024)
                         _totalMB.value = bytesTotal / (1024 * 1024)

@@ -72,6 +72,7 @@ fun BalanceCard(
     balanceHistory: List<BigDecimal>,
     spendingHistory: List<BigDecimal> = emptyList(),
     lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
+    lastMonthSpending: BigDecimal = BigDecimal.ZERO,
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean = false,
     onCurrencyClick: () -> Unit,
@@ -102,8 +103,8 @@ fun BalanceCard(
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
-    val changeSign = if (isPositive) "+" else ""
-    val changeText = "$changeSign${CurrencyFormatter.formatCurrency(monthlyChange, currency)} ($monthlyChangePercent%)"
+    val absPercent = kotlin.math.abs(monthlyChangePercent)
+    val changeText = if (isPositive) "$absPercent% more vs last month" else "$absPercent% less vs last month"
 
     Box(modifier = modifier.fillMaxWidth()) {
         PennyWiseCardV2(
@@ -154,7 +155,7 @@ fun BalanceCard(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -170,13 +171,13 @@ fun BalanceCard(
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onToggleBalanceVisibility()
                                 },
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                             ) {
                                 Icon(
                                     imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                             }
                         }
@@ -205,7 +206,7 @@ fun BalanceCard(
                                             vertical = Spacing.xs
                                         ),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                     ) {
                                         Text(
                                             text = currency,
@@ -217,7 +218,7 @@ fun BalanceCard(
                                             imageVector = Icons.Default.KeyboardArrowDown,
                                             contentDescription = "Change currency",
                                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                     }
                                 }
@@ -251,7 +252,7 @@ fun BalanceCard(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
 
                         // Spending at top as hero
                         Row(
@@ -269,16 +270,23 @@ fun BalanceCard(
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onToggleBalanceVisibility()
                                 },
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                             ) {
                                 Icon(
                                     imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                             }
                         }
+
+                        // Last month subtitle
+                        Text(
+                            text = if (isBalanceHidden) "Last month: ••••" else "Last month: ${CurrencyFormatter.formatCurrency(lastMonthSpending, currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
 
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -316,7 +324,7 @@ fun BalanceCard(
                                             imageVector = Icons.Default.KeyboardArrowDown,
                                             contentDescription = "Change currency",
                                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                     }
                                 }
@@ -364,10 +372,10 @@ fun BalanceCard(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(8.dp)
+                                            .size(Spacing.sm)
                                             .background(expenseColor, CircleShape)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
                                         text = "This month",
                                         style = MaterialTheme.typography.labelSmall,
@@ -383,7 +391,7 @@ fun BalanceCard(
                                                 RoundedCornerShape(1.dp)
                                             )
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
                                         text = "Last month",
                                         style = MaterialTheme.typography.labelSmall,
@@ -448,7 +456,7 @@ fun BalanceCard(
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(Dimensions.Icon.small)
                         .rotate(chevronRotation)
                 )
             }
@@ -466,8 +474,8 @@ private fun SummaryItem(
         // Colored left-border accent bar
         Box(
             modifier = Modifier
-                .width(3.dp)
-                .height(36.dp)
+                .width(Spacing.xs)
+                .height(40.dp)
                 .background(
                     color = accentColor,
                     shape = RoundedCornerShape(Dimensions.CornerRadius.small)

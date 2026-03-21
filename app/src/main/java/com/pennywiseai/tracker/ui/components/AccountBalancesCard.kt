@@ -55,9 +55,7 @@ fun AccountBalancesCard(
     PennyWiseCard(
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.content)
-        ) {
+        Column {
             // Total balance - prominent but minimal
             Text(
                 text = CurrencyFormatter.formatCurrency(totalBalance),

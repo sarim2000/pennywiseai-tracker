@@ -21,8 +21,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 83
-        versionName = "2.15.48"
+        versionCode = 84
+        versionName = "2.15.49"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -34,9 +34,13 @@ android {
             
             val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
+
+            val modelUrl = localProperties.getProperty("MODEL_URL", "")
+            buildConfigField("String", "MODEL_URL", "\"$modelUrl\"")
         } else {
             // Fallback empty key for CI/CD builds
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
+            buildConfigField("String", "MODEL_URL", "\"\"")
         }
     }
 

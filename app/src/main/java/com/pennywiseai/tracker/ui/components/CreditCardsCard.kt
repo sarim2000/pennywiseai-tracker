@@ -49,9 +49,7 @@ fun CreditCardsCard(
     PennyWiseCard(
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.content)
-        ) {
+        Column {
             // Header with icon
             Row(
                 verticalAlignment = Alignment.CenterVertically,

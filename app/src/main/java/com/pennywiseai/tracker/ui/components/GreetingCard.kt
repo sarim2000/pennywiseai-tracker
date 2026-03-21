@@ -30,6 +30,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import coil.compose.AsyncImage
 import java.time.LocalDate
 import java.time.LocalTime
@@ -74,7 +76,7 @@ fun GreetingCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Profile Avatar
@@ -120,7 +122,7 @@ fun GreetingCard(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
 
         // Text Column
         Column(

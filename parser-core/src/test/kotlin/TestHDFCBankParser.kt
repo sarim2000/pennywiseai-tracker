@@ -28,6 +28,14 @@ T&C. Ignore if paid""",
                 shouldParse = false
             ),
 
+            // NACH Mandate processing notification - should NOT parse as transaction
+            ParserTestCase(
+                name = "NACH Mandate Received for Processing - Should Not Parse",
+                message = "Auto Pay HDFC Bank NACH Mandate : Rs. 100000.00 UMRN:HDFC7031703262015557 To:NationalSecuritiesClearin Freq ADHO received today for processing.",
+                sender = "VM-HDFCBK-S",
+                shouldParse = false
+            ),
+
             // Actual transaction examples that SHOULD parse
             ParserTestCase(
                 name = "UPI Debit Transaction",
@@ -65,8 +73,7 @@ T&C. Ignore if paid""",
             "" to false
         )
 
-        val result =
-            return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
+        return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
 
     }
 }

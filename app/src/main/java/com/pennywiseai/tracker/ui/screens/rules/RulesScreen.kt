@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
+import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -43,6 +44,7 @@ fun RulesScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val batchApplyProgress by viewModel.batchApplyProgress.collectAsStateWithLifecycle()
     val batchApplyResult by viewModel.batchApplyResult.collectAsStateWithLifecycle()
+    val dryRunResult by viewModel.dryRunResult.collectAsStateWithLifecycle()
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
@@ -248,10 +250,15 @@ fun RulesScreen(
             rule = selectedRuleForBatch!!,
             progress = batchApplyProgress,
             result = batchApplyResult,
+            dryRunResult = dryRunResult,
+            isLoading = isLoading,
             onDismiss = {
                 showBatchApplyDialog = false
                 selectedRuleForBatch = null
                 viewModel.clearBatchApplyResult()
+            },
+            onPreview = {
+                viewModel.previewRule(selectedRuleForBatch!!)
             },
             onApplyToAll = {
                 viewModel.applyRuleToPastTransactions(selectedRuleForBatch!!, applyToUncategorizedOnly = false)
@@ -452,144 +459,263 @@ private fun BatchApplyDialog(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
     progress: Pair<Int, Int>?,
     result: BatchApplyResult?,
+    dryRunResult: DryRunResult?,
+    isLoading: Boolean,
     onDismiss: () -> Unit,
+    onPreview: () -> Unit,
     onApplyToAll: () -> Unit,
     onApplyToUncategorized: () -> Unit
 ) {
+    val title = when {
+        progress != null -> "Applying Rule..."
+        isLoading && dryRunResult == null -> "Previewing..."
+        dryRunResult != null && result == null -> "Preview: ${rule.name}"
+        result != null -> "Apply Rule to Past Transactions"
+        else -> "Apply Rule to Past Transactions"
+    }
+
     AlertDialog(
         onDismissRequest = {
-            if (progress == null) {
+            if (progress == null && !isLoading) {
                 onDismiss()
             }
         },
-        title = {
-            Text(
-                text = if (progress != null) "Applying Rule..." else "Apply Rule to Past Transactions"
-            )
-        },
+        title = { Text(text = title) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                if (progress == null && result == null) {
-                    // Initial state - show options
-                    Text(
-                        text = "Apply \"${rule.name}\" to existing transactions?",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                when {
+                    // Loading preview
+                    isLoading && dryRunResult == null && progress == null && result == null -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            Text("Scanning transactions...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    // Preview result (dry run) — before actual apply
+                    dryRunResult != null && result == null && progress == null -> {
+                        if (dryRunResult.totalMatched == 0) {
+                            Text(
+                                text = "No transactions match this rule (scanned ${dryRunResult.totalScanned}).",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        } else {
+                            Text(
+                                text = "Scanned ${dryRunResult.totalScanned} transactions:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${dryRunResult.totalWouldUpdate} would be updated",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            if (dryRunResult.totalWouldBlock > 0) {
+                                Text(
+                                    text = "${dryRunResult.totalWouldBlock} would be blocked",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
 
-                    Text(
-                        text = "Choose how to apply this rule:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                            if (dryRunResult.samples.isNotEmpty()) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
+                                Text(
+                                    text = "Sample changes:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                dryRunResult.samples.take(5).forEach { diff ->
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (diff.isBlock)
+                                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    ) {
+                                        Column(modifier = Modifier.padding(Spacing.sm)) {
+                                            val orig = diff.original
+                                            Text(
+                                                text = "${orig.merchantName} - ${orig.amount}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            if (diff.isBlock) {
+                                                Text(
+                                                    text = "Would be blocked",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            } else if (diff.modified != null) {
+                                                val mod = diff.modified
+                                                if (orig.category != mod.category) {
+                                                    Text(
+                                                        text = "Category: ${orig.category} \u2192 ${mod.category}",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                                if (orig.merchantName != mod.merchantName) {
+                                                    Text(
+                                                        text = "Merchant: ${orig.merchantName} \u2192 ${mod.merchantName}",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                                if (orig.transactionType != mod.transactionType) {
+                                                    Text(
+                                                        text = "Type: ${orig.transactionType} \u2192 ${mod.transactionType}",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                                if (orig.description != mod.description) {
+                                                    Text(
+                                                        text = "Description: ${orig.description ?: "(none)"} \u2192 ${mod.description ?: "(none)"}",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (dryRunResult.totalMatched > 5) {
+                                    Text(
+                                        text = "...and ${dryRunResult.totalMatched - 5} more",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-
-                    Text(
-                        text = "• All - Apply to every transaction",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "• Uncategorized - Skip already categorized transactions (Recommended)",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                } else if (progress != null) {
-                    // Processing state - show progress
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth()
+                    // Initial state — show options with preview button
+                    progress == null && result == null -> {
+                        Text(
+                            text = "Apply \"${rule.name}\" to existing transactions?",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Processing ${progress.first} of ${progress.second} transactions",
-                            style = MaterialTheme.typography.bodySmall
+                            text = "Use Preview to see what would change before applying.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                } else if (result != null) {
-                    // Result state - show summary
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
+
+                    // Processing state
+                    progress != null -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            Icon(
-                                if (result.errors.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = if (result.errors.isEmpty())
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.error
-                            )
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
-                                text = "Completed",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
+                                text = "Processing ${progress.first} of ${progress.second} transactions",
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
+                    }
 
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = Spacing.sm)
-                        )
+                    // Result state
+                    result != null -> {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (result.errors.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (result.errors.isEmpty())
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Completed",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
 
-                        Text(
-                            text = "Transactions processed: ${result.totalProcessed}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Transactions updated: ${result.totalUpdated}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
 
-                        if (result.totalDeleted > 0) {
                             Text(
-                                text = "Transactions blocked (soft deleted): ${result.totalDeleted}",
+                                text = "Transactions processed: ${result.totalProcessed}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = "Transactions updated: ${result.totalUpdated}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
-                        }
-
-                        if (result.errors.isNotEmpty()) {
-                            Text(
-                                text = "Errors: ${result.errors.size}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            if (result.totalDeleted > 0) {
+                                Text(
+                                    text = "Transactions blocked: ${result.totalDeleted}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            if (result.errors.isNotEmpty()) {
+                                Text(
+                                    text = "Errors: ${result.errors.size}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            if (progress == null && result == null) {
-                // Show action buttons using FlowRow for better responsive layout
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                    TextButton(onClick = onApplyToUncategorized) {
-                        Text("Uncategorized")
-                    }
-                    TextButton(onClick = onApplyToAll) {
-                        Text("All")
+            when {
+                // Loading — no buttons
+                isLoading -> {}
+
+                // Preview result — show Apply or Cancel
+                dryRunResult != null && result == null && progress == null -> {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = onDismiss) { Text("Cancel") }
+                        if (dryRunResult.totalMatched > 0) {
+                            TextButton(onClick = onApplyToUncategorized) { Text("Uncategorized") }
+                            TextButton(onClick = onApplyToAll) { Text("Apply All") }
+                        }
                     }
                 }
-            } else if (result != null) {
-                // Done - show close button
-                TextButton(onClick = onDismiss) {
-                    Text("Close")
+
+                // Initial state — show Preview + direct apply buttons
+                progress == null && result == null -> {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = onDismiss) { Text("Cancel") }
+                        OutlinedButton(onClick = onPreview) {
+                            Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Preview")
+                        }
+                    }
+                }
+
+                // Done — close button
+                result != null -> {
+                    TextButton(onClick = onDismiss) { Text("Close") }
                 }
             }
         }

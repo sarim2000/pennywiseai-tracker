@@ -171,6 +171,17 @@ class ICICIBankParserTest {
                     accountLast4 = "771",
                     balance = BigDecimal("3943.84")
                 )
+            ),
+            ParserTestCase(
+                name = "NEFT credited to beneficiary is EXPENSE",
+                message = "ICICI BANK NEFT Transaction with reference number IN12603221231681 for Rs. 22050.00 has been credited to the beneficiary account on 01-02-2026 at 10:32:51",
+                sender = "JD-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("22050.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "NEFT Transfer"
+                )
             )
         )
 

@@ -521,7 +521,7 @@ class ICICIBankParser : BaseIndianBankParser() {
         if (lowerMessage.contains("credited to the beneficiary") ||
             lowerMessage.contains("credited to beneficiary")
         ) {
-            return TransactionType.TRANSFER
+            return TransactionType.EXPENSE
         }
 
         // Credit card transactions - both "ICICI Bank Credit Card" and "ICICI Bank Card" with spent

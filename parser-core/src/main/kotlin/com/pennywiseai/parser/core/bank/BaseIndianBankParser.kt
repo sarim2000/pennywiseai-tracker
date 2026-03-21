@@ -3,8 +3,8 @@ package com.pennywiseai.parser.core.bank
 import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.MandateInfo
 import com.pennywiseai.parser.core.TransactionType
+import kotlinx.datetime.LocalDateTime
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
 /**
  * Base abstract class for Indian bank parsers.

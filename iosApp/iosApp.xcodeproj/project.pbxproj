@@ -1,0 +1,710 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A20B8F7B2D39B001007A8A11 /* iosAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20B8F7B2D39B001007A8A11 /* iosAppApp.swift */; };
+		A30B8F7B2D39B001007A8A11 /* Shared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B50B8F7B2D39B001007A8A11 /* Shared.framework */; };
+		AA0001002D39B001007A8A11 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001002D39B001007A8A11 /* MainTabView.swift */; };
+		AA0002002D39B001007A8A11 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002002D39B001007A8A11 /* HomeScreen.swift */; };
+		KK0008002D39B001007A8A11 /* AnalyticsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */; };
+		KK0009002D39B001007A8A11 /* AnalyticsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */; };
+		KK0010002D39B001007A8A11 /* SpendingTrendsChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */; };
+		KK0011002D39B001007A8A11 /* CategoryPieChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0004002D39B001007A8A11 /* CategoryPieChart.swift */; };
+		KK0012002D39B001007A8A11 /* CategoryBreakdownList.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */; };
+		KK0013002D39B001007A8A11 /* TopMerchantsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0006002D39B001007A8A11 /* TopMerchantsList.swift */; };
+		KK0014002D39B001007A8A11 /* AnalyticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */; };
+		AA0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */; };
+		AA0006002D39B001007A8A11 /* TransactionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0006002D39B001007A8A11 /* TransactionRow.swift */; };
+		AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0007002D39B001007A8A11 /* CategoryChip.swift */; };
+		AA0008002D39B001007A8A11 /* AmountText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0008002D39B001007A8A11 /* AmountText.swift */; };
+		AA0009002D39B001007A8A11 /* StatPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0009002D39B001007A8A11 /* StatPill.swift */; };
+		AA0010002D39B001007A8A11 /* TransactionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */; };
+		AA0011002D39B001007A8A11 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0011002D39B001007A8A11 /* HomeViewModel.swift */; };
+		AA0012002D39B001007A8A11 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0012002D39B001007A8A11 /* DateFormatting.swift */; };
+		AA0013002D39B001007A8A11 /* AmountFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0013002D39B001007A8A11 /* AmountFormatting.swift */; };
+		AA0020002D39B001007A8A11 /* SpendingSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */; };
+		DD0014002D39B001007A8A11 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002D39B001007A8A11 /* TransactionListView.swift */; };
+		DD0015002D39B001007A8A11 /* TransactionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002002D39B001007A8A11 /* TransactionDetailView.swift */; };
+		DD0016002D39B001007A8A11 /* AddEditTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */; };
+		DD0017002D39B001007A8A11 /* CsvExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0004002D39B001007A8A11 /* CsvExporter.swift */; };
+		VV0001002D39B001007A8A11 /* TransactionTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */; };
+		SK0001002D39B001007A8A11 /* TransactionRowSkeleton.swift in Sources */ = {isa = PBXBuildFile; fileRef = SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */; };
+		EE0004002D39B001007A8A11 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001002D39B001007A8A11 /* AppColors.swift */; };
+		EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002002D39B001007A8A11 /* AppTypography.swift */; };
+		EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0003002D39B001007A8A11 /* AppSpacing.swift */; };
+		FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0001002D39B001007A8A11 /* SettingsScreen.swift */; };
+		FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0002002D39B001007A8A11 /* CategoriesScreen.swift */; };
+		FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */; };
+		FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */; };
+		GG0005002D39B001007A8A11 /* BudgetListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0001002D39B001007A8A11 /* BudgetListScreen.swift */; };
+		GG0006002D39B001007A8A11 /* BudgetDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */; };
+		GG0007002D39B001007A8A11 /* AddEditBudgetScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */; };
+		GG0008002D39B001007A8A11 /* BudgetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GG0004002D39B001007A8A11 /* BudgetViewModel.swift */; };
+		HH0005002D39B001007A8A11 /* AccountListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0001002D39B001007A8A11 /* AccountListScreen.swift */; };
+		HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */; };
+		HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */; };
+		HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HH0004002D39B001007A8A11 /* AccountsViewModel.swift */; };
+		JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0001002D39B001007A8A11 /* CurrencyManager.swift */; };
+		JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */; };
+		JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */; };
+		LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0001002D39B001007A8A11 /* ThemeManager.swift */; };
+		LL0004002D39B001007A8A11 /* AppearanceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0003002D39B001007A8A11 /* AppearanceScreen.swift */; };
+		MM0003002D39B001007A8A11 /* FAQScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM0001002D39B001007A8A11 /* FAQScreen.swift */; };
+		MM0004002D39B001007A8A11 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM0002002D39B001007A8A11 /* AboutScreen.swift */; };
+		NN0003002D39B001007A8A11 /* AppLockManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN0001002D39B001007A8A11 /* AppLockManager.swift */; };
+		NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NN0002002D39B001007A8A11 /* LockScreenView.swift */; };
+		OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0001002D39B001007A8A11 /* ExportImportManager.swift */; };
+		OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = OO0002002D39B001007A8A11 /* DocumentPicker.swift */; };
+		PP0002002D39B001007A8A11 /* GreetingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP0001002D39B001007A8A11 /* GreetingCard.swift */; };
+		QQ0006002D39B001007A8A11 /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */; };
+		QQ0007002D39B001007A8A11 /* WelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0002002D39B001007A8A11 /* WelcomeStep.swift */; };
+		QQ0008002D39B001007A8A11 /* ProfileStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0003002D39B001007A8A11 /* ProfileStep.swift */; };
+		QQ0009002D39B001007A8A11 /* ImportStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0004002D39B001007A8A11 /* ImportStep.swift */; };
+		QQ0010002D39B001007A8A11 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */; };
+		RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */; };
+		RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */; };
+		RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */; };
+		TT0002002D39B001007A8A11 /* BudgetCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TT0001002D39B001007A8A11 /* BudgetCarousel.swift */; };
+		TT0004002D39B001007A8A11 /* AccountCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TT0003002D39B001007A8A11 /* AccountCarousel.swift */; };
+		UU0001002D39B001007A8A11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = UU0002002D39B001007A8A11 /* Assets.xcassets */; };
+		SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0001002D39B001007A8A11 /* RulesScreen.swift */; };
+		SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */; };
+		SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0003002D39B001007A8A11 /* RulesViewModel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B00B8F7B2D39B001007A8A11 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20B8F7B2D39B001007A8A11 /* iosAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iosAppApp.swift; sourceTree = "<group>"; };
+		B40B8F7B2D39B001007A8A11 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B50B8F7B2D39B001007A8A11 /* Shared.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Shared.framework; sourceTree = "<group>"; };
+		BB0001002D39B001007A8A11 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		BB0002002D39B001007A8A11 /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
+		KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsScreen.swift; sourceTree = "<group>"; };
+		KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsSummaryCard.swift; sourceTree = "<group>"; };
+		KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingTrendsChart.swift; sourceTree = "<group>"; };
+		KK0004002D39B001007A8A11 /* CategoryPieChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPieChart.swift; sourceTree = "<group>"; };
+		KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBreakdownList.swift; sourceTree = "<group>"; };
+		KK0006002D39B001007A8A11 /* TopMerchantsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopMerchantsList.swift; sourceTree = "<group>"; };
+		KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsViewModel.swift; sourceTree = "<group>"; };
+		BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPlaceholderScreen.swift; sourceTree = "<group>"; };
+		BB0006002D39B001007A8A11 /* TransactionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRow.swift; sourceTree = "<group>"; };
+		BB0007002D39B001007A8A11 /* CategoryChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryChip.swift; sourceTree = "<group>"; };
+		BB0008002D39B001007A8A11 /* AmountText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountText.swift; sourceTree = "<group>"; };
+		BB0009002D39B001007A8A11 /* StatPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatPill.swift; sourceTree = "<group>"; };
+		BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailSheet.swift; sourceTree = "<group>"; };
+		BB0011002D39B001007A8A11 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		BB0012002D39B001007A8A11 /* DateFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatting.swift; sourceTree = "<group>"; };
+		BB0013002D39B001007A8A11 /* AmountFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountFormatting.swift; sourceTree = "<group>"; };
+		BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingSummaryCard.swift; sourceTree = "<group>"; };
+		CC0001002D39B001007A8A11 /* TransactionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>"; };
+		CC0002002D39B001007A8A11 /* TransactionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailView.swift; sourceTree = "<group>"; };
+		CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditTransactionView.swift; sourceTree = "<group>"; };
+		CC0004002D39B001007A8A11 /* CsvExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CsvExporter.swift; sourceTree = "<group>"; };
+		EE0001002D39B001007A8A11 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		EE0002002D39B001007A8A11 /* AppTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTypography.swift; sourceTree = "<group>"; };
+		EE0003002D39B001007A8A11 /* AppSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSpacing.swift; sourceTree = "<group>"; };
+		FF0001002D39B001007A8A11 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		FF0002002D39B001007A8A11 /* CategoriesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesScreen.swift; sourceTree = "<group>"; };
+		FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditCategoryScreen.swift; sourceTree = "<group>"; };
+		FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
+		GG0001002D39B001007A8A11 /* BudgetListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListScreen.swift; sourceTree = "<group>"; };
+		GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailScreen.swift; sourceTree = "<group>"; };
+		GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditBudgetScreen.swift; sourceTree = "<group>"; };
+		GG0004002D39B001007A8A11 /* BudgetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetViewModel.swift; sourceTree = "<group>"; };
+		HH0001002D39B001007A8A11 /* AccountListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountListScreen.swift; sourceTree = "<group>"; };
+		HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDetailScreen.swift; sourceTree = "<group>"; };
+		HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditAccountScreen.swift; sourceTree = "<group>"; };
+		HH0004002D39B001007A8A11 /* AccountsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsViewModel.swift; sourceTree = "<group>"; };
+		JJ0001002D39B001007A8A11 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
+		JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
+		JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyPickerScreen.swift; sourceTree = "<group>"; };
+		LL0001002D39B001007A8A11 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		LL0003002D39B001007A8A11 /* AppearanceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceScreen.swift; sourceTree = "<group>"; };
+		MM0001002D39B001007A8A11 /* FAQScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQScreen.swift; sourceTree = "<group>"; };
+		MM0002002D39B001007A8A11 /* AboutScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutScreen.swift; sourceTree = "<group>"; };
+		NN0001002D39B001007A8A11 /* AppLockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockManager.swift; sourceTree = "<group>"; };
+		NN0002002D39B001007A8A11 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
+		OO0001002D39B001007A8A11 /* ExportImportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportImportManager.swift; sourceTree = "<group>"; };
+		OO0002002D39B001007A8A11 /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
+		PP0001002D39B001007A8A11 /* GreetingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingCard.swift; sourceTree = "<group>"; };
+		QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
+		QQ0002002D39B001007A8A11 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
+		QQ0003002D39B001007A8A11 /* ProfileStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStep.swift; sourceTree = "<group>"; };
+		QQ0004002D39B001007A8A11 /* ImportStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportStep.swift; sourceTree = "<group>"; };
+		QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsScreen.swift; sourceTree = "<group>"; };
+		RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditSubscriptionScreen.swift; sourceTree = "<group>"; };
+		RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsViewModel.swift; sourceTree = "<group>"; };
+		TT0001002D39B001007A8A11 /* BudgetCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCarousel.swift; sourceTree = "<group>"; };
+		TT0003002D39B001007A8A11 /* AccountCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCarousel.swift; sourceTree = "<group>"; };
+		VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTotalsCard.swift; sourceTree = "<group>"; };
+		SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRowSkeleton.swift; sourceTree = "<group>"; };
+		UU0002002D39B001007A8A11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		SS0001002D39B001007A8A11 /* RulesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesScreen.swift; sourceTree = "<group>"; };
+		SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditRuleScreen.swift; sourceTree = "<group>"; };
+		SS0003002D39B001007A8A11 /* RulesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesViewModel.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C00B8F7B2D39B001007A8A11 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A30B8F7B2D39B001007A8A11 /* Shared.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D00B8F7B2D39B001007A8A11 = {
+			isa = PBXGroup;
+			children = (
+				D10B8F7B2D39B001007A8A11 /* iosApp */,
+				D20B8F7B2D39B001007A8A11 /* Frameworks */,
+				D30B8F7B2D39B001007A8A11 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10B8F7B2D39B001007A8A11 /* iosApp */ = {
+			isa = PBXGroup;
+			children = (
+				DD0001002D39B001007A8A11 /* App */,
+				EE0007002D39B001007A8A11 /* Theme */,
+				DD0002002D39B001007A8A11 /* Screens */,
+				DD0007002D39B001007A8A11 /* Components */,
+				DD0008002D39B001007A8A11 /* ViewModels */,
+				DD0009002D39B001007A8A11 /* Extensions */,
+				UU0002002D39B001007A8A11 /* Assets.xcassets */,
+				B20B8F7B2D39B001007A8A11 /* iosAppApp.swift */,
+				B40B8F7B2D39B001007A8A11 /* Info.plist */,
+			);
+			path = iosApp;
+			sourceTree = "<group>";
+		};
+		D20B8F7B2D39B001007A8A11 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B50B8F7B2D39B001007A8A11 /* Shared.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D30B8F7B2D39B001007A8A11 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B00B8F7B2D39B001007A8A11 /* iosApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DD0001002D39B001007A8A11 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				BB0001002D39B001007A8A11 /* MainTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DD0002002D39B001007A8A11 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				DD0003002D39B001007A8A11 /* Home */,
+				DD0004002D39B001007A8A11 /* Transactions */,
+				HH0009002D39B001007A8A11 /* Accounts */,
+				GG0009002D39B001007A8A11 /* Budgets */,
+				DD0005002D39B001007A8A11 /* Analytics */,
+				DD0006002D39B001007A8A11 /* Settings */,
+				RR0007002D39B001007A8A11 /* Subscriptions */,
+				QQ0011002D39B001007A8A11 /* Onboarding */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		DD0003002D39B001007A8A11 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				BB0002002D39B001007A8A11 /* HomeScreen.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		DD0004002D39B001007A8A11 /* Transactions */ = {
+			isa = PBXGroup;
+			children = (
+				CC0001002D39B001007A8A11 /* TransactionListView.swift */,
+				CC0002002D39B001007A8A11 /* TransactionDetailView.swift */,
+				CC0003002D39B001007A8A11 /* AddEditTransactionView.swift */,
+				CC0004002D39B001007A8A11 /* CsvExporter.swift */,
+			);
+			path = Transactions;
+			sourceTree = "<group>";
+		};
+		HH0009002D39B001007A8A11 /* Accounts */ = {
+			isa = PBXGroup;
+			children = (
+				HH0001002D39B001007A8A11 /* AccountListScreen.swift */,
+				HH0002002D39B001007A8A11 /* AccountDetailScreen.swift */,
+				HH0003002D39B001007A8A11 /* AddEditAccountScreen.swift */,
+			);
+			path = Accounts;
+			sourceTree = "<group>";
+		};
+		GG0009002D39B001007A8A11 /* Budgets */ = {
+			isa = PBXGroup;
+			children = (
+				GG0001002D39B001007A8A11 /* BudgetListScreen.swift */,
+				GG0002002D39B001007A8A11 /* BudgetDetailScreen.swift */,
+				GG0003002D39B001007A8A11 /* AddEditBudgetScreen.swift */,
+			);
+			path = Budgets;
+			sourceTree = "<group>";
+		};
+		DD0005002D39B001007A8A11 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				KK0001002D39B001007A8A11 /* AnalyticsScreen.swift */,
+				KK0002002D39B001007A8A11 /* AnalyticsSummaryCard.swift */,
+				KK0003002D39B001007A8A11 /* SpendingTrendsChart.swift */,
+				KK0004002D39B001007A8A11 /* CategoryPieChart.swift */,
+				KK0005002D39B001007A8A11 /* CategoryBreakdownList.swift */,
+				KK0006002D39B001007A8A11 /* TopMerchantsList.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		DD0006002D39B001007A8A11 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */,
+				FF0001002D39B001007A8A11 /* SettingsScreen.swift */,
+				FF0002002D39B001007A8A11 /* CategoriesScreen.swift */,
+				FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */,
+				JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */,
+				LL0003002D39B001007A8A11 /* AppearanceScreen.swift */,
+				NN0001002D39B001007A8A11 /* AppLockManager.swift */,
+				MM0001002D39B001007A8A11 /* FAQScreen.swift */,
+				MM0002002D39B001007A8A11 /* AboutScreen.swift */,
+				OO0001002D39B001007A8A11 /* ExportImportManager.swift */,
+				OO0002002D39B001007A8A11 /* DocumentPicker.swift */,
+				SS0001002D39B001007A8A11 /* RulesScreen.swift */,
+				SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		DD0007002D39B001007A8A11 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				BB0006002D39B001007A8A11 /* TransactionRow.swift */,
+				BB0007002D39B001007A8A11 /* CategoryChip.swift */,
+				BB0008002D39B001007A8A11 /* AmountText.swift */,
+				BB0009002D39B001007A8A11 /* StatPill.swift */,
+				BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */,
+				BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */,
+				PP0001002D39B001007A8A11 /* GreetingCard.swift */,
+				NN0002002D39B001007A8A11 /* LockScreenView.swift */,
+				TT0001002D39B001007A8A11 /* BudgetCarousel.swift */,
+				TT0003002D39B001007A8A11 /* AccountCarousel.swift */,
+				VV0002002D39B001007A8A11 /* TransactionTotalsCard.swift */,
+				SK0002002D39B001007A8A11 /* TransactionRowSkeleton.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		DD0008002D39B001007A8A11 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				BB0011002D39B001007A8A11 /* HomeViewModel.swift */,
+				HH0004002D39B001007A8A11 /* AccountsViewModel.swift */,
+				GG0004002D39B001007A8A11 /* BudgetViewModel.swift */,
+				FF0007002D39B001007A8A11 /* CategoriesViewModel.swift */,
+				KK0007002D39B001007A8A11 /* AnalyticsViewModel.swift */,
+				RR0003002D39B001007A8A11 /* SubscriptionsViewModel.swift */,
+				QQ0005002D39B001007A8A11 /* OnboardingViewModel.swift */,
+				SS0003002D39B001007A8A11 /* RulesViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		DD0009002D39B001007A8A11 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				BB0012002D39B001007A8A11 /* DateFormatting.swift */,
+				BB0013002D39B001007A8A11 /* AmountFormatting.swift */,
+				JJ0001002D39B001007A8A11 /* CurrencyManager.swift */,
+				JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		EE0007002D39B001007A8A11 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				EE0001002D39B001007A8A11 /* AppColors.swift */,
+				EE0002002D39B001007A8A11 /* AppTypography.swift */,
+				EE0003002D39B001007A8A11 /* AppSpacing.swift */,
+				LL0001002D39B001007A8A11 /* ThemeManager.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+	QQ0011002D39B001007A8A11 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				QQ0001002D39B001007A8A11 /* OnboardingScreen.swift */,
+				QQ0002002D39B001007A8A11 /* WelcomeStep.swift */,
+				QQ0003002D39B001007A8A11 /* ProfileStep.swift */,
+				QQ0004002D39B001007A8A11 /* ImportStep.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		RR0007002D39B001007A8A11 /* Subscriptions */ = {
+			isa = PBXGroup;
+			children = (
+				RR0001002D39B001007A8A11 /* SubscriptionsScreen.swift */,
+				RR0002002D39B001007A8A11 /* AddEditSubscriptionScreen.swift */,
+			);
+			path = Subscriptions;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00B8F7B2D39B001007A8A11 /* iosApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = J20B8F7B2D39B001007A8A11 /* Build configuration list for PBXNativeTarget "iosApp" */;
+			buildPhases = (
+				G00B8F7B2D39B001007A8A11 /* Build KMP Framework */,
+				H00B8F7B2D39B001007A8A11 /* Sources */,
+				K00B8F7B2D39B001007A8A11 /* Resources */,
+				C00B8F7B2D39B001007A8A11 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iosApp;
+			productName = iosApp;
+			productReference = B00B8F7B2D39B001007A8A11 /* iosApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F00B8F7B2D39B001007A8A11 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					E00B8F7B2D39B001007A8A11 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = J10B8F7B2D39B001007A8A11 /* Build configuration list for PBXProject "iosApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D00B8F7B2D39B001007A8A11;
+			productRefGroup = D30B8F7B2D39B001007A8A11 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00B8F7B2D39B001007A8A11 /* iosApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		K00B8F7B2D39B001007A8A11 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				UU0001002D39B001007A8A11 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		G00B8F7B2D39B001007A8A11 /* Build KMP Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build KMP Framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -z \"$JAVA_HOME\" ]; then\n  if /usr/libexec/java_home -v 17 >/dev/null 2>&1; then\n    export JAVA_HOME=$(/usr/libexec/java_home -v 17)\n  elif [ -d \"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ]; then\n    export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n  fi\nfi\nexport PATH=\"$JAVA_HOME/bin:$PATH\"\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		H00B8F7B2D39B001007A8A11 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A20B8F7B2D39B001007A8A11 /* iosAppApp.swift in Sources */,
+				AA0001002D39B001007A8A11 /* MainTabView.swift in Sources */,
+				AA0002002D39B001007A8A11 /* HomeScreen.swift in Sources */,
+				KK0008002D39B001007A8A11 /* AnalyticsScreen.swift in Sources */,
+				KK0009002D39B001007A8A11 /* AnalyticsSummaryCard.swift in Sources */,
+				KK0010002D39B001007A8A11 /* SpendingTrendsChart.swift in Sources */,
+				KK0011002D39B001007A8A11 /* CategoryPieChart.swift in Sources */,
+				KK0012002D39B001007A8A11 /* CategoryBreakdownList.swift in Sources */,
+				KK0013002D39B001007A8A11 /* TopMerchantsList.swift in Sources */,
+				KK0014002D39B001007A8A11 /* AnalyticsViewModel.swift in Sources */,
+				AA0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift in Sources */,
+				AA0006002D39B001007A8A11 /* TransactionRow.swift in Sources */,
+				AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */,
+				AA0008002D39B001007A8A11 /* AmountText.swift in Sources */,
+				AA0009002D39B001007A8A11 /* StatPill.swift in Sources */,
+				AA0010002D39B001007A8A11 /* TransactionDetailSheet.swift in Sources */,
+				AA0011002D39B001007A8A11 /* HomeViewModel.swift in Sources */,
+				AA0012002D39B001007A8A11 /* DateFormatting.swift in Sources */,
+				AA0013002D39B001007A8A11 /* AmountFormatting.swift in Sources */,
+				AA0020002D39B001007A8A11 /* SpendingSummaryCard.swift in Sources */,
+				DD0014002D39B001007A8A11 /* TransactionListView.swift in Sources */,
+				DD0015002D39B001007A8A11 /* TransactionDetailView.swift in Sources */,
+				DD0016002D39B001007A8A11 /* AddEditTransactionView.swift in Sources */,
+				DD0017002D39B001007A8A11 /* CsvExporter.swift in Sources */,
+				EE0004002D39B001007A8A11 /* AppColors.swift in Sources */,
+				EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */,
+				EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */,
+				FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */,
+				FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */,
+				FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */,
+				FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */,
+				GG0005002D39B001007A8A11 /* BudgetListScreen.swift in Sources */,
+				GG0006002D39B001007A8A11 /* BudgetDetailScreen.swift in Sources */,
+				GG0007002D39B001007A8A11 /* AddEditBudgetScreen.swift in Sources */,
+				GG0008002D39B001007A8A11 /* BudgetViewModel.swift in Sources */,
+				HH0005002D39B001007A8A11 /* AccountListScreen.swift in Sources */,
+				HH0006002D39B001007A8A11 /* AccountDetailScreen.swift in Sources */,
+				HH0007002D39B001007A8A11 /* AddEditAccountScreen.swift in Sources */,
+				HH0008002D39B001007A8A11 /* AccountsViewModel.swift in Sources */,
+				JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */,
+				JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */,
+				JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */,
+				NN0003002D39B001007A8A11 /* AppLockManager.swift in Sources */,
+				NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */,
+				LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */,
+				LL0004002D39B001007A8A11 /* AppearanceScreen.swift in Sources */,
+				MM0003002D39B001007A8A11 /* FAQScreen.swift in Sources */,
+				MM0004002D39B001007A8A11 /* AboutScreen.swift in Sources */,
+				OO0003002D39B001007A8A11 /* ExportImportManager.swift in Sources */,
+				OO0004002D39B001007A8A11 /* DocumentPicker.swift in Sources */,
+				PP0002002D39B001007A8A11 /* GreetingCard.swift in Sources */,
+				QQ0006002D39B001007A8A11 /* OnboardingScreen.swift in Sources */,
+				QQ0007002D39B001007A8A11 /* WelcomeStep.swift in Sources */,
+				QQ0008002D39B001007A8A11 /* ProfileStep.swift in Sources */,
+				QQ0009002D39B001007A8A11 /* ImportStep.swift in Sources */,
+				QQ0010002D39B001007A8A11 /* OnboardingViewModel.swift in Sources */,
+				RR0004002D39B001007A8A11 /* SubscriptionsScreen.swift in Sources */,
+				RR0005002D39B001007A8A11 /* AddEditSubscriptionScreen.swift in Sources */,
+				RR0006002D39B001007A8A11 /* SubscriptionsViewModel.swift in Sources */,
+				TT0002002D39B001007A8A11 /* BudgetCarousel.swift in Sources */,
+				TT0004002D39B001007A8A11 /* AccountCarousel.swift in Sources */,
+				SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */,
+				SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */,
+				SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */,
+				VV0001002D39B001007A8A11 /* TransactionTotalsCard.swift in Sources */,
+				SK0001002D39B001007A8A11 /* TransactionRowSkeleton.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		I10B8F7B2D39B001007A8A11 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		I20B8F7B2D39B001007A8A11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		I30B8F7B2D39B001007A8A11 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pennywiseai.iosApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		I40B8F7B2D39B001007A8A11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pennywiseai.iosApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		J10B8F7B2D39B001007A8A11 /* Build configuration list for PBXProject "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				I10B8F7B2D39B001007A8A11 /* Debug */,
+				I20B8F7B2D39B001007A8A11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		J20B8F7B2D39B001007A8A11 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				I30B8F7B2D39B001007A8A11 /* Debug */,
+				I40B8F7B2D39B001007A8A11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F00B8F7B2D39B001007A8A11 /* Project object */;
+}

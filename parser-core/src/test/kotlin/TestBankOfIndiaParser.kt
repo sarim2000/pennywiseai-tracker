@@ -61,6 +61,21 @@ class BankOfIndiaParserTest {
                     accountLast4 = "5468",
                     reference = "315439383341"
                 )
+            ),
+
+            // NEFT inward credit - merchant extraction after slash
+            ParserTestCase(
+                name = "NEFT inward credit extracts merchant after slash",
+                message = "BOI - Rs 15,000.00 Credited in your Ac XX5468 on 04-02-2026 By NEFTINWARD HDFCH00778553836/HDFC MUTUAL F .Avl Bal 18679.91",
+                sender = "JX-BOIIND-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = "HDFC MUTUAL F",
+                    accountLast4 = "5468",
+                    balance = BigDecimal("18679.91")
+                )
             )
         )
 

@@ -4,7 +4,6 @@ import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.MandateInfo
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
-import java.time.LocalDateTime
 
 /**
  * HDFC Bank specific parser.
@@ -400,6 +399,13 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         val lowerMessage = message.lowercase()
+
+        // Skip NACH mandate processing notifications (not actual transactions)
+        if (lowerMessage.contains("nach mandate") && lowerMessage.contains("received") &&
+            lowerMessage.contains("for processing")
+        ) {
+            return false
+        }
 
         // Skip bill alert notifications (these are reminders for future payments, not transactions)
         // Example: "New Bill Alert: Your ... Bill ... is due on ..."

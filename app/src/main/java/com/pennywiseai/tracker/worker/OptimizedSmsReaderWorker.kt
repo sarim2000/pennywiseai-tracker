@@ -26,6 +26,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.toJavaLocalDateTime
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
@@ -498,7 +499,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             bankName     = info.bankName,
                             accountLast4 = info.accountLast4 ?: "XXXX",
                             balance      = info.balance,
-                            timestamp    = info.asOfDate ?: sms.timestamp.toLocalDateTime(),
+                            timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
                             currency     = parser.getCurrency()
                         )
                     }
@@ -535,7 +536,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         bankName     = info.bankName,
                         accountLast4 = info.accountLast4 ?: "XXXX",
                         balance      = info.balance,
-                        timestamp    = info.asOfDate ?: sms.timestamp.toLocalDateTime(),
+                        timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
                         currency     = parser.getCurrency()
                     )
                 }

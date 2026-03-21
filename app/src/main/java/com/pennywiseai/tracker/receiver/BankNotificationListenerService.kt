@@ -4,7 +4,9 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.pennywiseai.tracker.data.repository.BankNotificationRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -14,6 +16,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * Notification listener that ingests bank app notifications and routes them
@@ -26,6 +31,7 @@ class BankNotificationListenerService : NotificationListenerService() {
     interface NotificationListenerEntryPoint {
         fun smsTransactionProcessor(): SmsTransactionProcessor
         fun bankNotificationRepository(): BankNotificationRepository
+        fun transactionRepository(): TransactionRepository
     }
 
     companion object {
@@ -57,6 +63,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         )
         val processor = entryPoint.smsTransactionProcessor()
         val notificationRepository = entryPoint.bankNotificationRepository()
+        val transactionRepository = entryPoint.transactionRepository()
         val senderAlias = BankNotificationConfig.senderAlias(packageName)
         val timestamp = sbn.postTime
 
@@ -74,6 +81,29 @@ class BankNotificationListenerService : NotificationListenerService() {
             }
 
             try {
+                // Cross-dedup: check if SMS already created this transaction.
+                // Parse first to get amount, then look for an existing transaction
+                // with the same amount within a ±2-minute window.
+                val parser = BankParserFactory.getParser(senderAlias)
+                val parsed = parser?.parse(body, senderAlias, timestamp)
+                if (parsed != null) {
+                    val eventTime = LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()
+                    )
+                    val windowStart = eventTime.minusMinutes(2)
+                    val windowEnd = eventTime.plusMinutes(2)
+                    val existing = transactionRepository.getTransactionByAmountAndDate(
+                        parsed.amount, windowStart, windowEnd
+                    )
+                    if (existing.any { it.bankName == parsed.bankName }) {
+                        Log.d(TAG, "Notification skipped: duplicate of SMS transaction")
+                        if (notificationId != null) {
+                            notificationRepository.markProcessed(notificationId, null)
+                        }
+                        return@launch
+                    }
+                }
+
                 val result = processor.processAndSaveTransaction(
                     sender = senderAlias,
                     body = body,

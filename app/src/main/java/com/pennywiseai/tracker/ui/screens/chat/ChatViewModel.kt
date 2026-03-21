@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.core.Constants
@@ -110,7 +111,7 @@ class ChatViewModel @Inject constructor(
         val allText = allMsgs.joinToString(" ") { it.message } + " " + current
         val totalChars = allText.length
         val estimatedTokens = TokenUtils.estimateTokens(allText)
-        val maxTokens = 4096 // Gemma 3 with KV cache size 4096
+        val maxTokens = 4096 // Qwen 2.5 with KV cache size 4096
         
         // Count only visible messages for UI
         val visibleCount = allMsgs.count { !it.isSystemPrompt }
@@ -249,24 +250,39 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
+            // Validate model URL before attempting download
+            val modelUrl = Constants.ModelDownload.MODEL_URL
+            if (modelUrl.isBlank() || !modelUrl.startsWith("http")) {
+                Log.e("ChatViewModel", "Invalid MODEL_URL: '$modelUrl'")
+                modelRepository.updateModelState(ModelState.ERROR)
+                _uiState.value = _uiState.value.copy(error = "AI model download is not available in this build.")
+                return@launch
+            }
+
             // Clean up any stale partial file — DownloadManager stays PENDING if destination exists
             val existingFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
             if (existingFile.exists()) {
                 existingFile.delete()
             }
 
-            val request = DownloadManager.Request(Uri.parse(Constants.ModelDownload.MODEL_URL))
-                .setTitle("Gemma 3 Chat Model")
-                .setDescription("Downloading AI chat assistant for PennyWise")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(false)
+            try {
+                val request = DownloadManager.Request(Uri.parse(modelUrl))
+                    .setTitle("Qwen 2.5 Chat Model")
+                    .setDescription("Downloading AI chat assistant for PennyWise")
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
+                    .setAllowedOverMetered(true)
+                    .setAllowedOverRoaming(false)
 
-            currentDownloadId = downloadManager.enqueue(request)
-            modelRepository.updateModelState(ModelState.DOWNLOADING)
-            userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
-            monitorDownload(currentDownloadId!!)
+                currentDownloadId = downloadManager.enqueue(request)
+                modelRepository.updateModelState(ModelState.DOWNLOADING)
+                userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
+                monitorDownload(currentDownloadId!!)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to start download", e)
+                modelRepository.updateModelState(ModelState.ERROR)
+                _uiState.value = _uiState.value.copy(error = "Failed to start download. Please try again.")
+            }
         }
     }
 

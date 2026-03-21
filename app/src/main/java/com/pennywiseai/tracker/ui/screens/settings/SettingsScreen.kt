@@ -941,10 +941,10 @@ private fun AiChatSettingsItem(
                     )
                     Text(
                         text = when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED -> "Download Gemma 3 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                            DownloadState.DOWNLOADING -> "Downloading Gemma model..."
+                            DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                            DownloadState.DOWNLOADING -> "Downloading Qwen model..."
                             DownloadState.PAUSED -> "Download interrupted"
-                            DownloadState.COMPLETED -> "Gemma ready for chat"
+                            DownloadState.COMPLETED -> "Qwen ready for chat"
                             DownloadState.FAILED -> "Download failed"
                             DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
                         },
@@ -1054,7 +1054,7 @@ private fun AiChatSettingsItem(
             ) {
                 HorizontalDivider()
                 Text(
-                    text = "Chat with Gemma AI about your expenses and get financial insights. " +
+                    text = "Chat with Qwen AI about your expenses and get financial insights. " +
                             "All conversations stay private on your device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

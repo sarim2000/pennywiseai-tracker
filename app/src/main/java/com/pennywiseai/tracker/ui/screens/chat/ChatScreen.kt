@@ -271,34 +271,28 @@ fun ChatScreen(
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = Dimensions.Padding.content,
+                                        vertical = Spacing.sm
+                                    ),
+                                horizontalArrangement = Arrangement.End
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = Dimensions.Padding.content,
-                                            vertical = Spacing.sm
-                                        ),
-                                    horizontalArrangement = Arrangement.End
+                                TextButton(
+                                    onClick = { viewModel.clearChat() },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
                                 ) {
-                                    TextButton(
-                                        onClick = { viewModel.clearChat() },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Delete,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Clear Chat")
-                                    }
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Clear Chat")
                                 }
                             }
                         }
@@ -401,7 +395,12 @@ fun ChatScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(Dimensions.Padding.content),
+                                    .padding(
+                                        start = Dimensions.Padding.content,
+                                        end = Dimensions.Padding.content,
+                                        top = Dimensions.Padding.content,
+                                        bottom = Dimensions.Component.bottomBarHeight + Dimensions.Padding.content
+                                    ),
                                 verticalAlignment = Alignment.Bottom
                             ) {
                                 OutlinedTextField(

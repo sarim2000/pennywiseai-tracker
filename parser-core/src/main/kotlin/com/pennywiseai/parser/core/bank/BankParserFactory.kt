@@ -93,7 +93,8 @@ object BankParserFactory {
         CIMBThaiParser(),  // CIMB Thai (Thailand)
         KTCCreditCardParser(),  // KTC Credit Card (Thailand)
         TBankParser(),  // T-Bank / Tinkoff (Russia)
-        ChaseBankParser()  // Chase Bank (USA)
+        ChaseBankParser(),  // Chase Bank (USA)
+        AlRajhiBankParser()  // Al Rajhi Bank (Saudi Arabia)
         // Add more bank parsers here as we implement them
     )
 

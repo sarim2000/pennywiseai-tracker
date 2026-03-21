@@ -45,6 +45,9 @@ class BankNotificationRepository @Inject constructor(
         dao.updateStatus(id, processed = true, transactionId = transactionId)
     }
 
+    suspend fun getUnprocessed(): List<BankNotificationEntity> =
+        dao.getUnprocessed()
+
     private fun hash(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = digest.digest(input.toByteArray())

@@ -19,4 +19,7 @@ interface BankNotificationDao {
         """
     )
     suspend fun updateStatus(id: Long, processed: Boolean, transactionId: Long?)
+
+    @Query("SELECT * FROM bank_notifications WHERE processed = 0 ORDER BY posted_at ASC")
+    suspend fun getUnprocessed(): List<BankNotificationEntity>
 }

@@ -35,7 +35,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -85,7 +84,8 @@ fun SettingsScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
+    appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
+    permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
@@ -107,20 +107,13 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
-    var hasNotificationAccess by remember { mutableStateOf(false) }
+    val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
+    val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val context = LocalContext.current
     val notificationAccessLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
-        hasNotificationAccess = NotificationManagerCompat
-            .getEnabledListenerPackages(context)
-            .contains(context.packageName)
-    }
-
-    LaunchedEffect(Unit) {
-        hasNotificationAccess = NotificationManagerCompat
-            .getEnabledListenerPackages(context)
-            .contains(context.packageName)
+        permissionViewModel.refreshNotificationAccess()
     }
 
     // File picker for import

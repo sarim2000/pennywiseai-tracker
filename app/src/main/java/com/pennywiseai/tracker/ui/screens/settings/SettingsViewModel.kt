@@ -75,6 +75,7 @@ class SettingsViewModel @Inject constructor(
     
     // Developer mode state
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
+    val isMcpServerEnabled = userPreferencesRepository.isMcpServerEnabled
     
     // SMS scan period state
     val smsScanMonths = userPreferencesRepository.smsScanMonths
@@ -414,6 +415,20 @@ class SettingsViewModel @Inject constructor(
     fun toggleDeveloperMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDeveloperModeEnabled(enabled)
+            if (!enabled) {
+                toggleMcpServer(false)
+            }
+        }
+    }
+
+    fun toggleMcpServer(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setMcpServerEnabled(enabled)
+            if (enabled) {
+                com.pennywiseai.tracker.mcp.McpServerService.start(context)
+            } else {
+                com.pennywiseai.tracker.mcp.McpServerService.stop(context)
+            }
         }
     }
     

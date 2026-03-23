@@ -13,8 +13,11 @@ import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByBusiness
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.preferences.BusinessFilter
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +38,7 @@ class TransactionsViewModel @Inject constructor(
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val accountBalanceRepository: AccountBalanceRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -55,6 +59,11 @@ class TransactionsViewModel @Inject constructor(
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
     
+    private val _businessFilter = MutableStateFlow(BusinessFilter.ALL)
+    val businessFilter: StateFlow<BusinessFilter> = _businessFilter.asStateFlow()
+
+    private var cachedBusinessAccountKeys: Set<String> = emptySet()
+
     private val _sortOption = MutableStateFlow(SortOption.DATE_NEWEST)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
@@ -254,8 +263,19 @@ class TransactionsViewModel @Inject constructor(
     }
     
     init {
-        // Initialize selectedCurrency from baseCurrency preference
+        // Observe business filter from preferences and cache business account keys
         viewModelScope.launch {
+            userPreferencesRepository.businessFilter.collect { filter ->
+                _businessFilter.value = filter
+            }
+        }
+        viewModelScope.launch {
+            accountBalanceRepository.getAllLatestBalances().collect { balances ->
+                cachedBusinessAccountKeys = balances
+                    .filter { it.isBusiness }
+                    .map { "${it.bankName}_${it.accountLast4}" }
+                    .toSet()
+            }
         }
 
         // Load unified mode preferences
@@ -283,6 +303,7 @@ class TransactionsViewModel @Inject constructor(
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },
+            businessFilter.map { "businessFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -298,9 +319,13 @@ class TransactionsViewModel @Inject constructor(
                 val sort = sortOption.value
                 val isUnified = _isUnifiedMode.value
 
+                val bizFilter = businessFilter.value
+
                 // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter)
-                    .collect { transactions ->
+                    .collect { allTransactions ->
+                        // Apply business/personal filter
+                        val transactions = filterByBusiness(allTransactions, bizFilter)
                         if (isUnified) {
                             // Show all transactions regardless of currency
                             emit(sortTransactions(transactions, sort))
@@ -396,6 +421,12 @@ class TransactionsViewModel @Inject constructor(
         _transactionTypeFilter.value = filter
     }
     
+    fun setBusinessFilter(filter: BusinessFilter) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateBusinessFilter(filter)
+        }
+    }
+
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
     }
@@ -645,6 +676,13 @@ class TransactionsViewModel @Inject constructor(
      */
     fun clearCategoriesFilter() {
         _categoriesFilter.value = null
+    }
+
+    private fun filterByBusiness(
+        transactions: List<TransactionEntity>,
+        filter: BusinessFilter
+    ): List<TransactionEntity> {
+        return filterTransactionsByBusiness(transactions, filter, cachedBusinessAccountKeys)
     }
 
     private fun getFilteredTransactions(

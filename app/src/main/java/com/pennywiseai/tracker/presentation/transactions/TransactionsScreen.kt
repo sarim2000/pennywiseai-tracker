@@ -18,7 +18,10 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +48,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.data.preferences.BusinessFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -89,6 +93,7 @@ fun TransactionsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val sortOption by viewModel.sortOption.collectAsState()
+    val businessFilter by viewModel.businessFilter.collectAsState()
     val smsScanMonths by viewModel.smsScanMonths.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
@@ -110,7 +115,8 @@ fun TransactionsScreen(
     // Calculate active filter count for advanced filters
     val activeFilterCount = listOf(
         transactionTypeFilter != TransactionTypeFilter.ALL,
-        categoryFilter != null
+        categoryFilter != null,
+        businessFilter != BusinessFilter.ALL
     ).count { it }
 
     // Check if any filter is active (for showing "Clear all" button)
@@ -119,6 +125,7 @@ fun TransactionsScreen(
         categoryFilter != null ||
         categoriesFilter != null ||
         transactionTypeFilter != TransactionTypeFilter.ALL ||
+        businessFilter != BusinessFilter.ALL ||
         selectedCurrency != null ||
         customDateRange != null
 
@@ -447,6 +454,7 @@ fun TransactionsScreen(
             onToggle = { showAdvancedFilters = !showAdvancedFilters },
             modifier = Modifier.fillMaxWidth()
         ) {
+            Column {
             // Transaction Type Filter Chips
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -500,8 +508,54 @@ fun TransactionsScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            // Business/Personal Filter Chips
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                items(BusinessFilter.entries.toList()) { filter ->
+                    FilterChip(
+                        selected = businessFilter == filter,
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            viewModel.setBusinessFilter(filter)
+                        },
+                        label = {
+                            Text(
+                                when (filter) {
+                                    BusinessFilter.ALL -> "All"
+                                    BusinessFilter.PERSONAL -> "Personal"
+                                    BusinessFilter.BUSINESS -> "Business"
+                                }
+                            )
+                        },
+                        leadingIcon = if (businessFilter == filter) {
+                            {
+                                Icon(
+                                    when (filter) {
+                                        BusinessFilter.ALL -> Icons.Outlined.AccountBalance
+                                        BusinessFilter.PERSONAL -> Icons.Outlined.Person
+                                        BusinessFilter.BUSINESS -> Icons.Outlined.Business
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        } else null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+            }
+            }
         }
-        
+
         // Totals Card - Only show when there are transactions (hide 0/0/0 state)
         if (uiState.transactions.isNotEmpty() || uiState.isLoading) {
             TransactionTotalsCard(

@@ -295,8 +295,6 @@ fun SubscriptionTabContent(
             }
         }
         
-        // Bottom padding for keyboard
-        Spacer(modifier = Modifier.height(80.dp))
     }
     
     // Date Picker Dialog

@@ -63,10 +63,11 @@ fun AddAccountScreen(
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
-                .overScrollVertical()
-                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(Dimensions.Padding.content),
+                .padding(Dimensions.Padding.content)
+                .imePadding()
+                .overScrollVertical()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Info Card

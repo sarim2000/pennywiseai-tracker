@@ -74,7 +74,10 @@ data class TransactionEntity(
     val toAccount: String? = null,
 
     @ColumnInfo(name = "reference")
-    val reference: String? = null
+    val reference: String? = null,
+
+    @ColumnInfo(name = "is_business")
+    val isBusiness: Boolean? = null
 )
 
 enum class TransactionType {

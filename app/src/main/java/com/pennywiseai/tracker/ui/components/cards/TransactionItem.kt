@@ -59,6 +59,7 @@ fun TransactionItem(
                 else -> {}
             }
             if (transaction.isRecurring) add("Recurring")
+            if (transaction.isBusiness == true) add("Business")
         }.joinToString(" \u00B7 ")
     }
 

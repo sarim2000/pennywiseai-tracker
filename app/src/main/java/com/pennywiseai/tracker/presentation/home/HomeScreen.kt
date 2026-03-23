@@ -71,7 +71,10 @@ import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
+import com.pennywiseai.tracker.data.preferences.BusinessFilter
 import com.pennywiseai.tracker.data.preferences.CoverStyle
+import com.pennywiseai.tracker.ui.components.BusinessFilterDropdown
+import com.pennywiseai.tracker.ui.components.businessFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.GreetingCard
@@ -120,6 +123,9 @@ fun HomeScreen(
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    // Business filter dropdown state
+    var showBusinessFilterMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Haptic feedback
@@ -229,28 +235,65 @@ fun HomeScreen(
                 blurEffects = blurEffects,
                 actionContent = {
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(
-                                color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                shape = CircleShape
-                            )
-                            .clickable(
-                                onClick = { showMenuSheet = true },
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreHoriz,
-                            contentDescription = "More options",
-                            tint = MaterialTheme.colorScheme.inverseSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        // Business/Personal filter dropdown
+                        Box {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                        shape = CircleShape
+                                    )
+                                    .clickable(
+                                        onClick = { showBusinessFilterMenu = true },
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = businessFilterIcon(uiState.businessFilter),
+                                    contentDescription = "Account filter",
+                                    tint = MaterialTheme.colorScheme.inverseSurface,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            BusinessFilterDropdown(
+                                expanded = showBusinessFilterMenu,
+                                selectedFilter = uiState.businessFilter,
+                                onFilterSelected = { viewModel.updateBusinessFilter(it) },
+                                onDismiss = { showBusinessFilterMenu = false }
+                            )
+                        }
+                        // More options button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                    shape = CircleShape
+                                )
+                                .clickable(
+                                    onClick = { showMenuSheet = true },
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.MoreHoriz,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.inverseSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 },
                 extraInfoCard = {
@@ -258,6 +301,8 @@ fun HomeScreen(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
+                        businessFilter = uiState.businessFilter,
+                        onBusinessFilterChange = { viewModel.updateBusinessFilter(it) },
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                     )

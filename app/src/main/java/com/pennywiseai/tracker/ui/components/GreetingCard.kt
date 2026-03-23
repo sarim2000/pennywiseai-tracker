@@ -21,7 +21,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.pennywiseai.tracker.data.preferences.BusinessFilter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,11 +47,14 @@ fun GreetingCard(
     userName: String = "User",
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
+    businessFilter: BusinessFilter = BusinessFilter.ALL,
+    onBusinessFilterChange: (BusinessFilter) -> Unit = {},
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {}
 ) {
-    val subtitle = remember {
-        val now = LocalDate.now()
+    val today = LocalDate.now()
+    val subtitle = remember(today) {
+        val now = today
         val lastDay = now.withDayOfMonth(now.lengthOfMonth())
         val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
         val monthName = now.month.name.lowercase().replaceFirstChar { it.uppercase() }
@@ -140,6 +147,27 @@ fun GreetingCard(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+
+        // Business/Personal filter dropdown
+        Box {
+            var showFilterMenu by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { showFilterMenu = true },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = businessFilterIcon(businessFilter),
+                    contentDescription = "Account filter",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            BusinessFilterDropdown(
+                expanded = showFilterMenu,
+                selectedFilter = businessFilter,
+                onFilterSelected = onBusinessFilterChange,
+                onDismiss = { showFilterMenu = false }
             )
         }
 

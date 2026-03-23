@@ -425,6 +425,12 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    fun toggleAccountBusiness(bankName: String, accountLast4: String, isBusiness: Boolean) {
+        viewModelScope.launch {
+            accountBalanceRepository.setAccountBusiness(bankName, accountLast4, isBusiness)
+        }
+    }
+
     fun editAccount(
         oldBankName: String,
         accountLast4: String,

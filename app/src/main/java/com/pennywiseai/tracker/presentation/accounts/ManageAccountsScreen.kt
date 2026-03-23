@@ -227,11 +227,14 @@ fun ManageAccountsScreen(
                             onEditAccount = {
                                 accountToEdit = account
                                 showEditDialog = true
+                            },
+                            onToggleBusiness = { isBusiness ->
+                                viewModel.toggleAccountBusiness(account.bankName, account.accountLast4, isBusiness)
                             }
                         )
                     }
                 }
-                
+
                 // Orphaned Cards Section
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
@@ -364,6 +367,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = account
                                     showEditDialog = true
+                                },
+                                onToggleBusiness = { isBusiness ->
+                                    viewModel.toggleAccountBusiness(account.bankName, account.accountLast4, isBusiness)
                                 }
                             )
                         }
@@ -766,7 +772,8 @@ private fun AccountItem(
     onViewHistory: () -> Unit,
     onUnlinkCard: (cardId: Long) -> Unit = {},
     onDeleteAccount: () -> Unit = {},
-    onEditAccount: () -> Unit = {}
+    onEditAccount: () -> Unit = {},
+    onToggleBusiness: (Boolean) -> Unit = {}
 ) {
     val isManualAccount = account.sourceType == "MANUAL"
     Card(
@@ -819,6 +826,19 @@ private fun AccountItem(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (account.isBusiness) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Text(
+                                        text = "Business",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
                             if (isHidden) {
                                 Icon(
                                     Icons.Default.VisibilityOff,
@@ -984,6 +1004,19 @@ private fun AccountItem(
                             leadingIcon = {
                                 Icon(
                                     if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (account.isBusiness) "Mark as Personal" else "Mark as Business") },
+                            onClick = {
+                                showMenu = false
+                                onToggleBusiness(!account.isBusiness)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (account.isBusiness) Icons.Default.Person else Icons.Default.Business,
                                     contentDescription = null
                                 )
                             }

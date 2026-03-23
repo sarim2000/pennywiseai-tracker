@@ -53,7 +53,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, TransactionSplitEntity::class, CategoryBudgetLimitEntity::class, BankNotificationEntity::class],
-    version = 35,
+    version = 37,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -86,7 +86,9 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 31, to = 32),
         AutoMigration(from = 32, to = 33),
         AutoMigration(from = 33, to = 34),
-        AutoMigration(from = 34, to = 35)
+        AutoMigration(from = 34, to = 35),
+        AutoMigration(from = 35, to = 36),
+        AutoMigration(from = 36, to = 37)
     ]
 )
 @TypeConverters(Converters::class)

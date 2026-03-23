@@ -54,5 +54,8 @@ data class AccountBalanceEntity(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
-    val currency: String = "INR"
+    val currency: String = "INR",
+
+    @ColumnInfo(name = "is_business", defaultValue = "0")
+    val isBusiness: Boolean = false
 )

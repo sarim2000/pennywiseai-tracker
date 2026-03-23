@@ -328,7 +328,6 @@ private fun TransactionDetailContent(
                 showSplitEditor = showSplitEditor
             )
 
-            Spacer(modifier = Modifier.height(100.dp))
         } else {
             TransactionReceipt(
                 transaction = transaction,

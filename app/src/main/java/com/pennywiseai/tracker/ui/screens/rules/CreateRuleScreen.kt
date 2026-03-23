@@ -214,10 +214,10 @@ fun CreateRuleScreen(
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
+                .padding(Dimensions.Padding.content)
                 .imePadding()
                 .overScrollVertical()
-                .verticalScroll(rememberScrollState())
-                .padding(Dimensions.Padding.content),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Quick presets

@@ -59,12 +59,6 @@ object Rules
 data class CreateRule(val ruleId: String? = null)
 
 @Serializable
-object MonthlyBudget
-
-@Serializable
-object MonthlyBudgetSettings
-
-@Serializable
 object ExchangeRates
 
 @Serializable

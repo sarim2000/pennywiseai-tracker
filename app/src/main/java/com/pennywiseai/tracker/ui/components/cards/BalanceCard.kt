@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,7 @@ import com.pennywiseai.tracker.ui.theme.income_light
 import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
@@ -79,6 +81,10 @@ fun BalanceCard(
     onShowBreakdown: () -> Unit,
     isBalanceHidden: Boolean = false,
     onToggleBalanceVisibility: () -> Unit = {},
+    accountBalances: List<AccountBalanceEntity> = emptyList(),
+    creditCards: List<AccountBalanceEntity> = emptyList(),
+    totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
+    onAccountClick: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
     hazeState: HazeState = remember { HazeState() },
@@ -239,6 +245,29 @@ fun BalanceCard(
                                         vertical = Spacing.xs
                                     )
                                 )
+                            }
+                        }
+
+                        // Balance line (only if accounts exist)
+                        if (accountBalances.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (isBalanceHidden) "Balance: ••••••" else "Balance: ${CurrencyFormatter.formatCurrency(totalBalance, currency)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                if (accountBalances.size > 1) {
+                                    Text(
+                                        text = " · ${accountBalances.size} accounts",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
@@ -444,6 +473,107 @@ fun BalanceCard(
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                                 accentColor = netColor
                             )
+                        }
+
+                        // Accounts section (only if accounts exist)
+                        if (accountBalances.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.md))
+
+                            Text(
+                                text = "Accounts",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+
+                            accountBalances.forEach { account ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onAccountClick(account.bankName, account.accountLast4) }
+                                        .padding(vertical = Spacing.xs),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${account.bankName} •• ${account.accountLast4}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(account.balance, currency),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            // Credit Cards sub-section
+                            if (creditCards.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(Spacing.sm))
+                                Text(
+                                    text = "Credit Cards",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                                creditCards.forEach { card ->
+                                    val availableCredit = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onAccountClick(card.bankName, card.accountLast4) }
+                                            .padding(vertical = Spacing.xs),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${card.bankName} •• ${card.accountLast4}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(availableCredit, currency),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Total row
+                            Spacer(modifier = Modifier.height(Spacing.xs))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.xs))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Total",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(totalBalance, currency),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(Spacing.md))

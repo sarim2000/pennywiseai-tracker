@@ -114,12 +114,12 @@ class TransactionsViewModel @Inject constructor(
             }
         }
     }
-        .map { currencies ->
+        .combine(userPreferencesRepository.baseCurrency) { currencies, base ->
             currencies.sortedWith { a, b ->
                 when {
-                    a == "INR" -> -1 // INR first
-                    b == "INR" -> 1
-                    else -> a.compareTo(b) // Alphabetical for others
+                    a == base -> -1
+                    b == base -> 1
+                    else -> a.compareTo(b)
                 }
             }
         }

@@ -139,8 +139,8 @@ fun ChatScreen(
                                         progress = { downloadProgress / 100f },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(8.dp)
-                                            .clip(RoundedCornerShape(4.dp)),
+                                            .height(Spacing.sm)
+                                            .clip(RoundedCornerShape(Spacing.xs)),
                                         drawStopIndicator = {}
                                     )
                                     OutlinedButton(onClick = { viewModel.cancelDownload() }) {
@@ -622,7 +622,7 @@ fun DeveloperInfoCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Qwen 2.5 • ${chatStats.messageCount} messages",
+                        text = "Qwen 2.5 1.5B • ${chatStats.messageCount} messages",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -686,7 +686,7 @@ fun DeveloperInfoCard(
                         progress = { chatStats.contextUsagePercent / 100f },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
+                            .height(Spacing.xs)
                             .clip(RoundedCornerShape(2.dp)),
                         color = usageColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,

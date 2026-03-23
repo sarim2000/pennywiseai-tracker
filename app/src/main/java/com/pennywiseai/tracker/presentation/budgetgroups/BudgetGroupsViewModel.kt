@@ -12,7 +12,6 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
-import com.pennywiseai.tracker.data.repository.MonthlyBudgetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,8 +37,7 @@ data class BudgetGroupsUiState(
     val selectedMonth: Int = LocalDate.now().monthValue,
     val currency: String = "INR",
     val baseCurrency: String = "INR",
-    val isUnifiedMode: Boolean = false,
-    val needsMigration: Boolean = false
+    val isUnifiedMode: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,7 +45,6 @@ data class BudgetGroupsUiState(
 class BudgetGroupsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val budgetGroupRepository: BudgetGroupRepository,
-    private val monthlyBudgetRepository: MonthlyBudgetRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
@@ -58,25 +55,7 @@ class BudgetGroupsViewModel @Inject constructor(
     private val _selectedYearMonth = MutableStateFlow(YearMonth.now())
 
     init {
-        checkMigration()
         loadBudgetData()
-    }
-
-    private fun checkMigration() {
-        viewModelScope.launch {
-            val hasMigrated = userPreferencesRepository.hasMigratedToBudgetGroups.first()
-            if (!hasMigrated) {
-                val hasGroups = budgetGroupRepository.hasAnyGroups()
-                if (!hasGroups) {
-                    val oldLimit = userPreferencesRepository.monthlyBudgetLimit.first()
-                    val oldCategoryLimits = monthlyBudgetRepository.getCategoryLimits().first()
-                    if (oldLimit != null || oldCategoryLimits.isNotEmpty()) {
-                        _uiState.value = _uiState.value.copy(needsMigration = true)
-                    }
-                }
-                userPreferencesRepository.setHasMigratedToBudgetGroups(true)
-            }
-        }
     }
 
     private fun loadBudgetData() {
@@ -264,26 +243,4 @@ class BudgetGroupsViewModel @Inject constructor(
         }
     }
 
-    fun migrateOldBudget() {
-        viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            val oldLimit = userPreferencesRepository.monthlyBudgetLimit.first()
-            val oldCategoryLimits = monthlyBudgetRepository.getCategoryLimits().first()
-            budgetGroupRepository.migrateFromOldBudget(oldLimit, oldCategoryLimits, baseCurrency)
-            _uiState.value = _uiState.value.copy(needsMigration = false)
-            com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
-        }
-    }
-
-    fun moveGroupUp(budgetId: Long) {
-        viewModelScope.launch {
-            budgetGroupRepository.moveGroupUp(budgetId)
-        }
-    }
-
-    fun moveGroupDown(budgetId: Long) {
-        viewModelScope.launch {
-            budgetGroupRepository.moveGroupDown(budgetId)
-        }
-    }
 }

@@ -39,8 +39,10 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
 import com.pennywiseai.tracker.utils.formatCreditLimit
+import java.math.BigDecimal
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
@@ -52,6 +54,8 @@ fun AccountCarousel(
     creditCards: List<AccountBalanceEntity>,
     onAccountClick: (bankName: String, accountLast4: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
+    isUnifiedMode: Boolean = false,
+    selectedCurrency: String = "INR",
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
@@ -66,6 +70,8 @@ fun AccountCarousel(
             isCreditCard = creditCards.contains(account),
             onClick = { onAccountClick(account.bankName, account.accountLast4) },
             modifier = modifier.fillMaxWidth(),
+            isUnifiedMode = isUnifiedMode,
+            selectedCurrency = selectedCurrency,
             blurEffects = blurEffects,
             hazeState = hazeState
         )
@@ -84,6 +90,8 @@ fun AccountCarousel(
                 isCreditCard = creditCards.contains(account),
                 onClick = { onAccountClick(account.bankName, account.accountLast4) },
                 modifier = Modifier.fillMaxWidth(),
+                isUnifiedMode = isUnifiedMode,
+                selectedCurrency = selectedCurrency,
                 blurEffects = blurEffects,
                 hazeState = hazeState
             )
@@ -97,6 +105,8 @@ private fun AccountCarouselCard(
     isCreditCard: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isUnifiedMode: Boolean = false,
+    selectedCurrency: String = "INR",
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
@@ -195,6 +205,10 @@ private fun AccountCarouselCard(
             ) {
                 Text(
                     text = if (isAmountHidden) "••••••"
+                           else if (isUnifiedMode) {
+                               if (isCreditCard) CurrencyFormatter.formatCurrency(account.creditLimit ?: BigDecimal.ZERO, selectedCurrency)
+                               else CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
+                           }
                            else if (isCreditCard) account.formatCreditLimit()
                            else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,

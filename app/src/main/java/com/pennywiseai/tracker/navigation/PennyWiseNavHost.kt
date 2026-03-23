@@ -320,34 +320,6 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<MonthlyBudget>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
-            // Redirect old budget screen to new budget groups
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(BudgetGroups) {
-                    launchSingleTop = true
-                    popUpTo(MonthlyBudget) { inclusive = true }
-                }
-            }
-        }
-
-        composable<MonthlyBudgetSettings>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
-            com.pennywiseai.tracker.presentation.monthlybudget.MonthlyBudgetSettingsScreen(
-                onNavigateBack = {
-                    navController.safePopBackStack()
-                }
-            )
-        }
-
         composable<ExchangeRates>(
             enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
             exitTransition = { fadeOut(tween(200)) },

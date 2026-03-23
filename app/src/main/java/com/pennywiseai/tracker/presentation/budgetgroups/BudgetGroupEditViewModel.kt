@@ -15,7 +15,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -33,8 +32,7 @@ data class CategoryBudgetItem(
 data class BudgetGroupEditUiState(
     val groupId: Long? = null,
     val name: String = "",
-    val type: BudgetGroupType = BudgetGroupType.LIMIT,
-    val color: String = "#1565C0",
+    val overallAmount: String = "",
     val categories: List<CategoryBudgetItem> = emptyList(),
     val availableCategories: List<String> = emptyList(),
     val categorySpending: Map<String, BigDecimal> = emptyMap(),
@@ -42,8 +40,7 @@ data class BudgetGroupEditUiState(
     val availableCurrencies: List<String> = emptyList(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
-    val saveComplete: Boolean = false,
-    val showEmptyCategoriesWarning: Boolean = false
+    val saveComplete: Boolean = false
 )
 
 @HiltViewModel
@@ -70,7 +67,6 @@ class BudgetGroupEditViewModel @Inject constructor(
             val currency = userPreferencesRepository.baseCurrency.first()
             val currencies = CurrencyFormatter.getSupportedCurrencies()
 
-            // Load current month spending for all categories
             val today = LocalDate.now()
             val yearMonth = YearMonth.from(today)
             val startDate = yearMonth.atDay(1).atStartOfDay()
@@ -88,7 +84,6 @@ class BudgetGroupEditViewModel @Inject constructor(
             }
 
             if (groupId > 0) {
-                // Edit existing group
                 val groups = budgetGroupRepository.getActiveGroups().first()
                 val group = groups.find { it.budget.id == groupId }
                 if (group != null) {
@@ -102,8 +97,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                     _uiState.value = BudgetGroupEditUiState(
                         groupId = groupId,
                         name = group.budget.name,
-                        type = group.budget.groupType,
-                        color = group.budget.color,
+                        overallAmount = if (group.budget.limitAmount.compareTo(BigDecimal.ZERO) == 0) "" else group.budget.limitAmount.toPlainString(),
                         categories = assignedCategories,
                         categorySpending = categorySpending,
                         currency = group.budget.currency,
@@ -126,26 +120,11 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     private fun loadAvailableCategories() {
         viewModelScope.launch {
-            combine(
-                categoryRepository.getExpenseCategories(),
-                categoryRepository.getIncomeCategories(),
-                budgetGroupRepository.getAssignedCategories()
-            ) { expenseCategories, incomeCategories, assignedNames ->
-                val currentGroupCats = _uiState.value.categories.map { it.categoryName }.toSet()
-                val currentType = _uiState.value.type
-
-                // For TARGET groups, include income categories (investments, etc.)
-                val allCategories = if (currentType == BudgetGroupType.TARGET) {
-                    (expenseCategories + incomeCategories).distinctBy { it.name }
-                } else {
-                    expenseCategories
-                }
-
-                allCategories
+            categoryRepository.getExpenseCategories().collect { expenseCategories ->
+                val currentCategoryNames = _uiState.value.categories.map { it.categoryName }
+                val available = expenseCategories
                     .map { it.name }
-                    .filter { it !in assignedNames || it in currentGroupCats }
-                    .filter { it !in _uiState.value.categories.map { c -> c.categoryName } }
-            }.collect { available ->
+                    .filter { it !in currentCategoryNames }
                 _uiState.value = _uiState.value.copy(availableCategories = available)
             }
         }
@@ -155,17 +134,10 @@ class BudgetGroupEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(name = name)
     }
 
-    fun updateType(type: BudgetGroupType) {
-        val oldType = _uiState.value.type
-        _uiState.value = _uiState.value.copy(type = type)
-        // Reload available categories when switching to/from TARGET
-        if ((oldType == BudgetGroupType.TARGET) != (type == BudgetGroupType.TARGET)) {
-            loadAvailableCategories()
+    fun updateOverallAmount(amount: String) {
+        if (amount.isEmpty() || amount.matches(Regex("^\\d*\\.?\\d*$"))) {
+            _uiState.value = _uiState.value.copy(overallAmount = amount)
         }
-    }
-
-    fun updateColor(color: String) {
-        _uiState.value = _uiState.value.copy(color = color)
     }
 
     fun updateCurrency(currency: String) {
@@ -198,41 +170,36 @@ class BudgetGroupEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(categories = current)
     }
 
-    fun dismissEmptyWarning() {
-        _uiState.value = _uiState.value.copy(showEmptyCategoriesWarning = false)
-    }
-
-    fun save(forceEmpty: Boolean = false) {
+    fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) return
+        val overallAmount = state.overallAmount.toBigDecimalOrNull() ?: return
+        if (overallAmount <= BigDecimal.ZERO) return
 
-        // Show warning if no categories (unless user confirmed)
-        if (state.categories.isEmpty() && !forceEmpty) {
-            _uiState.value = state.copy(showEmptyCategoriesWarning = true)
-            return
-        }
-
-        _uiState.value = state.copy(isSaving = true, showEmptyCategoriesWarning = false)
+        _uiState.value = state.copy(isSaving = true)
 
         viewModelScope.launch {
             val categories = state.categories.map { it.categoryName to it.amount }
+            val defaultColor = "#1565C0"
 
             if (state.groupId != null && state.groupId > 0) {
                 budgetGroupRepository.updateGroup(
                     budgetId = state.groupId,
                     name = state.name,
-                    groupType = state.type,
-                    color = state.color,
+                    groupType = BudgetGroupType.LIMIT,
+                    color = defaultColor,
                     categories = categories,
-                    currency = state.currency
+                    currency = state.currency,
+                    limitAmount = overallAmount
                 )
             } else {
                 budgetGroupRepository.createGroup(
                     name = state.name,
-                    groupType = state.type,
-                    color = state.color,
+                    groupType = BudgetGroupType.LIMIT,
+                    color = defaultColor,
                     currency = state.currency,
-                    categories = categories
+                    categories = categories,
+                    limitAmount = overallAmount
                 )
             }
 

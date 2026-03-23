@@ -230,7 +230,7 @@ class StandardCharteredBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("30000.00"),
                     currency = "PKR",
-                    type = TransactionType.EXPENSE,
+                    type = TransactionType.CREDIT,
                     merchant = "ATM Cash Withdrawal",
                     isFromCard = true,
                     balance = BigDecimal("18062.81"),
@@ -257,6 +257,20 @@ class StandardCharteredBankParserTest {
                     currency = "PKR",
                     type = TransactionType.EXPENSE,
                     accountLast4 = "9901"
+                )
+            ),
+            ParserTestCase(
+                name = "PKR Credit card purchase",
+                message = "Dear Client, PKR 1,958.98 have been paid at FOOD PANDA KARACHI PAK on 23-03-26 using Credit Card no 0141. Avail Limit PKR5174.79. SCBPL",
+                sender = "9220",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1958.98"),
+                    currency = "PKR",
+                    type = TransactionType.CREDIT,
+                    merchant = "FOOD PANDA KARACHI PAK",
+                    isFromCard = true,
+                    balance = BigDecimal("5174.79"),
+                    accountLast4 = "0141"
                 )
             ),
             ParserTestCase(

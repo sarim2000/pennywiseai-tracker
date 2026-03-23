@@ -112,13 +112,17 @@ class StandardCharteredBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
+        val isCreditCard = lowerMessage.contains("credit card")
+
         return when {
             // Pakistan-specific
             lowerMessage.contains("payment of") && lowerMessage.contains("financing") -> TransactionType.EXPENSE
             lowerMessage.contains("transaction of pkr") && lowerMessage.contains("using online banking") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn from account") -> TransactionType.EXPENSE
-            lowerMessage.contains("cash withdrawal transaction") -> TransactionType.EXPENSE
-            lowerMessage.contains("paid at") -> TransactionType.EXPENSE
+            lowerMessage.contains("cash withdrawal transaction") ->
+                if (isCreditCard) TransactionType.CREDIT else TransactionType.EXPENSE
+            lowerMessage.contains("paid at") ->
+                if (isCreditCard) TransactionType.CREDIT else TransactionType.EXPENSE
             lowerMessage.contains("transaction of pkr") && lowerMessage.contains("to") -> TransactionType.TRANSFER
             lowerMessage.contains("sent to scb pk") -> TransactionType.INCOME
             lowerMessage.contains("electronic funds transfer") && lowerMessage.contains("into your account") -> TransactionType.INCOME

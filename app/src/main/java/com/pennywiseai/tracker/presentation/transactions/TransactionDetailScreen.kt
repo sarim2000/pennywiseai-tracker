@@ -90,6 +90,9 @@ fun TransactionDetailScreen(
     val showSplitEditor by viewModel.showSplitEditor.collectAsStateWithLifecycle()
     val hasSplits by viewModel.hasSplits.collectAsStateWithLifecycle()
 
+    // Business account state
+    val isAccountBusiness by viewModel.isAccountBusiness.collectAsStateWithLifecycle()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
@@ -239,6 +242,7 @@ fun TransactionDetailScreen(
                 splits = splits,
                 showSplitEditor = showSplitEditor,
                 hasSplits = hasSplits,
+                isAccountBusiness = isAccountBusiness,
                 hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -294,6 +298,7 @@ private fun TransactionDetailContent(
     splits: List<SplitItem>,
     showSplitEditor: Boolean,
     hasSplits: Boolean,
+    isAccountBusiness: Boolean,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
@@ -323,6 +328,7 @@ private fun TransactionDetailContent(
                 applyToAllFromMerchant = applyToAllFromMerchant,
                 updateExistingTransactions = updateExistingTransactions,
                 existingTransactionCount = existingTransactionCount,
+                isAccountBusiness = isAccountBusiness,
                 viewModel = viewModel,
                 splits = splits,
                 showSplitEditor = showSplitEditor
@@ -336,7 +342,8 @@ private fun TransactionDetailContent(
                 convertedAmount = convertedAmount,
                 viewModel = viewModel,
                 splits = splits,
-                hasSplits = hasSplits
+                hasSplits = hasSplits,
+                isAccountBusiness = isAccountBusiness
             )
         }
     }
@@ -351,7 +358,8 @@ private fun TransactionReceipt(
     convertedAmount: BigDecimal?,
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
-    hasSplits: Boolean
+    hasSplits: Boolean,
+    isAccountBusiness: Boolean = false
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
@@ -531,6 +539,15 @@ private fun TransactionReceipt(
                     value = "Recurring"
                 )
             }
+
+            // Business/Personal
+            val effectiveIsBusiness = transaction.isBusiness ?: isAccountBusiness
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            DetailInfoRow(
+                icon = if (effectiveIsBusiness) Icons.Default.Business else Icons.Default.Person,
+                label = "Account Type",
+                value = if (effectiveIsBusiness) "Business" else "Personal"
+            )
 
             // Account info
             if (transaction.fromAccount != null && transaction.toAccount != null) {
@@ -911,6 +928,7 @@ private fun EditableExtractedInfoCard(
     applyToAllFromMerchant: Boolean,
     updateExistingTransactions: Boolean,
     existingTransactionCount: Int,
+    isAccountBusiness: Boolean,
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
     showSplitEditor: Boolean
@@ -1055,6 +1073,35 @@ private fun EditableExtractedInfoCard(
                     text = "Recurring Transaction",
                     style = MaterialTheme.typography.bodyLarge
                 )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            // Business/Personal toggle
+            val effectiveIsBusiness = transaction.isBusiness ?: isAccountBusiness
+            Text(
+                text = "Account Type",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SegmentedButton(
+                    selected = !effectiveIsBusiness,
+                    onClick = { viewModel.updateBusinessStatus(if (isAccountBusiness) false else null) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Personal")
+                }
+                SegmentedButton(
+                    selected = effectiveIsBusiness,
+                    onClick = { viewModel.updateBusinessStatus(if (!isAccountBusiness) true else null) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Business")
+                }
             }
 
             // Bank (read-only)

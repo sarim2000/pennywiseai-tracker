@@ -43,6 +43,9 @@ class TransactionDetailViewModel @Inject constructor(
     private val _convertedAmount = MutableStateFlow<BigDecimal?>(null)
     val convertedAmount: StateFlow<BigDecimal?> = _convertedAmount.asStateFlow()
     
+    private val _isAccountBusiness = MutableStateFlow(false)
+    val isAccountBusiness: StateFlow<Boolean> = _isAccountBusiness.asStateFlow()
+
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
     
@@ -149,8 +152,16 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
+                loadAccountBusinessStatus(it)
             }
         }
+    }
+
+    private suspend fun loadAccountBusinessStatus(transaction: TransactionEntity) {
+        val bankName = transaction.bankName ?: return
+        val accountNumber = transaction.accountNumber ?: return
+        val balance = accountBalanceRepository.getLatestBalance(bankName, accountNumber)
+        _isAccountBusiness.value = balance?.isBusiness == true
     }
 
     private suspend fun loadSplits(transactionId: Long) {
@@ -305,6 +316,12 @@ class TransactionDetailViewModel @Inject constructor(
     fun updateAccountNumber(accountNumber: String?) {
         _editableTransaction.update { current ->
             current?.copy(accountNumber = if (accountNumber.isNullOrEmpty()) null else accountNumber)
+        }
+    }
+
+    fun updateBusinessStatus(isBusiness: Boolean?) {
+        _editableTransaction.update { current ->
+            current?.copy(isBusiness = isBusiness)
         }
     }
 

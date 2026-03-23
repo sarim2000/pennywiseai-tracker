@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.common
 
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.preferences.BusinessFilter
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -52,6 +54,27 @@ fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate>? {
         TimePeriod.CUSTOM -> {
             // Custom range is handled separately in ViewModel
             null
+        }
+    }
+}
+
+fun filterTransactionsByBusiness(
+    transactions: List<TransactionEntity>,
+    filter: BusinessFilter,
+    businessAccountKeys: Set<String>
+): List<TransactionEntity> {
+    if (filter == BusinessFilter.ALL) return transactions
+    return transactions.filter { tx ->
+        val isBusinessTx = when (tx.isBusiness) {
+            true -> true
+            false -> false
+            null -> tx.bankName != null && tx.accountNumber != null &&
+                businessAccountKeys.contains("${tx.bankName}_${tx.accountNumber}")
+        }
+        when (filter) {
+            BusinessFilter.ALL -> true
+            BusinessFilter.BUSINESS -> isBusinessTx
+            BusinessFilter.PERSONAL -> !isBusinessTx
         }
     }
 }

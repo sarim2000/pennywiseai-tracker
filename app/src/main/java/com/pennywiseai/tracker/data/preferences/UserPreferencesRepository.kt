@@ -81,6 +81,9 @@ class UserPreferencesRepository @Inject constructor(
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
 
+        // Business Filter
+        val BUSINESS_FILTER = stringPreferencesKey("business_filter")
+
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
@@ -125,7 +128,10 @@ class UserPreferencesRepository @Inject constructor(
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
                 hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
-                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
+                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY],
+                businessFilter = preferences[PreferencesKeys.BUSINESS_FILTER]?.let {
+                    try { BusinessFilter.valueOf(it) } catch (_: Exception) { BusinessFilter.ALL }
+                } ?: BusinessFilter.ALL
             )
         }
 
@@ -593,6 +599,20 @@ class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    // Business Filter
+    val businessFilter: Flow<BusinessFilter> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.BUSINESS_FILTER]?.let {
+                try { BusinessFilter.valueOf(it) } catch (_: Exception) { BusinessFilter.ALL }
+            } ?: BusinessFilter.ALL
+        }
+
+    suspend fun updateBusinessFilter(filter: BusinessFilter) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUSINESS_FILTER] = filter.name
+        }
+    }
 }
 
 data class UserPreferences(
@@ -617,5 +637,12 @@ data class UserPreferences(
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
-    val mainAccountKey: String? = null
+    val mainAccountKey: String? = null,
+    val businessFilter: BusinessFilter = BusinessFilter.ALL
 )
+
+enum class BusinessFilter {
+    ALL,
+    PERSONAL,
+    BUSINESS
+}

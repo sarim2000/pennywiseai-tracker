@@ -622,7 +622,7 @@ fun DeveloperInfoCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Gemma 3 • ${chatStats.messageCount} messages",
+                        text = "Qwen 2.5 • ${chatStats.messageCount} messages",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

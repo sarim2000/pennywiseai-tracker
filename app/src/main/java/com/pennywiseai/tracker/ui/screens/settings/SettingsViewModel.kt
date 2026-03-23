@@ -256,33 +256,46 @@ class SettingsViewModel @Inject constructor(
                 return@launch
             }
             
+            // Validate model URL before attempting download
+            val modelUrl = Constants.ModelDownload.MODEL_URL
+            if (modelUrl.isBlank() || !modelUrl.startsWith("http")) {
+                Log.e("SettingsViewModel", "Invalid MODEL_URL: '$modelUrl'")
+                _downloadState.value = DownloadState.FAILED
+                return@launch
+            }
+
             // Clean up any stale partial file — DownloadManager stays PENDING if destination exists
             val existingFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
             if (existingFile.exists()) {
                 existingFile.delete()
             }
 
-            // Create download request
-            val request = DownloadManager.Request(Uri.parse(Constants.ModelDownload.MODEL_URL))
-                .setTitle("Gemma 3 Chat Model")
-                .setDescription("Downloading AI chat assistant for PennyWise")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
-                .setAllowedOverMetered(true) // Allow mobile data downloads
-                .setAllowedOverRoaming(false)
-            
-            currentDownloadId = downloadManager.enqueue(request)
-            _downloadState.value = DownloadState.DOWNLOADING
-            
-            // Sync ModelRepository state
-            modelRepository.updateModelState(ModelState.DOWNLOADING)
-            
-            // Save download ID
-            userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
-            Log.d("SettingsViewModel", "Started download with ID: $currentDownloadId")
-            
-            // Start monitoring progress
-            monitorDownload(currentDownloadId!!)
+            try {
+                // Create download request
+                val request = DownloadManager.Request(Uri.parse(modelUrl))
+                    .setTitle("Qwen 2.5 Chat Model")
+                    .setDescription("Downloading AI chat assistant for PennyWise")
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
+                    .setAllowedOverMetered(true) // Allow mobile data downloads
+                    .setAllowedOverRoaming(false)
+
+                currentDownloadId = downloadManager.enqueue(request)
+                _downloadState.value = DownloadState.DOWNLOADING
+
+                // Sync ModelRepository state
+                modelRepository.updateModelState(ModelState.DOWNLOADING)
+
+                // Save download ID
+                userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
+                Log.d("SettingsViewModel", "Started download with ID: $currentDownloadId")
+
+                // Start monitoring progress
+                monitorDownload(currentDownloadId!!)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Failed to start download", e)
+                _downloadState.value = DownloadState.FAILED
+            }
         }
     }
     

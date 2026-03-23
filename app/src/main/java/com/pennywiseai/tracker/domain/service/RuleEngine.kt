@@ -178,6 +178,16 @@ class RuleEngine @Inject constructor() {
             TransactionField.NARRATION -> transaction.description ?: ""
             TransactionField.SMS_TEXT -> smsText ?: ""
             TransactionField.BANK_NAME -> transaction.bankName ?: ""
+            TransactionField.TRANSACTION_HOUR ->
+                String.format("%02d", transaction.dateTime.hour)
+            TransactionField.TRANSACTION_TIME ->
+                String.format("%02d:%02d", transaction.dateTime.hour, transaction.dateTime.minute)
+            TransactionField.TRANSACTION_DAY_OF_WEEK ->
+                transaction.dateTime.dayOfWeek.value.toString()
+            TransactionField.TRANSACTION_DAY_OF_MONTH ->
+                String.format("%02d", transaction.dateTime.dayOfMonth)
+            TransactionField.TRANSACTION_DATE ->
+                transaction.dateTime.toLocalDate().toString()
         }
     }
 

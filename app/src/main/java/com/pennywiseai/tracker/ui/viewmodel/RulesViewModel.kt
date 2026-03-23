@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleTemplateService
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
+import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.domain.usecase.InitializeRuleTemplatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -29,6 +30,9 @@ class RulesViewModel @Inject constructor(
 
     private val _batchApplyResult = MutableStateFlow<BatchApplyResult?>(null)
     val batchApplyResult: StateFlow<BatchApplyResult?> = _batchApplyResult.asStateFlow()
+
+    private val _dryRunResult = MutableStateFlow<DryRunResult?>(null)
+    val dryRunResult: StateFlow<DryRunResult?> = _dryRunResult.asStateFlow()
 
     val rules: StateFlow<List<TransactionRule>> = ruleRepository.getAllRules()
         .stateIn(
@@ -184,5 +188,20 @@ class RulesViewModel @Inject constructor(
 
     fun clearBatchApplyResult() {
         _batchApplyResult.value = null
+        _dryRunResult.value = null
+    }
+
+    fun previewRule(rule: TransactionRule) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _dryRunResult.value = null
+            try {
+                _dryRunResult.value = applyRulesToPastTransactionsUseCase.previewRuleApplication(rule)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 }

@@ -1,0 +1,56 @@
+package com.pennywiseai.tracker.data.repository
+
+import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
+import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
+import java.security.MessageDigest
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class BankNotificationRepository @Inject constructor(
+    private val dao: BankNotificationDao
+) {
+
+    suspend fun logNotification(
+        packageName: String,
+        senderAlias: String,
+        messageBody: String,
+        postedAtMillis: Long
+    ): Long {
+        val postedAt = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(postedAtMillis),
+            ZoneId.systemDefault()
+        )
+
+        // Bucket timestamp to the nearest minute so identical recurring
+        // notifications at different times produce distinct hashes.
+        val timeBucket = postedAtMillis / 60_000
+        val messageHash = hash("$packageName|$senderAlias|$timeBucket|$messageBody")
+
+        val entity = BankNotificationEntity(
+            packageName = packageName,
+            senderAlias = senderAlias,
+            messageBody = messageBody,
+            messageHash = messageHash,
+            postedAt = postedAt
+        )
+
+        return dao.insert(entity)
+    }
+
+    suspend fun markProcessed(id: Long, transactionId: Long?) {
+        dao.updateStatus(id, processed = true, transactionId = transactionId)
+    }
+
+    suspend fun getUnprocessed(): List<BankNotificationEntity> =
+        dao.getUnprocessed()
+
+    private fun hash(input: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(input.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+}

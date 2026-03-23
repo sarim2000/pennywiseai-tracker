@@ -1,5 +1,5 @@
 # Build stage
-FROM gradle:8.5-jdk21 AS build
+FROM --platform=$BUILDPLATFORM gradle:8.5-jdk21 AS build
 
 WORKDIR /app
 

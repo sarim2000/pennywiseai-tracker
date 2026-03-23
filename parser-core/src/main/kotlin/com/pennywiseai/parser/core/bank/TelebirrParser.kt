@@ -122,7 +122,19 @@ class TelebirrParser: BankParser() {
             }
         }
 
-        // Pattern 3: "paid ETB X for goods purchased from 521902 - SAMUEL..." (merchant payment)
+        // Pattern 3a: "paid ETB X for fuel purchased from ... on ..." (keep full phrase)
+        val fuelPurchasedFromPattern = Regex(
+            """(for\s+fuel\s+purchased\s+from\s+[^,\n]+?)(?:\s+on\s+\d{2}/\d{2}/\d{4}|\.\s+Your\s+transaction|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        fuelPurchasedFromPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1].trim()
+            if (merchant.isNotEmpty()) {
+                return merchant
+            }
+        }
+
+        // Pattern 3b: "paid ETB X for goods purchased from 521902 - SAMUEL..." (merchant payment)
         val purchasedFromPattern = Regex("""for\s+goods\s+purchased\s+from\s+([^,\n]+?)(?:\s+on\s+\d{2}/\d{2}/\d{4}|\.\s+Your\s+transaction|$)""", RegexOption.IGNORE_CASE)
         purchasedFromPattern.find(message)?.let { match ->
             var merchant = match.groupValues[1].trim()
@@ -205,10 +217,22 @@ class TelebirrParser: BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Pattern: "Dear [Name]" - extract the name in brackets
-        val dearPattern = Regex("""Dear\s+\[([^\]]+)\]""", RegexOption.IGNORE_CASE)
-        dearPattern.find(message)?.let { match ->
+        // Telebirr SMS formats observed:
+        // - "Dear [Name] You have ..."   -> expected: "[Name]"
+        // - "Dear Name You have ..."     -> expected: "Name"
+        //
+        // Extract "anything between 'Dear' and the next space/newline".
+        // Keep bracket-wrapping when present.
+        val bracketedPattern = Regex("""Dear\s+\[([^\]]+)\]""")
+        bracketedPattern.find(message)?.let { match ->
             return "[${match.groupValues[1]}]"
+        }
+
+        val tokenAfterDearPattern = Regex("""Dear\s+([^\r\n ]+)""")
+        tokenAfterDearPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+                // Be resilient to minor punctuation (e.g., "Dear Name," or "Dear [X],").
+                .trimEnd(',', '.', ';', ':')
         }
 
         return null

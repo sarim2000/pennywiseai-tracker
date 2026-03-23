@@ -21,6 +21,7 @@ class EverestBankParser : BankParser() {
             // Text-based senders
             upperSender == "EVEREST" ||
                     upperSender.contains("EVERESTBANK") ||
+                    upperSender.contains("EBL") ||
                     upperSender == "UJJ SH" ||
                     upperSender == "CWRD" ||  // ATM withdrawal code
 
@@ -86,6 +87,13 @@ class EverestBankParser : BankParser() {
                 // ATM withdrawal pattern: "CWDR/521708008016/202508050854"
                 forContent.startsWith("CWDR/", ignoreCase = true) -> {
                     "ATM Withdrawal"
+                }
+
+                // Fonepay/IBFT pattern: "FPY:IBFT:ref:id:BANKCODE"
+                forContent.startsWith("FPY:", ignoreCase = true) -> {
+                    val parts = forContent.split(":")
+                    val type = parts.getOrNull(1)?.uppercase() ?: "Transfer"
+                    "Fonepay $type"
                 }
 
                 // Transfer pattern: "9843368/{Payment type},{Receiver}" or "{Receiver}/{Payment type},UJJ SH"

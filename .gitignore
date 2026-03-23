@@ -65,3 +65,6 @@ deploy.sh
 # IDE folders
 .idea
 .vscode
+
+# VSCode build files
+parser-core/bin/*

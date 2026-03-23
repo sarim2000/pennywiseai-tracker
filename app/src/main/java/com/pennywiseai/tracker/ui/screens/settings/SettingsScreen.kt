@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.screens.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -83,7 +84,8 @@ fun SettingsScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel()
+    appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
+    permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
@@ -105,7 +107,14 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
+    val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
+    val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val context = LocalContext.current
+    val notificationAccessLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        permissionViewModel.refreshNotificationAccess()
+    }
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -350,6 +359,24 @@ fun SettingsScreen(
                     onClick = { showSmsScanDialog = true },
                     position = ItemPosition.BOTTOM,
                     trailingText = if (smsScanAllTime) "All Time" else "$smsScanMonths mo"
+                )
+            }
+
+            // ── Notifications ──
+            SectionHeaderV2(title = "Notifications")
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.Notifications,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Bank Notification Access",
+                    subtitle = if (hasNotificationAccess) "Enabled" else "Tap to enable bank app notifications",
+                    onClick = {
+                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        notificationAccessLauncher.launch(intent)
+                    },
+                    position = ItemPosition.SINGLE,
+                    trailingText = if (hasNotificationAccess) "On" else "Off"
                 )
             }
 
@@ -941,10 +968,10 @@ private fun AiChatSettingsItem(
                     )
                     Text(
                         text = when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED -> "Download Gemma 3 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                            DownloadState.DOWNLOADING -> "Downloading Gemma model..."
+                            DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                            DownloadState.DOWNLOADING -> "Downloading Qwen model..."
                             DownloadState.PAUSED -> "Download interrupted"
-                            DownloadState.COMPLETED -> "Gemma ready for chat"
+                            DownloadState.COMPLETED -> "Qwen ready for chat"
                             DownloadState.FAILED -> "Download failed"
                             DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
                         },
@@ -1054,7 +1081,7 @@ private fun AiChatSettingsItem(
             ) {
                 HorizontalDivider()
                 Text(
-                    text = "Chat with Gemma AI about your expenses and get financial insights. " +
+                    text = "Chat with Qwen AI about your expenses and get financial insights. " +
                             "All conversations stay private on your device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

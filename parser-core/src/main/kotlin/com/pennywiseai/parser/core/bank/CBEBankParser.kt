@@ -22,6 +22,18 @@ class CBEBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
+        // Prefer total amount when present in fee/VAT summaries.
+        val totalPattern = Regex("""with a total of\s+ETB\s*([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
+        totalPattern.find(message)?.let { match ->
+            val amountStr = match.groupValues[1].replace(",", "")
+            return try {
+                // Keep 2-digit currency precision even when source value is whole (e.g., ETB250).
+                BigDecimal(amountStr).setScale(2)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
         // CBE patterns: "ETB 3,000.00", "ETB 25.00", "ETB250"
         val patterns = listOf(
             Regex("""ETB\s+([0-9,]+(?:\.[0-9]{2})?)\s""", RegexOption.IGNORE_CASE),
@@ -67,9 +79,20 @@ class CBEBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern 1: "from Be***" (credit transaction)
-        val fromPattern = Regex("""from\s+([^,\s]+\*{0,3}[^,\s]*)""", RegexOption.IGNORE_CASE)
-        fromPattern.find(message)?.let { match ->
+        // Pattern 0: "to Ali Mohamud on ... from your account" (transfer with named recipient)
+        // If recipient is masked (contains *), let legacy fallback logic run.
+        val toNamedPattern = Regex("""to\s+(.+?)\s+on\s+\d{2}/\d{2}/\d{4}\s+at\s+\d{2}:\d{2}:\d{2}\s+from\s+your\s+account""", RegexOption.IGNORE_CASE)
+        toNamedPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1].trim()
+            if (merchant.isNotEmpty() && !merchant.contains("*")) {
+                return cleanMerchantName(merchant)
+            }
+        }
+
+        // Pattern 1: "from Salary Payment, on 15/09/2025" — merchant can be multiple words before ", on" + date.
+        val fromCreditWithDatePattern =
+            Regex("""from\s+(?!your\s+account\b)(.+?), on\s+\d{2}/\d{2}/\d{4}""", RegexOption.IGNORE_CASE)
+        fromCreditWithDatePattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) {
                 return cleanMerchantName(merchant.replace("*", ""))

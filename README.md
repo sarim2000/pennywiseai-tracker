@@ -72,7 +72,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 ## Supported Banks & Countries
 
-Supporting **85+ banks** across **14 countries** with **multi-currency** capabilities:
+Supporting **90+ banks** across **18 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (44 banks) - INR ₹
 - **HDFC Bank**, **HDFC Mutual Fund**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -90,8 +90,8 @@ Supporting **85+ banks** across **14 countries** with **multi-currency** capabil
 - **Jio Payments Bank**, **JioPay**, **India Post Payments Bank (IPPB)**
 - **Standard Chartered Bank**
 
-### 🇺🇸 USA (7 banks) - USD $
-- **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
+### 🇺🇸 USA (8 banks) - USD $
+- **Chase Bank**, **Citi Bank**, **Discover Card**, **Old Hickory Credit Union**, **Charles Schwab**
 - **Navy Federal Credit Union**, **AdelFi Credit Union**, **Huntington Bank**
 
 ### 🇦🇪 UAE (5 banks) - AED د.إ
@@ -120,8 +120,11 @@ Supporting **85+ banks** across **14 countries** with **multi-currency** capabil
 ### 🇮🇷 Iran (2 banks) - IRR ﷼
 - **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)** - Persian SMS support
 
-### 🇸🇦 Saudi Arabia (1 bank) - SAR ﷼
-- **Alinma Bank (بنك الإنماء)** - Arabic SMS support
+### 🇸🇦 Saudi Arabia (2 banks) - SAR ﷼
+- **Al Rajhi Bank (مصرف الراجحي)**, **Alinma Bank (بنك الإنماء)** - Arabic SMS support
+
+### 🇷🇺 Russia (1 bank) - RUB ₽
+- **T-Bank (Tinkoff)** - Russian SMS support
 
 ### 🇧🇾 Belarus (1 bank) - BYN Br
 - **Priorbank** - Russian/Belarusian SMS support
@@ -131,6 +134,9 @@ Supporting **85+ banks** across **14 countries** with **multi-currency** capabil
 
 ### 🇪🇬 Egypt (1 bank) - EGP E£
 - **CIB (Commercial International Bank)**
+
+### 🇨🇿 Czech Republic (1 bank) - CZK Kč
+- **mBank CZ** - Czech SMS support
 
 ### 🇰🇪 Kenya (1 service) - KES Ksh
 - **M-PESA** - Mobile money service

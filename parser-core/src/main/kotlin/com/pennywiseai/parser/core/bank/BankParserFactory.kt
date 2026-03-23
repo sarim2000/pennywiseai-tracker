@@ -91,7 +91,11 @@ object BankParserFactory {
         BAACBankParser(),  // BAAC (Thailand)
         UOBThailandParser(),  // UOB Thailand
         CIMBThaiParser(),  // CIMB Thai (Thailand)
-        KTCCreditCardParser()  // KTC Credit Card (Thailand)
+        KTCCreditCardParser(),  // KTC Credit Card (Thailand)
+        TBankParser(),  // T-Bank / Tinkoff (Russia)
+        ChaseBankParser(),  // Chase Bank (USA)
+        AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
+        MBankCZParser()  // mBank CZ (Czech Republic)
         // Add more bank parsers here as we implement them
     )
 

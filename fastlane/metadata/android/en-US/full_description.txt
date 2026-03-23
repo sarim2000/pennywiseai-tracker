@@ -1,53 +1,16 @@
-PennyWise AI — Free & Open-Source, private SMS-powered expense tracker
+Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
 
-Automatically extracts transaction data from bank SMS messages using pattern-based parsing. Works 100% offline - no internet connection required.
-
-Automatic expense tracking from bank SMS with clean categories, subscription detection, and clear insights.
+Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no cloud, no effort.
 
 Key Features:
-• Pattern-Based SMS Parsing - Uses regex patterns to extract transactions from 20+ banks
-• 100% Offline Core Features - Transaction parsing, analytics, and exports work without internet
-• Optional AI Chat - Download Qwen 2.5 model (1.5GB, Apache 2.0) for natural language queries
-• Clear Analytics - Charts and insights to see spending patterns
-• Subscription Tracking - Detects and monitors recurring payments
-• Auto-Categorization - Clean merchant names and intelligent categories
-• Data Export - Export as CSV or PDF for records and taxes
-• Material You Design - Clean interface with dynamic theming
+- 100% On-Device & Private — All AI processing runs locally, no cloud, no servers, no tracking
+- Zero Setup — Just grant SMS permission, no accounts to create, works instantly
+- Free & Open Source — AGPL v3 licensed, no ads, no hidden costs
+- On-Device AI Assistant — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
+- 90+ Banks Supported across 18 countries with multi-currency capabilities
+- Smart Analytics — Monthly trends, category breakdowns, spending patterns
+- Budget Tracking — Set budgets per category and track progress
+- Subscription Detection — Automatically identifies recurring payments
+- Smart Rules — Auto-categorize transactions with customizable rules
 
-Currently Supported Banks (20+):
-• HDFC, SBI, ICICI, Axis, PNB, IDBI
-• Indian Bank, Federal Bank, Karnataka Bank
-• Canara Bank, Bank of Baroda, Union Bank
-• Kotak, IndusInd, IDFC First, Central Bank
-• Utkarsh, HSBC, Jio Payments Bank
-• Jupiter, Slice, and payment gateways like Juspay
-• More banks being added regularly!
-
-Privacy & Security:
-• No internet required for core functionality (SMS parsing, analytics, exports)
-• Pattern-based transaction extraction - no AI needed for parsing
-• Optional AI chat uses on-device Qwen 2.5 model (Apache 2.0 licensed)
-• SMS permission is read-only - we never send messages
-• No user accounts or cloud sync required
-• Open source - audit the code yourself on GitHub
-• Zero data collection or tracking
-
-How It Works:
-1. Grant SMS permission (read-only access)
-2. App automatically parses bank SMS using regex patterns
-3. View categorized transactions, analytics, and subscriptions
-4. Optionally download AI model for chat features
-
-Perfect for:
-• Automatic daily expense tracking
-• Understanding spending patterns and budgeting
-• Managing subscription payments
-• Financial planning and analysis
-• Maintaining detailed transaction records
-
-Technical Notes:
-• Core SMS parsing uses regex patterns, not AI
-• Optional Qwen 2.5 model (Apache 2.0) for chat feature only
-• F-Droid flavor excludes all proprietary dependencies
-
-PennyWise respects your privacy while helping you take control of your finances. Join thousands of users who trust PennyWise for secure, automatic expense tracking without compromising their data.
+All AI processing happens on your device using Qwen 2.5 — no cloud, no API calls, no data leaving your phone.

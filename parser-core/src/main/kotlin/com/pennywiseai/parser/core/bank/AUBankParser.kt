@@ -84,6 +84,18 @@ class AUBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Pattern 0: Credit card format - "spent at MERCHANT on"
+        val spentAtPattern = Regex(
+            """spent\s+at\s+(.+?)\s+on\s+(?:AU\s+Bank|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        spentAtPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 1: UPI/DR or UPI/CR format without Ref prefix: UPI/DR/ref/MERCHANT/IFSC/acct
         val upiDrCrPattern = Regex(
             """UPI/(?:DR|CR)/\d+/([^/]+)/[A-Z]{4}\d*/\d+""",
@@ -147,6 +159,9 @@ class AUBankParser : BaseIndianBankParser() {
         val lowerMessage = message.lowercase()
 
         return when {
+            // Credit card transactions (must be checked before generic "spent" keyword)
+            lowerMessage.contains("credit card") -> TransactionType.CREDIT
+
             // Income keywords
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("received") -> TransactionType.INCOME
@@ -158,9 +173,6 @@ class AUBankParser : BaseIndianBankParser() {
             lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
             lowerMessage.contains("spent") -> TransactionType.EXPENSE
             lowerMessage.contains("paid") -> TransactionType.EXPENSE
-
-            // Credit card transactions
-            lowerMessage.contains("credit card") && lowerMessage.contains("spent") -> TransactionType.CREDIT
 
             else -> super.extractTransactionType(message)
         }
@@ -216,7 +228,8 @@ class AUBankParser : BaseIndianBankParser() {
             "debited inr",
             "withdrawn inr",
             "bal inr",
-            "ref upi"
+            "ref upi",
+            "spent"
         )
 
         // If any AU Bank specific pattern is found, it's likely a transaction

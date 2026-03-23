@@ -1,1 +1,1 @@
-Offline expense tracker from bank SMS with optional AI chat
+Private, SMS-powered expense tracker with on-device AI

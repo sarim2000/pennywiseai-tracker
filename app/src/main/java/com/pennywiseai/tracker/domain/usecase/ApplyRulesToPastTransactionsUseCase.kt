@@ -170,28 +170,69 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     }
 
     /**
-     * Preview what would happen if rules were applied (without actually applying)
+     * Preview what would happen if a rule were applied (without actually applying).
+     * Returns pairs of (original, modified) for affected transactions,
+     * plus a count of how many would be blocked.
      */
     suspend fun previewRuleApplication(
         rule: TransactionRule,
-        limit: Int = 10
-    ): Flow<List<Pair<TransactionEntity, TransactionEntity>>> = flow {
-        val transactions = transactionRepository.getAllTransactionsList().take(limit)
-        val previews = mutableListOf<Pair<TransactionEntity, TransactionEntity>>()
+        maxSamples: Int = 20
+    ): DryRunResult {
+        val allTransactions = transactionRepository.getAllTransactionsList()
+        val diffs = mutableListOf<TransactionDiff>()
+        var totalMatched = 0
+        var totalWouldBlock = 0
 
-        transactions.forEach { transaction ->
+        for (transaction in allTransactions) {
+            if (transaction.isDeleted) continue
+
             val smsBody = transaction.smsBody
-            val (updatedTransaction, ruleApplications) = ruleEngine.evaluateRules(
-                transaction,
-                smsBody,
-                listOf(rule)
+
+            val wouldBlock = ruleEngine.shouldBlockTransaction(
+                transaction, smsBody, listOf(rule)
+            ) != null
+
+            if (wouldBlock) {
+                totalWouldBlock++
+                totalMatched++
+                if (diffs.size < maxSamples) {
+                    diffs.add(TransactionDiff(original = transaction, modified = null, isBlock = true))
+                }
+                continue
+            }
+
+            val (updated, applications) = ruleEngine.evaluateRules(
+                transaction, smsBody, listOf(rule)
             )
 
-            if (ruleApplications.isNotEmpty()) {
-                previews.add(transaction to updatedTransaction)
+            if (applications.isNotEmpty()) {
+                totalMatched++
+                if (diffs.size < maxSamples) {
+                    diffs.add(TransactionDiff(original = transaction, modified = updated, isBlock = false))
+                }
             }
         }
 
-        emit(previews)
+        return DryRunResult(
+            totalScanned = allTransactions.count { !it.isDeleted },
+            totalMatched = totalMatched,
+            totalWouldBlock = totalWouldBlock,
+            totalWouldUpdate = totalMatched - totalWouldBlock,
+            samples = diffs
+        )
     }
 }
+
+data class DryRunResult(
+    val totalScanned: Int,
+    val totalMatched: Int,
+    val totalWouldBlock: Int,
+    val totalWouldUpdate: Int,
+    val samples: List<TransactionDiff>
+)
+
+data class TransactionDiff(
+    val original: TransactionEntity,
+    val modified: TransactionEntity?,
+    val isBlock: Boolean
+)

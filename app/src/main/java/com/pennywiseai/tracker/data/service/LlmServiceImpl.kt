@@ -24,7 +24,7 @@ class LlmServiceImpl @Inject constructor(
         try {
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelPath)
-                .setMaxTokens(2048) // Match Gemma 3 1B q4 ekv2048
+                .setMaxTokens(4096) // Match Qwen 2.5 1.5B q8 ekv4096
                 .build()
             
             llmInference = LlmInference.createFromOptions(context, options)

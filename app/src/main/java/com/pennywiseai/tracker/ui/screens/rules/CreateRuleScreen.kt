@@ -125,6 +125,24 @@ fun CreateRuleScreen(
             actionType = ActionType.SET
             actionField = TransactionField.TYPE
             actionValue = "income"
+        },
+        "Daily Investment" to {
+            ruleName = "Daily Investment"
+            conditions = mutableListOf(
+                RuleCondition(
+                    field = TransactionField.TRANSACTION_TIME,
+                    operator = ConditionOperator.GREATER_THAN_OR_EQUAL,
+                    value = "09:00"
+                ),
+                RuleCondition(
+                    field = TransactionField.TRANSACTION_TIME,
+                    operator = ConditionOperator.LESS_THAN,
+                    value = "09:30"
+                )
+            )
+            actionType = ActionType.SET
+            actionField = TransactionField.CATEGORY
+            actionValue = "Investments"
         }
     )
 
@@ -641,32 +659,48 @@ fun CreateRuleScreen(
                                         TransactionField.TYPE -> "type"
                                         TransactionField.CATEGORY -> "category"
                                         TransactionField.MERCHANT -> "merchant"
+                                        TransactionField.NARRATION -> "description"
                                         TransactionField.SMS_TEXT -> "SMS text"
                                         TransactionField.BANK_NAME -> "bank"
-                                        else -> "field"
+                                        TransactionField.TRANSACTION_TIME -> "time"
+                                        TransactionField.TRANSACTION_HOUR -> "hour"
+                                        TransactionField.TRANSACTION_DAY_OF_WEEK -> "day of week"
+                                        TransactionField.TRANSACTION_DAY_OF_MONTH -> "day of month"
+                                        TransactionField.TRANSACTION_DATE -> "date"
                                     })
                                     append(" ")
                                     append(when(condition.operator) {
-                                        ConditionOperator.LESS_THAN -> "is less than"
-                                        ConditionOperator.GREATER_THAN -> "is greater than"
-                                        ConditionOperator.EQUALS -> "equals"
+                                        ConditionOperator.LESS_THAN -> "is before"
+                                        ConditionOperator.GREATER_THAN -> "is after"
+                                        ConditionOperator.LESS_THAN_OR_EQUAL -> "is at or before"
+                                        ConditionOperator.GREATER_THAN_OR_EQUAL -> "is at or after"
+                                        ConditionOperator.EQUALS -> "is"
                                         ConditionOperator.CONTAINS -> "contains"
                                         ConditionOperator.STARTS_WITH -> "starts with"
+                                        ConditionOperator.IN -> "is any of"
+                                        ConditionOperator.NOT_EQUALS -> "is not"
                                         else -> "matches"
                                     })
                                     append(" ")
-                                    // Show user-friendly labels for transaction types
-                                    if (condition.field == TransactionField.TYPE) {
-                                        append(when(condition.value) {
-                                            "INCOME" -> "Incoming"
-                                            "EXPENSE" -> "Outgoing"
-                                            "CREDIT" -> "Credit Card"
-                                            "TRANSFER" -> "Transfer"
-                                            "INVESTMENT" -> "Investment"
-                                            else -> condition.value
-                                        })
-                                    } else {
-                                        append(condition.value)
+                                    val dayNames = mapOf(
+                                        "1" to "Mon", "2" to "Tue", "3" to "Wed", "4" to "Thu",
+                                        "5" to "Fri", "6" to "Sat", "7" to "Sun"
+                                    )
+                                    when {
+                                        condition.field == TransactionField.TYPE -> {
+                                            append(when(condition.value) {
+                                                "INCOME" -> "Incoming"
+                                                "EXPENSE" -> "Outgoing"
+                                                "CREDIT" -> "Credit Card"
+                                                "TRANSFER" -> "Transfer"
+                                                "INVESTMENT" -> "Investment"
+                                                else -> condition.value
+                                            })
+                                        }
+                                        condition.field == TransactionField.TRANSACTION_DAY_OF_WEEK -> {
+                                            append(condition.value.split(",").joinToString(", ") { dayNames[it.trim()] ?: it })
+                                        }
+                                        else -> append(condition.value)
                                     }
                                 }
                                 append(", ")
@@ -718,16 +752,21 @@ private fun ConditionFieldSelector(
         expanded = fieldDropdownExpanded,
         onExpandedChange = { fieldDropdownExpanded = !fieldDropdownExpanded }
     ) {
+        val fieldOptions = listOf(
+            TransactionField.AMOUNT to "Amount",
+            TransactionField.TYPE to "Transaction Type",
+            TransactionField.CATEGORY to "Category",
+            TransactionField.MERCHANT to "Merchant",
+            TransactionField.SMS_TEXT to "SMS Text",
+            TransactionField.BANK_NAME to "Bank Name",
+            TransactionField.TRANSACTION_TIME to "Time of Day",
+            TransactionField.TRANSACTION_HOUR to "Hour",
+            TransactionField.TRANSACTION_DAY_OF_WEEK to "Day of Week",
+            TransactionField.TRANSACTION_DAY_OF_MONTH to "Day of Month",
+            TransactionField.TRANSACTION_DATE to "Date"
+        )
         OutlinedTextField(
-            value = when(condition.field) {
-                TransactionField.AMOUNT -> "Amount"
-                TransactionField.MERCHANT -> "Merchant"
-                TransactionField.CATEGORY -> "Category"
-                TransactionField.SMS_TEXT -> "SMS Text"
-                TransactionField.TYPE -> "Transaction Type"
-                TransactionField.BANK_NAME -> "Bank Name"
-                else -> "Amount"
-            },
+            value = fieldOptions.firstOrNull { it.first == condition.field }?.second ?: "Amount",
             onValueChange = { },
             readOnly = true,
             label = { Text("Field") },
@@ -738,14 +777,7 @@ private fun ConditionFieldSelector(
             expanded = fieldDropdownExpanded,
             onDismissRequest = { fieldDropdownExpanded = false }
         ) {
-            listOf(
-                TransactionField.AMOUNT to "Amount",
-                TransactionField.TYPE to "Transaction Type",
-                TransactionField.CATEGORY to "Category",
-                TransactionField.MERCHANT to "Merchant",
-                TransactionField.SMS_TEXT to "SMS Text",
-                TransactionField.BANK_NAME to "Bank Name"
-            ).forEach { (field, label) ->
+            fieldOptions.forEach { (field, label) ->
                 DropdownMenuItem(
                     text = { Text(label) },
                     onClick = {
@@ -765,6 +797,34 @@ private fun ConditionFieldSelector(
             ConditionOperator.LESS_THAN to "<",
             ConditionOperator.GREATER_THAN to ">",
             ConditionOperator.EQUALS to "="
+        )
+        TransactionField.TRANSACTION_TIME -> listOf(
+            ConditionOperator.LESS_THAN to "before",
+            ConditionOperator.GREATER_THAN to "after",
+            ConditionOperator.GREATER_THAN_OR_EQUAL to "at or after",
+            ConditionOperator.LESS_THAN_OR_EQUAL to "at or before",
+            ConditionOperator.EQUALS to "exactly at"
+        )
+        TransactionField.TRANSACTION_HOUR -> listOf(
+            ConditionOperator.EQUALS to "is",
+            ConditionOperator.LESS_THAN to "before",
+            ConditionOperator.GREATER_THAN to "after"
+        )
+        TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
+            ConditionOperator.EQUALS to "is",
+            ConditionOperator.IN to "is any of",
+            ConditionOperator.NOT_EQUALS to "is not"
+        )
+        TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
+            ConditionOperator.EQUALS to "is",
+            ConditionOperator.IN to "is any of",
+            ConditionOperator.LESS_THAN to "before",
+            ConditionOperator.GREATER_THAN to "after"
+        )
+        TransactionField.TRANSACTION_DATE -> listOf(
+            ConditionOperator.EQUALS to "is",
+            ConditionOperator.LESS_THAN to "before",
+            ConditionOperator.GREATER_THAN to "after"
         )
         else -> listOf(
             ConditionOperator.CONTAINS to "contains",
@@ -791,12 +851,10 @@ private fun ConditionFieldSelector(
     // Value input
     when (condition.field) {
         TransactionField.TYPE -> {
-            // Transaction type chips with user-friendly labels
             Text(
                 text = "Select transaction type:",
                 style = MaterialTheme.typography.bodySmall
             )
-
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -813,17 +871,127 @@ private fun ConditionFieldSelector(
                         selected = condition.value == type,
                         onClick = { onConditionChange(condition.copy(value = type)) },
                         label = {
-                            Text(
-                                displayLabel,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            Text(displayLabel, style = MaterialTheme.typography.bodySmall)
                         }
                     )
                 }
             }
         }
+
+        TransactionField.TRANSACTION_DAY_OF_WEEK -> {
+            val days = listOf(
+                "1" to "Mon", "2" to "Tue", "3" to "Wed", "4" to "Thu",
+                "5" to "Fri", "6" to "Sat", "7" to "Sun"
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (condition.operator == ConditionOperator.IN ||
+                    condition.operator == ConditionOperator.NOT_IN
+                ) {
+                    val selectedDays = condition.value.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+                    days.forEach { (value, label) ->
+                        FilterChip(
+                            selected = value in selectedDays,
+                            onClick = {
+                                val newSet = if (value in selectedDays) selectedDays - value else selectedDays + value
+                                onConditionChange(condition.copy(value = newSet.sorted().joinToString(",")))
+                            },
+                            label = { Text(label, style = MaterialTheme.typography.bodySmall) }
+                        )
+                    }
+                } else {
+                    days.forEach { (value, label) ->
+                        FilterChip(
+                            selected = condition.value == value,
+                            onClick = { onConditionChange(condition.copy(value = value)) },
+                            label = { Text(label, style = MaterialTheme.typography.bodySmall) }
+                        )
+                    }
+                }
+            }
+        }
+
+        TransactionField.TRANSACTION_DAY_OF_MONTH -> {
+            OutlinedTextField(
+                value = condition.value,
+                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                label = { Text("Day (1-31)") },
+                placeholder = { Text("e.g., 1") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        TransactionField.TRANSACTION_TIME -> {
+            var showTimePicker by remember { mutableStateOf(false) }
+            val initialHour = condition.value.split(":").getOrNull(0)?.toIntOrNull() ?: 9
+            val initialMinute = condition.value.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+            val timePickerState = rememberTimePickerState(
+                initialHour = initialHour,
+                initialMinute = initialMinute
+            )
+
+            OutlinedTextField(
+                value = condition.value,
+                onValueChange = { },
+                readOnly = true,
+                label = { Text("Time (HH:mm)") },
+                placeholder = { Text("Tap to select time") },
+                trailingIcon = {
+                    IconButton(onClick = { showTimePicker = true }) {
+                        Icon(Icons.Default.AccessTime, contentDescription = "Pick time")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            if (showTimePicker) {
+                AlertDialog(
+                    onDismissRequest = { showTimePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
+                            onConditionChange(condition.copy(value = formatted))
+                            showTimePicker = false
+                        }) { Text("OK") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                    },
+                    text = { TimePicker(state = timePickerState) }
+                )
+            }
+        }
+
+        TransactionField.TRANSACTION_HOUR -> {
+            OutlinedTextField(
+                value = condition.value,
+                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                label = { Text("Hour (0-23)") },
+                placeholder = { Text("e.g., 9") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        TransactionField.TRANSACTION_DATE -> {
+            OutlinedTextField(
+                value = condition.value,
+                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                label = { Text("Date (yyyy-MM-dd)") },
+                placeholder = { Text("e.g., 2026-03-21") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
         else -> {
-            // Regular text input for other fields
             OutlinedTextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlin.math.absoluteValue
 
@@ -60,7 +61,7 @@ fun BudgetCarousel(
                     Icon(
                         Icons.Outlined.Savings,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
@@ -81,7 +82,7 @@ fun BudgetCarousel(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }

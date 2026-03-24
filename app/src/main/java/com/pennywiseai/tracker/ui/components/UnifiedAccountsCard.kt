@@ -58,7 +58,7 @@ fun UnifiedAccountsCard(
                     Icon(
                         imageVector = Icons.Default.AccountBalance,
                         contentDescription = "Bank Balance",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -95,7 +95,7 @@ fun UnifiedAccountsCard(
                     Icon(
                         imageVector = Icons.Default.CreditCard,
                         contentDescription = "Available Credit",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -227,7 +227,7 @@ private fun CompactAccountItem(
             Icon(
                 imageVector = if (isCredit) Icons.Default.CreditCard else Icons.Default.AccountBalance,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(

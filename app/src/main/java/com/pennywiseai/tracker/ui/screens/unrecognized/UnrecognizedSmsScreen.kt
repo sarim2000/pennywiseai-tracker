@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -159,7 +159,7 @@ fun UnrecognizedSmsScreen(
                                     onClick = { viewModel.toggleShowReported() },
                                     label = { Text("Show Reported") },
                                     leadingIcon = if (showReported) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
                                     } else null
                                 )
 
@@ -347,7 +347,7 @@ private fun UnrecognizedSmsItem(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Delete")
@@ -359,9 +359,9 @@ private fun UnrecognizedSmsItem(
                         onClick = onReport
                     ) {
                         Icon(
-                            Icons.Outlined.BugReport,
+                            Icons.Default.BugReport,
                             contentDescription = "Report",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Report")
@@ -376,7 +376,7 @@ private fun UnrecognizedSmsItem(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Delete")

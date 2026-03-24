@@ -234,7 +234,7 @@ private fun BalanceHistoryItem(
                         Icon(
                             Icons.Default.Schedule,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
@@ -293,7 +293,7 @@ private fun BalanceHistoryItem(
                                         Icon(
                                             imageVector = it,
                                             contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
+                                            modifier = Modifier.size(Dimensions.Icon.small),
                                             tint = sourceColor
                                         )
                                     }
@@ -316,7 +316,7 @@ private fun BalanceHistoryItem(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit balance",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                         }
                         IconButton(onClick = onDeleteClick) {
@@ -324,7 +324,7 @@ private fun BalanceHistoryItem(
                                 Icons.Default.Delete,
                                 contentDescription = "Delete balance",
                                 tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                         }
                     }
@@ -371,7 +371,7 @@ private fun BalanceHistoryItem(
                             enabled = editingValue.toBigDecimalOrNull() != null,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Save")
                         }
@@ -379,7 +379,7 @@ private fun BalanceHistoryItem(
                             onClick = onCancelEdit,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Cancel")
                         }
@@ -438,7 +438,7 @@ private fun BalanceHistoryItem(
                                     Icon(
                                         Icons.AutoMirrored.Filled.Message,
                                         contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
@@ -479,7 +479,7 @@ private fun BalanceHistoryItem(
                                         Icon(
                                             Icons.Default.ContentCopy,
                                             contentDescription = "Copy SMS text",
-                                            modifier = Modifier.size(16.dp),
+                                            modifier = Modifier.size(Dimensions.Icon.small),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -488,7 +488,7 @@ private fun BalanceHistoryItem(
                                 Icon(
                                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                     contentDescription = if (isExpanded) "Collapse SMS source" else "Expand SMS source",
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

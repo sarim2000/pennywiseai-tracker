@@ -271,7 +271,7 @@ fun AnalyticsScreen(
                                         ChartType.HEATMAP -> Icons.Default.GridView
                                     },
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.small)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text(
@@ -342,7 +342,7 @@ fun AnalyticsScreen(
                                             Icons.Default.Check,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.medium)
                                         )
                                     }
                                 }

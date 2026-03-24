@@ -591,7 +591,7 @@ private fun CreditCardItem(
                                 Icon(
                                     Icons.Default.VisibilityOff,
                                     contentDescription = "Hidden",
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -599,7 +599,7 @@ private fun CreditCardItem(
                     }
                 }
             }
-            
+
             // Credit Card Details
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -688,7 +688,7 @@ private fun CreditCardItem(
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(if (isManualAccount) "Edit" else "Update")
@@ -823,7 +823,7 @@ private fun AccountItem(
                                 Icon(
                                     Icons.Default.VisibilityOff,
                                     contentDescription = "Hidden",
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -883,7 +883,7 @@ private fun AccountItem(
                                     Icon(
                                         imageVector = Icons.Default.CreditCard,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Column {
@@ -914,12 +914,12 @@ private fun AccountItem(
                                 }
                                 IconButton(
                                     onClick = { onUnlinkCard(card.id) },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LinkOff,
                                         contentDescription = "Unlink card",
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -944,7 +944,7 @@ private fun AccountItem(
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(if (isManualAccount) "Edit" else "Update Balance")
@@ -1328,7 +1328,7 @@ private fun OrphanedCardItem(
                         Icon(
                             Icons.Default.Link,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Link")
@@ -1343,7 +1343,7 @@ private fun OrphanedCardItem(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Delete")
@@ -1446,7 +1446,7 @@ private fun LinkCardDialog(
                                         Icons.Default.CheckCircle,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(Dimensions.Icon.medium)
                                     )
                                 }
                             }

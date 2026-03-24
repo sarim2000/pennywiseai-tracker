@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
@@ -329,11 +330,11 @@ private fun SwipeableSubscriptionItem(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = "SMS available",
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                
+
                                 // Calculate the actual next payment date
                                 val today = LocalDate.now()
                                 val subscriptionDate = subscription.nextPaymentDate
@@ -357,7 +358,7 @@ private fun SwipeableSubscriptionItem(
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     
@@ -434,7 +435,7 @@ private fun SwipeableSubscriptionItem(
                                     Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(

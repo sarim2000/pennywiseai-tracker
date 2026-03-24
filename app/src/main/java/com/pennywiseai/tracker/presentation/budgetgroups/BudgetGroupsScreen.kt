@@ -178,7 +178,7 @@ private fun EmptyBudgetState(
                     onClick = onSmartDefaults,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text("Use Smart Defaults")
                 }
@@ -339,7 +339,7 @@ private fun MonthSelector(
             Icon(
                 Icons.Default.ChevronLeft,
                 contentDescription = "Previous month",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
 
@@ -368,7 +368,7 @@ private fun MonthSelector(
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = "Next month",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
     }
@@ -461,7 +461,7 @@ private fun BudgetCard(
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "Edit budget",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -472,7 +472,7 @@ private fun BudgetCard(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete budget",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         )
                     }

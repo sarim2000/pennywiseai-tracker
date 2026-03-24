@@ -4,6 +4,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -11,20 +12,26 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.ui.components.CategoryIcon
@@ -47,6 +54,8 @@ fun BudgetGroupEditScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddCategoryDropdown by remember { mutableStateOf(false) }
+    var isEditingName by remember { mutableStateOf(false) }
+    var isEditingAmount by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
@@ -58,6 +67,7 @@ fun BudgetGroupEditScreen(
     val overallAmount = uiState.overallAmount.toBigDecimalOrNull() ?: BigDecimal.ZERO
     val categoryTotal = uiState.categories.fold(BigDecimal.ZERO) { acc, c -> acc + c.amount }
     val canSave = uiState.name.isNotBlank() && overallAmount > BigDecimal.ZERO && !uiState.isSaving
+    val currencySymbol = CurrencyFormatter.getCurrencySymbol(uiState.currency)
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -78,6 +88,17 @@ fun BudgetGroupEditScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actionContent = {
+                    if (isEditing) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete budget",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                },
                 hazeState = hazeState
             )
         },
@@ -87,35 +108,15 @@ fun BudgetGroupEditScreen(
                 shadowElevation = Dimensions.Elevation.bottomBar,
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
-                        .navigationBarsPadding(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        .navigationBarsPadding()
                 ) {
-                    if (isEditing) {
-                        OutlinedButton(
-                            onClick = { showDeleteDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimensions.Icon.small)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Delete")
-                        }
-                    }
                     Button(
                         onClick = { viewModel.save() },
-                        modifier = Modifier.weight(if (isEditing) 1.5f else 1f),
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = canSave,
                         shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
                         colors = ButtonDefaults.buttonColors(
@@ -172,113 +173,22 @@ fun BudgetGroupEditScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            // Decorative Header
+            // Budget Name + Amount compact row
             item {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Outlined.Savings,
-                                contentDescription = null,
-                                modifier = Modifier.size(36.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        Spacer(Modifier.height(Spacing.md))
-                        Text(
-                            if (isEditing) "Edit your budget" else "Set your budget",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(Spacing.xs))
-                        Text(
-                            "Track spending and stay on target",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Budget Details Section
-            item {
-                PennyWiseCardV2(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.name,
-                            onValueChange = { viewModel.updateName(it) },
-                            label = { Text("Budget Name") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
-                        )
-
-                        OutlinedTextField(
-                            value = uiState.overallAmount,
-                            onValueChange = { viewModel.updateOverallAmount(it) },
-                            label = { Text("Budget Amount") },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.AccountBalanceWallet,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            prefix = { Text(CurrencyFormatter.getCurrencySymbol(uiState.currency)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
-                        )
-
-                        // Currency Selector
-                        var showCurrencyMenu by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = showCurrencyMenu,
-                            onExpandedChange = { showCurrencyMenu = it },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OutlinedTextField(
-                                value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Currency") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
-                            )
-                            ExposedDropdownMenu(
-                                expanded = showCurrencyMenu,
-                                onDismissRequest = { showCurrencyMenu = false }
-                            ) {
-                                uiState.availableCurrencies.forEach { currency ->
-                                    DropdownMenuItem(
-                                        text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
-                                        onClick = {
-                                            viewModel.updateCurrency(currency)
-                                            showCurrencyMenu = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                BudgetHeaderCard(
+                    name = uiState.name,
+                    amount = uiState.overallAmount,
+                    currencySymbol = currencySymbol,
+                    currency = uiState.currency,
+                    isEditingName = isEditingName,
+                    isEditingAmount = isEditingAmount,
+                    onNameTap = { isEditingName = true },
+                    onAmountTap = { isEditingAmount = true },
+                    onNameChange = { viewModel.updateName(it) },
+                    onAmountChange = { viewModel.updateOverallAmount(it) },
+                    onNameDone = { isEditingName = false },
+                    onAmountDone = { isEditingAmount = false }
+                )
             }
 
             // Categories Section
@@ -426,6 +336,154 @@ fun BudgetGroupEditScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun BudgetHeaderCard(
+    name: String,
+    amount: String,
+    currencySymbol: String,
+    currency: String,
+    isEditingName: Boolean,
+    isEditingAmount: Boolean,
+    onNameTap: () -> Unit,
+    onAmountTap: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onAmountChange: (String) -> Unit,
+    onNameDone: () -> Unit,
+    onAmountDone: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    val nameFocusRequester = remember { FocusRequester() }
+    val amountFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isEditingName) {
+        if (isEditingName) nameFocusRequester.requestFocus()
+    }
+    LaunchedEffect(isEditingAmount) {
+        if (isEditingAmount) amountFocusRequester.requestFocus()
+    }
+
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Budget name (left side)
+            Box(modifier = Modifier.weight(1f)) {
+                if (isEditingName) {
+                    BasicTextField(
+                        value = name,
+                        onValueChange = onNameChange,
+                        textStyle = MaterialTheme.typography.titleMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        singleLine = true,
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            onNameDone()
+                            focusManager.clearFocus()
+                        }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(nameFocusRequester),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (name.isEmpty()) {
+                                    Text(
+                                        text = "Budget name",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+                } else {
+                    Text(
+                        text = name.ifEmpty { "Budget name" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (name.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .clickable { onNameTap() }
+                            .padding(vertical = Spacing.xs)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(Spacing.md))
+
+            // Budget amount (right side)
+            if (isEditingAmount) {
+                BasicTextField(
+                    value = amount,
+                    onValueChange = { value ->
+                        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            onAmountChange(value)
+                        }
+                    },
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.End
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        onAmountDone()
+                        focusManager.clearFocus()
+                    }),
+                    modifier = Modifier
+                        .widthIn(min = 100.dp, max = 160.dp)
+                        .focusRequester(amountFocusRequester),
+                    decorationBox = { innerTextField ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = currencySymbol,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Box {
+                                if (amount.isEmpty()) {
+                                    Text(
+                                        text = "0",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    }
+                )
+            } else {
+                val displayAmount = amount.toBigDecimalOrNull()?.let {
+                    CurrencyFormatter.formatCurrency(it, currency)
+                } ?: "${currencySymbol}0"
+
+                Text(
+                    text = displayAmount,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (amount.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .clickable { onAmountTap() }
+                        .padding(vertical = Spacing.xs)
+                )
+            }
         }
     }
 }

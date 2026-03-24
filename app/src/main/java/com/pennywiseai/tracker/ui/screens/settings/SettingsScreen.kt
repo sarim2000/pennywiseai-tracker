@@ -757,7 +757,7 @@ private fun SettingsNavItem(
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -783,7 +783,7 @@ private fun SettingsNavItem(
                 trailingIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
     }
@@ -821,7 +821,7 @@ private fun SettingsSwitchRow(
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -881,7 +881,7 @@ private fun SettingsDropdownItem(
                         .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -958,7 +958,7 @@ private fun AiChatSettingsItem(
                         .background(yellow_light),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(Dimensions.Icon.medium))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1012,7 +1012,7 @@ private fun AiChatSettingsItem(
                                 Icons.Default.CheckCircle,
                                 contentDescription = "Downloaded",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                             TextButton(onClick = onDelete) {
                                 Text("Delete")
@@ -1036,7 +1036,7 @@ private fun AiChatSettingsItem(
                             Icons.Default.Error,
                             contentDescription = "Error",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 }
@@ -1113,7 +1113,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
     }

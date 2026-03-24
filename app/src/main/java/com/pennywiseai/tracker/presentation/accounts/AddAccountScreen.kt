@@ -86,7 +86,7 @@ fun AddAccountScreen(
                         Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = "Add accounts not tracked via SMS like cash, wallets, credit cards, or investment accounts.",
@@ -112,7 +112,7 @@ fun AddAccountScreen(
                             Icons.Default.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
                             text = error,

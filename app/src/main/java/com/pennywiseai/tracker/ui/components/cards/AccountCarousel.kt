@@ -14,8 +14,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -224,10 +224,10 @@ private fun AccountCarouselCard(
                     modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(
-                        imageVector = if (isAmountHidden) Icons.Outlined.VisibilityOff
-                                      else Icons.Outlined.Visibility,
+                        imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
+                                      else Icons.Default.Visibility,
                         contentDescription = if (isAmountHidden) "Show balance" else "Hide balance",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }

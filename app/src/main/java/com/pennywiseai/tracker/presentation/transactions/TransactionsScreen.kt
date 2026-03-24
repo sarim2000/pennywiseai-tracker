@@ -13,12 +13,12 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -246,7 +246,7 @@ fun TransactionsScreen(
                         Icon(
                             imageVector = Icons.Default.FileDownload,
                             contentDescription = "Export to CSV",
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 }
@@ -297,7 +297,7 @@ fun TransactionsScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Sort,
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
                         contentDescription = "Sort",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -317,7 +317,7 @@ fun TransactionsScreen(
                                     RadioButton(
                                         selected = sortOption == option,
                                         onClick = null,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(Dimensions.Icon.medium)
                                     )
                                     Text(option.label)
                                 }
@@ -351,7 +351,7 @@ fun TransactionsScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -545,12 +545,12 @@ fun TransactionsScreen(
                         trailingIcon = {
                             IconButton(
                                 onClick = { viewModel.clearCategoryFilter() },
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Clear category filter",
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.small)
                                 )
                             }
                         },
@@ -617,9 +617,9 @@ fun TransactionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.Info,
+                                        imageVector = Icons.Default.Info,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
                                     Text(

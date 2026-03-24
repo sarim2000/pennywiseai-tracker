@@ -64,7 +64,10 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            val currency = userPreferencesRepository.baseCurrency.first()
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            val unifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
+            val displayCurrency = userPreferencesRepository.displayCurrency.first()
+            val currency = if (unifiedMode) displayCurrency else baseCurrency
             val currencies = CurrencyFormatter.getSupportedCurrencies()
 
             val today = LocalDate.now()
@@ -107,6 +110,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                 }
             } else {
                 _uiState.value = BudgetGroupEditUiState(
+                    name = "Monthly Budget",
                     currency = currency,
                     categorySpending = categorySpending,
                     availableCurrencies = currencies,

@@ -29,13 +29,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -250,10 +251,10 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.MoreHoriz,
+                            imageVector = Icons.Default.MoreHoriz,
                             contentDescription = "More options",
                             tint = MaterialTheme.colorScheme.inverseSurface,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 },
@@ -380,6 +381,11 @@ fun HomeScreen(
                                 action = {
                                     TextButton(onClick = onNavigateToBudgets) {
                                         Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             )
@@ -430,6 +436,11 @@ fun HomeScreen(
                                     // View All button
                                     TextButton(onClick = onNavigateToTransactions) {
                                         Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             }
@@ -532,6 +543,11 @@ fun HomeScreen(
                                 action = {
                                     TextButton(onClick = onNavigateToManageAccounts) {
                                         Text("Manage")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             )
@@ -578,6 +594,11 @@ fun HomeScreen(
                                 action = {
                                     TextButton(onClick = onNavigateToSubscriptions) {
                                         Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             )
@@ -819,7 +840,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_discord),
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     },
                     position = ListItemPosition.Middle,

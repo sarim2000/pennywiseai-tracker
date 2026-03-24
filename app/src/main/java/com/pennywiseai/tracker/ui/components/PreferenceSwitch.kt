@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -199,7 +199,7 @@ fun PreferenceSwitch(
                     onCheckedChange = onCheckedChange,
                     thumbContent = {
                         Icon(
-                            if (checked) Icons.Outlined.Check else Icons.Outlined.Close,
+                            if (checked) Icons.Default.Check else Icons.Default.Close,
                             contentDescription = null,
                             modifier = Modifier.size(SwitchDefaults.IconSize),
                         )

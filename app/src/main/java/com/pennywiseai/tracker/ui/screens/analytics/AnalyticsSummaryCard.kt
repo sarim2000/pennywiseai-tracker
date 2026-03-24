@@ -101,7 +101,7 @@ fun AnalyticsSummaryCard(
                         Icon(
                             imageVector = Icons.Default.Receipt,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                         Text(

@@ -226,13 +226,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // wraps within ETA_WINDOW_MS at peak throughput. 8192 / 3 ≈ 2730 msg/s max.
         private val RING_SIZE          = 8192
         private val MIN_SAMPLES        = 10
-        private val ring               = LongArray(RING_SIZE)   // zeros = epoch 1970, never in window
+        private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)   // zeros = epoch 1970, never in window
         private val head               = AtomicInteger(0)
 
         fun recordCompletion() {
             // Bitmask modulo: (RING_SIZE - 1) works because RING_SIZE is power of 2
             val pos = head.getAndIncrement() and (RING_SIZE - 1)
-            ring[pos] = System.currentTimeMillis()
+            ring.lazySet(pos, System.currentTimeMillis())
         }
 
         fun elapsedMs() = System.currentTimeMillis() - startTime
@@ -245,8 +245,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val now      = System.currentTimeMillis()
             val cutoff   = now - ETA_WINDOW_MS
             var count    = 0
-            val snapshot = ring.copyOf()   // snapshot avoids reading a mix of old/new values mid-write
-            for (ts in snapshot) {
+            for (i in 0 until RING_SIZE) {
+                val ts = ring.get(i)
                 if (ts in (cutoff + 1)..now) count++   // bounds-check: exclude zeros AND future timestamps
             }
             return when {
@@ -485,7 +485,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     }
                 }
             else ->
-                parser.parseFutureDebit(sms.body)?.let { info ->
+                if (!isRecent) null
+                else parser.parseFutureDebit(sms.body)?.let { info ->
                     ParseResult.SpecialNotification(sms) {
                         subscriptionRepository.createOrUpdateFromFederalBankMandate(info, parser.getBankName(), sms.body)
                     }

@@ -46,7 +46,7 @@ class GPayPdfParser : PdfStatementParser {
         """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
     )
     // ₹1,234.56 or Rs. 100 — amount is always on its own line
-    private val amountRegex = Regex("""^[₹Rs.\s]*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
+    private val amountRegex = Regex("""^[₹Rs.\s]+([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
 
     // Date parts — each on its own line
     private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"

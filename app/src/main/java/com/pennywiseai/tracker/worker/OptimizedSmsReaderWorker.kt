@@ -459,7 +459,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         parser: BankParser,
         sms: SmsMessage,
         isRecent: Boolean
-    ): ParseResult.SpecialNotification? = when (parser) {
+    ): ParseResult? = when (parser) {
 
         is SBIBankParser -> {
             if (!parser.isUPIMandateNotification(sms.body) || !isRecent) null
@@ -503,9 +503,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         )
                     }
                 }
-                // Detected as balance update but unparseable — don't fall through
-                // to eMandate/futureDebit or regular transaction parsing.
-                return null
+                // Detected as balance update but unparseable — discard rather than
+                // fall through to eMandate/futureDebit or regular transaction parsing.
+                return ParseResult.Discard(sms)
             }
             val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isEMandateNotification(sms.body) && isRecent)

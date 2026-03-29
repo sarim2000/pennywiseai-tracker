@@ -268,18 +268,18 @@ class GPayPdfParser : PdfStatementParser {
      * Extracts bank name and last 4 digits from the account line.
      * Expense: "Paid by South Indian Bank 1234"
      * Income:  "Paid to South Indian Bank 1234"
-     * Both are matched by [accountLineRegex].
+     * Uses [bankAccountLineRegex] to stay consistent with [isTransactionAnchor].
      */
     private fun extractAccountInfo(lines: List<String>): AccountInfo {
-        val accountLine = lines.firstOrNull { accountLineRegex.matches(it) }
+        val accountLine = lines.firstOrNull { bankAccountLineRegex.matches(it) }
         if (accountLine == null) {
             Log.d(TAG, "No account line found in lines: $lines")
             return AccountInfo(null, null)
         }
 
-        val match    = accountLineRegex.find(accountLine)
+        val match    = bankAccountLineRegex.find(accountLine)
         val bankName = match?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
-        val last4    = match?.groupValues?.get(2)?.trim()
+        val last4    = match?.groupValues?.get(3)?.trim()
 
         Log.d(TAG, "Account — bank='$bankName' last4='$last4' from '$accountLine'")
         return AccountInfo(bankName, last4)

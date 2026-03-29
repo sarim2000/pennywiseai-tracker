@@ -429,6 +429,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
 
         saver.join()
+        reportProgress(stats)
         progressMonitor.cancel()
     }
 
@@ -487,7 +488,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 }
             else ->
                 // Skip future-debit subscriptions for old messages.
-                // Old SmsReaderWorker had the same behaviour (line 165: if (!isRecentMessage) continue).
+                // Old SmsReaderWorker had no FederalBank handling; this follows the
+                // same pattern as HDFC future-debit (old line 165: if (!isRecentMessage) continue).
                 if (!isRecent) null
                 else parser.parseFutureDebit(sms.body)?.let { info ->
                     ParseResult.SpecialNotification(sms) {

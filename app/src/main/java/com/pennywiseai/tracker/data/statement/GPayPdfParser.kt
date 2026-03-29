@@ -237,7 +237,9 @@ class GPayPdfParser : PdfStatementParser {
 
         // Normalise: "01 Sep," → "01 Sep" then build "01 Sep, 2025 03:02 PM"
         val dateClean = dateLine.trimEnd(',', ' ')
-        val timeClean = timeLine.replace(Regex("""\s+"""), " ").uppercase()
+        val timeClean = timeLine
+            .replace(Regex("""(\d{1,2}:\d{2})\s*([AaPp][Mm])"""), "$1 $2")
+            .uppercase()
         val combined  = "$dateClean, $yearLine $timeClean"
 
         return try {

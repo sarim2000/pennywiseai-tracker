@@ -42,6 +42,12 @@ class GPayPdfParser : PdfStatementParser {
     private val accountLineRegex = Regex(
         """^Paid\s+(?:by|to)\s+(.+\D)(\d{4})$""", RegexOption.IGNORE_CASE
     )
+    // Stricter version for anchor detection: only matches if the name before
+    // the 4 digits ends with a known account keyword (Bank, Card, A/c).
+    // This prevents "Paid to Store 2024" from being misclassified as an account line.
+    private val bankAccountLineRegex = Regex(
+        """^Paid\s+(?:by|to)\s+(.+)\s+(Bank|Card|A/c)\s+(\d{4})$""", RegexOption.IGNORE_CASE
+    )
     private val upiIdRegex = Regex(
         """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
     )
@@ -129,15 +135,13 @@ class GPayPdfParser : PdfStatementParser {
     /**
      * Returns true only for genuine transaction anchors.
      * Account lines like "Paid to South Indian Bank 1234" are excluded by
-     * matching against [accountLineRegex] (non-digit + 4 digits at end).
+     * matching against [bankAccountLineRegex] which requires a bank/card keyword.
+     * This prevents "Paid to Store 2024" from being misclassified.
      */
     private fun isTransactionAnchor(line: String): Boolean {
         if (receivedAnchorRegex.matches(line)) return true
         if (merchantAnchorRegex.matches(line)) {
-            // Use the full account-line regex rather than a heuristic —
-            // this avoids misclassifying merchants whose name ends in 4 digits
-            // (e.g. "Paid to Store 2024") as account lines.
-            return !accountLineRegex.matches(line)
+            return !bankAccountLineRegex.matches(line)
         }
         return false
     }

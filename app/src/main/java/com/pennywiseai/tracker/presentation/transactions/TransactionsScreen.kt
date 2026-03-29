@@ -89,6 +89,7 @@ fun TransactionsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val sortOption by viewModel.sortOption.collectAsState()
+    val availableCategories by viewModel.availableCategories.collectAsState()
     val smsScanMonths by viewModel.smsScanMonths.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
@@ -108,9 +109,9 @@ fun TransactionsScreen(
     val view = LocalView.current
     
     // Calculate active filter count for advanced filters
+    // Category filter is excluded since it's now always visible as chips
     val activeFilterCount = listOf(
-        transactionTypeFilter != TransactionTypeFilter.ALL,
-        categoryFilter != null
+        transactionTypeFilter != TransactionTypeFilter.ALL
     ).count { it }
 
     // Check if any filter is active (for showing "Clear all" button)
@@ -519,40 +520,45 @@ fun TransactionsScreen(
             )
         }
         
-        // Category Filter Chip (if active) - Moved to its own row
-        categoryFilter?.let { category ->
+        // Category Filter Chips - Always visible when categories exist
+        if (availableCategories.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = Spacing.xs),
+                    .padding(top = Spacing.xs),
                 contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
+                // "All" chip - selected when no category filter is active
                 item {
                     FilterChip(
-                        selected = true,
-                        onClick = { /* No action on click, use trailing icon to clear */ },
-                        label = { Text(category) },
-                        leadingIcon = {
-                            categoriesMap[category]?.let { categoryEntity ->
-                                CategoryChip(
-                                    category = categoryEntity,
-                                    showText = false,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
+                        selected = categoryFilter == null,
+                        onClick = { viewModel.clearCategoryFilter() },
+                        label = { Text("All") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+
+                // Category chips
+                items(availableCategories) { category ->
+                    FilterChip(
+                        selected = categoryFilter == category,
+                        onClick = {
+                            if (categoryFilter == category) {
+                                viewModel.clearCategoryFilter()
+                            } else {
+                                viewModel.setCategoryFilter(category)
                             }
                         },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { viewModel.clearCategoryFilter() },
-                                modifier = Modifier.size(Dimensions.Icon.small)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear category filter",
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                            }
+                        label = { Text(category) },
+                        leadingIcon = {
+                            CategoryIcon(
+                                category = category,
+                                size = Dimensions.Icon.small
+                            )
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,

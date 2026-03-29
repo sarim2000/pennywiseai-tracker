@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
@@ -47,7 +46,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,7 +68,7 @@ fun AccountDetailScreen(
                 hasBackButton = true,
                 hasActionButton = true,
                 navigationContent = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -159,11 +159,7 @@ fun AccountDetailScreen(
                     TransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
-                        onClick = {
-                            navController.navigate(
-                                com.pennywiseai.tracker.navigation.TransactionDetail(transaction.id)
-                            )
-                        }
+                        onClick = { onTransactionClick(transaction.id) }
                     )
                 }
             }

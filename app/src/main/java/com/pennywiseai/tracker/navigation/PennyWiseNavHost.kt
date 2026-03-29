@@ -102,23 +102,6 @@ fun PennyWiseNavHost(
             }
         }
 
-        composable<HomeWithCategoryFilter>(
-            enterTransition = { fadeIn() },
-            exitTransition = { fadeOut() },
-            popEnterTransition = { fadeIn() },
-            popExitTransition = { fadeOut() }
-        ) { backStackEntry ->
-            val args = backStackEntry.toRoute<HomeWithCategoryFilter>()
-            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
-                MainScreen(
-                    rootNavController = navController,
-                    initialCategory = args.category,
-                    initialPeriod = args.period,
-                    initialCurrency = args.currency
-                )
-            }
-        }
-
         composable<Settings>(
             enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
             exitTransition = { fadeOut(tween(200)) },
@@ -131,22 +114,22 @@ fun PennyWiseNavHost(
                     navController.safePopBackStack()
                 },
                 onNavigateToCategories = {
-                    navController.navigate(Categories)
+                    navController.navigate(Categories) { launchSingleTop = true }
                 },
                 onNavigateToUnrecognizedSms = {
-                    navController.navigate(UnrecognizedSms)
+                    navController.navigate(UnrecognizedSms) { launchSingleTop = true }
                 },
                 onNavigateToFaq = {
-                    navController.navigate(Faq)
+                    navController.navigate(Faq) { launchSingleTop = true }
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(BudgetGroups)
+                    navController.navigate(BudgetGroups) { launchSingleTop = true }
                 },
                 onNavigateToExchangeRates = {
-                    navController.navigate(ExchangeRates)
+                    navController.navigate(ExchangeRates) { launchSingleTop = true }
                 },
                 onNavigateToImportStatement = {
-                    navController.navigate(ImportStatement)
+                    navController.navigate(ImportStatement) { launchSingleTop = true }
                 }
             )
         }
@@ -276,10 +259,14 @@ fun PennyWiseNavHost(
             exitTransition = { fadeOut(tween(200)) },
             popEnterTransition = { fadeIn(tween(300)) },
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) { backStackEntry ->
-            val accountDetail = backStackEntry.toRoute<AccountDetail>()
+        ) {
             com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
-                navController = navController
+                onNavigateBack = { navController.safePopBackStack() },
+                onTransactionClick = { id ->
+                    navController.navigate(TransactionDetail(id)) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
@@ -299,9 +286,8 @@ fun PennyWiseNavHost(
                     }
                 },
                 onNavigateToCategory = { category, yearMonth, currency ->
-                    navController.navigate(HomeWithCategoryFilter(category, yearMonth, currency)) {
+                    navController.navigate(TransactionsWithFilter(category, yearMonth, currency)) {
                         launchSingleTop = true
-                        popUpTo(Home) { inclusive = true }
                     }
                 }
             )
@@ -342,6 +328,30 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
+                }
+            )
+        }
+
+        composable<TransactionsWithFilter>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) { backStackEntry ->
+            val args = backStackEntry.toRoute<TransactionsWithFilter>()
+            com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
+                initialCategory = args.category,
+                initialPeriod = args.period,
+                initialCurrency = args.currency,
+                onNavigateBack = { navController.safePopBackStack() },
+                onTransactionClick = { transactionId ->
+                    navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
+                },
+                onAddTransactionClick = {
+                    navController.navigate(AddTransaction) { launchSingleTop = true }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Settings) { launchSingleTop = true }
                 }
             )
         }

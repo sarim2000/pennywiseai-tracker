@@ -419,7 +419,10 @@ fun AnalyticsScreen(
                         when (viewType) {
                             CategoryViewType.CHART -> CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
-                                currency = selectedCurrency
+                                currency = selectedCurrency,
+                                onCategoryClick = { category ->
+                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                }
                             )
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,

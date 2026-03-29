@@ -353,7 +353,7 @@ fun HomeScreen(
                                         bankName = bankName,
                                         accountLast4 = accountLast4
                                     )
-                                )
+                                ) { launchSingleTop = true }
                             }
                         )
                     }
@@ -561,7 +561,7 @@ fun HomeScreen(
                                             bankName = bankName,
                                             accountLast4 = accountLast4
                                         )
-                                    )
+                                    ) { launchSingleTop = true }
                                 },
                                 isUnifiedMode = uiState.isUnifiedMode,
                                 selectedCurrency = uiState.selectedCurrency,

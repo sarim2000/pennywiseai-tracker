@@ -16,13 +16,6 @@ object Permission
 object Home
 
 @Serializable
-data class HomeWithCategoryFilter(
-    val category: String,
-    val period: String,
-    val currency: String
-)
-
-@Serializable
 object Transactions
 
 @Serializable
@@ -69,3 +62,10 @@ data class BudgetGroupEdit(val groupId: Long = -1L)
 
 @Serializable
 object ImportStatement
+
+@Serializable
+data class TransactionsWithFilter(
+    val category: String,
+    val period: String? = null,
+    val currency: String? = null
+)

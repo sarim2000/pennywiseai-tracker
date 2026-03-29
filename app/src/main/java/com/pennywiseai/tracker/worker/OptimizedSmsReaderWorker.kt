@@ -190,13 +190,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     /**
-     * Thread-safe processing stats with a sliding-window rate estimator.
-     *
-     * Tracks timestamps of the last [ringSize] completions in a ring buffer and computes
-     * rate over only the most recent [ETA_WINDOW_MS] ms, giving accurate real-time msg/sec
-     * even as the pipeline warms up or the save coroutine has bursts.
-     */
-    /**
      * Thread-safe processing stats with a self-correcting sliding-window rate estimator.
      *
      * Root cause of wrong ETA: a 200-slot ring at 500 msg/s wraps in 0.4 s, so

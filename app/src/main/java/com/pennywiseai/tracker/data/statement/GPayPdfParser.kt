@@ -51,7 +51,8 @@ class GPayPdfParser : PdfStatementParser {
     private val upiIdRegex = Regex(
         """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
     )
-    // ₹1,234.56 or Rs. 100 — amount is always on its own line
+    // Amount on its own line — currency prefix (₹, Rs.) required; bare numbers
+    // like the year line ("2025") are intentionally excluded by the [₹Rs.\s]+ prefix.
     private val amountRegex = Regex("""^[₹Rs.\s]+([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
 
     // Date parts — each on its own line
@@ -110,9 +111,7 @@ class GPayPdfParser : PdfStatementParser {
                     blocks.add(current.toString().trim())
                     current.clear()
                 }
-                // Reset inBlock so lines before the next anchor accumulate in
-                // the buffer again (date, year, time lines precede every anchor).
-                inBlock = false
+                // Prepend buffered date lines so extractTimestamp has context
                 buffer.forEach { current.appendLine(it) }
                 buffer.clear()
                 inBlock = true

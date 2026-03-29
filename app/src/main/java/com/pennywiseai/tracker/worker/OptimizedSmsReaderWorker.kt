@@ -485,6 +485,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     }
                 }
             else ->
+                // Intentional: skip future-debit subscriptions for old messages.
+                // The old code also checked isFuturePayment (allow future-dated
+                // mandates regardless of SMS age), but with smsScanAllTime=true
+                // those mandates are almost certainly already fulfilled.
                 if (!isRecent) null
                 else parser.parseFutureDebit(sms.body)?.let { info ->
                     ParseResult.SpecialNotification(sms) {

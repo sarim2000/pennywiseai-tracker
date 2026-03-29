@@ -104,9 +104,12 @@ class GPayPdfParser : PdfStatementParser {
                     blocks.add(current.toString().trim())
                     current.clear()
                 }
-                inBlock = true
+                // Reset inBlock so lines before the next anchor accumulate in
+                // the buffer again (date, year, time lines precede every anchor).
+                inBlock = false
                 buffer.forEach { current.appendLine(it) }
                 buffer.clear()
+                inBlock = true
             }
 
             if (inBlock) {

@@ -148,9 +148,9 @@ class PNBBankParser : BaseIndianBankParser() {
             return match.groupValues[1].trim()
         }
 
-        // Extract merchant from UPI-Mandate: towards Google
+        // Extract merchant from UPI-Mandate: towards Google Pay
         val towardsPattern = Regex(
-            """UPI-Mandate.*towards\s+([^\s]+)\s+for""",
+            """UPI-Mandate.*towards\s+(.+?)\s+for""",
             RegexOption.IGNORE_CASE
         )
         towardsPattern.find(message)?.let { match ->

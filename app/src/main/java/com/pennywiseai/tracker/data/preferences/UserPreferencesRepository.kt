@@ -108,7 +108,7 @@ class UserPreferencesRepository @Inject constructor(
                 isDeveloperModeEnabled = preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false,
                 hasShownScanTutorial = preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] ?: false,
                 smsScanMonths = preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3,
-                smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: false,
+                smsScanAllTime = preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true,
                 baseCurrency = preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
                 unifiedCurrencyMode = preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] ?: false,
                 displayCurrency = preferences[PreferencesKeys.DISPLAY_CURRENCY]

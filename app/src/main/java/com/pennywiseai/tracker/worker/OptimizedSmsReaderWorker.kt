@@ -487,14 +487,28 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     }
                 }
             else ->
-                // Skip future-debit subscriptions for old messages.
-                // Old SmsReaderWorker had no FederalBank handling; this follows the
-                // same pattern as HDFC future-debit (old line 165: if (!isRecentMessage) continue).
-                if (!isRecent) null
-                else parser.parseFutureDebit(sms.body)?.let { info ->
-                    ParseResult.SpecialNotification(sms) {
-                        subscriptionRepository.createOrUpdateFromFederalBankMandate(info, parser.getBankName(), sms.body)
-                    }
+                parser.parseFutureDebit(sms.body)?.let { info ->
+                    // Process if the SMS is recent, OR if the payment date is still in the future
+                    // (a mandate from 45 days ago with next-debit next week must still create the subscription).
+                    val paymentStillUpcoming = info.nextDeductionDate?.let { dateStr ->
+                        try {
+                            val parts = dateStr.split("/")
+                            if (parts.size >= 3) {
+                                val day = parts[0].toInt()
+                                val month = parts[1].toInt()
+                                val yearShort = parts[2].toInt()
+                                val year = if (yearShort < 100) 2000 + yearShort else yearShort
+                                java.time.LocalDate.of(year, month, day)
+                                    .isAfter(java.time.LocalDate.now())
+                            } else false
+                        } catch (_: Exception) { false }
+                    } ?: false
+
+                    if (isRecent || paymentStillUpcoming) {
+                        ParseResult.SpecialNotification(sms) {
+                            subscriptionRepository.createOrUpdateFromFederalBankMandate(info, parser.getBankName(), sms.body)
+                        }
+                    } else null
                 }
         }
 
@@ -754,8 +768,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             // First run, resync, period change, or scanAllTime toggled: full scan.
             // scanAllTime=false→true detected via lastScanPeriod != -1 sentinel.
+            // scanAllTime=true→false detected via lastScanPeriod == -1 with scanAllTime=false.
             val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled
+            val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
+            val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled || scanAllTimeToggledOff
 
             val scanStartTime = if (needsFullScan) {
                 java.util.Calendar.getInstance().apply {

@@ -353,7 +353,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
                 Trace.beginSection("parse.$id")
                 try {
-                    for (sms in feed) results.send(parseSms(sms))
+                    for (sms in feed) {
+                        try {
+                            results.send(parseSms(sms))
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing SMS from ${sms.sender}: ${e.message}")
+                            results.send(ParseResult.Discard(sms))
+                        }
+                    }
                 } finally {
                     Trace.endSection()
                 }
@@ -483,6 +490,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 // The old code also checked isFuturePayment (allow future-dated
                 // mandates regardless of SMS age), but with smsScanAllTime=true
                 // those mandates are almost certainly already fulfilled.
+                // TODO: consider restoring isFuturePayment check if users report missing subscriptions
                 if (!isRecent) null
                 else parser.parseFutureDebit(sms.body)?.let { info ->
                     ParseResult.SpecialNotification(sms) {

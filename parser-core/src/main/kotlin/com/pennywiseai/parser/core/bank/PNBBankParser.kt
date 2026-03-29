@@ -85,9 +85,9 @@ class PNBBankParser : BaseIndianBankParser() {
         }
 
         // Handle debit patterns - both "Rs." and "INR" formats
-        // Expanded to handle optional space after currency and different spacing
+        // "with" is optional for backward compatibility ("debited Rs. X" and "debited with Rs. X")
         val debitPattern = Regex(
-            """debited\s+with\s+(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""",
+            """debited\s+(?:with\s+)?(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         debitPattern.find(message)?.let { match ->

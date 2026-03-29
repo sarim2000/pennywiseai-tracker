@@ -197,7 +197,7 @@ class PNBBankParser : BaseIndianBankParser() {
             return match.groupValues[1].takeLast(4)
         }
 
-        return null
+        return super.extractAccountLast4(message)
     }
 
     override fun extractReference(message: String): String? {
@@ -247,9 +247,9 @@ class PNBBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
-        // For PNB IMPS messages, do NOT fall back to base class patterns
-        // as they may match "-PNB" at the end of the message
-        return null
+        // Fall back to base class, but filter out "-PNB" suffix matches
+        val baseRef = super.extractReference(message)
+        return if (baseRef != null && baseRef.equals("PNB", ignoreCase = true)) null else baseRef
     }
 
     override fun extractBalance(message: String): BigDecimal? {

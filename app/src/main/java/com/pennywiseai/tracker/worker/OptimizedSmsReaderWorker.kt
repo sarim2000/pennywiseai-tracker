@@ -503,6 +503,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         )
                     }
                 }
+                // Detected as balance update but unparseable — don't fall through
+                // to eMandate/futureDebit or regular transaction parsing.
+                return null
             }
             val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isEMandateNotification(sms.body) && isRecent)
@@ -738,7 +741,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
             val now               = System.currentTimeMillis()
 
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || scanAllTime || scanMonths > lastScanPeriod
+            // First run or resync: full scan. scanAllTime controls 10-year vs window.
+            // Subsequent runs always go incremental regardless of scanAllTime.
+            val needsFullScan = forceResync || lastScanTimestamp == 0L || scanMonths > lastScanPeriod
 
             val scanStartTime = if (needsFullScan) {
                 java.util.Calendar.getInstance().apply {

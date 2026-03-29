@@ -506,6 +506,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 }
                 // Detected as balance update but unparseable — discard rather than
                 // fall through to eMandate/futureDebit or regular transaction parsing.
+                Log.w(TAG, "HDFC balance update detected but unparseable — discarding")
                 return ParseResult.Discard(sms)
             }
             val actions = mutableListOf<suspend () -> Unit>()
@@ -555,6 +556,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         return try {
             val entity = parsed.toEntity()
 
+            // getTransactionByHash returns rows where is_deleted=1 too, so
+            // soft-deleted transactions are never re-imported.
             if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return false
 
             val customCategory = merchantMappingCache[entity.merchantName]
@@ -742,9 +745,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
             val now               = System.currentTimeMillis()
 
-            // First run or resync: full scan. scanAllTime controls 10-year vs window.
-            // Subsequent runs always go incremental regardless of scanAllTime.
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || scanMonths > lastScanPeriod
+            // First run, resync, period change, or scanAllTime toggled: full scan.
+            // scanAllTime=false→true detected via lastScanPeriod != -1 sentinel.
+            val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
+            val needsFullScan = forceResync || lastScanTimestamp == 0L || scanMonths > lastScanPeriod || scanAllTimeToggled
 
             val scanStartTime = if (needsFullScan) {
                 java.util.Calendar.getInstance().apply {
@@ -785,7 +789,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             userPreferencesRepository.setLastScanTimestamp(now)
-            if (needsFullScan) userPreferencesRepository.setLastScanPeriod(scanMonths)
+            if (needsFullScan) userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
 
             try { messages.addAll(readRcsMessages(scanStartTime / 1000)) }
             catch (e: Exception) { Log.e(TAG, "RCS read error: ${e.message}") }

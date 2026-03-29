@@ -37,13 +37,8 @@ class GPayPdfParser : PdfStatementParser {
     private val receivedAnchorRegex = Regex(
         """^Received\s+from\s+(.+)$""", RegexOption.IGNORE_CASE
     )
-    // Account line: "Paid by Bank 1234" (expense) or "Paid to Bank 1234" (income)
-    // Identified by ending with exactly 4 digits
-    private val accountLineRegex = Regex(
-        """^Paid\s+(?:by|to)\s+(.+\D)(\d{4})$""", RegexOption.IGNORE_CASE
-    )
-    // Stricter version for anchor detection: only matches if the name before
-    // the 4 digits ends with a known account keyword (Bank, Card, A/c).
+    // Stricter version for anchor detection and account extraction: only matches
+    // if the name before the 4 digits contains a known account keyword (Bank, Card, A/c).
     // This prevents "Paid to Store 2024" from being misclassified as an account line.
     private val bankAccountLineRegex = Regex(
         """^Paid\s+(?:by|to)\s+(.+)\s+(Bank|Card|A/c)\s+(\d{4})$""", RegexOption.IGNORE_CASE

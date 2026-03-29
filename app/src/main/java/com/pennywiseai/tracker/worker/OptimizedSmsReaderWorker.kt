@@ -127,9 +127,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private lateinit var thirtyDaysAgo: LocalDateTime
 
     /** O(1) sender-to-parser lookup. Factory is only called once per unique sender string. */
-    private val parserCache = java.util.concurrent.ConcurrentHashMap<String, BankParser?>(256)
+    private class ParserHolder(val parser: BankParser?)
+    private val parserCache = java.util.concurrent.ConcurrentHashMap<String, ParserHolder>(256)
     private fun cachedParser(sender: String): BankParser? =
-        parserCache.computeIfAbsent(sender) { BankParserFactory.getParser(sender) }
+        parserCache.computeIfAbsent(sender) { ParserHolder(BankParserFactory.getParser(sender)) }.parser
 
     /**
      * Merchant-name to custom category, preloaded once at scan start.

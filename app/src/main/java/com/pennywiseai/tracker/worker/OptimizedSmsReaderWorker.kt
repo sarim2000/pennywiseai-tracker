@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -126,9 +127,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private lateinit var thirtyDaysAgo: LocalDateTime
 
     /** O(1) sender-to-parser lookup. Factory is only called once per unique sender string. */
-    private val parserCache = HashMap<String, BankParser?>(256)
+    private val parserCache = java.util.concurrent.ConcurrentHashMap<String, BankParser?>(256)
     private fun cachedParser(sender: String): BankParser? =
-        parserCache.getOrPut(sender) { BankParserFactory.getParser(sender) }
+        parserCache.computeIfAbsent(sender) { BankParserFactory.getParser(sender) }
 
     /**
      * Merchant-name to custom category, preloaded once at scan start.
@@ -141,7 +142,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      * Previously: getActiveRulesByType DB call per transaction.
      * Now: one call per TransactionType (4 total), zero DB calls per transaction.
      */
-    private var ruleCache: Map<TransactionType, List<*>> = emptyMap()
+    private var ruleCache: Map<TransactionType, List<TransactionRule>> = emptyMap()
 
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
@@ -557,8 +558,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val customCategory = merchantMappingCache[entity.merchantName]
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
 
-            @Suppress("UNCHECKED_CAST")
-            val activeRules = (ruleCache[mapped.transactionType] ?: emptyList<Nothing>()) as List<Nothing>
+            val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
             if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) return false
 
             val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
@@ -652,38 +652,27 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
         }
 
-        // 2. Determine if we should save the balance
-        val shouldSaveBalance = when {
-            parsed.balance != null -> true
-            parsed.creditLimit != null -> true
-            newBalance != BigDecimal.ZERO -> true
-            existing != null -> true
-            else -> true
+        val balanceEntity = AccountBalanceEntity(
+            bankName      = parsed.bankName,
+            accountLast4  = targetAccount,
+            balance       = newBalance,
+            timestamp     = entity.dateTime,
+            transactionId = if (rowId != -1L) rowId else null,
+            creditLimit   = existing?.creditLimit,
+            isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
+            smsSource     = parsed.smsBody.take(500),
+            sourceType    = "TRANSACTION",
+            currency      = parsed.currency
+        )
+
+        accountBalanceRepository.insertBalance(balanceEntity)
+
+        val logMsg = if (parsed.creditLimit != null) {
+            "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency)})"
+        } else {
+            "Saved balance (${CurrencyFormatter.formatCurrency(newBalance, parsed.currency)})"
         }
-
-        if (shouldSaveBalance) {
-            val balanceEntity = AccountBalanceEntity(
-                bankName      = parsed.bankName,
-                accountLast4  = targetAccount,
-                balance       = newBalance,
-                timestamp     = entity.dateTime,
-                transactionId = if (rowId != -1L) rowId else null,
-                creditLimit   = existing?.creditLimit,
-                isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
-                smsSource     = parsed.smsBody.take(500),
-                sourceType    = "TRANSACTION",
-                currency      = parsed.currency
-            )
-
-            accountBalanceRepository.insertBalance(balanceEntity)
-
-            val logMsg = if (parsed.creditLimit != null) {
-                "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency)})"
-            } else {
-                "Saved balance (${CurrencyFormatter.formatCurrency(newBalance, parsed.currency)})"
-            }
-            Log.i(TAG, logMsg)
-        }
+        Log.i(TAG, logMsg)
     }
 
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────

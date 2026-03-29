@@ -125,14 +125,16 @@ class GPayPdfParser : PdfStatementParser {
 
     /**
      * Returns true only for genuine transaction anchors.
-     * "Paid to South Indian Bank 1234" is an account line, not an anchor —
-     * we detect this by checking if the line ends with 4 digits.
+     * Account lines like "Paid to South Indian Bank 1234" are excluded by
+     * matching against [accountLineRegex] (non-digit + 4 digits at end).
      */
     private fun isTransactionAnchor(line: String): Boolean {
         if (receivedAnchorRegex.matches(line)) return true
         if (merchantAnchorRegex.matches(line)) {
-            val endsWithAccountNumber = line.trimEnd().takeLast(4).all { it.isDigit() }
-            return !endsWithAccountNumber
+            // Use the full account-line regex rather than a heuristic —
+            // this avoids misclassifying merchants whose name ends in 4 digits
+            // (e.g. "Paid to Store 2024") as account lines.
+            return !accountLineRegex.matches(line)
         }
         return false
     }

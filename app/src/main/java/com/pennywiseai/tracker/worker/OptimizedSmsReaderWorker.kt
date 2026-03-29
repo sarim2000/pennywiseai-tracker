@@ -486,11 +486,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     }
                 }
             else ->
-                // Intentional: skip future-debit subscriptions for old messages.
-                // The old code also checked isFuturePayment (allow future-dated
-                // mandates regardless of SMS age), but with smsScanAllTime=true
-                // those mandates are almost certainly already fulfilled.
-                // TODO: consider restoring isFuturePayment check if users report missing subscriptions
+                // Skip future-debit subscriptions for old messages.
+                // Old SmsReaderWorker had the same behaviour (line 165: if (!isRecentMessage) continue).
                 if (!isRecent) null
                 else parser.parseFutureDebit(sms.body)?.let { info ->
                     ParseResult.SpecialNotification(sms) {
@@ -756,7 +753,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // First run, resync, period change, or scanAllTime toggled: full scan.
             // scanAllTime=false→true detected via lastScanPeriod != -1 sentinel.
             val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || scanMonths > lastScanPeriod || scanAllTimeToggled
+            val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled
 
             val scanStartTime = if (needsFullScan) {
                 java.util.Calendar.getInstance().apply {

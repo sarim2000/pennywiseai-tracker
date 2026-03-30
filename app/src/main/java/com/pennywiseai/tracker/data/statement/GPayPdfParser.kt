@@ -22,7 +22,7 @@ class GPayPdfParser : PdfStatementParser {
     companion object {
         private const val TAG                 = "GPayPdfParser"
         private const val DATE_FORMAT_PATTERN = "dd MMM, yyyy hh:mm a"
-        private const val DATE_BUFFER_SIZE    = 4   // lines buffered before anchor
+        private const val DATE_BUFFER_SIZE    = 8   // lines buffered before anchor
     }
 
     private val IST = TimeZone.getTimeZone("Asia/Kolkata")

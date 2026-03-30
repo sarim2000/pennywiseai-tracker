@@ -534,7 +534,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     actions += { subscriptionRepository.createOrUpdateFromEMandate(info, parser.getBankName(), sms.body) }
                 }
             if (actions.isNotEmpty()) ParseResult.SpecialNotification(sms) {
-                actions.forEach { it() }
+                actions.forEach { action ->
+                    try { action() } catch (e: Exception) {
+                        Log.e(TAG, "HDFC action failed: ${e.message}", e)
+                    }
+                }
             } else null
         }
 

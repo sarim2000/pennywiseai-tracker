@@ -510,9 +510,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
 
         is HDFCBankParser -> {
+            val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isBalanceUpdateNotification(sms.body)) {
                 parser.parseBalanceUpdate(sms.body)?.let { info ->
-                    return ParseResult.SpecialNotification(sms) {
+                    actions += {
                         accountBalanceRepository.insertBalanceUpdate(
                             bankName     = info.bankName,
                             accountLast4 = info.accountLast4 ?: "XXXX",
@@ -522,12 +523,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         )
                     }
                 }
-                // Detected as balance update but unparseable — discard rather than
-                // fall through to eMandate/futureDebit or regular transaction parsing.
-                Log.w(TAG, "HDFC balance update detected but unparseable — discarding")
-                return ParseResult.Discard(sms)
+                // If unparseable as balance update, fall through to check eMandate/futureDebit below
             }
-            val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isEMandateNotification(sms.body) && isRecent)
                 parser.parseEMandateSubscription(sms.body)?.let { info ->
                     actions += { subscriptionRepository.createOrUpdateFromEMandate(info, parser.getBankName(), sms.body) }

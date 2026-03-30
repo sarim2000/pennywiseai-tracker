@@ -48,10 +48,10 @@ class GPayPdfParser : PdfStatementParser {
     )
     // Amount on its own line — currency prefix (₹, Rs.) required; bare numbers
     // like the year line ("2025") are intentionally excluded by the [₹Rs.\s]+ prefix.
-    private val amountRegex = Regex("""^[₹Rs.\s]+([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
+    private val amountRegex = Regex("""^(?:₹|Rs\.?)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
 
     // Date parts — each on its own line
-    private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"
+    private val dateLineRegex = Regex("""^(\d{1,2})\s+([A-Za-z]{3}),?$""")       // "01 Sep,"
     private val yearLineRegex = Regex("""^(20\d{2})$""")                    // "2025"
     private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])$""") // "03:02 PM" or "03:02:45 PM"
 

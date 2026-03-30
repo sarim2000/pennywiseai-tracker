@@ -289,9 +289,12 @@ class GPayPdfParser : PdfStatementParser {
         }
 
         val match    = bankAccountLineRegex.find(accountLine)
-        val bankName = "${match?.groupValues?.get(1)?.trim()} ${match?.groupValues?.get(2)?.trim()}"
-            .takeIf { it.isNotBlank() }
-        val last4    = match?.groupValues?.get(3)?.trim()
+        val bankName = if (match != null) {
+            val first = match.groupValues.getOrNull(1)?.trim()
+            val second = match.groupValues.getOrNull(2)?.trim()
+            listOfNotNull(first, second).joinToString(" ").takeIf { it.isNotBlank() }
+        } else null
+        val last4    = match?.groupValues?.getOrNull(3)?.trim()
 
         Log.d(TAG, "Account — bank='$bankName' last4='$last4' from '$accountLine'")
         return AccountInfo(bankName, last4)

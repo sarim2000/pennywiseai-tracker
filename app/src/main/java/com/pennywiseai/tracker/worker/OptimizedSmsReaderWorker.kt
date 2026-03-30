@@ -75,6 +75,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
         const val PROGRESS_SAVED                    = "progress_saved"
+        const val PROGRESS_BLOCKED                  = "progress_blocked"
         const val PROGRESS_TIME_ELAPSED             = "progress_time_elapsed"
         const val PROGRESS_ESTIMATED_TIME_REMAINING = "progress_estimated_time_remaining"
         const val PROGRESS_CURRENT_BATCH            = "progress_current_batch"
@@ -214,6 +215,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val processed = AtomicInteger(0)
         val parsed    = AtomicInteger(0)
         val saved     = AtomicInteger(0)
+        val blocked   = AtomicInteger(0)
         val startTime = System.currentTimeMillis()
 
         // Must be a power of 2 (for bitmask) and large enough that the ring never
@@ -400,7 +402,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             stats.parsed.incrementAndGet()
                             Trace.beginSection("saveTransaction")
                             try {
-                                if (saveTransaction(result.parsed, result.sms)) {
+                                if (saveTransaction(result.parsed, result.sms, stats)) {
                                     stats.saved.incrementAndGet()
                                     widgetNeedsUpdate = true
                                 }
@@ -492,15 +494,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // (a mandate from 45 days ago with next-debit next week must still create the subscription).
                     val paymentStillUpcoming = info.nextDeductionDate?.let { dateStr ->
                         try {
-                            val parts = dateStr.split("/")
-                            if (parts.size >= 3) {
-                                val day = parts[0].toInt()
-                                val month = parts[1].toInt()
-                                val yearShort = parts[2].toInt()
-                                val year = if (yearShort < 100) 2000 + yearShort else yearShort
-                                java.time.LocalDate.of(year, month, day)
-                                    .isAfter(java.time.LocalDate.now())
-                            } else false
+                            java.time.LocalDate.parse(
+                                dateStr,
+                                java.time.format.DateTimeFormatter.ofPattern(info.dateFormat)
+                            ).isAfter(java.time.LocalDate.now())
                         } catch (_: Exception) { false }
                     } ?: false
 
@@ -573,7 +570,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Stage 3b: Regular transactions ──────────────────────────────────────
 
-    private suspend fun saveTransaction(parsed: ParsedTransaction, sms: SmsMessage): Boolean {
+    private suspend fun saveTransaction(parsed: ParsedTransaction, sms: SmsMessage, stats: ProcessingStats): Boolean {
         return try {
             val entity = parsed.toEntity()
 
@@ -585,7 +582,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
 
             val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
-            if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) return false
+            if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) {
+                stats.blocked.incrementAndGet()
+                return false
+            }
 
             val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
 
@@ -745,6 +745,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 PROGRESS_PROCESSED                to p,
                 PROGRESS_PARSED                   to stats.parsed.get(),
                 PROGRESS_SAVED                    to stats.saved.get(),
+                PROGRESS_BLOCKED                  to stats.blocked.get(),
                 PROGRESS_TIME_ELAPSED             to stats.elapsedMs(),
                 PROGRESS_ESTIMATED_TIME_REMAINING to (eta * 1000L),
                 PROGRESS_ETA_SECONDS              to eta,

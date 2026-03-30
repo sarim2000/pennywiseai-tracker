@@ -21,8 +21,9 @@ class GPayPdfParser : PdfStatementParser {
 
     companion object {
         private const val TAG                 = "GPayPdfParser"
-        private const val DATE_FORMAT_PATTERN = "dd MMM, yyyy hh:mm a"
-        private const val DATE_BUFFER_SIZE    = 8   // lines buffered before anchor
+        private const val DATE_FORMAT_PATTERN    = "dd MMM, yyyy hh:mm a"  // 12-hour with AM/PM
+        private const val DATE_FORMAT_PATTERN_24H = "dd MMM, yyyy HH:mm"   // 24-hour
+        private const val DATE_BUFFER_SIZE       = 8   // lines buffered before anchor
     }
 
     private val IST = TimeZone.getTimeZone("Asia/Kolkata")
@@ -54,6 +55,7 @@ class GPayPdfParser : PdfStatementParser {
     private val dateLineRegex = Regex("""^(\d{1,2})\s+([A-Za-z]{3}),?$""")       // "01 Sep,"
     private val yearLineRegex = Regex("""^(20\d{2})$""")                    // "2025"
     private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])$""") // "03:02 PM" or "03:02:45 PM"
+    private val timeLine24hRegex = Regex("""^(\d{1,2}:\d{2})(?::\d{2})?$""") // "15:02" or "15:02:30"
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
@@ -219,12 +221,17 @@ class GPayPdfParser : PdfStatementParser {
         var dateLine: String? = null
         var yearLine: String? = null
         var timeLine: String? = null
+        var is24h = false
 
         for (line in lines) {
             when {
                 dateLine == null && dateLineRegex.matches(line) -> dateLine = line
                 yearLine == null && yearLineRegex.matches(line) -> yearLine = line
                 timeLine == null && timeLineRegex.matches(line) -> timeLine = line
+                timeLine == null && timeLine24hRegex.matches(line) -> {
+                    timeLine = line
+                    is24h = true
+                }
             }
             if (dateLine != null && yearLine != null && timeLine != null) break
         }
@@ -235,15 +242,22 @@ class GPayPdfParser : PdfStatementParser {
             return null
         }
 
-        // Normalise: "01 Sep," → "01 Sep" then build "01 Sep, 2025 03:02 PM"
+        // Normalise: "01 Sep," → "01 Sep"
         val dateClean = dateLine.trimEnd(',', ' ')
-        val timeClean = timeLine
-            .replace(Regex("""(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])"""), "$1 $2")
-            .uppercase()
+        val timeClean = if (is24h) {
+            // "15:02" or "15:02:30" → keep as-is for 24h format
+            timeLine.replace(Regex("""^(\d{1,2}:\d{2})(?::\d{2})?$"""), "$1")
+        } else {
+            // "03:02 PM" or "03:02:45 PM" → normalise to "HH:mm AM/PM"
+            timeLine
+                .replace(Regex("""(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])"""), "$1 $2")
+                .uppercase()
+        }
+        val pattern = if (is24h) DATE_FORMAT_PATTERN_24H else DATE_FORMAT_PATTERN
         val combined  = "$dateClean, $yearLine $timeClean"
 
         return try {
-            val sdf = SimpleDateFormat(DATE_FORMAT_PATTERN, Locale.ENGLISH).apply {
+            val sdf = SimpleDateFormat(pattern, Locale.ENGLISH).apply {
                 timeZone = IST
                 isLenient = false
             }

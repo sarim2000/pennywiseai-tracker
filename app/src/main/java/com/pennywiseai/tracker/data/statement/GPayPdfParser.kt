@@ -53,7 +53,7 @@ class GPayPdfParser : PdfStatementParser {
     // Date parts — each on its own line
     private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"
     private val yearLineRegex = Regex("""^(20\d{2})$""")                    // "2025"
-    private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})\s*([AaPp][Mm])$""") // "03:02 PM"
+    private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])$""") // "03:02 PM" or "03:02:45 PM"
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
@@ -238,7 +238,7 @@ class GPayPdfParser : PdfStatementParser {
         // Normalise: "01 Sep," → "01 Sep" then build "01 Sep, 2025 03:02 PM"
         val dateClean = dateLine.trimEnd(',', ' ')
         val timeClean = timeLine
-            .replace(Regex("""(\d{1,2}:\d{2})\s*([AaPp][Mm])"""), "$1 $2")
+            .replace(Regex("""(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])"""), "$1 $2")
             .uppercase()
         val combined  = "$dateClean, $yearLine $timeClean"
 

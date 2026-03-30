@@ -16,7 +16,33 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "user_preferences",
+    produceMigrations = { _ ->
+        listOf(
+            object : androidx.datastore.core.DataMigration<Preferences> {
+                override suspend fun cleanUp() {}
+                
+                override suspend fun migrate(currentData: Preferences): Preferences {
+                    val prefs = currentData.toMutablePreferences()
+                    val hasCompletedOnboarding = prefs[booleanPreferencesKey("has_completed_onboarding")] == true
+                    val hasAllTimeSet = prefs.contains(booleanPreferencesKey("sms_scan_all_time"))
+                    
+                    if (hasCompletedOnboarding && !hasAllTimeSet) {
+                        prefs[booleanPreferencesKey("sms_scan_all_time")] = false
+                    }
+                    return prefs
+                }
+                
+                override suspend fun shouldMigrate(currentData: Preferences): Boolean {
+                    val hasCompletedOnboarding = currentData[booleanPreferencesKey("has_completed_onboarding")] == true
+                    val hasAllTimeSet = currentData.contains(booleanPreferencesKey("sms_scan_all_time"))
+                    return hasCompletedOnboarding && !hasAllTimeSet
+                }
+            }
+        )
+    }
+)
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(

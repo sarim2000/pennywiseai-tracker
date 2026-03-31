@@ -29,7 +29,7 @@ interface AccountBalanceDao {
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?>
     
     @Query("""
-        SELECT DISTINCT 
+        SELECT DISTINCT
             ab1.id,
             ab1.bank_name,
             ab1.account_last4,
@@ -41,15 +41,17 @@ interface AccountBalanceDao {
             ab1.is_credit_card,
             ab1.sms_source,
             ab1.source_type,
-            ab1.currency
+            ab1.account_type,
+            ab1.currency,
+            ab1.profile_id
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
             FROM account_balances
             GROUP BY bank_name, account_last4
-        ) ab2 
-        ON ab1.bank_name = ab2.bank_name 
-        AND ab1.account_last4 = ab2.account_last4 
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
         AND ab1.timestamp = ab2.max_timestamp
         ORDER BY ab1.balance DESC
     """)
@@ -62,7 +64,7 @@ interface AccountBalanceDao {
     suspend fun deleteAllBalances()
     
     @Query("""
-        SELECT DISTINCT 
+        SELECT DISTINCT
             ab1.id,
             ab1.bank_name,
             ab1.account_last4,
@@ -74,16 +76,18 @@ interface AccountBalanceDao {
             ab1.is_credit_card,
             ab1.sms_source,
             ab1.source_type,
-            ab1.currency
+            ab1.account_type,
+            ab1.currency,
+            ab1.profile_id
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
             FROM account_balances
             WHERE strftime('%Y-%m', timestamp/1000, 'unixepoch') = strftime('%Y-%m', 'now')
             GROUP BY bank_name, account_last4
-        ) ab2 
-        ON ab1.bank_name = ab2.bank_name 
-        AND ab1.account_last4 = ab2.account_last4 
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
         AND ab1.timestamp = ab2.max_timestamp
         ORDER BY ab1.balance DESC
     """)
@@ -160,4 +164,7 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int
+
+    @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
 }

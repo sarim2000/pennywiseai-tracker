@@ -78,6 +78,9 @@ import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
+import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.GreetingCard
@@ -128,6 +131,9 @@ fun HomeScreen(
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    // Profile filter dropdown state
+    var showProfileFilterMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Haptic feedback
@@ -237,28 +243,66 @@ fun HomeScreen(
                 blurEffects = blurEffects,
                 actionContent = {
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(
-                                color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                shape = CircleShape
-                            )
-                            .clickable(
-                                onClick = { showMenuSheet = true },
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreHoriz,
-                            contentDescription = "More options",
-                            tint = MaterialTheme.colorScheme.inverseSurface,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
+                        // Business/Personal filter dropdown
+                        Box {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                        shape = CircleShape
+                                    )
+                                    .clickable(
+                                        onClick = { showProfileFilterMenu = true },
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
+                                    contentDescription = "Profile filter",
+                                    tint = MaterialTheme.colorScheme.inverseSurface,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            ProfileFilterDropdown(
+                                expanded = showProfileFilterMenu,
+                                profiles = uiState.profiles,
+                                selectedProfileId = uiState.selectedProfileId,
+                                onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                                onDismiss = { showProfileFilterMenu = false }
+                            )
+                        }
+                        // More options button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                    shape = CircleShape
+                                )
+                                .clickable(
+                                    onClick = { showMenuSheet = true },
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreHoriz,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.inverseSurface,
+                                modifier = Modifier.size(Dimensions.Icon.medium)
+                            )
+                        }
                     }
                 },
                 extraInfoCard = {
@@ -266,6 +310,9 @@ fun HomeScreen(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
+                        profiles = uiState.profiles,
+                        selectedProfileId = uiState.selectedProfileId,
+                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                     )
@@ -554,11 +601,15 @@ fun HomeScreen(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
+                            val profileAccountKeys = remember(uiState.accountBalances) {
+                                buildProfileAccountKeys(uiState.accountBalances)
+                            }
                             uiState.recentTransactions.forEach { transaction ->
                                 TransactionItem(
                                     transaction = transaction,
                                     convertedAmount = uiState.recentTransactionConvertedAmounts[transaction.id],
                                     displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                    profileAccountKeys = profileAccountKeys,
                                     onClick = { onTransactionClick(transaction.id) }
                                 )
                             }

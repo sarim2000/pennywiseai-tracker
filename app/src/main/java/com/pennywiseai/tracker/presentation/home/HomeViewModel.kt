@@ -91,9 +91,10 @@ class HomeViewModel @Inject constructor(
     // Cached base currency for use in sort comparators (updated from preferences)
     private var baseCurrency = ""
 
-    // Cache the latest account balances so refreshAccountBalances() can recalculate
-    // without starting a new competing .collect on the repository flow
-    private var cachedAccountBalances: List<AccountBalanceEntity> = emptyList()
+    // Cache the latest account balances as a StateFlow so that combine blocks
+    // re-emit when account profiles change (e.g. via Manage Accounts)
+    private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
+    private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value
 
     init {
         loadUnifiedModePreferences()
@@ -235,9 +236,10 @@ class HomeViewModel @Inject constructor(
             val startOfMonth = now.withDayOfMonth(1)
             combine(
                 transactionRepository.getTransactionsBetweenDates(startOfMonth, now),
-                userPreferencesRepository.selectedProfileId
-            ) { transactions, profileId ->
-                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(cachedAccountBalances)))
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances
+            ) { transactions, profileId, balances ->
+                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
             }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
             }
@@ -254,7 +256,7 @@ class HomeViewModel @Inject constructor(
                 Triple(allBalances, isUnified, displayCurrency)
             }.collect { (allBalances, isUnified, displayCurrency) ->
                 // Cache the raw (unfiltered) balances for refreshAccountBalances/refreshHiddenAccounts
-                cachedAccountBalances = allBalances
+                _cachedAccountBalances.value = allBalances
 
                 // Get hidden accounts from SharedPreferences
                 val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
@@ -354,9 +356,10 @@ class HomeViewModel @Inject constructor(
                     startDate = startOfMonth,
                     endDate = endOfMonth
                 ),
-                userPreferencesRepository.selectedProfileId
-            ) { transactions, profileId ->
-                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(cachedAccountBalances))
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances
+            ) { transactions, profileId, balances ->
+                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
             }.collect { transactions ->
                 updateTransactionTypeTotals(transactions)
             }
@@ -372,9 +375,10 @@ class HomeViewModel @Inject constructor(
             val lastMonthEnd = lastMonth.withDayOfMonth(lastMonthMaxDay)
             combine(
                 transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd),
-                userPreferencesRepository.selectedProfileId
-            ) { transactions, profileId ->
-                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(cachedAccountBalances)))
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances
+            ) { transactions, profileId, balances ->
+                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
             }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
             }
@@ -391,9 +395,10 @@ class HomeViewModel @Inject constructor(
                     startDate = lastMonthStart,
                     endDate = now
                 ),
-                userPreferencesRepository.selectedProfileId
-            ) { allTransactions, profileId ->
-                filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(cachedAccountBalances))
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances
+            ) { allTransactions, profileId, balances ->
+                filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
             }.collect { allTransactions ->
                 val selectedCurrency = _uiState.value.selectedCurrency
                 val isUnified = _uiState.value.isUnifiedMode
@@ -542,9 +547,10 @@ class HomeViewModel @Inject constructor(
                     startDate = heatmapStart,
                     endDate = LocalDate.now()
                 ),
-                userPreferencesRepository.selectedProfileId
-            ) { transactions, profileId ->
-                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(cachedAccountBalances))
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances
+            ) { transactions, profileId, balances ->
+                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
             }.collect { transactions ->
                 val heatmap = transactions
                     .groupBy { it.dateTime.toLocalDate().toEpochDay() }
@@ -555,14 +561,19 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load recent transactions (last 3) with conversion for unified mode
+            // Use DB-level profile filtering to avoid loading all transactions
             combine(
-                transactionRepository.getRecentTransactions(limit = 50),
+                userPreferencesRepository.selectedProfileId.flatMapLatest { profileId ->
+                    if (profileId == null) {
+                        transactionRepository.getRecentTransactions(limit = 3)
+                    } else {
+                        transactionRepository.getRecentTransactionsByProfile(profileId, limit = 3)
+                    }
+                },
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency,
-                userPreferencesRepository.selectedProfileId
-            ) { transactions, isUnified, displayCurrency, profileId ->
-                val filtered = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(cachedAccountBalances)).take(3)
-                Triple(filtered, isUnified, displayCurrency)
+                userPreferencesRepository.displayCurrency
+            ) { transactions, isUnified, displayCurrency ->
+                Triple(transactions, isUnified, displayCurrency)
             }.collect { (transactions, isUnified, displayCurrency) ->
                 val convertedAmounts = if (isUnified) {
                     val map = mutableMapOf<Long, java.math.BigDecimal>()

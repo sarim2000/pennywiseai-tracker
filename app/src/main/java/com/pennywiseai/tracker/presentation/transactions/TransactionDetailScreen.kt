@@ -1213,7 +1213,9 @@ Spacer(modifier = Modifier.height(Spacing.sm))
                 SegmentedButton(
                     selected = !isEffectivelyBusiness,
                     onClick = {
-                        val newId = if (accountProfileId == ProfileEntity.BUSINESS_ID) ProfileEntity.PERSONAL_ID else null
+                        // If account already defaults to Personal, clear any explicit override
+                        // Otherwise set an explicit Personal override
+                        val newId = if (accountProfileId == null || accountProfileId == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
                         viewModel.updateProfileId(newId)
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
@@ -1223,7 +1225,9 @@ Spacer(modifier = Modifier.height(Spacing.sm))
                 SegmentedButton(
                     selected = isEffectivelyBusiness,
                     onClick = {
-                        val newId = if (accountProfileId != ProfileEntity.BUSINESS_ID) ProfileEntity.BUSINESS_ID else null
+                        // If account already defaults to Business, clear any explicit override
+                        // Otherwise set an explicit Business override
+                        val newId = if (accountProfileId == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
                         viewModel.updateProfileId(newId)
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)

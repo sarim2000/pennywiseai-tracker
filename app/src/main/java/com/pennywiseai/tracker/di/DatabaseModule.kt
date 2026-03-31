@@ -261,12 +261,18 @@ class DatabaseCallback : RoomDatabase.Callback() {
     override fun onCreate(db: SupportSQLiteDatabase) {
         super.onCreate(db)
         
-        // Seed default categories for new installations
+        // Seed default categories and profiles for new installations
         CoroutineScope(Dispatchers.IO).launch {
             seedCategories(db)
+            seedProfiles(db)
         }
     }
     
+    private fun seedProfiles(db: SupportSQLiteDatabase) {
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (1, 'Personal', '#4CAF50', 0)")
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (2, 'Business', '#2196F3', 1)")
+    }
+
     private fun seedCategories(db: SupportSQLiteDatabase) {
         val categories = listOf(
             Triple("Food & Dining", "#FC8019", false),

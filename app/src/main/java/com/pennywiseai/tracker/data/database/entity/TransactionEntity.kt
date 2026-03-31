@@ -82,7 +82,7 @@ data class TransactionEntity(
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
     val receiptPath: String? = null,
 
-    @ColumnInfo(name = "profile_id")
+    @ColumnInfo(name = "profile_id", defaultValue = "NULL")
     val profileId: Long? = null
 )
 

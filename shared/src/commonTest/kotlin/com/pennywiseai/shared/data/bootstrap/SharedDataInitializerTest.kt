@@ -32,10 +32,15 @@ private class FakeCategoryRepository(
     var insertedCategoryCount: Int = 0
         private set
 
+    private val stored = mutableListOf<SharedCategory>()
+    private var nextId = 1L
+
     override fun observeCategories(): Flow<List<SharedCategory>> = flowOf(emptyList())
 
     override fun observeCategoriesByIncomeType(isIncome: Boolean): Flow<List<SharedCategory>> =
         flowOf(emptyList())
+
+    override suspend fun getById(id: Long): SharedCategory? = stored.find { it.id == id }
 
     override suspend fun countCategories(): Int = startCount
 
@@ -44,15 +49,23 @@ private class FakeCategoryRepository(
         startCount += categories.size
     }
 
-    override suspend fun getById(id: Long): SharedCategory? = null
+    override suspend fun getById(id: Long): SharedCategory? = stored.firstOrNull { it.id == id }
 
     override suspend fun insertCategory(category: SharedCategory): Long {
-        insertedCategoryCount++
+        val id = nextId++
+        stored.add(category.copy(id = id))
         startCount++
-        return 0L
+        return id
     }
 
-    override suspend fun updateCategory(category: SharedCategory) {}
+    override suspend fun updateCategory(category: SharedCategory) {
+        val index = stored.indexOfFirst { it.id == category.id }
+        if (index >= 0) stored[index] = category
+    }
 
-    override suspend fun deleteCategory(id: Long): Boolean = false
+    override suspend fun deleteCategory(id: Long): Boolean {
+        val removed = stored.removeAll { it.id == id }
+        if (removed) startCount--
+        return removed
+    }
 }

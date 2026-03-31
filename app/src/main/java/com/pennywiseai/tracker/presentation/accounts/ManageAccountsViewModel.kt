@@ -431,6 +431,12 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {
+        viewModelScope.launch {
+            accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+        }
+    }
+
     fun editAccount(
         oldBankName: String,
         accountLast4: String,

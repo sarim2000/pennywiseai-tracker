@@ -80,7 +80,10 @@ data class TransactionEntity(
     val loanId: Long? = null,
 
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
-    val receiptPath: String? = null
+    val receiptPath: String? = null,
+
+    @ColumnInfo(name = "profile_id")
+    val profileId: Long? = null
 )
 
 enum class TransactionType {

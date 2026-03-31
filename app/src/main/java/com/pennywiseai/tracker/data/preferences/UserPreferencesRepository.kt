@@ -107,6 +107,9 @@ class UserPreferencesRepository @Inject constructor(
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
 
+        // Profile Filter (null = All profiles)
+        val SELECTED_PROFILE_ID = longPreferencesKey("selected_profile_id")
+
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
@@ -151,7 +154,8 @@ class UserPreferencesRepository @Inject constructor(
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
                 hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
-                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
+                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY],
+                selectedProfileId = preferences[PreferencesKeys.SELECTED_PROFILE_ID]
             )
         }
 
@@ -619,6 +623,20 @@ class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    // Profile Filter (null = All profiles)
+    val selectedProfileId: Flow<Long?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SELECTED_PROFILE_ID] }
+
+    suspend fun updateSelectedProfileId(profileId: Long?) {
+        context.dataStore.edit { preferences ->
+            if (profileId == null) {
+                preferences.remove(PreferencesKeys.SELECTED_PROFILE_ID)
+            } else {
+                preferences[PreferencesKeys.SELECTED_PROFILE_ID] = profileId
+            }
+        }
+    }
 }
 
 data class UserPreferences(
@@ -643,5 +661,6 @@ data class UserPreferences(
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
-    val mainAccountKey: String? = null
+    val mainAccountKey: String? = null,
+    val selectedProfileId: Long? = null
 )

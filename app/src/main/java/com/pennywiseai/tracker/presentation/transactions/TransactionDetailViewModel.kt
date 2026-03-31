@@ -164,8 +164,8 @@ loadAccountProfileId(it)
 
     private suspend fun loadAccountProfileId(transaction: TransactionEntity) {
         val bankName = transaction.bankName ?: return
-        val accountNumber = transaction.accountNumber ?: return
-        val balance = accountBalanceRepository.getLatestBalance(bankName, accountNumber)
+        val accountLast4 = transaction.accountNumber ?: return
+        val balance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
         _accountProfileId.value = balance?.profileId
     }
 

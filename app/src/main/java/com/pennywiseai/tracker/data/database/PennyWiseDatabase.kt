@@ -113,11 +113,8 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun transactionSplitDao(): TransactionSplitDao
     abstract fun bankNotificationDao(): BankNotificationDao
-<<<<<<< HEAD
     abstract fun loanDao(): LoanDao
-=======
     abstract fun profileDao(): ProfileDao
->>>>>>> 39090469 (feat(db): add v37-39 AutoMigrations for profiles table and profile_id columns)
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"

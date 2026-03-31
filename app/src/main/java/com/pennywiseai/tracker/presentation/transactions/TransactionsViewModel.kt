@@ -67,7 +67,6 @@ class TransactionsViewModel @Inject constructor(
 
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
     val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
-    private var cachedProfileAccountKeys: Map<Long, Set<String>> = emptyMap()
 
     val profiles: StateFlow<List<ProfileEntity>> = profileRepository.observeAllProfiles()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -284,8 +283,7 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances().collect { balances ->
-                cachedProfileAccountKeys = buildProfileAccountKeys(balances)
-                _profileAccountKeys.value = cachedProfileAccountKeys
+                _profileAccountKeys.value = buildProfileAccountKeys(balances)
             }
         }
 
@@ -341,6 +339,7 @@ class TransactionsViewModel @Inject constructor(
             categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
+            _profileAccountKeys.map { "profileAccountKeys" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -719,7 +718,7 @@ class TransactionsViewModel @Inject constructor(
         transactions: List<TransactionEntity>,
         profileId: Long?
     ): List<TransactionEntity> {
-        return filterTransactionsByProfile(transactions, profileId, cachedProfileAccountKeys)
+        return filterTransactionsByProfile(transactions, profileId, _profileAccountKeys.value)
     }
 
     private fun getFilteredTransactions(

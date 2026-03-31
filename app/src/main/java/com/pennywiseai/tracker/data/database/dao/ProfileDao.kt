@@ -29,6 +29,6 @@ interface ProfileDao {
     @Update
     suspend fun update(profile: ProfileEntity)
 
-    @Query("DELETE FROM profiles WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    @Query("DELETE FROM profiles WHERE id = :id AND id NOT IN (1, 2)")
+    suspend fun deleteById(id: Long): Int
 }

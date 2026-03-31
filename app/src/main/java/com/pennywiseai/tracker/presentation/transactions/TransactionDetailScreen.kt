@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
@@ -95,10 +96,12 @@ fun TransactionDetailScreen(
     val showSplitEditor by viewModel.showSplitEditor.collectAsStateWithLifecycle()
     val hasSplits by viewModel.hasSplits.collectAsStateWithLifecycle()
 
-    // Loan state
+// Loan state
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
+// Account profile state
+    val accountProfileId by viewModel.accountProfileId.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -249,8 +252,9 @@ fun TransactionDetailScreen(
                 splits = splits,
                 showSplitEditor = showSplitEditor,
                 hasSplits = hasSplits,
-                loan = loan,
+loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
+accountProfileId = accountProfileId,
                 hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -322,8 +326,9 @@ private fun TransactionDetailContent(
     splits: List<SplitItem>,
     showSplitEditor: Boolean,
     hasSplits: Boolean,
-    loan: LoanEntity?,
+loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit,
+accountProfileId: Long?,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
@@ -353,6 +358,7 @@ private fun TransactionDetailContent(
                 applyToAllFromMerchant = applyToAllFromMerchant,
                 updateExistingTransactions = updateExistingTransactions,
                 existingTransactionCount = existingTransactionCount,
+                accountProfileId = accountProfileId,
                 viewModel = viewModel,
                 splits = splits,
                 showSplitEditor = showSplitEditor
@@ -366,8 +372,9 @@ private fun TransactionDetailContent(
                 viewModel = viewModel,
                 splits = splits,
                 hasSplits = hasSplits,
-                loan = loan,
+loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail
+accountProfileId = accountProfileId
             )
         }
     }
@@ -383,8 +390,9 @@ private fun TransactionReceipt(
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
     hasSplits: Boolean,
-    loan: LoanEntity?,
+loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit
+accountProfileId: Long? = null
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
@@ -619,6 +627,16 @@ private fun TransactionReceipt(
                     value = "Recurring"
                 )
             }
+
+            // Classification
+            val effectiveProfileId = transaction.profileId ?: accountProfileId
+            val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            DetailInfoRow(
+                icon = if (isEffectivelyBusiness) Icons.Default.Business else Icons.Default.Person,
+                label = "Classification",
+                value = if (isEffectivelyBusiness) "Business" else "Personal"
+            )
 
             // Account info
             if (transaction.fromAccount != null && transaction.toAccount != null) {
@@ -1000,6 +1018,7 @@ private fun EditableExtractedInfoCard(
     applyToAllFromMerchant: Boolean,
     updateExistingTransactions: Boolean,
     existingTransactionCount: Int,
+    accountProfileId: Long?,
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
     showSplitEditor: Boolean
@@ -1167,6 +1186,42 @@ private fun EditableExtractedInfoCard(
                     text = "Recurring Transaction",
                     style = MaterialTheme.typography.bodyLarge
                 )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            // Classification toggle
+            val effectiveProfileId = transaction.profileId ?: accountProfileId
+            val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
+            Text(
+                text = "Classification",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SegmentedButton(
+                    selected = !isEffectivelyBusiness,
+                    onClick = {
+                        val newId = if (accountProfileId == ProfileEntity.BUSINESS_ID) ProfileEntity.PERSONAL_ID else null
+                        viewModel.updateProfileId(newId)
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Personal")
+                }
+                SegmentedButton(
+                    selected = isEffectivelyBusiness,
+                    onClick = {
+                        val newId = if (accountProfileId != ProfileEntity.BUSINESS_ID) ProfileEntity.BUSINESS_ID else null
+                        viewModel.updateProfileId(newId)
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Business")
+                }
             }
 
             // Bank (read-only)

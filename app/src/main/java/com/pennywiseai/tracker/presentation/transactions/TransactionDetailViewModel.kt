@@ -51,6 +51,9 @@ class TransactionDetailViewModel @Inject constructor(
     private val _convertedAmount = MutableStateFlow<BigDecimal?>(null)
     val convertedAmount: StateFlow<BigDecimal?> = _convertedAmount.asStateFlow()
     
+    private val _accountProfileId = MutableStateFlow<Long?>(null)
+    val accountProfileId: StateFlow<Long?> = _accountProfileId.asStateFlow()
+
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
     
@@ -157,10 +160,19 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
-                loadReceiptUri(it)
+loadReceiptUri(it)
                 it.loanId?.let { id -> loadLoan(id) }
+it.loanId?.let { id -> loadLoan(id) }
+loadAccountProfileId(it)
             }
         }
+    }
+
+    private suspend fun loadAccountProfileId(transaction: TransactionEntity) {
+        val bankName = transaction.bankName ?: return
+        val accountNumber = transaction.accountNumber ?: return
+        val balance = accountBalanceRepository.getLatestBalance(bankName, accountNumber)
+        _accountProfileId.value = balance?.profileId
     }
 
     private suspend fun loadSplits(transactionId: Long) {
@@ -322,7 +334,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun updateFromAccount(account: String?) {
+fun updateFromAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
         }
@@ -331,6 +343,9 @@ class TransactionDetailViewModel @Inject constructor(
     fun updateToAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
+fun updateProfileId(profileId: Long?) {
+        _editableTransaction.update { current ->
+            current?.copy(profileId = profileId)
         }
     }
 

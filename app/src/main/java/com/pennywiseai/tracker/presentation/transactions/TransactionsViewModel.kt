@@ -13,8 +13,13 @@ import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +40,8 @@ class TransactionsViewModel @Inject constructor(
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val profileRepository: ProfileRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -55,6 +62,16 @@ class TransactionsViewModel @Inject constructor(
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
     
+    private val _selectedProfileId = MutableStateFlow<Long?>(null)
+    val selectedProfileId: StateFlow<Long?> = _selectedProfileId.asStateFlow()
+
+    private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
+    val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
+    private var cachedProfileAccountKeys: Map<Long, Set<String>> = emptyMap()
+
+    val profiles: StateFlow<List<ProfileEntity>> = profileRepository.observeAllProfiles()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private val _sortOption = MutableStateFlow(SortOption.DATE_NEWEST)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
@@ -259,8 +276,17 @@ class TransactionsViewModel @Inject constructor(
     }
     
     init {
-        // Initialize selectedCurrency from baseCurrency preference
+        // Observe selected profile from preferences and cache profile account keys
         viewModelScope.launch {
+            userPreferencesRepository.selectedProfileId.collect { profileId ->
+                _selectedProfileId.value = profileId
+            }
+        }
+        viewModelScope.launch {
+            accountBalanceRepository.getAllLatestBalances().collect { balances ->
+                cachedProfileAccountKeys = buildProfileAccountKeys(balances)
+                _profileAccountKeys.value = cachedProfileAccountKeys
+            }
         }
 
         // Load unified mode preferences
@@ -314,6 +340,7 @@ class TransactionsViewModel @Inject constructor(
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },
+            _selectedProfileId.map { "profileFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -329,9 +356,13 @@ class TransactionsViewModel @Inject constructor(
                 val sort = sortOption.value
                 val isUnified = _isUnifiedMode.value
 
+                val profileId = _selectedProfileId.value
+
                 // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter)
-                    .collect { transactions ->
+                    .collect { allTransactions ->
+                        // Apply profile filter
+                        val transactions = filterByProfile(allTransactions, profileId)
                         if (isUnified) {
                             // Show all transactions regardless of currency
                             emit(sortTransactions(transactions, sort))
@@ -426,6 +457,12 @@ class TransactionsViewModel @Inject constructor(
         _transactionTypeFilter.value = filter
     }
     
+    fun setSelectedProfile(profileId: Long?) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateSelectedProfileId(profileId)
+        }
+    }
+
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
     }
@@ -499,6 +536,7 @@ class TransactionsViewModel @Inject constructor(
         clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
+        setSelectedProfile(null)
         setSortOption(SortOption.DATE_NEWEST)
         // Don't reset currency as it might be user preference
     }
@@ -675,6 +713,13 @@ class TransactionsViewModel @Inject constructor(
      */
     fun clearCategoriesFilter() {
         _categoriesFilter.value = null
+    }
+
+    private fun filterByProfile(
+        transactions: List<TransactionEntity>,
+        profileId: Long?
+    ): List<TransactionEntity> {
+        return filterTransactionsByProfile(transactions, profileId, cachedProfileAccountKeys)
     }
 
     private fun getFilteredTransactions(

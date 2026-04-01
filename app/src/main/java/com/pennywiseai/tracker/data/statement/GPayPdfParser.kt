@@ -22,7 +22,7 @@ class GPayPdfParser : PdfStatementParser {
     companion object {
         private const val TAG                 = "GPayPdfParser"
         private const val DATE_FORMAT_PATTERN = "dd MMM, yyyy hh:mm a"
-        private const val DATE_BUFFER_SIZE    = 4   // lines buffered before anchor
+        private const val DATE_BUFFER_SIZE    = 8   // lines buffered before anchor
     }
 
     private val IST = TimeZone.getTimeZone("Asia/Kolkata")
@@ -37,16 +37,18 @@ class GPayPdfParser : PdfStatementParser {
     private val receivedAnchorRegex = Regex(
         """^Received\s+from\s+(.+)$""", RegexOption.IGNORE_CASE
     )
-    // Account line: "Paid by Bank 1234" (expense) or "Paid to Bank 1234" (income)
-    // Identified by ending with exactly 4 digits
-    private val accountLineRegex = Regex(
-        """^Paid\s+(?:by|to)\s+(.+\D)(\d{4})$""", RegexOption.IGNORE_CASE
+    // Stricter version for anchor detection and account extraction: only matches
+    // if the name before the 4 digits contains a known account keyword (Bank, Card, A/c).
+    // This prevents "Paid to Store 2024" from being misclassified as an account line.
+    private val bankAccountLineRegex = Regex(
+        """^Paid\s+(?:by|to)\s+(.+)\s+(Bank|Card|A/c)\s+(\d{4})$""", RegexOption.IGNORE_CASE
     )
     private val upiIdRegex = Regex(
         """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
     )
-    // ₹1,234.56 or Rs. 100 — amount is always on its own line
-    private val amountRegex = Regex("""^[₹Rs.\s]*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
+    // Amount on its own line — currency prefix (₹, Rs.) required; bare numbers
+    // like the year line ("2025") are intentionally excluded by the [₹Rs.\s]+ prefix.
+    private val amountRegex = Regex("""^(?:₹|Rs\.?)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
 
     // Date parts — each on its own line
     private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"
@@ -126,14 +128,14 @@ class GPayPdfParser : PdfStatementParser {
 
     /**
      * Returns true only for genuine transaction anchors.
-     * "Paid to South Indian Bank 1234" is an account line, not an anchor —
-     * we detect this by checking if the line ends with 4 digits.
+     * Account lines like "Paid to South Indian Bank 1234" are excluded by
+     * matching against [bankAccountLineRegex] which requires a bank/card keyword.
+     * This prevents "Paid to Store 2024" from being misclassified.
      */
     private fun isTransactionAnchor(line: String): Boolean {
         if (receivedAnchorRegex.matches(line)) return true
         if (merchantAnchorRegex.matches(line)) {
-            val endsWithAccountNumber = line.trimEnd().takeLast(4).all { it.isDigit() }
-            return !endsWithAccountNumber
+            return !bankAccountLineRegex.matches(line)
         }
         return false
     }
@@ -261,18 +263,22 @@ class GPayPdfParser : PdfStatementParser {
      * Extracts bank name and last 4 digits from the account line.
      * Expense: "Paid by South Indian Bank 1234"
      * Income:  "Paid to South Indian Bank 1234"
-     * Both are matched by [accountLineRegex].
+     * Uses [bankAccountLineRegex] to stay consistent with [isTransactionAnchor].
      */
     private fun extractAccountInfo(lines: List<String>): AccountInfo {
-        val accountLine = lines.firstOrNull { accountLineRegex.matches(it) }
+        val accountLine = lines.firstOrNull { bankAccountLineRegex.matches(it) }
         if (accountLine == null) {
             Log.d(TAG, "No account line found in lines: $lines")
             return AccountInfo(null, null)
         }
 
-        val match    = accountLineRegex.find(accountLine)
-        val bankName = match?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
-        val last4    = match?.groupValues?.get(2)?.trim()
+        val match    = bankAccountLineRegex.find(accountLine)
+        val bankName = if (match != null) {
+            val first = match.groupValues.getOrNull(1)?.trim()
+            val second = match.groupValues.getOrNull(2)?.trim()
+            listOfNotNull(first, second).joinToString(" ").takeIf { it.isNotBlank() }
+        } else null
+        val last4    = match?.groupValues?.getOrNull(3)?.trim()
 
         Log.d(TAG, "Account — bank='$bankName' last4='$last4' from '$accountLine'")
         return AccountInfo(bankName, last4)

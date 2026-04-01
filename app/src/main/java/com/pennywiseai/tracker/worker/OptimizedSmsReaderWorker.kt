@@ -481,6 +481,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
         }
 
+        is PNBBankParser -> {
+            if (!parser.isUPIMandateNotification(sms.body) || !isRecent) null
+            else parser.parseUPIMandateSubscription(sms.body)?.let { info ->
+                ParseResult.SpecialNotification(sms) {
+                    subscriptionRepository.createOrUpdateFromMandate(info, parser.getBankName(), sms.body)
+                }
+            }
+        }
+
         is FederalBankParser -> when {
             parser.isMandateCreationNotification(sms.body) ->
                 parser.parseEMandateSubscription(sms.body)?.let { info ->

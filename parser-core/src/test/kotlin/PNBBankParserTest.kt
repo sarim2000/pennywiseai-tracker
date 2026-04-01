@@ -5,8 +5,12 @@ import com.pennywiseai.parser.core.bank.PNBBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import java.math.BigDecimal
 
 class PNBBankParserTest {
@@ -84,18 +88,6 @@ class PNBBankParserTest {
                 )
             ),
             ParserTestCase(
-                name = "UPI-Mandate creation message",
-                message = "Your UPI-Mandate is successfully created towards Google for Rs.1500.00 from A/c No.XXXXXX4356. UMN:1d478c77808c410281f435rer5qwerty6@ybl-PNB",
-                sender = "AX-PNBSMS-S",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("1500.00"),
-                    currency = "INR",
-                    type = TransactionType.EXPENSE,
-                    accountLast4 = "4356",
-                    merchant = "Google"
-                )
-            ),
-            ParserTestCase(
                 name = "IMPS transfer debit message",
                 message = "Your a/c no XX1234 is debited for Rs 1000 on 01-01-25 12:00:00 and a/c XX456 credited (IMPS Ref no 123456789012) .If not done by you, pl. forward this SMS from registered mobile to 9264092640 to report unauthorized txn & block IBS/MBS. Download PNB ONE.-PNB",
                 sender = "VM-PNBSMS-S",
@@ -165,6 +157,30 @@ class PNBBankParserTest {
             testCases = testCases,
             handleCases = handleChecks,
             suiteName = "PNB Parser"
+        )
+    }
+
+    @TestFactory
+    fun `pnb mandate creation is treated as subscription not expense`(): List<DynamicTest> {
+        val parser = PNBBankParser()
+        val sender = "AX-PNBSMS-S"
+        val message =
+            "Your UPI-Mandate is successfully created towards Google for Rs.1500.00 from A/c No.XXXXXX4356. UMN:1d478c77808c410281f435rer5qwerty6@ybl-PNB"
+
+        return listOf(
+            dynamicTest("detect mandate notification") {
+                assertEquals(true, parser.isUPIMandateNotification(message))
+            },
+            dynamicTest("do not parse mandate creation as transaction") {
+                assertNull(parser.parse(message, sender, System.currentTimeMillis()))
+            },
+            dynamicTest("parse mandate subscription details") {
+                val mandate = parser.parseUPIMandateSubscription(message)
+                assertNotNull(mandate)
+                assertEquals(BigDecimal("1500.00"), mandate?.amount)
+                assertEquals("Google", mandate?.merchant)
+                assertEquals("1d478c77808c410281f435rer5qwerty6@ybl-PNB", mandate?.umn)
+            }
         )
     }
 }

@@ -19,6 +19,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import androidx.compose.ui.text.SpanStyle
@@ -83,7 +84,7 @@ fun SmsParsingProgressDialog(
                             Icon(
                                 Icons.Default.Cancel,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Text("Cancel Scan")
@@ -210,7 +211,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         strokeWidth = 2.dp
                     )
                     Text(
@@ -229,7 +230,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = "Scan completed successfully!",
@@ -247,7 +248,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         Icons.Default.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = "Scan failed. Please try again.",
@@ -265,7 +266,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         Icons.Default.Cancel,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = "Scan cancelled",
@@ -281,7 +282,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         strokeWidth = 2.dp
                     )
                     Text(

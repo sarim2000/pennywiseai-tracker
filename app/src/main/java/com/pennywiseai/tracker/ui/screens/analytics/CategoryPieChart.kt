@@ -34,7 +34,8 @@ import ir.ehsannarmani.compose_charts.models.Pie
 fun CategoryPieChart(
     categories: List<CategoryData>,
     currency: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCategoryClick: (CategoryData) -> Unit = {}
 ) {
     if (categories.isEmpty()) return
 
@@ -80,6 +81,8 @@ fun CategoryPieChart(
                     chartData = chartData.mapIndexed { index, pie ->
                         pie.copy(selected = index == pieIndex)
                     }
+                    val categoryName = clickedPie.label ?: return@PieChart
+                    categories.find { it.name == categoryName }?.let(onCategoryClick)
                 },
                 selectedScale = 1.1f,
                 scaleAnimEnterSpec = tween(400),
@@ -127,6 +130,8 @@ fun CategoryPieChart(
                         chartData = chartData.mapIndexed { index, p ->
                             p.copy(selected = index == pieIndex)
                         }
+                        val categoryName = pie.label ?: return@PieLegendItem
+                        categories.find { it.name == categoryName }?.let(onCategoryClick)
                     }
                 )
             }

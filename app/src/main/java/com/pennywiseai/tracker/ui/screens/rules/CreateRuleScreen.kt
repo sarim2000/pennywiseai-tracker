@@ -214,10 +214,10 @@ fun CreateRuleScreen(
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
+                .padding(Dimensions.Padding.content)
                 .imePadding()
                 .overScrollVertical()
-                .verticalScroll(rememberScrollState())
-                .padding(Dimensions.Padding.content),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Quick presets
@@ -305,7 +305,7 @@ fun CreateRuleScreen(
                                 )).toMutableList()
                             }
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Add Condition")
                         }
@@ -344,7 +344,7 @@ fun CreateRuleScreen(
                                             Icon(
                                                 Icons.Default.Delete,
                                                 contentDescription = "Remove condition",
-                                                modifier = Modifier.size(18.dp),
+                                                modifier = Modifier.size(Dimensions.Icon.small),
                                                 tint = MaterialTheme.colorScheme.error
                                             )
                                         }

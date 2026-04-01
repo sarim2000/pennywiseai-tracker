@@ -1,11 +1,16 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.multiplatform.library)
     id("com.google.devtools.ksp")
 }
 
 kotlin {
-    androidTarget()
+    androidLibrary {
+        namespace = "com.pennywiseai.shared"
+        compileSdk = 36
+        minSdk = 26
+    }
+
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -36,7 +41,6 @@ kotlin {
                 implementation(libs.pdfbox.android)
             }
         }
-        val androidUnitTest by getting
     }
 }
 
@@ -49,12 +53,4 @@ dependencies {
 
 ksp {
     arg("room.generateKotlin", "true")
-}
-
-android {
-    namespace = "com.pennywiseai.shared"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 26
-    }
 }

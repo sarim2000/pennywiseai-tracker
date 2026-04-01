@@ -15,6 +15,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,13 +29,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,6 +55,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -60,6 +64,7 @@ import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
@@ -246,10 +251,10 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.MoreHoriz,
+                            imageVector = Icons.Default.MoreHoriz,
                             contentDescription = "More options",
                             tint = MaterialTheme.colorScheme.inverseSurface,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 },
@@ -287,7 +292,7 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = Dimensions.Padding.content + 200.dp // Space for dual FABs (Add + Sync) + bottom nav bar
+                bottom = Dimensions.Component.bottomBarHeight + 120.dp // Space for dual FABs (Add + Sync) + bottom nav bar
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -338,7 +343,18 @@ fun HomeScreen(
                                     viewModel.selectCurrency(currencies[nextIdx])
                                 }
                             },
-                            onShowBreakdown = { viewModel.showBreakdownDialog() }
+                            onShowBreakdown = { viewModel.showBreakdownDialog() },
+                            accountBalances = uiState.accountBalances,
+                            creditCards = uiState.creditCards,
+                            totalAvailableCredit = uiState.totalAvailableCredit,
+                            onAccountClick = { bankName, accountLast4 ->
+                                navController.navigate(
+                                    com.pennywiseai.tracker.navigation.AccountDetail(
+                                        bankName = bankName,
+                                        accountLast4 = accountLast4
+                                    )
+                                ) { launchSingleTop = true }
+                            }
                         )
                     }
                 }
@@ -358,11 +374,28 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        BudgetCarousel(
-                            summary = summary,
-                            onClick = onNavigateToBudgets,
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                        )
+                        Column {
+                            SectionHeaderV2(
+                                title = "Budgets",
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                action = {
+                                    TextButton(onClick = onNavigateToBudgets) {
+                                        Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                    }
+                                }
+                            )
+                            BudgetCarousel(
+                                summary = summary,
+                                onClick = onNavigateToBudgets,
+                                onCreateBudget = onNavigateToBudgets,
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                            )
+                        }
                     }
                 }
             }
@@ -381,12 +414,6 @@ fun HomeScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        HorizontalDivider(
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
                         SectionHeaderV2(
                             title = "Recent Transactions",
                             action = {
@@ -409,6 +436,11 @@ fun HomeScreen(
                                     // View All button
                                     TextButton(onClick = onNavigateToTransactions) {
                                         Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             }
@@ -511,6 +543,11 @@ fun HomeScreen(
                                 action = {
                                     TextButton(onClick = onNavigateToManageAccounts) {
                                         Text("Manage")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             )
@@ -524,8 +561,10 @@ fun HomeScreen(
                                             bankName = bankName,
                                             accountLast4 = accountLast4
                                         )
-                                    )
+                                    ) { launchSingleTop = true }
                                 },
+                                isUnifiedMode = uiState.isUnifiedMode,
+                                selectedCurrency = uiState.selectedCurrency,
                                 blurEffects = blurEffects,
                                 hazeState = hazeStateBanner
                             )
@@ -555,6 +594,11 @@ fun HomeScreen(
                                 action = {
                                     TextButton(onClick = onNavigateToSubscriptions) {
                                         Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
                                     }
                                 }
                             )
@@ -586,12 +630,18 @@ fun HomeScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
-                        transactionHeatmap = uiState.transactionHeatmap,
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                        blurEffects = blurEffects,
-                        hazeState = hazeStateBanner
-                    )
+                    Column {
+                        SectionHeaderV2(
+                            title = "Activity",
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                        com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
+                            transactionHeatmap = uiState.transactionHeatmap,
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            blurEffects = blurEffects,
+                            hazeState = hazeStateBanner
+                        )
+                    }
                 }
             }
         }
@@ -790,7 +840,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_discord),
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     },
                     position = ListItemPosition.Middle,
@@ -1059,12 +1109,67 @@ private fun UpcomingSubscriptionsCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
+                if (subscriptions.isNotEmpty()) {
+                    val maxIcons = 4
+                    val visibleSubs = subscriptions.take(maxIcons)
+                    val extraCount = subscriptions.size - maxIcons
+                    Box {
+                        visibleSubs.forEachIndexed { index, sub ->
+                            BrandIcon(
+                                merchantName = sub.merchantName,
+                                size = 32.dp,
+                                modifier = Modifier
+                                    .offset(x = (index * 20).dp)
+                                    .zIndex((maxIcons - index).toFloat())
+                                    .border(
+                                        width = 2.dp,
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape
+                                    )
+                                    .clip(CircleShape)
+                            )
+                        }
+                        if (extraCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = (visibleSubs.size * 20).dp)
+                                    .zIndex(0f)
+                                    .size(32.dp)
+                                    .border(
+                                        width = 2.dp,
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape
+                                    )
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+$extraCount",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        // Spacer to reserve the width of the stacked icons
+                        Spacer(
+                            modifier = Modifier
+                                .width(
+                                    ((visibleSubs.size - 1) * 20 + 32 + if (extraCount > 0) 20 else 0).dp
+                                )
+                                .height(32.dp)
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                }
                 Column {
                     Text(
                         text = "${subscriptions.size} active subscriptions",

@@ -43,4 +43,16 @@ private class FakeCategoryRepository(
         insertedCategoryCount += categories.size
         startCount += categories.size
     }
+
+    override suspend fun getById(id: Long): SharedCategory? = null
+
+    override suspend fun insertCategory(category: SharedCategory): Long {
+        insertedCategoryCount++
+        startCount++
+        return 0L
+    }
+
+    override suspend fun updateCategory(category: SharedCategory) {}
+
+    override suspend fun deleteCategory(id: Long): Boolean = false
 }

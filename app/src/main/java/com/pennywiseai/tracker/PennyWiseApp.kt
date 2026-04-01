@@ -100,7 +100,7 @@ fun PennyWiseApp(
     // Navigate to transaction detail when editTransactionId changes
     LaunchedEffect(editTransactionId) {
         editTransactionId?.let { transactionId ->
-            navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId))
+            navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)) { launchSingleTop = true }
         }
     }
 

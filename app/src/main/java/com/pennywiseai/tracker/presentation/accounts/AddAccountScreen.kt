@@ -63,10 +63,11 @@ fun AddAccountScreen(
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
-                .overScrollVertical()
-                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(Dimensions.Padding.content),
+                .padding(Dimensions.Padding.content)
+                .imePadding()
+                .overScrollVertical()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Info Card
@@ -85,7 +86,7 @@ fun AddAccountScreen(
                         Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = "Add accounts not tracked via SMS like cash, wallets, credit cards, or investment accounts.",
@@ -111,7 +112,7 @@ fun AddAccountScreen(
                             Icons.Default.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
                             text = error,

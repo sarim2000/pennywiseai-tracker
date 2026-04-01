@@ -47,7 +47,7 @@ fun CollapsibleFilterRow(
             Icon(
                 imageVector = Icons.Default.FilterList,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
@@ -71,7 +71,7 @@ fun CollapsibleFilterRow(
                 imageVector = Icons.Default.ExpandMore,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(Dimensions.Icon.medium)
                     .rotate(rotationAngle),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

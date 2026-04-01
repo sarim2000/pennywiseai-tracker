@@ -330,7 +330,7 @@ private fun RuleCard(
                         Icon(
                             Icons.Default.Info,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
@@ -706,7 +706,7 @@ private fun BatchApplyDialog(
                     ) {
                         TextButton(onClick = onDismiss) { Text("Cancel") }
                         OutlinedButton(onClick = onPreview) {
-                            Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Preview")
                         }

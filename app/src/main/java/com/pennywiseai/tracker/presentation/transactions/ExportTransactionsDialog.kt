@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.ExportResult
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.DecimalFormat
@@ -190,7 +191,7 @@ fun ExportTransactionsDialog(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
@@ -296,7 +297,7 @@ fun ExportTransactionsDialog(
                                 Icon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.small)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Share")

@@ -20,19 +20,9 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# MediaPipe
--keep class com.google.mediapipe.** { *; }
--keep class com.google.mediapipe.tasks.genai.** { *; }
--dontwarn com.google.mediapipe.framework.image.BitmapExtractor
--dontwarn com.google.mediapipe.framework.image.ByteBufferExtractor
--dontwarn com.google.mediapipe.framework.image.MPImage
--dontwarn com.google.mediapipe.framework.image.MPImageProperties
--dontwarn com.google.mediapipe.framework.image.MediaImageExtractor
-
-# AutoValue (used by MediaPipe)
--dontwarn com.google.auto.value.AutoValue
--dontwarn com.google.auto.value.AutoValue$Builder
--keep class com.google.auto.value.** { *; }
+# LiteRT-LM
+-keep class com.google.ai.edge.litertlm.** { *; }
+-dontwarn com.google.ai.edge.litertlm.**
 
 # Room
 -keep class * extends androidx.room.RoomDatabase

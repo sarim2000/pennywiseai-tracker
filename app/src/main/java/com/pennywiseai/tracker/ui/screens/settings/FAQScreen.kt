@@ -211,13 +211,13 @@ fun FAQScreen(
                                     ) {
                                         if (itemIndex == 0) {
                                             Box(
-                                                modifier = Modifier.size(24.dp),
+                                                modifier = Modifier.size(Dimensions.Icon.medium),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 category.icon()
                                             }
                                         } else {
-                                            Spacer(modifier = Modifier.width(24.dp))
+                                            Spacer(modifier = Modifier.width(Dimensions.Icon.medium))
                                         }
                                         
                                         Text(
@@ -309,7 +309,7 @@ fun FAQScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

@@ -54,6 +54,15 @@ class CardRepository @Inject constructor(
     ): CardEntity {
         val existingCard = cardDao.getCard(bankName, cardLast4)
         if (existingCard != null) {
+            // Upgrade DEBIT → CREDIT if we now know it's a credit card
+            if (isCredit && existingCard.cardType == CardType.DEBIT) {
+                val upgraded = existingCard.copy(
+                    cardType = CardType.CREDIT,
+                    updatedAt = LocalDateTime.now()
+                )
+                cardDao.updateCard(upgraded)
+                return upgraded
+            }
             return existingCard
         }
         

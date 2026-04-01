@@ -13,12 +13,12 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +89,7 @@ fun TransactionsScreen(
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val sortOption by viewModel.sortOption.collectAsState()
+    val availableCategories by viewModel.availableCategories.collectAsState()
     val smsScanMonths by viewModel.smsScanMonths.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
@@ -108,9 +109,9 @@ fun TransactionsScreen(
     val view = LocalView.current
     
     // Calculate active filter count for advanced filters
+    // Category filter is excluded since it's now always visible as chips
     val activeFilterCount = listOf(
-        transactionTypeFilter != TransactionTypeFilter.ALL,
-        categoryFilter != null
+        transactionTypeFilter != TransactionTypeFilter.ALL
     ).count { it }
 
     // Check if any filter is active (for showing "Clear all" button)
@@ -246,7 +247,7 @@ fun TransactionsScreen(
                         Icon(
                             imageVector = Icons.Default.FileDownload,
                             contentDescription = "Export to CSV",
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 }
@@ -297,7 +298,7 @@ fun TransactionsScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Sort,
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
                         contentDescription = "Sort",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -317,7 +318,7 @@ fun TransactionsScreen(
                                     RadioButton(
                                         selected = sortOption == option,
                                         onClick = null,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(Dimensions.Icon.medium)
                                     )
                                     Text(option.label)
                                 }
@@ -351,7 +352,7 @@ fun TransactionsScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -519,40 +520,45 @@ fun TransactionsScreen(
             )
         }
         
-        // Category Filter Chip (if active) - Moved to its own row
-        categoryFilter?.let { category ->
+        // Category Filter Chips - Always visible when categories exist
+        if (availableCategories.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = Spacing.xs),
+                    .padding(top = Spacing.xs),
                 contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
+                // "All" chip - selected when no category filter is active
                 item {
                     FilterChip(
-                        selected = true,
-                        onClick = { /* No action on click, use trailing icon to clear */ },
-                        label = { Text(category) },
-                        leadingIcon = {
-                            categoriesMap[category]?.let { categoryEntity ->
-                                CategoryChip(
-                                    category = categoryEntity,
-                                    showText = false,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
+                        selected = categoryFilter == null,
+                        onClick = { viewModel.clearCategoryFilter() },
+                        label = { Text("All") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+
+                // Category chips
+                items(availableCategories) { category ->
+                    FilterChip(
+                        selected = categoryFilter == category,
+                        onClick = {
+                            if (categoryFilter == category) {
+                                viewModel.clearCategoryFilter()
+                            } else {
+                                viewModel.setCategoryFilter(category)
                             }
                         },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { viewModel.clearCategoryFilter() },
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear category filter",
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                        label = { Text(category) },
+                        leadingIcon = {
+                            CategoryIcon(
+                                category = category,
+                                size = Dimensions.Icon.small
+                            )
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -617,9 +623,9 @@ fun TransactionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.Info,
+                                        imageVector = Icons.Default.Info,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
                                     Text(

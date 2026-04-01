@@ -1,7 +1,11 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -10,31 +14,39 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
@@ -58,6 +70,19 @@ fun SubscriptionsScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
+
+    // Staggered entrance animation state — only animates on first composition
+    var hasAnimated by rememberSaveable { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+
+    // Mark entrance animation as complete after all stagger delays have fired
+    LaunchedEffect(Unit) {
+        if (!hasAnimated) {
+            delay(600) // slightly after the last possible stagger
+            hasAnimated = true
+        }
+    }
 
     // Show snackbar when subscription is hidden
     LaunchedEffect(uiState.lastHiddenSubscription) {
@@ -114,27 +139,54 @@ fun SubscriptionsScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            // Total Monthly Subscriptions Summary
+            // Total Monthly Subscriptions Summary (0ms delay)
             item {
-                TotalSubscriptionsSummary(
-                    totalAmount = uiState.totalMonthlyAmount,
-                    activeCount = uiState.activeSubscriptions.size,
-                    currency = uiState.displayCurrency
-                )
+                val visible = remember { mutableStateOf(hasAnimated) }
+                LaunchedEffect(Unit) {
+                    if (!hasAnimated) { delay(0); visible.value = true }
+                }
+                AnimatedVisibility(
+                    visible = visible.value,
+                    enter = fadeIn(tween(300)) + slideInVertically(
+                        initialOffsetY = { slideOffsetPx },
+                        animationSpec = tween(300)
+                    )
+                ) {
+                    TotalSubscriptionsSummary(
+                        totalAmount = uiState.totalMonthlyAmount,
+                        activeCount = uiState.activeSubscriptions.size,
+                        currency = uiState.displayCurrency
+                    )
+                }
             }
 
-            // Active Subscriptions
+            // Active Subscriptions (staggered 50ms per item, starting at 50ms)
             if (uiState.activeSubscriptions.isNotEmpty()) {
-                items(
+                item {
+                    SectionHeaderV2(title = "Active Subscriptions")
+                }
+                itemsIndexed(
                     items = uiState.activeSubscriptions,
-                    key = { it.id }
-                ) { subscription ->
-                    SwipeableSubscriptionItem(
-                        subscription = subscription,
-                        convertedAmount = uiState.convertedAmounts[subscription.id],
-                        displayCurrency = uiState.displayCurrency,
-                        onHide = { viewModel.hideSubscription(subscription.id) }
-                    )
+                    key = { _, item -> item.id }
+                ) { index, subscription ->
+                    val visible = remember { mutableStateOf(hasAnimated) }
+                    LaunchedEffect(Unit) {
+                        if (!hasAnimated) { delay((index + 1) * 50L); visible.value = true }
+                    }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { slideOffsetPx },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        SwipeableSubscriptionItem(
+                            subscription = subscription,
+                            convertedAmount = uiState.convertedAmounts[subscription.id],
+                            displayCurrency = uiState.displayCurrency,
+                            onHide = { viewModel.hideSubscription(subscription.id) }
+                        )
+                    }
                 }
             }
 
@@ -151,15 +203,8 @@ fun SubscriptionsScreen(
 
             // Loading State
             if (uiState.isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                items(5) {
+                    SubscriptionItemSkeleton()
                 }
             }
         }
@@ -179,7 +224,7 @@ private fun TotalSubscriptionsSummary(
         amount = if (currency != null) {
             CurrencyFormatter.formatCurrency(totalAmount, currency)
         } else {
-            CurrencyFormatter.formatCurrency(totalAmount, "INR")
+            totalAmount.toPlainString()
         },
         subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
         amountColor = amountColor,
@@ -285,11 +330,11 @@ private fun SwipeableSubscriptionItem(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = "SMS available",
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                
+
                                 // Calculate the actual next payment date
                                 val today = LocalDate.now()
                                 val subscriptionDate = subscription.nextPaymentDate
@@ -313,7 +358,7 @@ private fun SwipeableSubscriptionItem(
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     
@@ -390,7 +435,7 @@ private fun SwipeableSubscriptionItem(
                                     Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
@@ -422,5 +467,67 @@ private fun SwipeableSubscriptionItem(
             }
         }
     )
+}
+
+@Composable
+private fun SubscriptionItemSkeleton(
+    modifier: Modifier = Modifier
+) {
+    val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHighest
+
+    PennyWiseCardV2(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.content),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Circle placeholder for BrandIcon (48dp)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(placeholderColor)
+                    .shimmer()
+            )
+
+            // Two stacked rectangles for merchant name + metadata
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
+                        .background(placeholderColor)
+                        .shimmer()
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Box(
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
+                        .background(placeholderColor)
+                        .shimmer()
+                )
+            }
+
+            // Right-aligned amount rectangle
+            Box(
+                modifier = Modifier
+                    .width(64.dp)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
+                    .background(placeholderColor)
+                    .shimmer()
+            )
+        }
+    }
 }
 

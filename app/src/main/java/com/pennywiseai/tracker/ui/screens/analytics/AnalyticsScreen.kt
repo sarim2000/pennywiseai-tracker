@@ -253,53 +253,45 @@ fun AnalyticsScreen(
         if (uiState.spendingTrend.size >= 2) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    // Chart section header with subtle chart type button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Trends",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Button(
-                            onClick = { showChartTypeSelector = !showChartTypeSelector },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = when (chartType) {
-                                    ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                    ChartType.BAR -> Icons.Default.BarChart
-                                    ChartType.HEATMAP -> Icons.Default.GridView
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = when (chartType) {
-                                    ChartType.LINE -> "Line"
-                                    ChartType.BAR -> "Bar"
-                                    ChartType.HEATMAP -> "Heatmap"
-                                },
-                                style = MaterialTheme.typography.labelMedium
-                            )
+                    SectionHeaderV2(
+                        title = "Trends",
+                        action = {
+                            Button(
+                                onClick = { showChartTypeSelector = !showChartTypeSelector },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = Spacing.xs)
+                            ) {
+                                Icon(
+                                    imageVector = when (chartType) {
+                                        ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                        ChartType.BAR -> Icons.Default.BarChart
+                                        ChartType.HEATMAP -> Icons.Default.GridView
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text(
+                                    text = when (chartType) {
+                                        ChartType.LINE -> "Line"
+                                        ChartType.BAR -> "Bar"
+                                        ChartType.HEATMAP -> "Heatmap"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
                         }
-                    }
+                    )
 
                     // Expandable chart type selector card
                     AnimatedVisibility(visible = showChartTypeSelector) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp),
+                                .padding(top = Spacing.sm),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             ),
@@ -314,7 +306,7 @@ fun AnalyticsScreen(
                                             viewModel.setChartType(type)
                                             showChartTypeSelector = false
                                         }
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        .padding(horizontal = Spacing.md, vertical = 12.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -350,7 +342,7 @@ fun AnalyticsScreen(
                                             Icons.Default.Check,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.medium)
                                         )
                                     }
                                 }
@@ -387,34 +379,26 @@ fun AnalyticsScreen(
         if (uiState.categoryBreakdown.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    // Category section header with subtle view toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Top Categories",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        IconButton(onClick = {
-                            categoryViewType = if (categoryViewType == CategoryViewType.CHART) {
-                                CategoryViewType.LIST
-                            } else {
-                                CategoryViewType.CHART
+                    SectionHeaderV2(
+                        title = "Top Categories",
+                        action = {
+                            IconButton(onClick = {
+                                categoryViewType = if (categoryViewType == CategoryViewType.CHART) {
+                                    CategoryViewType.LIST
+                                } else {
+                                    CategoryViewType.CHART
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (categoryViewType == CategoryViewType.CHART)
+                                        Icons.AutoMirrored.Filled.List
+                                    else Icons.Default.PieChart,
+                                    contentDescription = "Toggle View",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        }) {
-                            Icon(
-                                imageVector = if (categoryViewType == CategoryViewType.CHART)
-                                    Icons.AutoMirrored.Filled.List
-                                else Icons.Default.PieChart,
-                                contentDescription = "Toggle View",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
                         }
-                    }
+                    )
 
                     // Animated content swap
                     AnimatedContent(
@@ -435,7 +419,10 @@ fun AnalyticsScreen(
                         when (viewType) {
                             CategoryViewType.CHART -> CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
-                                currency = selectedCurrency
+                                currency = selectedCurrency,
+                                onCategoryClick = { category ->
+                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                }
                             )
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,

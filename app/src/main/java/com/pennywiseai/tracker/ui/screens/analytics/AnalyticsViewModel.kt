@@ -38,7 +38,7 @@ class AnalyticsViewModel @Inject constructor(
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
-    private val _selectedCurrency = MutableStateFlow("INR") // Default to INR
+    private val _selectedCurrency = MutableStateFlow("")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
 
     private val _isUnifiedMode = MutableStateFlow(false)
@@ -58,8 +58,10 @@ class AnalyticsViewModel @Inject constructor(
             }
         }
 
-        // Load unified mode preferences
+        // Load unified mode and baseCurrency preferences
         viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _selectedCurrency.value = baseCurrency
             combine(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency
@@ -140,7 +142,8 @@ class AnalyticsViewModel @Inject constructor(
                 // Auto-select primary currency if not already selected or if current currency no longer exists
                 val currentSelectedCurrency = filterState.currency
                 if (!allCurrencies.contains(currentSelectedCurrency) && allCurrencies.isNotEmpty()) {
-                    _selectedCurrency.value = if (allCurrencies.contains("INR")) "INR" else allCurrencies.first()
+                    val baseCurrency = _selectedCurrency.value.ifEmpty { allCurrencies.first() }
+                    _selectedCurrency.value = if (allCurrencies.contains(baseCurrency)) baseCurrency else allCurrencies.first()
                 }
 
                 // Use database-level filtering for better performance
@@ -399,7 +402,7 @@ data class AnalyticsUiState(
     val averageAmount: BigDecimal = BigDecimal.ZERO,
     val topCategory: String? = null,
     val topCategoryPercentage: Float = 0f,
-    val currency: String = "INR",
+    val currency: String = "",
     val isLoading: Boolean = true,
     val spendingTrend: List<BalancePoint> = emptyList()
 )

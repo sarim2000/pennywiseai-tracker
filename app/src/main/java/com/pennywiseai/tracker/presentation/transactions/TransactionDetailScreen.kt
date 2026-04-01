@@ -260,7 +260,7 @@ fun TransactionDetailScreen(
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -328,7 +328,6 @@ private fun TransactionDetailContent(
                 showSplitEditor = showSplitEditor
             )
 
-            Spacer(modifier = Modifier.height(100.dp))
         } else {
             TransactionReceipt(
                 transaction = transaction,
@@ -442,7 +441,7 @@ private fun TransactionReceipt(
                         Icon(
                             typeIcon,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                             tint = typeColor
                         )
                     },
@@ -633,7 +632,7 @@ private fun DetailInfoRow(
         Icon(
             icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(Dimensions.Icon.medium),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
@@ -666,7 +665,7 @@ private fun TransferFlowRow(
         Icon(
             Icons.Default.SwapHoriz,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(Dimensions.Icon.medium),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -686,7 +685,7 @@ private fun TransferFlowRow(
         Icon(
             Icons.Default.ArrowForward,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(Dimensions.Icon.small),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -731,7 +730,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                         Icons.AutoMirrored.Filled.Chat,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Text(
                         text = if (expanded) "Hide SMS" else "Show original SMS",
@@ -743,7 +742,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
             }
 
@@ -933,7 +932,7 @@ private fun EditableExtractedInfoCard(
                     Icons.Default.Analytics,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Text(
@@ -964,7 +963,7 @@ private fun EditableExtractedInfoCard(
                         Icon(
                             Icons.Default.CallSplit,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Split into categories")
@@ -1024,7 +1023,7 @@ private fun EditableExtractedInfoCard(
                     Icon(
                         Icons.Default.Description,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -1128,7 +1127,7 @@ private fun CategoryDropdown(
                     Icon(
                         Icons.Default.Category,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 }
             },
@@ -1371,10 +1370,10 @@ private fun AccountNumberField(
                         Icons.Default.AccountBalance
                     },
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
             },
-            trailingIcon = { 
+            trailingIcon = {
                 Row {
                     // Clear button if there's text
                     if (selectedAccount.isNotEmpty()) {
@@ -1387,7 +1386,7 @@ private fun AccountNumberField(
                             Icon(
                                 Icons.Default.Clear,
                                 contentDescription = "Clear",
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                         }
                     }
@@ -1417,7 +1416,7 @@ private fun AccountNumberField(
                                     if (account.isCreditCard) Icons.Default.CreditCard 
                                     else Icons.Default.AccountBalance,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(account.displayName)

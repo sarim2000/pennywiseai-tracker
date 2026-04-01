@@ -253,8 +253,8 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
 
-    // MediaPipe for LLM inference
-    implementation(libs.tasks.genai)
+    // LiteRT-LM for on-device LLM inference
+    implementation(libs.litertlm.android)
     
     // Google Play In-App Updates (only for standard flavor)
     "standardImplementation"(libs.app.update)

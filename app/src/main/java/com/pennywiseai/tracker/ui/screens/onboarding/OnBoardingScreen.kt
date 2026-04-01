@@ -68,6 +68,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 
@@ -371,7 +372,7 @@ private fun ProfileStep(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Selected",
                             tint = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 }
@@ -885,7 +886,7 @@ private fun OnBoardingBottomBar(
                         ) {
                             if (uiState.isCompleting) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
                                     strokeWidth = 2.dp
                                 )
                             } else {

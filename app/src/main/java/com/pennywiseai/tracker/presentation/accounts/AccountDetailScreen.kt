@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
@@ -47,7 +46,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,7 +68,7 @@ fun AccountDetailScreen(
                 hasBackButton = true,
                 hasActionButton = true,
                 navigationContent = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -159,11 +159,7 @@ fun AccountDetailScreen(
                     TransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
-                        onClick = {
-                            navController.navigate(
-                                com.pennywiseai.tracker.navigation.TransactionDetail(transaction.id)
-                            )
-                        }
+                        onClick = { onTransactionClick(transaction.id) }
                     )
                 }
             }
@@ -216,7 +212,7 @@ private fun ExpandableBalanceChart(
                             imageVector = Icons.AutoMirrored.Filled.ShowChart,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
                             text = "Balance Trend",
@@ -236,7 +232,7 @@ private fun ExpandableBalanceChart(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(Dimensions.Icon.medium)
                         .rotate(if (isExpanded) 180f else 0f),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -326,7 +322,7 @@ private fun CurrentBalanceCard(
                 Icon(
                     imageVector = if (isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(Dimensions.Icon.small),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
@@ -423,7 +419,7 @@ private fun StatisticItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(Dimensions.Icon.medium),
             tint = color
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
@@ -555,19 +551,19 @@ private fun TransactionItem(
                     TransactionType.CREDIT -> Icon(
                         Icons.Default.CreditCard,
                         contentDescription = "Credit",
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
                     )
                     TransactionType.TRANSFER -> Icon(
                         Icons.Default.SwapHoriz,
                         contentDescription = "Transfer",
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
                     )
                     TransactionType.INVESTMENT -> Icon(
                         Icons.AutoMirrored.Filled.ShowChart,
                         contentDescription = "Investment",
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
                     )
                     else -> {}

@@ -269,7 +269,7 @@ private fun CategoryItem(
                     contentDescription = "Edit",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(Dimensions.Icon.medium)
                         .padding(start = Spacing.sm)
                 )
             }

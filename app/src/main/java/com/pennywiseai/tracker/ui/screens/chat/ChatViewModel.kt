@@ -111,7 +111,7 @@ class ChatViewModel @Inject constructor(
         val allText = allMsgs.joinToString(" ") { it.message } + " " + current
         val totalChars = allText.length
         val estimatedTokens = TokenUtils.estimateTokens(allText)
-        val maxTokens = 4096 // Qwen 2.5 with KV cache size 4096
+        val maxTokens = 4096
         
         // Count only visible messages for UI
         val visibleCount = allMsgs.count { !it.isSystemPrompt }
@@ -267,7 +267,7 @@ class ChatViewModel @Inject constructor(
 
             try {
                 val request = DownloadManager.Request(Uri.parse(modelUrl))
-                    .setTitle("Qwen 2.5 Chat Model")
+                    .setTitle("AI Chat Model")
                     .setDescription("Downloading AI chat assistant for PennyWise")
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)

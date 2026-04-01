@@ -56,7 +56,7 @@ fun SubscriptionTabContent(
                         Icons.Default.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = errorMessage,
@@ -82,7 +82,7 @@ fun SubscriptionTabContent(
                     Icons.Default.Info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
                 Text(
                     text = "Track recurring expenses. You'll need to add transactions manually each month.",
@@ -287,7 +287,7 @@ fun SubscriptionTabContent(
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(Dimensions.Icon.small),
                     strokeWidth = 2.dp
                 )
             } else {
@@ -295,8 +295,6 @@ fun SubscriptionTabContent(
             }
         }
         
-        // Bottom padding for keyboard
-        Spacer(modifier = Modifier.height(80.dp))
     }
     
     // Date Picker Dialog

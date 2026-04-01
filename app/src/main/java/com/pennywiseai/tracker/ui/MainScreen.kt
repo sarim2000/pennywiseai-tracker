@@ -152,7 +152,7 @@ fun MainScreen(
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.BudgetGroups
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onNavigateToManageAccounts = {
                         navController.navigate("manage_accounts") {
@@ -162,12 +162,12 @@ fun MainScreen(
                     onNavigateToAddScreen = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.AddTransaction
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onTransactionClick = { transactionId ->
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onTransactionTypeClick = { type ->
                         val route = if (type != null) {
@@ -240,12 +240,12 @@ fun MainScreen(
                     onTransactionClick = { transactionId ->
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onAddTransactionClick = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.AddTransaction
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onNavigateToSettings = {
                         navController.navigate("settings") {
@@ -261,7 +261,11 @@ fun MainScreen(
                         if (navController.currentBackStackEntry?.lifecycle?.currentState == androidx.lifecycle.Lifecycle.State.RESUMED) {
                             if (!navController.popBackStack()) {
                                 navController.navigate("home") {
-                                    popUpTo("home") { inclusive = true }
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         }
@@ -269,7 +273,7 @@ fun MainScreen(
                     onAddSubscriptionClick = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.AddTransaction
-                        )
+                        ) { launchSingleTop = true }
                     }
                 )
             }
@@ -310,8 +314,11 @@ fun MainScreen(
                     },
                     onNavigateToHome = {
                         navController.navigate("home") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
                             launchSingleTop = true
-                            popUpTo("home") { inclusive = true }
+                            restoreState = true
                         }
                     }
                 )
@@ -357,17 +364,17 @@ fun MainScreen(
                     onNavigateToRules = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.Rules
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.BudgetGroups
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onNavigateToExchangeRates = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.ExchangeRates
-                        )
+                        ) { launchSingleTop = true }
                     },
                     onNavigateToAppearance = {
                         navController.navigate("appearance") {

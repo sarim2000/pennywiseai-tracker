@@ -122,7 +122,7 @@ fun SplitEditor(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = availableCategories.size > splits.size
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text("Add Split")
             }
@@ -144,14 +144,14 @@ fun SplitEditor(
                             Icons.Default.Check,
                             contentDescription = "Balanced",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     } else {
                         Icon(
                             Icons.Default.Warning,
                             contentDescription = "Not balanced",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                     Text(
@@ -301,7 +301,7 @@ private fun SplitRow(
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 },
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
     }

@@ -58,7 +58,7 @@ fun CreditCardsCard(
                 Icon(
                     imageVector = Icons.Default.CreditCard,
                     contentDescription = "Credit Cards",
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(Dimensions.Icon.medium),
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(

@@ -81,7 +81,7 @@ fun ImportStatementScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         }
                     }
@@ -167,7 +167,7 @@ private fun IdleContent(onSelectPdf: () -> Unit) {
         Icon(
             imageVector = Icons.Default.PictureAsPdf,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Text("Select PDF Statement")
@@ -292,7 +292,7 @@ private fun SuccessContent(
         Icon(
             imageVector = Icons.Default.Add,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Text("Import Another")
@@ -381,7 +381,7 @@ private fun ErrorContent(
         Icon(
             imageVector = Icons.Default.Refresh,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Text("Try Again")

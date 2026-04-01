@@ -14,7 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -139,15 +139,15 @@ fun ChatScreen(
                                         progress = { downloadProgress / 100f },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(8.dp)
-                                            .clip(RoundedCornerShape(4.dp)),
+                                            .height(Spacing.sm)
+                                            .clip(RoundedCornerShape(Spacing.xs)),
                                         drawStopIndicator = {}
                                     )
                                     OutlinedButton(onClick = { viewModel.cancelDownload() }) {
                                         Icon(
                                             Icons.Default.Close,
                                             contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text("Cancel")
@@ -157,7 +157,7 @@ fun ChatScreen(
                                         Icon(
                                             Icons.Default.Download,
                                             contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text("Download (${totalMB} MB)")
@@ -262,7 +262,7 @@ fun ChatScreen(
                                     Icon(
                                         Icons.Default.Download,
                                         contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(Dimensions.Icon.small)
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text("Download")
@@ -349,9 +349,9 @@ fun ChatScreen(
                                         )
                                     ) {
                                         Icon(
-                                            Icons.Outlined.Delete,
+                                            Icons.Default.Delete,
                                             contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text("Clear Chat")
@@ -487,7 +487,7 @@ fun ChatScreen(
                                 ) {
                                     if (uiState.isLoading) {
                                         CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
+                                            modifier = Modifier.size(Dimensions.Icon.medium),
                                             strokeWidth = 2.dp
                                         )
                                     } else {
@@ -558,7 +558,7 @@ fun TokenLimitWarning(
                     icon,
                     contentDescription = null,
                     tint = contentColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Text(
@@ -618,11 +618,11 @@ fun DeveloperInfoCard(
                     Icon(
                         Icons.Default.Code,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Qwen 2.5 • ${chatStats.messageCount} messages",
+                        text = "Qwen 2.5 1.5B • ${chatStats.messageCount} messages",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -641,7 +641,7 @@ fun DeveloperInfoCard(
                     Icon(
                         if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -686,7 +686,7 @@ fun DeveloperInfoCard(
                         progress = { chatStats.contextUsagePercent / 100f },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
+                            .height(Spacing.xs)
                             .clip(RoundedCornerShape(2.dp)),
                         color = usageColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -876,7 +876,7 @@ private fun ChatEmptyState(
                         Icon(
                             Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                     }
                 )

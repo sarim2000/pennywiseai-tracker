@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -149,7 +149,7 @@ fun GreetingCard(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.Outlined.MoreHoriz,
+                imageVector = Icons.Default.MoreHoriz,
                 contentDescription = "More options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

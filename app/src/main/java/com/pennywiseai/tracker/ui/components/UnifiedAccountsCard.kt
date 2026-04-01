@@ -17,9 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.formatBalance
-import com.pennywiseai.tracker.utils.formatAmount
-import com.pennywiseai.tracker.utils.formatCreditLimit
 import java.math.BigDecimal
 
 @Composable
@@ -61,7 +58,7 @@ fun UnifiedAccountsCard(
                     Icon(
                         imageVector = Icons.Default.AccountBalance,
                         contentDescription = "Bank Balance",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -98,7 +95,7 @@ fun UnifiedAccountsCard(
                     Icon(
                         imageVector = Icons.Default.CreditCard,
                         contentDescription = "Available Credit",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -139,7 +136,7 @@ fun UnifiedAccountsCard(
                             CompactAccountItem(
                                 bankName = account.bankName,
                                 accountLast4 = account.accountLast4,
-                                formattedAmount = account.formatBalance(),
+                                formattedAmount = CurrencyFormatter.formatCurrency(account.balance, selectedCurrency),
                                 subtitle = "Balance",
                                 isCredit = false,
                                 onClick = { onAccountClick(account.bankName, account.accountLast4) }
@@ -163,12 +160,12 @@ fun UnifiedAccountsCard(
                             CompactAccountItem(
                                 bankName = card.bankName,
                                 accountLast4 = card.accountLast4,
-                                formattedAmount = card.formatCreditLimit(),
+                                formattedAmount = CurrencyFormatter.formatCurrency(card.creditLimit ?: BigDecimal.ZERO, selectedCurrency),
                                 subtitle = if (card.balance > BigDecimal.ZERO) {
                                     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
                                         ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
                                     } else 0
-                                    "Used: ${card.formatBalance()} ($utilization%)"
+                                    "Used: ${CurrencyFormatter.formatCurrency(card.balance, selectedCurrency)} ($utilization%)"
                                 } else "Available Limit",
                                 isCredit = true,
                                 onClick = { onAccountClick(card.bankName, card.accountLast4) },
@@ -230,7 +227,7 @@ private fun CompactAccountItem(
             Icon(
                 imageVector = if (isCredit) Icons.Default.CreditCard else Icons.Default.AccountBalance,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(

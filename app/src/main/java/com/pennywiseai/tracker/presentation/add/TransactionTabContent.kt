@@ -122,7 +122,7 @@ fun TransactionTabContent(
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.small)
                                 )
                             }
                         } else null
@@ -387,7 +387,7 @@ fun TransactionTabContent(
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(Dimensions.Icon.small),
                     strokeWidth = 2.dp
                 )
             } else {
@@ -395,8 +395,6 @@ fun TransactionTabContent(
             }
         }
         
-        // Bottom padding for keyboard
-        Spacer(modifier = Modifier.height(80.dp))
     }
     
     // Date Picker Dialog

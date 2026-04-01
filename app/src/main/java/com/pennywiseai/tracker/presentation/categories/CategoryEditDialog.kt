@@ -151,7 +151,7 @@ fun CategoryEditDialog(
                                         Icons.Default.Check,
                                         contentDescription = "Selected",
                                         tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(Dimensions.Icon.small)
                                     )
                                 }
                             }
@@ -180,7 +180,7 @@ fun CategoryEditDialog(
                         // Show selected color
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(Dimensions.Icon.medium)
                                 .clip(CircleShape)
                                 .background(
                                     try { Color(android.graphics.Color.parseColor(selectedColor)) }

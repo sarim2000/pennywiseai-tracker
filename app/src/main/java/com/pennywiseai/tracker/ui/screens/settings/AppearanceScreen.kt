@@ -350,7 +350,7 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
     }
@@ -416,7 +416,7 @@ private fun ThemeModeSelector(
                         contentDescription = null,
                         tint = if (isSelected) MaterialTheme.colorScheme.onSecondary
                         else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = option.label,
@@ -745,7 +745,7 @@ private fun CoverStyleSelector(
                         Icons.Default.Check,
                         contentDescription = "Selected",
                         tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 }
             }

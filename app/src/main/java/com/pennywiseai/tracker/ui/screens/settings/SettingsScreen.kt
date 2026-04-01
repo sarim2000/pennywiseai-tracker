@@ -96,11 +96,11 @@ fun SettingsScreen(
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
-    val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "INR")
+    val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
-    val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "INR")
+    val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     var showSmsScanDialog by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
@@ -602,7 +602,7 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text("Backup created successfully!")
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text("Choose how you want to save it:", style = MaterialTheme.typography.bodyMedium)
                 }
             },
@@ -616,7 +616,7 @@ fun SettingsScreen(
                         }
                     ) {
                         Icon(Icons.Default.SaveAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Save to Files")
                     }
 
@@ -628,7 +628,7 @@ fun SettingsScreen(
                         }
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Share")
                     }
                 }
@@ -720,7 +720,7 @@ private fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         content = content
     )
 }
@@ -757,7 +757,7 @@ private fun SettingsNavItem(
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -783,7 +783,7 @@ private fun SettingsNavItem(
                 trailingIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
     }
@@ -821,7 +821,7 @@ private fun SettingsSwitchRow(
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -881,7 +881,7 @@ private fun SettingsDropdownItem(
                         .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -958,7 +958,7 @@ private fun AiChatSettingsItem(
                         .background(yellow_light),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(Dimensions.Icon.medium))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -968,10 +968,10 @@ private fun AiChatSettingsItem(
                     )
                     Text(
                         text = when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED -> "Download Qwen 2.5 model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                            DownloadState.DOWNLOADING -> "Downloading Qwen model..."
+                            DownloadState.NOT_DOWNLOADED -> "Download AI model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                            DownloadState.DOWNLOADING -> "Downloading AI model..."
                             DownloadState.PAUSED -> "Download interrupted"
-                            DownloadState.COMPLETED -> "Qwen ready for chat"
+                            DownloadState.COMPLETED -> "AI model ready for chat"
                             DownloadState.FAILED -> "Download failed"
                             DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
                         },
@@ -1012,7 +1012,7 @@ private fun AiChatSettingsItem(
                                 Icons.Default.CheckCircle,
                                 contentDescription = "Downloaded",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                             TextButton(onClick = onDelete) {
                                 Text("Delete")
@@ -1036,7 +1036,7 @@ private fun AiChatSettingsItem(
                             Icons.Default.Error,
                             contentDescription = "Error",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                 }
@@ -1081,7 +1081,7 @@ private fun AiChatSettingsItem(
             ) {
                 HorizontalDivider()
                 Text(
-                    text = "Chat with Qwen AI about your expenses and get financial insights. " +
+                    text = "Chat with AI about your expenses and get financial insights. " +
                             "All conversations stay private on your device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1096,7 +1096,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier
             .animateContentSize()
-            .padding(start = 16.dp)
+            .padding(start = Spacing.md)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1113,7 +1113,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
     }

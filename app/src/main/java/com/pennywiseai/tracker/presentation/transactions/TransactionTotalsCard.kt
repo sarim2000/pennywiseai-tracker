@@ -101,7 +101,7 @@ fun TransactionTotalsCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                 contentDescription = "Income",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(Dimensions.Icon.medium),
                                 tint = if (!isSystemInDarkTheme()) income_light else income_dark
                             )
                         },
@@ -128,7 +128,7 @@ fun TransactionTotalsCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                                 contentDescription = "Expenses",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(Dimensions.Icon.medium),
                                 tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
                             )
                         },
@@ -171,7 +171,7 @@ fun TransactionTotalsCard(
                             Icon(
                                 imageVector = Icons.Filled.SettingsEthernet,
                                 contentDescription = "Net",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(Dimensions.Icon.medium),
                                 tint = netColor
                             )
                         },
@@ -258,7 +258,7 @@ private fun CurrencySelector(
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = "Select currency",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(Dimensions.Icon.small),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

@@ -79,6 +79,9 @@ class HomeViewModel @Inject constructor(
     // Track if user has manually selected a currency to prevent auto-reset
     private var hasUserSelectedCurrency = false
 
+    // Cached base currency for use in sort comparators (updated from preferences)
+    private var baseCurrency = ""
+
     // Cache the latest account balances so refreshAccountBalances() can recalculate
     // without starting a new competing .collect on the repository flow
     private var cachedAccountBalances: List<AccountBalanceEntity> = emptyList()
@@ -88,10 +91,11 @@ class HomeViewModel @Inject constructor(
         loadUserName()
         // Load base currency FIRST so selectedCurrency is set before data loads
         viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            val base = userPreferencesRepository.baseCurrency.first()
+            baseCurrency = base
             _uiState.value = _uiState.value.copy(
-                selectedCurrency = baseCurrency,
-                availableCurrencies = listOf(baseCurrency)
+                selectedCurrency = base,
+                availableCurrencies = listOf(base)
             )
             loadHomeData()
         }
@@ -120,10 +124,11 @@ class HomeViewModel @Inject constructor(
     private fun loadBaseCurrency() {
         var previousBaseCurrency: String? = null
         userPreferencesRepository.baseCurrency
-            .onEach { baseCurrency ->
+            .onEach { newBaseCurrency ->
                 // Only update if the baseCurrency ACTUALLY CHANGED (not just re-emitted)
-                if (baseCurrency == previousBaseCurrency) return@onEach
-                previousBaseCurrency = baseCurrency
+                if (newBaseCurrency == previousBaseCurrency) return@onEach
+                previousBaseCurrency = newBaseCurrency
+                this@HomeViewModel.baseCurrency = newBaseCurrency
 
                 val currentSelected = _uiState.value.selectedCurrency
                 val availableCurrencies = _uiState.value.availableCurrencies
@@ -167,10 +172,15 @@ class HomeViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            // Load account balances — this is the SINGLE collector for account balances.
-            // refreshAccountBalances() reuses cachedAccountBalances instead of starting
-            // a competing collector, which previously caused a currency race condition.
-            accountBalanceRepository.getAllLatestBalances().collect { allBalances ->
+            // Load account balances — combined with unified mode preferences so that
+            // individual account entities are pre-converted when unified mode is on.
+            combine(
+                accountBalanceRepository.getAllLatestBalances(),
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { allBalances, isUnified, displayCurrency ->
+                Triple(allBalances, isUnified, displayCurrency)
+            }.collect { (allBalances, isUnified, displayCurrency) ->
                 // Cache the raw (unfiltered) balances for refreshAccountBalances/refreshHiddenAccounts
                 cachedAccountBalances = allBalances
 
@@ -183,20 +193,25 @@ class HomeViewModel @Inject constructor(
                     !hiddenAccounts.contains(key)
                 }
                 // Separate credit cards from regular accounts (hide zero balance accounts)
-                val regularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
-                val creditCards = balances.filter { it.isCreditCard }
+                val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+                val rawCreditCards = balances.filter { it.isCreditCard }
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
-                val accountCurrencies = regularAccounts.map { it.currency }.distinct()
-                val creditCardCurrencies = creditCards.map { it.currency }.distinct()
+                val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
+                val creditCardCurrencies = rawCreditCards.map { it.currency }.distinct()
                 val allAccountCurrencies = (accountCurrencies + creditCardCurrencies).distinct()
 
                 if (allAccountCurrencies.size > 1 && allAccountCurrencies.isNotEmpty()) {
                     currencyConversionService.refreshExchangeRatesForAccount(allAccountCurrencies)
                 }
 
-                // Convert all account balances to selected currency for total
-                val selectedCurrency = _uiState.value.selectedCurrency
+                val selectedCurrency = if (isUnified) displayCurrency else _uiState.value.selectedCurrency
+
+                // Pre-convert individual account entities when unified mode is on
+                val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
+                val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+
+                // Calculate totals from (possibly converted) entities
                 var totalBalanceInSelectedCurrency = BigDecimal.ZERO
                 for (account in regularAccounts) {
                     if (account.currency == selectedCurrency) {
@@ -229,8 +244,8 @@ class HomeViewModel @Inject constructor(
                 val updatedAvailableCurrencies = (currentAvailableCurrencies + allAccountCurrencies)
                     .sortedWith { a, b ->
                         when {
-                            a == "INR" -> -1
-                            b == "INR" -> 1
+                            a == baseCurrency -> -1
+                            b == baseCurrency -> 1
                             else -> a.compareTo(b)
                         }
                     }
@@ -249,8 +264,8 @@ class HomeViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(
-                    accountBalances = regularAccounts,  // Only regular bank accounts
-                    creditCards = creditCards,           // Only credit cards
+                    accountBalances = regularAccounts,  // Pre-converted in unified mode
+                    creditCards = creditCards,           // Pre-converted in unified mode
                     totalBalance = totalBalanceInSelectedCurrency,
                     totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                     availableCurrencies = updatedAvailableCurrencies,
@@ -462,7 +477,7 @@ class HomeViewModel @Inject constructor(
                 }
             }.collect { summary ->
                 _uiState.value = _uiState.value.copy(
-                    budgetSummary = if (summary.groups.isNotEmpty()) summary else null
+                    budgetSummary = summary
                 )
             }
         }
@@ -496,10 +511,16 @@ class HomeViewModel @Inject constructor(
                 !hiddenAccounts.contains(key)
             }
 
-            val regularAccounts = visibleBalances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
-            val creditCards = visibleBalances.filter { it.isCreditCard }
+            val rawRegularAccounts = visibleBalances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawCreditCards = visibleBalances.filter { it.isCreditCard }
 
             val selectedCurrency = _uiState.value.selectedCurrency
+            val isUnified = _uiState.value.isUnifiedMode
+
+            // Pre-convert individual account entities when unified mode is on
+            val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
+            val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+
             var totalBalance = BigDecimal.ZERO
             for (account in regularAccounts) {
                 if (account.currency == selectedCurrency) {
@@ -626,11 +647,11 @@ class HomeViewModel @Inject constructor(
                 val key = "${account.bankName}_${account.accountLast4}"
                 !hiddenAccounts.contains(key)
             }
-            val regularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
-            val creditCards = balances.filter { it.isCreditCard }
+            val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawCreditCards = balances.filter { it.isCreditCard }
 
-            val accountCurrencies = regularAccounts.map { it.currency }.distinct()
-            val creditCardCurrencies = creditCards.map { it.currency }.distinct()
+            val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
+            val creditCardCurrencies = rawCreditCards.map { it.currency }.distinct()
             val allAccountCurrencies = (accountCurrencies + creditCardCurrencies).distinct()
 
             if (allAccountCurrencies.size > 1 && allAccountCurrencies.isNotEmpty()) {
@@ -638,6 +659,12 @@ class HomeViewModel @Inject constructor(
             }
 
             val selectedCurrency = _uiState.value.selectedCurrency
+            val isUnified = _uiState.value.isUnifiedMode
+
+            // Pre-convert individual account entities when unified mode is on
+            val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
+            val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+
             var totalBalanceInSelectedCurrency = BigDecimal.ZERO
             for (account in regularAccounts) {
                 if (account.currency == selectedCurrency) {
@@ -848,9 +875,9 @@ class HomeViewModel @Inject constructor(
         val existingCurrencies = _uiState.value.availableCurrencies
         val availableCurrencies = (existingCurrencies + transactionCurrencies).distinct().sortedWith { a, b ->
             when {
-                a == "INR" -> -1 // INR first
-                b == "INR" -> 1
-                else -> a.compareTo(b) // Alphabetical for others
+                a == baseCurrency -> -1
+                b == baseCurrency -> 1
+                else -> a.compareTo(b)
             }
         }
 
@@ -948,6 +975,39 @@ class HomeViewModel @Inject constructor(
             income = totalIncome,
             expenses = totalExpenses
         )
+    }
+
+    private suspend fun convertAccountEntities(
+        entities: List<AccountBalanceEntity>,
+        targetCurrency: String,
+        isUnifiedMode: Boolean
+    ): List<AccountBalanceEntity> {
+        if (!isUnifiedMode) return entities
+        return entities.map { account ->
+            if (account.currency == targetCurrency) {
+                account
+            } else {
+                val convertedBalance = currencyConversionService.convertAmount(
+                    amount = account.balance,
+                    fromCurrency = account.currency,
+                    toCurrency = targetCurrency
+                )
+                val convertedCreditLimit = if (account.isCreditCard && account.creditLimit != null) {
+                    currencyConversionService.convertAmount(
+                        amount = account.creditLimit,
+                        fromCurrency = account.currency,
+                        toCurrency = targetCurrency
+                    )
+                } else {
+                    account.creditLimit
+                }
+                account.copy(
+                    balance = convertedBalance,
+                    creditLimit = convertedCreditLimit,
+                    currency = targetCurrency
+                )
+            }
+        }
     }
 
     override fun onCleared() {

@@ -19,8 +19,9 @@ class SliceParser : BankParser() {
 
     private fun isSuccessMessage(message: String): Boolean {
         val lower = message.lowercase()
-        return lower.contains("successful") || 
-               lower.contains("success") || 
+        // Use word boundaries to avoid matching "unsuccessful"
+        return Regex("""\bsuccessful\b""").containsMatchIn(lower) || 
+               Regex("""\bsuccess\b""").containsMatchIn(lower) || 
                lower.contains("approved") ||
                lower.contains("confirmed")
     }
@@ -31,7 +32,8 @@ class SliceParser : BankParser() {
                lower.contains("failed") ||
                lower.contains("rejected") ||
                lower.contains("error") ||
-               lower.contains("denied")
+               lower.contains("denied") ||
+               lower.contains("unsuccessful")
     }
 
     private fun isDatePhrase(text: String): Boolean {

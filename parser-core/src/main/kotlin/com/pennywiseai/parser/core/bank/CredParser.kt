@@ -19,10 +19,8 @@ class CredParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        // Match senders containing CRED, CREDIN, etc.
-        return normalizedSender.contains("CRED") ||
-                // DLT patterns: JK-CREDIN-S, AX-CREDIN-S, etc.
-                normalizedSender.matches(Regex("^[A-Z]{2}-CREDIN-S$")) ||
+        // DLT patterns: JK-CREDIN-S, AX-CREDIN-S, etc.
+        return normalizedSender.matches(Regex("^[A-Z]{2}-CREDIN-S$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-CRED-[TPG]$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-CRED-S$")) ||
                 normalizedSender == "CRED" ||
@@ -75,13 +73,5 @@ class CredParser : BankParser() {
                lowerMessage.contains("credited towards your")
     }
 
-    override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
-        // Use base parsing logic
-        val parsed = super.parse(smsBody, sender, timestamp) ?: return null
-        
-        // Ensure transaction type is TRANSFER
-        return parsed.copy(
-            type = TransactionType.TRANSFER
-        )
-    }
+
 }

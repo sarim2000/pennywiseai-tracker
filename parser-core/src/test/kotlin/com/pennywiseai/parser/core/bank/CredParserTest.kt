@@ -42,6 +42,45 @@ class CredParserTest {
                 )
             ),
             ParserTestCase(
+                name = "CRED payment with comma-formatted amount",
+                message = "Payment of Rs.50,000 has been successfully credited towards your ICICI Bank Credit Card. Your payment was settled in 3 seconds - CRED",
+                sender = "JK-CREDIN-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50000"),
+                    currency = "INR",
+                    type = TransactionType.TRANSFER,
+                    merchant = "ICICI Bank Credit Card",
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "CRED sender CRED-S pattern",
+                message = "Payment of Rs.10000 has been successfully credited towards your SBI Credit Card.",
+                sender = "AD-CRED-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10000"),
+                    currency = "INR",
+                    type = TransactionType.TRANSFER,
+                    merchant = "SBI Credit Card",
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "CRED sender CRED-T pattern",
+                message = "Payment of Rs.5000 has been successfully credited towards your HDFC Credit Card.",
+                sender = "AX-CRED-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000"),
+                    currency = "INR",
+                    type = TransactionType.TRANSFER,
+                    merchant = "HDFC Credit Card",
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+            ParserTestCase(
                 name = "Non-CRED message (should not parse)",
                 message = "Your OTP for transaction is 123456. Do not share.",
                 sender = "JK-CREDIN-S",

@@ -1032,12 +1032,33 @@ private fun EditableExtractedInfoCard(
 
             Spacer(modifier = Modifier.height(Spacing.sm))
 
-            // Account Number
-            AccountNumberField(
-                accountNumber = transaction.accountNumber,
-                onAccountNumberChange = { viewModel.updateAccountNumber(it) },
-                viewModel = viewModel
-            )
+            // Account Number / Transfer Accounts
+            if (transaction.transactionType == TransactionType.TRANSFER) {
+                // From Account
+                AccountNumberField(
+                    accountNumber = transaction.fromAccount,
+                    onAccountNumberChange = { viewModel.updateFromAccount(it) },
+                    viewModel = viewModel,
+                    label = "From Account",
+                    placeholder = "Select or enter source account"
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                // To Account
+                AccountNumberField(
+                    accountNumber = transaction.toAccount,
+                    onAccountNumberChange = { viewModel.updateToAccount(it) },
+                    viewModel = viewModel,
+                    label = "To Account",
+                    placeholder = "Select or enter destination account"
+                )
+            } else {
+                // Generic Account Number
+                AccountNumberField(
+                    accountNumber = transaction.accountNumber,
+                    onAccountNumberChange = { viewModel.updateAccountNumber(it) },
+                    viewModel = viewModel
+                )
+            }
 
             Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -1336,7 +1357,9 @@ private fun CurrencyDropdown(
 private fun AccountNumberField(
     accountNumber: String?,
     onAccountNumberChange: (String?) -> Unit,
-    viewModel: TransactionDetailViewModel
+    viewModel: TransactionDetailViewModel,
+    label: String = "Account (Optional)",
+    placeholder: String = "Select or enter account number"
 ) {
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(false) }
@@ -1361,7 +1384,7 @@ private fun AccountNumberField(
                     onAccountNumberChange(newValue.ifEmpty { null })
                 }
             },
-            label = { Text("Account (Optional)") },
+            label = { Text(label) },
             leadingIcon = {
                 Icon(
                     if (availableAccounts.any { it.displayName == selectedAccount && it.isCreditCard }) {
@@ -1397,7 +1420,7 @@ private fun AccountNumberField(
                 .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryEditable),
             singleLine = true,
-            placeholder = { Text("Select or enter account number") }
+            placeholder = { Text(placeholder) }
         )
         
         if (availableAccounts.isNotEmpty()) {

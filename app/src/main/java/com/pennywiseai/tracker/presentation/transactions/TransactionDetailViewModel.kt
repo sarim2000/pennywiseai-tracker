@@ -308,6 +308,18 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    fun updateFromAccount(account: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
+        }
+    }
+
+    fun updateToAccount(account: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
+        }
+    }
+
     fun updateCurrency(currency: String) {
         _editableTransaction.update { current ->
             current?.copy(currency = currency)

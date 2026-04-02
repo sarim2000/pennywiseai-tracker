@@ -86,6 +86,12 @@ class SliceParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "Unsuccessful transaction should NOT be parsed",
+                message = "Your slice credit card transaction of RS. 50000 on amazon.in was unsuccessful.",
+                sender = "AD-SLCEIT-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "Date phrase should not be extracted as merchant",
                 message = "Your slice credit card transaction of RS. 50000 on Feb 15 is successful.",
                 sender = "AD-SLCEIT-S",

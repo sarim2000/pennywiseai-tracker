@@ -20,8 +20,8 @@ class SliceParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        // Slice uses "sent" for UPI transfers
-        if (lowerMessage.contains("sent")) {
+        // Slice uses "sent" for UPI transfers and "transaction" for credit card transactions
+        if (lowerMessage.contains("sent") || lowerMessage.contains("transaction")) {
             return true
         }
 
@@ -50,6 +50,15 @@ class SliceParser : BankParser() {
             }
         }
 
+        // Look for "on MERCHANT" pattern for credit card transactions
+        val onPattern = Regex("""on\s+([A-Z][A-Z0-9\s./&-]+?)\s*(?:is|\.|$)""", RegexOption.IGNORE_CASE)
+        onPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1].trim()
+            if (merchant.isNotEmpty() && !merchant.equals("slice", ignoreCase = true)) {
+                return cleanMerchantName(merchant)
+            }
+        }
+
         // Check for specific patterns
         return when {
             lowerMessage.contains("paypal") -> "PayPal"
@@ -74,6 +83,7 @@ class SliceParser : BankParser() {
             lowerMessage.contains("paid") -> TransactionType.CREDIT
             lowerMessage.contains("sent") -> TransactionType.CREDIT  // UPI transfers
             lowerMessage.contains("payment") && !lowerMessage.contains("received") -> TransactionType.CREDIT
+            lowerMessage.contains("transaction") && !lowerMessage.contains("credited") -> TransactionType.CREDIT
 
             else -> super.extractTransactionType(message)
         }

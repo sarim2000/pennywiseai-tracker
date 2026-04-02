@@ -66,6 +66,27 @@ data class BackupStatistics(
     @SerializedName("total_subscriptions")
     val totalSubscriptions: Int,
     
+    @SerializedName("total_rules")
+    val totalRules: Int = 0,
+    
+    @SerializedName("total_rule_applications")
+    val totalRuleApplications: Int = 0,
+    
+    @SerializedName("total_exchange_rates")
+    val totalExchangeRates: Int = 0,
+    
+    @SerializedName("total_budgets")
+    val totalBudgets: Int = 0,
+    
+    @SerializedName("total_budget_categories")
+    val totalBudgetCategories: Int = 0,
+    
+    @SerializedName("total_transaction_splits")
+    val totalTransactionSplits: Int = 0,
+    
+    @SerializedName("total_bank_notifications")
+    val totalBankNotifications: Int = 0,
+    
     @SerializedName("date_range")
     val dateRange: DateRange?
 )
@@ -107,7 +128,28 @@ data class DatabaseSnapshot(
     val unrecognizedSms: List<UnrecognizedSmsEntity>,
     
     @SerializedName("chat_messages")
-    val chatMessages: List<ChatMessage>
+    val chatMessages: List<ChatMessage>,
+    
+    @SerializedName("rules")
+    val rules: List<RuleEntity> = emptyList(),
+    
+    @SerializedName("rule_applications")
+    val ruleApplications: List<RuleApplicationEntity> = emptyList(),
+    
+    @SerializedName("exchange_rates")
+    val exchangeRates: List<ExchangeRateEntity> = emptyList(),
+    
+    @SerializedName("budgets")
+    val budgets: List<BudgetEntity> = emptyList(),
+    
+    @SerializedName("budget_categories")
+    val budgetCategories: List<BudgetCategoryEntity> = emptyList(),
+    
+    @SerializedName("transaction_splits")
+    val transactionSplits: List<TransactionSplitEntity> = emptyList(),
+    
+    @SerializedName("bank_notifications")
+    val bankNotifications: List<BankNotificationEntity> = emptyList()
 )
 
 /**

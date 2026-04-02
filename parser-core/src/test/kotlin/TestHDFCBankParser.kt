@@ -61,6 +61,21 @@ T&C. Ignore if paid""",
                     accountLast4 = "1234",
                     merchant = "TEST MERCHANT"
                 )
+            ),
+
+            // NEFT deposit (salary/income)
+            ParserTestCase(
+                name = "NEFT Credit Deposit - Income",
+                message = "Update! INR 1.00 deposited in HDFC Bank A/c XX9999 on 30-MAR-26 for NEFT Cr-CITI0100000-ACME TECHNOLOGIES-PERSON NAME-CITIN99999999999.Avl bal INR 8.00. Cheque deposits in A/C are subject to clearing",
+                sender = "CP-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    accountLast4 = "9999",
+                    merchant = "ACME TECHNOLOGIES",
+                    balance = BigDecimal("8.00")
+                )
             )
         )
 

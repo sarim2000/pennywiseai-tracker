@@ -107,6 +107,20 @@ class HDFCBankParser : BaseIndianBankParser() {
 
         // Try HDFC specific patterns
 
+        // Pattern 0: NEFT/RTGS credit - "for NEFT Cr-IFSCCODE-COMPANY NAME-BENEFICIARY-REF"
+        if (message.contains("NEFT", ignoreCase = true) || message.contains("RTGS", ignoreCase = true)) {
+            val neftPattern = Regex(
+                """(?:NEFT|RTGS)\s+Cr-[A-Z]{4}0[A-Z0-9]{6}-([^-]+)""",
+                RegexOption.IGNORE_CASE
+            )
+            neftPattern.find(message)?.let { match ->
+                val merchant = match.groupValues[1].trim()
+                if (merchant.isNotEmpty() && !merchant.all { it.isDigit() }) {
+                    return cleanMerchantName(merchant)
+                }
+            }
+        }
+
         // Pattern 1: Salary credit - "for XXXXX-ABC-XYZ MONTH SALARY-COMPANY NAME"
         if (message.contains("SALARY", ignoreCase = true) && message.contains(
                 "deposited",

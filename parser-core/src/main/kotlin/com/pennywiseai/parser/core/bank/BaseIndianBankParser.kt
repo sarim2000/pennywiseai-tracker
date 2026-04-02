@@ -187,6 +187,7 @@ abstract class BaseIndianBankParser : BankParser() {
         val hasTxnKeyword = lowerMessage.contains("debited") ||
                 lowerMessage.contains("credited") ||
                 lowerMessage.contains("withdrawn") ||
+                lowerMessage.contains("deposited") ||
                 lowerMessage.contains("spent") ||
                 lowerMessage.contains("transferred") ||
                 lowerMessage.contains("payment of")

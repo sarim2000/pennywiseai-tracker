@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -143,6 +144,62 @@ class TransactionRepository @Inject constructor(
         dateEnd: LocalDateTime
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
+
+    suspend fun findPotentialDuplicatesByReference(
+        reference: String,
+        excludeId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity> =
+        transactionDao.findPotentialDuplicatesByReference(reference, excludeId, startDate, endDate)
+
+    suspend fun findPotentialDuplicatesByAmountAndAccount(
+        amount: BigDecimal,
+        accountLast4: String,
+        excludeId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity> =
+        transactionDao.findPotentialDuplicatesByAmountAndAccount(amount, accountLast4, excludeId, startDate, endDate)
+
+    /**
+     * Cleanup utility for GPay duplicates - finds and removes duplicate transactions
+     * that were imported due to no RRN-based deduplication.
+     * Returns the number of duplicates deleted.
+     */
+    suspend fun cleanupGPayDuplicates(): Int {
+        var deletedCount = 0
+        val deletedIds = mutableSetOf<Long>()
+        
+        val allTransactions = transactionDao.getAllTransactions().first()
+        val transactionsWithRef = allTransactions.filter { it.reference != null && it.reference.isNotBlank() }
+        
+        for (transaction in transactionsWithRef) {
+            if (transaction.id in deletedIds) continue
+            
+            val ref = transaction.reference ?: continue
+            
+            val startOfDay = transaction.dateTime.toLocalDate().atStartOfDay()
+            val endOfDay = transaction.dateTime.toLocalDate().atTime(23, 59, 59)
+            
+            val duplicates = transactionDao.findPotentialDuplicatesByReference(
+                reference = ref,
+                excludeId = transaction.id,
+                startDate = startOfDay,
+                endDate = endOfDay
+            )
+            
+            for (duplicate in duplicates) {
+                if (duplicate.id !in deletedIds) {
+                    transactionDao.softDeleteTransaction(duplicate.id)
+                    deletedIds.add(duplicate.id)
+                    deletedCount++
+                }
+            }
+        }
+        
+        return deletedCount
+    }
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))

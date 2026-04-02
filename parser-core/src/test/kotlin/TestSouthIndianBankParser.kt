@@ -89,6 +89,34 @@ class SouthIndianBankParserTest {
                     reference = "123456789012",
                     merchant = "METRO TRADERS"
                 )
+            ),
+            ParserTestCase(
+                name = "UPI Credit with reference from GPay (partner bank)",
+                message = "UPI Credit:INR Rs.15000.00 in A/c X7377. Info: UPI/TGRB/190200588907/ Sham Ak on 26-12-25 19:02:01.Final balance is Rs.34567.67 -South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "7377",
+                    balance = BigDecimal("34567.67"),
+                    reference = "190200588907",
+                    merchant = "UPI Credit"
+                )
+            ),
+            ParserTestCase(
+                name = "UPI Credit with reference and balance",
+                message = "UPI Credit:INR Rs.25730.00 in A/c X4821. Info: UPI/ICICI/528908998134/ RAHULKU on 16-10-25 12:11:27. Final balance is Rs.29990.75 -South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("25730.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "4821",
+                    balance = BigDecimal("29990.75"),
+                    reference = "528908998134",
+                    merchant = "UPI Credit"
+                )
             )
         )
 

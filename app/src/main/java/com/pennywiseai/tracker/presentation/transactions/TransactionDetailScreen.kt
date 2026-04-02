@@ -1129,7 +1129,8 @@ private fun EditableExtractedInfoCard(
                     onAccountNumberChange = { viewModel.updateFromAccount(it) },
                     viewModel = viewModel,
                     label = "From Account",
-                    placeholder = "Select or enter source account"
+                    placeholder = "Select or enter source account",
+                    excludeAccount = transaction.toAccount
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 // To Account
@@ -1138,7 +1139,8 @@ private fun EditableExtractedInfoCard(
                     onAccountNumberChange = { viewModel.updateToAccount(it) },
                     viewModel = viewModel,
                     label = "To Account",
-                    placeholder = "Select or enter destination account"
+                    placeholder = "Select or enter destination account",
+                    excludeAccount = transaction.fromAccount
                 )
             } else {
                 // Generic Account Number
@@ -1448,9 +1450,11 @@ private fun AccountNumberField(
     onAccountNumberChange: (String?) -> Unit,
     viewModel: TransactionDetailViewModel,
     label: String = "Account (Optional)",
-    placeholder: String = "Select or enter account number"
+    placeholder: String = "Select or enter account number",
+    excludeAccount: String? = null
 ) {
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
+    val filteredAccounts = availableAccounts.filter { it.accountLast4 != excludeAccount }
     var expanded by remember { mutableStateOf(false) }
     var selectedAccount by remember(accountNumber) { 
         mutableStateOf(
@@ -1512,12 +1516,12 @@ private fun AccountNumberField(
             placeholder = { Text(placeholder) }
         )
         
-        if (availableAccounts.isNotEmpty()) {
+        if (filteredAccounts.isNotEmpty()) {
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                availableAccounts.forEach { account ->
+                filteredAccounts.forEach { account ->
                     DropdownMenuItem(
                         text = { 
                             Row(

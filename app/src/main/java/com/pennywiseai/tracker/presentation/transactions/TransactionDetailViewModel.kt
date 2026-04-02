@@ -447,6 +447,15 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
 
+        // Validate self-transfer for TRANSFER transactions
+        if (toSave.transactionType == TransactionType.TRANSFER &&
+            toSave.fromAccount != null &&
+            toSave.toAccount != null &&
+            toSave.fromAccount == toSave.toAccount) {
+            _errorMessage.value = "Source and destination accounts must be different"
+            return
+        }
+
         viewModelScope.launch {
             _isSaving.value = true
             try {

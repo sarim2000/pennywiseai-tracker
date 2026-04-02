@@ -211,6 +211,7 @@ private fun BudgetGroupsContent(
 ) {
     val summary = uiState.summary ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
+    val groupCount = summary.groups.size
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
@@ -280,6 +281,8 @@ private fun BudgetGroupsContent(
                 BudgetCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,
+                    isFirst = index == 0,
+                    isLast = index == groupCount - 1,
                     onClick = { onGroupClick(groupSpending.group.budget.id) },
                     onDelete = {
                         deleteGroupId = groupSpending.group.budget.id
@@ -384,6 +387,8 @@ private fun MonthSelector(
 private fun BudgetCard(
     groupSpending: BudgetGroupSpending,
     currency: String,
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -509,7 +514,8 @@ private fun BudgetCard(
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
-                                }
+                                },
+                                enabled = !isFirst
                             )
                             DropdownMenuItem(
                                 text = { Text("Move down") },
@@ -519,7 +525,8 @@ private fun BudgetCard(
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
-                                }
+                                },
+                                enabled = !isLast
                             )
                         }
                     }

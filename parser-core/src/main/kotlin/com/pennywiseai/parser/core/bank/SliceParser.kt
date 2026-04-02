@@ -51,10 +51,12 @@ class SliceParser : BankParser() {
         }
 
         // Look for "on MERCHANT" pattern for credit card transactions
-        val onPattern = Regex("""on\s+([A-Z][A-Z0-9\s./&-]+?)\s*(?:is|\.|$)""", RegexOption.IGNORE_CASE)
+        val onPattern = Regex("""\bon\s+([A-Za-z0-9\s./&-]+?)(?:\s+is|$)""", RegexOption.IGNORE_CASE)
         onPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
-            if (merchant.isNotEmpty() && !merchant.equals("slice", ignoreCase = true)) {
+            if (merchant.isNotEmpty() && 
+                !merchant.equals("slice", ignoreCase = true) &&
+                !merchant.equals("RS", ignoreCase = true)) {
                 return cleanMerchantName(merchant)
             }
         }

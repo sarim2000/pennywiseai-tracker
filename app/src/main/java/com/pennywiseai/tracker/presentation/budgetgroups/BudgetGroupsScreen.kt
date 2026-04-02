@@ -124,6 +124,8 @@ fun BudgetGroupsScreen(
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
                 onDeleteGroup = { groupId -> viewModel.deleteGroup(groupId) },
+                onMoveGroupUp = { groupId -> viewModel.moveGroupUp(groupId) },
+                onMoveGroupDown = { groupId -> viewModel.moveGroupDown(groupId) },
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
@@ -203,6 +205,8 @@ private fun BudgetGroupsContent(
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onDeleteGroup: (Long) -> Unit,
+    onMoveGroupUp: (Long) -> Unit,
+    onMoveGroupDown: (Long) -> Unit,
     onCategoryClick: (String) -> Unit
 ) {
     val summary = uiState.summary ?: return
@@ -281,6 +285,8 @@ private fun BudgetGroupsContent(
                         deleteGroupId = groupSpending.group.budget.id
                         deleteGroupName = groupSpending.group.budget.name
                     },
+                    onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
+                    onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.animateItem()
                 )
@@ -380,6 +386,8 @@ private fun BudgetCard(
     currency: String,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -475,6 +483,45 @@ private fun BudgetCard(
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         )
+                    }
+                    Box {
+                        var showMenu by remember { mutableStateOf(false) }
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                modifier = Modifier.size(Dimensions.Icon.small),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Move up") },
+                                onClick = {
+                                    showMenu = false
+                                    onMoveUp()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move down") },
+                                onClick = {
+                                    showMenu = false
+                                    onMoveDown()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                                }
+                            )
+                        }
                     }
                 }
             }

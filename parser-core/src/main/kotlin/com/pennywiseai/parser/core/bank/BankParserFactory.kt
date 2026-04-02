@@ -15,6 +15,7 @@ object BankParserFactory {
         FederalBankParser(),
         JuspayParser(),
         SliceParser(),
+        CredParser(),
         LazyPayParser(),
         UtkarshBankParser(),
         ICICIBankParser(),

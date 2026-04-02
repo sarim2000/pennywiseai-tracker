@@ -1,0 +1,13 @@
+reviews:
+  path_filters:
+    - "!fastlane/**"
+    - "!**/*.md"
+    - "!**/*.txt"
+    - "!**/*.yml"
+    - "!**/*.yaml"
+    - "!**/*.xml"
+    - "!.github/**"
+    - "!docs/**"
+    - "!.idea/**"
+    - "!iosApp/**"
+    - "!shared/**"

@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.0"
+agp = "9.1.0"
 appUpdate = "2.1.0"
 appUpdateKtx = "2.1.0"
 biometric = "1.1.0"
@@ -26,6 +26,7 @@ activityCompose = "1.12.2"
 composeBom = "2026.01.00"
 lifecycleViewmodelCompose = "2.10.0"
 markdown = "0.7.3"
+mockk = "1.13.13"
 navVersion = "2.9.6"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
@@ -87,6 +88,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 opencsv = { module = "com.opencsv:opencsv", version.ref = "opencsv" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 review = { module = "com.google.android.play:review", version.ref = "review" }
@@ -104,4 +106,3 @@ android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

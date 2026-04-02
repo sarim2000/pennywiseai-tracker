@@ -75,6 +75,20 @@ class SouthIndianBankParserTest {
                     balance = BigDecimal("35037.21"),
                     reference = "567304295699"
                 )
+            ),
+            ParserTestCase(
+                name = "IMPS credit with different bank code and merchant",
+                message = "Dear Customer, Your A/c X1234 is credited with Rs.1000.00 Info: IMPS/PUNB/123456789012/ METRO TRADERS. Final balance is Rs.10000.00-South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("10000.00"),
+                    reference = "123456789012",
+                    merchant = "METRO TRADERS"
+                )
             )
         )
 

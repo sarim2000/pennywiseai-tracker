@@ -589,8 +589,9 @@ private fun TransactionReceipt(
                 )
             }
 
-            // SMS sender / reference
-            transaction.smsSender?.let {
+            // Reference number (prefer extracted reference, fallback to SMS sender)
+            val referenceValue = transaction.reference ?: transaction.smsSender
+            referenceValue?.let {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
                     icon = Icons.Default.Tag,

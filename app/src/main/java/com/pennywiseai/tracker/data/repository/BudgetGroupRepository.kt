@@ -409,7 +409,7 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun moveGroupUp(budgetId: Long) {
-        val groups = budgetDao.getAllBudgets().first()
+        val groups = budgetDao.getActiveBudgets().first()
             .sortedBy { it.displayOrder }
         val index = groups.indexOfFirst { it.id == budgetId }
         if (index > 0) {
@@ -421,7 +421,7 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun moveGroupDown(budgetId: Long) {
-        val groups = budgetDao.getAllBudgets().first()
+        val groups = budgetDao.getActiveBudgets().first()
             .sortedBy { it.displayOrder }
         val index = groups.indexOfFirst { it.id == budgetId }
         if (index >= 0 && index < groups.size - 1) {

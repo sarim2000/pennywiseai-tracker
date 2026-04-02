@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import java.net.URLEncoder
 import java.io.File
 import javax.inject.Inject
@@ -85,11 +86,15 @@ class SettingsViewModel @Inject constructor(
     val displayCurrency = userPreferencesRepository.displayCurrency
 
     val availableCurrencies: StateFlow<List<String>> = transactionRepository.getAllCurrencies()
-        .map { currencies -> CurrencyUtils.sortCurrencies(currencies) }
+        .map { transactionCurrencies ->
+            val supportedCurrencies = CurrencyUtils.getAllSupportedCurrencies()
+            val allCurrencies = (transactionCurrencies + supportedCurrencies).distinct()
+            CurrencyUtils.sortCurrencies(allCurrencies)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = CurrencyUtils.getAllSupportedCurrencies()
         )
     
     // Base currency state

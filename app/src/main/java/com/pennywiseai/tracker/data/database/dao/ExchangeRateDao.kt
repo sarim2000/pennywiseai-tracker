@@ -69,4 +69,7 @@ interface ExchangeRateDao {
 
     @Query("SELECT * FROM exchange_rates ORDER BY from_currency, to_currency")
     fun getAllRatesFlow(): Flow<List<ExchangeRateEntity>>
+
+    @Query("DELETE FROM exchange_rates")
+    suspend fun deleteAllRates()
 }

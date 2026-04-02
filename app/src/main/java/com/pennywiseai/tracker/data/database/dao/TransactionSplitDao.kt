@@ -11,6 +11,9 @@ interface TransactionSplitDao {
     @Query("SELECT * FROM transaction_splits WHERE transaction_id = :transactionId ORDER BY id ASC")
     fun getSplitsForTransaction(transactionId: Long): Flow<List<TransactionSplitEntity>>
 
+    @Query("SELECT * FROM transaction_splits ORDER BY id ASC")
+    fun getAllSplits(): Flow<List<TransactionSplitEntity>>
+
     @Query("SELECT * FROM transaction_splits WHERE transaction_id = :transactionId ORDER BY id ASC")
     suspend fun getSplitsForTransactionSync(transactionId: Long): List<TransactionSplitEntity>
 

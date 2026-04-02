@@ -72,6 +72,31 @@ class SliceParserTest {
                 message = "Your OTP for slice transaction is 123456. Do not share.",
                 sender = "AD-SLCEIT-S",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Declined transaction should NOT be parsed",
+                message = "Your slice credit card transaction of RS. 50000 on amazon.in was declined.",
+                sender = "AD-SLCEIT-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Failed transaction should NOT be parsed",
+                message = "Your slice credit card transaction of RS. 1234.56 on flipkart.com failed.",
+                sender = "AX-SLICEIT-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Date phrase should not be extracted as merchant",
+                message = "Your slice credit card transaction of RS. 50000 on Feb 15 is successful.",
+                sender = "AD-SLCEIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50000"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = null,  // Date phrase should be rejected, fallback to super.extractMerchant which may return "Slice"
+                    accountLast4 = null,
+                    reference = null
+                )
             )
         )
 

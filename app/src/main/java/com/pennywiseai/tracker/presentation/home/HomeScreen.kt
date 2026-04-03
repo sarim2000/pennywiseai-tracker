@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
@@ -402,7 +403,7 @@ fun HomeScreen(
                 }
             }
 
-            // 2.5. Loans Carousel (75ms delay) — only when active loans exist
+            // 2.5. Loans Summary (75ms delay) — only when active loans exist
             uiState.loanSummary?.let { summary ->
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
@@ -416,9 +417,10 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                        Column {
                             SectionHeaderV2(
                                 title = "Loans",
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                 action = {
                                     TextButton(onClick = onNavigateToLoans) {
                                         Text("View All")
@@ -430,14 +432,13 @@ fun HomeScreen(
                                     }
                                 }
                             )
-                            Spacer(modifier = Modifier.height(Spacing.xs))
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                summary.activeLoans.take(3).forEach { loan ->
-                                    com.pennywiseai.tracker.presentation.loans.LoanListItem(
-                                        loan = loan,
-                                        onClick = { onLoanClick(loan.id) }
-                                    )
-                                }
+                            Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                ActiveLoansSummaryCard(
+                                    loans = summary.activeLoans,
+                                    totalLentRemaining = summary.totalLentRemaining,
+                                    totalBorrowedRemaining = summary.totalBorrowedRemaining,
+                                    onClick = onNavigateToLoans
+                                )
                             }
                         }
                     }
@@ -1232,6 +1233,62 @@ private fun UpcomingSubscriptionsCard(
                 text = "View",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveLoansSummaryCard(
+    loans: List<com.pennywiseai.tracker.data.database.entity.LoanEntity>,
+    totalLentRemaining: java.math.BigDecimal,
+    totalBorrowedRemaining: java.math.BigDecimal,
+    onClick: () -> Unit = {}
+) {
+    val isDark = isSystemInDarkTheme()
+    val loanColor = if (isDark) loan_dark else loan_light
+
+    PennyWiseCardV2(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Loan icon
+            Icon(
+                imageVector = Icons.Default.SwapHoriz,
+                contentDescription = null,
+                tint = loanColor,
+                modifier = Modifier.size(Dimensions.Icon.medium)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "${loans.size} active loan${if (loans.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                val subtitle = when {
+                    totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
+                        "${CurrencyFormatter.formatCurrency(totalLentRemaining)} owed to you"
+                    totalLentRemaining > java.math.BigDecimal.ZERO ->
+                        "${CurrencyFormatter.formatCurrency(totalLentRemaining)} owed to you"
+                    else ->
+                        "You owe ${CurrencyFormatter.formatCurrency(totalBorrowedRemaining)}"
+                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "View",
+                style = MaterialTheme.typography.labelLarge,
+                color = loanColor,
                 fontWeight = FontWeight.Medium
             )
         }

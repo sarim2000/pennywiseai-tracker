@@ -154,6 +154,16 @@ fun MainScreen(
                             com.pennywiseai.tracker.navigation.BudgetGroups
                         ) { launchSingleTop = true }
                     },
+                    onNavigateToLoans = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.Loans
+                        ) { launchSingleTop = true }
+                    },
+                    onLoanClick = { loanId ->
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.LoanDetail(loanId)
+                        ) { launchSingleTop = true }
+                    },
                     onNavigateToManageAccounts = {
                         navController.navigate("manage_accounts") {
                             launchSingleTop = true
@@ -369,6 +379,11 @@ fun MainScreen(
                     onNavigateToBudgets = {
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.BudgetGroups
+                        ) { launchSingleTop = true }
+                    },
+                    onNavigateToLoans = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.Loans
                         ) { launchSingleTop = true }
                     },
                     onNavigateToExchangeRates = {

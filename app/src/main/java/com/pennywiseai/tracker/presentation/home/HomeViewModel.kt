@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
@@ -25,6 +26,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -53,6 +55,7 @@ class HomeViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
+    private val loanRepository: LoanRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -315,12 +318,12 @@ class HomeViewModel @Inject constructor(
                     d >= lastMonthStart && d < firstOfMonth
                 }
 
-                // Filter to EXPENSE only, respect currency/unified mode
+                // Filter to EXPENSE only (excluding loans), respect currency/unified mode
                 val currentExpenses = if (isUnified) {
-                    currentMonthTxs.filter { it.transactionType == TransactionType.EXPENSE }
+                    currentMonthTxs.filter { it.transactionType == TransactionType.EXPENSE && it.loanId == null }
                 } else {
                     currentMonthTxs.filter {
-                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency
+                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency && it.loanId == null
                     }
                 }
 
@@ -348,10 +351,10 @@ class HomeViewModel @Inject constructor(
 
                 // Build last month's cumulative spending (same day count for comparison)
                 val lastMonthExpenses = if (isUnified) {
-                    lastMonthTxs.filter { it.transactionType == TransactionType.EXPENSE }
+                    lastMonthTxs.filter { it.transactionType == TransactionType.EXPENSE && it.loanId == null }
                 } else {
                     lastMonthTxs.filter {
-                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency
+                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency && it.loanId == null
                     }
                 }
 
@@ -384,6 +387,24 @@ class HomeViewModel @Inject constructor(
                     lastMonthSpendingHistory = lastMonthCumulative
                 )
                 calculateMonthlyChange()
+            }
+        }
+
+        viewModelScope.launch {
+            // Load active loans summary for home carousel
+            combine(
+                loanRepository.getActiveLoans(),
+                loanRepository.getTotalLentRemaining(),
+                loanRepository.getTotalBorrowedRemaining()
+            ) { loans, lent, borrowed ->
+                if (loans.isEmpty()) null
+                else LoanSummary(
+                    activeLoans = loans,
+                    totalLentRemaining = lent,
+                    totalBorrowedRemaining = borrowed
+                )
+            }.collect { summary ->
+                _uiState.value = _uiState.value.copy(loanSummary = summary)
             }
         }
 
@@ -813,6 +834,7 @@ class HomeViewModel @Inject constructor(
     private fun updateTransactionTypeTotals(transactions: List<TransactionEntity>) {
         val selectedCurrency = _uiState.value.selectedCurrency
         val isUnified = _uiState.value.isUnifiedMode
+        val nonLoanTransactions = transactions.filter { it.loanId == null }
 
         if (isUnified) {
             // Convert all transactions to display currency
@@ -821,7 +843,7 @@ class HomeViewModel @Inject constructor(
                 var transferTotal = BigDecimal.ZERO
                 var investmentTotal = BigDecimal.ZERO
 
-                for (tx in transactions) {
+                for (tx in nonLoanTransactions) {
                     val converted = currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
                     when (tx.transactionType) {
                         com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT -> creditCardTotal += converted
@@ -839,7 +861,7 @@ class HomeViewModel @Inject constructor(
             }
         } else {
             // Filter transactions by selected currency
-            val currencyTransactions = transactions.filter { it.currency == selectedCurrency }
+            val currencyTransactions = nonLoanTransactions.filter { it.currency == selectedCurrency }
 
             val creditCardTotal = currencyTransactions
                 .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
@@ -1152,5 +1174,12 @@ data class HomeUiState(
     val transactionHeatmap: Map<Long, Int> = emptyMap(),
     val isBalanceHidden: Boolean = true,
     val isBalanceReady: Boolean = false,
-    val lastMonthSpendingHistory: List<BigDecimal> = emptyList()
+    val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
+    val loanSummary: LoanSummary? = null
+)
+
+data class LoanSummary(
+    val activeLoans: List<LoanEntity>,
+    val totalLentRemaining: BigDecimal,
+    val totalBorrowedRemaining: BigDecimal
 )

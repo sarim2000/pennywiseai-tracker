@@ -105,6 +105,8 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToLoans: () -> Unit = {},
+    onLoanClick: (Long) -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
@@ -395,6 +397,48 @@ fun HomeScreen(
                                 onCreateBudget = onNavigateToBudgets,
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             )
+                        }
+                    }
+                }
+            }
+
+            // 2.5. Loans Carousel (75ms delay) — only when active loans exist
+            uiState.loanSummary?.let { summary ->
+                item {
+                    val visible = remember { mutableStateOf(hasAnimated) }
+                    LaunchedEffect(Unit) {
+                        if (!hasAnimated) { delay(75); visible.value = true }
+                    }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { slideOffsetPx },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                            SectionHeaderV2(
+                                title = "Loans",
+                                action = {
+                                    TextButton(onClick = onNavigateToLoans) {
+                                        Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.xs))
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                summary.activeLoans.take(3).forEach { loan ->
+                                    com.pennywiseai.tracker.presentation.loans.LoanListItem(
+                                        loan = loan,
+                                        onClick = { onLoanClick(loan.id) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

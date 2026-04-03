@@ -167,13 +167,14 @@ class TransactionRepository @Inject constructor(
         val now = LocalDate.now()
         val startDate = now.withDayOfMonth(1).atStartOfDay()
         val endDate = now.atTime(23, 59, 59)
-        
+
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
             .map { transactions ->
-                val income = transactions
+                val nonLoan = transactions.filter { it.loanId == null }
+                val income = nonLoan
                     .filter { it.transactionType == TransactionType.INCOME }
                     .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                val expenses = transactions
+                val expenses = nonLoan
                     .filter { it.transactionType == TransactionType.EXPENSE }
                     .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
                 MonthlyBreakdown(
@@ -192,18 +193,19 @@ class TransactionRepository @Inject constructor(
         val now = LocalDate.now()
         val dayOfMonth = now.dayOfMonth
         val lastMonth = now.minusMonths(1)
-        
+
         // Compare same period: if today is 10th, compare 1st-10th of last month
         val startDate = lastMonth.withDayOfMonth(1).atStartOfDay()
         val lastMonthMaxDay = min(dayOfMonth, lastMonth.lengthOfMonth())
         val endDate = lastMonth.withDayOfMonth(lastMonthMaxDay).atTime(23, 59, 59)
-        
+
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
             .map { transactions ->
-                val income = transactions
+                val nonLoan = transactions.filter { it.loanId == null }
+                val income = nonLoan
                     .filter { it.transactionType == TransactionType.INCOME }
                     .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                val expenses = transactions
+                val expenses = nonLoan
                     .filter { it.transactionType == TransactionType.EXPENSE }
                     .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
                 MonthlyBreakdown(
@@ -226,7 +228,7 @@ class TransactionRepository @Inject constructor(
 
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
             .map { transactions ->
-                transactions.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
+                transactions.filter { it.loanId == null }.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
                     val income = currencyTransactions
                         .filter { it.transactionType == TransactionType.INCOME }
                         .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
@@ -254,7 +256,7 @@ class TransactionRepository @Inject constructor(
 
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
             .map { transactions ->
-                transactions.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
+                transactions.filter { it.loanId == null }.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
                     val income = currencyTransactions
                         .filter { it.transactionType == TransactionType.INCOME }
                         .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }

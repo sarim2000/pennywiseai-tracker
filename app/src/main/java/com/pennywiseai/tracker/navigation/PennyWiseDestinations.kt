@@ -61,6 +61,12 @@ object BudgetGroups
 data class BudgetGroupEdit(val groupId: Long = -1L)
 
 @Serializable
+object Loans
+
+@Serializable
+data class LoanDetail(val loanId: Long)
+
+@Serializable
 object ImportStatement
 
 @Serializable

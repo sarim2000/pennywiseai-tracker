@@ -40,6 +40,8 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.amber_light
+import com.pennywiseai.tracker.ui.theme.amber_dark
 import com.pennywiseai.tracker.ui.theme.orange_light
 import com.pennywiseai.tracker.ui.theme.orange_dark
 import com.pennywiseai.tracker.ui.theme.green_light
@@ -80,6 +82,7 @@ fun SettingsScreen(
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToLoans: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
@@ -321,6 +324,15 @@ fun SettingsScreen(
                     title = "Budgets",
                     subtitle = "Track spending limits by category",
                     onClick = onNavigateToBudgets,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.SwapHoriz,
+                    iconBgColor = amber_light,
+                    iconTint = amber_dark,
+                    title = "Loans",
+                    subtitle = "Track money lent and borrowed",
+                    onClick = onNavigateToLoans,
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(

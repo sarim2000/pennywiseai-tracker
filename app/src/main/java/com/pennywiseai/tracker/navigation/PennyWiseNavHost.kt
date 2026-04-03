@@ -160,6 +160,11 @@ fun PennyWiseNavHost(
                     onNavigateBack = {
                         onEditComplete()
                         navController.safePopBackStack()
+                    },
+                    onNavigateToLoanDetail = { loanId ->
+                        navController.navigate(LoanDetail(loanId)) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -302,6 +307,42 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
+                }
+            )
+        }
+
+        composable<Loans>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.loans.LoansScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                },
+                onNavigateToLoanDetail = { loanId ->
+                    navController.navigate(LoanDetail(loanId)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable<LoanDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                },
+                onNavigateToTransactionDetail = { txId ->
+                    navController.navigate(TransactionDetail(txId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }

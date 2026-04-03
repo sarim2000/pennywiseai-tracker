@@ -4,6 +4,8 @@ import androidx.room.TypeConverter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -103,5 +105,25 @@ class Converters {
     @TypeConverter
     fun toBudgetGroupType(value: String): BudgetGroupType {
         return BudgetGroupType.valueOf(value)
+    }
+
+    @TypeConverter
+    fun fromLoanDirection(value: LoanDirection): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toLoanDirection(value: String): LoanDirection {
+        return LoanDirection.valueOf(value)
+    }
+
+    @TypeConverter
+    fun fromLoanStatus(value: LoanStatus): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toLoanStatus(value: String): LoanStatus {
+        return LoanStatus.valueOf(value)
     }
 }

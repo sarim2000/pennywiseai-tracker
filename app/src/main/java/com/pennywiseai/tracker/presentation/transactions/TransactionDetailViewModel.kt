@@ -5,12 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.core.Constants
@@ -29,6 +32,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val loanRepository: LoanRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
@@ -149,6 +153,7 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
+                it.loanId?.let { id -> loadLoan(id) }
             }
         }
     }
@@ -571,7 +576,7 @@ class TransactionDetailViewModel @Inject constructor(
             _transaction.value?.let { txn ->
                 _isDeleting.value = true
                 _showDeleteDialog.value = false
-                
+
                 try {
                     transactionRepository.deleteTransaction(txn)
                     _deleteSuccess.value = true
@@ -580,6 +585,61 @@ class TransactionDetailViewModel @Inject constructor(
                 } finally {
                     _isDeleting.value = false
                 }
+            }
+        }
+    }
+
+    // ========== Loan Management ==========
+
+    private val _loan = MutableStateFlow<LoanEntity?>(null)
+    val loan: StateFlow<LoanEntity?> = _loan.asStateFlow()
+
+    private val _showMarkAsLoanSheet = MutableStateFlow(false)
+    val showMarkAsLoanSheet: StateFlow<Boolean> = _showMarkAsLoanSheet.asStateFlow()
+
+    val recentPersonNames: StateFlow<List<String>> = loanRepository.getRecentPersonNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun showMarkAsLoanSheet() { _showMarkAsLoanSheet.value = true }
+    fun hideMarkAsLoanSheet() { _showMarkAsLoanSheet.value = false }
+
+    private fun loadLoan(loanId: Long) {
+        viewModelScope.launch {
+            _loan.value = loanRepository.getLoanById(loanId)
+        }
+    }
+
+    fun createLoanFromTransaction(personName: String, direction: LoanDirection, note: String?) {
+        val txn = _transaction.value ?: return
+        viewModelScope.launch {
+            try {
+                val loanId = loanRepository.createLoan(
+                    personName = personName,
+                    direction = direction,
+                    amount = txn.amount,
+                    currency = txn.currency,
+                    note = note,
+                    sourceTransactionId = txn.id
+                )
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                _loan.value = loanRepository.getLoanById(loanId)
+                _showMarkAsLoanSheet.value = false
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to create loan: ${e.message}"
+            }
+        }
+    }
+
+    fun unlinkLoan() {
+        val txn = _transaction.value ?: return
+        val loanId = txn.loanId ?: return
+        viewModelScope.launch {
+            try {
+                loanRepository.unlinkTransaction(txn.id, loanId)
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                _loan.value = null
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to unlink loan: ${e.message}"
             }
         }
     }

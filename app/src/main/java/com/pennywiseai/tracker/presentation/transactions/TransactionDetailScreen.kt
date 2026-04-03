@@ -10,10 +10,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -42,6 +44,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
@@ -68,6 +72,7 @@ import java.time.format.DateTimeFormatter
 fun TransactionDetailScreen(
     transactionId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToLoanDetail: (Long) -> Unit = {},
     viewModel: TransactionDetailViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
@@ -89,6 +94,11 @@ fun TransactionDetailScreen(
     val splits by viewModel.splits.collectAsStateWithLifecycle()
     val showSplitEditor by viewModel.showSplitEditor.collectAsStateWithLifecycle()
     val hasSplits by viewModel.hasSplits.collectAsStateWithLifecycle()
+
+    // Loan state
+    val loan by viewModel.loan.collectAsStateWithLifecycle()
+    val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
+    val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -239,6 +249,8 @@ fun TransactionDetailScreen(
                 splits = splits,
                 showSplitEditor = showSplitEditor,
                 hasSplits = hasSplits,
+                loan = loan,
+                onNavigateToLoanDetail = onNavigateToLoanDetail,
                 hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -279,6 +291,22 @@ fun TransactionDetailScreen(
             }
         )
     }
+
+    // Mark as Loan Bottom Sheet
+    if (showMarkAsLoanSheet) {
+        val txType = transaction?.transactionType
+        val inferredDirection = if (txType == TransactionType.INCOME) LoanDirection.BORROWED else LoanDirection.LENT
+        MarkAsLoanBottomSheet(
+            transactionAmount = transaction?.amount ?: BigDecimal.ZERO,
+            transactionCurrency = transaction?.currency ?: "INR",
+            direction = inferredDirection,
+            recentPersonNames = recentPersonNames,
+            onDismiss = { viewModel.hideMarkAsLoanSheet() },
+            onConfirm = { personName, note ->
+                viewModel.createLoanFromTransaction(personName, inferredDirection, note)
+            }
+        )
+    }
 }
 
 @Composable
@@ -294,6 +322,8 @@ private fun TransactionDetailContent(
     splits: List<SplitItem>,
     showSplitEditor: Boolean,
     hasSplits: Boolean,
+    loan: LoanEntity?,
+    onNavigateToLoanDetail: (Long) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
@@ -335,7 +365,9 @@ private fun TransactionDetailContent(
                 convertedAmount = convertedAmount,
                 viewModel = viewModel,
                 splits = splits,
-                hasSplits = hasSplits
+                hasSplits = hasSplits,
+                loan = loan,
+                onNavigateToLoanDetail = onNavigateToLoanDetail
             )
         }
     }
@@ -350,7 +382,9 @@ private fun TransactionReceipt(
     convertedAmount: BigDecimal?,
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
-    hasSplits: Boolean
+    hasSplits: Boolean,
+    loan: LoanEntity?,
+    onNavigateToLoanDetail: (Long) -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
@@ -452,6 +486,61 @@ private fun TransactionReceipt(
                     ),
                     border = null
                 )
+
+                // Loan chip
+                val isDarkTheme = isSystemInDarkTheme()
+                val loanColor = if (isDarkTheme) loan_dark else loan_light
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                if (loan != null) {
+                    SuggestionChip(
+                        onClick = { onNavigateToLoanDetail(loan.id) },
+                        label = {
+                            Text(
+                                text = if (loan.direction == LoanDirection.LENT)
+                                    "Lent to ${loan.personName}" else "Borrowed from ${loan.personName}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.SwapHoriz,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimensions.Icon.small),
+                                tint = loanColor
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = loanColor.copy(alpha = 0.12f),
+                            labelColor = loanColor,
+                            iconContentColor = loanColor
+                        ),
+                        border = null
+                    )
+                } else {
+                    SuggestionChip(
+                        onClick = { viewModel.showMarkAsLoanSheet() },
+                        label = {
+                            Text(
+                                text = "Mark as loan",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.SwapHoriz,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimensions.Icon.small)
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = null
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -1430,6 +1519,171 @@ private fun AccountNumberField(
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                     )
                 }
+            }
+        }
+    }
+}
+
+// ==================== Mark as Loan Bottom Sheet ====================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MarkAsLoanBottomSheet(
+    transactionAmount: BigDecimal,
+    transactionCurrency: String,
+    direction: LoanDirection,
+    recentPersonNames: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (personName: String, note: String?) -> Unit
+) {
+    var personName by remember { mutableStateOf("") }
+    var isAddingNew by remember { mutableStateOf(recentPersonNames.isEmpty()) }
+    var note by remember { mutableStateOf("") }
+
+    val isDark = isSystemInDarkTheme()
+    val loanColor = if (isDark) loan_dark else loan_light
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val directionLabel = if (direction == LoanDirection.LENT) "Lent" else "Borrowed"
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.xl)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Text(
+                text = "$directionLabel ${CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = if (direction == LoanDirection.LENT) "Who did you pay for?" else "Who paid for you?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (!isAddingNew && recentPersonNames.isNotEmpty()) {
+                // Pick from existing people
+                recentPersonNames.forEach { name ->
+                    Surface(
+                        onClick = { personName = name },
+                        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                        color = if (personName == name) loanColor.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = if (personName == name) BorderStroke(1.dp, loanColor)
+                        else null
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(loanColor.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    name.take(1).uppercase(),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = loanColor
+                                )
+                            }
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (personName == name) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = loanColor,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Add new person option
+                TextButton(onClick = { isAddingNew = true; personName = "" }) {
+                    Icon(
+                        Icons.Default.PersonAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("New person")
+                }
+            } else {
+                // Text field for new person name
+                OutlinedTextField(
+                    value = personName,
+                    onValueChange = { personName = it },
+                    label = { Text("Person's name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                )
+                if (recentPersonNames.isNotEmpty()) {
+                    TextButton(onClick = { isAddingNew = false; personName = "" }) {
+                        Icon(
+                            Icons.Default.People,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Pick existing")
+                    }
+                }
+            }
+
+            // Optional note
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it },
+                label = { Text("Note (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+            )
+
+            // Confirm button
+            Button(
+                onClick = {
+                    onConfirm(
+                        personName.trim(),
+                        note.trim().ifEmpty { null }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = personName.isNotBlank(),
+                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = loanColor
+                )
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small)
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text("Confirm")
             }
         }
     }

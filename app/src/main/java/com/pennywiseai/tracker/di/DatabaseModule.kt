@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
+import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
@@ -236,6 +237,12 @@ object DatabaseModule {
     @Singleton
     fun provideBankNotificationDao(database: PennyWiseDatabase): BankNotificationDao {
         return database.bankNotificationDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoanDao(database: PennyWiseDatabase): LoanDao {
+        return database.loanDao()
     }
 }
 

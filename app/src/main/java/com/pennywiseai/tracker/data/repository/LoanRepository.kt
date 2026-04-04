@@ -41,6 +41,21 @@ class LoanRepository @Inject constructor(
 
     suspend fun getLoanById(loanId: Long): LoanEntity? = loanDao.getLoanById(loanId)
 
+    suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
+        loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
+
+    suspend fun addToExistingLoan(loanId: Long, amount: BigDecimal, transactionId: Long) {
+        val loan = loanDao.getLoanById(loanId) ?: return
+        loanDao.updateLoan(
+            loan.copy(
+                originalAmount = loan.originalAmount + amount,
+                remainingAmount = loan.remainingAmount + amount,
+                updatedAt = LocalDateTime.now()
+            )
+        )
+        loanDao.linkTransaction(transactionId, loanId)
+    }
+
     suspend fun createLoan(
         personName: String,
         direction: LoanDirection,

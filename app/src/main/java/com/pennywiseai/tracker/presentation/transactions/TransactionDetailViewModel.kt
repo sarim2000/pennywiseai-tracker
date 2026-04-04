@@ -634,14 +634,23 @@ class TransactionDetailViewModel @Inject constructor(
         val txn = _transaction.value ?: return
         viewModelScope.launch {
             try {
-                val loanId = loanRepository.createLoan(
-                    personName = personName,
-                    direction = direction,
-                    amount = txn.amount,
-                    currency = txn.currency,
-                    note = note,
-                    sourceTransactionId = txn.id
-                )
+                // Check if an active loan already exists for this person + direction
+                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
+                val loanId = if (existingLoan != null) {
+                    // Merge into existing loan
+                    loanRepository.addToExistingLoan(existingLoan.id, txn.amount, txn.id)
+                    existingLoan.id
+                } else {
+                    // Create new loan
+                    loanRepository.createLoan(
+                        personName = personName,
+                        direction = direction,
+                        amount = txn.amount,
+                        currency = txn.currency,
+                        note = note,
+                        sourceTransactionId = txn.id
+                    )
+                }
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 _loan.value = loanRepository.getLoanById(loanId)
                 _showMarkAsLoanSheet.value = false

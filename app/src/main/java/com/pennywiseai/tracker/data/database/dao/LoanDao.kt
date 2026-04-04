@@ -37,6 +37,9 @@ interface LoanDao {
     @Query("SELECT DISTINCT person_name FROM loans ORDER BY updated_at DESC")
     fun getRecentPersonNames(): Flow<List<String>>
 
+    @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND status = 'ACTIVE' LIMIT 1")
+    suspend fun getActiveLoanByPersonAndDirection(personName: String, direction: String): LoanEntity?
+
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC")
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>>
 

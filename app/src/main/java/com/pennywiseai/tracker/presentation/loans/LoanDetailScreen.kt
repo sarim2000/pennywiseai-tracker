@@ -81,7 +81,7 @@ fun LoanDetailScreen(
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             if (loan.status == LoanStatus.ACTIVE) {
                                 DropdownMenuItem(
-                                    text = { Text("Edit amount") },
+                                    text = { Text("Set expected return") },
                                     onClick = { showMenu = false; viewModel.showEditAmountDialog() },
                                     leadingIcon = { Icon(Icons.Default.Edit, null) }
                                 )
@@ -285,7 +285,7 @@ fun LoanDetailScreen(
         var editAmount by remember { mutableStateOf(loan.originalAmount.toPlainString()) }
         AlertDialog(
             onDismissRequest = { viewModel.hideEditAmountDialog() },
-            title = { Text("Edit Loan Amount") },
+            title = { Text("Expected Return") },
             text = {
                 OutlinedTextField(
                     value = editAmount,
@@ -294,7 +294,7 @@ fun LoanDetailScreen(
                             editAmount = value
                         }
                     },
-                    label = { Text("Total amount") },
+                    label = { Text("Amount expected back") },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

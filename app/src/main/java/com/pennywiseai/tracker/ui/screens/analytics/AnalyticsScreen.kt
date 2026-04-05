@@ -70,6 +70,7 @@ fun AnalyticsScreen(
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
     val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
+    val categoryFilter by viewModel.categoryFilter.collectAsStateWithLifecycle()
     // Use rememberSaveable to preserve UI state across navigation
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
@@ -227,6 +228,49 @@ fun AnalyticsScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Category Filter Chips
+        if (uiState.availableCategories.isNotEmpty()) {
+            item {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = categoryFilter == null,
+                            onClick = { viewModel.clearCategoryFilter() },
+                            label = { Text("All") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        )
+                    }
+                    items(uiState.availableCategories) { category ->
+                        FilterChip(
+                            selected = categoryFilter == category,
+                            onClick = {
+                                if (categoryFilter == category) viewModel.clearCategoryFilter()
+                                else viewModel.setCategoryFilter(category)
+                            },
+                            label = { Text(category) },
+                            leadingIcon = {
+                                CategoryIcon(
+                                    category = category,
+                                    size = Dimensions.Icon.small
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }

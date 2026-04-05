@@ -97,7 +97,8 @@ object BankParserFactory {
         TBankParser(),  // T-Bank / Tinkoff (Russia)
         ChaseBankParser(),  // Chase Bank (USA)
         AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
-        MBankCZParser()  // mBank CZ (Czech Republic)
+        MBankCZParser(),  // mBank CZ (Czech Republic)
+        BankMuscatParser()  // Bank Muscat (Oman)
         // Add more bank parsers here as we implement them
     )
 

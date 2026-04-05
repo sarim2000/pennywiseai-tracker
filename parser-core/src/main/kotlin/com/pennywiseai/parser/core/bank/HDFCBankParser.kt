@@ -53,6 +53,23 @@ class HDFCBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Check for "Txn Rs.X On HDFC Bank Card At [MERCHANT] by UPI" format
+        if (message.contains("Txn", ignoreCase = true) &&
+            message.contains("At ", ignoreCase = true) &&
+            message.contains("Card", ignoreCase = true)
+        ) {
+            val txnAtPattern = Regex(
+                """At\s+(.+?)\s*(?:by\s+UPI|on\s+\d|$)""",
+                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+            )
+            txnAtPattern.find(message)?.let { match ->
+                val merchant = match.groupValues[1].trim()
+                if (merchant.isNotEmpty()) {
+                    return cleanMerchantName(merchant)
+                }
+            }
+        }
+
         // Check for ATM withdrawals - extract location
         if (message.contains("withdrawn", ignoreCase = true)) {
             // Pattern: "At +18 Random Location" or "At ATM Location On"

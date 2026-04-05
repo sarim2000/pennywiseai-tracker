@@ -146,12 +146,21 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Skip bill reminders and due date notifications
+        if (lowerMessage.contains("reminder") ||
+            lowerMessage.contains("is due on") ||
+            lowerMessage.contains("bill of rs") && lowerMessage.contains("due")
+        ) {
+            return false
+        }
+
         // Skip payment request messages (common across banks)
         if (lowerMessage.contains("has requested") ||
             lowerMessage.contains("payment request") ||
             lowerMessage.contains("collect request") ||
             lowerMessage.contains("requesting payment") ||
             lowerMessage.contains("requests rs") ||
+            lowerMessage.contains("ignore if paid") ||
             lowerMessage.contains("ignore if already paid")
         ) {
             return false

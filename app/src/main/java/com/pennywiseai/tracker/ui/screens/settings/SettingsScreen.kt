@@ -363,6 +363,15 @@ fun SettingsScreen(
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(
+                    icon = Icons.Default.Sms,
+                    iconBgColor = orange_light,
+                    iconTint = orange_dark,
+                    title = "Unrecognized SMS",
+                    subtitle = "View and report unsupported bank messages",
+                    onClick = onNavigateToUnrecognizedSms,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
                     icon = Icons.Default.CalendarMonth,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,

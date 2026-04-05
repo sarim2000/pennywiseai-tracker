@@ -634,7 +634,20 @@ class TransactionDetailViewModel @Inject constructor(
         val txn = _transaction.value ?: return
         viewModelScope.launch {
             try {
-                // Check if an active loan already exists for this person + direction
+                // Check for existing loan in the OPPOSITE direction first (this is a repayment)
+                val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
+                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection)
+
+                if (oppositeLoan != null) {
+                    // Record as repayment on the opposite loan
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id)
+                    _transaction.value = transactionRepository.getTransactionById(txn.id)
+                    _loan.value = loanRepository.getLoanById(oppositeLoan.id)
+                    _showMarkAsLoanSheet.value = false
+                    return@launch
+                }
+
+                // Check if an active loan already exists for this person + same direction
                 val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan

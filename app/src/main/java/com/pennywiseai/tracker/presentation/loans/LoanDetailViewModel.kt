@@ -21,6 +21,7 @@ data class LoanDetailUiState(
     val isLoading: Boolean = true,
     val showSettleDialog: Boolean = false,
     val showDeleteDialog: Boolean = false,
+    val showEditAmountDialog: Boolean = false,
     val showRecordPaymentSheet: Boolean = false,
     val isDeleted: Boolean = false
 )
@@ -89,6 +90,16 @@ class LoanDetailViewModel @Inject constructor(
     fun hideSettleDialog() { _uiState.value = _uiState.value.copy(showSettleDialog = false) }
     fun showDeleteDialog() { _uiState.value = _uiState.value.copy(showDeleteDialog = true) }
     fun hideDeleteDialog() { _uiState.value = _uiState.value.copy(showDeleteDialog = false) }
+    fun showEditAmountDialog() { _uiState.value = _uiState.value.copy(showEditAmountDialog = true) }
+    fun hideEditAmountDialog() { _uiState.value = _uiState.value.copy(showEditAmountDialog = false) }
+
+    fun updateLoanAmount(newAmount: BigDecimal) {
+        viewModelScope.launch {
+            loanRepository.updateOriginalAmount(loanId, newAmount)
+            _uiState.value = _uiState.value.copy(showEditAmountDialog = false)
+            refreshLoan()
+        }
+    }
 
     fun settleLoan() {
         viewModelScope.launch {

@@ -112,6 +112,17 @@ class LoanRepository @Inject constructor(
         recalculateRemaining(loanId)
     }
 
+    suspend fun updateOriginalAmount(loanId: Long, newAmount: BigDecimal) {
+        val loan = loanDao.getLoanById(loanId) ?: return
+        loanDao.updateLoan(
+            loan.copy(
+                originalAmount = newAmount,
+                updatedAt = LocalDateTime.now()
+            )
+        )
+        recalculateRemaining(loanId)
+    }
+
     suspend fun settleLoan(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
         loanDao.updateLoan(

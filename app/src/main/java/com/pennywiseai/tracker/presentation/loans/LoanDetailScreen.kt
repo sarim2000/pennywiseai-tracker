@@ -81,6 +81,11 @@ fun LoanDetailScreen(
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             if (loan.status == LoanStatus.ACTIVE) {
                                 DropdownMenuItem(
+                                    text = { Text("Edit amount") },
+                                    onClick = { showMenu = false; viewModel.showEditAmountDialog() },
+                                    leadingIcon = { Icon(Icons.Default.Edit, null) }
+                                )
+                                DropdownMenuItem(
                                     text = { Text("Settle") },
                                     onClick = { showMenu = false; viewModel.showSettleDialog() },
                                     leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
@@ -269,6 +274,45 @@ fun LoanDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.hideSettleDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Edit amount dialog
+    if (uiState.showEditAmountDialog && loan != null) {
+        var editAmount by remember { mutableStateOf(loan.originalAmount.toPlainString()) }
+        AlertDialog(
+            onDismissRequest = { viewModel.hideEditAmountDialog() },
+            title = { Text("Edit Loan Amount") },
+            text = {
+                OutlinedTextField(
+                    value = editAmount,
+                    onValueChange = { value ->
+                        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            editAmount = value
+                        }
+                    },
+                    label = { Text("Total amount") },
+                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
+                    },
+                    enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideEditAmountDialog() }) {
                     Text("Cancel")
                 }
             }

@@ -67,6 +67,21 @@ class HSBCBankParserTest {
                     accountLast4 = "0006",
                     balance = BigDecimal("98765.44")
                 )
+            ),
+
+            // HSBC Egypt — EGP credit card
+            ParserTestCase(
+                name = "Egypt Credit Card Purchase (EGP)",
+                message = "Your Credit Card ending with 0006 has been used for EGP 199.99 on 23/01/2026 at SomePremium. Your available limit is EGP 5004.29",
+                sender = "HSBC",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("199.99"),
+                    currency = "EGP",
+                    type = TransactionType.CREDIT,
+                    merchant = "SomePremium",
+                    accountLast4 = "0006",
+                    isFromCard = true
+                )
             )
         )
 

@@ -49,8 +49,6 @@ private class FakeCategoryRepository(
         startCount += categories.size
     }
 
-    override suspend fun getById(id: Long): SharedCategory? = stored.firstOrNull { it.id == id }
-
     override suspend fun insertCategory(category: SharedCategory): Long {
         val id = nextId++
         stored.add(category.copy(id = id))

@@ -115,7 +115,6 @@ fun TransactionsScreen(
     val view = LocalView.current
     
     // Calculate active filter count for advanced filters
-    // Category filter is excluded since it's now always visible as chips
     val activeFilterCount = listOf(
         transactionTypeFilter != TransactionTypeFilter.ALL,
         categoryFilter != null,

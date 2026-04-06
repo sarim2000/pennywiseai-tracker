@@ -31,6 +31,7 @@ interface TransactionDao {
         AND (
             t.profile_id = :profileId
             OR (t.profile_id IS NULL AND ab.profile_id = :profileId)
+            OR (t.profile_id IS NULL AND ab.profile_id IS NULL AND :profileId = 1)
         )
         ORDER BY t.date_time DESC
         LIMIT :limit

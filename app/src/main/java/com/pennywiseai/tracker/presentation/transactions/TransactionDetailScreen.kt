@@ -1199,7 +1199,9 @@ if (existingTransactionCount > 0) {
 Spacer(modifier = Modifier.height(Spacing.sm))
 
             // Classification toggle
-            val effectiveProfileId = transaction.profileId ?: accountProfileId
+            // Account default: Personal (id=1) when accountProfileId is null or PERSONAL_ID
+            val accountDefault = accountProfileId ?: ProfileEntity.PERSONAL_ID
+            val effectiveProfileId = transaction.profileId ?: accountDefault
             val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
             Text(
                 text = "Classification",
@@ -1213,9 +1215,8 @@ Spacer(modifier = Modifier.height(Spacing.sm))
                 SegmentedButton(
                     selected = !isEffectivelyBusiness,
                     onClick = {
-                        // If account already defaults to Personal, clear any explicit override
-                        // Otherwise set an explicit Personal override
-                        val newId = if (accountProfileId == null || accountProfileId == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
+                        // If account already defaults to Personal, clear override; otherwise set explicit
+                        val newId = if (accountDefault == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
                         viewModel.updateProfileId(newId)
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
@@ -1225,9 +1226,8 @@ Spacer(modifier = Modifier.height(Spacing.sm))
                 SegmentedButton(
                     selected = isEffectivelyBusiness,
                     onClick = {
-                        // If account already defaults to Business, clear any explicit override
-                        // Otherwise set an explicit Business override
-                        val newId = if (accountProfileId == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
+                        // If account already defaults to Business, clear override; otherwise set explicit
+                        val newId = if (accountDefault == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
                         viewModel.updateProfileId(newId)
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)

@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -92,9 +93,10 @@ class HomeViewModel @Inject constructor(
     private var baseCurrency = ""
 
     // Cache the latest account balances as a StateFlow so that combine blocks
-    // re-emit when account profiles change (e.g. via Manage Accounts)
-    private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
-    private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value
+    // re-emit when account profiles change (e.g. via Manage Accounts).
+    // null = not loaded yet (avoids emitting stale empty data on cold launch)
+    private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
+    private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
 
     init {
         loadUnifiedModePreferences()
@@ -237,7 +239,7 @@ class HomeViewModel @Inject constructor(
             combine(
                 transactionRepository.getTransactionsBetweenDates(startOfMonth, now),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances
+                _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
                 computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
             }.collect { breakdownByCurrency ->
@@ -357,7 +359,7 @@ class HomeViewModel @Inject constructor(
                     endDate = endOfMonth
                 ),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances
+                _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
                 filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
             }.collect { transactions ->
@@ -376,7 +378,7 @@ class HomeViewModel @Inject constructor(
             combine(
                 transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances
+                _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
                 computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
             }.collect { breakdownByCurrency ->
@@ -396,7 +398,7 @@ class HomeViewModel @Inject constructor(
                     endDate = now
                 ),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances
+                _cachedAccountBalances.filterNotNull()
             ) { allTransactions, profileId, balances ->
                 filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
             }.collect { allTransactions ->
@@ -548,7 +550,7 @@ class HomeViewModel @Inject constructor(
                     endDate = LocalDate.now()
                 ),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances
+                _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
                 filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
             }.collect { transactions ->

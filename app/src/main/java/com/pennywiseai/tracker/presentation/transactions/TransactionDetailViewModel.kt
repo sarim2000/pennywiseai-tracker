@@ -156,8 +156,8 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
-it.loanId?.let { id -> loadLoan(id) }
-loadAccountProfileId(it)
+                it.loanId?.let { id -> loadLoan(id) }
+                loadAccountProfileId(it)
             }
         }
     }
@@ -324,7 +324,7 @@ loadAccountProfileId(it)
         }
     }
 
-fun updateFromAccount(account: String?) {
+    fun updateFromAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
         }
@@ -333,7 +333,10 @@ fun updateFromAccount(account: String?) {
     fun updateToAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
-fun updateProfileId(profileId: Long?) {
+        }
+    }
+
+    fun updateProfileId(profileId: Long?) {
         _editableTransaction.update { current ->
             current?.copy(profileId = profileId)
         }

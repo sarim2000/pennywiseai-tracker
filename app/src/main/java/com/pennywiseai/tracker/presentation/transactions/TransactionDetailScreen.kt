@@ -288,9 +288,9 @@ fun TransactionDetailScreen(
                 splits = splits,
                 showSplitEditor = showSplitEditor,
                 hasSplits = hasSplits,
-loan = loan,
+                loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
-accountProfileId = accountProfileId,
+                accountProfileId = accountProfileId,
                 hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -398,9 +398,9 @@ private fun TransactionDetailContent(
     splits: List<SplitItem>,
     showSplitEditor: Boolean,
     hasSplits: Boolean,
-loan: LoanEntity?,
+    loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit,
-accountProfileId: Long?,
+    accountProfileId: Long?,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
@@ -444,9 +444,9 @@ accountProfileId: Long?,
                 viewModel = viewModel,
                 splits = splits,
                 hasSplits = hasSplits,
-loan = loan,
-                onNavigateToLoanDetail = onNavigateToLoanDetail
-accountProfileId = accountProfileId
+                loan = loan,
+                onNavigateToLoanDetail = onNavigateToLoanDetail,
+                accountProfileId = accountProfileId
             )
         }
     }
@@ -462,9 +462,9 @@ private fun TransactionReceipt(
     viewModel: TransactionDetailViewModel,
     splits: List<SplitItem>,
     hasSplits: Boolean,
-loan: LoanEntity?,
-    onNavigateToLoanDetail: (Long) -> Unit
-accountProfileId: Long? = null
+    loan: LoanEntity?,
+    onNavigateToLoanDetail: (Long) -> Unit,
+    accountProfileId: Long? = null
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {

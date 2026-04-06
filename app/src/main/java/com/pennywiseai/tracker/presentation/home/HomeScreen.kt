@@ -310,9 +310,6 @@ fun HomeScreen(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
-                        profiles = uiState.profiles,
-                        selectedProfileId = uiState.selectedProfileId,
-                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                     )

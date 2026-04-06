@@ -457,6 +457,7 @@ class TransactionsViewModel @Inject constructor(
     }
     
     fun setSelectedProfile(profileId: Long?) {
+        _selectedProfileId.value = profileId
         viewModelScope.launch {
             userPreferencesRepository.updateSelectedProfileId(profileId)
         }

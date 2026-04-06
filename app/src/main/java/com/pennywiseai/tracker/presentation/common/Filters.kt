@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.common
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import java.time.LocalDate
 import java.time.YearMonth
@@ -75,12 +76,13 @@ fun filterTransactionsByProfile(
 ): List<TransactionEntity> {
     if (selectedProfileId == null) return transactions
     return transactions.filter { tx ->
+        // Explicit override > account inheritance > default Personal
         val effectiveProfileId = tx.profileId ?: run {
             if (tx.bankName != null && tx.accountNumber != null) {
                 val key = "${tx.bankName}_${tx.accountNumber}"
                 profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
             } else null
-        }
+        } ?: ProfileEntity.PERSONAL_ID
         effectiveProfileId == selectedProfileId
     }
 }

@@ -131,7 +131,7 @@ class CBEBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("22000.00"),
                     currency = "ETB",
-                    type = TransactionType.EXPENSE,
+                    type = TransactionType.INCOME,
                     merchant = null,
                     accountLast4 = "2222",
                     balance = BigDecimal("802566.16")

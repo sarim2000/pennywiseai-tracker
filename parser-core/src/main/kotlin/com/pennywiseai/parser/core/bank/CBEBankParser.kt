@@ -78,22 +78,8 @@ class CBEBankParser : BankParser() {
 
         return when {
             // Credit transactions are income
-            lowerMessage.contains("has been credited") -> {
-                if (lowerMessage.contains(" from ") || lowerMessage.contains("credited by")) {
-                    TransactionType.INCOME
-                } else {
-                    TransactionType.EXPENSE
-                }
-            }
-            lowerMessage.contains("credited with") -> {
-                // CBE sometimes sends "credited with" messages without source details for debit-style alerts.
-                // Treat these as expense when no payer/source phrase exists.
-                if (lowerMessage.contains(" from ") || lowerMessage.contains("credited by")) {
-                    TransactionType.INCOME
-                } else {
-                    TransactionType.EXPENSE
-                }
-            }
+            lowerMessage.contains("has been credited") -> TransactionType.INCOME
+            lowerMessage.contains("credited with") -> TransactionType.INCOME
 
             // Debit transactions are expenses
             lowerMessage.contains("has been debited") -> TransactionType.EXPENSE

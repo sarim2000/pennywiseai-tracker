@@ -126,6 +126,19 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/recent_transactions_widget_info" />
         </receiver>
+
+        <!-- Add Transaction Quick Widget -->
+        <receiver
+            android:name=".widget.AddTransactionWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_add_transaction">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/add_transaction_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

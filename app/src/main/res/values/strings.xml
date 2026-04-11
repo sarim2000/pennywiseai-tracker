@@ -5,4 +5,6 @@
     <string name="widget_loading">Loading widget…</string>
     <string name="widget_name_recent">Recent Transactions</string>
     <string name="widget_description_recent">View your monthly spend and latest transactions at a glance.</string>
+    <string name="widget_name_add_transaction">Add Transaction</string>
+    <string name="widget_description_add_transaction">Tap to quickly add a manual transaction without opening the app.</string>
 </resources>

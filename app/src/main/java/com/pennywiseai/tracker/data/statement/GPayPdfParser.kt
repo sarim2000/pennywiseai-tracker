@@ -22,7 +22,6 @@ class GPayPdfParser : PdfStatementParser {
     companion object {
         private const val TAG                 = "GPayPdfParser"
         private const val DATE_FORMAT_PATTERN = "dd MMM, yyyy hh:mm a"
-        private const val DATE_BUFFER_SIZE    = 8   // lines buffered before anchor
     }
 
     private val IST = TimeZone.getTimeZone("Asia/Kolkata")
@@ -83,41 +82,61 @@ class GPayPdfParser : PdfStatementParser {
     /**
      * Splits raw PDF text into one string per transaction.
      *
-     * The challenge: date lines appear on the 3 lines BEFORE the transaction
-     * anchor. We keep a rolling buffer of recent pre-anchor lines and prepend
-     * them to the block when an anchor is detected.
+     * The challenge: date lines (`"01 Sep,"`, `"2025"`, `"03:02 PM"`) appear on
+     * the lines BEFORE the transaction anchor in GPay exports. We keep a rolling
+     * "pending" triplet of the most-recent date/year/time lines seen, and each
+     * time a new anchor arrives we prepend that triplet to the new block before
+     * consuming it. Date-pattern lines are never appended to the *current* block
+     * because they belong to the *next* transaction — otherwise N+1's date lines
+     * would bleed into N's block and confuse `extractTimestamp`.
      *
-     * An anchor is "Paid to <X>" where X does NOT end with 4 digits, or
+     * An anchor is "Paid to <X>" where X is not a bank account line, or
      * "Received from <X>". This excludes "Paid to South Indian Bank 1234"
-     * (the account line in income transactions) from being treated as anchors.
+     * (the account line in income transactions) from being treated as an anchor.
      */
     private fun splitIntoBlocks(text: String): List<String> {
-        val blocks  = mutableListOf<String>()
-        val buffer  = ArrayDeque<String>()   // pre-anchor lines (date, year, time)
+        val blocks = mutableListOf<String>()
         val current = StringBuilder()
+        var pendingDate: String? = null
+        var pendingYear: String? = null
+        var pendingTime: String? = null
         var inBlock = false
 
         for (rawLine in text.lines()) {
             val line = rawLine.trim()
             if (line.isEmpty()) continue
 
+            val isDate = dateLineRegex.matches(line)
+            val isYear = yearLineRegex.matches(line)
+            val isTime = timeLineRegex.matches(line)
+
             if (isTransactionAnchor(line)) {
                 if (inBlock && current.isNotEmpty()) {
                     blocks.add(current.toString().trim())
                     current.clear()
                 }
-                // Prepend buffered date lines so extractTimestamp has context
-                buffer.forEach { current.appendLine(it) }
-                buffer.clear()
+                // Prepend the most-recent pending date triplet so this block
+                // owns its own dates — then clear pending so the next transaction
+                // starts fresh.
+                pendingDate?.let { current.appendLine(it) }
+                pendingYear?.let { current.appendLine(it) }
+                pendingTime?.let { current.appendLine(it) }
+                pendingDate = null
+                pendingYear = null
+                pendingTime = null
+                current.appendLine(line)
                 inBlock = true
+                continue
             }
 
-            if (inBlock) {
-                current.appendLine(line)
-            } else {
-                buffer.addLast(line)
-                if (buffer.size > DATE_BUFFER_SIZE) buffer.removeFirst()
-            }
+            // Date-pattern lines are NEVER appended to the current block — they
+            // always belong to the next anchor's transaction. Track the most
+            // recent triplet so the next anchor can consume it.
+            if (isDate) { pendingDate = line; continue }
+            if (isYear) { pendingYear = line; continue }
+            if (isTime) { pendingTime = line; continue }
+
+            if (inBlock) current.appendLine(line)
         }
 
         if (current.isNotEmpty()) blocks.add(current.toString().trim())

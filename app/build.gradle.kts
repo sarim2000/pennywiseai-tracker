@@ -144,6 +144,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            // Allow JVM unit tests to exercise code that touches android.util.Log
+            // and other Android framework stubs without Robolectric.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 kotlin {

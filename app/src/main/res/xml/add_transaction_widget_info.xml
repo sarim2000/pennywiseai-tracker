@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/add_transaction_widget_preview"
+    android:minWidth="80dp"
+    android:minHeight="80dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="120dp"
+    android:minResizeWidth="80dp"
+    android:minResizeHeight="80dp"
+    android:resizeMode="horizontal"
+    android:previewLayout="@layout/add_transaction_widget_preview"
+    android:description="@string/widget_description_add_transaction"
+    android:widgetCategory="home_screen" />

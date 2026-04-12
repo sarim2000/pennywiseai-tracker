@@ -119,7 +119,8 @@ class AddTransactionUseCase @Inject constructor(
                     balance = newBalance,
                     timestamp = date,
                     transactionId = transactionId,
-                    sourceType = "TRANSACTION"
+                    sourceType = "TRANSACTION",
+                    smsSource = null
                 )
             )
         }

@@ -205,9 +205,9 @@ private fun BalanceHistoryItem(
             .animateContentSize(),
         colors = CardDefaults.cardColors(
             containerColor = if (isLatest) {
-                MaterialTheme.colorScheme.surfaceContainerHigh
+                MaterialTheme.colorScheme.surfaceContainerHighest
             } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
+                MaterialTheme.colorScheme.surfaceContainerHigh
             }
         ),
         shape = MaterialTheme.shapes.medium
@@ -333,7 +333,7 @@ private fun BalanceHistoryItem(
             
             // Divider
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 thickness = 0.5.dp
             )
             
@@ -417,7 +417,7 @@ private fun BalanceHistoryItem(
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
                         .clickable { onToggleExpand() },
-                    color = MaterialTheme.colorScheme.surface,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = MaterialTheme.shapes.small
                 ) {
                     Column(

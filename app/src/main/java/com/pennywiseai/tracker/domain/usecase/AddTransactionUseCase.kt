@@ -28,7 +28,8 @@ class AddTransactionUseCase @Inject constructor(
         isRecurring: Boolean = false,
         bankName: String? = null,
         accountLast4: String? = null,
-        currency: String = "INR"
+        currency: String = "INR",
+        receiptPath: String? = null
     ) {
         // Generate a unique hash for manual transactions
         val transactionHash = generateManualTransactionHash(
@@ -54,7 +55,8 @@ class AddTransactionUseCase @Inject constructor(
             isRecurring = isRecurring,
             currency = currency,
             createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            updatedAt = LocalDateTime.now(),
+            receiptPath = receiptPath
         )
 
         // Insert the transaction

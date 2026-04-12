@@ -19,6 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -99,6 +104,11 @@ fun TransactionDetailScreen(
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
+
+    // Receipt state
+    val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
+    val pendingReceiptUri by viewModel.pendingReceiptUri.collectAsStateWithLifecycle()
+    val showFullScreenReceipt by viewModel.showFullScreenReceipt.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -306,6 +316,42 @@ fun TransactionDetailScreen(
                 viewModel.createLoanFromTransaction(personName, inferredDirection, note)
             }
         )
+    }
+
+    // Full-screen Receipt Dialog
+    if (showFullScreenReceipt && receiptUri != null) {
+        Dialog(
+            onDismissRequest = { viewModel.hideFullScreenReceipt() },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                AsyncImage(
+                    model = receiptUri,
+                    contentDescription = "Receipt full screen",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(Spacing.md),
+                    contentScale = ContentScale.Fit
+                )
+                FilledIconButton(
+                    onClick = { viewModel.hideFullScreenReceipt() },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(Spacing.md)
+                        .statusBarsPadding(),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.5f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        }
     }
 }
 
@@ -687,6 +733,54 @@ private fun TransactionReceipt(
                     label = "Reference",
                     value = it
                 )
+            }
+        }
+
+        // ── Receipt Section ──
+        val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
+        receiptUri?.let { uri ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { viewModel.showFullScreenReceipt() },
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(Spacing.md)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Icon(
+                            Icons.Default.Receipt,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.medium),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Receipt",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "Tap to view",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = "Receipt",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
 
@@ -1117,6 +1211,20 @@ private fun EditableExtractedInfoCard(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 2
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            // Receipt attachment in edit mode
+            val existingReceiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
+            val pendingReceiptUri by viewModel.pendingReceiptUri.collectAsStateWithLifecycle()
+            val receiptRemoved by viewModel.receiptRemoved.collectAsStateWithLifecycle()
+            val displayReceiptUri = pendingReceiptUri ?: if (receiptRemoved) null else existingReceiptUri
+            ReceiptPickerSection(
+                receiptUri = displayReceiptUri,
+                onReceiptSelected = { uri -> viewModel.updatePendingReceiptUri(uri) },
+                onReceiptRemoved = { viewModel.removeReceipt() },
+                onCreateCameraUri = { viewModel.createCameraUri() }
             )
 
             Spacer(modifier = Modifier.height(Spacing.sm))

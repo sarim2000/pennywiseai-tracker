@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -11,9 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
@@ -363,18 +370,25 @@ fun TransactionTabContent(
             value = uiState.notes,
             onValueChange = viewModel::updateTransactionNotes,
             label = { Text("Notes (Optional)") },
-            leadingIcon = { 
+            leadingIcon = {
                 Icon(
-                    Icons.Default.Description, 
+                    Icons.Default.Description,
                     contentDescription = null
-                ) 
+                )
             },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 4
         )
-        
-        
+
+        // Receipt Attachment
+        ReceiptPickerSection(
+            receiptUri = uiState.receiptUri,
+            onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
+            onReceiptRemoved = { viewModel.updateReceiptUri(null) },
+            onCreateCameraUri = { viewModel.createCameraUri() }
+        )
+
         // Save Button
         Button(
             onClick = {
@@ -460,5 +474,107 @@ fun TransactionTabContent(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun ReceiptPickerSection(
+    receiptUri: android.net.Uri?,
+    onReceiptSelected: (android.net.Uri) -> Unit,
+    onReceiptRemoved: () -> Unit,
+    onCreateCameraUri: () -> android.net.Uri
+) {
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { onReceiptSelected(it) } }
+
+    var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success -> if (success) cameraUri?.let { onReceiptSelected(it) } }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Text(
+            text = "Receipt (Optional)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (receiptUri != null) {
+            // Receipt preview
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+            ) {
+                AsyncImage(
+                    model = receiptUri,
+                    contentDescription = "Receipt",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 160.dp),
+                    contentScale = ContentScale.Crop
+                )
+                FilledIconButton(
+                    onClick = onReceiptRemoved,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(Spacing.xs)
+                        .size(28.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Remove receipt",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        } else {
+            // Picker buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Gallery")
+                }
+                OutlinedButton(
+                    onClick = {
+                        val uri = onCreateCameraUri()
+                        cameraUri = uri
+                        cameraLauncher.launch(uri)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Camera")
+                }
+            }
+        }
     }
 }

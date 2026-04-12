@@ -10,7 +10,7 @@ import java.time.LocalDate
 @Dao
 interface BudgetDao {
 
-    @Query("SELECT * FROM budgets WHERE is_active = 1 ORDER BY created_at DESC")
+    @Query("SELECT * FROM budgets WHERE is_active = 1 ORDER BY display_order ASC")
     fun getActiveBudgets(): Flow<List<BudgetEntity>>
 
     @Query("SELECT * FROM budgets ORDER BY created_at DESC")

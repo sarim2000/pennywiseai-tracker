@@ -100,7 +100,9 @@ fun AccountDetailScreen(
                     creditLimit = uiState.currentBalance?.creditLimit,
                     bankName = uiState.bankName,
                     accountLast4 = uiState.accountLast4,
-                    primaryCurrency = uiState.primaryCurrency
+                    primaryCurrency = uiState.primaryCurrency,
+                    billedOutstanding = uiState.billedOutstanding,
+                    unbilledOutstanding = uiState.unbilledOutstanding
                 )
             }
 
@@ -262,7 +264,9 @@ private fun CurrentBalanceCard(
     creditLimit: BigDecimal? = null,
     bankName: String,
     accountLast4: String,
-    primaryCurrency: String
+    primaryCurrency: String,
+    billedOutstanding: BigDecimal? = null,
+    unbilledOutstanding: BigDecimal? = null
 ) {
     val isCreditCard = creditLimit != null
     
@@ -297,6 +301,41 @@ private fun CurrentBalanceCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
+                    // Show billed/unbilled split when statement day is configured
+                    if (billedOutstanding != null && unbilledOutstanding != null) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(billedOutstanding, primaryCurrency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Billed",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                Text(
+                                    text = "Unbilled",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             } else {
                 // Regular account layout

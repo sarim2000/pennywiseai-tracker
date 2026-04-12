@@ -284,6 +284,9 @@ fun ManageAccountsScreen(
                             onEditAccount = {
                                 accountToEdit = card
                                 showEditDialog = true
+                            },
+                            onSetStatementDay = { day ->
+                                viewModel.setStatementDay(card.bankName, card.accountLast4, day)
                             }
                         )
                     }
@@ -393,6 +396,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = card
                                     showEditDialog = true
+                                },
+                                onSetStatementDay = { day ->
+                                    viewModel.setStatementDay(card.bankName, card.accountLast4, day)
                                 }
                             )
                         }
@@ -521,8 +527,10 @@ private fun CreditCardItem(
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
     onDeleteAccount: () -> Unit,
-    onEditAccount: () -> Unit = {}
+    onEditAccount: () -> Unit = {},
+    onSetStatementDay: (Int?) -> Unit = {}
 ) {
+    var showStatementDayDialog by remember { mutableStateOf(false) }
     val isManualAccount = card.sourceType == "MANUAL"
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
@@ -733,6 +741,24 @@ private fun CreditCardItem(
                             }
                         )
                         DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (card.statementDay != null) "Statement date: ${card.statementDay}"
+                                    else "Set statement date"
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                showStatementDayDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.CalendarMonth,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {
                                 showMenu = false
@@ -754,6 +780,79 @@ private fun CreditCardItem(
             }
         }
     }
+
+    if (showStatementDayDialog) {
+        StatementDayPickerDialog(
+            currentDay = card.statementDay,
+            onDismiss = { showStatementDayDialog = false },
+            onConfirm = { day ->
+                onSetStatementDay(day)
+                showStatementDayDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatementDayPickerDialog(
+    currentDay: Int?,
+    onDismiss: () -> Unit,
+    onConfirm: (Int?) -> Unit
+) {
+    var selectedDay by remember { mutableIntStateOf(currentDay ?: 1) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Statement date") },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Day of month when your credit card statement closes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    IconButton(
+                        onClick = { if (selectedDay > 1) selectedDay-- }
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+                    Text(
+                        text = "$selectedDay",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(horizontal = Spacing.lg)
+                    )
+                    IconButton(
+                        onClick = { if (selectedDay < 28) selectedDay++ }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedDay) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            if (currentDay != null) {
+                TextButton(onClick = { onConfirm(null) }) {
+                    Text("Clear")
+                }
+            } else {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        }
+    )
 }
 
 @Composable

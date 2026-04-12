@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
@@ -244,6 +245,12 @@ object DatabaseModule {
     fun provideLoanDao(database: PennyWiseDatabase): LoanDao {
         return database.loanDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideProfileDao(database: PennyWiseDatabase): ProfileDao {
+        return database.profileDao()
+    }
 }
 
 /**
@@ -253,12 +260,18 @@ class DatabaseCallback : RoomDatabase.Callback() {
     override fun onCreate(db: SupportSQLiteDatabase) {
         super.onCreate(db)
         
-        // Seed default categories for new installations
+        // Seed default categories and profiles for new installations
         CoroutineScope(Dispatchers.IO).launch {
             seedCategories(db)
+            seedProfiles(db)
         }
     }
     
+    private fun seedProfiles(db: SupportSQLiteDatabase) {
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (1, 'Personal', '#4CAF50', 0)")
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (2, 'Business', '#2196F3', 1)")
+    }
+
     private fun seedCategories(db: SupportSQLiteDatabase) {
         val categories = listOf(
             Triple("Food & Dining", "#FC8019", false),

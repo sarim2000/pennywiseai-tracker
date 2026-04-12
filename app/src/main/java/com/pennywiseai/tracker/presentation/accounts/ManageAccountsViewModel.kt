@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.domain.model.toDatabaseString
@@ -217,6 +218,7 @@ class ManageAccountsViewModel @Inject constructor(
                     isCreditCard = latestBalance?.isCreditCard ?: false,
                     currency = latestBalance?.currency ?: "INR",
                     accountType = latestBalance?.accountType,
+                    profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                     sourceType = "MANUAL",
                     timestamp = LocalDateTime.now()
                 )
@@ -226,6 +228,8 @@ class ManageAccountsViewModel @Inject constructor(
     
     fun updateCreditCard(bankName: String, accountLast4: String, newBalance: BigDecimal, newLimit: BigDecimal) {
         viewModelScope.launch {
+            val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+
             accountBalanceRepository.insertBalance(
                 AccountBalanceEntity(
                     bankName = bankName,
@@ -233,7 +237,11 @@ class ManageAccountsViewModel @Inject constructor(
                     balance = newBalance,
                     creditLimit = newLimit,
                     timestamp = LocalDateTime.now(),
-                    isCreditCard = true
+                    isCreditCard = true,
+                    currency = latestBalance?.currency ?: "INR",
+                    accountType = latestBalance?.accountType,
+                    profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    sourceType = "MANUAL"
                 )
             )
         }
@@ -425,6 +433,12 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {
+        viewModelScope.launch {
+            accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+        }
+    }
+
     fun editAccount(
         oldBankName: String,
         accountLast4: String,
@@ -451,6 +465,9 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                 }
 
+                // Get existing balance to preserve profileId and other properties
+                val latestBalance = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
+
                 // Insert new balance record with updated values
                 accountBalanceRepository.insertBalance(
                     AccountBalanceEntity(
@@ -460,6 +477,9 @@ class ManageAccountsViewModel @Inject constructor(
                         creditLimit = newCreditLimit,
                         timestamp = LocalDateTime.now(),
                         isCreditCard = isCreditCard,
+                        currency = latestBalance?.currency ?: "INR",
+                        accountType = latestBalance?.accountType,
+                        profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                         sourceType = "MANUAL"
                     )
                 )

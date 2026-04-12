@@ -77,7 +77,10 @@ data class TransactionEntity(
     val reference: String? = null,
 
     @ColumnInfo(name = "loan_id", defaultValue = "NULL")
-    val loanId: Long? = null
+    val loanId: Long? = null,
+
+    @ColumnInfo(name = "profile_id", defaultValue = "NULL")
+    val profileId: Long? = null
 )
 
 enum class TransactionType {

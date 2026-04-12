@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
@@ -35,6 +36,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -53,8 +55,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class],
-    version = 37,
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, ProfileEntity::class],
+    version = 40,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -89,7 +91,10 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 33, to = 34),
         AutoMigration(from = 34, to = 35, spec = Migration34To35::class),
         AutoMigration(from = 35, to = 36, spec = Migration35To36::class),
-        AutoMigration(from = 36, to = 37)
+        AutoMigration(from = 36, to = 37),
+        AutoMigration(from = 37, to = 38, spec = Migration37To38::class),
+        AutoMigration(from = 38, to = 39),
+        AutoMigration(from = 39, to = 40)
     ]
 )
 @TypeConverters(Converters::class)
@@ -109,6 +114,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionSplitDao(): TransactionSplitDao
     abstract fun bankNotificationDao(): BankNotificationDao
     abstract fun loanDao(): LoanDao
+    abstract fun profileDao(): ProfileDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -533,3 +539,19 @@ class Migration34To35 : AutoMigrationSpec
     DeleteTable(tableName = "category_budget_limits")
 )
 class Migration35To36 : AutoMigrationSpec
+
+/**
+ * Migration from version 37 to 38.
+ * - Adds `profiles` table
+ * - Seeds default Personal (id=1) and Business (id=2) profiles
+ */
+class Migration37To38 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        super.onPostMigrate(db)
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (1, 'Personal', '#4CAF50', 0)")
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (2, 'Business', '#2196F3', 1)")
+    }
+}
+
+// Migration 38→39: AutoMigration adds `profile_id` (default 1) to `account_balances`. No spec needed.
+// Migration 39→40: AutoMigration adds nullable `profile_id` to `transactions`. No spec needed.

@@ -46,8 +46,9 @@ fun GreetingCard(
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {}
 ) {
-    val subtitle = remember {
-        val now = LocalDate.now()
+    val today = LocalDate.now()
+    val subtitle = remember(today) {
+        val now = today
         val lastDay = now.withDayOfMonth(now.lengthOfMonth())
         val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
         val monthName = now.month.name.lowercase().replaceFirstChar { it.uppercase() }

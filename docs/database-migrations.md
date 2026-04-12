@@ -225,14 +225,14 @@ fun toStringList(value: String?): List<String>? {
 - Provide default value
 - Or make column nullable first, then migrate data
 
-## Future Migrations Plan
+## Migration History
 
-### Version 2 (Planned)
-- Add categories table
-- Add transaction tags
-- Add recurring transaction support
+### Version 36 → 37
+- Added `is_business` column (INTEGER, default 0) to `account_balances` table
+- Allows marking bank accounts as business or personal
+- AutoMigration (no spec needed — simple column addition with default)
 
-### Version 3 (Planned)
-- Add budgets table
-- Add financial goals
-- Add multi-currency support
+### Version 37 → 38
+- Added `is_business` column (nullable INTEGER) to `transactions` table
+- Supports three-state logic: `null` = inherit from account, `1` = business, `0` = personal
+- AutoMigration (no spec needed — nullable column addition)

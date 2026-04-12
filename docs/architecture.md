@@ -81,7 +81,9 @@ PennyWise follows modern Android architecture guidelines with MVVM pattern, Clea
 **Key Classes:**
 ```kotlin
 - TransactionRepository.kt
+- AccountBalanceRepository.kt
 - TransactionDao.kt
+- AccountBalanceDao.kt
 - SmsDataSource.kt
 - AICategorizationService.kt
 - BankNotificationListenerService.kt (notification-to-SMS parser bridge for whitelisted bank apps)
@@ -226,7 +228,7 @@ class HomeViewModel @Inject constructor(
 ## Migration & Evolution
 
 ### Database Migrations
-- Room auto-migrations
+- Room auto-migrations (see `docs/database-migrations.md` for version history)
 - Fallback strategies
 - Data integrity checks
 

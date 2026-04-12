@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -59,7 +60,8 @@ class AccountBalanceRepository @Inject constructor(
     }
     
     /**
-     * Inserts a balance record from a transaction if it has balance information
+     * Inserts a balance record from a transaction if it has balance information.
+     * Preserves the existing account's profileId if one exists.
      */
     suspend fun insertBalanceFromTransaction(
         bankName: String?,
@@ -71,6 +73,7 @@ class AccountBalanceRepository @Inject constructor(
         isCreditCard: Boolean = false
     ) {
         if (bankName != null && accountLast4 != null && (balance != null || creditLimit != null)) {
+            val existing = getLatestBalance(bankName, accountLast4)
             val balanceEntity = AccountBalanceEntity(
                 bankName = bankName,
                 accountLast4 = accountLast4,
@@ -78,14 +81,16 @@ class AccountBalanceRepository @Inject constructor(
                 timestamp = timestamp,
                 transactionId = transactionId,
                 creditLimit = creditLimit,
-                isCreditCard = isCreditCard
+                isCreditCard = isCreditCard,
+                profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID
             )
             insertBalance(balanceEntity)
         }
     }
     
     /**
-     * Inserts a balance update from a balance notification SMS
+     * Inserts a balance update from a balance notification SMS.
+     * Preserves the existing account's profileId if one exists.
      */
     suspend fun insertBalanceUpdate(
         bankName: String,
@@ -96,6 +101,7 @@ class AccountBalanceRepository @Inject constructor(
         sourceType: String? = null,
         currency: String = "INR"
     ): Long {
+        val existing = getLatestBalance(bankName, accountLast4)
         val balanceEntity = AccountBalanceEntity(
             bankName = bankName,
             accountLast4 = accountLast4,
@@ -104,7 +110,8 @@ class AccountBalanceRepository @Inject constructor(
             transactionId = null,
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
-            currency = currency
+            currency = currency,
+            profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID
         )
         return insertBalance(balanceEntity)
     }
@@ -139,5 +146,9 @@ class AccountBalanceRepository @Inject constructor(
 
     suspend fun deleteAllBalances() {
         accountBalanceDao.deleteAllBalances()
+    }
+
+    suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int {
+        return accountBalanceDao.setAccountProfile(bankName, accountLast4, profileId)
     }
 }

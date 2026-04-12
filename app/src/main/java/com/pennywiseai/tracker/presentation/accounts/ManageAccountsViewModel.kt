@@ -239,6 +239,12 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
     
+    fun setStatementDay(bankName: String, accountLast4: String, day: Int?) {
+        viewModelScope.launch {
+            accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
+        }
+    }
+
     fun toggleAccountVisibility(bankName: String, accountLast4: String) {
         val key = "${bankName}_${accountLast4}"
         val hidden = _uiState.value.hiddenAccounts.toMutableSet()

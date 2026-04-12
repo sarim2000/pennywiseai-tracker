@@ -49,7 +49,11 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import ir.ehsannarmani.compose_charts.LineChart
+import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.delay
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -543,7 +547,7 @@ private fun BudgetCard(
                         .fillMaxWidth()
                         .height(10.dp)
                         .clip(barShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(statusColor.copy(alpha = 0.15f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -583,7 +587,7 @@ private fun BudgetCard(
                 Text(
                     text = subtitleText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -592,7 +596,7 @@ private fun BudgetCard(
                 Text(
                     text = "Spent ${CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)} of ${CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -607,7 +611,17 @@ private fun BudgetCard(
                 Text(
                     text = "Tracking all expenses",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Per-budget spending pace chart
+            if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                SpendingPaceChart(
+                    cumulativeSpending = groupSpending.dailyCumulativeSpending,
+                    budgetPace = groupSpending.dailyBudgetPace,
+                    currency = currency
                 )
             }
 
@@ -696,7 +710,7 @@ private fun BudgetCard(
                                             .fillMaxWidth()
                                             .height(4.dp)
                                             .clip(catBarShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .background(catStatusColor.copy(alpha = 0.15f))
                                     ) {
                                         Box(
                                             modifier = Modifier
@@ -710,7 +724,7 @@ private fun BudgetCard(
                                     Text(
                                         text = "${CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency)} of ${CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)}",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 } else {
                                     Text(
@@ -726,4 +740,110 @@ private fun BudgetCard(
             }
         }
     }
+}
+
+@Composable
+private fun SpendingPaceChart(
+    cumulativeSpending: List<Double>,
+    budgetPace: List<Double>,
+    currency: String,
+    modifier: Modifier = Modifier
+) {
+    val themeColors = MaterialTheme.colorScheme
+    val isOverPace = cumulativeSpending.lastOrNull()?.let { actual ->
+        budgetPace.lastOrNull()?.let { pace -> actual > pace }
+    } ?: false
+    val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+
+    Column(modifier = modifier.fillMaxWidth()) {
+            LineChart(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                data = listOf(
+                    Line(
+                        label = "Actual",
+                        values = cumulativeSpending,
+                        color = SolidColor(spendingColor),
+                        firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
+                        secondGradientFillColor = Color.Transparent,
+                        strokeAnimationSpec = tween(1200),
+                        gradientAnimationDelay = 600,
+                        drawStyle = DrawStyle.Stroke(width = 2.5.dp),
+                        curvedEdges = true,
+                        dotProperties = DotProperties(
+                            enabled = false
+                        )
+                    ),
+                    Line(
+                        label = "Budget Pace",
+                        values = budgetPace,
+                        color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
+                        drawStyle = DrawStyle.Stroke(width = 1.5.dp),
+                        strokeAnimationSpec = tween(1200),
+                        curvedEdges = false,
+                        dotProperties = DotProperties(enabled = false)
+                    )
+                ),
+                dividerProperties = DividerProperties(enabled = false),
+                indicatorProperties = HorizontalIndicatorProperties(
+                    enabled = true,
+                    textStyle = androidx.compose.ui.text.TextStyle.Default.copy(
+                        fontSize = 10.sp,
+                        color = themeColors.onSurfaceVariant.copy(0.7f)
+                    ),
+                    contentBuilder = { value ->
+                        CurrencyFormatter.formatAbbreviated(value, currency)
+                    }
+                ),
+                labelHelperProperties = LabelHelperProperties(enabled = false),
+                labelProperties = LabelProperties(enabled = false),
+                gridProperties = GridProperties(
+                    enabled = true,
+                    xAxisProperties = GridProperties.AxisProperties(
+                        enabled = false
+                    ),
+                    yAxisProperties = GridProperties.AxisProperties(
+                        enabled = true,
+                        style = StrokeStyle.Dashed(),
+                        color = SolidColor(themeColors.onSurface.copy(alpha = 0.08f))
+                    )
+                ),
+                animationMode = AnimationMode.Together(delayBuilder = { it * 100L }),
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(spendingColor)
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(
+                    text = "Actual",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = themeColors.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(Spacing.md))
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(
+                    text = "Budget Pace",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = themeColors.onSurfaceVariant
+                )
+            }
+        }
 }

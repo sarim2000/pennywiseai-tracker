@@ -23,7 +23,9 @@ data class BudgetGroupSpending(
     val dailyAllowance: BigDecimal,
     val daysRemaining: Int,
     val daysElapsed: Int,
-    val isTrackingAllExpenses: Boolean = false
+    val isTrackingAllExpenses: Boolean = false,
+    val dailyCumulativeSpending: List<Double> = emptyList(),
+    val dailyBudgetPace: List<Double> = emptyList()
 )
 
 data class BudgetOverallSummary(

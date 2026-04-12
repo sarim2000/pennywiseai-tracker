@@ -176,11 +176,12 @@ class AnalyticsViewModel @Inject constructor(
                 }
             }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
                 // Filter by transaction type in memory (splits are already loaded)
-                val filteredTransactionsWithSplits = if (transactionTypeFilter != null) {
+                // Exclude loan repayments — they are fixed obligations, not discretionary spending
+                val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
                     allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
                 } else {
                     allTransactionsWithSplits
-                }
+                }).filter { it.transaction.loanId == null }
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits

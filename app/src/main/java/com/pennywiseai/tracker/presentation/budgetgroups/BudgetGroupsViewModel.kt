@@ -134,7 +134,53 @@ class BudgetGroupsViewModel @Inject constructor(
             }
         }
 
+        // Pre-compute converted category amounts per transaction for pace chart
+        val yearMonth = _selectedYearMonth.value
+        val daysInMonth = yearMonth.lengthOfMonth()
+        val effectiveDays = raw.daysElapsed.coerceAtMost(daysInMonth)
+
+        data class ConvertedTxDay(val day: Int, val categoryAmounts: Map<String, Double>)
+        val convertedTxDays = raw.allTransactions.mapNotNull { txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
+                tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER ||
+                tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT ||
+                tx.loanId != null
+            ) return@mapNotNull null
+            val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+            val catAmounts = txWithSplits.getAmountByCategory().mapValues { (_, amount) ->
+                currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
+            }.mapKeys { (cat, _) -> cat.ifEmpty { "Others" } }
+            ConvertedTxDay(day, catAmounts)
+        }
+
+        fun buildGroupPaceUnified(
+            categoryNames: Set<String>?,
+            groupBudget: BigDecimal
+        ): Pair<List<Double>, List<Double>> {
+            if (effectiveDays < 1) return emptyList<Double>() to emptyList()
+            val dailyAmounts = DoubleArray(daysInMonth)
+            convertedTxDays.forEach { txDay ->
+                if (categoryNames == null) {
+                    dailyAmounts[txDay.day - 1] += txDay.categoryAmounts.values.sum()
+                } else {
+                    txDay.categoryAmounts.forEach { (cat, amount) ->
+                        if (cat in categoryNames) dailyAmounts[txDay.day - 1] += amount
+                    }
+                }
+            }
+            val cumulative = mutableListOf<Double>()
+            var running = 0.0
+            for (i in 0 until effectiveDays) { running += dailyAmounts[i]; cumulative.add(running) }
+            val pace = if (groupBudget > BigDecimal.ZERO) {
+                val dp = groupBudget.toDouble() / daysInMonth
+                (1..effectiveDays).map { it * dp }
+            } else emptyList()
+            return cumulative to pace
+        }
+
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
+            val isTrackingAll = group.categories.isEmpty()
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
@@ -152,8 +198,16 @@ class BudgetGroupsViewModel @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val totalBudget = if (isTrackingAll) {
+                currencyConversionService.convertAmount(group.budget.limitAmount, baseCurrency, displayCurrency)
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            }
+            val totalActual = if (isTrackingAll) {
+                categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            }
             val remaining = totalBudget - totalActual
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
@@ -162,16 +216,22 @@ class BudgetGroupsViewModel @Inject constructor(
                 remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
 
+            val catNames = if (isTrackingAll) null else group.categories.map { it.categoryName }.toSet()
+            val (cumSpending, budgetPace) = buildGroupPaceUnified(catNames, totalBudget)
+
             BudgetGroupSpending(
                 group = group,
-                categorySpending = catSpending,
+                categorySpending = if (isTrackingAll) emptyList() else catSpending,
                 totalBudget = totalBudget,
                 totalActual = totalActual,
                 remaining = remaining,
                 percentageUsed = pctUsed,
                 dailyAllowance = dailyAllowance,
                 daysRemaining = raw.daysRemaining,
-                daysElapsed = raw.daysElapsed
+                daysElapsed = raw.daysElapsed,
+                isTrackingAllExpenses = isTrackingAll,
+                dailyCumulativeSpending = cumSpending,
+                dailyBudgetPace = budgetPace
             )
         }
 

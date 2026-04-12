@@ -615,19 +615,9 @@ private fun BudgetCard(
                 )
             }
 
-            // Per-budget spending pace chart
-            if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                SpendingPaceChart(
-                    cumulativeSpending = groupSpending.dailyCumulativeSpending,
-                    budgetPace = groupSpending.dailyBudgetPace,
-                    currency = currency
-                )
-            }
-
-            // Expandable category list
+            // Expandable category list + pace chart
             AnimatedVisibility(
-                visible = expanded && groupSpending.categorySpending.isNotEmpty(),
+                visible = expanded,
                 enter = fadeIn() + expandVertically(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioLowBouncy,
@@ -640,9 +630,20 @@ private fun BudgetCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant
+                    // Per-budget spending pace chart
+                    if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        SpendingPaceChart(
+                            cumulativeSpending = groupSpending.dailyCumulativeSpending,
+                            budgetPace = groupSpending.dailyBudgetPace,
+                            currency = currency
+                        )
+                    }
+
+                    if (groupSpending.categorySpending.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
 
@@ -735,6 +736,7 @@ private fun BudgetCard(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

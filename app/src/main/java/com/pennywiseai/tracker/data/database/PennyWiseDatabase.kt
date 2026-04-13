@@ -54,7 +54,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class],
-    version = 38,
+    version = 39,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -135,7 +135,8 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                         MIGRATION_14_15,
                         MIGRATION_20_21,
                         MIGRATION_21_22,
-                        MIGRATION_22_23
+                        MIGRATION_22_23,
+                        MIGRATION_38_39
                     )
                     .build()
                 INSTANCE = instance
@@ -402,6 +403,34 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_rule_applications_rule_id ON rule_applications (rule_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_rule_applications_transaction_id ON rule_applications (transaction_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_rule_applications_applied_at ON rule_applications (applied_at)")
+            }
+        }
+
+        val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add receipt_path to transactions if missing
+                if (!hasColumn(db, "transactions", "receipt_path")) {
+                    db.execSQL("ALTER TABLE `transactions` ADD COLUMN `receipt_path` TEXT DEFAULT NULL")
+                }
+                // Add statement_day to account_balances if missing (added in main's v38)
+                if (!hasColumn(db, "account_balances", "statement_day")) {
+                    db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `statement_day` INTEGER DEFAULT NULL")
+                }
+            }
+
+            private fun hasColumn(db: SupportSQLiteDatabase, table: String, column: String): Boolean {
+                val cursor = db.query("PRAGMA table_info($table)")
+                try {
+                    while (cursor.moveToNext()) {
+                        val nameIndex = cursor.getColumnIndex("name")
+                        if (nameIndex != -1 && cursor.getString(nameIndex) == column) {
+                            return true
+                        }
+                    }
+                } finally {
+                    cursor.close()
+                }
+                return false
             }
         }
     }

@@ -216,6 +216,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val parsed    = AtomicInteger(0)
         val saved     = AtomicInteger(0)
         val blocked   = AtomicInteger(0)
+        val duplicates = AtomicInteger(0)
         val startTime = System.currentTimeMillis()
 
         // Must be a power of 2 (for bitmask) and large enough that the ring never
@@ -587,6 +588,24 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // getTransactionByHash returns rows where is_deleted=1 too, so
             // soft-deleted transactions are never re-imported.
             if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return false
+
+            // RRN-based deduplication: check if a transaction with same reference exists within 3 minutes
+            // This handles GPay duplicate SMS from different banks (SBI + partner bank)
+            // RRN is always 12 digits - short numeric references could cause false positives
+            val reference = parsed.reference
+            if (reference != null && reference.length == 12 && reference.all { it.isDigit() }) {
+                val existingByRef = transactionRepository.getTransactionByReference(reference)
+                if (existingByRef != null && !existingByRef.isDeleted) {
+                    val timeDiffMinutes = java.time.Duration.between(
+                        existingByRef.dateTime, entity.dateTime
+                    ).toMinutes().let { if (it < 0) -it else it }
+                    if (timeDiffMinutes <= 3) {
+                        Log.d(TAG, "Skipping duplicate transaction with matching RRN $reference within $timeDiffMinutes minutes")
+                        stats.duplicates.incrementAndGet()
+                        return false
+                    }
+                }
+            }
 
             val customCategory = merchantMappingCache[entity.merchantName]
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity

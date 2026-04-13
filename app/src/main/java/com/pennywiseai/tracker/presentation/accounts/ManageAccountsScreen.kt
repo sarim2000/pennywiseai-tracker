@@ -1135,7 +1135,7 @@ private fun UpdateBalanceDialog(
             }
         },
         text = {
-            OutlinedTextField(
+            TextField(
                 value = balanceText,
                 onValueChange = { text ->
                     if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -1216,7 +1216,7 @@ private fun UpdateCreditCardDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                OutlinedTextField(
+                TextField(
                     value = outstandingText,
                     onValueChange = { text ->
                         if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -1242,7 +1242,7 @@ private fun UpdateCreditCardDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                OutlinedTextField(
+                TextField(
                     value = limitText,
                     onValueChange = { text ->
                         if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -1689,7 +1689,7 @@ private fun EditAccountDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Bank Name (Editable)
-                OutlinedTextField(
+                TextField(
                     value = bankNameText,
                     onValueChange = { bankNameText = it },
                     label = { Text("Bank Name") },
@@ -1704,14 +1704,19 @@ private fun EditAccountDialog(
                 )
 
                 // Account Number (Read-only)
-                OutlinedTextField(
+                TextField(
                     value = "••${account.accountLast4}",
                     onValueChange = {},
                     label = { Text("Account Number") },
                     enabled = false,
-                    colors = OutlinedTextFieldDefaults.colors(
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        disabledIndicatorColor = Color.Transparent,
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
@@ -1724,7 +1729,7 @@ private fun EditAccountDialog(
 
                 if (account.isCreditCard) {
                     // Outstanding Balance (Credit Card)
-                    OutlinedTextField(
+                    TextField(
                         value = balanceText,
                         onValueChange = { text ->
                             if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -1751,7 +1756,7 @@ private fun EditAccountDialog(
                     )
 
                     // Credit Limit
-                    OutlinedTextField(
+                    TextField(
                         value = creditLimitText,
                         onValueChange = { text ->
                             if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -1810,7 +1815,7 @@ private fun EditAccountDialog(
                     }
                 } else {
                     // Account Balance (Regular Account)
-                    OutlinedTextField(
+                    TextField(
                         value = balanceText,
                         onValueChange = { text ->
                             if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {

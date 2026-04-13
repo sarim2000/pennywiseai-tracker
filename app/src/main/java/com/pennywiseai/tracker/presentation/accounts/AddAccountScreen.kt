@@ -3,18 +3,22 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -123,18 +127,37 @@ fun AddAccountScreen(
                 }
             }
             
-            // Account Type Dropdown
+            val acctFullShape = RoundedCornerShape(16.dp)
+            val acctTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+            val acctMiddleShape = RoundedCornerShape(4.dp)
+            val acctBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+            val acctColors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                disabledIndicatorColor = Color.Transparent,
+                disabledLabelColor = MaterialTheme.colorScheme.primary,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Account Type
             ExposedDropdownMenuBox(
                 expanded = showTypeDropdown,
                 onExpandedChange = { showTypeDropdown = it }
             ) {
-                OutlinedTextField(
+                TextField(
                     value = formState.accountType.name.lowercase()
                         .replaceFirstChar { it.uppercase() },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Account Type") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
+                    label = { Text("Account Type", fontWeight = FontWeight.SemiBold) },
+                    trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
@@ -147,19 +170,19 @@ fun AddAccountScreen(
                             },
                             contentDescription = null
                         )
-                    }
+                    },
+                    shape = acctFullShape,
+                    colors = acctColors
                 )
-                
+
                 ExposedDropdownMenu(
                     expanded = showTypeDropdown,
                     onDismissRequest = { showTypeDropdown = false }
                 ) {
                     AccountType.values().forEach { type ->
                         DropdownMenuItem(
-                            text = { 
-                                Text(
-                                    type.name.lowercase().replaceFirstChar { it.uppercase() }
-                                )
+                            text = {
+                                Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
                             },
                             onClick = {
                                 viewModel.updateAccountType(type)
@@ -179,96 +202,70 @@ fun AddAccountScreen(
                     }
                 }
             }
-            
-            // Account Name
-            OutlinedTextField(
-                value = formState.bankName,
-                onValueChange = viewModel::updateBankName,
-                label = { Text("Account Name *") },
-                placeholder = {
-                    Text(
-                        when (formState.accountType) {
-                            AccountType.SAVINGS, AccountType.CURRENT -> "e.g., HDFC Bank"
-                            AccountType.CREDIT -> "e.g., HDFC Credit Card"
-                            AccountType.CASH -> "e.g., My Wallet"
-                        }
-                    )
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Business, contentDescription = null)
-                },
+
+            // Account Name + Last 4 + Balance (connected group)
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words
-                )
-            )
-            
-            // Last 4 Digits
-            OutlinedTextField(
-                value = formState.accountLast4,
-                onValueChange = viewModel::updateAccountLast4,
-                label = {
-                    Text(if (formState.accountType == AccountType.CASH) "Identifier (Optional)" else "Last 4 Digits *")
-                },
-                placeholder = {
-                    Text(if (formState.accountType == AccountType.CASH) "e.g., 0001" else "e.g., 1234")
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Tag, contentDescription = null)
-                },
-                supportingText = {
-                    Text(
-                        if (formState.accountType == AccountType.CASH)
-                            "Optional identifier for this cash account"
-                        else
-                            "Enter last 4 digits of account/card"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                )
-            )
-            
-            // Current Balance
-            OutlinedTextField(
-                value = formState.balance,
-                onValueChange = viewModel::updateBalance,
-                label = { Text("Current Balance *") },
-                placeholder = { Text("0.00") },
-                leadingIcon = {
-                    Icon(Icons.Default.Payments, contentDescription = null)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Decimal
-                )
-            )
-            
-            // Credit Limit (only for credit cards)
-            if (formState.accountType == AccountType.CREDIT) {
-                OutlinedTextField(
-                    value = formState.creditLimit,
-                    onValueChange = viewModel::updateCreditLimit,
-                    label = { Text("Credit Limit") },
-                    placeholder = { Text("0.00") },
-                    leadingIcon = {
-                        Icon(Icons.Default.CreditScore, contentDescription = null)
-                    },
-                    supportingText = {
-                        Text("Optional: Set credit limit for utilization tracking")
-                    },
+                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+            ) {
+                TextField(
+                    value = formState.bankName,
+                    onValueChange = viewModel::updateBankName,
+                    label = { Text("Account Name *", fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    )
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    shape = acctTopShape,
+                    colors = acctColors
                 )
+
+                TextField(
+                    value = formState.accountLast4,
+                    onValueChange = viewModel::updateAccountLast4,
+                    label = {
+                        Text(
+                            if (formState.accountType == AccountType.CASH) "Identifier (Optional)" else "Last 4 Digits *",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctBottomShape,
+                    colors = acctColors
+                )
+
+                TextField(
+                    value = formState.balance,
+                    onValueChange = viewModel::updateBalance,
+                    label = { Text("Current Balance *", fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctFullShape,
+                    colors = acctColors
+                )
+
+                // Credit Limit (only for credit cards)
+                if (formState.accountType == AccountType.CREDIT) {
+                    TextField(
+                        value = formState.creditLimit,
+                        onValueChange = viewModel::updateCreditLimit,
+                        label = { Text("Credit Limit", fontWeight = FontWeight.SemiBold) },
+                        leadingIcon = { Icon(Icons.Default.CreditScore, contentDescription = null) },
+                        supportingText = { Text("Optional: Set credit limit for utilization tracking") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = acctBottomShape,
+                        colors = acctColors
+                    )
+                }
             }
-            
+
             // Save Button
             Button(
                 onClick = {
@@ -278,13 +275,16 @@ fun AddAccountScreen(
                     }
                 },
                 enabled = formState.isValid,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
             ) {
-                Text("Save Account")
+                Icon(Icons.Default.Done, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Save", style = MaterialTheme.typography.titleMedium)
             }
-            
-            // Add some bottom padding for better scroll experience
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(Spacing.md))
         }
     }
 }

@@ -73,17 +73,26 @@ fun CategoryEditDialog(
                 )
 
                 // Category Name Input
-                OutlinedTextField(
+                TextField(
                     value = name,
                     onValueChange = {
                         name = it
                         nameError = if (it.isBlank()) "Category name is required" else null
                     },
-                    label = { Text("Category Name") },
+                    label = { Text("Category Name", fontWeight = FontWeight.SemiBold) },
                     isError = nameError != null,
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                    )
                 )
 
                 // Category Type Selection

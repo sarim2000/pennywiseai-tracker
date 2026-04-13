@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -287,7 +288,7 @@ fun LoanDetailScreen(
             onDismissRequest = { viewModel.hideEditAmountDialog() },
             title = { Text("Expected Return") },
             text = {
-                OutlinedTextField(
+                TextField(
                     value = editAmount,
                     onValueChange = { value ->
                         if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -298,7 +299,13 @@ fun LoanDetailScreen(
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )
             },
             confirmButton = {
@@ -508,7 +515,7 @@ private fun RecordPaymentBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
+                TextField(
                     value = manualAmount,
                     onValueChange = { value ->
                         if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -520,7 +527,13 @@ private fun RecordPaymentBottomSheet(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )
                 Button(
                     onClick = {

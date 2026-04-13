@@ -343,7 +343,7 @@ private fun BalanceHistoryItem(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    OutlinedTextField(
+                    TextField(
                         value = editingValue,
                         onValueChange = onEditValueChange,
                         keyboardOptions = KeyboardOptions(
@@ -358,7 +358,14 @@ private fun BalanceHistoryItem(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
+                        },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                        )
                     )
                     
                     FlowRow(

@@ -251,7 +251,7 @@ fun CreateRuleScreen(
             }
 
             // Rule name and description
-            OutlinedTextField(
+            TextField(
                 value = ruleName,
                 onValueChange = { ruleName = it },
                 label = { Text("Rule Name") },
@@ -260,7 +260,7 @@ fun CreateRuleScreen(
                 singleLine = true
             )
 
-            OutlinedTextField(
+            TextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Description (Optional)") },
@@ -393,7 +393,7 @@ fun CreateRuleScreen(
                         expanded = actionTypeDropdownExpanded,
                         onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
                     ) {
-                        OutlinedTextField(
+                        TextField(
                             value = when(actionType) {
                                 ActionType.BLOCK -> "Block Transaction"
                                 ActionType.SET -> "Set Field"
@@ -467,7 +467,7 @@ fun CreateRuleScreen(
                         expanded = actionFieldDropdownExpanded,
                         onExpandedChange = { actionFieldDropdownExpanded = !actionFieldDropdownExpanded }
                     ) {
-                        OutlinedTextField(
+                        TextField(
                             value = when(actionField) {
                                 TransactionField.CATEGORY -> "Set Category"
                                 TransactionField.MERCHANT -> "Set Merchant Name"
@@ -527,7 +527,7 @@ fun CreateRuleScreen(
                                 }
                             }
 
-                            OutlinedTextField(
+                            TextField(
                                 value = actionValue,
                                 onValueChange = { actionValue = it },
                                 label = { Text("Category Name") },
@@ -590,7 +590,7 @@ fun CreateRuleScreen(
                                 }
                             }
 
-                            OutlinedTextField(
+                            TextField(
                                 value = actionValue,
                                 onValueChange = { actionValue = it },
                                 label = { Text("Merchant Name") },
@@ -602,7 +602,7 @@ fun CreateRuleScreen(
 
                         TransactionField.NARRATION -> {
                             // Description/Narration input
-                            OutlinedTextField(
+                            TextField(
                                 value = actionValue,
                                 onValueChange = { actionValue = it },
                                 label = { Text("Description") },
@@ -615,7 +615,7 @@ fun CreateRuleScreen(
 
                         else -> {
                             // Generic text input for other fields
-                            OutlinedTextField(
+                            TextField(
                                 value = actionValue,
                                 onValueChange = { actionValue = it },
                                 label = { Text("Value") },
@@ -765,7 +765,7 @@ private fun ConditionFieldSelector(
             TransactionField.TRANSACTION_DAY_OF_MONTH to "Day of Month",
             TransactionField.TRANSACTION_DATE to "Date"
         )
-        OutlinedTextField(
+        TextField(
             value = fieldOptions.firstOrNull { it.first == condition.field }?.second ?: "Amount",
             onValueChange = { },
             readOnly = true,
@@ -915,7 +915,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_DAY_OF_MONTH -> {
-            OutlinedTextField(
+            TextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text("Day (1-31)") },
@@ -935,7 +935,7 @@ private fun ConditionFieldSelector(
                 initialMinute = initialMinute
             )
 
-            OutlinedTextField(
+            TextField(
                 value = condition.value,
                 onValueChange = { },
                 readOnly = true,
@@ -969,7 +969,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_HOUR -> {
-            OutlinedTextField(
+            TextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text("Hour (0-23)") },
@@ -981,7 +981,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_DATE -> {
-            OutlinedTextField(
+            TextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text("Date (yyyy-MM-dd)") },
@@ -992,7 +992,7 @@ private fun ConditionFieldSelector(
         }
 
         else -> {
-            OutlinedTextField(
+            TextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text("Value") },

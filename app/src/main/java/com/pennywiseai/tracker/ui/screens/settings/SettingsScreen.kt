@@ -922,7 +922,7 @@ private fun SettingsDropdownItem(
                 expanded = expanded,
                 onExpandedChange = onExpandedChange
             ) {
-                OutlinedTextField(
+                TextField(
                     value = currentValue,
                     onValueChange = {},
                     readOnly = true,
@@ -933,9 +933,12 @@ private fun SettingsDropdownItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
                     )
                 )
                 ExposedDropdownMenu(

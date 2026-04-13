@@ -1,12 +1,14 @@
 package com.pennywiseai.tracker.presentation.add
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
@@ -30,7 +32,8 @@ class AddViewModel @Inject constructor(
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val receiptManager: ReceiptManager
 ) : ViewModel() {
     
     // General UI State
@@ -162,6 +165,12 @@ class AddViewModel @Inject constructor(
             currentState.copy(currency = currency)
         }
     }
+
+    fun updateReceiptUri(uri: Uri?) {
+        _transactionUiState.update { it.copy(receiptUri = uri) }
+    }
+
+    fun createCameraUri(): Uri = receiptManager.createCameraUri()
     
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
@@ -188,6 +197,8 @@ class AddViewModel @Inject constructor(
                 val amount = BigDecimal(state.amount)
                 val selectedAccount = state.selectedAccount
 
+                val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
+
                 addTransactionUseCase.execute(
                     amount = amount,
                     merchant = state.merchant.trim(),
@@ -198,7 +209,8 @@ class AddViewModel @Inject constructor(
                     isRecurring = state.isRecurring,
                     bankName = selectedAccount?.bankName,
                     accountLast4 = selectedAccount?.accountLast4,
-                    currency = state.currency
+                    currency = state.currency,
+                    receiptPath = receiptPath
                 )
 
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
@@ -385,7 +397,8 @@ data class TransactionUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedAccount: AccountBalanceEntity? = null,
-    val currency: String = "INR"
+    val currency: String = "INR",
+    val receiptUri: Uri? = null
 ) {
     val isValid: Boolean
         get() = amount.isNotBlank() && 

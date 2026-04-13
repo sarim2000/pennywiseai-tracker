@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
@@ -549,7 +550,7 @@ private fun CategoryBudgetRow(
             }
         }
 
-        OutlinedTextField(
+        TextField(
             value = amountText,
             onValueChange = { value ->
                 if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -563,7 +564,13 @@ private fun CategoryBudgetRow(
             modifier = Modifier.width(140.dp),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
         IconButton(

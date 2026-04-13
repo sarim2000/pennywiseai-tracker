@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
+import androidx.core.net.toUri
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -11,6 +13,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
@@ -35,6 +38,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val receiptManager: ReceiptManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -153,6 +157,7 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
+                loadReceiptUri(it)
                 it.loanId?.let { id -> loadLoan(id) }
             }
         }
@@ -218,6 +223,8 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.value = _transaction.value?.copy()
         _isEditMode.value = true
         _errorMessage.value = null
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = false
 
         // Restore split state from original splits
         if (_hasSplits.value) {
@@ -244,6 +251,8 @@ class TransactionDetailViewModel @Inject constructor(
         _applyToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
         _existingTransactionCount.value = 0
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = false
 
         // Reset split state to original values
         _splits.value = _originalSplits.value
@@ -459,12 +468,57 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _isSaving.value = true
             try {
+                // Handle receipt changes
+                var newReceiptPath = toSave.receiptPath
+                val pendingUri = _pendingReceiptUri.value
+
+                if (_receiptRemoved.value || pendingUri != null) {
+                    // Delete old receipt file if it exists
+                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
+                    newReceiptPath = null
+                }
+
+                if (pendingUri != null) {
+                    newReceiptPath = receiptManager.saveReceipt(pendingUri)
+                }
+
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
-                    merchantName = normalizeMerchantName(toSave.merchantName)
+                    merchantName = normalizeMerchantName(toSave.merchantName),
+                    receiptPath = newReceiptPath
                 )
 
                 transactionRepository.updateTransaction(normalizedTransaction)
+
+                // Update account balance if account was changed or added
+                val originalTxn = _transaction.value
+                val oldBank = originalTxn?.bankName
+                val oldAccount = originalTxn?.accountNumber
+                val newBank = normalizedTransaction.bankName
+                val newAccount = normalizedTransaction.accountNumber
+                val accountChanged = oldBank != newBank || oldAccount != newAccount
+
+                if (accountChanged && newBank != null && newAccount != null) {
+                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
+                    if (currentBalance != null) {
+                        val balanceChange = when (normalizedTransaction.transactionType) {
+                            TransactionType.INCOME -> normalizedTransaction.amount
+                            TransactionType.EXPENSE, TransactionType.CREDIT -> -normalizedTransaction.amount
+                            TransactionType.TRANSFER -> -normalizedTransaction.amount
+                            TransactionType.INVESTMENT -> -normalizedTransaction.amount
+                        }
+                        accountBalanceRepository.insertBalance(
+                            currentBalance.copy(
+                                id = 0,
+                                balance = currentBalance.balance + balanceChange,
+                                timestamp = normalizedTransaction.dateTime,
+                                transactionId = normalizedTransaction.id,
+                                sourceType = "TRANSACTION",
+                                smsSource = null
+                            )
+                        )
+                    }
+                }
 
                 // Save or remove splits
                 val currentSplits = _splits.value
@@ -505,6 +559,9 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 _transaction.value = normalizedTransaction
+                loadReceiptUri(normalizedTransaction)
+                _pendingReceiptUri.value = null
+                _receiptRemoved.value = false
                 _saveSuccess.value = true
                 _isEditMode.value = false
                 _editableTransaction.value = null
@@ -599,6 +656,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _showDeleteDialog.value = false
 
                 try {
+                    txn.receiptPath?.let { receiptManager.deleteReceipt(it) }
                     transactionRepository.deleteTransaction(txn)
                     _deleteSuccess.value = true
                 } catch (e: Exception) {
@@ -606,6 +664,44 @@ class TransactionDetailViewModel @Inject constructor(
                 } finally {
                     _isDeleting.value = false
                 }
+            }
+        }
+    }
+
+    // ========== Receipt Management ==========
+
+    private val _receiptUri = MutableStateFlow<Uri?>(null)
+    val receiptUri: StateFlow<Uri?> = _receiptUri.asStateFlow()
+
+    private val _pendingReceiptUri = MutableStateFlow<Uri?>(null)
+    val pendingReceiptUri: StateFlow<Uri?> = _pendingReceiptUri.asStateFlow()
+
+    private val _receiptRemoved = MutableStateFlow(false)
+    val receiptRemoved: StateFlow<Boolean> = _receiptRemoved.asStateFlow()
+
+    private val _showFullScreenReceipt = MutableStateFlow(false)
+    val showFullScreenReceipt: StateFlow<Boolean> = _showFullScreenReceipt.asStateFlow()
+
+    fun showFullScreenReceipt() { _showFullScreenReceipt.value = true }
+    fun hideFullScreenReceipt() { _showFullScreenReceipt.value = false }
+
+    fun updatePendingReceiptUri(uri: Uri?) {
+        _pendingReceiptUri.value = uri
+        _receiptRemoved.value = false
+    }
+
+    fun removeReceipt() {
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = true
+    }
+
+    fun createCameraUri(): Uri = receiptManager.createCameraUri()
+
+    private fun loadReceiptUri(transaction: TransactionEntity) {
+        transaction.receiptPath?.let { path ->
+            val file = receiptManager.getReceiptFile(path)
+            if (file.exists()) {
+                _receiptUri.value = file.toUri()
             }
         }
     }

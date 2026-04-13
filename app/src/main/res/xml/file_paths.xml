@@ -6,7 +6,17 @@
         path="exports/" />
     
     <!-- Cache directory for backup files -->
-    <cache-path 
-        name="backups" 
+    <cache-path
+        name="backups"
         path="backups/" />
+
+    <!-- Internal storage for receipt images -->
+    <files-path
+        name="receipts"
+        path="receipts/" />
+
+    <!-- Cache directory for camera temp files -->
+    <cache-path
+        name="camera_temp"
+        path="camera_temp/" />
 </paths>

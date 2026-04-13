@@ -135,11 +135,11 @@ interface TransactionDao {
     @Query("SELECT DISTINCT currency FROM transactions WHERE is_deleted = 0 AND date_time BETWEEN :startDate AND :endDate ORDER BY currency")
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>>
 
-    // Soft delete methods
-    @Query("UPDATE transactions SET is_deleted = 1 WHERE id = :transactionId")
+    // Soft delete methods - also clear hash so it doesn't block new inserts with same details
+    @Query("UPDATE transactions SET is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE id = :transactionId")
     suspend fun softDeleteTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET is_deleted = 1 WHERE transaction_hash = :transactionHash")
+    @Query("UPDATE transactions SET is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE transaction_hash = :transactionHash")
     suspend fun softDeleteByHash(transactionHash: String)
 
     // Method to check if transaction exists by hash (including deleted)

@@ -490,6 +490,36 @@ class TransactionDetailViewModel @Inject constructor(
 
                 transactionRepository.updateTransaction(normalizedTransaction)
 
+                // Update account balance if account was changed or added
+                val originalTxn = _transaction.value
+                val oldBank = originalTxn?.bankName
+                val oldAccount = originalTxn?.accountNumber
+                val newBank = normalizedTransaction.bankName
+                val newAccount = normalizedTransaction.accountNumber
+                val accountChanged = oldBank != newBank || oldAccount != newAccount
+
+                if (accountChanged && newBank != null && newAccount != null) {
+                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
+                    if (currentBalance != null) {
+                        val balanceChange = when (normalizedTransaction.transactionType) {
+                            TransactionType.INCOME -> normalizedTransaction.amount
+                            TransactionType.EXPENSE, TransactionType.CREDIT -> -normalizedTransaction.amount
+                            TransactionType.TRANSFER -> -normalizedTransaction.amount
+                            TransactionType.INVESTMENT -> -normalizedTransaction.amount
+                        }
+                        accountBalanceRepository.insertBalance(
+                            currentBalance.copy(
+                                id = 0,
+                                balance = currentBalance.balance + balanceChange,
+                                timestamp = normalizedTransaction.dateTime,
+                                transactionId = normalizedTransaction.id,
+                                sourceType = "TRANSACTION",
+                                smsSource = null
+                            )
+                        )
+                    }
+                }
+
                 // Save or remove splits
                 val currentSplits = _splits.value
                 if (_showSplitEditor.value && currentSplits.isNotEmpty()) {

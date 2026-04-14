@@ -127,7 +127,8 @@ fun LoansScreen(
             item {
                 LoanSummaryCard(
                     totalLent = uiState.totalLentRemaining,
-                    totalBorrowed = uiState.totalBorrowedRemaining
+                    totalBorrowed = uiState.totalBorrowedRemaining,
+                    currency = uiState.summaryCurrency
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
             }
@@ -174,7 +175,8 @@ fun LoansScreen(
 @Composable
 private fun LoanSummaryCard(
     totalLent: BigDecimal,
-    totalBorrowed: BigDecimal
+    totalBorrowed: BigDecimal,
+    currency: String
 ) {
     val isDark = isSystemInDarkTheme()
     val lentColor = if (isDark) loan_dark else loan_light
@@ -188,7 +190,7 @@ private fun LoanSummaryCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Owed to you", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    CurrencyFormatter.formatCurrency(totalLent),
+                    CurrencyFormatter.formatCurrency(totalLent, currency),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = lentColor
@@ -197,7 +199,7 @@ private fun LoanSummaryCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("You owe", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    CurrencyFormatter.formatCurrency(totalBorrowed),
+                    CurrencyFormatter.formatCurrency(totalBorrowed, currency),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = borrowedColor

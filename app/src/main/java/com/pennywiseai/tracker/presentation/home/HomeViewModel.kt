@@ -394,17 +394,56 @@ class HomeViewModel @Inject constructor(
             // Load active loans summary for home carousel
             combine(
                 loanRepository.getActiveLoans(),
-                loanRepository.getTotalLentRemaining(),
-                loanRepository.getTotalBorrowedRemaining()
-            ) { loans, lent, borrowed ->
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { loans, isUnified, displayCurrency ->
                 if (loans.isEmpty()) null
-                else LoanSummary(
-                    activeLoans = loans,
-                    totalLentRemaining = lent,
-                    totalBorrowedRemaining = borrowed
-                )
+                else Triple(loans, isUnified, displayCurrency)
             }.collect { summary ->
-                _uiState.value = _uiState.value.copy(loanSummary = summary)
+                if (summary == null) {
+                    _uiState.value = _uiState.value.copy(loanSummary = null)
+                    return@collect
+                }
+
+                val (loans, isUnified, displayCurrency) = summary
+                val selectedCurrency = if (isUnified) displayCurrency else _uiState.value.selectedCurrency
+
+                val loanCurrencies = loans.map { it.currency }.distinct()
+                if (isUnified && loanCurrencies.size > 1) {
+                    currencyConversionService.refreshExchangeRatesForAccount((loanCurrencies + selectedCurrency).distinct())
+                }
+
+                val loansForTotals = if (isUnified) {
+                    loans
+                } else {
+                    loans.filter { it.currency.equals(selectedCurrency, ignoreCase = true) }
+                }
+
+                var lentTotal = BigDecimal.ZERO
+                var borrowedTotal = BigDecimal.ZERO
+                for (loan in loansForTotals) {
+                    val amount = if (isUnified) {
+                        currencyConversionService.convertAmount(
+                            amount = loan.remainingAmount,
+                            fromCurrency = loan.currency,
+                            toCurrency = selectedCurrency
+                        )
+                    } else {
+                        loan.remainingAmount
+                    }
+                    when (loan.direction) {
+                        com.pennywiseai.tracker.data.database.entity.LoanDirection.LENT -> lentTotal += amount
+                        com.pennywiseai.tracker.data.database.entity.LoanDirection.BORROWED -> borrowedTotal += amount
+                    }
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    loanSummary = LoanSummary(
+                        activeLoans = loans,
+                        totalLentRemaining = lentTotal,
+                        totalBorrowedRemaining = borrowedTotal
+                    )
+                )
             }
         }
 

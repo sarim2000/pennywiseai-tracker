@@ -437,6 +437,7 @@ fun HomeScreen(
                                     loans = summary.activeLoans,
                                     totalLentRemaining = summary.totalLentRemaining,
                                     totalBorrowedRemaining = summary.totalBorrowedRemaining,
+                                    currency = uiState.selectedCurrency,
                                     onClick = onNavigateToLoans
                                 )
                             }
@@ -1244,6 +1245,7 @@ private fun ActiveLoansSummaryCard(
     loans: List<com.pennywiseai.tracker.data.database.entity.LoanEntity>,
     totalLentRemaining: java.math.BigDecimal,
     totalBorrowedRemaining: java.math.BigDecimal,
+    currency: String,
     onClick: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
@@ -1273,11 +1275,11 @@ private fun ActiveLoansSummaryCard(
                 )
                 val subtitle = when {
                     totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining)} owed to you"
+                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
                     totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining)} owed to you"
+                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
                     else ->
-                        "You owe ${CurrencyFormatter.formatCurrency(totalBorrowedRemaining)}"
+                        "You owe ${CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency)}"
                 }
                 Text(
                     text = subtitle,

@@ -25,6 +25,7 @@ object BankParserFactory {
         JupiterBankParser(),
         AxisBankParser(),
         PNBBankParser(),
+        PunjabSindBankParser(),  // Punjab & Sind Bank (India)
         CanaraBankParser(),
         BankOfBarodaParser(),
         BankOfIndiaParser(),

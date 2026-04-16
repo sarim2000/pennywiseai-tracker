@@ -84,6 +84,19 @@ class KotakBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "IMPS credit surfaces masked mobile as merchant",
+                message = "Received Rs. 329.00 on 15-04-26 in your Kotak Bank A/C x2451 by an A/C linked to mobile x111. IMPS Ref no 610511412340.",
+                sender = "JD-KOTAKB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("329.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "x111",
+                    reference = "610511412340",
+                    accountLast4 = "2451"
+                )
+            ),
+            ParserTestCase(
                 name = "Credit card spending with available limit",
                 message = "INR 20 spent on Kotak Credit Card x5236 on 23-JAN-2026 at UPI-638903921672-CORN. Avl limit INR 73733.02 Fraud? https://www.kotak.bank.in/KBANKT/querytxn",
                 sender = "TX-KOTAKB-S",

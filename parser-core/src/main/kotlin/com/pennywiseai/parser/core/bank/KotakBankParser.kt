@@ -22,6 +22,15 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // IMPS credit from mobile: "linked to mobile xNNNN"
+        val mobileLinkedPattern = Regex(
+            """linked\s+to\s+mobile\s+([xX*]+\d{2,})""",
+            RegexOption.IGNORE_CASE
+        )
+        mobileLinkedPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         // Credit card merchant pattern: "on DD-MON-YYYY at MERCHANT. Avl limit"
         val cardMerchantPattern = Regex(
             """on\s+\d{1,2}-\w{3}-\d{2,4}\s+at\s+([^.]+?)(?:\.|\s+Avl|$)""",

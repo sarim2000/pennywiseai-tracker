@@ -150,6 +150,32 @@ class CBEBankParserTest {
                     balance = BigDecimal("727554.16")
                 )
             ),
+            ParserTestCase(
+                name = "card payment within network",
+                message = "Dear Mr Name your Account 1********2222 has been debited for COMPANY NAME HERE PLC with ETB 5230. Your Current Balance is ETB 928975.62. Thank you for Banking with CBE!. For feedback https://shorturl.at/auUX0 for Reciept https://apps.cbe.com.et:100/BranchReceipt/FT26109KYXLZ&22222222",
+                sender = "CBE",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5230"),
+                    currency = "ETB",
+                    type = TransactionType.EXPENSE,
+                    merchant = "COMPANY NAME HERE PLC",
+                    accountLast4 = "2222",
+                    balance = BigDecimal("928975.62")
+                )
+            ),
+            ParserTestCase(
+                name = "card payment outside network",
+                message = "Dear Mr Name your Account 1********2222 has been debited with ETB 2860. Your Current Balance is ETB 926115.62. Thank you for Banking with CBE!. For feedback https://shorturl.at/auUX0 for Reciept https://apps.cbe.com.et:100/BranchReceipt/FT26109M2YHV&22222222",
+                sender = "CBE",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2860"),
+                    currency = "ETB",
+                    type = TransactionType.EXPENSE,
+                    merchant = null,
+                    accountLast4 = "2222",
+                    balance = BigDecimal("926115.62")
+                )
+            ),
         )
 
         val handleChecks = listOf(

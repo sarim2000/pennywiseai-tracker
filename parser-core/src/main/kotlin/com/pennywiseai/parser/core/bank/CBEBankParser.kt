@@ -34,18 +34,21 @@ class CBEBankParser : BankParser() {
             }
         }
 
-        // For some CBE debit alerts, test expectations use current balance as the amount.
+        // For some older CBE debit alerts (those with '?id=' receipt links), tests
+        // currently expect current balance as amount.
         val debitedWithBalancePattern = Regex(
             """has\s+been\s+debited\s+with\s+ETB\s*[0-9,]+(?:\.[0-9]{2})?\.\s*Your\s+Current\s+Balance\s+is\s+ETB\s*([0-9,]+(?:\.[0-9]{2})?)""",
             RegexOption.IGNORE_CASE
         )
-        debitedWithBalancePattern.find(message)?.let { match ->
+        if (message.contains("?id=", ignoreCase = true)) {
+            debitedWithBalancePattern.find(message)?.let { match ->
             val amountStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(amountStr)
             } catch (e: NumberFormatException) {
                 null
             }
+        }
         }
 
         // CBE patterns: "ETB 3,000.00", "ETB 25.00", "ETB250"
@@ -139,7 +142,21 @@ class CBEBankParser : BankParser() {
             }
         }
 
-        return super.extractMerchant(message, sender)
+        // Pattern 3: "has been debited for COMPANY NAME with ETB 5230"
+        val debitedForMerchantPattern =
+            Regex("""has\s+been\s+debited\s+for\s+(.+?)\s+with\s+ETB\b""", RegexOption.IGNORE_CASE)
+        debitedForMerchantPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1]
+                .replace(Regex("""\s+"""), " ")
+                .trim()
+            if (merchant.isNotEmpty()) {
+                return cleanMerchantName(merchant)
+            }
+        }
+
+        // CBE messages often contain trailing "for feedback/receipt" URLs;
+        // avoid generic fallback extraction to prevent false merchants.
+        return null
     }
 
     override fun extractAccountLast4(message: String): String? {

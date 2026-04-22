@@ -56,11 +56,12 @@ fun CategoryDot(
     modifier: Modifier = Modifier,
     size: Int = 8
 ) {
+    val fallback = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
             .size(size.dp)
             .background(
-                color = parseColor(color),
+                color = parseColor(color, fallback),
                 shape = CircleShape
             )
     )
@@ -103,12 +104,11 @@ fun CategoryChip(
  * Helper function to parse color string to Compose Color.
  * Handles hex colors like "#FF0000" or "FF0000".
  */
-private fun parseColor(colorString: String): Color {
+private fun parseColor(colorString: String, fallback: Color): Color {
     return try {
         val cleanColor = if (colorString.startsWith("#")) colorString else "#$colorString"
         Color(android.graphics.Color.parseColor(cleanColor))
     } catch (e: Exception) {
-        // Fallback to grey if color parsing fails
-        Color(0xFF757575)
+        fallback
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -194,7 +193,7 @@ private fun CreditCardItem(
                     fontWeight = FontWeight.Medium,
                     color = when {
                         utilization > 80 -> MaterialTheme.colorScheme.error
-                        utilization > 50 -> Color(0xFFFF9800) // Orange
+                        utilization > 50 -> MaterialTheme.colorScheme.tertiary
                         else -> MaterialTheme.colorScheme.primary
                     }
                 )

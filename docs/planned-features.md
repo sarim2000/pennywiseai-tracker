@@ -12,6 +12,7 @@ Features to make PennyWise a complete budget tracking replacement for spreadshee
 - Split transactions
 - Custom categorization rules
 - What's New post-update dialog
+- Business/personal account classification with per-transaction overrides
 
 ---
 

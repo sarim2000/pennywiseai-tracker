@@ -21,7 +21,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +48,10 @@ fun GreetingCard(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {}
+    onMenuClick: () -> Unit = {},
+    profiles: List<ProfileEntity> = emptyList(),
+    selectedProfileId: Long? = null,
+    onProfileSelected: (Long?) -> Unit = {}
 ) {
     val today = LocalDate.now()
     val subtitle = remember(today) {
@@ -142,6 +149,30 @@ fun GreetingCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
+        }
+
+        // Profile filter button
+        if (profiles.isNotEmpty()) {
+            var showProfileMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { showProfileMenu = true },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = profileFilterIcon(profiles, selectedProfileId),
+                        contentDescription = "Profile filter",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                ProfileFilterDropdown(
+                    expanded = showProfileMenu,
+                    profiles = profiles,
+                    selectedProfileId = selectedProfileId,
+                    onProfileSelected = onProfileSelected,
+                    onDismiss = { showProfileMenu = false }
+                )
+            }
         }
 
         // Menu button — plain IconButton, no circular background

@@ -312,6 +312,9 @@ fun HomeScreen(
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
+                        profiles = uiState.profiles,
+                        selectedProfileId = uiState.selectedProfileId,
+                        onProfileSelected = { viewModel.updateSelectedProfile(it) }
                     )
                 }
             )

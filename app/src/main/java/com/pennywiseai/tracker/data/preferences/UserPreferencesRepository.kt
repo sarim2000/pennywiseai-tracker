@@ -58,6 +58,7 @@ class UserPreferencesRepository @Inject constructor(
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
+        val MCP_SERVER_ENABLED = booleanPreferencesKey("mcp_server_enabled")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
         val SMS_SCAN_MONTHS = intPreferencesKey("sms_scan_months")
@@ -175,6 +176,17 @@ class UserPreferencesRepository @Inject constructor(
         .map { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false
         }
+
+    val isMcpServerEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.MCP_SERVER_ENABLED] ?: false
+        }
+
+    suspend fun setMcpServerEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.MCP_SERVER_ENABLED] = enabled
+        }
+    }
 
     suspend fun updateDarkThemeEnabled(enabled: Boolean?) {
         context.dataStore.edit { preferences ->

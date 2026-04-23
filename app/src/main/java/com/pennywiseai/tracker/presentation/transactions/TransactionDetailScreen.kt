@@ -1195,49 +1195,7 @@ private fun EditableExtractedInfoCard(
                 )
             }
 
-if (existingTransactionCount > 0) {
-Spacer(modifier = Modifier.height(Spacing.sm))
-
-            // Classification toggle
-            // Account default: Personal (id=1) when accountProfileId is null or PERSONAL_ID
-            val accountDefault = accountProfileId ?: ProfileEntity.PERSONAL_ID
-            val effectiveProfileId = transaction.profileId ?: accountDefault
-            val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
-            Text(
-                text = "Classification",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                SegmentedButton(
-                    selected = !isEffectivelyBusiness,
-                    onClick = {
-                        // If account already defaults to Personal, clear override; otherwise set explicit
-                        val newId = if (accountDefault == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
-                        viewModel.updateProfileId(newId)
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                ) {
-                    Text("Personal")
-                }
-                SegmentedButton(
-                    selected = isEffectivelyBusiness,
-                    onClick = {
-                        // If account already defaults to Business, clear override; otherwise set explicit
-                        val newId = if (accountDefault == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
-                        viewModel.updateProfileId(newId)
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                ) {
-                    Text("Business")
-                }
-            }
-
-            // Bank (read-only)
-            transaction.bankName?.let {
+            if (existingTransactionCount > 0) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1253,6 +1211,41 @@ Spacer(modifier = Modifier.height(Spacing.sm))
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
+        }
+
+        // Classification toggle
+        val accountDefault = accountProfileId ?: ProfileEntity.PERSONAL_ID
+        val effectiveProfileId = transaction.profileId ?: accountDefault
+        val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
+        Text(
+            text = "Classification",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            SegmentedButton(
+                selected = !isEffectivelyBusiness,
+                onClick = {
+                    val newId = if (accountDefault == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
+                    viewModel.updateProfileId(newId)
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) {
+                Text("Personal")
+            }
+            SegmentedButton(
+                selected = isEffectivelyBusiness,
+                onClick = {
+                    val newId = if (accountDefault == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
+                    viewModel.updateProfileId(newId)
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) {
+                Text("Business")
             }
         }
 

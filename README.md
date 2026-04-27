@@ -72,7 +72,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 ## Supported Banks & Countries
 
-Supporting **90+ banks** across **18 countries** with **multi-currency** capabilities:
+Supporting **93+ banks** across **18 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (44 banks) - INR ₹
 - **HDFC Bank**, **HDFC Mutual Fund**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -104,8 +104,8 @@ Supporting **90+ banks** across **18 countries** with **multi-currency** capabil
 - **Government Savings Bank (GSB)**, **BAAC**, **UOB Thailand**
 - **CIMB Thai**, **KTC Credit Card** - Thai and English SMS support
 
-### 🇳🇵 Nepal (4 banks) - NPR ₨
-- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**, **Siddhartha Bank**
+### 🇳🇵 Nepal (7 banks) - NPR ₨
+- **Laxmi Sunrise Bank**, **Everest Bank**, **NMB Bank (Nabil Bank)**, **Siddhartha Bank**, **Citizens Bank**, **Machchhapuchre Bank**, **Standard Chartered Nepal**
 
 ### 🇪🇹 Ethiopia (4 services) - ETB ብር
 - **Commercial Bank of Ethiopia (CBE)**, **Zemen Bank**, **Dashen Bank**

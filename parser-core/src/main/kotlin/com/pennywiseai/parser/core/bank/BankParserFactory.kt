@@ -15,6 +15,7 @@ object BankParserFactory {
         FederalBankParser(),
         JuspayParser(),
         SliceParser(),
+        CredParser(),
         LazyPayParser(),
         UtkarshBankParser(),
         ICICIBankParser(),
@@ -24,6 +25,7 @@ object BankParserFactory {
         JupiterBankParser(),
         AxisBankParser(),
         PNBBankParser(),
+        PunjabSindBankParser(),  // Punjab & Sind Bank (India)
         CanaraBankParser(),
         BankOfBarodaParser(),
         BankOfIndiaParser(),
@@ -62,16 +64,19 @@ object BankParserFactory {
         CharlesSchwabParser(),  // Charles Schwab (USA)
         NavyFederalParser(),  // Navy Federal Credit Union (USA)
         AdelFiParser(),  // AdelFi Credit Union (USA)
+        AlecuBankParser(),  // ALECU Credit Union (USA)
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
+        PrimeCommercialBankParser(),  // Prime Commercial Bank (Nepal)
         MPesaTanzaniaParser(),  // M-Pesa Tanzania (must be before Kenya M-PESA)
         MPESAParser(),  // M-PESA (Kenya)
         SelcomPesaParser(),  // Selcom Pesa (Tanzania)
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
+        DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
         StandardCharteredBankParser(),  // Standard Chartered Bank (India and Pakistan)
         EquitasBankParser(),  // Equitas Small Finance Bank (India)
@@ -95,7 +100,11 @@ object BankParserFactory {
         TBankParser(),  // T-Bank / Tinkoff (Russia)
         ChaseBankParser(),  // Chase Bank (USA)
         AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
+        SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
+        STCBankParser(),  // STC Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
+        BankMuscatParser(),  // Bank Muscat (Oman)
+        GreaterBankParser()  // Greater Bank (India)
         CitizensBankParser(),  // Citizens Bank (Nepal)
         MachchhapuchreBankParser(),  // Machchhapuchre Bank (Nepal)
         StandardCharteredNepalParser()  // Standard Chartered Bank (Nepal)

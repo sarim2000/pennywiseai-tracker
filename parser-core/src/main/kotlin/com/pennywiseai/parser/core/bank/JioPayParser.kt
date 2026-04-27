@@ -122,6 +122,11 @@ class JioPayParser : BankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType {
+        val lowerMessage = message.lowercase()
+        // Bill payment confirmations ("Payment of Rs... has been received") are expenses
+        if (lowerMessage.contains("payment of") && lowerMessage.contains("has been received")) {
+            return TransactionType.EXPENSE
+        }
         // All JioPay wallet transactions are marked as CREDIT
         // to avoid double-counting (money was already debited when loading wallet)
         return TransactionType.CREDIT

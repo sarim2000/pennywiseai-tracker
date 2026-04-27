@@ -10,5 +10,9 @@ data class BudgetWithCategories(
     val categories: List<BudgetCategoryEntity>
 ) {
     val totalBudgetAmount: BigDecimal
-        get() = categories.sumOf { it.budgetAmount }
+        get() {
+            val overallAmount = budget.limitAmount
+            return if (overallAmount > BigDecimal.ZERO) overallAmount
+            else categories.sumOf { it.budgetAmount }
+        }
 }

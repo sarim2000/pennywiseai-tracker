@@ -167,6 +167,9 @@ fun Modifier.overScrollOutOfBound(
                     dispatcher.coroutineScope.launch {
                         lastFlingAnimator.stop()
                     }
+                    // Snap to rest so the touch passes through to children (click handlers)
+                    // instead of being consumed as overscroll
+                    offset = 0f
                 }
                 val realAvailable = when {
                     nestedScrollToParent -> available - dispatcher.dispatchPreScroll(

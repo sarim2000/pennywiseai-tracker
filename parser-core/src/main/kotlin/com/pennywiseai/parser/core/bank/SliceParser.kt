@@ -17,12 +17,42 @@ class SliceParser : BankParser() {
                 normalizedSender.contains("SLCEIT")  // Matches JD-SLCEIT-S and similar
     }
 
+    private fun isSuccessMessage(message: String): Boolean {
+        val lower = message.lowercase()
+        // Use word boundaries to avoid matching "unsuccessful"
+        return Regex("""\bsuccessful\b""").containsMatchIn(lower) || 
+               Regex("""\bsuccess\b""").containsMatchIn(lower) || 
+               lower.contains("approved") ||
+               lower.contains("confirmed")
+    }
+
+    private fun isFailureMessage(message: String): Boolean {
+        val lower = message.lowercase()
+        return lower.contains("declined") ||
+               lower.contains("failed") ||
+               lower.contains("rejected") ||
+               lower.contains("error") ||
+               lower.contains("denied") ||
+               lower.contains("unsuccessful")
+    }
+
+    private fun isDatePhrase(text: String): Boolean {
+        // Simple date pattern matching month names with day numbers
+        val datePattern = Regex("""\b(?:\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\b""", RegexOption.IGNORE_CASE)
+        return datePattern.containsMatchIn(text)
+    }
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        // Slice uses "sent" for UPI transfers
+        // Slice uses "sent" for UPI transfers (always success?)
         if (lowerMessage.contains("sent")) {
             return true
+        }
+
+        // For "transaction" keyword, ensure it's a successful transaction
+        if (lowerMessage.contains("transaction")) {
+            return isSuccessMessage(message) && !isFailureMessage(message)
         }
 
         return super.isTransactionMessage(message)
@@ -46,6 +76,18 @@ class SliceParser : BankParser() {
         fromPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty() && !merchant.equals("NEFT", ignoreCase = true)) {
+                return cleanMerchantName(merchant)
+            }
+        }
+
+        // Look for "on MERCHANT" pattern for credit card transactions
+        val onPattern = Regex("""\bon\s+([A-Za-z0-9\s./&-]+?)(?:\s+is|$)""", RegexOption.IGNORE_CASE)
+        onPattern.find(message)?.let { match ->
+            val merchant = match.groupValues[1].trim()
+            if (merchant.isNotEmpty() && 
+                !merchant.equals("slice", ignoreCase = true) &&
+                !merchant.equals("RS", ignoreCase = true) &&
+                !isDatePhrase(merchant)) {
                 return cleanMerchantName(merchant)
             }
         }
@@ -74,6 +116,9 @@ class SliceParser : BankParser() {
             lowerMessage.contains("paid") -> TransactionType.CREDIT
             lowerMessage.contains("sent") -> TransactionType.CREDIT  // UPI transfers
             lowerMessage.contains("payment") && !lowerMessage.contains("received") -> TransactionType.CREDIT
+            // Only map "transaction" to CREDIT if it's a successful transaction
+            lowerMessage.contains("transaction") && !lowerMessage.contains("credited") && 
+                isSuccessMessage(message) && !isFailureMessage(message) -> TransactionType.CREDIT
 
             else -> super.extractTransactionType(message)
         }

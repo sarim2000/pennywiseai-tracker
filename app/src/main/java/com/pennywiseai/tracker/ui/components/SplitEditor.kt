@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -221,7 +222,7 @@ private fun SplitRow(
             onExpandedChange = { expanded = it },
             modifier = Modifier.weight(1f)
         ) {
-            OutlinedTextField(
+            TextField(
                 value = split.category,
                 onValueChange = {},
                 readOnly = true,
@@ -231,9 +232,12 @@ private fun SplitRow(
                     .fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                shape = RoundedCornerShape(12.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
                 )
             )
 
@@ -260,10 +264,9 @@ private fun SplitRow(
         }
 
         // Amount field
-        OutlinedTextField(
+        TextField(
             value = amountText,
             onValueChange = { newValue ->
-                // Allow only valid decimal input
                 val filtered = newValue.filter { it.isDigit() || it == '.' }
                 if (filtered.count { it == '.' } <= 1) {
                     amountText = filtered
@@ -281,9 +284,12 @@ private fun SplitRow(
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
             )
         )
 

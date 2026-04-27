@@ -110,9 +110,21 @@ class SouthIndianBankParser : BaseIndianBankParser() {
                 ignoreCase = true
             )
         ) {
-            // Pattern for "Info: IMPS/FDRL/528005821348/EPIFI ACCOUN." - capture everything up to period
-            val impsPattern = Regex("""Info:\s*IMPS/[^/]+/[^/]+/([^.]+)""", RegexOption.IGNORE_CASE)
+            // Pattern for "Info: IMPS/FDRL/528005821348/EPIFI ACCOUN." - capture until period or next keyword
+            val impsPattern = Regex(
+                """Info:\s*IMPS/[^/]+/[^/]+/\s*([A-Za-z\s]+?)(?:\.|Final|Bal|balance)""",
+                RegexOption.IGNORE_CASE
+            )
             impsPattern.find(message)?.let { match ->
+                val merchant = match.groupValues[1].trim()
+                if (merchant.isNotEmpty()) {
+                    return cleanMerchantName(merchant)
+                }
+            }
+            
+            // Fallback: capture everything up to period
+            val impsPattern2 = Regex("""Info:\s*IMPS/[^/]+/[^/]+/([^.]+)""", RegexOption.IGNORE_CASE)
+            impsPattern2.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -225,15 +237,29 @@ class SouthIndianBankParser : BaseIndianBankParser() {
 
     override fun extractReference(message: String): String? {
         // Pattern for IMPS reference in "Info: IMPS/xxx/reference/merchant" format
+        // Handle variations with or without space after the last slash
         if (message.contains("IMPS", ignoreCase = true) && message.contains(
                 "Info:",
                 ignoreCase = true
             )
         ) {
-            val impsRefPattern = Regex("""Info:\s*IMPS/[^/]+/([^/]+)/""", RegexOption.IGNORE_CASE)
+            // More flexible pattern that handles variations
+            val impsRefPattern = Regex(
+                """Info:\s*IMPS/[^/]+/(\d+)(?:/\s*|\s+)""",
+                RegexOption.IGNORE_CASE
+            )
             impsRefPattern.find(message)?.let { match ->
                 val ref = match.groupValues[1].trim()
                 if (ref.isNotEmpty()) {
+                    return ref
+                }
+            }
+            
+            // Fallback pattern: capture reference number between second and third slash
+            val impsRefPattern2 = Regex("""Info:\s*IMPS/[^/]+/([^/]+)/""", RegexOption.IGNORE_CASE)
+            impsRefPattern2.find(message)?.let { match ->
+                val ref = match.groupValues[1].trim()
+                if (ref.isNotEmpty() && ref.all { it.isDigit() }) {
                     return ref
                 }
             }

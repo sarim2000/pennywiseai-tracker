@@ -175,7 +175,7 @@ fun UnifiedAccountsCard(
                                     } else 0
                                     when {
                                         utilization > 80 -> MaterialTheme.colorScheme.error
-                                        utilization > 50 -> Color(0xFFFF9800)
+                                        utilization > 50 -> MaterialTheme.colorScheme.tertiary
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                 } else MaterialTheme.colorScheme.onSurfaceVariant

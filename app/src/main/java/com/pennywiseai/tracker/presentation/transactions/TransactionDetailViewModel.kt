@@ -2,15 +2,21 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
+import androidx.core.net.toUri
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.core.Constants
@@ -29,8 +35,10 @@ class TransactionDetailViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val loanRepository: LoanRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val receiptManager: ReceiptManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -149,6 +157,8 @@ class TransactionDetailViewModel @Inject constructor(
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
+                loadReceiptUri(it)
+                it.loanId?.let { id -> loadLoan(id) }
             }
         }
     }
@@ -213,6 +223,8 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.value = _transaction.value?.copy()
         _isEditMode.value = true
         _errorMessage.value = null
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = false
 
         // Restore split state from original splits
         if (_hasSplits.value) {
@@ -239,6 +251,8 @@ class TransactionDetailViewModel @Inject constructor(
         _applyToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
         _existingTransactionCount.value = 0
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = false
 
         // Reset split state to original values
         _splits.value = _originalSplits.value
@@ -305,6 +319,18 @@ class TransactionDetailViewModel @Inject constructor(
     fun updateAccountNumber(accountNumber: String?) {
         _editableTransaction.update { current ->
             current?.copy(accountNumber = if (accountNumber.isNullOrEmpty()) null else accountNumber)
+        }
+    }
+
+    fun updateFromAccount(account: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
+        }
+    }
+
+    fun updateToAccount(account: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
         }
     }
 
@@ -430,15 +456,69 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
 
+        // Validate self-transfer for TRANSFER transactions
+        if (toSave.transactionType == TransactionType.TRANSFER &&
+            toSave.fromAccount != null &&
+            toSave.toAccount != null &&
+            toSave.fromAccount == toSave.toAccount) {
+            _errorMessage.value = "Source and destination accounts must be different"
+            return
+        }
+
         viewModelScope.launch {
             _isSaving.value = true
             try {
+                // Handle receipt changes
+                var newReceiptPath = toSave.receiptPath
+                val pendingUri = _pendingReceiptUri.value
+
+                if (_receiptRemoved.value || pendingUri != null) {
+                    // Delete old receipt file if it exists
+                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
+                    newReceiptPath = null
+                }
+
+                if (pendingUri != null) {
+                    newReceiptPath = receiptManager.saveReceipt(pendingUri)
+                }
+
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
-                    merchantName = normalizeMerchantName(toSave.merchantName)
+                    merchantName = normalizeMerchantName(toSave.merchantName),
+                    receiptPath = newReceiptPath
                 )
 
                 transactionRepository.updateTransaction(normalizedTransaction)
+
+                // Update account balance if account was changed or added
+                val originalTxn = _transaction.value
+                val oldBank = originalTxn?.bankName
+                val oldAccount = originalTxn?.accountNumber
+                val newBank = normalizedTransaction.bankName
+                val newAccount = normalizedTransaction.accountNumber
+                val accountChanged = oldBank != newBank || oldAccount != newAccount
+
+                if (accountChanged && newBank != null && newAccount != null) {
+                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
+                    if (currentBalance != null) {
+                        val balanceChange = when (normalizedTransaction.transactionType) {
+                            TransactionType.INCOME -> normalizedTransaction.amount
+                            TransactionType.EXPENSE, TransactionType.CREDIT -> -normalizedTransaction.amount
+                            TransactionType.TRANSFER -> -normalizedTransaction.amount
+                            TransactionType.INVESTMENT -> -normalizedTransaction.amount
+                        }
+                        accountBalanceRepository.insertBalance(
+                            currentBalance.copy(
+                                id = 0,
+                                balance = currentBalance.balance + balanceChange,
+                                timestamp = normalizedTransaction.dateTime,
+                                transactionId = normalizedTransaction.id,
+                                sourceType = "TRANSACTION",
+                                smsSource = null
+                            )
+                        )
+                    }
+                }
 
                 // Save or remove splits
                 val currentSplits = _splits.value
@@ -479,6 +559,9 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 _transaction.value = normalizedTransaction
+                loadReceiptUri(normalizedTransaction)
+                _pendingReceiptUri.value = null
+                _receiptRemoved.value = false
                 _saveSuccess.value = true
                 _isEditMode.value = false
                 _editableTransaction.value = null
@@ -571,8 +654,9 @@ class TransactionDetailViewModel @Inject constructor(
             _transaction.value?.let { txn ->
                 _isDeleting.value = true
                 _showDeleteDialog.value = false
-                
+
                 try {
+                    txn.receiptPath?.let { receiptManager.deleteReceipt(it) }
                     transactionRepository.deleteTransaction(txn)
                     _deleteSuccess.value = true
                 } catch (e: Exception) {
@@ -580,6 +664,121 @@ class TransactionDetailViewModel @Inject constructor(
                 } finally {
                     _isDeleting.value = false
                 }
+            }
+        }
+    }
+
+    // ========== Receipt Management ==========
+
+    private val _receiptUri = MutableStateFlow<Uri?>(null)
+    val receiptUri: StateFlow<Uri?> = _receiptUri.asStateFlow()
+
+    private val _pendingReceiptUri = MutableStateFlow<Uri?>(null)
+    val pendingReceiptUri: StateFlow<Uri?> = _pendingReceiptUri.asStateFlow()
+
+    private val _receiptRemoved = MutableStateFlow(false)
+    val receiptRemoved: StateFlow<Boolean> = _receiptRemoved.asStateFlow()
+
+    private val _showFullScreenReceipt = MutableStateFlow(false)
+    val showFullScreenReceipt: StateFlow<Boolean> = _showFullScreenReceipt.asStateFlow()
+
+    fun showFullScreenReceipt() { _showFullScreenReceipt.value = true }
+    fun hideFullScreenReceipt() { _showFullScreenReceipt.value = false }
+
+    fun updatePendingReceiptUri(uri: Uri?) {
+        _pendingReceiptUri.value = uri
+        _receiptRemoved.value = false
+    }
+
+    fun removeReceipt() {
+        _pendingReceiptUri.value = null
+        _receiptRemoved.value = true
+    }
+
+    fun createCameraUri(): Uri = receiptManager.createCameraUri()
+
+    private fun loadReceiptUri(transaction: TransactionEntity) {
+        transaction.receiptPath?.let { path ->
+            val file = receiptManager.getReceiptFile(path)
+            if (file.exists()) {
+                _receiptUri.value = file.toUri()
+            }
+        }
+    }
+
+    // ========== Loan Management ==========
+
+    private val _loan = MutableStateFlow<LoanEntity?>(null)
+    val loan: StateFlow<LoanEntity?> = _loan.asStateFlow()
+
+    private val _showMarkAsLoanSheet = MutableStateFlow(false)
+    val showMarkAsLoanSheet: StateFlow<Boolean> = _showMarkAsLoanSheet.asStateFlow()
+
+    val recentPersonNames: StateFlow<List<String>> = loanRepository.getRecentPersonNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun showMarkAsLoanSheet() { _showMarkAsLoanSheet.value = true }
+    fun hideMarkAsLoanSheet() { _showMarkAsLoanSheet.value = false }
+
+    private fun loadLoan(loanId: Long) {
+        viewModelScope.launch {
+            _loan.value = loanRepository.getLoanById(loanId)
+        }
+    }
+
+    fun createLoanFromTransaction(personName: String, direction: LoanDirection, note: String?) {
+        val txn = _transaction.value ?: return
+        viewModelScope.launch {
+            try {
+                // Check for existing loan in the OPPOSITE direction first (this is a repayment)
+                val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
+                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection)
+
+                if (oppositeLoan != null) {
+                    // Record as repayment on the opposite loan
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id)
+                    _transaction.value = transactionRepository.getTransactionById(txn.id)
+                    _loan.value = loanRepository.getLoanById(oppositeLoan.id)
+                    _showMarkAsLoanSheet.value = false
+                    return@launch
+                }
+
+                // Check if an active loan already exists for this person + same direction
+                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
+                val loanId = if (existingLoan != null) {
+                    // Merge into existing loan
+                    loanRepository.addToExistingLoan(existingLoan.id, txn.amount, txn.id)
+                    existingLoan.id
+                } else {
+                    // Create new loan
+                    loanRepository.createLoan(
+                        personName = personName,
+                        direction = direction,
+                        amount = txn.amount,
+                        currency = txn.currency,
+                        note = note,
+                        sourceTransactionId = txn.id
+                    )
+                }
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                _loan.value = loanRepository.getLoanById(loanId)
+                _showMarkAsLoanSheet.value = false
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to create loan: ${e.message}"
+            }
+        }
+    }
+
+    fun unlinkLoan() {
+        val txn = _transaction.value ?: return
+        val loanId = txn.loanId ?: return
+        viewModelScope.launch {
+            try {
+                loanRepository.unlinkTransaction(txn.id, loanId)
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                _loan.value = null
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to unlink loan: ${e.message}"
             }
         }
     }

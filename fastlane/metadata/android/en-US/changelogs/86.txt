@@ -1,0 +1,11 @@
+
+
+What's New in v2.15.51
+
+• Loan & borrowed money tracking — auto-merge loans for same person, edit amounts, auto-record repayments
+• Category filter chips on Analytics screen
+• New banks: Bank Muscat (Oman), HSBC Egypt, CRED, ALECU Credit Union, enhanced Slice support
+• Smarter budgets: reorder groups, empty state nudge, improved display
+• Transfer accounts now editable with self-transfer validation
+• Full backup/restore: now includes rules, budgets & exchange rates
+• On-device 

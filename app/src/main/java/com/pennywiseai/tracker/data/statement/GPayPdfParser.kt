@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.statement
 
+import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
@@ -7,143 +8,302 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * Parses Google Pay PDF statement exports into [ParsedTransaction] objects.
+ * For income transactions the anchor is "Received from ..." and the account
+ * line reads "Paid to South Indian Bank 1234" — which is NOT a new transaction.
+ * We distinguish transaction anchors from account lines by checking that a
+ * "Paid to" line does NOT end with 4 digits (which would make it a bank line).
+ */
 class GPayPdfParser : PdfStatementParser {
 
+    // ─── Companion ────────────────────────────────────────────────────────────
+
     companion object {
-        private val GPAY_KEYWORDS = listOf("gpay", "google pay")
-
-        private val DATE_FORMAT = SimpleDateFormat("dd MMM yyyy h:mm a", Locale.ENGLISH).apply {
-            timeZone = TimeZone.getTimeZone("Asia/Kolkata")
-        }
-
-        private val AMOUNT_PATTERN = Regex("""[₹Rs.]+\s*([\d,]+(?:\.\d{1,2})?)""")
-        private val UPI_TXN_ID_PATTERN = Regex("""UPI\s+[Tt]ransaction\s+ID\s*[:\-]?\s*(\d+)""")
-        private val PAID_TO_MERCHANT_PATTERN = Regex("""Paid\s+to\s+(.+?)(?:\n|$)""")
-        private val RECEIVED_FROM_PATTERN = Regex("""Received\s+from\s+(.+?)(?:\n|$)""")
-        private val PAID_BY_ACCOUNT_PATTERN = Regex("""Paid\s+by\s+(.+?)(?:\n|$)""")
-        private val ACCOUNT_LAST4_PATTERN = Regex("""[Xx*]+(\d{4})""")
-        private val DATE_PATTERN = Regex("""(\d{1,2}\s+\w{3}\s+\d{4}\s+\d{1,2}:\d{2}\s*[AaPp][Mm])""")
+        private const val TAG                 = "GPayPdfParser"
+        private const val DATE_FORMAT_PATTERN = "dd MMM, yyyy hh:mm a"
     }
+
+    private val IST = TimeZone.getTimeZone("Asia/Kolkata")
+
+    // ─── Patterns ─────────────────────────────────────────────────────────────
+
+    // Matches "Paid to <merchant>" — but NOT "Paid to South Indian Bank 1234"
+    // (account lines always end with 4 digits, merchant names never do)
+    private val merchantAnchorRegex = Regex(
+        """^Paid\s+to\s+(.+)$""", RegexOption.IGNORE_CASE
+    )
+    private val receivedAnchorRegex = Regex(
+        """^Received\s+from\s+(.+)$""", RegexOption.IGNORE_CASE
+    )
+    // Stricter version for anchor detection and account extraction: only matches
+    // if the name before the 4 digits contains a known account keyword (Bank, Card, A/c).
+    // This prevents "Paid to Store 2024" from being misclassified as an account line.
+    private val bankAccountLineRegex = Regex(
+        """^Paid\s+(?:by|to)\s+(.+)\s+(Bank|Card|A/c)\s+(\d{4})$""", RegexOption.IGNORE_CASE
+    )
+    private val upiIdRegex = Regex(
+        """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
+    )
+    // Amount on its own line — currency prefix (₹, Rs.) required; bare numbers
+    // like the year line ("2025") are intentionally excluded by the [₹Rs.\s]+ prefix.
+    private val amountRegex = Regex("""^(?:₹|Rs\.?)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
+
+    // Date parts — each on its own line
+    private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"
+    private val yearLineRegex = Regex("""^(20\d{2})$""")                    // "2025"
+    private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})\s*([AaPp][Mm])$""") // "03:02 PM"
+
+    // ─── Public API ───────────────────────────────────────────────────────────
 
     override fun canHandle(text: String): Boolean {
         val lower = text.lowercase()
-        return GPAY_KEYWORDS.any { it in lower } && lower.contains("upi transaction id")
+        val result = ("google pay" in lower || "gpay" in lower) && "upi transaction id" in lower
+        Log.d(TAG, "canHandle=$result")
+        return result
     }
 
     override fun parse(text: String): List<ParsedTransaction> {
-        val transactions = mutableListOf<ParsedTransaction>()
-        val blocks = splitIntoTransactionBlocks(text)
+        Log.i(TAG, "Starting parse — text length=${text.length}")
 
-        for (block in blocks) {
-            parseBlock(block)?.let { transactions.add(it) }
+        val blocks = splitIntoBlocks(text)
+        Log.i(TAG, "Split into ${blocks.size} blocks")
+
+        val transactions = blocks.mapIndexedNotNull { index, block ->
+            parseBlock(block, index)
         }
 
+        Log.i(TAG, "Finished: ${transactions.size}/${blocks.size} transactions parsed")
         return transactions
     }
 
-    private fun splitIntoTransactionBlocks(text: String): List<String> {
+    // ─── Block splitting ──────────────────────────────────────────────────────
+
+    /**
+     * Splits raw PDF text into one string per transaction.
+     *
+     * The challenge: date lines (`"01 Sep,"`, `"2025"`, `"03:02 PM"`) appear on
+     * the lines BEFORE the transaction anchor in GPay exports. We keep a rolling
+     * "pending" triplet of the most-recent date/year/time lines seen, and each
+     * time a new anchor arrives we prepend that triplet to the new block before
+     * consuming it. Date-pattern lines are never appended to the *current* block
+     * because they belong to the *next* transaction — otherwise N+1's date lines
+     * would bleed into N's block and confuse `extractTimestamp`.
+     *
+     * An anchor is "Paid to <X>" where X is not a bank account line, or
+     * "Received from <X>". This excludes "Paid to South Indian Bank 1234"
+     * (the account line in income transactions) from being treated as an anchor.
+     */
+    private fun splitIntoBlocks(text: String): List<String> {
         val blocks = mutableListOf<String>()
-        val lines = text.lines()
-        var currentBlock = StringBuilder()
-        var inTransaction = false
+        val current = StringBuilder()
+        var pendingDate: String? = null
+        var pendingYear: String? = null
+        var pendingTime: String? = null
+        var inBlock = false
 
-        for (line in lines) {
-            val isPaidTo = line.trimStart().startsWith("Paid to", ignoreCase = true)
-            val isReceivedFrom = line.trimStart().startsWith("Received from", ignoreCase = true)
+        for (rawLine in text.lines()) {
+            val line = rawLine.trim()
+            if (line.isEmpty()) continue
 
-            if (isPaidTo || isReceivedFrom) {
-                if (inTransaction && currentBlock.isNotEmpty()) {
-                    blocks.add(currentBlock.toString())
-                    currentBlock = StringBuilder()
+            val isDate = dateLineRegex.matches(line)
+            val isYear = yearLineRegex.matches(line)
+            val isTime = timeLineRegex.matches(line)
+
+            if (isTransactionAnchor(line)) {
+                if (inBlock && current.isNotEmpty()) {
+                    blocks.add(current.toString().trim())
+                    current.clear()
                 }
-                inTransaction = true
+                // Prepend the most-recent pending date triplet so this block
+                // owns its own dates — then clear pending so the next transaction
+                // starts fresh.
+                pendingDate?.let { current.appendLine(it) }
+                pendingYear?.let { current.appendLine(it) }
+                pendingTime?.let { current.appendLine(it) }
+                pendingDate = null
+                pendingYear = null
+                pendingTime = null
+                current.appendLine(line)
+                inBlock = true
+                continue
             }
 
-            if (inTransaction) {
-                currentBlock.appendLine(line)
-            }
+            // Date-pattern lines are NEVER appended to the current block — they
+            // always belong to the next anchor's transaction. Track the most
+            // recent triplet so the next anchor can consume it.
+            if (isDate) { pendingDate = line; continue }
+            if (isYear) { pendingYear = line; continue }
+            if (isTime) { pendingTime = line; continue }
+
+            if (inBlock) current.appendLine(line)
         }
 
-        if (currentBlock.isNotEmpty()) {
-            blocks.add(currentBlock.toString())
-        }
+        if (current.isNotEmpty()) blocks.add(current.toString().trim())
 
+        Log.d(TAG, "splitIntoBlocks: ${blocks.size} blocks found")
         return blocks
     }
 
-    private fun parseBlock(block: String): ParsedTransaction? {
-        val amount = extractAmount(block) ?: return null
-        val type = extractTransactionType(block) ?: return null
-        val merchant = extractMerchant(block, type) ?: return null
-        val reference = extractUpiTransactionId(block)
-        val timestamp = extractTimestamp(block) ?: System.currentTimeMillis()
-        val accountInfo = extractAccountInfo(block)
+    /**
+     * Returns true only for genuine transaction anchors.
+     * Account lines like "Paid to South Indian Bank 1234" are excluded by
+     * matching against [bankAccountLineRegex] which requires a bank/card keyword.
+     * This prevents "Paid to Store 2024" from being misclassified.
+     */
+    private fun isTransactionAnchor(line: String): Boolean {
+        if (receivedAnchorRegex.matches(line)) return true
+        if (merchantAnchorRegex.matches(line)) {
+            return !bankAccountLineRegex.matches(line)
+        }
+        return false
+    }
+
+    // ─── Block parsing ────────────────────────────────────────────────────────
+
+    private fun parseBlock(block: String, index: Int): ParsedTransaction? {
+        val lines = block.lines().map { it.trim() }.filter { it.isNotEmpty() }
+
+        Log.v(TAG, "Block[$index] lines: $lines")
+
+        // Find the anchor line (may not be the first line due to prepended date lines)
+        val anchorLine = lines.firstOrNull { isTransactionAnchor(it) }
+        if (anchorLine == null) {
+            Log.w(TAG, "Block[$index] — no anchor found, skipping. Preview: ${lines.take(3)}")
+            return null
+        }
+
+        val isExpense = merchantAnchorRegex.matches(anchorLine)
+        val type      = if (isExpense) TransactionType.EXPENSE else TransactionType.INCOME
+        val merchant  = extractMerchant(anchorLine, isExpense)
+
+        if (merchant == null) {
+            Log.w(TAG, "Block[$index] — could not extract merchant from: '$anchorLine'")
+            return null
+        }
+
+        val amount = extractAmount(lines)
+        if (amount == null) {
+            Log.w(TAG, "Block[$index] merchant='$merchant' — no amount found. Lines: $lines")
+            return null
+        }
+
+        val timestamp = extractTimestamp(lines, merchant)
+        val upiId     = lines.firstNotNullOfOrNull { upiIdRegex.find(it)?.groupValues?.get(1) }
+        val account   = extractAccountInfo(lines)
+
+        Log.i(TAG, "Block[$index] OK — $type merchant='$merchant' amount=$amount " +
+                "upi=$upiId bank='${account.bankName}' last4=${account.last4}")
 
         return ParsedTransaction(
-            amount = amount,
-            type = type,
-            merchant = merchant.trim(),
-            reference = reference,
-            accountLast4 = accountInfo.last4,
-            balance = null,
-            smsBody = block.trim(),
-            sender = "GPay PDF",
-            timestamp = timestamp,
-            bankName = accountInfo.bankName ?: "Google Pay"
+            amount       = amount,
+            type         = type,
+            merchant     = merchant,
+            reference    = upiId,
+            accountLast4 = account.last4,
+            balance      = null,
+            smsBody      = block,
+            sender       = "GPay PDF",
+            timestamp    = timestamp ?: System.currentTimeMillis(),
+            bankName     = account.bankName ?: "Google Pay",
         )
     }
 
-    private fun extractAmount(block: String): BigDecimal? {
-        val match = AMOUNT_PATTERN.find(block) ?: return null
-        val amountStr = match.groupValues[1].replace(",", "")
-        return try {
-            BigDecimal(amountStr)
-        } catch (_: NumberFormatException) {
-            null
+    // ─── Field extractors ─────────────────────────────────────────────────────
+
+    private fun extractMerchant(anchorLine: String, isExpense: Boolean): String? {
+        val regex = if (isExpense) merchantAnchorRegex else receivedAnchorRegex
+        return regex.find(anchorLine)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun extractAmount(lines: List<String>): BigDecimal? {
+        for (line in lines) {
+            val raw = amountRegex.find(line)?.groupValues?.get(1) ?: continue
+            val cleaned = raw.replace(",", "")
+            val amount  = cleaned.toBigDecimalOrNull()
+            if (amount != null) return amount
         }
+        return null
     }
 
-    private fun extractTransactionType(block: String): TransactionType? {
-        return when {
-            block.trimStart().startsWith("Paid to", ignoreCase = true) -> TransactionType.EXPENSE
-            block.trimStart().startsWith("Received from", ignoreCase = true) -> TransactionType.INCOME
-            else -> null
-        }
-    }
+    /**
+     * Assembles timestamp from three separate lines:
+     *   "01 Sep,"  → day=1, month=Sep
+     *   "2025"     → year
+     *   "03:02 PM" → time
+     *
+     * Builds the string "01 Sep, 2025 03:02 PM" and parses it.
+     */
+    private fun extractTimestamp(lines: List<String>, merchant: String): Long? {
+        var dateLine: String? = null
+        var yearLine: String? = null
+        var timeLine: String? = null
 
-    private fun extractMerchant(block: String, type: TransactionType): String? {
-        val pattern = if (type == TransactionType.EXPENSE) PAID_TO_MERCHANT_PATTERN else RECEIVED_FROM_PATTERN
-        return pattern.find(block)?.groupValues?.get(1)?.trim()
-    }
-
-    private fun extractUpiTransactionId(block: String): String? {
-        return UPI_TXN_ID_PATTERN.find(block)?.groupValues?.get(1)
-    }
-
-    private fun extractTimestamp(block: String): Long? {
-        val match = DATE_PATTERN.find(block) ?: return null
-        return try {
-            synchronized(DATE_FORMAT) {
-                DATE_FORMAT.parse(match.groupValues[1].trim())?.time
+        for (line in lines) {
+            when {
+                dateLine == null && dateLineRegex.matches(line) -> dateLine = line
+                yearLine == null && yearLineRegex.matches(line) -> yearLine = line
+                timeLine == null && timeLineRegex.matches(line) -> timeLine = line
             }
-        } catch (_: Exception) {
+            if (dateLine != null && yearLine != null && timeLine != null) break
+        }
+
+        if (dateLine == null || yearLine == null || timeLine == null) {
+            Log.e(TAG, "Incomplete timestamp for '$merchant' — " +
+                    "date='$dateLine' year='$yearLine' time='$timeLine' | lines=$lines")
+            return null
+        }
+
+        // Normalise: "01 Sep," → "01 Sep" then build "01 Sep, 2025 03:02 PM"
+        val dateClean = dateLine.trimEnd(',', ' ')
+        val timeClean = timeLine.replace(Regex("""\s+"""), " ").uppercase()
+        val combined  = "$dateClean, $yearLine $timeClean"
+
+        return try {
+            val sdf = SimpleDateFormat(DATE_FORMAT_PATTERN, Locale.ENGLISH).apply {
+                timeZone = IST
+                isLenient = false
+            }
+            val parsed = sdf.parse(combined)
+            if (parsed == null) {
+                Log.e(TAG, "Date parsed to null for '$merchant' — input='$combined'")
+                null
+            } else {
+                Log.d(TAG, "Timestamp OK for '$merchant' — '$combined' → ${parsed.time}")
+                parsed.time
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Date parse exception for '$merchant' — input='$combined': ${e.message}")
             null
         }
     }
 
-    private fun extractAccountInfo(block: String): AccountInfo {
-        val paidByMatch = PAID_BY_ACCOUNT_PATTERN.find(block)
-        val paidByText = paidByMatch?.groupValues?.get(1) ?: ""
+    /**
+     * Extracts bank name and last 4 digits from the account line.
+     * Expense: "Paid by South Indian Bank 1234"
+     * Income:  "Paid to South Indian Bank 1234"
+     * Uses [bankAccountLineRegex] to stay consistent with [isTransactionAnchor].
+     */
+    private fun extractAccountInfo(lines: List<String>): AccountInfo {
+        val accountLine = lines.firstOrNull { bankAccountLineRegex.matches(it) }
+        if (accountLine == null) {
+            Log.d(TAG, "No account line found in lines: $lines")
+            return AccountInfo(null, null)
+        }
 
-        val last4 = ACCOUNT_LAST4_PATTERN.find(paidByText)?.groupValues?.get(1)
-        val bankName = paidByText
-            .replace(ACCOUNT_LAST4_PATTERN, "")
-            .replace(Regex("""[•\-–]"""), "")
-            .trim()
-            .takeIf { it.isNotEmpty() }
+        val match    = bankAccountLineRegex.find(accountLine)
+        val bankName = if (match != null) {
+            val first = match.groupValues.getOrNull(1)?.trim()
+            val second = match.groupValues.getOrNull(2)?.trim()
+            listOfNotNull(first, second).joinToString(" ").takeIf { it.isNotBlank() }
+        } else null
+        val last4    = match?.groupValues?.getOrNull(3)?.trim()
 
-        return AccountInfo(bankName = bankName, last4 = last4)
+        Log.d(TAG, "Account — bank='$bankName' last4='$last4' from '$accountLine'")
+        return AccountInfo(bankName, last4)
     }
+
+    // ─── Data classes ─────────────────────────────────────────────────────────
 
     private data class AccountInfo(val bankName: String?, val last4: String?)
 }

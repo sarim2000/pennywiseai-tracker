@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BankNotificationDao {
@@ -22,4 +23,13 @@ interface BankNotificationDao {
 
     @Query("SELECT * FROM bank_notifications WHERE processed = 0 ORDER BY posted_at ASC")
     suspend fun getUnprocessed(): List<BankNotificationEntity>
+
+    @Query("SELECT * FROM bank_notifications ORDER BY posted_at ASC")
+    fun getAllNotifications(): Flow<List<BankNotificationEntity>>
+
+    @Query("DELETE FROM bank_notifications")
+    suspend fun deleteAllNotifications()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrReplace(notification: BankNotificationEntity): Long
 }

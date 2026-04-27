@@ -160,4 +160,7 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET bank_name = :newBankName WHERE bank_name = :oldBankName AND account_last4 = :accountLast4")
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int
+
+    @Query("UPDATE account_balances SET statement_day = :statementDay WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int
 }

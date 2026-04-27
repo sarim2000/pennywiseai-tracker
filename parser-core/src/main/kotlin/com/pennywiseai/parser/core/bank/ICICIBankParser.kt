@@ -239,6 +239,18 @@ class ICICIBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Pattern: "for UPI-REFNO-MERCHANT" (credit card UPI transactions)
+        val upiMerchantPattern = Regex(
+            """for\s+UPI-\d+-([A-Za-z][\w\s]*?)(?:\.|$|\s+To\s)""",
+            RegexOption.IGNORE_CASE
+        )
+        upiMerchantPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 3: ACH/NACH dividend payments - "Info ACH*COMPANY NAME*XXX"
         val achNachPattern = Regex(
             """Info\s+(?:ACH|NACH)\*([^*]+)\*""",

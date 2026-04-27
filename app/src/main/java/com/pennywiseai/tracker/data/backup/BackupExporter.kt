@@ -5,6 +5,7 @@ import android.os.Build
 import com.google.gson.GsonBuilder
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -66,6 +67,13 @@ class BackupExporter @Inject constructor(
         val merchantMappings = database.merchantMappingDao().getAllMappings().first()
         val unrecognizedSms = database.unrecognizedSmsDao().getAllUnrecognizedSms().first()
         val chatMessages = database.chatDao().getAllMessages().first()
+        val rules = database.ruleDao().getAllRules().first()
+        val ruleApplications = database.ruleApplicationDao().getAllApplications().first()
+        val exchangeRates = database.exchangeRateDao().getAllRatesFlow().first()
+        val budgets = database.budgetDao().getAllBudgets().first()
+        val budgetCategories = database.budgetDao().getAllBudgetCategories().first()
+        val transactionSplits = database.transactionSplitDao().getAllSplits().first()
+        val bankNotifications = database.bankNotificationDao().getAllNotifications().first()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -100,6 +108,16 @@ class BackupExporter @Inject constructor(
             )}
         }
         
+        // Determine what's actually exported based on privacy mode
+        // Rules are included in all modes as they contain no PII
+        val exportedRules = rules
+        val exportedExchangeRates = if (privacy == ExportPrivacy.FULL) exchangeRates else emptyList()
+        val exportedBudgets = if (privacy == ExportPrivacy.FULL) budgets else emptyList()
+        val exportedBudgetCategories = if (privacy == ExportPrivacy.FULL) budgetCategories else emptyList()
+        val exportedTransactionSplits = if (privacy == ExportPrivacy.FULL) transactionSplits else emptyList()
+        val exportedBankNotifications = if (privacy == ExportPrivacy.FULL) bankNotifications else emptyList()
+        val exportedRuleApplications = if (privacy == ExportPrivacy.FULL) ruleApplications else emptyList()
+        
         return PennyWiseBackup(
             metadata = BackupMetadata(
                 exportId = UUID.randomUUID().toString(),
@@ -108,10 +126,17 @@ class BackupExporter @Inject constructor(
                 device = "${Build.MANUFACTURER} ${Build.MODEL}",
                 androidVersion = Build.VERSION.SDK_INT,
                 statistics = BackupStatistics(
-                    totalTransactions = transactions.size,
+                    totalTransactions = finalTransactions.size,
                     totalCategories = categories.size,
                     totalCards = cards.size,
                     totalSubscriptions = subscriptions.size,
+                    totalRules = exportedRules.size,
+                    totalRuleApplications = exportedRuleApplications.size,
+                    totalExchangeRates = exportedExchangeRates.size,
+                    totalBudgets = exportedBudgets.size,
+                    totalBudgetCategories = exportedBudgetCategories.size,
+                    totalTransactionSplits = exportedTransactionSplits.size,
+                    totalBankNotifications = exportedBankNotifications.size,
                     dateRange = dateRange
                 )
             ),
@@ -123,7 +148,14 @@ class BackupExporter @Inject constructor(
                 subscriptions = subscriptions,
                 merchantMappings = merchantMappings,
                 unrecognizedSms = if (privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
-                chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList()
+                chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList(),
+                rules = exportedRules,
+                ruleApplications = exportedRuleApplications,
+                exchangeRates = exportedExchangeRates,
+                budgets = exportedBudgets,
+                budgetCategories = exportedBudgetCategories,
+                transactionSplits = exportedTransactionSplits,
+                bankNotifications = exportedBankNotifications
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

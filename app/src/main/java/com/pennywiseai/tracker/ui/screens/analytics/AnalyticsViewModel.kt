@@ -41,6 +41,9 @@ class AnalyticsViewModel @Inject constructor(
     private val _selectedCurrency = MutableStateFlow("")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
 
+    private val _categoryFilter = MutableStateFlow<String?>(null)
+    val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
+
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
@@ -103,9 +106,9 @@ class AnalyticsViewModel @Inject constructor(
         customDateRange,
         _transactionTypeFilter,
         _selectedCurrency,
-        _isUnifiedMode
-    ) { period, customRange, typeFilter, currency, isUnified ->
-        FilterState(period, customRange, typeFilter, currency, isUnified)
+        combine(_isUnifiedMode, _categoryFilter) { a, b -> a to b }
+    ) { period, customRange, typeFilter, currency, (isUnified, catFilter) ->
+        FilterState(period, customRange, typeFilter, currency, isUnified, catFilter)
     }.flatMapLatest { filterState ->
         // Determine date range based on selected period
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
@@ -173,13 +176,30 @@ class AnalyticsViewModel @Inject constructor(
                 }
             }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
                 // Filter by transaction type in memory (splits are already loaded)
-                val filteredTransactionsWithSplits = if (transactionTypeFilter != null) {
+                // Exclude loan repayments — they are fixed obligations, not discretionary spending
+                val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
                     allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
                 } else {
                     allTransactionsWithSplits
-                }
+                }).filter { it.transaction.loanId == null }
 
-                val filteredTransactions = filteredTransactionsWithSplits.map { it.transaction }
+                // Compute available categories BEFORE applying category filter
+                val allCategoryNames = filteredTransactionsWithSplits
+                    .flatMap { txWithSplits -> txWithSplits.getAmountByCategory().keys }
+                    .map { it.ifEmpty { "Others" } }
+                    .distinct()
+                    .sorted()
+
+                // Apply category filter
+                val categoryFilteredWithSplits = filterState.categoryFilter?.let { cat ->
+                    filteredTransactionsWithSplits.filter { txWithSplits ->
+                        txWithSplits.getAmountByCategory().keys
+                            .map { it.ifEmpty { "Others" } }
+                            .contains(cat)
+                    }
+                } ?: filteredTransactionsWithSplits
+
+                val filteredTransactions = categoryFilteredWithSplits.map { it.transaction }
                 val displayCurrency = _selectedCurrency.value
 
                 // Calculate total — convert if unified mode
@@ -196,7 +216,7 @@ class AnalyticsViewModel @Inject constructor(
                 val categoryAmounts = mutableMapOf<String, BigDecimal>()
                 val categoryTransactionCounts = mutableMapOf<String, Int>()
 
-                for (txWithSplits in filteredTransactionsWithSplits) {
+                for (txWithSplits in categoryFilteredWithSplits) {
                     val fromCurrency = txWithSplits.transaction.currency
                     txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                         val categoryName = category.ifEmpty { "Others" }
@@ -265,7 +285,8 @@ class AnalyticsViewModel @Inject constructor(
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
                     currency = displayCurrency,
                     isLoading = false,
-                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second)
+                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second),
+                    availableCategories = allCategoryNames
                 )
             }
         }
@@ -285,6 +306,14 @@ class AnalyticsViewModel @Inject constructor(
 
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
+    }
+
+    fun setCategoryFilter(category: String) {
+        _categoryFilter.value = category
+    }
+
+    fun clearCategoryFilter() {
+        _categoryFilter.value = null
     }
 
     fun setChartType(type: ChartType) {
@@ -391,7 +420,8 @@ private data class FilterState(
     val customRange: Pair<LocalDate, LocalDate>?,
     val typeFilter: TransactionTypeFilter,
     val currency: String,
-    val isUnifiedMode: Boolean = false
+    val isUnifiedMode: Boolean = false,
+    val categoryFilter: String? = null
 )
 
 data class AnalyticsUiState(
@@ -404,7 +434,8 @@ data class AnalyticsUiState(
     val topCategoryPercentage: Float = 0f,
     val currency: String = "",
     val isLoading: Boolean = true,
-    val spendingTrend: List<BalancePoint> = emptyList()
+    val spendingTrend: List<BalancePoint> = emptyList(),
+    val availableCategories: List<String> = emptyList()
 )
 
 data class CategoryData(

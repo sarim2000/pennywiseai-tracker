@@ -109,6 +109,12 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
 
+                // Compute billed/unbilled outstanding for credit cards with a statement day
+                val statementDay = _uiState.value.currentBalance?.statementDay
+                val billedUnbilled = if (statementDay != null) {
+                    computeBilledUnbilled(allTransactions, statementDay)
+                } else null
+
                 _uiState.update { state ->
                     state.copy(
                         transactions = filteredTransactions,
@@ -117,7 +123,9 @@ class AccountDetailViewModel @Inject constructor(
                         netBalance = totalIncome - totalExpenses,
                         primaryCurrency = targetCurrency,
                         hasMultipleCurrencies = hasMultipleCurrencies,
-                        isLoading = false
+                        isLoading = false,
+                        billedOutstanding = billedUnbilled?.first,
+                        unbilledOutstanding = billedUnbilled?.second
                     )
                 }
             }.collect()
@@ -207,6 +215,42 @@ class AccountDetailViewModel @Inject constructor(
         return startDate to endDate
     }
 
+    /**
+     * Splits CREDIT transactions into billed and unbilled based on [statementDay].
+     * Returns (billed, unbilled) where:
+     *   - billed = CREDIT transactions from the previous statement close to the most recent close
+     *   - unbilled = CREDIT transactions from the most recent close to today
+     */
+    private fun computeBilledUnbilled(
+        allTransactions: List<TransactionEntity>,
+        statementDay: Int
+    ): Pair<BigDecimal, BigDecimal> {
+        val today = LocalDate.now()
+        val day = statementDay.coerceIn(1, 28)
+
+        // Most recent statement close date
+        val lastClose = if (today.dayOfMonth > day) {
+            today.withDayOfMonth(day)
+        } else {
+            today.minusMonths(1).withDayOfMonth(day)
+        }
+        val prevClose = lastClose.minusMonths(1)
+
+        val creditTxs = allTransactions.filter {
+            it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT
+        }
+
+        val billed = creditTxs
+            .filter { it.dateTime.toLocalDate().isAfter(prevClose) && !it.dateTime.toLocalDate().isAfter(lastClose) }
+            .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+
+        val unbilled = creditTxs
+            .filter { it.dateTime.toLocalDate().isAfter(lastClose) }
+            .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+
+        return billed to unbilled
+    }
+
     private fun getPrimaryCurrencyForAccount(bankName: String): String {
         return CurrencyFormatter.getBankBaseCurrency(bankName)
     }
@@ -224,7 +268,9 @@ data class AccountDetailUiState(
     val netBalance: BigDecimal = BigDecimal.ZERO,
     val primaryCurrency: String = "INR",
     val hasMultipleCurrencies: Boolean = false,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val billedOutstanding: BigDecimal? = null,
+    val unbilledOutstanding: BigDecimal? = null
 )
 
 enum class DateRange(val label: String) {

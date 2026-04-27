@@ -137,6 +137,10 @@ class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
     }
 
+    suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int {
+        return accountBalanceDao.updateStatementDay(bankName, accountLast4, statementDay)
+    }
+
     suspend fun deleteAllBalances() {
         accountBalanceDao.deleteAllBalances()
     }

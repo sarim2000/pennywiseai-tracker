@@ -167,11 +167,13 @@ class BudgetGroupRepository @Inject constructor(
             0
         }
 
+        val daysInMonth = yearMonth.lengthOfMonth()
+
         return combine(
             budgetDao.getActiveBudgetsWithCategories(),
             transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
         ) { groups, allTransactions ->
-            buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency)
+            buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency, daysInMonth)
         }
     }
 
@@ -216,7 +218,8 @@ class BudgetGroupRepository @Inject constructor(
         allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
         daysElapsed: Int,
         daysRemaining: Int,
-        currency: String
+        currency: String,
+        daysInMonth: Int = 30
     ): BudgetOverallSummary {
         val incomeTransactions = allTransactions.filter {
             it.transaction.transactionType == TransactionType.INCOME
@@ -241,6 +244,48 @@ class BudgetGroupRepository @Inject constructor(
         // Calculate total expenses for groups with no categories (track all expenses)
         val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
 
+        // Helper: build per-group daily cumulative spending from transactions matching category names
+        fun buildGroupPace(
+            categoryNames: Set<String>?,  // null = all categories
+            groupBudget: BigDecimal
+        ): Pair<List<Double>, List<Double>> {
+            val effectiveDays = daysElapsed.coerceAtMost(daysInMonth)
+            if (effectiveDays < 1) return emptyList<Double>() to emptyList()
+
+            val dailyAmounts = DoubleArray(daysInMonth)
+            allTransactions.forEach { txWithSplits ->
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != TransactionType.INCOME &&
+                    tx.transactionType != TransactionType.TRANSFER &&
+                    tx.transactionType != TransactionType.INVESTMENT &&
+                    tx.loanId == null
+                ) {
+                    val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+                    if (categoryNames == null) {
+                        dailyAmounts[day - 1] += tx.amount.toDouble()
+                    } else {
+                        txWithSplits.getAmountByCategory().forEach { (cat, amount) ->
+                            val catName = cat.ifEmpty { "Others" }
+                            if (catName in categoryNames) {
+                                dailyAmounts[day - 1] += amount.toDouble()
+                            }
+                        }
+                    }
+                }
+            }
+            val cumulative = mutableListOf<Double>()
+            var running = 0.0
+            for (i in 0 until effectiveDays) {
+                running += dailyAmounts[i]
+                cumulative.add(running)
+            }
+            val pace = if (groupBudget > BigDecimal.ZERO) {
+                val dailyPace = groupBudget.toDouble() / daysInMonth
+                (1..effectiveDays).map { it * dailyPace }
+            } else emptyList()
+            return cumulative to pace
+        }
+
         val groupSpendingList = groups.map { group ->
             val isTrackingAll = group.categories.isEmpty()
 
@@ -255,6 +300,7 @@ class BudgetGroupRepository @Inject constructor(
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
+                val (cumSpending, budgetPace) = buildGroupPace(null, totalBudget)
 
                 BudgetGroupSpending(
                     group = group,
@@ -266,7 +312,9 @@ class BudgetGroupRepository @Inject constructor(
                     dailyAllowance = dailyAllowance,
                     daysRemaining = daysRemaining,
                     daysElapsed = daysElapsed,
-                    isTrackingAllExpenses = true
+                    isTrackingAllExpenses = true,
+                    dailyCumulativeSpending = cumSpending,
+                    dailyBudgetPace = budgetPace
                 )
             } else {
                 // Normal case: track specific categories
@@ -295,6 +343,8 @@ class BudgetGroupRepository @Inject constructor(
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
+                val catNames = group.categories.map { it.categoryName }.toSet()
+                val (cumSpending, budgetPace) = buildGroupPace(catNames, totalBudget)
 
                 BudgetGroupSpending(
                     group = group,
@@ -306,7 +356,9 @@ class BudgetGroupRepository @Inject constructor(
                     dailyAllowance = dailyAllowance,
                     daysRemaining = daysRemaining,
                     daysElapsed = daysElapsed,
-                    isTrackingAllExpenses = false
+                    isTrackingAllExpenses = false,
+                    dailyCumulativeSpending = cumSpending,
+                    dailyBudgetPace = budgetPace
                 )
             }
         }
@@ -409,24 +461,24 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun moveGroupUp(budgetId: Long) {
-        val groups = budgetDao.getActiveBudgetsWithCategories().first()
-            .sortedBy { it.budget.displayOrder }
-        val index = groups.indexOfFirst { it.budget.id == budgetId }
+        val groups = budgetDao.getActiveBudgets().first()
+            .sortedBy { it.displayOrder }
+        val index = groups.indexOfFirst { it.id == budgetId }
         if (index > 0) {
-            val current = groups[index].budget
-            val above = groups[index - 1].budget
+            val current = groups[index]
+            val above = groups[index - 1]
             budgetDao.updateBudget(current.copy(displayOrder = above.displayOrder, updatedAt = LocalDateTime.now()))
             budgetDao.updateBudget(above.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
         }
     }
 
     suspend fun moveGroupDown(budgetId: Long) {
-        val groups = budgetDao.getActiveBudgetsWithCategories().first()
-            .sortedBy { it.budget.displayOrder }
-        val index = groups.indexOfFirst { it.budget.id == budgetId }
+        val groups = budgetDao.getActiveBudgets().first()
+            .sortedBy { it.displayOrder }
+        val index = groups.indexOfFirst { it.id == budgetId }
         if (index >= 0 && index < groups.size - 1) {
-            val current = groups[index].budget
-            val below = groups[index + 1].budget
+            val current = groups[index]
+            val below = groups[index + 1]
             budgetDao.updateBudget(current.copy(displayOrder = below.displayOrder, updatedAt = LocalDateTime.now()))
             budgetDao.updateBudget(below.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
         }

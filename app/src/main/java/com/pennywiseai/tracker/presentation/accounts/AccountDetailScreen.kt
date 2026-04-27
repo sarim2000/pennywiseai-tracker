@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
@@ -47,7 +46,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailScreen(
-    navController: NavController,
+    onNavigateBack: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,7 +68,7 @@ fun AccountDetailScreen(
                 hasBackButton = true,
                 hasActionButton = true,
                 navigationContent = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -100,7 +100,9 @@ fun AccountDetailScreen(
                     creditLimit = uiState.currentBalance?.creditLimit,
                     bankName = uiState.bankName,
                     accountLast4 = uiState.accountLast4,
-                    primaryCurrency = uiState.primaryCurrency
+                    primaryCurrency = uiState.primaryCurrency,
+                    billedOutstanding = uiState.billedOutstanding,
+                    unbilledOutstanding = uiState.unbilledOutstanding
                 )
             }
 
@@ -159,11 +161,7 @@ fun AccountDetailScreen(
                     TransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
-                        onClick = {
-                            navController.navigate(
-                                com.pennywiseai.tracker.navigation.TransactionDetail(transaction.id)
-                            )
-                        }
+                        onClick = { onTransactionClick(transaction.id) }
                     )
                 }
             }
@@ -266,7 +264,9 @@ private fun CurrentBalanceCard(
     creditLimit: BigDecimal? = null,
     bankName: String,
     accountLast4: String,
-    primaryCurrency: String
+    primaryCurrency: String,
+    billedOutstanding: BigDecimal? = null,
+    unbilledOutstanding: BigDecimal? = null
 ) {
     val isCreditCard = creditLimit != null
     
@@ -301,6 +301,41 @@ private fun CurrentBalanceCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
+                    // Show billed/unbilled split when statement day is configured
+                    if (billedOutstanding != null && unbilledOutstanding != null) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(billedOutstanding, primaryCurrency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Billed",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                Text(
+                                    text = "Unbilled",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             } else {
                 // Regular account layout

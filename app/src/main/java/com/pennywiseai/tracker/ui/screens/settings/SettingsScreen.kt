@@ -40,6 +40,8 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.amber_light
+import com.pennywiseai.tracker.ui.theme.amber_dark
 import com.pennywiseai.tracker.ui.theme.orange_light
 import com.pennywiseai.tracker.ui.theme.orange_dark
 import com.pennywiseai.tracker.ui.theme.green_light
@@ -80,6 +82,7 @@ fun SettingsScreen(
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToLoans: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
@@ -324,6 +327,15 @@ fun SettingsScreen(
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(
+                    icon = Icons.Default.SwapHoriz,
+                    iconBgColor = amber_light,
+                    iconTint = amber_dark,
+                    title = "Loans",
+                    subtitle = "Track money lent and borrowed",
+                    onClick = onNavigateToLoans,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
                     icon = Icons.Default.Upload,
                     iconBgColor = blue_light,
                     iconTint = blue_dark,
@@ -348,6 +360,15 @@ fun SettingsScreen(
                     title = "Import Statement",
                     subtitle = "Import from GPay, PhonePe",
                     onClick = onNavigateToImportStatement,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Sms,
+                    iconBgColor = orange_light,
+                    iconTint = orange_dark,
+                    title = "Unrecognized SMS",
+                    subtitle = "View and report unsupported bank messages",
+                    onClick = onNavigateToUnrecognizedSms,
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(
@@ -901,7 +922,7 @@ private fun SettingsDropdownItem(
                 expanded = expanded,
                 onExpandedChange = onExpandedChange
             ) {
-                OutlinedTextField(
+                TextField(
                     value = currentValue,
                     onValueChange = {},
                     readOnly = true,
@@ -912,9 +933,12 @@ private fun SettingsDropdownItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
                     )
                 )
                 ExposedDropdownMenu(

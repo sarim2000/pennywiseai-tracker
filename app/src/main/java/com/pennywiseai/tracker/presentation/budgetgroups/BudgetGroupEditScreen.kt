@@ -1,8 +1,11 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,8 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -69,6 +74,10 @@ fun BudgetGroupEditScreen(
     val canSave = uiState.name.isNotBlank() && overallAmount > BigDecimal.ZERO && !uiState.isSaving
     val currencySymbol = CurrencyFormatter.getCurrencySymbol(uiState.currency)
 
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val isKeyboardVisible = imeBottom > 0
+
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
@@ -103,41 +112,47 @@ fun BudgetGroupEditScreen(
             )
         },
         bottomBar = {
-            Surface(
-                tonalElevation = Dimensions.Elevation.bottomBar,
-                shadowElevation = Dimensions.Elevation.bottomBar,
-                color = MaterialTheme.colorScheme.surface
+            AnimatedVisibility(
+                visible = !isKeyboardVisible,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it }
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
-                        .navigationBarsPadding()
+                Surface(
+                    tonalElevation = Dimensions.Elevation.bottomBar,
+                    shadowElevation = Dimensions.Elevation.bottomBar,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    Button(
-                        onClick = { viewModel.save() },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = canSave,
-                        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+                            .navigationBarsPadding()
                     ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                        Button(
+                            onClick = { viewModel.save() },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = canSave,
+                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
+                        ) {
+                            if (uiState.isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                            }
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimensions.Icon.small)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text(if (isEditing) "Save Changes" else "Create Budget")
                         }
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(if (isEditing) "Save Changes" else "Create Budget")
                     }
                 }
             }
@@ -535,7 +550,7 @@ private fun CategoryBudgetRow(
             }
         }
 
-        OutlinedTextField(
+        TextField(
             value = amountText,
             onValueChange = { value ->
                 if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -549,7 +564,13 @@ private fun CategoryBudgetRow(
             modifier = Modifier.width(140.dp),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
         IconButton(

@@ -83,6 +83,12 @@ val transfer_dark = Color(0xFF9FA8DA)  // Indigo 200 for transfers - readable on
 val investment_light = Color(0xFF37474F) // Blue Grey 800 for investments - good on white
 val investment_dark = Color(0xFF90A4AE)  // Blue Grey 300 for investments - readable on dark
 
+// Loan Colors (Amber / Warm)
+val loan_light = Color(0xFFFF8F00)           // Amber 800
+val loan_dark = Color(0xFFFFCA28)            // Amber 400
+val loan_container_light = Color(0xFFFFF8E1) // Amber 50
+val loan_container_dark = Color(0xFF3E2723)  // Brown 900
+
 // Category Colors (matching the owl theme)
 val category_food = Color(0xFFFF7043)  // Coral
 val category_transport = Color(0xFF5C6BC0)  // Indigo
@@ -216,6 +222,8 @@ val RosePine_Overlay_secondary = Color(0xFF6E6A86)
 val RosePine_Overlay_tertiary = Color(0xFF403D52)
 
 // Settings Icon Background Colors
+val amber_light = Color(0xFFFFF8E1)
+val amber_dark = Color(0xFFFF8F00)
 val orange_light = Color(0xFFFFF3E0)
 val orange_dark = Color(0xFFE65100)
 val green_light = Color(0xFFE8F5E9)
@@ -241,12 +249,12 @@ val grey_dark = Color(0xFF546E7A)
 
 // AMOLED Dark Mode Colors
 val amoled_background = Color(0xFF000000)
-val amoled_surface = Color(0xFF0A0A0A)
-val amoled_surfaceVariant = Color(0xFF121212)
+val amoled_surface = Color(0xFF1A1A1A)
+val amoled_surfaceVariant = Color(0xFF242424)
 val amoled_surfaceContainerLowest = Color(0xFF000000)
-val amoled_surfaceContainerLow = Color(0xFF0A0A0A)
-val amoled_surfaceContainer = Color(0xFF111111)
-val amoled_surfaceContainerHigh = Color(0xFF1A1A1A)
-val amoled_surfaceContainerHighest = Color(0xFF222222)
-val amoled_surfaceBright = Color(0xFF1A1A1A)
-val amoled_surfaceDim = Color(0xFF050505)
+val amoled_surfaceContainerLow = Color(0xFF141414)
+val amoled_surfaceContainer = Color(0xFF1C1C1C)
+val amoled_surfaceContainerHigh = Color(0xFF272727)
+val amoled_surfaceContainerHighest = Color(0xFF323232)
+val amoled_surfaceBright = Color(0xFF2A2A2A)
+val amoled_surfaceDim = Color(0xFF0A0A0A)

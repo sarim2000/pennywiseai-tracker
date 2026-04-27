@@ -101,13 +101,13 @@ enum AppColors {
     // MARK: - AMOLED Dark Mode Colors (matching Android)
 
     static let amoledBackground = Color(hex: 0x000000)
-    static let amoledSurface = Color(hex: 0x0A0A0A)
-    static let amoledSurfaceVariant = Color(hex: 0x121212)
+    static let amoledSurface = Color(hex: 0x1A1A1A)
+    static let amoledSurfaceVariant = Color(hex: 0x242424)
     static let amoledSurfaceContainerLowest = Color(hex: 0x000000)
-    static let amoledSurfaceContainerLow = Color(hex: 0x0A0A0A)
-    static let amoledSurfaceContainer = Color(hex: 0x111111)
-    static let amoledSurfaceContainerHigh = Color(hex: 0x1A1A1A)
-    static let amoledSurfaceContainerHighest = Color(hex: 0x222222)
+    static let amoledSurfaceContainerLow = Color(hex: 0x141414)
+    static let amoledSurfaceContainer = Color(hex: 0x1C1C1C)
+    static let amoledSurfaceContainerHigh = Color(hex: 0x272727)
+    static let amoledSurfaceContainerHighest = Color(hex: 0x323232)
 
     /// Adaptive background: pure black in AMOLED dark mode, system default otherwise
     static func background(isAmoled: Bool) -> Color {

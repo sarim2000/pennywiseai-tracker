@@ -204,6 +204,11 @@ class TransactionsViewModel @Inject constructor(
             initialValue = emptyMap()
         )
     
+    // Available categories for the current period (before category filter is applied)
+    // Used for the category filter chips row
+    private val _availableCategories = MutableStateFlow<List<String>>(emptyList())
+    val availableCategories: StateFlow<List<String>> = _availableCategories.asStateFlow()
+
     // SMS scan period for info banner
     val smsScanMonths: StateFlow<Int> = userPreferencesRepository.smsScanMonths
         .stateIn(
@@ -275,6 +280,32 @@ class TransactionsViewModel @Inject constructor(
                 }
             }
         }
+
+        // Compute available categories from transactions filtered by period only (no category filter)
+        // This drives the category chips row in the UI
+        merge(
+            selectedPeriod.map { "period" },
+            categoriesFilter.map { "categories" },
+            customDateRange.map { "customDate" }
+        )
+            .transformLatest { _ ->
+                val period = selectedPeriod.value
+                val categories = categoriesFilter.value
+                // Get all transactions without category filter applied
+                getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL)
+                    .collect { transactions ->
+                        emit(transactions.map { it.category }.distinct().sorted())
+                    }
+            }
+            .onEach { categories ->
+                _availableCategories.value = categories
+                // Auto-clear category filter if the selected category no longer exists in available categories
+                val currentFilter = _categoryFilter.value
+                if (currentFilter != null && currentFilter !in categories) {
+                    _categoryFilter.value = null
+                }
+            }
+            .launchIn(viewModelScope)
 
         // Manually combine all flows using transformLatest
         merge(
@@ -384,7 +415,6 @@ class TransactionsViewModel @Inject constructor(
     }
     
     fun setCategoryFilter(category: String) {
-        println("DEBUG: Setting category filter to: '$category'")
         _categoryFilter.value = category
     }
     

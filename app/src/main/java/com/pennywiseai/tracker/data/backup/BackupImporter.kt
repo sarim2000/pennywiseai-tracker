@@ -100,6 +100,12 @@ class BackupImporter @Inject constructor(
                 database.merchantMappingDao().deleteAllMappings()
                 database.unrecognizedSmsDao().deleteAll()
                 database.chatDao().deleteAllMessages()
+                database.ruleDao().deleteAllRules()
+                database.ruleApplicationDao().deleteAllApplications()
+                database.budgetDao().deleteAllBudgets()
+                database.exchangeRateDao().deleteAllRates()
+                database.bankNotificationDao().deleteAllNotifications()
+                // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
                 
                 // Import all data
                 backup.database.categories.forEach { category ->
@@ -136,6 +142,29 @@ class BackupImporter @Inject constructor(
                     database.chatDao().insertMessage(message)
                 }
                 
+                // Import new entities
+                backup.database.rules.forEach { rule ->
+                    database.ruleDao().insertRule(rule)
+                }
+                backup.database.ruleApplications.forEach { application ->
+                    database.ruleApplicationDao().insertApplication(application)
+                }
+                backup.database.exchangeRates.forEach { rate ->
+                    database.exchangeRateDao().insertExchangeRate(rate)
+                }
+                backup.database.budgets.forEach { budget ->
+                    database.budgetDao().insertBudget(budget)
+                }
+                backup.database.budgetCategories.forEach { category ->
+                    database.budgetDao().insertBudgetCategory(category)
+                }
+                backup.database.transactionSplits.forEach { split ->
+                    database.transactionSplitDao().insertSplit(split)
+                }
+                backup.database.bankNotifications.forEach { notification ->
+                    database.bankNotificationDao().insertOrReplace(notification)
+                }
+                
                 // Import preferences
                 importPreferences(backup.preferences)
                 
@@ -161,10 +190,10 @@ class BackupImporter @Inject constructor(
         return database.withTransaction {
             try {
                 // Get existing data for duplicate checking
-                val existingTransactionHashes = database.transactionDao()
+                val existingTransactions = database.transactionDao()
                     .getAllTransactions().first()
-                    .map { it.transactionHash }
-                    .toSet()
+                val existingTransactionHashes = existingTransactions.map { it.transactionHash }.toSet()
+                val existingHashToIdMap = existingTransactions.associateBy({ it.transactionHash }, { it.id })
                 
                 val existingCategories = database.categoryDao()
                     .getAllCategories().first()
@@ -182,13 +211,25 @@ class BackupImporter @Inject constructor(
                 }
                 
                 // Import transactions (skip duplicates by hash)
+                // Build mapping from old transaction IDs to new IDs for split/application imports
+                val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
+                
                 backup.database.transactions.forEach { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
-                        // Generate new ID for imported transaction
+                        val oldId = transaction.id
                         val newTransaction = transaction.copy(id = 0)
-                        database.transactionDao().insertTransaction(newTransaction)
+                        val newId = database.transactionDao().insertTransaction(newTransaction)
+                        // Track old ID -> new ID mapping directly from insert result
+                        if (oldId != 0L) {
+                            oldToNewTransactionIdMap[oldId] = newId
+                        }
                         importedTransactions++
                     } else {
+                        // Also map IDs for duplicate transactions so splits/applications reference correct local ID
+                        val localId = existingHashToIdMap[transaction.transactionHash]
+                        if (transaction.id != 0L && localId != null) {
+                            oldToNewTransactionIdMap[transaction.id] = localId
+                        }
                         skippedDuplicates++
                     }
                 }
@@ -198,6 +239,54 @@ class BackupImporter @Inject constructor(
                 importAccountBalancesWithMerge(backup.database.accountBalances)
                 importSubscriptionsWithMerge(backup.database.subscriptions)
                 importMerchantMappingsWithMerge(backup.database.merchantMappings)
+                
+                // Import new entities with correct ID mapping for splits and applications
+                // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
+                importRulesWithMerge(backup.database.rules)
+                
+                // Get existing rule application IDs to avoid duplicates on repeat MERGE
+                val existingRuleAppIds = database.ruleApplicationDao().getAllApplications().first()
+                    .map { it.id }.toSet()
+                backup.database.ruleApplications.forEach { application ->
+                    // Skip if application already exists locally (preserves local rule applications)
+                    if (!existingRuleAppIds.contains(application.id)) {
+                        val mappedTransactionId = application.transactionId.toLongOrNull()?.let { oldId ->
+                            oldToNewTransactionIdMap[oldId]?.toString() ?: application.transactionId
+                        } ?: application.transactionId
+                        val updatedApplication = application.copy(transactionId = mappedTransactionId)
+                        database.ruleApplicationDao().insertApplication(updatedApplication)
+                    }
+                }
+                // Get existing rates once to avoid N+1 queries
+                val existingRates = database.exchangeRateDao().getAllRatesFlow().first()
+                backup.database.exchangeRates.forEach { rate ->
+                    // Skip if currency pair already exists locally to preserve custom rates
+                    val existingPair = existingRates.find { 
+                        it.fromCurrency == rate.fromCurrency && it.toCurrency == rate.toCurrency 
+                    }
+                    if (existingPair == null) {
+                        database.exchangeRateDao().insertExchangeRate(rate)
+                    }
+                }
+                importBudgetsWithMerge(backup.database.budgets, backup.database.budgetCategories)
+                
+                // Get existing split keys to avoid duplicates on repeat MERGE
+                // A split is unique by (transaction_id, category, amount)
+                val existingSplits = database.transactionSplitDao().getAllSplits().first()
+                val existingSplitKeys = existingSplits.map { "${it.transactionId}|${it.category}|${it.amount}" }.toSet()
+                backup.database.transactionSplits.forEach { split ->
+                    // Map transaction ID to new ID if available
+                    val mappedTransactionId = oldToNewTransactionIdMap[split.transactionId] ?: split.transactionId
+                    // Skip if split already exists locally (preserves local splits)
+                    val splitKey = "${mappedTransactionId}|${split.category}|${split.amount}"
+                    if (!existingSplitKeys.contains(splitKey)) {
+                        val updatedSplit = split.copy(id = 0, transactionId = mappedTransactionId)
+                        database.transactionSplitDao().insertSplit(updatedSplit)
+                    }
+                }
+                backup.database.bankNotifications.forEach { notification ->
+                    database.bankNotificationDao().insertOrReplace(notification)
+                }
                 
                 // Import preferences (merge with existing)
                 importPreferences(backup.preferences)
@@ -261,8 +350,41 @@ class BackupImporter @Inject constructor(
      */
     private suspend fun importMerchantMappingsWithMerge(mappings: List<MerchantMappingEntity>) {
         mappings.forEach { mapping ->
-            // Merchant mappings use merchant name as primary key, so just insert/replace
             database.merchantMappingDao().insertMapping(mapping)
+        }
+    }
+    
+    /**
+     * Import rules with merge semantics - skip if exists locally
+     */
+    private suspend fun importRulesWithMerge(rules: List<RuleEntity>) {
+        val existingRuleIds = database.ruleDao().getAllRules().first().map { it.id }.toSet()
+        
+        rules.forEach { rule ->
+            if (!existingRuleIds.contains(rule.id)) {
+                database.ruleDao().insertRule(rule)
+            }
+        }
+    }
+    
+    /**
+     * Import budgets and budget categories with merge semantics - skip if exists locally
+     */
+    private suspend fun importBudgetsWithMerge(budgets: List<BudgetEntity>, budgetCategories: List<BudgetCategoryEntity>) {
+        val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
+        
+        budgets.forEach { budget ->
+            if (!existingBudgetNames.contains(budget.name)) {
+                // Use the return value from insertBudget to get the new ID directly
+                // instead of querying (which would miss inactive budgets)
+                val newBudgetId = database.budgetDao().insertBudget(budget.copy(id = 0))
+                
+                // Import categories for this budget using the returned ID
+                budgetCategories.filter { it.budgetId == budget.id }.forEach { category ->
+                    val updatedCategory = category.copy(id = 0, budgetId = newBudgetId)
+                    database.budgetDao().insertBudgetCategory(updatedCategory)
+                }
+            }
         }
     }
     

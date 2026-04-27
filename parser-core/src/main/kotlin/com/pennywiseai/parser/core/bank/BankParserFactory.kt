@@ -104,7 +104,7 @@ object BankParserFactory {
         STCBankParser(),  // STC Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
         BankMuscatParser(),  // Bank Muscat (Oman)
-        GreaterBankParser()  // Greater Bank (India)
+        GreaterBankParser(),  // Greater Bank (India)
         CitizensBankParser(),  // Citizens Bank (Nepal)
         MachchhapuchreBankParser(),  // Machchhapuchre Bank (Nepal)
         StandardCharteredNepalParser()  // Standard Chartered Bank (Nepal)

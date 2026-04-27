@@ -98,7 +98,15 @@ class NMBBankParser : BankParser() {
 
         // Pattern 2: ATM/Cash withdrawal (contains "withdrawn" and "ATM")
         if (message.contains("withdrawn", ignoreCase = true) && message.contains("ATM", ignoreCase = true)) {
-            // Check if it mentions ATM or specific location
+            // Check for "ATM @ LOCATION" pattern (e.g., "CWD ATM @ GIBL MAHAR")
+            val atmAtPattern = Regex("""ATM\s*@\s*([^).]+)""", RegexOption.IGNORE_CASE)
+            atmAtPattern.find(message)?.let { match ->
+                val location = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(location)) {
+                    return "ATM - $location"
+                }
+            }
+            // Check for "at LOCATION" pattern
             val atmPattern = Regex("""at\s+([^.\n]+?)(?:\s+on|\.)""", RegexOption.IGNORE_CASE)
             atmPattern.find(message)?.let { match ->
                 val location = cleanMerchantName(match.groupValues[1].trim())

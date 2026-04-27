@@ -20,12 +20,13 @@ class MachchhapuchreBankParser : BankParser() {
     override fun getCurrency() = "NPR"
 
     override fun canHandle(sender: String): Boolean {
+    override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender == "MBL_ALERT" ||
+                normalizedSender == "MBL" ||
                 normalizedSender.contains("MACHHAPUCHHRE") ||
-                normalizedSender.contains("MBL")
+                normalizedSender.contains("MACHCHHAPUCHRE")
     }
-
     override fun extractAmount(message: String): BigDecimal? {
         val nprPattern = Regex(
             """NPR\s*([0-9,]+(?:\.\d{2})?)""",

@@ -46,7 +46,7 @@ Enjoy the new features of eNMB App. Click here to learn more bit.ly/3qpteyE A/C 
                     amount = BigDecimal("700.00"),
                     currency = "NPR",
                     type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
-                    merchant = "ATM Withdrawal",
+                    merchant = "Cash Withdrawal",
                     accountLast4 = "016",  // 0 + 16 = 3 digits (extractLast4Digits accepts >= 3)
                     reference = "523396049"
                 )

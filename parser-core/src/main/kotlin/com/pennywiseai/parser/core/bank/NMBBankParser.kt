@@ -131,6 +131,11 @@ class NMBBankParser : BankParser() {
             return "Wallet Load"
         }
 
+        // Pattern 5: Generic withdrawal (non-ATM, e.g., Fonepay QR)
+        if (message.contains("withdrawn", ignoreCase = true)) {
+            return "Cash Withdrawal"
+        }
+
         return null
     }
 

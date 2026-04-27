@@ -20,21 +20,36 @@ class StandardCharteredNepalParserTest {
 
         val testCases = listOf(
             ParserTestCase(
-                name = "Generic debit fallback test",
-                message = "NPR 520.00 debited",
-                sender = "SCBNL",
+                name = "Debit - account withdrawal",
+                message = "NPR 95,000.00 has been debited from your account 3301.",
+                sender = "SC_ALERT",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("520.00"),
+                    amount = BigDecimal("95000.00"),
                     currency = "NPR",
-                    type = TransactionType.EXPENSE
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "3301"
+                )
+            ),
+            ParserTestCase(
+                name = "Credit - deposit",
+                message = "NPR 80,000.00 has been deposited into your account 1234.",
+                sender = "SCB_ALERT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("80000.00"),
+                    currency = "NPR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1234"
                 )
             )
         )
 
         val handleChecks = listOf(
+            "SC_ALERT" to true,
+            "SCB_ALERT" to true,
             "SCBNL" to true,
             "SCB_NP" to true,
             "SCBNP" to true,
+            "SCBANK" to false,  // India/Pakistan parser, not Nepal
             "UNKNOWN" to false
         )
 

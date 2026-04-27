@@ -96,8 +96,8 @@ class NMBBankParser : BankParser() {
             return "Fund Transfer"
         }
 
-        // Pattern 2: ATM/Cash withdrawal (contains "withdrawn" and account pattern)
-        if (message.contains("withdrawn", ignoreCase = true)) {
+        // Pattern 2: ATM/Cash withdrawal (contains "withdrawn" and "ATM")
+        if (message.contains("withdrawn", ignoreCase = true) && message.contains("ATM", ignoreCase = true)) {
             // Check if it mentions ATM or specific location
             val atmPattern = Regex("""at\s+([^.\n]+?)(?:\s+on|\.)""", RegexOption.IGNORE_CASE)
             atmPattern.find(message)?.let { match ->

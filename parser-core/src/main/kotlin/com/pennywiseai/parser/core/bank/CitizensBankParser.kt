@@ -118,17 +118,16 @@ class CitizensBankParser : BankParser() {
         
         remarksPattern.find(message)?.let { match ->
             val remarks = match.groupValues[1].trim()
-            if (remarks.contains("/")) {
-                val parts = remarks.split("/")
-                if (parts.size >= 2) {
-                    return parts[1] // return the middle reference id like 459521x2018
-                }
-            }
-        }
-        
-        return super.extractReference(message)
-    }
+    override fun isTransactionMessage(message: String): Boolean {
+        if (!super.isTransactionMessage(message)) return false
+        val lowerMessage = message.lowercase()
 
+        val hasAmount = lowerMessage.contains("npr")
+        val hasTransactionKeyword = lowerMessage.contains("debited") ||
+                lowerMessage.contains("credited")
+
+        return hasAmount && hasTransactionKeyword && lowerMessage.contains("remarks:") && lowerMessage.contains("av bal:")
+    }
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 

@@ -20,10 +20,11 @@ class CitizensBankParser : BankParser() {
     override fun getCurrency() = "NPR"
 
     override fun canHandle(sender: String): Boolean {
+    override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender == "CTZN_ALERT" ||
-                normalizedSender.contains("CITIZENS") ||
-                normalizedSender.contains("CTZN")
+                normalizedSender == "CITIZENS" ||
+                normalizedSender == "CTZN"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

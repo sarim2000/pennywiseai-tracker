@@ -221,6 +221,9 @@ object BrandIcons {
         "nmb bank" to R.drawable.ic_brand_nmb_bank,
         "nabil bank" to R.drawable.ic_brand_nmb_bank,
         "siddhartha bank" to R.drawable.ic_brand_siddhartha_bank,
+        "citizens bank" to R.drawable.ic_brand_citizens_bank,
+        "machchhapuchre bank" to R.drawable.ic_brand_machchhapuchre_bank,
+        "standard chartered nepal" to R.drawable.ic_brand_standard_chartered_nepal,
         // Banks - Africa / Mobile Money
         "m-pesa" to R.drawable.ic_brand_mpesa,
         "mpesa" to R.drawable.ic_brand_mpesa,
@@ -347,6 +350,11 @@ object BrandIcons {
         merchantName.contains("au bank", ignoreCase = true) -> "#EC6608"
         merchantName.contains("discover", ignoreCase = true) -> "#FF6000"
         merchantName.contains("schwab", ignoreCase = true) -> "#00A0DF"
+
+        // Nepal Banks
+        merchantName.contains("citizens bank", ignoreCase = true) -> "#E31937"
+        merchantName.contains("machchhapuchre", ignoreCase = true) -> "#003893"
+        merchantName.contains("standard chartered nepal", ignoreCase = true) -> "#0072AA"
 
         else -> null
     }

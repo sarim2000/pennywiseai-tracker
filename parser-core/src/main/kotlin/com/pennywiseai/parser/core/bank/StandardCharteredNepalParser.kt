@@ -21,9 +21,9 @@ class StandardCharteredNepalParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
-        return upperSender.contains("SCBNL") ||
-                upperSender.contains("SCB_NP") ||
-                upperSender.contains("SCBNP") ||
+        return upperSender == "SCBNL" ||
+                upperSender == "SCB_NP" ||
+                upperSender == "SCBNP" ||
                 upperSender == "SC_ALERT" ||
                 upperSender == "SCB_ALERT"
     }

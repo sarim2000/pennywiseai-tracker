@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
@@ -43,9 +44,10 @@ class BudgetGroupRepository @Inject constructor(
         color: String,
         currency: String,
         categories: List<Pair<String, BigDecimal>> = emptyList(),
-        displayOrder: Int = 0,
+        displayOrder: Int = -1,
         limitAmount: BigDecimal? = null
     ): Long {
+        val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: categories.fold(BigDecimal.ZERO) { acc, (_, amount) -> acc + amount }
         val now = LocalDate.now()
         val yearMonth = YearMonth.from(now)
@@ -241,6 +243,24 @@ class BudgetGroupRepository @Inject constructor(
             }
         }
 
+        // Apply income transactions that are linked to budget categories
+        val categoryLimitBoosts = mutableMapOf<String, BigDecimal>()
+        allTransactions.forEach { txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType == TransactionType.INCOME && tx.budgetCategory != null) {
+                when (tx.budgetImpactType) {
+                    BudgetImpactType.DEDUCT_SPENT -> {
+                        val current = categoryAmounts[tx.budgetCategory] ?: BigDecimal.ZERO
+                        categoryAmounts[tx.budgetCategory] = (current - tx.amount).coerceAtLeast(BigDecimal.ZERO)
+                    }
+                    BudgetImpactType.ADD_TO_LIMIT -> {
+                        categoryLimitBoosts[tx.budgetCategory] = (categoryLimitBoosts[tx.budgetCategory] ?: BigDecimal.ZERO) + tx.amount
+                    }
+                    null -> {}
+                }
+            }
+        }
+
         // Calculate total expenses for groups with no categories (track all expenses)
         val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
 
@@ -320,21 +340,22 @@ class BudgetGroupRepository @Inject constructor(
                 // Normal case: track specific categories
                 val catSpending = group.categories.map { cat ->
                     val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                    val pctUsed = if (cat.budgetAmount > BigDecimal.ZERO) {
-                        (actual.toFloat() / cat.budgetAmount.toFloat() * 100f).coerceAtLeast(0f)
+                    val effectiveBudget = cat.budgetAmount + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                    val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                        (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                     } else 0f
                     val dailySpend = if (daysElapsed > 0 && actual > BigDecimal.ZERO) {
                         actual.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
                     } else BigDecimal.ZERO
                     BudgetCategorySpending(
                         categoryName = cat.categoryName,
-                        budgetAmount = cat.budgetAmount,
+                        budgetAmount = effectiveBudget,
                         actualAmount = actual,
                         percentageUsed = pctUsed,
                         dailySpend = dailySpend
                     )
                 }
-                val totalBudget = group.totalBudgetAmount
+                val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
                 val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
                 val remaining = totalBudget - totalActual
                 val pctUsed = if (totalBudget > BigDecimal.ZERO) {

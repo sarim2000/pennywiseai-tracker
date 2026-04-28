@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
@@ -134,6 +135,35 @@ fun TransactionTabContent(
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = fullShape,
+                    colors = filledFieldColors()
+                )
+            }
+
+            // ── Merchant + Notes (connected cards) ──
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+            ) {
+                TextField(
+                    value = uiState.merchant,
+                    onValueChange = viewModel::updateTransactionMerchant,
+                    label = { Text("Merchant", fontWeight = FontWeight.SemiBold) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = topShape,
+                    leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
+                    isError = uiState.merchantError != null,
+                    supportingText = uiState.merchantError?.let { { Text(it) } },
+                    colors = filledFieldColors()
+                )
+
+                TextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::updateTransactionNotes,
+                    label = { Text("Notes (Optional)", fontWeight = FontWeight.SemiBold) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                     colors = filledFieldColors()
                 )
             }
@@ -483,32 +513,15 @@ fun TransactionTabContent(
                 }
             }
 
-            // ── Merchant + Notes (connected cards) ──
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-                TextField(
-                    value = uiState.merchant,
-                    onValueChange = viewModel::updateTransactionMerchant,
-                    label = { Text("Merchant", fontWeight = FontWeight.SemiBold) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = topShape,
-                    leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
-                    isError = uiState.merchantError != null,
-                    supportingText = uiState.merchantError?.let { { Text(it) } },
-                    colors = filledFieldColors()
-                )
-
-                TextField(
-                    value = uiState.notes,
-                    onValueChange = viewModel::updateTransactionNotes,
-                    label = { Text("Notes (Optional)", fontWeight = FontWeight.SemiBold) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = bottomShape,
-                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                    colors = filledFieldColors()
+            // ── Budget Impact (INCOME only) ──
+            if (uiState.transactionType == TransactionType.INCOME) {
+                val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsState()
+                AddBudgetImpactSection(
+                    budgetImpactType = uiState.budgetImpactType,
+                    budgetCategory = uiState.budgetCategory,
+                    activeBudgetCategories = activeBudgetCategories,
+                    onImpactTypeChange = viewModel::updateBudgetImpactType,
+                    onCategoryChange = viewModel::updateBudgetCategory
                 )
             }
 
@@ -705,6 +718,90 @@ fun ReceiptPickerSection(
                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Camera")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddBudgetImpactSection(
+    budgetImpactType: BudgetImpactType?,
+    budgetCategory: String?,
+    activeBudgetCategories: List<String>,
+    onImpactTypeChange: (BudgetImpactType?) -> Unit,
+    onCategoryChange: (String?) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Text(
+            text = "Budget impact",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = budgetImpactType == null,
+                onClick = { onImpactTypeChange(null) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                label = { Text("None", style = MaterialTheme.typography.labelSmall) }
+            )
+            SegmentedButton(
+                selected = budgetImpactType == BudgetImpactType.DEDUCT_SPENT,
+                onClick = { onImpactTypeChange(BudgetImpactType.DEDUCT_SPENT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                label = { Text("Refund", style = MaterialTheme.typography.labelSmall) }
+            )
+            SegmentedButton(
+                selected = budgetImpactType == BudgetImpactType.ADD_TO_LIMIT,
+                onClick = { onImpactTypeChange(BudgetImpactType.ADD_TO_LIMIT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                label = { Text("Extra budget", style = MaterialTheme.typography.labelSmall) }
+            )
+        }
+
+        if (budgetImpactType != null) {
+            var expanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = budgetCategory ?: "Select category",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Budget category") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    if (activeBudgetCategories.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No budget categories found") },
+                            onClick = { expanded = false },
+                            enabled = false
+                        )
+                    } else {
+                        activeBudgetCategories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    onCategoryChange(category)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

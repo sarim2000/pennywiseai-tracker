@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -29,7 +30,9 @@ class AddTransactionUseCase @Inject constructor(
         bankName: String? = null,
         accountLast4: String? = null,
         currency: String = "INR",
-        receiptPath: String? = null
+        receiptPath: String? = null,
+        budgetCategory: String? = null,
+        budgetImpactType: BudgetImpactType? = null
     ) {
         // Generate a unique hash for manual transactions
         val transactionHash = generateManualTransactionHash(
@@ -56,7 +59,9 @@ class AddTransactionUseCase @Inject constructor(
             currency = currency,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
-            receiptPath = receiptPath
+            receiptPath = receiptPath,
+            budgetCategory = budgetCategory,
+            budgetImpactType = budgetImpactType
         )
 
         // Insert the transaction

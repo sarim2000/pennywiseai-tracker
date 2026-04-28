@@ -80,8 +80,19 @@ data class TransactionEntity(
     val loanId: Long? = null,
 
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
-    val receiptPath: String? = null
+    val receiptPath: String? = null,
+
+    @ColumnInfo(name = "budget_category", defaultValue = "NULL")
+    val budgetCategory: String? = null,
+
+    @ColumnInfo(name = "budget_impact_type", defaultValue = "NULL")
+    val budgetImpactType: BudgetImpactType? = null
 )
+
+enum class BudgetImpactType {
+    DEDUCT_SPENT,
+    ADD_TO_LIMIT
+}
 
 enum class TransactionType {
     INCOME,     // Money received

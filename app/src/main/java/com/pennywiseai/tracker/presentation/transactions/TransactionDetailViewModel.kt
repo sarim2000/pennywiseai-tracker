@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import androidx.core.net.toUri
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
@@ -36,6 +38,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val loanRepository: LoanRepository,
+    private val budgetGroupRepository: BudgetGroupRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager,
@@ -79,10 +82,27 @@ class TransactionDetailViewModel @Inject constructor(
     
     private val _isDeleting = MutableStateFlow(false)
     val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
-    
+
     private val _deleteSuccess = MutableStateFlow(false)
     val deleteSuccess: StateFlow<Boolean> = _deleteSuccess.asStateFlow()
     val existingTransactionCount: StateFlow<Int> = _existingTransactionCount.asStateFlow()
+
+    // Budget impact state (for INCOME transactions only)
+    private val _budgetImpactType = MutableStateFlow<BudgetImpactType?>(null)
+    val budgetImpactType: StateFlow<BudgetImpactType?> = _budgetImpactType.asStateFlow()
+
+    private val _budgetCategory = MutableStateFlow<String?>(null)
+    val budgetCategory: StateFlow<String?> = _budgetCategory.asStateFlow()
+
+    val activeBudgetCategories: StateFlow<List<String>> = budgetGroupRepository.getActiveGroups()
+        .map { groups ->
+            groups.flatMap { it.categories.map { cat -> cat.categoryName } }.distinct().sorted()
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     // Split-related state
     private val _splits = MutableStateFlow<List<SplitItem>>(emptyList())
@@ -159,6 +179,8 @@ class TransactionDetailViewModel @Inject constructor(
                 loadSplits(transactionId)
                 loadReceiptUri(it)
                 it.loanId?.let { id -> loadLoan(id) }
+                _budgetImpactType.value = it.budgetImpactType
+                _budgetCategory.value = it.budgetCategory
             }
         }
     }
@@ -332,6 +354,17 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.update { current ->
             current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
         }
+    }
+
+    fun updateBudgetImpactType(type: BudgetImpactType?) {
+        _budgetImpactType.value = type
+        if (type == null) _budgetCategory.value = null
+        _editableTransaction.update { it?.copy(budgetImpactType = type, budgetCategory = if (type == null) null else it.budgetCategory) }
+    }
+
+    fun updateBudgetCategory(category: String?) {
+        _budgetCategory.value = category
+        _editableTransaction.update { it?.copy(budgetCategory = category) }
     }
 
     fun updateCurrency(currency: String) {
@@ -569,6 +602,8 @@ class TransactionDetailViewModel @Inject constructor(
                 _applyToAllFromMerchant.value = false
                 _updateExistingTransactions.value = false
                 _existingTransactionCount.value = 0
+                _budgetImpactType.value = normalizedTransaction.budgetImpactType
+                _budgetCategory.value = normalizedTransaction.budgetCategory
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to save changes: ${e.message}"
             } finally {

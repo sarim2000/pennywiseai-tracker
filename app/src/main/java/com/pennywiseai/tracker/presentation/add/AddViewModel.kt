@@ -5,11 +5,13 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -32,6 +34,7 @@ class AddViewModel @Inject constructor(
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager
 ) : ViewModel() {
@@ -68,6 +71,16 @@ class AddViewModel @Inject constructor(
 
     // All accounts for selection in manual transaction entry
     val accounts = accountBalanceRepository.getAllLatestBalances()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val activeBudgetCategories = budgetGroupRepository.getActiveGroups()
+        .map { groups ->
+            groups.flatMap { it.categories.map { cat -> cat.categoryName } }.distinct().sorted()
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -172,6 +185,14 @@ class AddViewModel @Inject constructor(
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
     
+    fun updateBudgetImpactType(type: BudgetImpactType?) {
+        _transactionUiState.update { it.copy(budgetImpactType = type, budgetCategory = if (type == null) null else it.budgetCategory) }
+    }
+
+    fun updateBudgetCategory(category: String?) {
+        _transactionUiState.update { it.copy(budgetCategory = category) }
+    }
+
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
         
@@ -210,7 +231,9 @@ class AddViewModel @Inject constructor(
                     bankName = selectedAccount?.bankName,
                     accountLast4 = selectedAccount?.accountLast4,
                     currency = state.currency,
-                    receiptPath = receiptPath
+                    receiptPath = receiptPath,
+                    budgetCategory = state.budgetCategory,
+                    budgetImpactType = state.budgetImpactType
                 )
 
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
@@ -398,7 +421,9 @@ data class TransactionUiState(
     val error: String? = null,
     val selectedAccount: AccountBalanceEntity? = null,
     val currency: String = "INR",
-    val receiptUri: Uri? = null
+    val receiptUri: Uri? = null,
+    val budgetImpactType: BudgetImpactType? = null,
+    val budgetCategory: String? = null
 ) {
     val isValid: Boolean
         get() = amount.isNotBlank() && 

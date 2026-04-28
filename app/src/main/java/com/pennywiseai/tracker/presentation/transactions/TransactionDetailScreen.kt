@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -1010,41 +1011,6 @@ private fun EditableTransactionHeader(
             )
         }
 
-        // Transaction Type
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            TransactionType.values().forEach { type ->
-                FilterChip(
-                    selected = transaction.transactionType == type,
-                    onClick = { viewModel.updateTransactionType(type) },
-                    label = { Text(type.name.lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }, maxLines = 1) },
-                    leadingIcon = if (transaction.transactionType == type) {
-                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
-                    } else null,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
-                        labelColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderWidth = 0.dp,
-                        selected = transaction.transactionType == type,
-                        enabled = true
-                    )
-                )
-            }
-        }
-
-        // Date and Time
-        DateTimeField(
-            dateTime = transaction.dateTime,
-            onDateTimeChange = { viewModel.updateDateTime(it) }
-        )
-
         // Merchant + Description (connected group)
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1084,6 +1050,42 @@ private fun EditableTransactionHeader(
                 colors = editFilledColors()
             )
         }
+
+        // Transaction Type
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            TransactionType.values().forEach { type ->
+                FilterChip(
+                    selected = transaction.transactionType == type,
+                    onClick = { viewModel.updateTransactionType(type) },
+                    label = { Text(type.name.lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }, maxLines = 1) },
+                    leadingIcon = if (transaction.transactionType == type) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderWidth = 0.dp,
+                        selected = transaction.transactionType == type,
+                        enabled = true
+                    )
+                )
+            }
+        }
+
+        // Date and Time
+        DateTimeField(
+            dateTime = transaction.dateTime,
+            onDateTimeChange = { viewModel.updateDateTime(it) }
+        )
+
     }
 }
 
@@ -1192,6 +1194,10 @@ private fun EditableExtractedInfoCard(
                     )
                 }
             }
+
+            if (transaction.transactionType == TransactionType.INCOME) {
+                BudgetImpactSection(viewModel = viewModel)
+            }
         }
 
         // Recurring
@@ -1205,7 +1211,8 @@ private fun EditableExtractedInfoCard(
             )
             Text(
                 text = "Recurring Transaction",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -1254,6 +1261,88 @@ private fun EditableExtractedInfoCard(
             onRemoveSplits = { viewModel.removeSplits() },
             modifier = Modifier.padding(horizontal = 0.dp)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
+    val budgetImpactType by viewModel.budgetImpactType.collectAsStateWithLifecycle()
+    val budgetCategory by viewModel.budgetCategory.collectAsStateWithLifecycle()
+    val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Text(
+            text = "Budget impact",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = budgetImpactType == null,
+                onClick = { viewModel.updateBudgetImpactType(null) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                label = { Text("None", style = MaterialTheme.typography.labelSmall) }
+            )
+            SegmentedButton(
+                selected = budgetImpactType == BudgetImpactType.DEDUCT_SPENT,
+                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.DEDUCT_SPENT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                label = { Text("Refund", style = MaterialTheme.typography.labelSmall) }
+            )
+            SegmentedButton(
+                selected = budgetImpactType == BudgetImpactType.ADD_TO_LIMIT,
+                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.ADD_TO_LIMIT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                label = { Text("Extra budget", style = MaterialTheme.typography.labelSmall) }
+            )
+        }
+
+        if (budgetImpactType != null) {
+            var expanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = budgetCategory ?: "Select category",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Budget category") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    if (activeBudgetCategories.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No budget categories found") },
+                            onClick = { expanded = false },
+                            enabled = false
+                        )
+                    } else {
+                        activeBudgetCategories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    viewModel.updateBudgetCategory(category)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

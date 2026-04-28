@@ -129,4 +129,7 @@ interface BudgetDao {
 
     @Query("SELECT COUNT(*) FROM budgets WHERE is_active = 1")
     suspend fun getActiveGroupCount(): Int
+
+    @Query("SELECT COALESCE(MAX(display_order), -1) FROM budgets WHERE is_active = 1")
+    suspend fun getMaxDisplayOrder(): Int
 }

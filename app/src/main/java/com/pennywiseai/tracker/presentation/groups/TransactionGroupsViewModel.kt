@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -38,35 +41,28 @@ class TransactionGroupsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TransactionGroupsUiState())
     val uiState: StateFlow<TransactionGroupsUiState> = _uiState.asStateFlow()
 
-    // Cache of transactions per group for summary calculation
-    private val groupTransactionsCache = mutableMapOf<Long, List<TransactionEntity>>()
-
     init {
         loadGroups()
     }
 
     private fun loadGroups() {
         viewModelScope.launch {
-            repository.getAllGroups().collect { groups ->
-                val summaries = groups.map { group ->
-                    val transactions = groupTransactionsCache[group.id] ?: emptyList()
-                    buildSummary(group, transactions)
-                }
-                _uiState.value = _uiState.value.copy(groups = summaries, isLoading = false)
-
-                // Load transactions for each group
-                groups.forEach { group ->
-                    viewModelScope.launch {
-                        repository.getTransactionsForGroup(group.id).collect { txns ->
-                            groupTransactionsCache[group.id] = txns
-                            val updated = _uiState.value.groups.map { s ->
-                                if (s.group.id == group.id) buildSummary(group, txns) else s
+            repository.getAllGroups()
+                .flatMapLatest { groups ->
+                    if (groups.isEmpty()) {
+                        flowOf(emptyList())
+                    } else {
+                        combine(
+                            groups.map { group ->
+                                repository.getTransactionsForGroup(group.id)
+                                    .map { txns -> buildSummary(group, txns) }
                             }
-                            _uiState.value = _uiState.value.copy(groups = updated)
-                        }
+                        ) { it.toList() }
                     }
                 }
-            }
+                .collect { summaries ->
+                    _uiState.value = _uiState.value.copy(groups = summaries, isLoading = false)
+                }
         }
     }
 

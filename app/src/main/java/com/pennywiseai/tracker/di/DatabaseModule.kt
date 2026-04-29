@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
@@ -251,6 +252,12 @@ object DatabaseModule {
     @Singleton
     fun provideTransactionGroupDao(database: PennyWiseDatabase): TransactionGroupDao {
         return database.transactionGroupDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBudgetSnapshotDao(database: PennyWiseDatabase): BudgetSnapshotDao {
+        return database.budgetSnapshotDao()
     }
 }
 

@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
+import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
@@ -29,7 +30,9 @@ import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetCategoryMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
@@ -55,8 +58,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class],
-    version = 41,
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class],
+    version = 42,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -94,7 +97,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 36, to = 37),
         AutoMigration(from = 37, to = 38),
         AutoMigration(from = 39, to = 40),
-        AutoMigration(from = 40, to = 41)
+        AutoMigration(from = 40, to = 41),
+        AutoMigration(from = 41, to = 42)
     ]
 )
 @TypeConverters(Converters::class)
@@ -115,6 +119,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun bankNotificationDao(): BankNotificationDao
     abstract fun loanDao(): LoanDao
     abstract fun transactionGroupDao(): TransactionGroupDao
+    abstract fun budgetSnapshotDao(): BudgetSnapshotDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"

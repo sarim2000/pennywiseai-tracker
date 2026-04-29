@@ -68,7 +68,7 @@ class BudgetGroupRepository @Inject constructor(
             includeAllCategories = categories.isEmpty(),
             color = color,
             groupType = groupType,
-            displayOrder = displayOrder,
+            displayOrder = resolvedDisplayOrder,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )

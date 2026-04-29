@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 
 @Entity(
     tableName = "transaction_groups",
-    indices = [Index(value = ["created_at"])]
+    indices = [Index(value = ["updated_at"])]
 )
 data class TransactionGroupEntity(
     @PrimaryKey(autoGenerate = true)

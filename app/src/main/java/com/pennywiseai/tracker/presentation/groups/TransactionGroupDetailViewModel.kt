@@ -8,12 +8,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -32,7 +32,6 @@ data class TransactionGroupDetailUiState(
     val addSearchQuery: String = ""
 )
 
-@OptIn(FlowPreview::class)
 @HiltViewModel
 class TransactionGroupDetailViewModel @Inject constructor(
     private val repository: TransactionGroupRepository,
@@ -45,10 +44,10 @@ class TransactionGroupDetailViewModel @Inject constructor(
     val uiState: StateFlow<TransactionGroupDetailUiState> = _uiState.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
+    private var addSheetJob: Job? = null
 
     init {
         loadGroup()
-        observeSearch()
     }
 
     private fun loadGroup() {
@@ -73,34 +72,28 @@ class TransactionGroupDetailViewModel @Inject constructor(
         }
     }
 
-    private fun observeSearch() {
-        viewModelScope.launch {
+    fun showAddSheet() {
+        addSheetJob?.cancel()
+        _uiState.value = _uiState.value.copy(showAddSheet = true)
+        addSheetJob = viewModelScope.launch {
             _searchQuery
                 .debounce(300)
-                .distinctUntilChanged()
-                .collect { query ->
+                .flatMapLatest { query ->
                     if (query.isBlank()) {
-                        repository.getRecentUngroupedTransactions().collect { txns ->
-                            _uiState.value = _uiState.value.copy(ungroupedTransactions = txns)
-                        }
+                        repository.getRecentUngroupedTransactions()
                     } else {
-                        repository.searchUngroupedTransactions(query).collect { txns ->
-                            _uiState.value = _uiState.value.copy(ungroupedTransactions = txns)
-                        }
+                        repository.searchUngroupedTransactions(query)
                     }
+                }
+                .collect { txns ->
+                    _uiState.value = _uiState.value.copy(ungroupedTransactions = txns)
                 }
         }
     }
 
-    fun showAddSheet() {
-        viewModelScope.launch {
-            repository.getRecentUngroupedTransactions().collect { txns ->
-                _uiState.value = _uiState.value.copy(ungroupedTransactions = txns, showAddSheet = true)
-            }
-        }
-    }
-
     fun hideAddSheet() {
+        addSheetJob?.cancel()
+        addSheetJob = null
         _uiState.value = _uiState.value.copy(showAddSheet = false, addSearchQuery = "", ungroupedTransactions = emptyList())
         _searchQuery.value = ""
     }

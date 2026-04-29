@@ -168,34 +168,31 @@ class BudgetGroupRepository @Inject constructor(
         val year = now.year
         val month = now.monthValue
         val budgets = budgetDao.getActiveBudgetsWithCategories().first()
-        snapshotDao.deleteGroupSnapshotsForMonth(year, month)
-        snapshotDao.deleteCategorySnapshotsForMonth(year, month)
-        budgets.forEach { bwc ->
-            snapshotDao.insertGroupSnapshot(
-                BudgetMonthSnapshotEntity(
+        val groupSnapshots = budgets.map { bwc ->
+            BudgetMonthSnapshotEntity(
+                budgetId = bwc.budget.id,
+                year = year,
+                month = month,
+                budgetName = bwc.budget.name,
+                limitAmount = bwc.budget.limitAmount,
+                includeAllCategories = bwc.budget.includeAllCategories,
+                color = bwc.budget.color,
+                groupType = bwc.budget.groupType,
+                displayOrder = bwc.budget.displayOrder
+            )
+        }
+        val categorySnapshots = budgets.flatMap { bwc ->
+            bwc.categories.map { cat ->
+                BudgetCategoryMonthSnapshotEntity(
                     budgetId = bwc.budget.id,
                     year = year,
                     month = month,
-                    budgetName = bwc.budget.name,
-                    limitAmount = bwc.budget.limitAmount,
-                    includeAllCategories = bwc.budget.includeAllCategories,
-                    color = bwc.budget.color,
-                    groupType = bwc.budget.groupType,
-                    displayOrder = bwc.budget.displayOrder
-                )
-            )
-            bwc.categories.forEach { cat ->
-                snapshotDao.insertCategorySnapshot(
-                    BudgetCategoryMonthSnapshotEntity(
-                        budgetId = bwc.budget.id,
-                        year = year,
-                        month = month,
-                        categoryName = cat.categoryName,
-                        budgetAmount = cat.budgetAmount
-                    )
+                    categoryName = cat.categoryName,
+                    budgetAmount = cat.budgetAmount
                 )
             }
         }
+        snapshotDao.replaceMonthSnapshots(year, month, groupSnapshots, categorySnapshots)
     }
 
     private suspend fun getGroupsForMonth(year: Int, month: Int): List<BudgetWithCategories> {

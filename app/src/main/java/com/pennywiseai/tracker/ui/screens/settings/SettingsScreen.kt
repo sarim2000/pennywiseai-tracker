@@ -83,6 +83,7 @@ fun SettingsScreen(
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
+    onNavigateToTransactionGroups: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
@@ -333,6 +334,15 @@ fun SettingsScreen(
                     title = "Loans",
                     subtitle = "Track money lent and borrowed",
                     onClick = onNavigateToLoans,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Folder,
+                    iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    title = "Transaction Groups",
+                    subtitle = "Organise transactions under a topic",
+                    onClick = onNavigateToTransactionGroups,
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(

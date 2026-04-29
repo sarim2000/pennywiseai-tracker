@@ -130,6 +130,9 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToImportStatement = {
                     navController.navigate(ImportStatement) { launchSingleTop = true }
+                },
+                onNavigateToTransactionGroups = {
+                    navController.navigate(TransactionGroups) { launchSingleTop = true }
                 }
             )
         }
@@ -336,6 +339,42 @@ fun PennyWiseNavHost(
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
         ) {
             com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                },
+                onNavigateToTransactionDetail = { txId ->
+                    navController.navigate(TransactionDetail(txId)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable<TransactionGroups>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.groups.TransactionGroupsScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                },
+                onNavigateToGroupDetail = { groupId ->
+                    navController.navigate(TransactionGroupDetail(groupId)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable<TransactionGroupDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.groups.TransactionGroupDetailScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
                 },

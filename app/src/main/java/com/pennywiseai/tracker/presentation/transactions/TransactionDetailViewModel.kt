@@ -312,6 +312,10 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.update { current ->
             current?.copy(transactionType = type)
         }
+        if (type != TransactionType.INCOME) {
+            _budgetImpactType.value = null
+            _budgetCategory.value = null
+        }
     }
     
     fun updateCategory(category: String) {

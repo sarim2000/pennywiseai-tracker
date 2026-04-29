@@ -41,8 +41,7 @@ class TransactionGroupRepository @Inject constructor(
 
     suspend fun deleteGroup(groupId: Long) {
         val group = groupDao.getGroupById(groupId) ?: return
-        groupDao.unlinkAllTransactions(groupId)
-        groupDao.deleteGroup(group)
+        groupDao.unlinkAndDeleteGroup(group)
     }
 
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {

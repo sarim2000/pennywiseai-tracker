@@ -426,14 +426,15 @@ data class TransactionUiState(
     val budgetCategory: String? = null
 ) {
     val isValid: Boolean
-        get() = amount.isNotBlank() && 
-                amount.toDoubleOrNull() != null && 
+        get() = amount.isNotBlank() &&
+                amount.toDoubleOrNull() != null &&
                 amount.toDouble() > 0 &&
-                merchant.isNotBlank() && 
+                merchant.isNotBlank() &&
                 category.isNotBlank() &&
                 amountError == null &&
                 merchantError == null &&
-                categoryError == null
+                categoryError == null &&
+                (budgetImpactType == null || budgetCategory != null)
 }
 
 data class SubscriptionUiState(

@@ -17,6 +17,12 @@ interface TransactionGroupDao {
     @Delete
     suspend fun deleteGroup(group: TransactionGroupEntity)
 
+    @Transaction
+    suspend fun unlinkAndDeleteGroup(group: TransactionGroupEntity) {
+        unlinkAllTransactions(group.id)
+        deleteGroup(group)
+    }
+
     @Query("SELECT * FROM transaction_groups WHERE id = :id")
     suspend fun getGroupById(id: Long): TransactionGroupEntity?
 

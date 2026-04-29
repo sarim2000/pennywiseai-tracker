@@ -400,6 +400,11 @@ fun MainScreen(
                         navController.navigate("import_statement") {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToTransactionGroups = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.TransactionGroups
+                        ) { launchSingleTop = true }
                     }
                 )
             }

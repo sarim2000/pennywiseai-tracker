@@ -1,10 +1,13 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetCategoryMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -13,6 +16,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -26,6 +30,7 @@ import javax.inject.Singleton
 @Singleton
 class BudgetGroupRepository @Inject constructor(
     private val budgetDao: BudgetDao,
+    private val snapshotDao: BudgetSnapshotDao,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
@@ -81,6 +86,7 @@ class BudgetGroupRepository @Inject constructor(
             budgetDao.insertBudgetCategories(categoryEntities)
         }
 
+        saveMonthSnapshot()
         return budgetId
     }
 
@@ -119,10 +125,12 @@ class BudgetGroupRepository @Inject constructor(
             }
             budgetDao.insertBudgetCategories(categoryEntities)
         }
+        saveMonthSnapshot()
     }
 
     suspend fun deleteGroup(budgetId: Long) {
         budgetDao.deleteBudgetById(budgetId)
+        saveMonthSnapshot()
     }
 
     suspend fun addCategoryToGroup(budgetId: Long, categoryName: String, amount: BigDecimal) {
@@ -134,16 +142,19 @@ class BudgetGroupRepository @Inject constructor(
             )
         )
         recomputeGroupTotal(budgetId)
+        saveMonthSnapshot()
     }
 
     suspend fun updateCategoryBudget(budgetId: Long, categoryName: String, amount: BigDecimal) {
         budgetDao.updateCategoryBudgetAmount(budgetId, categoryName, amount)
         recomputeGroupTotal(budgetId)
+        saveMonthSnapshot()
     }
 
     suspend fun removeCategoryFromGroup(budgetId: Long, categoryName: String) {
         budgetDao.deleteCategoryFromBudget(budgetId, categoryName)
         recomputeGroupTotal(budgetId)
+        saveMonthSnapshot()
     }
 
     private suspend fun recomputeGroupTotal(budgetId: Long) {
@@ -152,30 +163,113 @@ class BudgetGroupRepository @Inject constructor(
         budgetDao.updateBudgetLimitAmount(budgetId, total)
     }
 
+    private suspend fun saveMonthSnapshot() {
+        val now = LocalDate.now()
+        val year = now.year
+        val month = now.monthValue
+        val budgets = budgetDao.getActiveBudgetsWithCategories().first()
+        snapshotDao.deleteGroupSnapshotsForMonth(year, month)
+        snapshotDao.deleteCategorySnapshotsForMonth(year, month)
+        budgets.forEach { bwc ->
+            snapshotDao.insertGroupSnapshot(
+                BudgetMonthSnapshotEntity(
+                    budgetId = bwc.budget.id,
+                    year = year,
+                    month = month,
+                    budgetName = bwc.budget.name,
+                    limitAmount = bwc.budget.limitAmount,
+                    includeAllCategories = bwc.budget.includeAllCategories,
+                    color = bwc.budget.color,
+                    groupType = bwc.budget.groupType,
+                    displayOrder = bwc.budget.displayOrder
+                )
+            )
+            bwc.categories.forEach { cat ->
+                snapshotDao.insertCategorySnapshot(
+                    BudgetCategoryMonthSnapshotEntity(
+                        budgetId = bwc.budget.id,
+                        year = year,
+                        month = month,
+                        categoryName = cat.categoryName,
+                        budgetAmount = cat.budgetAmount
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun getGroupsForMonth(year: Int, month: Int): List<BudgetWithCategories> {
+        val groupSnapshots = snapshotDao.getGroupSnapshots(year, month)
+        return if (groupSnapshots.isNotEmpty()) {
+            val catSnapshots = snapshotDao.getCategorySnapshots(year, month)
+            reconstructFromSnapshots(groupSnapshots, catSnapshots)
+        } else {
+            budgetDao.getActiveBudgetsWithCategories().first()
+        }
+    }
+
+    private fun reconstructFromSnapshots(
+        groupSnapshots: List<BudgetMonthSnapshotEntity>,
+        categorySnapshots: List<BudgetCategoryMonthSnapshotEntity>
+    ): List<BudgetWithCategories> {
+        return groupSnapshots.map { gs ->
+            val cats = categorySnapshots
+                .filter { it.budgetId == gs.budgetId }
+                .map { cs ->
+                    BudgetCategoryEntity(
+                        budgetId = gs.budgetId,
+                        categoryName = cs.categoryName,
+                        budgetAmount = cs.budgetAmount
+                    )
+                }
+            BudgetWithCategories(
+                budget = BudgetEntity(
+                    id = gs.budgetId,
+                    name = gs.budgetName,
+                    limitAmount = gs.limitAmount,
+                    periodType = BudgetPeriodType.MONTHLY,
+                    startDate = LocalDate.of(gs.year, gs.month, 1),
+                    endDate = YearMonth.of(gs.year, gs.month).atEndOfMonth(),
+                    isActive = true,
+                    includeAllCategories = gs.includeAllCategories,
+                    color = gs.color,
+                    groupType = gs.groupType,
+                    displayOrder = gs.displayOrder
+                ),
+                categories = cats
+            )
+        }
+    }
+
     fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
         val yearMonth = YearMonth.of(year, month)
         val startDate = yearMonth.atDay(1).atStartOfDay()
         val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
-
         val today = LocalDate.now()
-        val daysElapsed = if (yearMonth == YearMonth.from(today)) {
-            today.dayOfMonth
-        } else {
-            yearMonth.lengthOfMonth()
-        }
-        val daysRemaining = if (yearMonth == YearMonth.from(today)) {
+        val isCurrentMonth = yearMonth == YearMonth.from(today)
+        val daysElapsed = if (isCurrentMonth) today.dayOfMonth else yearMonth.lengthOfMonth()
+        val daysRemaining = if (isCurrentMonth) {
             (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
         } else {
             0
         }
-
         val daysInMonth = yearMonth.lengthOfMonth()
 
-        return combine(
-            budgetDao.getActiveBudgetsWithCategories(),
-            transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
-        ) { groups, allTransactions ->
-            buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency, daysInMonth)
+        return if (isCurrentMonth) {
+            combine(
+                budgetDao.getActiveBudgetsWithCategories(),
+                transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
+            ) { groups, allTransactions ->
+                buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency, daysInMonth)
+            }
+        } else {
+            flow {
+                val groups = getGroupsForMonth(year, month)
+                transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
+                    .collect { allTransactions ->
+                        emit(buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency, daysInMonth))
+                    }
+            }
         }
     }
 
@@ -183,35 +277,48 @@ class BudgetGroupRepository @Inject constructor(
         val yearMonth = YearMonth.of(year, month)
         val startDate = yearMonth.atDay(1).atStartOfDay()
         val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
-
         val today = LocalDate.now()
-        val daysElapsed = if (yearMonth == YearMonth.from(today)) {
-            today.dayOfMonth
-        } else {
-            yearMonth.lengthOfMonth()
-        }
-        val daysRemaining = if (yearMonth == YearMonth.from(today)) {
+        val isCurrentMonth = yearMonth == YearMonth.from(today)
+        val daysElapsed = if (isCurrentMonth) today.dayOfMonth else yearMonth.lengthOfMonth()
+        val daysRemaining = if (isCurrentMonth) {
             (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
         } else {
             0
         }
-
         val prevMonth = yearMonth.minusMonths(1)
         val prevStartDate = prevMonth.atDay(1).atStartOfDay()
         val prevEndDate = prevMonth.atEndOfMonth().atTime(23, 59, 59)
 
-        return combine(
-            budgetDao.getActiveBudgetsWithCategories(),
-            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
-            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(prevStartDate, prevEndDate)
-        ) { groups, allTransactions, prevTransactions ->
-            BudgetGroupSpendingRaw(
-                budgetsWithCategories = groups,
-                allTransactions = allTransactions,
-                prevTransactions = prevTransactions,
-                daysElapsed = daysElapsed,
-                daysRemaining = daysRemaining
-            )
+        return if (isCurrentMonth) {
+            combine(
+                budgetDao.getActiveBudgetsWithCategories(),
+                transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
+                transactionSplitDao.getTransactionsWithSplitsAllCurrencies(prevStartDate, prevEndDate)
+            ) { groups, allTransactions, prevTransactions ->
+                BudgetGroupSpendingRaw(
+                    budgetsWithCategories = groups,
+                    allTransactions = allTransactions,
+                    prevTransactions = prevTransactions,
+                    daysElapsed = daysElapsed,
+                    daysRemaining = daysRemaining
+                )
+            }
+        } else {
+            flow {
+                val groups = getGroupsForMonth(year, month)
+                combine(
+                    transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
+                    transactionSplitDao.getTransactionsWithSplitsAllCurrencies(prevStartDate, prevEndDate)
+                ) { allTransactions, prevTransactions ->
+                    BudgetGroupSpendingRaw(
+                        budgetsWithCategories = groups,
+                        allTransactions = allTransactions,
+                        prevTransactions = prevTransactions,
+                        daysElapsed = daysElapsed,
+                        daysRemaining = daysRemaining
+                    )
+                }.collect { emit(it) }
+            }
         }
     }
 

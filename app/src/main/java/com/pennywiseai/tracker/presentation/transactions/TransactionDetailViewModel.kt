@@ -309,12 +309,16 @@ class TransactionDetailViewModel @Inject constructor(
     }
     
     fun updateTransactionType(type: TransactionType) {
-        _editableTransaction.update { current ->
-            current?.copy(transactionType = type)
-        }
         if (type != TransactionType.INCOME) {
             _budgetImpactType.value = null
             _budgetCategory.value = null
+            _editableTransaction.update { current ->
+                current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
+            }
+        } else {
+            _editableTransaction.update { current ->
+                current?.copy(transactionType = type)
+            }
         }
     }
     

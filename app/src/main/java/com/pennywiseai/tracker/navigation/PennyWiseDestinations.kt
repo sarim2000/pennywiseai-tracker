@@ -67,6 +67,12 @@ object Loans
 data class LoanDetail(val loanId: Long)
 
 @Serializable
+object TransactionGroups
+
+@Serializable
+data class TransactionGroupDetail(val groupId: Long)
+
+@Serializable
 object ImportStatement
 
 @Serializable

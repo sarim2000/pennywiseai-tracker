@@ -86,7 +86,10 @@ data class TransactionEntity(
     val budgetCategory: String? = null,
 
     @ColumnInfo(name = "budget_impact_type", defaultValue = "NULL")
-    val budgetImpactType: BudgetImpactType? = null
+    val budgetImpactType: BudgetImpactType? = null,
+
+    @ColumnInfo(name = "group_id", defaultValue = "NULL")
+    val groupId: Long? = null
 )
 
 enum class BudgetImpactType {

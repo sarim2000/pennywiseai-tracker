@@ -118,7 +118,9 @@ class AddViewModel @Inject constructor(
                     TransactionType.INVESTMENT -> "Investment"
                     TransactionType.CREDIT -> "Shopping"
                     else -> currentState.category
-                }
+                },
+                budgetImpactType = if (type != TransactionType.INCOME) null else currentState.budgetImpactType,
+                budgetCategory = if (type != TransactionType.INCOME) null else currentState.budgetCategory
             )
         }
     }

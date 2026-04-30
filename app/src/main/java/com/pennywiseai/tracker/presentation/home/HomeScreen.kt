@@ -377,6 +377,7 @@ fun HomeScreen(
                             currency = uiState.selectedCurrency,
                             currentMonthIncome = uiState.currentMonthIncome,
                             currentMonthExpenses = uiState.currentMonthExpenses,
+                            currentMonthLent = uiState.currentMonthLent,
                             currentMonthTotal = uiState.currentMonthTotal,
                             balanceHistory = uiState.balanceHistory,
                             spendingHistory = uiState.spendingHistory,

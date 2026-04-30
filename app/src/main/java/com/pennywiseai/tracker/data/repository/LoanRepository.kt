@@ -29,6 +29,11 @@ class LoanRepository @Inject constructor(
 
     fun getTotalBorrowedRemaining(): Flow<BigDecimal> = loanDao.getTotalBorrowedRemaining()
 
+    fun getLentTransactionsInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<TransactionEntity>> = loanDao.getLentTransactionsInPeriod(startDate, endDate)
+
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> =
         loanDao.getTransactionsForLoan(loanId)
 

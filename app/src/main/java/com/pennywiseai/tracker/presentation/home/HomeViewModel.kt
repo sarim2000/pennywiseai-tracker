@@ -377,6 +377,42 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // Track principal lent during the current month — surfaced separately from
+            // "Spent this month" so loan outflows don't masquerade as everyday spending.
+            val now = LocalDate.now()
+            val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
+            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59)
+
+            combine(
+                loanRepository.getLentTransactionsInPeriod(startOfMonth, endOfMonth),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull(),
+                userPreferencesRepository.unifiedCurrencyMode,
+                userPreferencesRepository.displayCurrency
+            ) { lentTxns, profileId, balances, isUnified, displayCurrency ->
+                val keys = buildProfileAccountKeys(balances)
+                val filtered = filterTransactionsByProfile(lentTxns, profileId, keys)
+                val selectedCurrency = if (isUnified) displayCurrency else _uiState.value.selectedCurrency
+                isUnified to filtered to selectedCurrency
+            }.collect { (pair, selectedCurrency) ->
+                val (isUnified, filtered) = pair
+                val total = if (isUnified) {
+                    var sum = BigDecimal.ZERO
+                    for (tx in filtered) {
+                        sum += if (tx.currency == selectedCurrency) tx.amount
+                        else currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                    }
+                    sum
+                } else {
+                    filtered
+                        .filter { it.currency == selectedCurrency }
+                        .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+                }
+                _uiState.value = _uiState.value.copy(currentMonthLent = total)
+            }
+        }
+
+        viewModelScope.launch {
             // Load last month breakdown by currency (filtered by business/personal)
             val now = LocalDate.now()
             val dayOfMonth = now.dayOfMonth
@@ -1323,6 +1359,7 @@ data class HomeUiState(
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,
+    val currentMonthLent: BigDecimal = BigDecimal.ZERO,
     val currentMonthCreditCard: BigDecimal = BigDecimal.ZERO,
     val currentMonthTransfer: BigDecimal = BigDecimal.ZERO,
     val currentMonthInvestment: BigDecimal = BigDecimal.ZERO,

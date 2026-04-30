@@ -104,12 +104,12 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
             val rates = fetchAllExchangeRates("USD")
             rates?.keys?.toList() ?: listOf(
                 "AED", "USD", "EUR", "GBP", "INR", "THB", "MYR", "SGD", "KWD", "KRW",
-                "CAD", "AUD", "JPY", "CNY", "NPR", "ETB"
+                "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"
             )
         } catch (e: Exception) {
             listOf(
                 "AED", "USD", "EUR", "GBP", "INR", "THB", "MYR", "SGD", "KWD", "KRW",
-                "CAD", "AUD", "JPY", "CNY", "NPR", "ETB"
+                "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"
             )
         }
     }

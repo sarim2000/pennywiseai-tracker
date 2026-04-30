@@ -1699,7 +1699,7 @@ private fun CurrencyDropdown(
     // Common currencies
     val currencies = listOf(
         "INR", "USD", "EUR", "GBP", "AED", "SGD",
-        "CAD", "AUD", "JPY", "CNY", "NPR", "ETB",
+        "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB",
         "THB", "MYR", "KWD", "KRW"
     )
 

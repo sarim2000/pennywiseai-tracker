@@ -279,10 +279,6 @@ class TransactionRepository @Inject constructor(
             }
     }
 
-    fun getRecentTransactionsByProfile(profileId: Long, limit: Int = 50): Flow<List<TransactionEntity>> {
-        return transactionDao.getRecentTransactionsByProfile(profileId, limit)
-    }
-
     fun getTransactionsByAccount(bankName: String, accountLast4: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByAccount(bankName, accountLast4)
     }

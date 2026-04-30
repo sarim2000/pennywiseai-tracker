@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
@@ -29,6 +30,7 @@ fun TransactionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
+    profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -49,7 +51,17 @@ fun TransactionItem(
         transaction.dateTime.format(dateTimeFormatter)
     }
 
-    val subtitle = remember(transaction, dateTimeText) {
+    val isEffectivelyBusiness = remember(transaction, profileAccountKeys) {
+        val effectiveProfileId = transaction.profileId ?: run {
+            if (transaction.bankName != null && transaction.accountNumber != null) {
+                val key = "${transaction.bankName}_${transaction.accountNumber}"
+                profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
+            } else null
+        }
+        effectiveProfileId == ProfileEntity.BUSINESS_ID
+    }
+
+    val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
             add(dateTimeText)
             when (transaction.transactionType) {
@@ -59,6 +71,7 @@ fun TransactionItem(
                 else -> {}
             }
             if (transaction.isRecurring) add("Recurring")
+            if (isEffectivelyBusiness) add("Business")
         }.joinToString(" \u00B7 ")
     }
 

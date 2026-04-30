@@ -18,7 +18,8 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +46,8 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.ui.components.profileIcon
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -94,6 +97,9 @@ fun TransactionsScreen(
     val customDateRange by viewModel.customDateRange.collectAsState()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
     val convertedAmounts by viewModel.convertedAmounts.collectAsState()
+    val selectedProfileId by viewModel.selectedProfileId.collectAsState()
+    val profiles by viewModel.profiles.collectAsState()
+    val profileAccountKeys by viewModel.profileAccountKeys.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -109,9 +115,10 @@ fun TransactionsScreen(
     val view = LocalView.current
     
     // Calculate active filter count for advanced filters
-    // Category filter is excluded since it's now always visible as chips
     val activeFilterCount = listOf(
-        transactionTypeFilter != TransactionTypeFilter.ALL
+        transactionTypeFilter != TransactionTypeFilter.ALL,
+        categoryFilter != null,
+        selectedProfileId != null
     ).count { it }
 
     // Check if any filter is active (for showing "Clear all" button)
@@ -120,6 +127,7 @@ fun TransactionsScreen(
         categoryFilter != null ||
         categoriesFilter != null ||
         transactionTypeFilter != TransactionTypeFilter.ALL ||
+        selectedProfileId != null ||
         selectedCurrency != null ||
         customDateRange != null
 
@@ -448,6 +456,7 @@ fun TransactionsScreen(
             onToggle = { showAdvancedFilters = !showAdvancedFilters },
             modifier = Modifier.fillMaxWidth()
         ) {
+            Column {
             // Transaction Type Filter Chips
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -500,6 +509,64 @@ fun TransactionsScreen(
                         )
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            // Profile Filter Chips
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                // "All" chip
+                item {
+                    FilterChip(
+                        selected = selectedProfileId == null,
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            viewModel.setSelectedProfile(null)
+                        },
+                        label = { Text("All") },
+                        leadingIcon = if (selectedProfileId == null) {
+                            {
+                                Icon(
+                                    Icons.Outlined.AccountBalance,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        } else null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+                items(profiles) { profile ->
+                    FilterChip(
+                        selected = selectedProfileId == profile.id,
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            viewModel.setSelectedProfile(profile.id)
+                        },
+                        label = { Text(profile.name) },
+                        leadingIcon = if (selectedProfileId == profile.id) {
+                            {
+                                Icon(
+                                    profileIcon(profile),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        } else null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+            }
             }
         }
         
@@ -664,6 +731,7 @@ fun TransactionsScreen(
                                     showDate = dateGroup == DateGroup.EARLIER,
                                     convertedAmount = convertedAmounts[transaction.id],
                                     displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                    profileAccountKeys = profileAccountKeys,
                                     onClick = { onTransactionClick(transaction.id) }
                                 )
                                 if (transaction != transactions.last()) {

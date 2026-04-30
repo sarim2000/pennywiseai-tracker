@@ -61,23 +61,40 @@ interface LoanDao {
     fun getTotalBorrowedRemaining(): Flow<BigDecimal>
 
     /**
-     * Returns the source EXPENSE transactions of LENT-direction loans whose date_time falls in
-     * the given window. Summing these gives the principal lent during the period (used to
-     * surface "Lent this month" on the home screen, separate from "Spent this month").
+     * Source EXPENSE transactions of currently-ACTIVE LENT loans whose date_time falls in the
+     * given window. Drives "Lent this month" on the home screen — settled loans are excluded
+     * because their principal is reflected in "Spent this month" (as a settlement loss) or has
+     * been recovered as INCOME repayments.
      */
     @Query("""
         SELECT t.* FROM transactions t
         INNER JOIN loans l ON t.loan_id = l.id
         WHERE l.direction = 'LENT'
+          AND l.status = 'ACTIVE'
           AND t.transaction_type = 'EXPENSE'
           AND t.is_deleted = 0
           AND t.date_time BETWEEN :startDate AND :endDate
         ORDER BY t.date_time DESC
     """)
-    fun getLentTransactionsInPeriod(
+    fun getActiveLentTransactionsInPeriod(
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
+
+    /**
+     * LENT loans settled within the period. Used to compute settlement losses
+     * (originalAmount - totalRepaid) which are folded into "Spent this month".
+     */
+    @Query("""
+        SELECT * FROM loans
+        WHERE direction = 'LENT'
+          AND status = 'SETTLED'
+          AND settled_at BETWEEN :startDate AND :endDate
+    """)
+    fun getLentLoansSettledInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<LoanEntity>>
 
     @Query("UPDATE transactions SET loan_id = NULL WHERE id = :transactionId")
     suspend fun unlinkTransaction(transactionId: Long)

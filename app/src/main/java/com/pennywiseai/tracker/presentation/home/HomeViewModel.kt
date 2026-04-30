@@ -89,6 +89,10 @@ class HomeViewModel @Inject constructor(
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
+    // Per-currency total loss from LENT loans settled this month. Folded into the displayed
+    // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
+    private var currentMonthLoanLossByCurrency: Map<String, BigDecimal> = emptyMap()
+
     // Track if user has manually selected a currency to prevent auto-reset
     private var hasUserSelectedCurrency = false
 
@@ -242,7 +246,9 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData() {
         viewModelScope.launch {
-            // Load current month breakdown by currency (filtered by business/personal)
+            // Load current month breakdown by currency (filtered by business/personal).
+            // Loan-linked transactions are excluded — loan principal is shown separately
+            // as "Lent this month", and settlement losses are folded into expenses below.
             val now = LocalDate.now()
             val startOfMonth = now.withDayOfMonth(1)
             combine(
@@ -250,7 +256,9 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.selectedProfileId,
                 _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
-                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
+                val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    .filter { it.loanId == null }
+                computeBreakdownByCurrency(nonLoan)
             }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
             }
@@ -384,7 +392,7 @@ class HomeViewModel @Inject constructor(
             val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59)
 
             combine(
-                loanRepository.getLentTransactionsInPeriod(startOfMonth, endOfMonth),
+                loanRepository.getActiveLentTransactionsInPeriod(startOfMonth, endOfMonth),
                 userPreferencesRepository.selectedProfileId,
                 _cachedAccountBalances.filterNotNull(),
                 userPreferencesRepository.unifiedCurrencyMode,
@@ -413,6 +421,28 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // Track losses on LENT loans settled this month. Each loss feeds back into the
+            // displayed "Spent this month" via updateUIStateForCurrency.
+            val now = LocalDate.now()
+            val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
+            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59)
+
+            loanRepository.getLentLoansSettledInPeriod(startOfMonth, endOfMonth)
+                .collect { settledLoans ->
+                    val byCurrency = mutableMapOf<String, BigDecimal>()
+                    for (loan in settledLoans) {
+                        val loss = loanRepository.getSettlementLoss(loan)
+                        if (loss > BigDecimal.ZERO) {
+                            byCurrency.merge(loan.currency, loss) { a, b -> a + b }
+                        }
+                    }
+                    currentMonthLoanLossByCurrency = byCurrency
+                    // Trigger redisplay so spent reflects the new loss
+                    updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+                }
+        }
+
+        viewModelScope.launch {
             // Load last month breakdown by currency (filtered by business/personal)
             val now = LocalDate.now()
             val dayOfMonth = now.dayOfMonth
@@ -425,7 +455,9 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.selectedProfileId,
                 _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
-                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
+                val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    .filter { it.loanId == null }
+                computeBreakdownByCurrency(nonLoan)
             }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
             }
@@ -1144,11 +1176,12 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
+                val loanLoss = aggregateLoanLoss(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
 
                 _uiState.value = _uiState.value.copy(
-                    currentMonthTotal = currentBreakdown.total,
+                    currentMonthTotal = currentBreakdown.total - loanLoss,
                     currentMonthIncome = currentBreakdown.income,
-                    currentMonthExpenses = currentBreakdown.expenses,
+                    currentMonthExpenses = currentBreakdown.expenses + loanLoss,
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
@@ -1171,10 +1204,12 @@ class HomeViewModel @Inject constructor(
                 expenses = BigDecimal.ZERO
             )
 
+            val loanLoss = currentMonthLoanLossByCurrency[selectedCurrency] ?: BigDecimal.ZERO
+
             _uiState.value = _uiState.value.copy(
-                currentMonthTotal = currentBreakdown.total,
+                currentMonthTotal = currentBreakdown.total - loanLoss,
                 currentMonthIncome = currentBreakdown.income,
-                currentMonthExpenses = currentBreakdown.expenses,
+                currentMonthExpenses = currentBreakdown.expenses + loanLoss,
                 lastMonthTotal = lastBreakdown.total,
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
@@ -1183,6 +1218,21 @@ class HomeViewModel @Inject constructor(
             )
             calculateMonthlyChange()
         }
+    }
+
+    private suspend fun aggregateLoanLoss(
+        byCurrency: Map<String, BigDecimal>,
+        selectedCurrency: String,
+        isUnified: Boolean
+    ): BigDecimal {
+        if (byCurrency.isEmpty()) return BigDecimal.ZERO
+        if (!isUnified) return byCurrency[selectedCurrency] ?: BigDecimal.ZERO
+        var total = BigDecimal.ZERO
+        for ((currency, amount) in byCurrency) {
+            total += if (currency == selectedCurrency) amount
+            else currencyConversionService.convertAmount(amount, currency, selectedCurrency)
+        }
+        return total
     }
 
     private suspend fun aggregateBreakdowns(

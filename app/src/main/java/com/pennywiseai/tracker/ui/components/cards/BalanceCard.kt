@@ -70,6 +70,7 @@ fun BalanceCard(
     currency: String,
     currentMonthIncome: BigDecimal,
     currentMonthExpenses: BigDecimal,
+    currentMonthLent: BigDecimal = BigDecimal.ZERO,
     currentMonthTotal: BigDecimal,
     balanceHistory: List<BigDecimal>,
     spendingHistory: List<BigDecimal> = emptyList(),
@@ -468,6 +469,13 @@ fun BalanceCard(
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                                 accentColor = expenseColor
                             )
+                            if (currentMonthLent > BigDecimal.ZERO) {
+                                SummaryItem(
+                                    label = "Lent",
+                                    value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
+                                    accentColor = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
                             SummaryItem(
                                 label = "Saved",
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),

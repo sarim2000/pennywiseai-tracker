@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Dao
 interface LoanDao {
@@ -58,6 +59,25 @@ interface LoanDao {
 
     @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'BORROWED' AND status = 'ACTIVE'")
     fun getTotalBorrowedRemaining(): Flow<BigDecimal>
+
+    /**
+     * Returns the source EXPENSE transactions of LENT-direction loans whose date_time falls in
+     * the given window. Summing these gives the principal lent during the period (used to
+     * surface "Lent this month" on the home screen, separate from "Spent this month").
+     */
+    @Query("""
+        SELECT t.* FROM transactions t
+        INNER JOIN loans l ON t.loan_id = l.id
+        WHERE l.direction = 'LENT'
+          AND t.transaction_type = 'EXPENSE'
+          AND t.is_deleted = 0
+          AND t.date_time BETWEEN :startDate AND :endDate
+        ORDER BY t.date_time DESC
+    """)
+    fun getLentTransactionsInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<TransactionEntity>>
 
     @Query("UPDATE transactions SET loan_id = NULL WHERE id = :transactionId")
     suspend fun unlinkTransaction(transactionId: Long)

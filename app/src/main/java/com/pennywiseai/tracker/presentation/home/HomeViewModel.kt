@@ -569,19 +569,19 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load recent transactions (last 3) with conversion for unified mode
-            // Use DB-level profile filtering to avoid loading all transactions
             combine(
-                userPreferencesRepository.selectedProfileId.flatMapLatest { profileId ->
-                    if (profileId == null) {
-                        transactionRepository.getRecentTransactions(limit = 3)
-                    } else {
-                        transactionRepository.getRecentTransactionsByProfile(profileId, limit = 3)
-                    }
+                combine(
+                    transactionRepository.getRecentTransactions(limit = 50),
+                    _cachedAccountBalances
+                ) { transactions, balances ->
+                    val profileId = _uiState.value.selectedProfileId
+                    val keys = buildProfileAccountKeys(balances ?: emptyList())
+                    filterTransactionsByProfile(transactions, profileId, keys).take(3)
                 },
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency
-            ) { transactions, isUnified, displayCurrency ->
-                Triple(transactions, isUnified, displayCurrency)
+            ) { filtered, isUnified, displayCurrency ->
+                Triple(filtered, isUnified, displayCurrency)
             }.collect { (transactions, isUnified, displayCurrency) ->
                 val convertedAmounts = if (isUnified) {
                     val map = mutableMapOf<Long, java.math.BigDecimal>()

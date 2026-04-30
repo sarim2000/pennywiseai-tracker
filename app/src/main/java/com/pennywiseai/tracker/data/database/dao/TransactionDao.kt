@@ -13,31 +13,6 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
-    @Query("""
-        SELECT t.* FROM transactions t
-        LEFT JOIN (
-            SELECT ab1.bank_name, ab1.account_last4, ab1.profile_id
-            FROM account_balances ab1
-            INNER JOIN (
-                SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
-                FROM account_balances
-                GROUP BY bank_name, account_last4
-            ) ab2
-            ON ab1.bank_name = ab2.bank_name
-            AND ab1.account_last4 = ab2.account_last4
-            AND ab1.timestamp = ab2.max_timestamp
-        ) ab ON t.bank_name = ab.bank_name AND t.account_number = ab.account_last4
-        WHERE t.is_deleted = 0
-        AND (
-            t.profile_id = :profileId
-            OR (t.profile_id IS NULL AND ab.profile_id = :profileId)
-            OR (t.profile_id IS NULL AND ab.profile_id IS NULL AND :profileId = 1)
-        )
-        ORDER BY t.date_time DESC
-        LIMIT :limit
-    """)
-    fun getRecentTransactionsByProfile(profileId: Long, limit: Int): Flow<List<TransactionEntity>>
-
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
     

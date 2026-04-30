@@ -536,7 +536,7 @@ class TransactionsViewModel @Inject constructor(
         clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
-        setSelectedProfile(null)
+        _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
         // Don't reset currency as it might be user preference
     }

@@ -99,7 +99,7 @@ object CurrencyUtils {
             // Asia Pacific
             "SGD", "AUD", "THB", "MYR", "KRW", "NPR",
             // Americas
-            "CAD",
+            "CAD", "MXN",
             // Africa
             "ETB", "KES",
             // Europe

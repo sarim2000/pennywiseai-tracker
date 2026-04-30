@@ -23,6 +23,13 @@ interface TransactionGroupDao {
         deleteGroup(group)
     }
 
+    @Transaction
+    suspend fun createGroupAndLink(group: TransactionGroupEntity, transactionId: Long): Long {
+        val groupId = insertGroup(group)
+        linkTransaction(transactionId, groupId)
+        return groupId
+    }
+
     @Query("SELECT * FROM transaction_groups WHERE id = :id")
     suspend fun getGroupById(id: Long): TransactionGroupEntity?
 

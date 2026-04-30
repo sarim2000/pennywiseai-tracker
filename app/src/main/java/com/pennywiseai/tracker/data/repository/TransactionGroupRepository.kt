@@ -50,6 +50,14 @@ class TransactionGroupRepository @Inject constructor(
         groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
     }
 
+    suspend fun createGroupWithTransaction(name: String, note: String?, transactionId: Long): Long {
+        val group = TransactionGroupEntity(
+            name = name.trim(),
+            note = note?.trim()?.takeIf { it.isNotEmpty() }
+        )
+        return groupDao.createGroupAndLink(group, transactionId)
+    }
+
     suspend fun removeTransactionFromGroup(transactionId: Long) {
         groupDao.unlinkTransaction(transactionId)
     }

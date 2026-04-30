@@ -572,12 +572,12 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load recent items: ungrouped transactions + groups, merged and sorted by most recent activity
-            val groupsFlow = transactionGroupRepository.getAllGroups().flatMapLatest { groups ->
+            val rawGroupsFlow = transactionGroupRepository.getAllGroups().flatMapLatest { groups ->
                 if (groups.isEmpty()) flowOf(emptyList())
                 else combine(groups.map { group ->
                     transactionGroupRepository.getTransactionsForGroup(group.id)
-                        .map { txns -> HomeRecentItem.GroupItem(group, txns) }
-                }) { it.toList().filter { g -> g.transactions.isNotEmpty() } }
+                        .map { txns -> group to txns }
+                }) { it.toList() }
             }
 
             combine(
@@ -590,7 +590,18 @@ class HomeViewModel @Inject constructor(
                     filterTransactionsByProfile(ungrouped, profileId, keys)
                         .map { HomeRecentItem.SingleTransaction(it) }
                 },
-                groupsFlow,
+                combine(
+                    rawGroupsFlow,
+                    _cachedAccountBalances
+                ) { groupPairs, balances ->
+                    val profileId = _uiState.value.selectedProfileId
+                    val keys = buildProfileAccountKeys(balances ?: emptyList())
+                    groupPairs.mapNotNull { (group, txns) ->
+                        val filtered = filterTransactionsByProfile(txns, profileId, keys)
+                        if (filtered.isEmpty()) null
+                        else HomeRecentItem.GroupItem(group, filtered)
+                    }
+                },
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency
             ) { singles, groups, isUnified, displayCurrency ->

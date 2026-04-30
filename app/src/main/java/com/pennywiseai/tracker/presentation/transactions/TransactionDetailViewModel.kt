@@ -145,8 +145,7 @@ class TransactionDetailViewModel @Inject constructor(
     fun createGroupAndAdd(name: String, note: String?) {
         viewModelScope.launch {
             val txId = _transaction.value?.id ?: return@launch
-            val groupId = transactionGroupRepository.createGroup(name, note)
-            transactionGroupRepository.addTransactionToGroup(txId, groupId)
+            transactionGroupRepository.createGroupWithTransaction(name, note, txId)
             _showGroupSheet.value = false
         }
     }

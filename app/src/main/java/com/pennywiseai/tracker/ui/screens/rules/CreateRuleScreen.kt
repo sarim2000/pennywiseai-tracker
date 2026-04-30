@@ -241,7 +241,7 @@ fun CreateRuleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         commonPresets.forEach { (label, action) ->
-                            AssistChip(
+                            ElevatedAssistChip(
                                 onClick = action,
                                 label = { Text(label, style = MaterialTheme.typography.bodySmall) }
                             )
@@ -583,7 +583,7 @@ fun CreateRuleScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 commonMerchants.forEach { merchant ->
-                                    AssistChip(
+                                    ElevatedAssistChip(
                                         onClick = { actionValue = merchant },
                                         label = { Text(merchant, style = MaterialTheme.typography.bodySmall) }
                                     )

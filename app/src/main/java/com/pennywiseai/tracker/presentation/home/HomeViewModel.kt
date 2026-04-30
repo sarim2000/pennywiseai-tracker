@@ -33,6 +33,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -58,6 +60,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
+    private val transactionGroupRepository: TransactionGroupRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
@@ -568,39 +571,55 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load recent transactions (last 3) with conversion for unified mode
+            // Load recent items: ungrouped transactions + groups, merged and sorted by most recent activity
+            val groupsFlow = transactionGroupRepository.getAllGroups().flatMapLatest { groups ->
+                if (groups.isEmpty()) flowOf(emptyList())
+                else combine(groups.map { group ->
+                    transactionGroupRepository.getTransactionsForGroup(group.id)
+                        .map { txns -> HomeRecentItem.GroupItem(group, txns) }
+                }) { it.toList().filter { g -> g.transactions.isNotEmpty() } }
+            }
+
             combine(
                 combine(
-                    transactionRepository.getRecentTransactions(limit = 50),
+                    transactionGroupRepository.getRecentUngroupedTransactions(),
                     _cachedAccountBalances
-                ) { transactions, balances ->
+                ) { ungrouped, balances ->
                     val profileId = _uiState.value.selectedProfileId
                     val keys = buildProfileAccountKeys(balances ?: emptyList())
-                    filterTransactionsByProfile(transactions, profileId, keys).take(3)
+                    filterTransactionsByProfile(ungrouped, profileId, keys)
+                        .map { HomeRecentItem.SingleTransaction(it) }
                 },
+                groupsFlow,
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency
-            ) { filtered, isUnified, displayCurrency ->
-                Triple(filtered, isUnified, displayCurrency)
-            }.collect { (transactions, isUnified, displayCurrency) ->
-                val convertedAmounts = if (isUnified) {
-                    val map = mutableMapOf<Long, java.math.BigDecimal>()
-                    for (tx in transactions) {
-                        if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
-                            map[tx.id] = currencyConversionService.convertAmount(
-                                tx.amount, tx.currency, displayCurrency
-                            )
+            ) { singles, groups, isUnified, displayCurrency ->
+                val merged = (singles + groups)
+                    .sortedByDescending { it.sortTime }
+                    .take(5)
+
+                if (!isUnified) return@combine merged
+
+                merged.map { item ->
+                    when (item) {
+                        is HomeRecentItem.SingleTransaction -> {
+                            val converted = if (!item.transaction.currency.equals(displayCurrency, ignoreCase = true))
+                                currencyConversionService.convertAmount(item.transaction.amount, item.transaction.currency, displayCurrency)
+                            else null
+                            item.copy(convertedAmount = converted)
+                        }
+                        is HomeRecentItem.GroupItem -> {
+                            val amounts = item.transactions
+                                .filter { !it.currency.equals(displayCurrency, ignoreCase = true) }
+                                .associate { tx ->
+                                    tx.id to currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                                }
+                            item.copy(convertedAmounts = amounts)
                         }
                     }
-                    map
-                } else {
-                    emptyMap()
                 }
-                _uiState.value = _uiState.value.copy(
-                    recentTransactions = transactions,
-                    recentTransactionConvertedAmounts = convertedAmounts,
-                    isLoading = false
-                )
+            }.collect { items ->
+                _uiState.value = _uiState.value.copy(recentItems = items, isLoading = false)
             }
         }
         
@@ -1301,7 +1320,8 @@ data class HomeUiState(
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
     val monthlyChangePercent: Int = 0,
-    val recentTransactions: List<TransactionEntity> = emptyList(),
+    val recentTransactions: List<TransactionEntity> = emptyList(), // kept for widget compat
+    val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
     val budgetSummary: BudgetOverallSummary? = null,

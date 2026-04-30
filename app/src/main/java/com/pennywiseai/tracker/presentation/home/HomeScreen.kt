@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
+import com.pennywiseai.tracker.ui.components.cards.GroupCard
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
@@ -114,6 +115,7 @@ fun HomeScreen(
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
+    onGroupClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
 ) {
@@ -553,7 +555,7 @@ fun HomeScreen(
                         }
                     }
                 }
-            } else if (uiState.recentTransactions.isEmpty()) {
+            } else if (uiState.recentItems.isEmpty()) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -605,14 +607,23 @@ fun HomeScreen(
                             val profileAccountKeys = remember(uiState.accountBalances) {
                                 buildProfileAccountKeys(uiState.accountBalances)
                             }
-                            uiState.recentTransactions.forEach { transaction ->
-                                TransactionItem(
-                                    transaction = transaction,
-                                    convertedAmount = uiState.recentTransactionConvertedAmounts[transaction.id],
-                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                    profileAccountKeys = profileAccountKeys,
-                                    onClick = { onTransactionClick(transaction.id) }
-                                )
+                            uiState.recentItems.forEach { item ->
+                                when (item) {
+                                    is HomeRecentItem.SingleTransaction -> TransactionItem(
+                                        transaction = item.transaction,
+                                        convertedAmount = item.convertedAmount,
+                                        displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                        profileAccountKeys = profileAccountKeys,
+                                        onClick = { onTransactionClick(item.transaction.id) }
+                                    )
+                                    is HomeRecentItem.GroupItem -> GroupCard(
+                                        group = item.group,
+                                        transactions = item.transactions,
+                                        convertedAmounts = item.convertedAmounts,
+                                        displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                        onClick = { onGroupClick(item.group.id) }
+                                    )
+                                }
                             }
                         }
                     }

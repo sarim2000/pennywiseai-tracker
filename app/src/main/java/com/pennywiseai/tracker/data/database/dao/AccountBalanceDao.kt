@@ -41,15 +41,16 @@ interface AccountBalanceDao {
             ab1.is_credit_card,
             ab1.sms_source,
             ab1.source_type,
-            ab1.currency
+            ab1.currency,
+            ab1.profile_id
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
             FROM account_balances
             GROUP BY bank_name, account_last4
-        ) ab2 
-        ON ab1.bank_name = ab2.bank_name 
-        AND ab1.account_last4 = ab2.account_last4 
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
         AND ab1.timestamp = ab2.max_timestamp
         ORDER BY ab1.balance DESC
     """)
@@ -74,16 +75,17 @@ interface AccountBalanceDao {
             ab1.is_credit_card,
             ab1.sms_source,
             ab1.source_type,
-            ab1.currency
+            ab1.currency,
+            ab1.profile_id
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
             FROM account_balances
             WHERE strftime('%Y-%m', timestamp/1000, 'unixepoch') = strftime('%Y-%m', 'now')
             GROUP BY bank_name, account_last4
-        ) ab2 
-        ON ab1.bank_name = ab2.bank_name 
-        AND ab1.account_last4 = ab2.account_last4 
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
         AND ab1.timestamp = ab2.max_timestamp
         ORDER BY ab1.balance DESC
     """)
@@ -163,4 +165,7 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET statement_day = :statementDay WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int
+
+    @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
 }

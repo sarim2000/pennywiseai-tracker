@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
@@ -63,7 +64,9 @@ object DatabaseModule {
                 PennyWiseDatabase.MIGRATION_20_21,
                 PennyWiseDatabase.MIGRATION_21_22,
                 PennyWiseDatabase.MIGRATION_22_23,
-                PennyWiseDatabase.MIGRATION_38_39
+                PennyWiseDatabase.MIGRATION_38_39,
+                PennyWiseDatabase.MIGRATION_44_45,
+                PennyWiseDatabase.MIGRATION_45_46
             )
 
             // Enable auto-migrations
@@ -259,6 +262,12 @@ object DatabaseModule {
     fun provideBudgetSnapshotDao(database: PennyWiseDatabase): BudgetSnapshotDao {
         return database.budgetSnapshotDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideProfileDao(database: PennyWiseDatabase): ProfileDao {
+        return database.profileDao()
+    }
 }
 
 /**
@@ -271,6 +280,7 @@ class DatabaseCallback : RoomDatabase.Callback() {
         // Seed default categories for new installations
         CoroutineScope(Dispatchers.IO).launch {
             seedCategories(db)
+            seedProfiles(db)
         }
     }
     
@@ -302,5 +312,10 @@ class DatabaseCallback : RoomDatabase.Callback() {
                 VALUES (?, ?, 1, ?, ?, datetime('now'), datetime('now'))
             """.trimIndent(), arrayOf<Any>(name, color, if (isIncome) 1 else 0, index + 1))
         }
+    }
+
+    private fun seedProfiles(db: SupportSQLiteDatabase) {
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (1, 'Personal', '#4CAF50', 0)")
+        db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (2, 'Business', '#2196F3', 1)")
     }
 }

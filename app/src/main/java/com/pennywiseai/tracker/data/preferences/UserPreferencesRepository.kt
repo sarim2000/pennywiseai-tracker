@@ -95,6 +95,9 @@ class UserPreferencesRepository @Inject constructor(
         // Balance Visibility
         val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
 
+        // Selected Profile
+        val SELECTED_PROFILE_ID = longPreferencesKey("selected_profile_id")
+
         // Blur Effects
         val BLUR_EFFECTS_ENABLED = booleanPreferencesKey("blur_effects_enabled")
 
@@ -545,6 +548,20 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    // Selected Profile
+    val selectedProfileId: Flow<Long?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SELECTED_PROFILE_ID] }
+
+    suspend fun updateSelectedProfileId(profileId: Long?) {
+        context.dataStore.edit { preferences ->
+            if (profileId == null) {
+                preferences.remove(PreferencesKeys.SELECTED_PROFILE_ID)
+            } else {
+                preferences[PreferencesKeys.SELECTED_PROFILE_ID] = profileId
+            }
+        }
+    }
+
     // Blur Effects
     val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
@@ -643,5 +660,6 @@ data class UserPreferences(
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
-    val mainAccountKey: String? = null
+    val mainAccountKey: String? = null,
+    val selectedProfileId: Long? = null
 )

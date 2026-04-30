@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -227,11 +228,14 @@ fun ManageAccountsScreen(
                             onEditAccount = {
                                 accountToEdit = account
                                 showEditDialog = true
+                            },
+                            onSetProfile = { profileId ->
+                                viewModel.setAccountProfile(account.bankName, account.accountLast4, profileId)
                             }
                         )
                     }
                 }
-                
+
                 // Orphaned Cards Section
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
@@ -367,6 +371,9 @@ fun ManageAccountsScreen(
                                 onEditAccount = {
                                     accountToEdit = account
                                     showEditDialog = true
+                                },
+                                onSetProfile = { profileId ->
+                                    viewModel.setAccountProfile(account.bankName, account.accountLast4, profileId)
                                 }
                             )
                         }
@@ -865,7 +872,8 @@ private fun AccountItem(
     onViewHistory: () -> Unit,
     onUnlinkCard: (cardId: Long) -> Unit = {},
     onDeleteAccount: () -> Unit = {},
-    onEditAccount: () -> Unit = {}
+    onEditAccount: () -> Unit = {},
+    onSetProfile: (Long) -> Unit = {}
 ) {
     val isManualAccount = account.sourceType == "MANUAL"
     Card(
@@ -918,6 +926,19 @@ private fun AccountItem(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (account.profileId == ProfileEntity.BUSINESS_ID) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Text(
+                                        text = "Business",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
                             if (isHidden) {
                                 Icon(
                                     Icons.Default.VisibilityOff,
@@ -1083,6 +1104,21 @@ private fun AccountItem(
                             leadingIcon = {
                                 Icon(
                                     if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (account.profileId == ProfileEntity.BUSINESS_ID) "Mark as Personal" else "Mark as Business") },
+                            onClick = {
+                                showMenu = false
+                                val newProfileId = if (account.profileId == ProfileEntity.BUSINESS_ID)
+                                    ProfileEntity.PERSONAL_ID else ProfileEntity.BUSINESS_ID
+                                onSetProfile(newProfileId)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (account.profileId == ProfileEntity.BUSINESS_ID) Icons.Default.Person else Icons.Default.Business,
                                     contentDescription = null
                                 )
                             }

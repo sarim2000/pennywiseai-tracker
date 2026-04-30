@@ -10,13 +10,18 @@ import androidx.work.WorkManager
 import androidx.work.WorkInfo
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -37,6 +42,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -59,6 +65,7 @@ class HomeViewModel @Inject constructor(
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val profileRepository: ProfileRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     @ApplicationContext private val context: Context
@@ -85,9 +92,11 @@ class HomeViewModel @Inject constructor(
     // Cached base currency for use in sort comparators (updated from preferences)
     private var baseCurrency = ""
 
-    // Cache the latest account balances so refreshAccountBalances() can recalculate
-    // without starting a new competing .collect on the repository flow
-    private var cachedAccountBalances: List<AccountBalanceEntity> = emptyList()
+    // Cache the latest account balances as a StateFlow so that combine blocks
+    // re-emit when account profiles change (e.g. via Manage Accounts).
+    // null = not loaded yet (avoids emitting stale empty data on cold launch)
+    private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
+    private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
 
     init {
         loadUnifiedModePreferences()
@@ -104,6 +113,8 @@ class HomeViewModel @Inject constructor(
         }
         // Keep listening for base currency changes
         loadBaseCurrency()
+        observeSelectedProfile()
+        observeProfiles()
     }
 
     fun toggleBalanceVisibility() {
@@ -145,6 +156,66 @@ class HomeViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    private fun observeSelectedProfile() {
+        userPreferencesRepository.selectedProfileId
+            .onEach { profileId ->
+                _uiState.value = _uiState.value.copy(selectedProfileId = profileId)
+                // Guard against cold-launch race: if balances aren't cached yet, the combine
+                // blocks that include _cachedAccountBalances will apply the filter automatically
+                // once balances load. Only call refreshAccountBalances() eagerly when the cache
+                // is already populated (i.e. on user-driven profile switches after launch).
+                if (_cachedAccountBalances.value != null) {
+                    refreshAccountBalances()
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeProfiles() {
+        profileRepository.observeAllProfiles()
+            .onEach { profiles ->
+                _uiState.value = _uiState.value.copy(profiles = profiles)
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun updateSelectedProfile(profileId: Long?) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateSelectedProfileId(profileId)
+        }
+    }
+
+    private fun filterTransactions(transactions: List<TransactionEntity>): List<TransactionEntity> {
+        return filterTransactionsByProfile(
+            transactions,
+            _uiState.value.selectedProfileId,
+            buildProfileAccountKeys(cachedAccountBalances)
+        )
+    }
+
+    private fun filterVisibleBalances(
+        allBalances: List<AccountBalanceEntity>,
+        hiddenAccounts: Set<String>
+    ): List<AccountBalanceEntity> {
+        return filterAccountsByProfile(allBalances, hiddenAccounts, _uiState.value.selectedProfileId)
+    }
+
+    private fun computeBreakdownByCurrency(
+        transactions: List<TransactionEntity>
+    ): Map<String, TransactionRepository.MonthlyBreakdown> {
+        return transactions.groupBy { it.currency }.mapValues { (_, txs) ->
+            val income = txs.filter { it.transactionType == TransactionType.INCOME }
+                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+            val expenses = txs.filter { it.transactionType == TransactionType.EXPENSE }
+                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+            TransactionRepository.MonthlyBreakdown(
+                total = income - expenses,
+                income = income,
+                expenses = expenses
+            )
+        }
+    }
+
     private fun loadUnifiedModePreferences() {
         viewModelScope.launch {
             combine(
@@ -168,8 +239,16 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData() {
         viewModelScope.launch {
-            // Load current month breakdown by currency
-            transactionRepository.getCurrentMonthBreakdownByCurrency().collect { breakdownByCurrency ->
+            // Load current month breakdown by currency (filtered by business/personal)
+            val now = LocalDate.now()
+            val startOfMonth = now.withDayOfMonth(1)
+            combine(
+                transactionRepository.getTransactionsBetweenDates(startOfMonth, now),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { transactions, profileId, balances ->
+                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
+            }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
             }
         }
@@ -185,16 +264,13 @@ class HomeViewModel @Inject constructor(
                 Triple(allBalances, isUnified, displayCurrency)
             }.collect { (allBalances, isUnified, displayCurrency) ->
                 // Cache the raw (unfiltered) balances for refreshAccountBalances/refreshHiddenAccounts
-                cachedAccountBalances = allBalances
+                _cachedAccountBalances.value = allBalances
 
                 // Get hidden accounts from SharedPreferences
                 val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
-                // Filter out hidden accounts
-                val balances = allBalances.filter { account ->
-                    val key = "${account.bankName}_${account.accountLast4}"
-                    !hiddenAccounts.contains(key)
-                }
+                // Filter out hidden accounts and apply business filter
+                val balances = filterVisibleBalances(allBalances, hiddenAccounts)
                 // Separate credit cards from regular accounts (hide zero balance accounts)
                 val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
                 val rawCreditCards = balances.filter { it.isCreditCard }
@@ -278,36 +354,60 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load current month transactions by type (currency-filtered)
+            // Load current month transactions by type (currency-filtered, business-filtered)
             val now = java.time.LocalDate.now()
             val startOfMonth = now.withDayOfMonth(1)
             val endOfMonth = now.withDayOfMonth(now.lengthOfMonth())
 
-            transactionRepository.getTransactionsBetweenDates(
-                startDate = startOfMonth,
-                endDate = endOfMonth
-            ).collect { transactions ->
+            combine(
+                transactionRepository.getTransactionsBetweenDates(
+                    startDate = startOfMonth,
+                    endDate = endOfMonth
+                ),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { transactions, profileId, balances ->
+                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+            }.collect { transactions ->
                 updateTransactionTypeTotals(transactions)
             }
         }
-        
+
         viewModelScope.launch {
-            // Load last month breakdown by currency
-            transactionRepository.getLastMonthBreakdownByCurrency().collect { breakdownByCurrency ->
+            // Load last month breakdown by currency (filtered by business/personal)
+            val now = LocalDate.now()
+            val dayOfMonth = now.dayOfMonth
+            val lastMonth = now.minusMonths(1)
+            val lastMonthStart = lastMonth.withDayOfMonth(1)
+            val lastMonthMaxDay = minOf(dayOfMonth, lastMonth.lengthOfMonth())
+            val lastMonthEnd = lastMonth.withDayOfMonth(lastMonthMaxDay)
+            combine(
+                transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { transactions, profileId, balances ->
+                computeBreakdownByCurrency(filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances)))
+            }.collect { breakdownByCurrency ->
                 updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
             }
         }
-        
+
         viewModelScope.launch {
             // Load cumulative spending sparkline for current month + last month comparison
             val now = LocalDate.now()
             val firstOfMonth = now.withDayOfMonth(1)
             val lastMonthStart = firstOfMonth.minusMonths(1)
 
-            transactionRepository.getTransactionsBetweenDates(
-                startDate = lastMonthStart,
-                endDate = now
-            ).collect { allTransactions ->
+            combine(
+                transactionRepository.getTransactionsBetweenDates(
+                    startDate = lastMonthStart,
+                    endDate = now
+                ),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { allTransactions, profileId, balances ->
+                filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
+            }.collect { allTransactions ->
                 val selectedCurrency = _uiState.value.selectedCurrency
                 val isUnified = _uiState.value.isUnifiedMode
 
@@ -450,10 +550,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Load transaction heatmap (last 26 weeks / 182 days)
             val heatmapStart = LocalDate.now().minusDays(182)
-            transactionRepository.getTransactionsBetweenDates(
-                startDate = heatmapStart,
-                endDate = LocalDate.now()
-            ).collect { transactions ->
+            combine(
+                transactionRepository.getTransactionsBetweenDates(
+                    startDate = heatmapStart,
+                    endDate = LocalDate.now()
+                ),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { transactions, profileId, balances ->
+                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+            }.collect { transactions ->
                 val heatmap = transactions
                     .groupBy { it.dateTime.toLocalDate().toEpochDay() }
                     .mapValues { it.value.size }
@@ -463,8 +569,15 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load recent transactions (last 3) with conversion for unified mode
+            // Use DB-level profile filtering to avoid loading all transactions
             combine(
-                transactionRepository.getRecentTransactions(limit = 3),
+                userPreferencesRepository.selectedProfileId.flatMapLatest { profileId ->
+                    if (profileId == null) {
+                        transactionRepository.getRecentTransactions(limit = 3)
+                    } else {
+                        transactionRepository.getRecentTransactionsByProfile(profileId, limit = 3)
+                    }
+                },
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency
             ) { transactions, isUnified, displayCurrency ->
@@ -566,10 +679,7 @@ class HomeViewModel @Inject constructor(
 
             val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
-            val visibleBalances = allBalances.filter { account ->
-                val key = "${account.bankName}_${account.accountLast4}"
-                !hiddenAccounts.contains(key)
-            }
+            val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
             val rawRegularAccounts = visibleBalances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
@@ -703,10 +813,7 @@ class HomeViewModel @Inject constructor(
 
             val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
-            val balances = allBalances.filter { account ->
-                val key = "${account.bankName}_${account.accountLast4}"
-                !hiddenAccounts.contains(key)
-            }
+            val balances = filterVisibleBalances(allBalances, hiddenAccounts)
             val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
             val rawCreditCards = balances.filter { it.isCreditCard }
 
@@ -862,10 +969,11 @@ class HomeViewModel @Inject constructor(
             val startOfMonth = now.withDayOfMonth(1)
             val endOfMonth = now.withDayOfMonth(now.lengthOfMonth())
 
-            val transactions = transactionRepository.getTransactionsBetweenDates(
+            val allTransactions = transactionRepository.getTransactionsBetweenDates(
                 startDate = startOfMonth,
                 endDate = endOfMonth
             ).first()
+            val transactions = filterTransactions(allTransactions)
             updateTransactionTypeTotals(transactions)
         }
     }
@@ -1214,7 +1322,9 @@ data class HomeUiState(
     val isBalanceHidden: Boolean = true,
     val isBalanceReady: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
-    val loanSummary: LoanSummary? = null
+    val loanSummary: LoanSummary? = null,
+    val selectedProfileId: Long? = null,
+    val profiles: List<ProfileEntity> = emptyList()
 )
 
 data class LoanSummary(

@@ -57,5 +57,8 @@ data class AccountBalanceEntity(
     val currency: String = "INR",
 
     @ColumnInfo(name = "statement_day", defaultValue = "NULL")
-    val statementDay: Int? = null
+    val statementDay: Int? = null,
+
+    @ColumnInfo(name = "profile_id", defaultValue = "1")
+    val profileId: Long = ProfileEntity.PERSONAL_ID
 )

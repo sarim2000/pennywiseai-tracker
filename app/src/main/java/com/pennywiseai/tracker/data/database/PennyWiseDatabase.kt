@@ -93,6 +93,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 35, to = 36, spec = Migration35To36::class),
         AutoMigration(from = 36, to = 37),
         AutoMigration(from = 37, to = 38),
+        // 38→39 is a manual migration (MIGRATION_38_39) registered in DatabaseModule — no AutoMigration entry needed
         AutoMigration(from = 39, to = 40, spec = Migration39To40::class),
         AutoMigration(from = 40, to = 41),
         AutoMigration(from = 41, to = 42)

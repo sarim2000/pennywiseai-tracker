@@ -160,7 +160,13 @@ class HomeViewModel @Inject constructor(
         userPreferencesRepository.selectedProfileId
             .onEach { profileId ->
                 _uiState.value = _uiState.value.copy(selectedProfileId = profileId)
-                refreshAccountBalances()
+                // Guard against cold-launch race: if balances aren't cached yet, the combine
+                // blocks that include _cachedAccountBalances will apply the filter automatically
+                // once balances load. Only call refreshAccountBalances() eagerly when the cache
+                // is already populated (i.e. on user-driven profile switches after launch).
+                if (_cachedAccountBalances.value != null) {
+                    refreshAccountBalances()
+                }
             }
             .launchIn(viewModelScope)
     }

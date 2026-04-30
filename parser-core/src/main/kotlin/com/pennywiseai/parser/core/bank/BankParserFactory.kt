@@ -58,6 +58,7 @@ object BankParserFactory {
         OldHickoryParser(),  // Old Hickory Credit Union (USA)
         LaxmiBankParser(),  // Laxmi Sunrise Bank (Nepal)
         CBEBankParser(),  // Commercial Bank of Ethiopia
+        AltanaFCUParser(),  // Altana Federal Credit Union (USA) — must precede EverestBank, which greedily claims numeric senders
         EverestBankParser(),  // Everest Bank (Nepal)
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)

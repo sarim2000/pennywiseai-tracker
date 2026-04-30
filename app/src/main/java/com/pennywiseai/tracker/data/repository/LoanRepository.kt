@@ -29,10 +29,25 @@ class LoanRepository @Inject constructor(
 
     fun getTotalBorrowedRemaining(): Flow<BigDecimal> = loanDao.getTotalBorrowedRemaining()
 
-    fun getLentTransactionsInPeriod(
+    fun getActiveLentTransactionsInPeriod(
         startDate: LocalDateTime,
         endDate: LocalDateTime
-    ): Flow<List<TransactionEntity>> = loanDao.getLentTransactionsInPeriod(startDate, endDate)
+    ): Flow<List<TransactionEntity>> = loanDao.getActiveLentTransactionsInPeriod(startDate, endDate)
+
+    fun getLentLoansSettledInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<LoanEntity>> = loanDao.getLentLoansSettledInPeriod(startDate, endDate)
+
+    /**
+     * Net loss on a settled LENT loan: principal minus what came back as INCOME repayments.
+     * Returns zero if the loan was repaid in full (or over).
+     */
+    suspend fun getSettlementLoss(loan: LoanEntity): BigDecimal {
+        if (loan.direction != LoanDirection.LENT) return BigDecimal.ZERO
+        val repaid = loanDao.getTotalRepaidByType(loan.id, "INCOME")
+        return (loan.originalAmount - repaid).coerceAtLeast(BigDecimal.ZERO)
+    }
 
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> =
         loanDao.getTransactionsForLoan(loanId)

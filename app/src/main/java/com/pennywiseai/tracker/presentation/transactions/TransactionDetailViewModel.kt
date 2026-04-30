@@ -20,7 +20,9 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.core.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +41,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val loanRepository: LoanRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
+    private val transactionGroupRepository: TransactionGroupRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager,
@@ -106,6 +109,47 @@ class TransactionDetailViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // Transaction group state
+    val availableGroups: StateFlow<List<TransactionGroupEntity>> = transactionGroupRepository.getAllGroups()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val currentGroup: StateFlow<TransactionGroupEntity?> = _transaction
+        .flatMapLatest { tx ->
+            val groupId = tx?.groupId ?: return@flatMapLatest kotlinx.coroutines.flow.flowOf(null)
+            transactionGroupRepository.getAllGroups().map { groups -> groups.firstOrNull { it.id == groupId } }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _showGroupSheet = MutableStateFlow(false)
+    val showGroupSheet: StateFlow<Boolean> = _showGroupSheet.asStateFlow()
+
+    fun showGroupSheet() { _showGroupSheet.value = true }
+    fun hideGroupSheet() { _showGroupSheet.value = false }
+
+    fun addToGroup(groupId: Long) {
+        viewModelScope.launch {
+            val txId = _transaction.value?.id ?: return@launch
+            transactionGroupRepository.addTransactionToGroup(txId, groupId)
+            _showGroupSheet.value = false
+        }
+    }
+
+    fun removeFromGroup() {
+        viewModelScope.launch {
+            val txId = _transaction.value?.id ?: return@launch
+            transactionGroupRepository.removeTransactionFromGroup(txId)
+        }
+    }
+
+    fun createGroupAndAdd(name: String, note: String?) {
+        viewModelScope.launch {
+            val txId = _transaction.value?.id ?: return@launch
+            val groupId = transactionGroupRepository.createGroup(name, note)
+            transactionGroupRepository.addTransactionToGroup(txId, groupId)
+            _showGroupSheet.value = false
+        }
+    }
 
     // Split-related state
     private val _splits = MutableStateFlow<List<SplitItem>>(emptyList())

@@ -179,6 +179,11 @@ fun MainScreen(
                             com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)
                         ) { launchSingleTop = true }
                     },
+                    onGroupClick = { groupId ->
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.TransactionGroupDetail(groupId)
+                        ) { launchSingleTop = true }
+                    },
                     onTransactionTypeClick = { type ->
                         val route = if (type != null) {
                             "transactions?type=$type"

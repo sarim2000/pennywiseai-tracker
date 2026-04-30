@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,6 +58,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
@@ -140,6 +142,11 @@ fun TransactionDetailScreen(
     val pendingReceiptUri by viewModel.pendingReceiptUri.collectAsStateWithLifecycle()
     val showFullScreenReceipt by viewModel.showFullScreenReceipt.collectAsStateWithLifecycle()
 
+    // Group state
+    val currentGroup by viewModel.currentGroup.collectAsStateWithLifecycle()
+    val availableGroups by viewModel.availableGroups.collectAsStateWithLifecycle()
+    val showGroupSheet by viewModel.showGroupSheet.collectAsStateWithLifecycle()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
@@ -198,6 +205,18 @@ fun TransactionDetailScreen(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Transaction"
+                        )
+                    }
+
+                    // Group FAB
+                    SmallFloatingActionButton(
+                        onClick = { viewModel.showGroupSheet() },
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FolderOpen,
+                            contentDescription = "Manage Group"
                         )
                     }
                     
@@ -330,6 +349,18 @@ fun TransactionDetailScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    // Group Bottom Sheet
+    if (showGroupSheet) {
+        GroupBottomSheet(
+            currentGroup = currentGroup,
+            availableGroups = availableGroups,
+            onDismiss = { viewModel.hideGroupSheet() },
+            onAddToGroup = { groupId -> viewModel.addToGroup(groupId) },
+            onRemoveFromGroup = { viewModel.removeFromGroup() },
+            onCreateGroup = { name, note -> viewModel.createGroupAndAdd(name, note) }
         )
     }
 
@@ -1992,6 +2023,126 @@ private fun MarkAsLoanBottomSheet(
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text("Confirm")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GroupBottomSheet(
+    currentGroup: TransactionGroupEntity?,
+    availableGroups: List<TransactionGroupEntity>,
+    onDismiss: () -> Unit,
+    onAddToGroup: (Long) -> Unit,
+    onRemoveFromGroup: () -> Unit,
+    onCreateGroup: (String, String?) -> Unit
+) {
+    var showCreateField by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Dimensions.Padding.content)
+        ) {
+            Text(
+                text = "Transaction Group",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = Spacing.md)
+            )
+
+            if (currentGroup != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Current: ${currentGroup.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = {
+                        onRemoveFromGroup()
+                        onDismiss()
+                    }) {
+                        Text("Remove", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(bottom = Spacing.md))
+            }
+
+            val otherGroups = availableGroups.filter { it.id != currentGroup?.id }
+            if (otherGroups.isNotEmpty()) {
+                Text(
+                    text = if (currentGroup != null) "Move to group" else "Add to group",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.sm)
+                )
+                otherGroups.forEach { group ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onAddToGroup(group.id) }
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FolderOpen,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(Spacing.sm))
+            }
+
+            if (showCreateField) {
+                OutlinedTextField(
+                    value = newGroupName,
+                    onValueChange = { newGroupName = it },
+                    label = { Text("Group name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                if (newGroupName.isNotBlank()) {
+                                    onCreateGroup(newGroupName.trim(), null)
+                                }
+                            },
+                            enabled = newGroupName.isNotBlank()
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = "Create")
+                        }
+                    }
+                )
+            } else {
+                TextButton(
+                    onClick = { showCreateField = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Create new group")
+                }
             }
         }
     }

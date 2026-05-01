@@ -323,17 +323,28 @@ fun CreateRuleScreen(
                                 modifier = Modifier.padding(Spacing.md),
                                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
-                                // Header with delete button
+                                // Header with logical-operator toggle and delete button
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = if (index == 0) "Condition" else "AND Condition ${index + 1}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    if (index == 0) {
+                                        Text(
+                                            text = "Condition",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    } else {
+                                        LogicalOperatorToggle(
+                                            selected = condition.logicalOperator,
+                                            onSelect = { newOp ->
+                                                conditions = conditions.toMutableList().apply {
+                                                    set(index, condition.copy(logicalOperator = newOp))
+                                                }
+                                            }
+                                        )
+                                    }
                                     if (conditions.size > 1) {
                                         IconButton(
                                             onClick = {
@@ -1015,6 +1026,31 @@ private fun ConditionFieldSelector(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogicalOperatorToggle(
+    selected: LogicalOperator,
+    onSelect: (LogicalOperator) -> Unit
+) {
+    val options = listOf(LogicalOperator.AND, LogicalOperator.OR)
+    SingleChoiceSegmentedButtonRow {
+        options.forEachIndexed { index, op ->
+            SegmentedButton(
+                selected = selected == op,
+                onClick = { onSelect(op) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                label = {
+                    Text(
+                        text = op.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             )
         }
     }

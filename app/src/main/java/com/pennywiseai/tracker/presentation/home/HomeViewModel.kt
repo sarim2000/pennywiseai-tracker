@@ -93,6 +93,11 @@ class HomeViewModel @Inject constructor(
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
     private var currentMonthLoanLossByCurrency: Map<String, BigDecimal> = emptyMap()
 
+    // Per-currency principal lent during this month for currently-active LENT loans.
+    // Resolved against the selected/display currency in updateUIStateForCurrency so the
+    // Lent pill stays in sync when the user switches currency tabs.
+    private var currentMonthLentByCurrency: Map<String, BigDecimal> = emptyMap()
+
     // Track if user has manually selected a currency to prevent auto-reset
     private var hasUserSelectedCurrency = false
 
@@ -387,59 +392,60 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Track principal lent during the current month — surfaced separately from
             // "Spent this month" so loan outflows don't masquerade as everyday spending.
+            // Stored per-currency so updateUIStateForCurrency can resolve the right value
+            // whenever the user switches currency tabs or unified mode toggles.
             val now = LocalDate.now()
             val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59)
+            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(java.time.LocalTime.MAX)
 
             combine(
                 loanRepository.getActiveLentTransactionsInPeriod(startOfMonth, endOfMonth),
                 userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull(),
-                userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { lentTxns, profileId, balances, isUnified, displayCurrency ->
+                _cachedAccountBalances.filterNotNull()
+            ) { lentTxns, profileId, balances ->
                 val keys = buildProfileAccountKeys(balances)
-                val filtered = filterTransactionsByProfile(lentTxns, profileId, keys)
-                val selectedCurrency = if (isUnified) displayCurrency else _uiState.value.selectedCurrency
-                isUnified to filtered to selectedCurrency
-            }.collect { (pair, selectedCurrency) ->
-                val (isUnified, filtered) = pair
-                val total = if (isUnified) {
-                    var sum = BigDecimal.ZERO
-                    for (tx in filtered) {
-                        sum += if (tx.currency == selectedCurrency) tx.amount
-                        else currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
-                    }
-                    sum
-                } else {
-                    filtered
-                        .filter { it.currency == selectedCurrency }
-                        .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+                filterTransactionsByProfile(lentTxns, profileId, keys)
+            }.collect { filtered ->
+                currentMonthLentByCurrency = filtered.groupBy { it.currency }.mapValues { (_, txs) ->
+                    txs.fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
                 }
-                _uiState.value = _uiState.value.copy(currentMonthLent = total)
+                updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
             }
         }
 
         viewModelScope.launch {
             // Track losses on LENT loans settled this month. Each loss feeds back into the
             // displayed "Spent this month" via updateUIStateForCurrency.
+            //
+            // LoanEntity has no profile column, so the profile filter is applied via the
+            // source EXPENSE transaction (same bank+account → same profile).
             val now = LocalDate.now()
             val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(23, 59, 59)
+            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(java.time.LocalTime.MAX)
 
-            loanRepository.getLentLoansSettledInPeriod(startOfMonth, endOfMonth)
-                .collect { settledLoans ->
-                    val byCurrency = mutableMapOf<String, BigDecimal>()
-                    for (loan in settledLoans) {
-                        val loss = loanRepository.getSettlementLoss(loan)
-                        if (loss > BigDecimal.ZERO) {
-                            byCurrency.merge(loan.currency, loss) { a, b -> a + b }
-                        }
+            combine(
+                loanRepository.getLentLoansSettledInPeriod(startOfMonth, endOfMonth),
+                userPreferencesRepository.selectedProfileId,
+                _cachedAccountBalances.filterNotNull()
+            ) { settledLoans, profileId, balances ->
+                Triple(settledLoans, profileId, balances)
+            }.collect { (settledLoans, profileId, balances) ->
+                val keys = buildProfileAccountKeys(balances)
+                val byCurrency = mutableMapOf<String, BigDecimal>()
+                for (loan in settledLoans) {
+                    val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
+                    val belongsToProfile = sourceTx == null ||
+                        filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
+                    if (!belongsToProfile) continue
+
+                    val loss = loanRepository.getSettlementLoss(loan)
+                    if (loss > BigDecimal.ZERO) {
+                        byCurrency.merge(loan.currency, loss) { a, b -> a + b }
                     }
-                    currentMonthLoanLossByCurrency = byCurrency
-                    // Trigger redisplay so spent reflects the new loss
-                    updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
+                currentMonthLoanLossByCurrency = byCurrency
+                updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+            }
         }
 
         viewModelScope.launch {
@@ -1176,12 +1182,14 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
-                val loanLoss = aggregateLoanLoss(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
+                val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
+                val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
 
                 _uiState.value = _uiState.value.copy(
                     currentMonthTotal = currentBreakdown.total - loanLoss,
                     currentMonthIncome = currentBreakdown.income,
                     currentMonthExpenses = currentBreakdown.expenses + loanLoss,
+                    currentMonthLent = lent,
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
@@ -1205,11 +1213,13 @@ class HomeViewModel @Inject constructor(
             )
 
             val loanLoss = currentMonthLoanLossByCurrency[selectedCurrency] ?: BigDecimal.ZERO
+            val lent = currentMonthLentByCurrency[selectedCurrency] ?: BigDecimal.ZERO
 
             _uiState.value = _uiState.value.copy(
                 currentMonthTotal = currentBreakdown.total - loanLoss,
                 currentMonthIncome = currentBreakdown.income,
                 currentMonthExpenses = currentBreakdown.expenses + loanLoss,
+                currentMonthLent = lent,
                 lastMonthTotal = lastBreakdown.total,
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
@@ -1220,7 +1230,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun aggregateLoanLoss(
+    private suspend fun aggregateAcrossCurrencies(
         byCurrency: Map<String, BigDecimal>,
         selectedCurrency: String,
         isUnified: Boolean

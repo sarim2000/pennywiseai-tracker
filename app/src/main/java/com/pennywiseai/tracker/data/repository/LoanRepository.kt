@@ -61,6 +61,9 @@ class LoanRepository @Inject constructor(
 
     suspend fun getLoanById(loanId: Long): LoanEntity? = loanDao.getLoanById(loanId)
 
+    suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity? =
+        loanDao.getOriginalTransactionForLoan(loanId)
+
     suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
         loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
 

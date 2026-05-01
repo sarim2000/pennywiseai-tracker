@@ -91,13 +91,40 @@ class SubscriptionsViewModel @Inject constructor(
             )
         }
     }
-    
+
     fun undoHide() {
         _uiState.value.lastHiddenSubscription?.let { subscription ->
             viewModelScope.launch {
                 subscriptionRepository.unhideSubscription(subscription.id)
                 _uiState.value = _uiState.value.copy(lastHiddenSubscription = null)
             }
+        }
+    }
+
+    fun updateSubscription(
+        id: Long,
+        merchantName: String,
+        amount: BigDecimal,
+        nextPaymentDate: java.time.LocalDate?,
+        category: String?
+    ) {
+        viewModelScope.launch {
+            val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
+            subscriptionRepository.updateSubscription(
+                existing.copy(
+                    merchantName = merchantName.trim(),
+                    amount = amount,
+                    nextPaymentDate = nextPaymentDate,
+                    category = category?.trim()?.takeIf { it.isNotEmpty() },
+                    updatedAt = java.time.LocalDateTime.now()
+                )
+            )
+        }
+    }
+
+    fun deleteSubscription(subscriptionId: Long) {
+        viewModelScope.launch {
+            subscriptionRepository.deleteSubscription(subscriptionId)
         }
     }
 }

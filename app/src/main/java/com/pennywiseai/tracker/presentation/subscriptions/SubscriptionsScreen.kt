@@ -184,7 +184,11 @@ fun SubscriptionsScreen(
                             subscription = subscription,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
-                            onHide = { viewModel.hideSubscription(subscription.id) }
+                            onHide = { viewModel.hideSubscription(subscription.id) },
+                            onEdit = { merchantName, amount, nextDate, category ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category)
+                            },
+                            onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
                     }
                 }
@@ -240,9 +244,14 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
-    onHide: () -> Unit
+    onHide: () -> Unit,
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit = { _, _, _, _ -> },
+    onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
@@ -411,6 +420,46 @@ private fun SwipeableSubscriptionItem(
                                 color = if (!isSystemInDarkTheme()) expense_light else expense_dark
                             )
                         }
+
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit") },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                    onClick = {
+                                        showMenu = false
+                                        showEditDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        showDeleteConfirm = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
                 
@@ -467,6 +516,147 @@ private fun SwipeableSubscriptionItem(
             }
         }
     )
+
+    if (showEditDialog) {
+        EditSubscriptionDialog(
+            subscription = subscription,
+            onDismiss = { showEditDialog = false },
+            onSave = { merchantName, amount, nextDate, category ->
+                onEdit(merchantName, amount, nextDate, category)
+                showEditDialog = false
+            }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete subscription?") },
+            text = {
+                Text("\"${subscription.merchantName}\" will be permanently removed. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditSubscriptionDialog(
+    subscription: SubscriptionEntity,
+    onDismiss: () -> Unit,
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit
+) {
+    var merchantName by remember { mutableStateOf(subscription.merchantName) }
+    var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
+    var category by remember { mutableStateOf(subscription.category.orEmpty()) }
+    var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val parsedAmount = remember(amountText) {
+        amountText.trim().takeIf { it.isNotEmpty() }?.let {
+            try { BigDecimal(it) } catch (_: NumberFormatException) { null }
+        }
+    }
+    val isValid = merchantName.isNotBlank() && parsedAmount != null && parsedAmount > BigDecimal.ZERO
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit subscription") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                OutlinedTextField(
+                    value = merchantName,
+                    onValueChange = { merchantName = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Amount (${subscription.currency})") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
+                )
+                OutlinedTextField(
+                    value = nextDate?.format(DateTimeFormatter.ofPattern("d MMM yyyy")) ?: "Tap to set",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Next payment date") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true },
+                    enabled = false,
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Category (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = isValid,
+                onClick = {
+                    parsedAmount?.let { amt ->
+                        onSave(merchantName, amt, nextDate, category)
+                    }
+                }
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = nextDate?.toEpochDay()?.times(86_400_000)
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        nextDate = LocalDate.ofEpochDay(millis / 86_400_000)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @Composable

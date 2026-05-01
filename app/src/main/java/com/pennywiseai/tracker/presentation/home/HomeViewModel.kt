@@ -434,7 +434,11 @@ class HomeViewModel @Inject constructor(
                 val byCurrency = mutableMapOf<String, BigDecimal>()
                 for (loan in settledLoans) {
                     val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
-                    val belongsToProfile = sourceTx == null ||
+                    // Null sourceTx means the loan has no live linked transaction (all were
+                    // unlinked or deleted). Skip entirely — without a transaction we can't
+                    // attribute the loss to any profile, and treating null as "include
+                    // everywhere" would double-count it for users with multiple profiles.
+                    val belongsToProfile = sourceTx != null &&
                         filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
                     if (!belongsToProfile) continue
 

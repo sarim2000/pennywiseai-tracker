@@ -64,13 +64,16 @@ class RuleEngine @Inject constructor() {
         rules: List<TransactionRule>,
         type: TransactionType
     ): Pair<TransactionEntity, List<RuleApplication>> {
-        // Pre-filter rules that apply to this transaction type
+        // Pre-filter rules that apply to this transaction type. This is an optimization
+        // for the common AND-only case; rules that mix in any OR logic are passed through
+        // since a TYPE condition that fails on its own can still let the rule match via
+        // an OR'd sibling.
         val applicableRules = rules.filter { rule ->
             val hasTypeCondition = rule.conditions.any { it.field == TransactionField.TYPE }
-            if (!hasTypeCondition) {
-                true // Rule applies to all transaction types
+            val hasOrLogic = rule.conditions.any { it.logicalOperator == LogicalOperator.OR }
+            if (!hasTypeCondition || hasOrLogic) {
+                true
             } else {
-                // Check if any TYPE condition matches this transaction's type
                 rule.conditions.any { condition ->
                     condition.field == TransactionField.TYPE &&
                     when (condition.operator) {
@@ -125,16 +128,20 @@ class RuleEngine @Inject constructor() {
     ): Boolean {
         if (conditions.isEmpty()) return false
 
-        // KISS: Simply AND all conditions together
-        // Each condition must be true for the rule to apply
-        for (condition in conditions) {
-            val conditionResult = evaluateCondition(transaction, smsText, condition)
-            if (!conditionResult) {
-                return false // If any condition is false, rule doesn't match
+        // Each condition (after the first) carries a logicalOperator describing how it
+        // combines with the running result so far. Evaluation is left-to-right with no
+        // precedence — "A AND B OR C" reads as "(A AND B) OR C" — which matches the
+        // most common user intent of "either these together, or that".
+        var result = evaluateCondition(transaction, smsText, conditions.first())
+        for (i in 1 until conditions.size) {
+            val condition = conditions[i]
+            val condResult = evaluateCondition(transaction, smsText, condition)
+            result = when (condition.logicalOperator) {
+                LogicalOperator.AND -> result && condResult
+                LogicalOperator.OR -> result || condResult
             }
         }
-
-        return true // All conditions matched
+        return result
     }
 
     private fun evaluateCondition(

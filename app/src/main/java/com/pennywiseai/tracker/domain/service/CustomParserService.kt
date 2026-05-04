@@ -3,9 +3,12 @@ package com.pennywiseai.tracker.domain.service
 import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.repository.CustomParserRuleRepository
 import java.math.BigDecimal
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,7 +20,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class CustomParserService @Inject constructor(
-    private val repository: CustomParserRuleRepository
+    private val repository: CustomParserRuleRepository,
+    private val unrecognizedSmsDao: UnrecognizedSmsDao
 ) {
     companion object {
         private const val TAG = "CustomParserService"
@@ -117,4 +121,41 @@ class CustomParserService @Inject constructor(
     ) {
         val isComplete: Boolean get() = amount != null && type != null
     }
+
+    /**
+     * Apply a rule to every unrecognised SMS already on disk and return the
+     * matches without persisting anything. Used by the editor's post-save
+     * preview to show the user what would happen before they commit.
+     */
+    suspend fun dryRunOnPastSms(rule: CustomParserRuleEntity, sampleLimit: Int = 5): DryRunResult {
+        val unrecognized = unrecognizedSmsDao.getAllVisibleSnapshot()
+        val matches = unrecognized.mapNotNull { sms ->
+            val timestamp = sms.receivedAt
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val parsed = runCatching { applyRule(rule, sms.sender, sms.smsBody, timestamp) }
+                .onFailure { Log.w(TAG, "Dry-run threw on SMS ${sms.id}: ${it.message}") }
+                .getOrNull()
+            parsed?.let { DryRunMatch(sms, it) }
+        }
+        return DryRunResult(
+            totalScanned = unrecognized.size,
+            totalMatched = matches.size,
+            samples = matches.take(sampleLimit),
+            allMatches = matches
+        )
+    }
+
+    data class DryRunMatch(
+        val sms: UnrecognizedSmsEntity,
+        val parsed: ParsedTransaction
+    )
+
+    data class DryRunResult(
+        val totalScanned: Int,
+        val totalMatched: Int,
+        val samples: List<DryRunMatch>,
+        val allMatches: List<DryRunMatch>
+    )
 }

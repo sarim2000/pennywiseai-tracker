@@ -27,9 +27,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,6 +77,7 @@ fun CustomParserEditScreen(
     val state by viewModel.editorState.collectAsStateWithLifecycle()
     val pickerCandidates by viewModel.pickerCandidates.collectAsStateWithLifecycle()
     val pickerQuery by viewModel.smsPickerQuery.collectAsStateWithLifecycle()
+    val backfillState by viewModel.backfillState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val pickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -181,13 +184,22 @@ fun CustomParserEditScreen(
                 onClick = {
                     viewModel.save { onNavigateBack() }
                 },
-                enabled = state.isValid,
+                enabled = state.isValid && backfillState == CustomParserViewModel.BackfillState.Idle,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Text("  Save", fontWeight = FontWeight.Medium)
             }
         }
+
+        BackfillDialog(
+            state = backfillState,
+            onDismiss = {
+                viewModel.dismissBackfill()
+                onNavigateBack()
+            },
+            onApply = { viewModel.applyBackfill() }
+        )
 
         if (showPicker) {
             ModalBottomSheet(
@@ -475,6 +487,146 @@ private fun TagOption(
                 )
             }
             if (selected) Icon(Icons.Default.Check, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+private fun BackfillDialog(
+    state: CustomParserViewModel.BackfillState,
+    onDismiss: () -> Unit,
+    onApply: () -> Unit
+) {
+    if (state == CustomParserViewModel.BackfillState.Idle) return
+
+    val title = when (state) {
+        CustomParserViewModel.BackfillState.DryRunning -> "Scanning past SMS…"
+        is CustomParserViewModel.BackfillState.Preview -> "Apply to past SMS?"
+        is CustomParserViewModel.BackfillState.Applying -> "Applying…"
+        is CustomParserViewModel.BackfillState.Done -> "Done"
+        CustomParserViewModel.BackfillState.Idle -> ""
+    }
+
+    AlertDialog(
+        onDismissRequest = {
+            // Don't let user dismiss while we're working.
+            if (state is CustomParserViewModel.BackfillState.Preview ||
+                state is CustomParserViewModel.BackfillState.Done) {
+                onDismiss()
+            }
+        },
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                when (state) {
+                    CustomParserViewModel.BackfillState.DryRunning -> {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Checking which past SMS this rule would parse.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    is CustomParserViewModel.BackfillState.Preview -> {
+                        Text(
+                            text = "Scanned ${state.dryRun.totalScanned} unrecognised SMS:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${state.dryRun.totalMatched} would be parsed as transactions",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (state.dryRun.samples.isNotEmpty()) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
+                            Text(
+                                text = "Sample:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            state.dryRun.samples.forEach { sample ->
+                                BackfillSampleRow(sample)
+                            }
+                            if (state.dryRun.totalMatched > state.dryRun.samples.size) {
+                                Text(
+                                    text = "…and ${state.dryRun.totalMatched - state.dryRun.samples.size} more.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    is CustomParserViewModel.BackfillState.Applying -> {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Saving ${state.processed} of ${state.dryRun.totalMatched}…",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    is CustomParserViewModel.BackfillState.Done -> {
+                        Text(
+                            text = "Parsed ${state.saved} past SMS as transactions.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "You can review them in the Transactions screen.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    CustomParserViewModel.BackfillState.Idle -> {}
+                }
+            }
+        },
+        confirmButton = {
+            when (state) {
+                is CustomParserViewModel.BackfillState.Preview -> {
+                    TextButton(onClick = onApply) { Text("Apply") }
+                }
+                is CustomParserViewModel.BackfillState.Done -> {
+                    TextButton(onClick = onDismiss) { Text("Close") }
+                }
+                else -> {}
+            }
+        },
+        dismissButton = {
+            if (state is CustomParserViewModel.BackfillState.Preview) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) { Text("Skip") }
+            }
+        }
+    )
+}
+
+@Composable
+private fun BackfillSampleRow(sample: com.pennywiseai.tracker.domain.service.CustomParserService.DryRunMatch) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+            Text(
+                text = sample.sms.sender,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium
+            )
+            val parsed = sample.parsed
+            Text(
+                text = "${parsed.type.name.lowercase().replaceFirstChar { it.uppercase() }} · ${parsed.currency} ${parsed.amount.toPlainString()}" +
+                    (parsed.merchant?.let { " · $it" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
         }
     }
 }

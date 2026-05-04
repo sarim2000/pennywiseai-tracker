@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.repository.CustomParserRuleRepository
 import com.pennywiseai.tracker.domain.service.CustomParserRuleBuilder
 import com.pennywiseai.tracker.domain.service.CustomParserService
@@ -23,7 +24,8 @@ class CustomParserViewModel @Inject constructor(
     private val repository: CustomParserRuleRepository,
     private val builder: CustomParserRuleBuilder,
     private val parserService: CustomParserService,
-    private val unrecognizedSmsDao: UnrecognizedSmsDao
+    private val unrecognizedSmsDao: UnrecognizedSmsDao,
+    private val smsTransactionProcessor: SmsTransactionProcessor
 ) : ViewModel() {
 
     val rules: StateFlow<List<CustomParserRuleEntity>> = repository.getAllRules()
@@ -55,6 +57,9 @@ class CustomParserViewModel @Inject constructor(
     fun updatePickerQuery(value: String) {
         _smsPickerQuery.value = value
     }
+
+    private val _backfillState = MutableStateFlow<BackfillState>(BackfillState.Idle)
+    val backfillState: StateFlow<BackfillState> = _backfillState.asStateFlow()
 
     fun pickSms(sms: UnrecognizedSmsEntity) {
         // Filling both sender and sample at once keeps the editor in a consistent
@@ -162,8 +167,53 @@ class CustomParserViewModel @Inject constructor(
             } else {
                 repository.insertRule(entity)
             }
-            onDone(saved)
+            // Trigger a dry-run against past unrecognised SMS so the editor can
+            // show the user what would be parsed before they commit. Skip when
+            // editing — those SMS would already be in the table only if they
+            // failed under the older version of the rule, but the UX scope is
+            // "post-create preview".
+            _backfillState.value = BackfillState.DryRunning
+            val rule = repository.getRuleById(saved) ?: run {
+                _backfillState.value = BackfillState.Idle
+                onDone(saved); return@launch
+            }
+            val dryRun = parserService.dryRunOnPastSms(rule)
+            _backfillState.value = if (dryRun.totalMatched == 0) {
+                BackfillState.Idle
+            } else {
+                BackfillState.Preview(rule, dryRun)
+            }
+            if (dryRun.totalMatched == 0) onDone(saved)
         }
+    }
+
+    fun applyBackfill() {
+        val current = _backfillState.value as? BackfillState.Preview ?: return
+        val matches = current.dryRun.allMatches
+        viewModelScope.launch {
+            _backfillState.value = BackfillState.Applying(current.rule, current.dryRun, processed = 0)
+            var saved = 0
+            for ((index, match) in matches.withIndex()) {
+                val timestamp = match.parsed.timestamp
+                val result = smsTransactionProcessor.processAndSaveTransaction(
+                    sender = match.sms.sender,
+                    body = match.sms.smsBody,
+                    timestamp = timestamp
+                )
+                if (result.success) {
+                    saved++
+                    unrecognizedSmsDao.softDeleteById(match.sms.id)
+                }
+                _backfillState.value = BackfillState.Applying(
+                    current.rule, current.dryRun, processed = index + 1
+                )
+            }
+            _backfillState.value = BackfillState.Done(saved = saved, scanned = current.dryRun.totalScanned)
+        }
+    }
+
+    fun dismissBackfill() {
+        _backfillState.value = BackfillState.Idle
     }
 
     fun setActive(id: Long, isActive: Boolean) {
@@ -210,6 +260,21 @@ class CustomParserViewModel @Inject constructor(
             incomeKeywords = patterns.incomeKeywords,
             preview = preview
         )
+    }
+
+    sealed class BackfillState {
+        object Idle : BackfillState()
+        object DryRunning : BackfillState()
+        data class Preview(
+            val rule: CustomParserRuleEntity,
+            val dryRun: CustomParserService.DryRunResult
+        ) : BackfillState()
+        data class Applying(
+            val rule: CustomParserRuleEntity,
+            val dryRun: CustomParserService.DryRunResult,
+            val processed: Int
+        ) : BackfillState()
+        data class Done(val saved: Int, val scanned: Int) : BackfillState()
     }
 
     data class EditorState(

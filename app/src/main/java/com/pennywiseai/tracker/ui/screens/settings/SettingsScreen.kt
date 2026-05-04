@@ -98,6 +98,7 @@ fun SettingsScreen(
     val downloadedMB by settingsViewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by settingsViewModel.totalMB.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val isMcpServerEnabled by settingsViewModel.isMcpServerEnabled.collectAsStateWithLifecycle(initialValue = false)
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
@@ -436,8 +437,20 @@ fun SettingsScreen(
                     subtitle = "Show technical information in chat",
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ItemPosition.SINGLE
+                    position = if (isDeveloperModeEnabled) ItemPosition.TOP else ItemPosition.SINGLE
                 )
+                if (isDeveloperModeEnabled) {
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Dns,
+                        iconBgColor = teal_light,
+                        iconTint = teal_dark,
+                        title = "MCP Server",
+                        subtitle = if (isMcpServerEnabled) "Running on port 8765" else "Expose data to AI tools via MCP",
+                        checked = isMcpServerEnabled,
+                        onCheckedChange = { settingsViewModel.toggleMcpServer(it) },
+                        position = ItemPosition.BOTTOM
+                    )
+                }
             }
 
             // ── Support & Community ──

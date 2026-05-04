@@ -12,8 +12,12 @@
     <!-- Telephony hardware feature (optional for ChromeOS compatibility) -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
-    <!-- Internet permission for downloading AI model -->
+    <!-- Internet permission for downloading AI model and MCP server -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Foreground service permission for MCP server -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Biometric permission for app lock feature -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -99,6 +103,16 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <!-- MCP Server foreground service (developer feature) -->
+        <service
+            android:name=".mcp.McpServerService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Developer MCP server for AI tool integration" />
         </service>
 
         <!-- Budget Widget -->

@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.repository.RuleRepository
+import com.pennywiseai.tracker.domain.service.CustomParserService
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
 import java.time.Instant
@@ -38,7 +39,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val customParserService: CustomParserService
 ) {
     companion object {
         private const val TAG = "SmsTransactionProcessor"
@@ -67,19 +69,27 @@ class SmsTransactionProcessor @Inject constructor(
         timestamp: Long
     ): ProcessingResult {
         try {
-            // Get the appropriate parser for this sender
+            // Get the appropriate parser for this sender. Built-in parsers always
+            // win; user-defined custom rules only run as a fallback.
             val parser = BankParserFactory.getParser(sender)
-            if (parser == null) {
-                return ProcessingResult(false, reason = "No parser found for sender: $sender")
-            }
+            val builtInParsed = parser?.parse(body, sender, timestamp)
+            val parsedTransaction = builtInParsed
+                ?: run {
+                    Log.d(TAG, "Built-in parser ${parser?.let { "'${it.getBankName()}' produced null" } ?: "missing"}, trying custom rules for sender='$sender'")
+                    customParserService.tryParse(sender, body, timestamp)
+                }
 
-            // Parse the SMS
-            val parsedTransaction = parser.parse(body, sender, timestamp)
             if (parsedTransaction == null) {
-                return ProcessingResult(false, reason = "Could not parse transaction from SMS")
+                val reason = if (parser == null) {
+                    "No parser found for sender: $sender"
+                } else {
+                    "Could not parse transaction from SMS"
+                }
+                return ProcessingResult(false, reason = reason)
             }
 
-            Log.d(TAG, "Parsed transaction: ${parsedTransaction.amount} from ${parsedTransaction.bankName}")
+            val source = if (builtInParsed != null) "built-in" else "custom"
+            Log.d(TAG, "Parsed transaction ($source): ${parsedTransaction.amount} from ${parsedTransaction.bankName}")
 
             // Save the transaction
             return saveParsedTransaction(parsedTransaction, body)

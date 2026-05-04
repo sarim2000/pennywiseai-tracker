@@ -133,7 +133,40 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToTransactionGroups = {
                     navController.navigate(TransactionGroups) { launchSingleTop = true }
+                },
+                onNavigateToCustomParsers = {
+                    navController.navigate(CustomParsers) { launchSingleTop = true }
                 }
+            )
+        }
+
+        composable<CustomParsers>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.customparser.CustomParsersScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onAdd = {
+                    navController.navigate(CustomParserEdit()) { launchSingleTop = true }
+                },
+                onEdit = { id ->
+                    navController.navigate(CustomParserEdit(id)) { launchSingleTop = true }
+                }
+            )
+        }
+
+        composable<CustomParserEdit>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) { backStackEntry ->
+            val args = backStackEntry.toRoute<CustomParserEdit>()
+            com.pennywiseai.tracker.presentation.customparser.CustomParserEditScreen(
+                ruleId = args.ruleId,
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

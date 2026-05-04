@@ -1,0 +1,326 @@
+package com.pennywiseai.tracker.presentation.customparser
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.tracker.data.repository.CustomParserRuleRepository
+import com.pennywiseai.tracker.domain.service.CustomParserRuleBuilder
+import com.pennywiseai.tracker.domain.service.CustomParserService
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import javax.inject.Inject
+
+@HiltViewModel
+class CustomParserViewModel @Inject constructor(
+    private val repository: CustomParserRuleRepository,
+    private val builder: CustomParserRuleBuilder,
+    private val parserService: CustomParserService,
+    private val unrecognizedSmsDao: UnrecognizedSmsDao,
+    private val smsTransactionProcessor: SmsTransactionProcessor
+) : ViewModel() {
+
+    companion object {
+        private const val TAG = "CustomParserVM"
+    }
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    val rules: StateFlow<List<CustomParserRuleEntity>> = repository.getAllRules()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    private val _editorState = MutableStateFlow(EditorState())
+    val editorState: StateFlow<EditorState> = _editorState.asStateFlow()
+
+    private val _smsPickerQuery = MutableStateFlow("")
+    val smsPickerQuery: StateFlow<String> = _smsPickerQuery.asStateFlow()
+
+    val pickerCandidates: StateFlow<List<UnrecognizedSmsEntity>> =
+        combine(unrecognizedSmsDao.getAllVisible(), _smsPickerQuery) { all, query ->
+            if (query.isBlank()) all
+            else all.filter { sms ->
+                sms.sender.contains(query, ignoreCase = true) ||
+                    sms.smsBody.contains(query, ignoreCase = true)
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    fun updatePickerQuery(value: String) {
+        _smsPickerQuery.value = value
+    }
+
+    private val _backfillState = MutableStateFlow<BackfillState>(BackfillState.Idle)
+    val backfillState: StateFlow<BackfillState> = _backfillState.asStateFlow()
+
+    fun pickSms(sms: UnrecognizedSmsEntity) {
+        // Filling both sender and sample at once keeps the editor in a consistent
+        // state — picking is essentially "use this SMS as the seed".
+        val state = _editorState.value
+        _editorState.value = state.copy(
+            sampleSms = sms.smsBody,
+            senderPattern = sms.sender,
+            tags = emptyList()
+        ).recompute()
+    }
+
+    fun loadForEdit(ruleId: Long) {
+        if (ruleId <= 0) {
+            _editorState.value = EditorState()
+            return
+        }
+        viewModelScope.launch {
+            val existing = repository.getRuleById(ruleId) ?: return@launch
+            val savedTags: List<CustomParserRuleBuilder.TaggedToken> = existing.tagsJson
+                ?.let { raw ->
+                    runCatching { json.decodeFromString<List<CustomParserRuleBuilder.TaggedToken>>(raw) }
+                        .getOrNull()
+                }
+                .orEmpty()
+            _editorState.value = EditorState(
+                editingId = existing.id,
+                name = existing.name,
+                senderPattern = existing.senderPattern,
+                sampleSms = existing.sampleSms,
+                bankNameDisplay = existing.bankNameDisplay,
+                currency = existing.currency,
+                tags = savedTags,
+                amountRegex = existing.amountRegex,
+                merchantRegex = existing.merchantRegex,
+                accountRegex = existing.accountRegex,
+                expenseKeywords = existing.expenseKeywords.split(",")
+                    .map { it.trim() }.filter { it.isNotEmpty() },
+                incomeKeywords = existing.incomeKeywords.split(",")
+                    .map { it.trim() }.filter { it.isNotEmpty() }
+            ).recompute()
+        }
+    }
+
+    fun updateName(name: String) {
+        _editorState.value = _editorState.value.copy(name = name)
+    }
+
+    fun updateSenderPattern(value: String) {
+        _editorState.value = _editorState.value.copy(senderPattern = value)
+    }
+
+    fun updateBankName(value: String) {
+        _editorState.value = _editorState.value.copy(bankNameDisplay = value)
+    }
+
+    fun updateCurrency(value: String) {
+        _editorState.value = _editorState.value.copy(currency = value)
+    }
+
+    fun updateSample(sample: String) {
+        // Resetting tags when the sample changes — token indices would otherwise
+        // refer to a different tokenization.
+        _editorState.value = _editorState.value.copy(
+            sampleSms = sample,
+            tags = emptyList()
+        ).recompute()
+    }
+
+    fun setTag(tokenIndex: Int, tag: CustomParserRuleBuilder.TokenTag?) {
+        val state = _editorState.value
+        val cleaned = state.tags.filterNot { it.tokenIndex == tokenIndex }
+        // AMOUNT and ACCOUNT are inherently single-token; only one token can
+        // carry that tag at a time. MERCHANT can span multiple tokens (e.g.
+        // "AMAZON INDIA"), so we don't dedupe it. Keywords can repeat freely.
+        val isSingleton = tag == CustomParserRuleBuilder.TokenTag.AMOUNT ||
+            tag == CustomParserRuleBuilder.TokenTag.ACCOUNT
+        val deduped = if (isSingleton) cleaned.filterNot { it.tag == tag } else cleaned
+
+        val updated = if (tag == null) deduped else
+            deduped + CustomParserRuleBuilder.TaggedToken(tokenIndex, tag)
+
+        _editorState.value = state.copy(tags = updated).recompute()
+    }
+
+    fun save(onDone: (Long) -> Unit) {
+        val state = _editorState.value
+        if (!state.isValid) return
+        viewModelScope.launch {
+            val now = java.time.LocalDateTime.now()
+            val entity = CustomParserRuleEntity(
+                id = state.editingId ?: 0,
+                name = state.name.trim(),
+                senderPattern = state.senderPattern.trim(),
+                sampleSms = state.sampleSms,
+                amountRegex = state.amountRegex ?: "",
+                merchantRegex = state.merchantRegex,
+                accountRegex = state.accountRegex,
+                expenseKeywords = state.expenseKeywords.joinToString(","),
+                incomeKeywords = state.incomeKeywords.joinToString(","),
+                currency = state.currency.trim().ifEmpty { "INR" },
+                bankNameDisplay = state.bankNameDisplay.trim(),
+                tagsJson = if (state.tags.isEmpty()) null
+                    else json.encodeToString(state.tags),
+                priority = 100,
+                isActive = true,
+                createdAt = now,
+                updatedAt = now
+            )
+            val saved = if (state.editingId != null) {
+                repository.updateRule(entity)
+                state.editingId
+            } else {
+                repository.insertRule(entity)
+            }
+            Log.d(TAG, "Saved custom rule id=$saved name='${entity.name}' senderPattern='${entity.senderPattern}' amountRegex='${entity.amountRegex}' merchantRegex='${entity.merchantRegex}'")
+            // Trigger a dry-run against past unrecognised SMS so the editor can
+            // show the user what would be parsed before they commit. Skip when
+            // editing — those SMS would already be in the table only if they
+            // failed under the older version of the rule, but the UX scope is
+            // "post-create preview".
+            _backfillState.value = BackfillState.DryRunning
+            val rule = repository.getRuleById(saved) ?: run {
+                _backfillState.value = BackfillState.Idle
+                onDone(saved); return@launch
+            }
+            val dryRun = parserService.dryRunOnPastSms(rule)
+            _backfillState.value = if (dryRun.totalMatched == 0) {
+                BackfillState.Idle
+            } else {
+                BackfillState.Preview(rule, dryRun)
+            }
+            if (dryRun.totalMatched == 0) onDone(saved)
+        }
+    }
+
+    fun applyBackfill() {
+        val current = _backfillState.value as? BackfillState.Preview ?: return
+        val matches = current.dryRun.allMatches
+        viewModelScope.launch {
+            Log.d(TAG, "applyBackfill rule='${current.rule.name}' (id=${current.rule.id}) matches=${matches.size}")
+            _backfillState.value = BackfillState.Applying(current.rule, current.dryRun, processed = 0)
+            var saved = 0
+            for ((index, match) in matches.withIndex()) {
+                val timestamp = match.parsed.timestamp
+                val result = smsTransactionProcessor.processAndSaveTransaction(
+                    sender = match.sms.sender,
+                    body = match.sms.smsBody,
+                    timestamp = timestamp
+                )
+                if (result.success) {
+                    saved++
+                    unrecognizedSmsDao.softDeleteById(match.sms.id)
+                } else {
+                    Log.w(TAG, "Backfill skipped SMS id=${match.sms.id} sender='${match.sms.sender}' reason=${result.reason}")
+                }
+                _backfillState.value = BackfillState.Applying(
+                    current.rule, current.dryRun, processed = index + 1
+                )
+            }
+            Log.d(TAG, "applyBackfill done saved=$saved/${matches.size}")
+            _backfillState.value = BackfillState.Done(saved = saved, scanned = current.dryRun.totalScanned)
+        }
+    }
+
+    fun dismissBackfill() {
+        _backfillState.value = BackfillState.Idle
+    }
+
+    fun setActive(id: Long, isActive: Boolean) {
+        viewModelScope.launch { repository.setActive(id, isActive) }
+    }
+
+    fun delete(id: Long) {
+        viewModelScope.launch { repository.deleteRuleById(id) }
+    }
+
+    private fun EditorState.recompute(): EditorState {
+        if (sampleSms.isBlank()) {
+            return copy(
+                amountRegex = null,
+                merchantRegex = null,
+                accountRegex = null,
+                expenseKeywords = emptyList(),
+                incomeKeywords = emptyList(),
+                preview = CustomParserService.PreviewResult(null, null, null, null)
+            )
+        }
+        val patterns = builder.build(sampleSms, tags)
+        val tentative = CustomParserRuleEntity(
+            id = editingId ?: 0,
+            name = name,
+            senderPattern = senderPattern,
+            sampleSms = sampleSms,
+            amountRegex = patterns.amountRegex ?: "",
+            merchantRegex = patterns.merchantRegex,
+            accountRegex = patterns.accountRegex,
+            expenseKeywords = patterns.expenseKeywords.joinToString(","),
+            incomeKeywords = patterns.incomeKeywords.joinToString(","),
+            currency = currency,
+            bankNameDisplay = bankNameDisplay,
+            priority = 100,
+            isActive = true
+        )
+        val preview = parserService.extractPreview(tentative, sampleSms)
+        return copy(
+            amountRegex = patterns.amountRegex,
+            merchantRegex = patterns.merchantRegex,
+            accountRegex = patterns.accountRegex,
+            expenseKeywords = patterns.expenseKeywords,
+            incomeKeywords = patterns.incomeKeywords,
+            preview = preview
+        )
+    }
+
+    sealed class BackfillState {
+        object Idle : BackfillState()
+        object DryRunning : BackfillState()
+        data class Preview(
+            val rule: CustomParserRuleEntity,
+            val dryRun: CustomParserService.DryRunResult
+        ) : BackfillState()
+        data class Applying(
+            val rule: CustomParserRuleEntity,
+            val dryRun: CustomParserService.DryRunResult,
+            val processed: Int
+        ) : BackfillState()
+        data class Done(val saved: Int, val scanned: Int) : BackfillState()
+    }
+
+    data class EditorState(
+        val editingId: Long? = null,
+        val name: String = "",
+        val senderPattern: String = "",
+        val sampleSms: String = "",
+        val bankNameDisplay: String = "",
+        val currency: String = "INR",
+        val tags: List<CustomParserRuleBuilder.TaggedToken> = emptyList(),
+        val amountRegex: String? = null,
+        val merchantRegex: String? = null,
+        val accountRegex: String? = null,
+        val expenseKeywords: List<String> = emptyList(),
+        val incomeKeywords: List<String> = emptyList(),
+        val preview: CustomParserService.PreviewResult =
+            CustomParserService.PreviewResult(null, null, null, null)
+    ) {
+        val isValid: Boolean get() =
+            name.isNotBlank() &&
+            senderPattern.isNotBlank() &&
+            bankNameDisplay.isNotBlank() &&
+            !amountRegex.isNullOrBlank() &&
+            (expenseKeywords.isNotEmpty() || incomeKeywords.isNotEmpty())
+    }
+}

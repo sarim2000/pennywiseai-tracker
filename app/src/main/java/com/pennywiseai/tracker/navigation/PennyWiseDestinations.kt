@@ -52,6 +52,12 @@ object Rules
 data class CreateRule(val ruleId: String? = null)
 
 @Serializable
+object CustomParsers
+
+@Serializable
+data class CustomParserEdit(val ruleId: Long = -1L)
+
+@Serializable
 object ExchangeRates
 
 @Serializable

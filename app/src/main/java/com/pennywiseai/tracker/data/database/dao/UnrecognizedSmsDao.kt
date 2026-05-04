@@ -21,6 +21,9 @@ interface UnrecognizedSmsDao {
     
     @Query("SELECT * FROM unrecognized_sms WHERE is_deleted = 0 ORDER BY received_at DESC")
     fun getAllVisible(): Flow<List<UnrecognizedSmsEntity>>
+
+    @Query("SELECT * FROM unrecognized_sms WHERE is_deleted = 0 ORDER BY received_at DESC")
+    suspend fun getAllVisibleSnapshot(): List<UnrecognizedSmsEntity>
     
     @Query("SELECT * FROM unrecognized_sms ORDER BY received_at DESC")
     fun getAllUnrecognizedSms(): Flow<List<UnrecognizedSmsEntity>>

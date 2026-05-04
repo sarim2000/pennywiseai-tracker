@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.service
 
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,6 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class CustomParserRuleBuilder @Inject constructor() {
 
+    @Serializable
     enum class TokenTag {
         AMOUNT,
         MERCHANT,
@@ -21,6 +23,7 @@ class CustomParserRuleBuilder @Inject constructor() {
         INCOME_KEYWORD
     }
 
+    @Serializable
     data class TaggedToken(val tokenIndex: Int, val tag: TokenTag)
 
     data class BuiltPatterns(
@@ -40,9 +43,9 @@ class CustomParserRuleBuilder @Inject constructor() {
             return BuiltPatterns(null, null, null, emptyList(), emptyList())
         }
 
-        val amountTag = tags.firstOrNull { it.tag == TokenTag.AMOUNT }
-        val merchantTag = tags.firstOrNull { it.tag == TokenTag.MERCHANT }
-        val accountTag = tags.firstOrNull { it.tag == TokenTag.ACCOUNT }
+        val amountIndices = tags.filter { it.tag == TokenTag.AMOUNT }.map { it.tokenIndex }
+        val merchantIndices = tags.filter { it.tag == TokenTag.MERCHANT }.map { it.tokenIndex }
+        val accountIndices = tags.filter { it.tag == TokenTag.ACCOUNT }.map { it.tokenIndex }
 
         val expenseKeywords = tags
             .filter { it.tag == TokenTag.EXPENSE_KEYWORD }
@@ -57,9 +60,9 @@ class CustomParserRuleBuilder @Inject constructor() {
             .distinct()
 
         return BuiltPatterns(
-            amountRegex = amountTag?.let { buildAnchoredPattern(tokens, it.tokenIndex, AMOUNT_VALUE) },
-            merchantRegex = merchantTag?.let { buildAnchoredPattern(tokens, it.tokenIndex, MERCHANT_VALUE) },
-            accountRegex = accountTag?.let { buildAnchoredPattern(tokens, it.tokenIndex, ACCOUNT_VALUE) },
+            amountRegex = buildSpannedPattern(tokens, amountIndices, AMOUNT_VALUE),
+            merchantRegex = buildSpannedPattern(tokens, merchantIndices, MERCHANT_VALUE),
+            accountRegex = buildSpannedPattern(tokens, accountIndices, ACCOUNT_VALUE),
             expenseKeywords = expenseKeywords,
             incomeKeywords = incomeKeywords
         )
@@ -72,13 +75,22 @@ class CustomParserRuleBuilder @Inject constructor() {
      */
     fun buildSenderPattern(sender: String): String = Regex.escape(sender.trim())
 
-    private fun buildAnchoredPattern(
+    /**
+     * Builds an anchored pattern that brackets the leftmost-to-rightmost
+     * tagged token. Lets a multi-token field like a merchant name span more
+     * than one token; the captured value pattern stretches from the token
+     * before the first to the token after the last.
+     */
+    private fun buildSpannedPattern(
         tokens: List<String>,
-        targetIndex: Int,
+        indices: List<Int>,
         valuePattern: String
-    ): String {
-        val anchorBefore = tokens.getOrNull(targetIndex - 1)?.let(::escapeAnchor)
-        val anchorAfter = tokens.getOrNull(targetIndex + 1)?.let(::escapeAnchor)
+    ): String? {
+        if (indices.isEmpty()) return null
+        val first = indices.min()
+        val last = indices.max()
+        val anchorBefore = tokens.getOrNull(first - 1)?.let(::escapeAnchor)
+        val anchorAfter = tokens.getOrNull(last + 1)?.let(::escapeAnchor)
 
         return buildString {
             if (anchorBefore != null) {

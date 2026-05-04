@@ -47,6 +47,9 @@ data class CustomParserRuleEntity(
     @ColumnInfo(name = "bank_name_display")
     val bankNameDisplay: String,
 
+    @ColumnInfo(name = "tags_json")
+    val tagsJson: String? = null,
+
     @ColumnInfo(name = "priority")
     val priority: Int = 100,
 

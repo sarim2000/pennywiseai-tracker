@@ -434,7 +434,7 @@ private fun TagPickerSheet(
         )
 
         TagOption("Amount", "The transaction amount", CustomParserRuleBuilder.TokenTag.AMOUNT, currentTag, onPick)
-        TagOption("Merchant", "Who got paid / who paid you", CustomParserRuleBuilder.TokenTag.MERCHANT, currentTag, onPick)
+        TagOption("Merchant", "Who got paid / who paid you. Tap each word if the name spans multiple tokens.", CustomParserRuleBuilder.TokenTag.MERCHANT, currentTag, onPick)
         TagOption("Account number", "Last 4 digits of account / card", CustomParserRuleBuilder.TokenTag.ACCOUNT, currentTag, onPick)
         TagOption("Expense keyword", "Word that means money went out (e.g. \"debited\")", CustomParserRuleBuilder.TokenTag.EXPENSE_KEYWORD, currentTag, onPick)
         TagOption("Income keyword", "Word that means money came in (e.g. \"credited\")", CustomParserRuleBuilder.TokenTag.INCOME_KEYWORD, currentTag, onPick)

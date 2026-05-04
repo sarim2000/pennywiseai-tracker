@@ -63,7 +63,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, CustomParserRuleEntity::class],
-    version = 47,
+    version = 48,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -105,7 +105,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 40, to = 41),
         AutoMigration(from = 41, to = 42),
         AutoMigration(from = 42, to = 43),
-        AutoMigration(from = 43, to = 44, spec = Migration43To44::class)
+        AutoMigration(from = 43, to = 44, spec = Migration43To44::class),
+        AutoMigration(from = 47, to = 48)
         // 44→45 and 45→46 are manual migrations registered in DatabaseModule (add profile_id columns)
         // 46→47 is a manual migration registered in DatabaseModule (custom_parser_rules table)
     ]

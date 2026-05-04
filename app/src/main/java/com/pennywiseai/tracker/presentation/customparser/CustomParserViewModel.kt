@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,6 +30,8 @@ class CustomParserViewModel @Inject constructor(
     private val unrecognizedSmsDao: UnrecognizedSmsDao,
     private val smsTransactionProcessor: SmsTransactionProcessor
 ) : ViewModel() {
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     val rules: StateFlow<List<CustomParserRuleEntity>> = repository.getAllRules()
         .stateIn(
@@ -79,6 +84,12 @@ class CustomParserViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val existing = repository.getRuleById(ruleId) ?: return@launch
+            val savedTags: List<CustomParserRuleBuilder.TaggedToken> = existing.tagsJson
+                ?.let { raw ->
+                    runCatching { json.decodeFromString<List<CustomParserRuleBuilder.TaggedToken>>(raw) }
+                        .getOrNull()
+                }
+                .orEmpty()
             _editorState.value = EditorState(
                 editingId = existing.id,
                 name = existing.name,
@@ -86,7 +97,7 @@ class CustomParserViewModel @Inject constructor(
                 sampleSms = existing.sampleSms,
                 bankNameDisplay = existing.bankNameDisplay,
                 currency = existing.currency,
-                tags = emptyList(),
+                tags = savedTags,
                 amountRegex = existing.amountRegex,
                 merchantRegex = existing.merchantRegex,
                 accountRegex = existing.accountRegex,
@@ -94,7 +105,7 @@ class CustomParserViewModel @Inject constructor(
                     .map { it.trim() }.filter { it.isNotEmpty() },
                 incomeKeywords = existing.incomeKeywords.split(",")
                     .map { it.trim() }.filter { it.isNotEmpty() }
-            )
+            ).recompute()
         }
     }
 
@@ -125,13 +136,13 @@ class CustomParserViewModel @Inject constructor(
 
     fun setTag(tokenIndex: Int, tag: CustomParserRuleBuilder.TokenTag?) {
         val state = _editorState.value
-        // Each field tag (Amount/Merchant/Account) can only point to one token.
-        // Multiple keyword tokens are allowed.
         val cleaned = state.tags.filterNot { it.tokenIndex == tokenIndex }
-        val isUnique = tag == CustomParserRuleBuilder.TokenTag.AMOUNT ||
-            tag == CustomParserRuleBuilder.TokenTag.MERCHANT ||
+        // AMOUNT and ACCOUNT are inherently single-token; only one token can
+        // carry that tag at a time. MERCHANT can span multiple tokens (e.g.
+        // "AMAZON INDIA"), so we don't dedupe it. Keywords can repeat freely.
+        val isSingleton = tag == CustomParserRuleBuilder.TokenTag.AMOUNT ||
             tag == CustomParserRuleBuilder.TokenTag.ACCOUNT
-        val deduped = if (isUnique) cleaned.filterNot { it.tag == tag } else cleaned
+        val deduped = if (isSingleton) cleaned.filterNot { it.tag == tag } else cleaned
 
         val updated = if (tag == null) deduped else
             deduped + CustomParserRuleBuilder.TaggedToken(tokenIndex, tag)
@@ -156,6 +167,8 @@ class CustomParserViewModel @Inject constructor(
                 incomeKeywords = state.incomeKeywords.joinToString(","),
                 currency = state.currency.trim().ifEmpty { "INR" },
                 bankNameDisplay = state.bankNameDisplay.trim(),
+                tagsJson = if (state.tags.isEmpty()) null
+                    else json.encodeToString(state.tags),
                 priority = 100,
                 isActive = true,
                 createdAt = now,

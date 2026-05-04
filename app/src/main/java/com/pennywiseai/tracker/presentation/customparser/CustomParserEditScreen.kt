@@ -9,18 +9,26 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.domain.service.CustomParserRuleBuilder
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -64,10 +73,14 @@ fun CustomParserEditScreen(
 ) {
     LaunchedEffect(ruleId) { viewModel.loadForEdit(ruleId) }
     val state by viewModel.editorState.collectAsStateWithLifecycle()
+    val pickerCandidates by viewModel.pickerCandidates.collectAsStateWithLifecycle()
+    val pickerQuery by viewModel.smsPickerQuery.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val pickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var sheetTokenIndex by remember { mutableStateOf<Int?>(null) }
+    var showPicker by remember { mutableStateOf(false) }
 
     PennyWiseScaffold(
         title = if (ruleId > 0) "Edit Custom Parser" else "New Custom Parser",
@@ -129,14 +142,21 @@ fun CustomParserEditScreen(
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = "Paste a real SMS from this sender. Tap each highlighted token to label it.",
+                text = "Pick from your inbox or paste a real SMS. Tap each highlighted token to label it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            OutlinedButton(
+                onClick = { showPicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Inbox, contentDescription = null)
+                Text("  Pick from your SMS")
+            }
             OutlinedTextField(
                 value = state.sampleSms,
                 onValueChange = viewModel::updateSample,
-                placeholder = { Text("Paste sample SMS here") },
+                placeholder = { Text("…or paste a sample SMS here") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
@@ -166,6 +186,29 @@ fun CustomParserEditScreen(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Text("  Save", fontWeight = FontWeight.Medium)
+            }
+        }
+
+        if (showPicker) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showPicker = false
+                    viewModel.updatePickerQuery("")
+                },
+                sheetState = pickerSheetState
+            ) {
+                SmsPickerSheet(
+                    candidates = pickerCandidates,
+                    query = pickerQuery,
+                    onQueryChange = viewModel::updatePickerQuery,
+                    onPick = { sms ->
+                        viewModel.pickSms(sms)
+                        scope.launch { pickerSheetState.hide() }.invokeOnCompletion {
+                            showPicker = false
+                            viewModel.updatePickerQuery("")
+                        }
+                    }
+                )
             }
         }
 
@@ -432,6 +475,97 @@ private fun TagOption(
                 )
             }
             if (selected) Icon(Icons.Default.Check, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+private fun SmsPickerSheet(
+    candidates: List<UnrecognizedSmsEntity>,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onPick: (UnrecognizedSmsEntity) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md)
+            .padding(bottom = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Text(
+            text = "Pick a sample SMS",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = "These are SMS that no built-in parser recognised. Pick one to seed your rule.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            placeholder = { Text("Search sender or body") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (candidates.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp)
+                    .padding(vertical = Spacing.lg),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (query.isBlank())
+                        "No unrecognised SMS yet. Once an SMS arrives that no built-in parser handles, it'll show up here."
+                    else
+                        "No SMS match \"$query\".",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                items(candidates, key = { it.id }) { sms ->
+                    SmsPickerRow(sms = sms, onClick = { onPick(sms) })
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(Spacing.sm))
+    }
+}
+
+@Composable
+private fun SmsPickerRow(sms: UnrecognizedSmsEntity, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
+        ) {
+            Text(
+                text = sms.sender,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = sms.smsBody,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3
+            )
         }
     }
 }

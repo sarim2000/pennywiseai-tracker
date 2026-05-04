@@ -88,12 +88,19 @@ fun CustomParsersScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 item {
-                    Text(
-                        text = "Custom parsers run only when no built-in bank parser matches the sender. Built-in parsers always take priority.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.sm)
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text(
+                            text = "Custom parsers run only when no built-in bank parser matches the sender. Built-in parsers always take priority.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Need to fix a wrong merchant or category on SMS that PennyWise already detects? Use Smart Rules instead.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        )
+                    }
                 }
                 items(rules, key = { it.id }) { rule ->
                     CustomParserRow(

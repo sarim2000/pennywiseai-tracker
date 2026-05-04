@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.presentation.customparser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.repository.CustomParserRuleRepository
 import com.pennywiseai.tracker.domain.service.CustomParserRuleBuilder
 import com.pennywiseai.tracker.domain.service.CustomParserService
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,7 +22,8 @@ import javax.inject.Inject
 class CustomParserViewModel @Inject constructor(
     private val repository: CustomParserRuleRepository,
     private val builder: CustomParserRuleBuilder,
-    private val parserService: CustomParserService
+    private val parserService: CustomParserService,
+    private val unrecognizedSmsDao: UnrecognizedSmsDao
 ) : ViewModel() {
 
     val rules: StateFlow<List<CustomParserRuleEntity>> = repository.getAllRules()
@@ -31,6 +35,37 @@ class CustomParserViewModel @Inject constructor(
 
     private val _editorState = MutableStateFlow(EditorState())
     val editorState: StateFlow<EditorState> = _editorState.asStateFlow()
+
+    private val _smsPickerQuery = MutableStateFlow("")
+    val smsPickerQuery: StateFlow<String> = _smsPickerQuery.asStateFlow()
+
+    val pickerCandidates: StateFlow<List<UnrecognizedSmsEntity>> =
+        combine(unrecognizedSmsDao.getAllVisible(), _smsPickerQuery) { all, query ->
+            if (query.isBlank()) all
+            else all.filter { sms ->
+                sms.sender.contains(query, ignoreCase = true) ||
+                    sms.smsBody.contains(query, ignoreCase = true)
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    fun updatePickerQuery(value: String) {
+        _smsPickerQuery.value = value
+    }
+
+    fun pickSms(sms: UnrecognizedSmsEntity) {
+        // Filling both sender and sample at once keeps the editor in a consistent
+        // state — picking is essentially "use this SMS as the seed".
+        val state = _editorState.value
+        _editorState.value = state.copy(
+            sampleSms = sms.smsBody,
+            senderPattern = sms.sender,
+            tags = emptyList()
+        ).recompute()
+    }
 
     fun loadForEdit(ruleId: Long) {
         if (ruleId <= 0) {

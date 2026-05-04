@@ -81,6 +81,7 @@ fun SettingsScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToFaq: () -> Unit = {},
     onNavigateToRules: () -> Unit = {},
+    onNavigateToCustomParsers: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -316,6 +317,15 @@ fun SettingsScreen(
                     title = "Smart Rules",
                     subtitle = "Automatic transaction categorization",
                     onClick = onNavigateToRules,
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Code,
+                    iconBgColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    title = "Custom Parsers",
+                    subtitle = "Teach PennyWise to read SMS from new senders",
+                    onClick = onNavigateToCustomParsers,
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(

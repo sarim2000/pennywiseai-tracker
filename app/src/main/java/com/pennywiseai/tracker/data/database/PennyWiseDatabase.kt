@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
+import com.pennywiseai.tracker.data.database.dao.CustomParserRuleDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
@@ -38,6 +39,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
@@ -60,8 +62,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
-    version = 46,
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, CustomParserRuleEntity::class],
+    version = 47,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -105,6 +107,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 42, to = 43),
         AutoMigration(from = 43, to = 44, spec = Migration43To44::class)
         // 44→45 and 45→46 are manual migrations registered in DatabaseModule (add profile_id columns)
+        // 46→47 is a manual migration registered in DatabaseModule (custom_parser_rules table)
     ]
 )
 @TypeConverters(Converters::class)
@@ -127,6 +130,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionGroupDao(): TransactionGroupDao
     abstract fun budgetSnapshotDao(): BudgetSnapshotDao
     abstract fun profileDao(): ProfileDao
+    abstract fun customParserRuleDao(): CustomParserRuleDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -432,6 +436,32 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         val MIGRATION_45_46 = object : Migration(45, 46) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `profile_id` INTEGER DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_46_47 = object : Migration(46, 47) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `custom_parser_rules` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `sender_pattern` TEXT NOT NULL,
+                        `sample_sms` TEXT NOT NULL,
+                        `amount_regex` TEXT NOT NULL,
+                        `merchant_regex` TEXT,
+                        `account_regex` TEXT,
+                        `expense_keywords` TEXT NOT NULL,
+                        `income_keywords` TEXT NOT NULL,
+                        `currency` TEXT NOT NULL,
+                        `bank_name_display` TEXT NOT NULL,
+                        `priority` INTEGER NOT NULL,
+                        `is_active` INTEGER NOT NULL,
+                        `created_at` TEXT NOT NULL,
+                        `updated_at` TEXT NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_custom_parser_rules_priority_is_active` ON `custom_parser_rules` (`priority`, `is_active`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_custom_parser_rules_name` ON `custom_parser_rules` (`name`)")
             }
         }
 

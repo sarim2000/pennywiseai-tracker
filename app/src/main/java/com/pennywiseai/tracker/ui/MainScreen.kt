@@ -410,6 +410,11 @@ fun MainScreen(
                         rootNavController?.navigate(
                             com.pennywiseai.tracker.navigation.TransactionGroups
                         ) { launchSingleTop = true }
+                    },
+                    onNavigateToCustomParsers = {
+                        rootNavController?.navigate(
+                            com.pennywiseai.tracker.navigation.CustomParsers
+                        ) { launchSingleTop = true }
                     }
                 )
             }

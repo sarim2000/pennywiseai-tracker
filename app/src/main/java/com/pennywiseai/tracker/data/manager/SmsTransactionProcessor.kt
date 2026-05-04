@@ -72,8 +72,12 @@ class SmsTransactionProcessor @Inject constructor(
             // Get the appropriate parser for this sender. Built-in parsers always
             // win; user-defined custom rules only run as a fallback.
             val parser = BankParserFactory.getParser(sender)
-            val parsedTransaction = parser?.parse(body, sender, timestamp)
-                ?: customParserService.tryParse(sender, body, timestamp)
+            val builtInParsed = parser?.parse(body, sender, timestamp)
+            val parsedTransaction = builtInParsed
+                ?: run {
+                    Log.d(TAG, "Built-in parser ${parser?.let { "'${it.getBankName()}' produced null" } ?: "missing"}, trying custom rules for sender='$sender'")
+                    customParserService.tryParse(sender, body, timestamp)
+                }
 
             if (parsedTransaction == null) {
                 val reason = if (parser == null) {
@@ -84,7 +88,8 @@ class SmsTransactionProcessor @Inject constructor(
                 return ProcessingResult(false, reason = reason)
             }
 
-            Log.d(TAG, "Parsed transaction: ${parsedTransaction.amount} from ${parsedTransaction.bankName}")
+            val source = if (builtInParsed != null) "built-in" else "custom"
+            Log.d(TAG, "Parsed transaction ($source): ${parsedTransaction.amount} from ${parsedTransaction.bankName}")
 
             // Save the transaction
             return saveParsedTransaction(parsedTransaction, body)

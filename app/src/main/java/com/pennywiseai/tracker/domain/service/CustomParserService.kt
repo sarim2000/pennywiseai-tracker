@@ -29,12 +29,18 @@ class CustomParserService @Inject constructor(
 
     suspend fun tryParse(sender: String, smsBody: String, timestamp: Long): ParsedTransaction? {
         val rules = repository.getActiveRules()
+        Log.d(TAG, "tryParse sender='$sender' activeRules=${rules.size}")
+        if (rules.isEmpty()) return null
         for (rule in rules) {
             val parsed = runCatching { applyRule(rule, sender, smsBody, timestamp) }
-                .onFailure { Log.w(TAG, "Rule '${rule.name}' threw while parsing: ${it.message}") }
+                .onFailure { Log.w(TAG, "Rule '${rule.name}' (id=${rule.id}) threw while parsing: ${it.message}") }
                 .getOrNull()
-            if (parsed != null) return parsed
+            if (parsed != null) {
+                Log.d(TAG, "Rule '${rule.name}' (id=${rule.id}) matched: amount=${parsed.amount} type=${parsed.type} merchant=${parsed.merchant}")
+                return parsed
+            }
         }
+        Log.d(TAG, "No custom rule matched sender='$sender'")
         return null
     }
 
@@ -44,10 +50,21 @@ class CustomParserService @Inject constructor(
         smsBody: String,
         timestamp: Long
     ): ParsedTransaction? {
-        if (!matchesSender(rule, sender)) return null
+        if (!matchesSender(rule, sender)) {
+            Log.v(TAG, "Rule '${rule.name}' skipped — sender '$sender' doesn't match pattern '${rule.senderPattern}'")
+            return null
+        }
 
-        val amount = extractAmount(rule, smsBody) ?: return null
-        val type = detectType(rule, smsBody) ?: return null
+        val amount = extractAmount(rule, smsBody)
+        if (amount == null) {
+            Log.v(TAG, "Rule '${rule.name}' rejected — amount regex /${rule.amountRegex}/ didn't match")
+            return null
+        }
+        val type = detectType(rule, smsBody)
+        if (type == null) {
+            Log.v(TAG, "Rule '${rule.name}' rejected — no expense/income keyword found in body")
+            return null
+        }
 
         return ParsedTransaction(
             amount = amount,
@@ -129,6 +146,7 @@ class CustomParserService @Inject constructor(
      */
     suspend fun dryRunOnPastSms(rule: CustomParserRuleEntity, sampleLimit: Int = 5): DryRunResult {
         val unrecognized = unrecognizedSmsDao.getAllVisibleSnapshot()
+        Log.d(TAG, "dryRunOnPastSms rule='${rule.name}' (id=${rule.id}) scanning ${unrecognized.size} unrecognised SMS")
         val matches = unrecognized.mapNotNull { sms ->
             val timestamp = sms.receivedAt
                 .atZone(ZoneId.systemDefault())
@@ -139,6 +157,7 @@ class CustomParserService @Inject constructor(
                 .getOrNull()
             parsed?.let { DryRunMatch(sms, it) }
         }
+        Log.d(TAG, "dryRunOnPastSms rule='${rule.name}' matched ${matches.size}/${unrecognized.size}")
         return DryRunResult(
             totalScanned = unrecognized.size,
             totalMatched = matches.size,

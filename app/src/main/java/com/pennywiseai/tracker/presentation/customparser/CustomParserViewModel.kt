@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.customparser
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
@@ -30,6 +31,10 @@ class CustomParserViewModel @Inject constructor(
     private val unrecognizedSmsDao: UnrecognizedSmsDao,
     private val smsTransactionProcessor: SmsTransactionProcessor
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "CustomParserVM"
+    }
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -180,6 +185,7 @@ class CustomParserViewModel @Inject constructor(
             } else {
                 repository.insertRule(entity)
             }
+            Log.d(TAG, "Saved custom rule id=$saved name='${entity.name}' senderPattern='${entity.senderPattern}' amountRegex='${entity.amountRegex}' merchantRegex='${entity.merchantRegex}'")
             // Trigger a dry-run against past unrecognised SMS so the editor can
             // show the user what would be parsed before they commit. Skip when
             // editing — those SMS would already be in the table only if they
@@ -204,6 +210,7 @@ class CustomParserViewModel @Inject constructor(
         val current = _backfillState.value as? BackfillState.Preview ?: return
         val matches = current.dryRun.allMatches
         viewModelScope.launch {
+            Log.d(TAG, "applyBackfill rule='${current.rule.name}' (id=${current.rule.id}) matches=${matches.size}")
             _backfillState.value = BackfillState.Applying(current.rule, current.dryRun, processed = 0)
             var saved = 0
             for ((index, match) in matches.withIndex()) {
@@ -216,11 +223,14 @@ class CustomParserViewModel @Inject constructor(
                 if (result.success) {
                     saved++
                     unrecognizedSmsDao.softDeleteById(match.sms.id)
+                } else {
+                    Log.w(TAG, "Backfill skipped SMS id=${match.sms.id} sender='${match.sms.sender}' reason=${result.reason}")
                 }
                 _backfillState.value = BackfillState.Applying(
                     current.rule, current.dryRun, processed = index + 1
                 )
             }
+            Log.d(TAG, "applyBackfill done saved=$saved/${matches.size}")
             _backfillState.value = BackfillState.Done(saved = saved, scanned = current.dryRun.totalScanned)
         }
     }

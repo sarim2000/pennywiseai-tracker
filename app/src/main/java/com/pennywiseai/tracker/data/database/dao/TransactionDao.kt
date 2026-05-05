@@ -198,4 +198,37 @@ interface TransactionDao {
         dateStart: LocalDateTime,
         dateEnd: LocalDateTime
     ): List<TransactionEntity>
+
+    @Query("""
+        SELECT * FROM transactions 
+        WHERE is_deleted = 0 
+        AND reference = :reference 
+        AND id != :excludeId
+        AND date_time >= :startDate AND date_time <= :endDate
+        ORDER BY date_time ASC
+    """)
+    suspend fun findPotentialDuplicatesByReference(
+        reference: String,
+        excludeId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity>
+
+    // Find duplicates by amount + account + time window (fuzzy match)
+    @Query("""
+        SELECT * FROM transactions 
+        WHERE is_deleted = 0 
+        AND amount = :amount 
+        AND account_number = :accountLast4
+        AND id != :excludeId
+        AND date_time >= :startDate AND date_time <= :endDate
+        ORDER BY date_time ASC
+    """)
+    suspend fun findPotentialDuplicatesByAmountAndAccount(
+        amount: BigDecimal,
+        accountLast4: String,
+        excludeId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity>
 }

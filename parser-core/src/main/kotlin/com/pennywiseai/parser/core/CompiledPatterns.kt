@@ -15,7 +15,8 @@ object CompiledPatterns {
         )
         val UPI_REF = Regex("""UPI[:\s]+([0-9]+)""", RegexOption.IGNORE_CASE)
         val REF_NUMBER = Regex("""Reference\s+Number[:\s]+([A-Z0-9]+)""", RegexOption.IGNORE_CASE)
-        val ALL_PATTERNS = listOf(GENERIC_REF, UPI_REF, REF_NUMBER)
+        val RRN_PATTERN = Regex("""RRN[:\s]*(\d{12})""", RegexOption.IGNORE_CASE)
+        val ALL_PATTERNS = listOf(GENERIC_REF, UPI_REF, REF_NUMBER, RRN_PATTERN)
     }
 
     object Account {

@@ -11,7 +11,9 @@ import com.pennywiseai.tracker.data.database.entity.BudgetMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -316,9 +318,9 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 
-    fun buildSummary(
+    suspend fun buildSummary(
         groups: List<BudgetWithCategories>,
-        allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        allTransactions: List<TransactionWithSplits>,
         daysElapsed: Int,
         daysRemaining: Int,
         currency: String,
@@ -331,36 +333,14 @@ class BudgetGroupRepository @Inject constructor(
             acc + tx.transaction.amount
         }
 
-        // Build category → amount map from all transactions (not just expenses)
-        val categoryAmounts = mutableMapOf<String, BigDecimal>()
-        allTransactions.forEach { txWithSplits ->
-            if (txWithSplits.transaction.transactionType != TransactionType.INCOME &&
-                txWithSplits.transaction.transactionType != TransactionType.TRANSFER &&
-                txWithSplits.transaction.transactionType != TransactionType.INVESTMENT) {
-                txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                    val categoryName = category.ifEmpty { "Others" }
-                    categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + amount
-                }
-            }
-        }
-
-        // Apply income transactions that are linked to budget categories
-        val categoryLimitBoosts = mutableMapOf<String, BigDecimal>()
-        allTransactions.forEach { txWithSplits ->
-            val tx = txWithSplits.transaction
-            if (tx.transactionType == TransactionType.INCOME && tx.budgetCategory != null) {
-                when (tx.budgetImpactType) {
-                    BudgetImpactType.DEDUCT_SPENT -> {
-                        val current = categoryAmounts[tx.budgetCategory] ?: BigDecimal.ZERO
-                        categoryAmounts[tx.budgetCategory] = (current - tx.amount).coerceAtLeast(BigDecimal.ZERO)
-                    }
-                    BudgetImpactType.ADD_TO_LIMIT -> {
-                        categoryLimitBoosts[tx.budgetCategory] = (categoryLimitBoosts[tx.budgetCategory] ?: BigDecimal.ZERO) + tx.amount
-                    }
-                    null -> {}
-                }
-            }
-        }
+        // Single-currency: amounts are already in the requested currency, so the
+        // converter lambdas are identities. The unified-currency caller in
+        // BudgetGroupsViewModel injects real conversion via the same helper.
+        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+            transactions = allTransactions,
+            convertSplit = { _, amount -> amount },
+            convertIncome = { tx -> tx.amount }
+        )
 
         // Calculate total expenses for groups with no categories (track all expenses)
         val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
@@ -603,6 +583,75 @@ class BudgetGroupRepository @Inject constructor(
             val below = groups[index + 1]
             budgetDao.updateBudget(current.copy(displayOrder = below.displayOrder, updatedAt = LocalDateTime.now()))
             budgetDao.updateBudget(below.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
+        }
+    }
+
+    companion object {
+        /**
+         * Per-category spend after applying any INCOME-side budget impacts,
+         * plus the per-category budget bumps contributed by Extra-budget income.
+         */
+        data class CategoryAggregation(
+            val categoryAmounts: Map<String, BigDecimal>,
+            val categoryLimitBoosts: Map<String, BigDecimal>
+        )
+
+        /**
+         * Single source of truth for the per-category aggregation used on the
+         * Budgets screen. Walks `transactions` and:
+         *  - sums non-INCOME / non-TRANSFER / non-INVESTMENT split amounts into
+         *    `categoryAmounts` (key=category name, "Others" when blank);
+         *  - for INCOME txns with a `budgetCategory`, subtracts DEDUCT_SPENT
+         *    (Refund) amounts from `categoryAmounts` (floored at zero) and
+         *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
+         *    `categoryLimitBoosts`.
+         *
+         * `convertSplit` and `convertIncome` let callers project amounts into a
+         * display currency. Same-currency callers pass identity lambdas; the
+         * unified-currency call site supplies `CurrencyConversionService`-backed
+         * suspending converters.
+         */
+        suspend fun aggregateBudgetCategorySpending(
+            transactions: List<TransactionWithSplits>,
+            convertSplit: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal,
+            convertIncome: suspend (TransactionEntity) -> BigDecimal
+        ): CategoryAggregation {
+            val categoryAmounts = mutableMapOf<String, BigDecimal>()
+            for (txWithSplits in transactions) {
+                val type = txWithSplits.transaction.transactionType
+                if (type == TransactionType.INCOME ||
+                    type == TransactionType.TRANSFER ||
+                    type == TransactionType.INVESTMENT
+                ) continue
+                val fromCurrency = txWithSplits.transaction.currency
+                for ((category, amount) in txWithSplits.getAmountByCategory()) {
+                    val categoryName = category.ifEmpty { "Others" }
+                    val converted = convertSplit(fromCurrency, amount)
+                    categoryAmounts[categoryName] =
+                        (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
+                }
+            }
+
+            val categoryLimitBoosts = mutableMapOf<String, BigDecimal>()
+            for (txWithSplits in transactions) {
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != TransactionType.INCOME) continue
+                val category = tx.budgetCategory ?: continue
+                val impact = tx.budgetImpactType ?: continue
+                val amount = convertIncome(tx)
+                when (impact) {
+                    BudgetImpactType.DEDUCT_SPENT -> {
+                        val current = categoryAmounts[category] ?: BigDecimal.ZERO
+                        categoryAmounts[category] = (current - amount).coerceAtLeast(BigDecimal.ZERO)
+                    }
+                    BudgetImpactType.ADD_TO_LIMIT -> {
+                        categoryLimitBoosts[category] =
+                            (categoryLimitBoosts[category] ?: BigDecimal.ZERO) + amount
+                    }
+                }
+            }
+
+            return CategoryAggregation(categoryAmounts, categoryLimitBoosts)
         }
     }
 }

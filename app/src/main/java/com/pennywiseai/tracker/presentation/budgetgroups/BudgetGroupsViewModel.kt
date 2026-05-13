@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -121,18 +122,19 @@ class BudgetGroupsViewModel @Inject constructor(
             )
         }
 
-        // Build category amounts from all non-income transactions, converting currencies
-        val categoryAmounts = mutableMapOf<String, BigDecimal>()
-        raw.allTransactions.forEach { txWithSplits ->
-            if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
-                val fromCurrency = txWithSplits.transaction.currency
-                txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                    val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
-                    val categoryName = category.ifEmpty { "Others" }
-                    categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
-                }
+        // Unified-currency: route through the same aggregator used by the
+        // single-currency path so Refund (DEDUCT_SPENT) and Extra budget
+        // (ADD_TO_LIMIT) take effect here too. The converters project each
+        // amount into the display currency before aggregation.
+        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+            transactions = raw.allTransactions,
+            convertSplit = { fromCurrency, amount ->
+                currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+            },
+            convertIncome = { tx ->
+                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             }
-        }
+        )
 
         // Pre-compute converted category amounts per transaction for pace chart
         val yearMonth = _selectedYearMonth.value
@@ -184,15 +186,16 @@ class BudgetGroupsViewModel @Inject constructor(
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                val pctUsed = if (convertedBudget > BigDecimal.ZERO) {
-                    (actual.toFloat() / convertedBudget.toFloat() * 100f).coerceAtLeast(0f)
+                val effectiveBudget = convertedBudget + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
                 val dailySpend = if (raw.daysElapsed > 0 && actual > BigDecimal.ZERO) {
                     actual.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
                 BudgetCategorySpending(
                     categoryName = cat.categoryName,
-                    budgetAmount = convertedBudget,
+                    budgetAmount = effectiveBudget,
                     actualAmount = actual,
                     percentageUsed = pctUsed,
                     dailySpend = dailySpend

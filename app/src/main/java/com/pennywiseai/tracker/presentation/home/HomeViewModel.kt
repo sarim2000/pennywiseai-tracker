@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkInfo
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -216,16 +217,68 @@ class HomeViewModel @Inject constructor(
         transactions: List<TransactionEntity>
     ): Map<String, TransactionRepository.MonthlyBreakdown> {
         return transactions.groupBy { it.currency }.mapValues { (_, txs) ->
-            val income = txs.filter { it.transactionType == TransactionType.INCOME }
+            // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
+            // expense, so it should shrink "Spent this month" and not appear as
+            // new income. "Extra budget" (ADD_TO_LIMIT) is real money in — leave
+            // it in the income total.
+            val refundTotal = txs
+                .filter {
+                    it.transactionType == TransactionType.INCOME &&
+                        it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
-            val expenses = txs.filter { it.transactionType == TransactionType.EXPENSE }
+            val income = txs
+                .filter {
+                    it.transactionType == TransactionType.INCOME &&
+                        it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+            val rawExpenses = txs
+                .filter { it.transactionType == TransactionType.EXPENSE }
+                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+            val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
             TransactionRepository.MonthlyBreakdown(
                 total = income - expenses,
                 income = income,
                 expenses = expenses
             )
         }
+    }
+
+    /**
+     * Net daily expense map for the sparkline: EXPENSE adds, Refund (INCOME +
+     * DEDUCT_SPENT) subtracts. Loan-linked transactions are excluded. Amounts are
+     * converted into [selectedCurrency] when [isUnified] is true and the txn's
+     * native currency differs; otherwise only txns already in [selectedCurrency]
+     * are considered. The caller is responsible for clamping the cumulative at
+     * zero so refunds don't make the running total go negative.
+     */
+    private suspend fun buildDailyNetExpense(
+        transactions: List<TransactionEntity>,
+        isUnified: Boolean,
+        selectedCurrency: String
+    ): Map<LocalDate, BigDecimal> {
+        val daily = mutableMapOf<LocalDate, BigDecimal>()
+        for (tx in transactions) {
+            if (tx.loanId != null) continue
+            if (!isUnified && tx.currency != selectedCurrency) continue
+
+            val sign = when {
+                tx.transactionType == TransactionType.EXPENSE -> BigDecimal.ONE
+                tx.transactionType == TransactionType.INCOME &&
+                    tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT -> BigDecimal.ONE.negate()
+                else -> continue
+            }
+
+            val amount = if (isUnified && tx.currency != selectedCurrency) {
+                currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+            } else {
+                tx.amount
+            }
+            val day = tx.dateTime.toLocalDate()
+            daily[day] = (daily[day] ?: BigDecimal.ZERO) + amount.multiply(sign)
+        }
+        return daily
     }
 
     private fun loadUnifiedModePreferences() {
@@ -499,55 +552,20 @@ class HomeViewModel @Inject constructor(
                     d >= lastMonthStart && d < firstOfMonth
                 }
 
-                // Filter to EXPENSE only (excluding loans), respect currency/unified mode
-                val currentExpenses = if (isUnified) {
-                    currentMonthTxs.filter { it.transactionType == TransactionType.EXPENSE && it.loanId == null }
-                } else {
-                    currentMonthTxs.filter {
-                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency && it.loanId == null
-                    }
-                }
+                // Net daily expense (EXPENSE adds, Refund subtracts) for both
+                // months, then cumulative below clamps at zero so refunds pull the
+                // sparkline endpoint in lockstep with the displayed "Spent" stat.
+                val dailySums = buildDailyNetExpense(currentMonthTxs, isUnified, selectedCurrency)
+                val lastMonthDailySums = buildDailyNetExpense(lastMonthTxs, isUnified, selectedCurrency)
 
-                // Group by day and sum amounts (convert if unified mode)
-                val dailySums = mutableMapOf<LocalDate, BigDecimal>()
-                for (tx in currentExpenses) {
-                    val day = tx.dateTime.toLocalDate()
-                    val amount = if (isUnified && tx.currency != selectedCurrency) {
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
-                    } else {
-                        tx.amount
-                    }
-                    dailySums[day] = (dailySums[day] ?: BigDecimal.ZERO) + amount
-                }
-
-                // Build cumulative list: one entry per day from 1st to today
                 val cumulativeList = mutableListOf<BigDecimal>()
                 var cumulative = BigDecimal.ZERO
                 var day = firstOfMonth
                 while (!day.isAfter(now)) {
-                    cumulative += (dailySums[day] ?: BigDecimal.ZERO)
+                    cumulative = (cumulative + (dailySums[day] ?: BigDecimal.ZERO))
+                        .coerceAtLeast(BigDecimal.ZERO)
                     cumulativeList.add(cumulative)
                     day = day.plusDays(1)
-                }
-
-                // Build last month's cumulative spending (same day count for comparison)
-                val lastMonthExpenses = if (isUnified) {
-                    lastMonthTxs.filter { it.transactionType == TransactionType.EXPENSE && it.loanId == null }
-                } else {
-                    lastMonthTxs.filter {
-                        it.transactionType == TransactionType.EXPENSE && it.currency == selectedCurrency && it.loanId == null
-                    }
-                }
-
-                val lastMonthDailySums = mutableMapOf<LocalDate, BigDecimal>()
-                for (tx in lastMonthExpenses) {
-                    val txDay = tx.dateTime.toLocalDate()
-                    val amount = if (isUnified && tx.currency != selectedCurrency) {
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
-                    } else {
-                        tx.amount
-                    }
-                    lastMonthDailySums[txDay] = (lastMonthDailySums[txDay] ?: BigDecimal.ZERO) + amount
                 }
 
                 val daysToInclude = now.dayOfMonth
@@ -556,7 +574,8 @@ class HomeViewModel @Inject constructor(
                 var lastDay = lastMonthStart
                 var dayCount = 0
                 while (dayCount < daysToInclude && lastDay < firstOfMonth) {
-                    lastCum += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
+                    lastCum = (lastCum + (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO))
+                        .coerceAtLeast(BigDecimal.ZERO)
                     lastMonthCumulative.add(lastCum)
                     lastDay = lastDay.plusDays(1)
                     dayCount++

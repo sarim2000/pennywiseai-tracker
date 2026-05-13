@@ -202,9 +202,11 @@ class KotakBankParser : BankParser() {
         }
 
         return when {
-            // Kotak specific: "Sent Rs.X from ..." - money going OUT (EXPENSE)
-            // Covers both "Sent Rs.X from Kotak Bank AC..." and "Sent Rs.X from XXXXXX1234 to..."
-            lowerMessage.contains("sent") -> TransactionType.EXPENSE
+            // Kotak specific: "Sent Rs.X ..." - money going OUT (EXPENSE)
+            // Anchored on "sent rs" so unrelated uses of the word "sent" (e.g. a
+            // refund/cashback notification reading "...has been sent to your A/c...")
+            // don't get misclassified as expense before the INCOME branches run.
+            lowerMessage.contains("sent rs") -> TransactionType.EXPENSE
 
             // Standard expense keywords
             lowerMessage.contains("debited") -> TransactionType.EXPENSE

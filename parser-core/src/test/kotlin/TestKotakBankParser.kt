@@ -135,6 +135,21 @@ class KotakBankParserTest {
                     reference = "648724676562",
                     accountLast4 = "9722"
                 )
+            ),
+            // Negative case: a credit/refund-style message that contains the word
+            // "sent" (e.g. "...has been sent to your A/c...") must still be parsed
+            // as INCOME — the parser should anchor on "sent rs", not bare "sent".
+            ParserTestCase(
+                name = "Credit message containing the word 'sent' stays INCOME",
+                message = "Cashback of Rs.50.00 has been sent to your Kotak Bank A/c x5555. Credited on 14-10-25. UPI Ref 9999999999",
+                sender = "JD-KOTAKB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    reference = "9999999999",
+                    accountLast4 = "5555"
+                )
             )
         )
 

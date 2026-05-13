@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
@@ -134,6 +135,29 @@ class BudgetGroupsViewModel @Inject constructor(
             }
         }
 
+        // Apply INCOME transactions tagged with a budget impact, mirroring
+        // BudgetGroupRepository.buildSummary. Refunds (DEDUCT_SPENT) shrink the
+        // category's spent total; Extra Budget (ADD_TO_LIMIT) raises the category's
+        // effective budget below.
+        val categoryLimitBoosts = mutableMapOf<String, BigDecimal>()
+        raw.allTransactions.forEach { txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType == TransactionType.INCOME && tx.budgetCategory != null) {
+                val converted = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                when (tx.budgetImpactType) {
+                    BudgetImpactType.DEDUCT_SPENT -> {
+                        val current = categoryAmounts[tx.budgetCategory] ?: BigDecimal.ZERO
+                        categoryAmounts[tx.budgetCategory] = (current - converted).coerceAtLeast(BigDecimal.ZERO)
+                    }
+                    BudgetImpactType.ADD_TO_LIMIT -> {
+                        categoryLimitBoosts[tx.budgetCategory] =
+                            (categoryLimitBoosts[tx.budgetCategory] ?: BigDecimal.ZERO) + converted
+                    }
+                    null -> {}
+                }
+            }
+        }
+
         // Pre-compute converted category amounts per transaction for pace chart
         val yearMonth = _selectedYearMonth.value
         val daysInMonth = yearMonth.lengthOfMonth()
@@ -184,15 +208,16 @@ class BudgetGroupsViewModel @Inject constructor(
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                val pctUsed = if (convertedBudget > BigDecimal.ZERO) {
-                    (actual.toFloat() / convertedBudget.toFloat() * 100f).coerceAtLeast(0f)
+                val effectiveBudget = convertedBudget + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
                 val dailySpend = if (raw.daysElapsed > 0 && actual > BigDecimal.ZERO) {
                     actual.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
                 BudgetCategorySpending(
                     categoryName = cat.categoryName,
-                    budgetAmount = convertedBudget,
+                    budgetAmount = effectiveBudget,
                     actualAmount = actual,
                     percentageUsed = pctUsed,
                     dailySpend = dailySpend

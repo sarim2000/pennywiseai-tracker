@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -144,9 +145,9 @@ class BudgetGroupsViewModel @Inject constructor(
         data class ConvertedTxDay(val day: Int, val categoryAmounts: Map<String, Double>)
         val convertedTxDays = raw.allTransactions.mapNotNull { txWithSplits ->
             val tx = txWithSplits.transaction
-            if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
-                tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER ||
-                tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT ||
+            if (tx.transactionType == TransactionType.INCOME ||
+                tx.transactionType == TransactionType.TRANSFER ||
+                tx.transactionType == TransactionType.INVESTMENT ||
                 tx.loanId != null
             ) return@mapNotNull null
             val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
@@ -154,6 +155,19 @@ class BudgetGroupsViewModel @Inject constructor(
                 currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
             }.mapKeys { (cat, _) -> cat.ifEmpty { "Others" } }
             ConvertedTxDay(day, catAmounts)
+        }
+
+        // Pre-convert Refund (DEDUCT_SPENT) income amounts on the day they occurred
+        // so the pace chart subtracts them in lockstep with the displayed "actual".
+        data class ConvertedRefundDay(val day: Int, val category: String, val amount: Double)
+        val convertedRefundDays = raw.allTransactions.mapNotNull { txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType != TransactionType.INCOME) return@mapNotNull null
+            if (tx.budgetImpactType != BudgetImpactType.DEDUCT_SPENT) return@mapNotNull null
+            val category = tx.budgetCategory ?: return@mapNotNull null
+            val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+            val amount = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+            ConvertedRefundDay(day, category, amount)
         }
 
         fun buildGroupPaceUnified(
@@ -171,9 +185,19 @@ class BudgetGroupsViewModel @Inject constructor(
                     }
                 }
             }
+            convertedRefundDays.forEach { refundDay ->
+                if (categoryNames == null || refundDay.category in categoryNames) {
+                    dailyAmounts[refundDay.day - 1] -= refundDay.amount
+                }
+            }
             val cumulative = mutableListOf<Double>()
             var running = 0.0
-            for (i in 0 until effectiveDays) { running += dailyAmounts[i]; cumulative.add(running) }
+            for (i in 0 until effectiveDays) {
+                // Clamp at zero to mirror the per-category floor in
+                // aggregateBudgetCategorySpending.
+                running = (running + dailyAmounts[i]).coerceAtLeast(0.0)
+                cumulative.add(running)
+            }
             val pace = if (groupBudget > BigDecimal.ZERO) {
                 val dp = groupBudget.toDouble() / daysInMonth
                 (1..effectiveDays).map { it * dp }

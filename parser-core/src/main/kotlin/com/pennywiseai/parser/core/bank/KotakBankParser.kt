@@ -17,8 +17,8 @@ class KotakBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
 
-        // DLT patterns for Kotak Bank
-        return normalizedSender.matches(Regex("^[A-Z]{2}-KOTAKB-[ST]$"))
+        // DLT patterns for Kotak Bank — covers KOTAKB, KOTAKD, and similar variants
+        return normalizedSender.matches(Regex("^[A-Z]{2}-KOTAK[A-Z]-[ST]$"))
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
@@ -202,9 +202,9 @@ class KotakBankParser : BankParser() {
         }
 
         return when {
-            // Kotak specific: "Sent Rs.X from Kotak Bank" - money going OUT (EXPENSE)
-            // This indicates the user sent money from their Kotak account to someone else
-            lowerMessage.contains("sent") && lowerMessage.contains("from kotak") -> TransactionType.EXPENSE
+            // Kotak specific: "Sent Rs.X from ..." - money going OUT (EXPENSE)
+            // Covers both "Sent Rs.X from Kotak Bank AC..." and "Sent Rs.X from XXXXXX1234 to..."
+            lowerMessage.contains("sent") -> TransactionType.EXPENSE
 
             // Standard expense keywords
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
@@ -226,10 +226,16 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Kotak specific UPI reference pattern
-        val upiRefPattern = Regex("UPI\\s+Ref\\s+([0-9]+)", RegexOption.IGNORE_CASE)
-        upiRefPattern.find(message)?.let { match ->
-            return match.groupValues[1].trim()
+        // Kotak specific UPI reference patterns
+        val upiRefPatterns = listOf(
+            Regex("""UPI\s+Ref\s+([0-9]+)""", RegexOption.IGNORE_CASE),
+            // New short-SMS format: "UPI ref no. 648604626824"
+            Regex("""UPI\s+ref\s+no\.?\s+([0-9]+)""", RegexOption.IGNORE_CASE)
+        )
+        for (pattern in upiRefPatterns) {
+            pattern.find(message)?.let { match ->
+                return match.groupValues[1].trim()
+            }
         }
 
         // Fall back to generic extraction
@@ -251,6 +257,15 @@ class KotakBankParser : BankParser() {
         val kotakAccountPattern =
             Regex("AC\\s+[X*]*([0-9]{4})(?:\\s|,|\\.)", RegexOption.IGNORE_CASE)
         kotakAccountPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Short-SMS format: "Sent Rs.X from XXXXXX9722 to ..."
+        val kotakMaskedAccountPattern = Regex(
+            """from\s+[xX*]{2,}(\d{4})\b""",
+            RegexOption.IGNORE_CASE
+        )
+        kotakMaskedAccountPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 

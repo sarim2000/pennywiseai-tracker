@@ -109,12 +109,39 @@ class KotakBankParserTest {
                     isFromCard = true,
                     creditLimit = BigDecimal("73733.02")
                 )
+            ),
+            ParserTestCase(
+                name = "Short-SMS UPI to person (KOTAKD sender)",
+                message = "Sent Rs.51.00 from XXXXXX9722 to DINESHBHAI RAMJIBHAI on 30/04/2026. UPI ref no. 648604626824. Not you? Tap https://kotk.in/KOTAKD/Eg9Cu0 to report -Kotak",
+                sender = "VM-KOTAKD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("51.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "DINESHBHAI RAMJIBHAI",
+                    reference = "648604626824",
+                    accountLast4 = "9722"
+                )
+            ),
+            ParserTestCase(
+                name = "Short-SMS UPI smaller amount",
+                message = "Sent Rs.10.00 from XXXXXX9722 to Makavana Mahipatbhai on 01/05/2026. UPI ref no. 648724676562. Not you? Tap https://kotk.in/KOTAKD/EhkUKk to report -Kotak",
+                sender = "VM-KOTAKD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Makavana Mahipatbhai",
+                    reference = "648724676562",
+                    accountLast4 = "9722"
+                )
             )
         )
 
         val handleChecks = listOf(
             "JD-KOTAKB-S" to true,
             "JD-KOTAKB-T" to true,
+            "VM-KOTAKD-S" to true,
             "VM-KOTAKB" to false,
             "UNKNOWN" to false
         )

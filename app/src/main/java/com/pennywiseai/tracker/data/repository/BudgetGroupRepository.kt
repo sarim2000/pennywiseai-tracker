@@ -374,10 +374,24 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 }
             }
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred so the
+            // cumulative endpoint tracks the same "actual" figure shown on the row.
+            allTransactions.forEach { txWithSplits ->
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != TransactionType.INCOME) return@forEach
+                if (tx.budgetImpactType != BudgetImpactType.DEDUCT_SPENT) return@forEach
+                val category = tx.budgetCategory ?: return@forEach
+                if (categoryNames != null && category !in categoryNames) return@forEach
+                val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+                dailyAmounts[day - 1] -= tx.amount.toDouble()
+            }
             val cumulative = mutableListOf<Double>()
             var running = 0.0
             for (i in 0 until effectiveDays) {
-                running += dailyAmounts[i]
+                // Clamp at zero to mirror the per-category floor in
+                // aggregateBudgetCategorySpending; a refund larger than spend-to-date
+                // visually pulls the line back to zero rather than going negative.
+                running = (running + dailyAmounts[i]).coerceAtLeast(0.0)
                 cumulative.add(running)
             }
             val pace = if (groupBudget > BigDecimal.ZERO) {

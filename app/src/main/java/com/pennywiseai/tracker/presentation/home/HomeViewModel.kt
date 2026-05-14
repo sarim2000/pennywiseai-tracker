@@ -558,25 +558,27 @@ class HomeViewModel @Inject constructor(
                 val dailySums = buildDailyNetExpense(currentMonthTxs, isUnified, selectedCurrency)
                 val lastMonthDailySums = buildDailyNetExpense(lastMonthTxs, isUnified, selectedCurrency)
 
+                // Carry the running total forward unclamped (so a refund dated
+                // before the first expense still counts) and only clamp the value
+                // we display, so the chart endpoint matches the month-level floor
+                // applied to "Spent this month" in computeBreakdownByCurrency.
                 val cumulativeList = mutableListOf<BigDecimal>()
-                var cumulative = BigDecimal.ZERO
+                var runningNet = BigDecimal.ZERO
                 var day = firstOfMonth
                 while (!day.isAfter(now)) {
-                    cumulative = (cumulative + (dailySums[day] ?: BigDecimal.ZERO))
-                        .coerceAtLeast(BigDecimal.ZERO)
-                    cumulativeList.add(cumulative)
+                    runningNet += (dailySums[day] ?: BigDecimal.ZERO)
+                    cumulativeList.add(runningNet.coerceAtLeast(BigDecimal.ZERO))
                     day = day.plusDays(1)
                 }
 
                 val daysToInclude = now.dayOfMonth
                 val lastMonthCumulative = mutableListOf<BigDecimal>()
-                var lastCum = BigDecimal.ZERO
+                var lastRunningNet = BigDecimal.ZERO
                 var lastDay = lastMonthStart
                 var dayCount = 0
                 while (dayCount < daysToInclude && lastDay < firstOfMonth) {
-                    lastCum = (lastCum + (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO))
-                        .coerceAtLeast(BigDecimal.ZERO)
-                    lastMonthCumulative.add(lastCum)
+                    lastRunningNet += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
+                    lastMonthCumulative.add(lastRunningNet.coerceAtLeast(BigDecimal.ZERO))
                     lastDay = lastDay.plusDays(1)
                     dayCount++
                 }

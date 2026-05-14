@@ -385,14 +385,15 @@ class BudgetGroupRepository @Inject constructor(
                 val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
                 dailyAmounts[day - 1] -= tx.amount.toDouble()
             }
+            // Carry the running total forward unclamped so a refund dated before
+            // the first expense still nets out against later expenses; only the
+            // emitted value is clamped, so the chart endpoint matches the
+            // per-category floor used in aggregateBudgetCategorySpending.
             val cumulative = mutableListOf<Double>()
-            var running = 0.0
+            var runningNet = 0.0
             for (i in 0 until effectiveDays) {
-                // Clamp at zero to mirror the per-category floor in
-                // aggregateBudgetCategorySpending; a refund larger than spend-to-date
-                // visually pulls the line back to zero rather than going negative.
-                running = (running + dailyAmounts[i]).coerceAtLeast(0.0)
-                cumulative.add(running)
+                runningNet += dailyAmounts[i]
+                cumulative.add(runningNet.coerceAtLeast(0.0))
             }
             val pace = if (groupBudget > BigDecimal.ZERO) {
                 val dailyPace = groupBudget.toDouble() / daysInMonth

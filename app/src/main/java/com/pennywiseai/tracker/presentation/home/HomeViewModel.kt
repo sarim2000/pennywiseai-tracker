@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
@@ -1340,43 +1341,50 @@ class HomeViewModel @Inject constructor(
         displayCurrency: String,
         baseCurrency: String
     ): BudgetOverallSummary {
-        val incomeTransactions = raw.allTransactions.filter {
-            it.transaction.transactionType == TransactionType.INCOME
-        }
+        // Exclude a Refund from totalIncome only when it's also being subtracted
+        // from a category by aggregateBudgetCategorySpending (categorised refund);
+        // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
+        // understate.
         var totalIncome = BigDecimal.ZERO
-        for (tx in incomeTransactions) {
+        for (txWithSplits in raw.allTransactions) {
+            val tx = txWithSplits.transaction
+            if (tx.transactionType != TransactionType.INCOME) continue
+            if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                tx.budgetCategory != null
+            ) continue
             totalIncome = totalIncome.add(
-                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
+                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             )
         }
 
-        val categoryAmounts = mutableMapOf<String, BigDecimal>()
-        raw.allTransactions.forEach { txWithSplits ->
-            if (txWithSplits.transaction.transactionType != TransactionType.INCOME &&
-                txWithSplits.transaction.transactionType != TransactionType.TRANSFER &&
-                txWithSplits.transaction.transactionType != TransactionType.INVESTMENT) {
-                val fromCurrency = txWithSplits.transaction.currency
-                txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                    val converted = currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
-                    val categoryName = category.ifEmpty { "Others" }
-                    categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
-                }
+        // Route through the shared aggregator so Refund (DEDUCT_SPENT) and
+        // Extra budget (ADD_TO_LIMIT) take effect on the home carousel the same
+        // way they do on the Budgets screen and the widget.
+        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+            transactions = raw.allTransactions,
+            convertSplit = { fromCurrency, amount ->
+                currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+            },
+            convertIncome = { tx ->
+                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             }
-        }
+        )
 
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                val pctUsed = if (convertedBudget > BigDecimal.ZERO) {
-                    (actual.toFloat() / convertedBudget.toFloat() * 100f).coerceAtLeast(0f)
+                val effectiveBudget = convertedBudget +
+                    (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
                 val dailySpend = if (raw.daysElapsed > 0 && actual > BigDecimal.ZERO) {
                     actual.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
                 BudgetCategorySpending(
                     categoryName = cat.categoryName,
-                    budgetAmount = convertedBudget,
+                    budgetAmount = effectiveBudget,
                     actualAmount = actual,
                     percentageUsed = pctUsed,
                     dailySpend = dailySpend

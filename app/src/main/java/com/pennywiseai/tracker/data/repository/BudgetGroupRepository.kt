@@ -326,11 +326,17 @@ class BudgetGroupRepository @Inject constructor(
         currency: String,
         daysInMonth: Int = 30
     ): BudgetOverallSummary {
-        val incomeTransactions = allTransactions.filter {
-            it.transaction.transactionType == TransactionType.INCOME
-        }
-        val totalIncome = incomeTransactions.fold(BigDecimal.ZERO) { acc, tx ->
-            acc + tx.transaction.amount
+        // Exclude a Refund from totalIncome only when it's also being subtracted
+        // from a category by aggregateBudgetCategorySpending (i.e. budgetCategory
+        // is set). An orphaned DEDUCT_SPENT with no category isn't subtracted
+        // from spend, so dropping it from income too would understate netSavings.
+        val totalIncome = allTransactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType != TransactionType.INCOME) acc
+            else if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                tx.budgetCategory != null
+            ) acc
+            else acc + tx.amount
         }
 
         // Single-currency: amounts are already in the requested currency, so the

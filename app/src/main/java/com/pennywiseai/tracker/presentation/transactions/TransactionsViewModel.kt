@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.transactions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -901,15 +902,31 @@ class TransactionsViewModel @Inject constructor(
         val transactionsByCurrency = transactions.groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
-            val income = currencyTransactions
-                .filter { it.transactionType == TransactionType.INCOME }
+            // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
+            // expense, so it shrinks "Expenses" (floored at zero) and does not
+            // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
+            // and stays in income — same treatment as HomeViewModel.
+            val refundTotal = currencyTransactions
+                .filter {
+                    it.transactionType == TransactionType.INCOME &&
+                        it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+                }
                 .sumOf { it.amount.toDouble() }
                 .toBigDecimal()
 
-            val expenses = currencyTransactions
+            val income = currencyTransactions
+                .filter {
+                    it.transactionType == TransactionType.INCOME &&
+                        it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
+                }
+                .sumOf { it.amount.toDouble() }
+                .toBigDecimal()
+
+            val rawExpenses = currencyTransactions
                 .filter { it.transactionType == TransactionType.EXPENSE }
                 .sumOf { it.amount.toDouble() }
                 .toBigDecimal()
+            val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
             val credit = currencyTransactions
                 .filter { it.transactionType == TransactionType.CREDIT }

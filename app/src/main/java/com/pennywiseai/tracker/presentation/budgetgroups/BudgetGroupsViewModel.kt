@@ -190,13 +190,14 @@ class BudgetGroupsViewModel @Inject constructor(
                     dailyAmounts[refundDay.day - 1] -= refundDay.amount
                 }
             }
+            // Carry the running total forward unclamped so a refund dated before
+            // the first expense still nets out; only the emitted value is clamped
+            // so the endpoint matches aggregateBudgetCategorySpending's floor.
             val cumulative = mutableListOf<Double>()
-            var running = 0.0
+            var runningNet = 0.0
             for (i in 0 until effectiveDays) {
-                // Clamp at zero to mirror the per-category floor in
-                // aggregateBudgetCategorySpending.
-                running = (running + dailyAmounts[i]).coerceAtLeast(0.0)
-                cumulative.add(running)
+                runningNet += dailyAmounts[i]
+                cumulative.add(runningNet.coerceAtLeast(0.0))
             }
             val pace = if (groupBudget > BigDecimal.ZERO) {
                 val dp = groupBudget.toDouble() / daysInMonth

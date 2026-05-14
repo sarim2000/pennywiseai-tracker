@@ -97,7 +97,14 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 for (txWithSplits in raw.allTransactions) {
                     val tx = txWithSplits.transaction
                     if (tx.transactionType != TransactionType.INCOME) continue
-                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) continue
+                    // Only exclude a Refund from income when it's actually being
+                    // deducted from a category by aggregateBudgetCategorySpending
+                    // (i.e. budgetCategory is set). An "orphaned" DEDUCT_SPENT
+                    // with no category isn't subtracted from spend, so dropping it
+                    // from income too would understate netSavings.
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                        tx.budgetCategory != null
+                    ) continue
                     totalIncome += currencyConversionService.convertAmount(
                         tx.amount, tx.currency, displayCurrency
                     )
@@ -155,7 +162,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 for (txWithSplits in raw.prevTransactions) {
                     val tx = txWithSplits.transaction
                     if (tx.transactionType != TransactionType.INCOME) continue
-                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) continue
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                        tx.budgetCategory != null
+                    ) continue
                     prevIncome += currencyConversionService.convertAmount(
                         tx.amount, tx.currency, displayCurrency
                     )

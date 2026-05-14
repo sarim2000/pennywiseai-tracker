@@ -113,13 +113,20 @@ class BudgetGroupsViewModel @Inject constructor(
         displayCurrency: String,
         baseCurrency: String
     ): BudgetOverallSummary {
-        val incomeTransactions = raw.allTransactions.filter {
-            it.transaction.transactionType == TransactionType.INCOME
-        }
+        // Exclude a Refund from totalIncome only when it's also being subtracted
+        // from a category by aggregateBudgetCategorySpending (categorised refund);
+        // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
+        // understate. Matches the same guard used in BudgetGroupRepository and the
+        // widget.
         var totalIncome = BigDecimal.ZERO
-        for (tx in incomeTransactions) {
+        for (txWithSplits in raw.allTransactions) {
+            val tx = txWithSplits.transaction
+            if (tx.transactionType != TransactionType.INCOME) continue
+            if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                tx.budgetCategory != null
+            ) continue
             totalIncome = totalIncome.add(
-                currencyConversionService.convertAmount(tx.transaction.amount, tx.transaction.currency, displayCurrency)
+                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             )
         }
 

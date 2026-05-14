@@ -12,11 +12,15 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import java.math.BigDecimal
+import java.math.RoundingMode
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -72,87 +76,90 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     today.year, today.monthValue
                 ).first()
 
-                // Convert raw to summary with currency conversion
-                val incomeTransactions = raw.allTransactions.filter {
-                    it.transaction.transactionType == TransactionType.INCOME
-                }
-                var totalIncome = java.math.BigDecimal.ZERO
-                for (tx in incomeTransactions) {
-                    totalIncome += currencyConversionService.convertAmount(
-                        tx.transaction.amount, tx.transaction.currency, displayCurrency
-                    )
-                }
-
-                val categoryAmounts = mutableMapOf<String, java.math.BigDecimal>()
-                raw.allTransactions.forEach { txWithSplits ->
-                    if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
-                        txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                            val converted = currencyConversionService.convertAmount(amount, txWithSplits.transaction.currency, displayCurrency)
-                            val categoryName = category.ifEmpty { "Others" }
-                            categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: java.math.BigDecimal.ZERO) + converted
-                        }
+                // Reuse the same aggregator the Budgets screen uses so the widget
+                // applies Refund (DEDUCT_SPENT) and Extra budget (ADD_TO_LIMIT)
+                // identically. Refunds shrink categoryAmounts (floored at zero) and
+                // are excluded from totalIncome; Extra budget bumps the displayed
+                // category budget via categoryLimitBoosts and stays in income.
+                val convertSplit: suspend (String, BigDecimal) -> BigDecimal =
+                    { fromCurrency, amount ->
+                        currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
                     }
+                val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+                    transactions = raw.allTransactions,
+                    convertSplit = convertSplit,
+                    convertIncome = { tx ->
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                    }
+                )
+
+                var totalIncome = BigDecimal.ZERO
+                for (txWithSplits in raw.allTransactions) {
+                    val tx = txWithSplits.transaction
+                    if (tx.transactionType != TransactionType.INCOME) continue
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) continue
+                    totalIncome += currencyConversionService.convertAmount(
+                        tx.amount, tx.currency, displayCurrency
+                    )
                 }
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val catSpending = group.categories.map { cat ->
-                        val actual = categoryAmounts[cat.categoryName] ?: java.math.BigDecimal.ZERO
+                        val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                         val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                        BudgetCategorySpending(cat.categoryName, convertedBudget, actual, 0f, java.math.BigDecimal.ZERO)
+                        val effectiveBudget = convertedBudget +
+                            (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                        BudgetCategorySpending(cat.categoryName, effectiveBudget, actual, 0f, BigDecimal.ZERO)
                     }
-                    val totalBudget = catSpending.fold(java.math.BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-                    val totalActual = catSpending.fold(java.math.BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-                    BudgetGroupSpending(group, catSpending, totalBudget, totalActual, totalBudget - totalActual, 0f, java.math.BigDecimal.ZERO, raw.daysRemaining, raw.daysElapsed)
+                    val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                    val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+                    BudgetGroupSpending(group, catSpending, totalBudget, totalActual, totalBudget - totalActual, 0f, BigDecimal.ZERO, raw.daysRemaining, raw.daysElapsed)
                 }
 
                 val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
-                val totalLimitBudget = limitGroups.fold(java.math.BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalLimitSpent = limitGroups.fold(java.math.BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+                val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+                val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 val limitRemaining = totalLimitBudget - totalLimitSpent
-                val pctUsed = if (totalLimitBudget > java.math.BigDecimal.ZERO) {
+                val pctUsed = if (totalLimitBudget > BigDecimal.ZERO) {
                     (totalLimitSpent.toFloat() / totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
-                val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > java.math.BigDecimal.ZERO) {
-                    limitRemaining.divide(java.math.BigDecimal(raw.daysRemaining), 0, java.math.RoundingMode.HALF_UP)
-                } else java.math.BigDecimal.ZERO
+                val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
+                    limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
                 val netSavings = totalIncome - totalLimitSpent
-                val savingsRate = if (totalIncome > java.math.BigDecimal.ZERO) {
+                val savingsRate = if (totalIncome > BigDecimal.ZERO) {
                     (netSavings.toFloat() / totalIncome.toFloat() * 100f)
                 } else 0f
 
-                // Calculate previous month savings for delta
+                // Previous month savings for delta — same aggregator, same currency
+                // converters, so the delta isn't skewed by stale logic on either side.
+                val (prevCategoryAmounts, _) = aggregateBudgetCategorySpending(
+                    transactions = raw.prevTransactions,
+                    convertSplit = convertSplit,
+                    convertIncome = { tx ->
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                    }
+                )
+
                 val limitCategoryNames = raw.budgetsWithCategories
                     .filter { it.budget.groupType == BudgetGroupType.LIMIT }
                     .flatMap { it.categories }
                     .map { it.categoryName }
                     .toSet()
 
-                val prevCategoryAmounts = mutableMapOf<String, java.math.BigDecimal>()
-                raw.prevTransactions.forEach { txWithSplits ->
-                    if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
-                        txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                            val converted = currencyConversionService.convertAmount(
-                                amount, txWithSplits.transaction.currency, displayCurrency
-                            )
-                            val categoryName = category.ifEmpty { "Others" }
-                            prevCategoryAmounts[categoryName] =
-                                (prevCategoryAmounts[categoryName] ?: java.math.BigDecimal.ZERO) + converted
-                        }
-                    }
+                val prevLimitSpent = limitCategoryNames.fold(BigDecimal.ZERO) { acc, catName ->
+                    acc + (prevCategoryAmounts[catName] ?: BigDecimal.ZERO)
                 }
 
-                val prevLimitSpent = limitCategoryNames.fold(java.math.BigDecimal.ZERO) { acc, catName ->
-                    acc + (prevCategoryAmounts[catName] ?: java.math.BigDecimal.ZERO)
+                var prevIncome = BigDecimal.ZERO
+                for (txWithSplits in raw.prevTransactions) {
+                    val tx = txWithSplits.transaction
+                    if (tx.transactionType != TransactionType.INCOME) continue
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) continue
+                    prevIncome += currencyConversionService.convertAmount(
+                        tx.amount, tx.currency, displayCurrency
+                    )
                 }
-
-                var prevIncome = java.math.BigDecimal.ZERO
-                raw.prevTransactions
-                    .filter { it.transaction.transactionType == TransactionType.INCOME }
-                    .forEach { tx ->
-                        prevIncome += currencyConversionService.convertAmount(
-                            tx.transaction.amount, tx.transaction.currency, displayCurrency
-                        )
-                    }
 
                 val prevSavings = prevIncome - prevLimitSpent
                 val savingsDelta = netSavings - prevSavings

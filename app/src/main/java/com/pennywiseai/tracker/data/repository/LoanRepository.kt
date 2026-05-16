@@ -129,8 +129,21 @@ class LoanRepository @Inject constructor(
         )
     }
 
-    suspend fun recordRepayment(loanId: Long, transactionId: Long) {
+    /**
+     * Link [transactionId] to [loanId] as a repayment. When [contribution] is set
+     * and differs from the transaction's own amount, only that portion counts
+     * toward the loan's repaid total (via `loan_contribution`); a null
+     * contribution preserves the legacy "full transaction amount" behaviour.
+     */
+    suspend fun recordRepayment(
+        loanId: Long,
+        transactionId: Long,
+        contribution: BigDecimal? = null
+    ) {
         loanDao.linkTransaction(transactionId, loanId)
+        if (contribution != null) {
+            persistContributionOverride(transactionId, contribution)
+        }
         recalculateRemaining(loanId)
     }
 

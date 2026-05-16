@@ -852,8 +852,10 @@ class TransactionDetailViewModel @Inject constructor(
                 val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection)
 
                 if (oppositeLoan != null) {
-                    // Record as repayment on the opposite loan
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id)
+                    // Record as repayment on the opposite loan, threading the
+                    // user-chosen partial amount so only that portion counts
+                    // toward the loan's remaining balance.
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution)
                     _transaction.value = transactionRepository.getTransactionById(txn.id)
                     _loan.value = loanRepository.getLoanById(oppositeLoan.id)
                     _showMarkAsLoanSheet.value = false

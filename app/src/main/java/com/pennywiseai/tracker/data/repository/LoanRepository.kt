@@ -67,18 +67,31 @@ class LoanRepository @Inject constructor(
     suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
         loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
 
-    suspend fun addToExistingLoan(loanId: Long, amount: BigDecimal, transactionId: Long) {
+    /**
+     * Merge [transactionId] into an existing loan, bumping its principal by the
+     * caller-supplied [contribution]. When [contribution] is less than the
+     * transaction's own amount (a partial loan), it is persisted on the
+     * transaction's `loan_contribution` column so the override survives future
+     * recomputations.
+     */
+    suspend fun addToExistingLoan(loanId: Long, contribution: BigDecimal, transactionId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
         loanDao.updateLoan(
             loan.copy(
-                originalAmount = loan.originalAmount + amount,
-                remainingAmount = loan.remainingAmount + amount,
+                originalAmount = loan.originalAmount + contribution,
+                remainingAmount = loan.remainingAmount + contribution,
                 updatedAt = LocalDateTime.now()
             )
         )
         loanDao.linkTransaction(transactionId, loanId)
+        persistContributionOverride(transactionId, contribution)
     }
 
+    /**
+     * Create a new loan seeded from [sourceTransactionId]. [amount] is the
+     * principal — typically the full transaction amount, but the caller may
+     * supply a smaller value if only part of the payment is a loan.
+     */
     suspend fun createLoan(
         personName: String,
         direction: LoanDirection,
@@ -97,7 +110,23 @@ class LoanRepository @Inject constructor(
         )
         val loanId = loanDao.insertLoan(loan)
         loanDao.linkTransaction(sourceTransactionId, loanId)
+        persistContributionOverride(sourceTransactionId, amount)
         return loanId
+    }
+
+    /**
+     * Stores `loan_contribution` on the transaction only when the value differs
+     * from the transaction's own amount. Equal contributions are treated as
+     * "use the full amount" and left null so legacy data and the common case
+     * stay unchanged.
+     */
+    private suspend fun persistContributionOverride(transactionId: Long, contribution: BigDecimal) {
+        val txn = transactionDao.getTransactionById(transactionId) ?: return
+        val override = if (contribution.compareTo(txn.amount) == 0) null else contribution
+        if (txn.loanContribution == override) return
+        transactionDao.updateTransaction(
+            txn.copy(loanContribution = override, updatedAt = LocalDateTime.now())
+        )
     }
 
     suspend fun recordRepayment(loanId: Long, transactionId: Long) {

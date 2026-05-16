@@ -79,6 +79,13 @@ data class TransactionEntity(
     @ColumnInfo(name = "loan_id", defaultValue = "NULL")
     val loanId: Long? = null,
 
+    // When this transaction is linked to a loan, the portion of `amount` that
+    // is actually a loan. Null means "the full amount is the loan", matching
+    // legacy behaviour. Set by the "Mark as loan" sheet when the user wants only
+    // part of a payment to count toward the loan total.
+    @ColumnInfo(name = "loan_contribution", defaultValue = "NULL")
+    val loanContribution: BigDecimal? = null,
+
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
     val receiptPath: String? = null,
 

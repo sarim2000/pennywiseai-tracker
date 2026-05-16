@@ -374,8 +374,8 @@ fun TransactionDetailScreen(
             direction = inferredDirection,
             recentPersonNames = recentPersonNames,
             onDismiss = { viewModel.hideMarkAsLoanSheet() },
-            onConfirm = { personName, note ->
-                viewModel.createLoanFromTransaction(personName, inferredDirection, note)
+            onConfirm = { personName, note, loanAmount ->
+                viewModel.createLoanFromTransaction(personName, inferredDirection, note, loanAmount)
             }
         )
     }
@@ -1871,11 +1871,21 @@ private fun MarkAsLoanBottomSheet(
     direction: LoanDirection,
     recentPersonNames: List<String>,
     onDismiss: () -> Unit,
-    onConfirm: (personName: String, note: String?) -> Unit
+    onConfirm: (personName: String, note: String?, loanAmount: BigDecimal?) -> Unit
 ) {
     var personName by remember { mutableStateOf("") }
     var isAddingNew by remember { mutableStateOf(recentPersonNames.isEmpty()) }
     var note by remember { mutableStateOf("") }
+    // Pre-filled with the full transaction amount — user only edits this when
+    // a portion of the payment isn't part of the loan (e.g. issue #309: paid
+    // ₹5500 but only ₹3500 is meant to come back).
+    var loanAmountInput by remember(transactionAmount) {
+        mutableStateOf(transactionAmount.toPlainString())
+    }
+    val parsedLoanAmount = loanAmountInput.toBigDecimalOrNull()
+    val isLoanAmountValid = parsedLoanAmount != null &&
+        parsedLoanAmount > BigDecimal.ZERO &&
+        parsedLoanAmount <= transactionAmount
 
     val isDark = isSystemInDarkTheme()
     val loanColor = if (isDark) loan_dark else loan_light
@@ -1990,6 +2000,29 @@ private fun MarkAsLoanBottomSheet(
                 }
             }
 
+            // Loan amount (defaults to full txn amount; user lowers when only a
+            // portion of the payment is meant to come back).
+            TextField(
+                value = loanAmountInput,
+                onValueChange = { loanAmountInput = it },
+                label = { Text("Loan amount") },
+                supportingText = {
+                    Text(
+                        if (parsedLoanAmount != null && parsedLoanAmount < transactionAmount) {
+                            "Only this portion counts toward the loan total."
+                        } else {
+                            "Max ${CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency)}"
+                        }
+                    )
+                },
+                isError = !isLoanAmountValid,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                shape = editFullShape,
+                colors = editFilledColors()
+            )
+
             // Optional note
             TextField(
                 value = note,
@@ -2006,11 +2039,12 @@ private fun MarkAsLoanBottomSheet(
                 onClick = {
                     onConfirm(
                         personName.trim(),
-                        note.trim().ifEmpty { null }
+                        note.trim().ifEmpty { null },
+                        parsedLoanAmount
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = personName.isNotBlank(),
+                enabled = personName.isNotBlank() && isLoanAmountValid,
                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = loanColor

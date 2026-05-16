@@ -599,7 +599,23 @@ class TransactionDetailViewModel @Inject constructor(
                 val newAccount = normalizedTransaction.accountNumber
                 val accountChanged = oldBank != newBank || oldAccount != newAccount
 
-                if (accountChanged && newBank != null && newAccount != null) {
+                val isTransfer = normalizedTransaction.transactionType == TransactionType.TRANSFER
+                val wasTransfer = originalTxn?.transactionType == TransactionType.TRANSFER
+                val transferFieldsChanged = (isTransfer || wasTransfer) && (
+                    isTransfer != wasTransfer ||
+                    originalTxn?.fromAccount != normalizedTransaction.fromAccount ||
+                    originalTxn?.toAccount != normalizedTransaction.toAccount ||
+                    originalTxn?.amount != normalizedTransaction.amount
+                )
+
+                if (transferFieldsChanged) {
+                    // Undo the old transfer effect (if the previous version was a
+                    // transfer) and apply the new one. Skips the single-account
+                    // branch below so we don't double-touch.
+                    applyTransferBalanceChange(originalTxn, normalizedTransaction)
+                } else if (!isTransfer && !wasTransfer &&
+                    accountChanged && newBank != null && newAccount != null
+                ) {
                     val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
                     if (currentBalance != null) {
                         val balanceChange = when (normalizedTransaction.transactionType) {
@@ -900,5 +916,47 @@ class TransactionDetailViewModel @Inject constructor(
                 _errorMessage.value = "Failed to unlink loan: ${e.message}"
             }
         }
+    }
+
+    /**
+     * Move money between the source and destination accounts of a TRANSFER on
+     * save. The previous transfer effect (if [original] was already a TRANSFER)
+     * is reverted first, then [updated]'s effect is applied: debit `fromAccount`
+     * by its amount and credit `toAccount` by its amount. Either side can be
+     * null — only the populated ones are touched. Accounts are looked up by
+     * `accountLast4` alone because TRANSFER persists only the last4.
+     */
+    private suspend fun applyTransferBalanceChange(
+        original: TransactionEntity?,
+        updated: TransactionEntity
+    ) {
+        // Revert the original transfer first so a re-save / amount change
+        // doesn't double-apply.
+        if (original != null && original.transactionType == TransactionType.TRANSFER) {
+            original.fromAccount?.let { applyBalanceDeltaByLast4(it, original.amount, updated) }
+            original.toAccount?.let { applyBalanceDeltaByLast4(it, original.amount.negate(), updated) }
+        }
+        if (updated.transactionType == TransactionType.TRANSFER) {
+            updated.fromAccount?.let { applyBalanceDeltaByLast4(it, updated.amount.negate(), updated) }
+            updated.toAccount?.let { applyBalanceDeltaByLast4(it, updated.amount, updated) }
+        }
+    }
+
+    private suspend fun applyBalanceDeltaByLast4(
+        accountLast4: String,
+        delta: java.math.BigDecimal,
+        sourceTransaction: TransactionEntity
+    ) {
+        val latest = accountBalanceRepository.getLatestBalanceByLast4(accountLast4) ?: return
+        accountBalanceRepository.insertBalance(
+            latest.copy(
+                id = 0,
+                balance = latest.balance + delta,
+                timestamp = sourceTransaction.dateTime,
+                transactionId = sourceTransaction.id,
+                sourceType = "TRANSACTION",
+                smsSource = null
+            )
+        )
     }
 }

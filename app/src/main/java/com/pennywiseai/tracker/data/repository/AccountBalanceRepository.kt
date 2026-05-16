@@ -21,6 +21,15 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity? {
         return accountBalanceDao.getLatestBalance(bankName, accountLast4)
     }
+
+    /**
+     * Resolves an account when only the last-4 digits are known — used by the
+     * TRANSFER balance-update path where `from_account` / `to_account` only
+     * persist the last4. See AccountBalanceDao.getLatestBalanceByLast4.
+     */
+    suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity? {
+        return accountBalanceDao.getLatestBalanceByLast4(accountLast4)
+    }
     
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?> {
         return accountBalanceDao.getLatestBalanceFlow(bankName, accountLast4)

@@ -461,7 +461,11 @@ class HomeViewModel @Inject constructor(
                 filterTransactionsByProfile(lentTxns, profileId, keys)
             }.collect { filtered ->
                 currentMonthLentByCurrency = filtered.groupBy { it.currency }.mapValues { (_, txs) ->
-                    txs.fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
+                    // Honour partial-loan tagging: only the loan_contribution
+                    // portion of a transaction (when set) counts toward
+                    // "Lent this month"; falls back to the full amount for
+                    // legacy / full-amount transactions.
+                    txs.fold(BigDecimal.ZERO) { acc, tx -> acc + (tx.loanContribution ?: tx.amount) }
                 }
                 updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
             }

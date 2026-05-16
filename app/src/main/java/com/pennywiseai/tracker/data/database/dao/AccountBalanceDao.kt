@@ -21,12 +21,27 @@ interface AccountBalanceDao {
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity?
     
     @Query("""
-        SELECT * FROM account_balances 
+        SELECT * FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
         ORDER BY timestamp DESC
         LIMIT 1
     """)
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?>
+
+    /**
+     * Resolves an account when only the last-4 digits are known (e.g. the
+     * `from_account` / `to_account` columns on TRANSFER transactions only store
+     * `accountLast4`, not the bank). Picks the most-recent balance row across
+     * banks; ambiguous in the rare case the user has two accounts with the same
+     * last4, which matches the existing dropdown's resolution.
+     */
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE account_last4 = :accountLast4
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+    suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity?
     
     @Query("""
         SELECT DISTINCT 

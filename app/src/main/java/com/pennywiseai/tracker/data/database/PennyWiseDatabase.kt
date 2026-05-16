@@ -154,7 +154,13 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                         MIGRATION_20_21,
                         MIGRATION_21_22,
                         MIGRATION_22_23,
-                        MIGRATION_38_39
+                        MIGRATION_38_39,
+                        // 44_45 and 45_46 were never added here, so a receiver
+                        // upgrading past v44 before Hilt initialised would crash.
+                        // Bringing this list in sync with the Hilt module.
+                        MIGRATION_44_45,
+                        MIGRATION_45_46,
+                        MIGRATION_46_47
                     )
                     .build()
                 INSTANCE = instance

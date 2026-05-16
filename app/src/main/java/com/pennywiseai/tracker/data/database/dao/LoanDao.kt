@@ -48,7 +48,7 @@ interface LoanDao {
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity?
 
     @Query("""
-        SELECT COALESCE(SUM(t.amount), 0) FROM transactions t
+        SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
         WHERE t.loan_id = :loanId AND t.is_deleted = 0
         AND t.transaction_type = :repaymentType
     """)

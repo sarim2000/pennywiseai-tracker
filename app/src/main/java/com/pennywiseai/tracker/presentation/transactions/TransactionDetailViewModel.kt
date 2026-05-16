@@ -829,8 +829,22 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun createLoanFromTransaction(personName: String, direction: LoanDirection, note: String?) {
+    fun createLoanFromTransaction(
+        personName: String,
+        direction: LoanDirection,
+        note: String?,
+        loanAmount: BigDecimal? = null
+    ) {
         val txn = _transaction.value ?: return
+        // Clamp the user-supplied loan amount to (0, txn.amount]; fall back to the
+        // full transaction amount when blank or out of range.
+        val contribution = (loanAmount ?: txn.amount).let { input ->
+            when {
+                input <= BigDecimal.ZERO -> txn.amount
+                input > txn.amount -> txn.amount
+                else -> input
+            }
+        }
         viewModelScope.launch {
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
@@ -849,15 +863,15 @@ class TransactionDetailViewModel @Inject constructor(
                 // Check if an active loan already exists for this person + same direction
                 val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
                 val loanId = if (existingLoan != null) {
-                    // Merge into existing loan
-                    loanRepository.addToExistingLoan(existingLoan.id, txn.amount, txn.id)
+                    // Merge into existing loan with the user-chosen contribution.
+                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)
                     existingLoan.id
                 } else {
-                    // Create new loan
+                    // Create new loan; principal = user-chosen contribution.
                     loanRepository.createLoan(
                         personName = personName,
                         direction = direction,
-                        amount = txn.amount,
+                        amount = contribution,
                         currency = txn.currency,
                         note = note,
                         sourceTransactionId = txn.id

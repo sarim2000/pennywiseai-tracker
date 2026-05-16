@@ -61,7 +61,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
-    version = 46,
+    version = 47,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -104,7 +104,8 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
         AutoMigration(from = 41, to = 42),
         AutoMigration(from = 42, to = 43),
         AutoMigration(from = 43, to = 44, spec = Migration43To44::class)
-        // 44→45 and 45→46 are manual migrations registered in DatabaseModule (add profile_id columns)
+        // 44→45, 45→46 and 46→47 are manual migrations registered in DatabaseModule
+        // (profile_id columns and loan_contribution column).
     ]
 )
 @TypeConverters(Converters::class)
@@ -432,6 +433,12 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         val MIGRATION_45_46 = object : Migration(45, 46) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `profile_id` INTEGER DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_46_47 = object : Migration(46, 47) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `transactions` ADD COLUMN `loan_contribution` TEXT DEFAULT NULL")
             }
         }
 

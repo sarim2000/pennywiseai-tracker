@@ -66,7 +66,8 @@ object DatabaseModule {
                 PennyWiseDatabase.MIGRATION_22_23,
                 PennyWiseDatabase.MIGRATION_38_39,
                 PennyWiseDatabase.MIGRATION_44_45,
-                PennyWiseDatabase.MIGRATION_45_46
+                PennyWiseDatabase.MIGRATION_45_46,
+                PennyWiseDatabase.MIGRATION_46_47
             )
 
             // Enable auto-migrations

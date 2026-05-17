@@ -12,7 +12,10 @@ object BankNotificationConfig {
 
     private val allowedPackages: Map<String, String> = mapOf(
         // Faysal Bank (Pakistan) – alias must match FaysalBankParser.canHandle()
-        "com.avanza.ambitwizfbl" to "FaysalBank"
+        "com.avanza.ambitwizfbl" to "FaysalBank",
+        // Enpara (Turkey) – alias must match EnparaBankParser.canHandle()
+        "finansbank.enpara" to "Enpara",      // Enpara.com Cep Şubesi (personal, older brand)
+        "com.enparabank.retail" to "Enpara"   // Enpara Bank Cep Şube (personal, post-rebrand)
     )
 
     fun isAllowed(packageName: String): Boolean =

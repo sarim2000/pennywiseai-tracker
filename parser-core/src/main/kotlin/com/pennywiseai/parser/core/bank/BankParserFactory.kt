@@ -103,6 +103,7 @@ object BankParserFactory {
         AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
         STCBankParser(),  // STC Bank (Saudi Arabia)
+        SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser()  // Greater Bank (India)

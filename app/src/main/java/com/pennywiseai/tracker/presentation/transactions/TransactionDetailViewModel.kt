@@ -609,19 +609,32 @@ class TransactionDetailViewModel @Inject constructor(
                 )
 
                 if (transferFieldsChanged) {
-                    // Undo the old transfer effect (if the previous version was a
-                    // transfer) and apply the new one. Skips the single-account
-                    // branch below so we don't double-touch.
-                    applyTransferBalanceChange(originalTxn, normalizedTransaction)
-                } else if (!isTransfer && !wasTransfer &&
-                    accountChanged && newBank != null && newAccount != null
-                ) {
-                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
+                    // Atomically revert the old transfer pair and apply the new
+                    // one. When the user converts FROM a TRANSFER to another
+                    // type, the new type's single-account effect still needs to
+                    // land — handled by the branch below.
+                    accountBalanceRepository.applyTransferBalanceShift(
+                        original = originalTxn,
+                        updated = normalizedTransaction
+                    )
+                }
+
+                // Single-account update fires for non-TRANSFER edits when the
+                // account changed, OR when this save converted a TRANSFER into a
+                // non-TRANSFER (so the new type still moves the new account's
+                // balance). Skipped entirely when the saved type is TRANSFER —
+                // that path is handled atomically above.
+                val convertedFromTransfer = wasTransfer && !isTransfer
+                val shouldRunSingleAccount = !isTransfer && newBank != null && newAccount != null &&
+                    (accountChanged || convertedFromTransfer)
+
+                if (shouldRunSingleAccount) {
+                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank!!, newAccount!!)
                     if (currentBalance != null) {
                         val balanceChange = when (normalizedTransaction.transactionType) {
                             TransactionType.INCOME -> normalizedTransaction.amount
                             TransactionType.EXPENSE, TransactionType.CREDIT -> -normalizedTransaction.amount
-                            TransactionType.TRANSFER -> -normalizedTransaction.amount
+                            TransactionType.TRANSFER -> BigDecimal.ZERO // handled above
                             TransactionType.INVESTMENT -> -normalizedTransaction.amount
                         }
                         accountBalanceRepository.insertBalance(
@@ -918,45 +931,4 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Move money between the source and destination accounts of a TRANSFER on
-     * save. The previous transfer effect (if [original] was already a TRANSFER)
-     * is reverted first, then [updated]'s effect is applied: debit `fromAccount`
-     * by its amount and credit `toAccount` by its amount. Either side can be
-     * null — only the populated ones are touched. Accounts are looked up by
-     * `accountLast4` alone because TRANSFER persists only the last4.
-     */
-    private suspend fun applyTransferBalanceChange(
-        original: TransactionEntity?,
-        updated: TransactionEntity
-    ) {
-        // Revert the original transfer first so a re-save / amount change
-        // doesn't double-apply.
-        if (original != null && original.transactionType == TransactionType.TRANSFER) {
-            original.fromAccount?.let { applyBalanceDeltaByLast4(it, original.amount, updated) }
-            original.toAccount?.let { applyBalanceDeltaByLast4(it, original.amount.negate(), updated) }
-        }
-        if (updated.transactionType == TransactionType.TRANSFER) {
-            updated.fromAccount?.let { applyBalanceDeltaByLast4(it, updated.amount.negate(), updated) }
-            updated.toAccount?.let { applyBalanceDeltaByLast4(it, updated.amount, updated) }
-        }
-    }
-
-    private suspend fun applyBalanceDeltaByLast4(
-        accountLast4: String,
-        delta: java.math.BigDecimal,
-        sourceTransaction: TransactionEntity
-    ) {
-        val latest = accountBalanceRepository.getLatestBalanceByLast4(accountLast4) ?: return
-        accountBalanceRepository.insertBalance(
-            latest.copy(
-                id = 0,
-                balance = latest.balance + delta,
-                timestamp = sourceTransaction.dateTime,
-                transactionId = sourceTransaction.id,
-                sourceType = "TRANSACTION",
-                smsSource = null
-            )
-        )
-    }
 }

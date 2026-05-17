@@ -1,8 +1,12 @@
 package com.pennywiseai.tracker.data.repository
 
+import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -11,7 +15,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AccountBalanceRepository @Inject constructor(
-    private val accountBalanceDao: AccountBalanceDao
+    private val accountBalanceDao: AccountBalanceDao,
+    private val database: PennyWiseDatabase
 ) {
     
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
@@ -163,5 +168,60 @@ class AccountBalanceRepository @Inject constructor(
 
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int {
         return accountBalanceDao.setAccountProfile(bankName, accountLast4, profileId)
+    }
+
+    /**
+     * Atomically revert the balance impact of the [original] TRANSFER (if it was
+     * one) and apply the [updated] TRANSFER's impact (if it is one) — wrapped in
+     * a Room transaction so a crash mid-sequence can't leave accounts in a
+     * half-reverted state. Revert entries are timestamped with the original
+     * transaction's dateTime, apply entries with the updated transaction's, so
+     * the balance history timeline stays correct.
+     *
+     * Looks up accounts by `accountLast4` alone — `from_account` / `to_account`
+     * only persist the last4. A missing balance row for a referenced last4 is
+     * silently skipped (account not tracked yet); the other side still runs.
+     */
+    suspend fun applyTransferBalanceShift(
+        original: TransactionEntity?,
+        updated: TransactionEntity
+    ) {
+        database.withTransaction {
+            if (original != null && original.transactionType == TransactionType.TRANSFER) {
+                original.fromAccount?.let {
+                    insertBalanceDeltaByLast4(it, original.amount, original.dateTime, updated.id)
+                }
+                original.toAccount?.let {
+                    insertBalanceDeltaByLast4(it, original.amount.negate(), original.dateTime, updated.id)
+                }
+            }
+            if (updated.transactionType == TransactionType.TRANSFER) {
+                updated.fromAccount?.let {
+                    insertBalanceDeltaByLast4(it, updated.amount.negate(), updated.dateTime, updated.id)
+                }
+                updated.toAccount?.let {
+                    insertBalanceDeltaByLast4(it, updated.amount, updated.dateTime, updated.id)
+                }
+            }
+        }
+    }
+
+    private suspend fun insertBalanceDeltaByLast4(
+        accountLast4: String,
+        delta: BigDecimal,
+        timestamp: LocalDateTime,
+        transactionId: Long
+    ) {
+        val latest = accountBalanceDao.getLatestBalanceByLast4(accountLast4) ?: return
+        accountBalanceDao.insertBalance(
+            latest.copy(
+                id = 0,
+                balance = latest.balance + delta,
+                timestamp = timestamp,
+                transactionId = transactionId,
+                sourceType = "TRANSACTION",
+                smsSource = null
+            )
+        )
     }
 }

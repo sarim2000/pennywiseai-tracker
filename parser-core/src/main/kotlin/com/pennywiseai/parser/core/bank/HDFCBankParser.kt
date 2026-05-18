@@ -340,6 +340,16 @@ class HDFCBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
+        // Pattern for "HDFC Bank Credit Card ####" / "HDFC Bank Debit Card ####"
+        // (refund SMS uses this format without the `x` mask prefix).
+        val plainCardPattern = Regex(
+            """HDFC\s+Bank\s+(?:Credit|Debit)\s+Card\s+(\d{4})""",
+            RegexOption.IGNORE_CASE
+        )
+        plainCardPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         // Pattern for "BLOCK DC ####" format — already exactly 4 digits
         val blockDCPattern = Regex("""BLOCK\s+DC\s+(\d{4})""", RegexOption.IGNORE_CASE)
         blockDCPattern.find(message)?.let { match ->
@@ -495,7 +505,8 @@ class HDFCBankParser : BaseIndianBankParser() {
             "spent", "received", "transferred", "paid",
             "sent", // HDFC uses "Sent Rs.X From HDFC Bank"
             "deducted", // Add support for "deducted from" pattern
-            "txn" // HDFC uses "Txn Rs.X" for card transactions
+            "txn", // HDFC uses "Txn Rs.X" for card transactions
+            "refund" // "Refund initiated: Amt: Rs.X on HDFC Bank Credit Card ####"
         )
 
         return hdfcTransactionKeywords.any { lowerMessage.contains(it) }

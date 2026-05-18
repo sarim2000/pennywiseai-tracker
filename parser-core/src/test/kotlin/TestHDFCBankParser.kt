@@ -76,6 +76,21 @@ T&C. Ignore if paid""",
                     merchant = "ACME TECHNOLOGIES",
                     balance = BigDecimal("8.00")
                 )
+            ),
+
+            // Credit-card refund — incoming credit to the card. Reported via
+            // TODO.md: parser was dropping these silently because the message
+            // lacks the standard "debited/credited/spent/..." keywords.
+            ParserTestCase(
+                name = "Credit Card Refund Initiated - Income",
+                message = "Refund initiated: Amt: Rs.34274.66 on HDFC Bank Credit Card 1111. To receive your Refund,please update your Bank details: TnC.",
+                sender = "VM-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("34274.66"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    accountLast4 = "1111"
+                )
             )
         )
 

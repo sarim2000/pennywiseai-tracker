@@ -32,6 +32,30 @@ class CashfreeParserTest {
                 message = "OTP 123456 is your one time password. Do not share.",
                 sender = "JX-CSHfre-S",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                // Cashfree-sender message that lacks the "confirmed for order"
+                // phrasing — must fall through isTransactionMessage to the
+                // base class and ultimately return null (no amount extractable).
+                name = "Cashfree sender without confirmation phrasing returns null",
+                message = "Payment options are available on our portal. Powered by Cashfree",
+                sender = "JX-CSHfre-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                // Multi-word merchant containing a space — the merchant regex
+                // (`[^.\n\r]+?` stopping at `.`) must capture the full name
+                // and not bleed into the trailing "Powered by Cashfree" line.
+                name = "Multi-word merchant is captured up to the period",
+                message = "Payment INR 299.00 (ID:9988776655) confirmed for order #order_001 on Sun Direct.\nPowered by Cashfree",
+                sender = "VK-CSHfre-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("299.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Sun Direct",
+                    reference = "9988776655"
+                )
             )
         )
 

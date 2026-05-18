@@ -31,6 +31,17 @@ class CashfreeParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
+        // Reject OTP / verification messages first so a Cashfree-sender
+        // promo or deep-link that happens to contain "payment" + "confirmed
+        // for order" alongside OTP content can never short-circuit past the
+        // guard below.
+        if (lowerMessage.contains("otp") ||
+            lowerMessage.contains("one time password") ||
+            lowerMessage.contains("verification code")
+        ) {
+            return false
+        }
+
         // Cashfree-specific confirmation phrasing: "Payment ... confirmed for order ..."
         if (lowerMessage.contains("payment") &&
             lowerMessage.contains("confirmed for order")

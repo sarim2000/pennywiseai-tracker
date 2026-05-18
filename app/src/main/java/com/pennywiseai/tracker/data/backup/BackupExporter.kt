@@ -74,6 +74,11 @@ class BackupExporter @Inject constructor(
         val budgetCategories = database.budgetDao().getAllBudgetCategories().first()
         val transactionSplits = database.transactionSplitDao().getAllSplits().first()
         val bankNotifications = database.bankNotificationDao().getAllNotifications().first()
+        val loans = database.loanDao().getAllLoans().first()
+        val transactionGroups = database.transactionGroupDao().getAllGroups().first()
+        val profiles = database.profileDao().getAllProfiles()
+        val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
+        val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -117,6 +122,15 @@ class BackupExporter @Inject constructor(
         val exportedTransactionSplits = if (privacy == ExportPrivacy.FULL) transactionSplits else emptyList()
         val exportedBankNotifications = if (privacy == ExportPrivacy.FULL) bankNotifications else emptyList()
         val exportedRuleApplications = if (privacy == ExportPrivacy.FULL) ruleApplications else emptyList()
+        // Loans / groups / profiles / budget snapshots: kept on FULL only, like
+        // every other relational table; in MASKED/ANONYMOUS the transaction
+        // references are stripped to "Merchant" anyway so re-attaching them is
+        // not useful.
+        val exportedLoans = if (privacy == ExportPrivacy.FULL) loans else emptyList()
+        val exportedTransactionGroups = if (privacy == ExportPrivacy.FULL) transactionGroups else emptyList()
+        val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
+        val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
+        val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
         
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -137,6 +151,11 @@ class BackupExporter @Inject constructor(
                     totalBudgetCategories = exportedBudgetCategories.size,
                     totalTransactionSplits = exportedTransactionSplits.size,
                     totalBankNotifications = exportedBankNotifications.size,
+                    totalLoans = exportedLoans.size,
+                    totalTransactionGroups = exportedTransactionGroups.size,
+                    totalProfiles = exportedProfiles.size,
+                    totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
+                    totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
                     dateRange = dateRange
                 )
             ),
@@ -155,7 +174,12 @@ class BackupExporter @Inject constructor(
                 budgets = exportedBudgets,
                 budgetCategories = exportedBudgetCategories,
                 transactionSplits = exportedTransactionSplits,
-                bankNotifications = exportedBankNotifications
+                bankNotifications = exportedBankNotifications,
+                loans = exportedLoans,
+                transactionGroups = exportedTransactionGroups,
+                profiles = exportedProfiles,
+                budgetMonthSnapshots = exportedBudgetMonthSnapshots,
+                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

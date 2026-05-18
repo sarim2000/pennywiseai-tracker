@@ -67,4 +67,8 @@ interface TransactionGroupDao {
         LIMIT :limit
     """)
     fun searchUngroupedTransactions(query: String, limit: Int = 50): Flow<List<TransactionEntity>>
+
+    // Used by BackupImporter.replaceAllData to clear groups before re-import.
+    @Query("DELETE FROM transaction_groups")
+    suspend fun deleteAllGroups()
 }

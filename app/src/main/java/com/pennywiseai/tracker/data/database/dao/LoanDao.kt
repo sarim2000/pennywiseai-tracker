@@ -113,4 +113,8 @@ interface LoanDao {
         LIMIT :limit
     """)
     fun getRecentUnlinkedTransactionsByType(type: String, limit: Int = 20): Flow<List<TransactionEntity>>
+
+    // Used by BackupImporter.replaceAllData to clear loans before re-import.
+    @Query("DELETE FROM loans")
+    suspend fun deleteAllLoans()
 }

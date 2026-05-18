@@ -584,6 +584,11 @@ class BackupImporter @Inject constructor(
                     profile.id
                 }
                 else -> {
+                    // Advance past any ids that case 2 above has inserted
+                    // during this same loop, otherwise `nextId` might already
+                    // belong to a freshly-imported profile and trip the
+                    // UNIQUE PK constraint on insert.
+                    while (nextId in takenIds) nextId++
                     val newId = nextId++
                     database.profileDao().insert(profile.copy(id = newId))
                     takenIds.add(newId)

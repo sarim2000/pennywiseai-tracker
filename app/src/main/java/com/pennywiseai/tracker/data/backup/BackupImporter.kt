@@ -89,20 +89,6 @@ class BackupImporter @Inject constructor(
         var importedTransactions = 0
         var importedCategories = 0
 
-        // Older backups (pre-v1.1) didn't serialize loans / transaction_groups.
-        // The transactions inside such backups still carry loan_id / group_id
-        // values that point at entities we never restored — and when the user
-        // later creates a new loan/group, Room auto-assigns an ID starting at 1
-        // and silently collides with those orphaned pointers (ghost-linking
-        // unrelated transactions). Strip the orphan refs at import time so
-        // those columns are NULL by the time anything new is inserted.
-        val backupLoanIds = backup.database.loans.map { it.id }.toSet()
-        val backupGroupIds = backup.database.transactionGroups.map { it.id }.toSet()
-        fun cleanTransaction(tx: TransactionEntity): TransactionEntity = tx.copy(
-            loanId = tx.loanId?.takeIf { it in backupLoanIds },
-            groupId = tx.groupId?.takeIf { it in backupGroupIds }
-        )
-
         return database.withTransaction {
             try {
                 // Clear existing data
@@ -127,16 +113,49 @@ class BackupImporter @Inject constructor(
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
 
-                // Import loans / groups BEFORE transactions so the foreign-key
-                // references on TransactionEntity.loan_id / group_id resolve.
-                // Both DAOs respect the explicit `id` field on @Insert when it
-                // is non-zero, so the backup's original IDs are preserved.
+                // Import loans / groups / profiles BEFORE transactions and
+                // account balances so the foreign-key references on those
+                // children (loan_id, group_id, profile_id) resolve.
+                //
+                // Loans & groups: both DAOs respect the explicit `id` field on
+                // @Insert when non-zero, so backup IDs are preserved.
+                // Profiles: explicit primary key, but local defaults (1, 2)
+                // already exist — importProfilesAndBuildMap dedups by name and
+                // returns a backup-id → final-local-id map so callers can
+                // remap each entity's profileId field.
                 backup.database.loans.forEach { loan ->
                     database.loanDao().insertLoan(loan)
                 }
                 backup.database.transactionGroups.forEach { group ->
                     database.transactionGroupDao().insertGroup(group)
                 }
+                val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)
+
+                // Older backups (pre-v1.1) didn't serialize loans / groups,
+                // and profiles were never in v1.0 either. The transactions
+                // inside such backups still carry loan_id / group_id /
+                // profile_id values that point at entities we never restored.
+                // When the user later creates a new loan/group/profile, Room
+                // auto-assigns an ID that may silently collide with the
+                // orphan pointer (ghost-linking unrelated transactions).
+                // Strip orphan refs at import so those columns are NULL by
+                // the time anything new is inserted; for profile_id we keep
+                // refs that still point at a surviving local profile.
+                val backupLoanIds = backup.database.loans.map { it.id }.toSet()
+                val backupGroupIds = backup.database.transactionGroups.map { it.id }.toSet()
+                val survivingProfileIds = database.profileDao().getAllProfiles()
+                    .map { it.id }.toSet()
+                fun resolveProfileId(oldId: Long?): Long? = when {
+                    oldId == null -> null
+                    profileIdMap.containsKey(oldId) -> profileIdMap[oldId]
+                    oldId in survivingProfileIds -> oldId
+                    else -> null
+                }
+                fun cleanTransaction(tx: TransactionEntity): TransactionEntity = tx.copy(
+                    loanId = tx.loanId?.takeIf { it in backupLoanIds },
+                    groupId = tx.groupId?.takeIf { it in backupGroupIds },
+                    profileId = resolveProfileId(tx.profileId)
+                )
 
                 // Import all data
                 backup.database.categories.forEach { category ->
@@ -148,13 +167,20 @@ class BackupImporter @Inject constructor(
                     database.transactionDao().insertTransaction(cleanTransaction(transaction))
                     importedTransactions++
                 }
-                
+
                 backup.database.cards.forEach { card ->
                     database.cardDao().insertCard(card)
                 }
-                
+
                 backup.database.accountBalances.forEach { balance ->
-                    database.accountBalanceDao().insertBalance(balance)
+                    // Remap profile_id the same way as transactions; fall back
+                    // to PERSONAL when the source profile didn't survive (the
+                    // column is non-null with a default of 1).
+                    val mappedProfileId = resolveProfileId(balance.profileId)
+                        ?: ProfileEntity.PERSONAL_ID
+                    database.accountBalanceDao().insertBalance(
+                        balance.copy(profileId = mappedProfileId)
+                    )
                 }
                 
                 backup.database.subscriptions.forEach { subscription ->
@@ -196,17 +222,8 @@ class BackupImporter @Inject constructor(
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
 
-                // Profiles: insert only ones we don't already have (preserves
-                // the default Personal=1 / Business=2 rows and any custom
-                // profiles the user has set up locally).
-                if (backup.database.profiles.isNotEmpty()) {
-                    val existingProfileIds = database.profileDao().getAllProfiles()
-                        .map { it.id }.toSet()
-                    backup.database.profiles
-                        .filter { it.id !in existingProfileIds }
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { database.profileDao().insertAll(it) }
-                }
+                // Profiles were already imported earlier (before transactions /
+                // account balances) so foreign-key remapping could happen.
 
                 database.budgetSnapshotDao().insertGroupSnapshots(backup.database.budgetMonthSnapshots)
                 database.budgetSnapshotDao().insertCategorySnapshots(backup.database.budgetCategoryMonthSnapshots)
@@ -296,6 +313,20 @@ class BackupImporter @Inject constructor(
                     if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
                 }
 
+                // Build profile id map up-front so transactions and account
+                // balances can remap profile_id during insert (same hazard as
+                // loans/groups — a stale backup profile_id can collide with a
+                // future user-created profile and ghost-link transactions).
+                val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)
+                val survivingProfileIds = database.profileDao().getAllProfiles()
+                    .map { it.id }.toSet()
+                fun resolveProfileId(oldId: Long?): Long? = when {
+                    oldId == null -> null
+                    profileIdMap.containsKey(oldId) -> profileIdMap[oldId]
+                    oldId in survivingProfileIds -> oldId
+                    else -> null
+                }
+
                 // Import transactions (skip duplicates by hash)
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
@@ -306,7 +337,8 @@ class BackupImporter @Inject constructor(
                         val newTransaction = transaction.copy(
                             id = 0,
                             loanId = transaction.loanId?.let { oldToNewLoanIdMap[it] },
-                            groupId = transaction.groupId?.let { oldToNewGroupIdMap[it] }
+                            groupId = transaction.groupId?.let { oldToNewGroupIdMap[it] },
+                            profileId = resolveProfileId(transaction.profileId)
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
                         // Track old ID -> new ID mapping directly from insert result
@@ -326,7 +358,7 @@ class BackupImporter @Inject constructor(
                 
                 // Import other entities with duplicate checking
                 importCardsWithMerge(backup.database.cards)
-                importAccountBalancesWithMerge(backup.database.accountBalances)
+                importAccountBalancesWithMerge(backup.database.accountBalances) { resolveProfileId(it) }
                 importSubscriptionsWithMerge(backup.database.subscriptions)
                 importMerchantMappingsWithMerge(backup.database.merchantMappings)
                 
@@ -378,17 +410,8 @@ class BackupImporter @Inject constructor(
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
 
-                // Profiles: insert ones we don't have locally yet so custom
-                // profiles from the backup come along, but the user's existing
-                // defaults / customisations are preserved.
-                if (backup.database.profiles.isNotEmpty()) {
-                    val existingProfileIds = database.profileDao().getAllProfiles()
-                        .map { it.id }.toSet()
-                    backup.database.profiles
-                        .filter { it.id !in existingProfileIds }
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { database.profileDao().insertAll(it) }
-                }
+                // Profiles were already imported earlier (before transactions /
+                // account balances) so foreign-key remapping could happen.
 
                 // Budget month snapshots: merge by (year, month) pair —
                 // backup wins for any month the local DB also has so a stale
@@ -444,12 +467,20 @@ class BackupImporter @Inject constructor(
     }
     
     /**
-     * Import account balances with duplicate checking
+     * Import account balances with duplicate checking.
+     * @param resolveProfileId remaps the source profile_id to its final local
+     *   id (handles name-based dedup + orphan stripping). Caller passes a
+     *   closure that already knows about the current profile map.
      */
-    private suspend fun importAccountBalancesWithMerge(balances: List<AccountBalanceEntity>) {
+    private suspend fun importAccountBalancesWithMerge(
+        balances: List<AccountBalanceEntity>,
+        resolveProfileId: (Long?) -> Long?
+    ) {
         // For balances, we'll import all as they represent historical data
         balances.forEach { balance ->
-            val newBalance = balance.copy(id = 0)
+            val mappedProfileId = resolveProfileId(balance.profileId)
+                ?: ProfileEntity.PERSONAL_ID
+            val newBalance = balance.copy(id = 0, profileId = mappedProfileId)
             database.accountBalanceDao().insertBalance(newBalance)
         }
     }
@@ -513,6 +544,57 @@ class BackupImporter @Inject constructor(
         }
     }
     
+    /**
+     * Insert backup profiles and return a `backup-id → local-id` map so other
+     * tables (transactions, account balances) can rewrite their profile_id
+     * column to point at the surviving local profile.
+     *
+     * Dedup priority:
+     *  1. Match by `name` — if a local profile with the same name already
+     *     exists, the backup profile is treated as the same logical profile
+     *     and we map to its local id (no insert).
+     *  2. No name match, original id unused locally — insert with the
+     *     backup's original id.
+     *  3. No name match, original id collides with a different local
+     *     profile — insert under a fresh id (max existing + 1) so we don't
+     *     overwrite the local row of a different identity.
+     *
+     * This keeps default profiles (Personal=1, Business=2) stable across
+     * imports because they match by name; only genuine new custom profiles
+     * get inserted.
+     */
+    private suspend fun importProfilesAndBuildMap(
+        profiles: List<ProfileEntity>
+    ): Map<Long, Long> {
+        if (profiles.isEmpty()) return emptyMap()
+
+        val existing = database.profileDao().getAllProfiles()
+        val existingByName = existing.associateBy { it.name }
+        val takenIds = existing.map { it.id }.toMutableSet()
+        var nextId = (takenIds.maxOrNull() ?: 0L) + 1
+
+        val map = mutableMapOf<Long, Long>()
+        for (profile in profiles) {
+            val matched = existingByName[profile.name]
+            val finalId = when {
+                matched != null -> matched.id
+                profile.id !in takenIds -> {
+                    database.profileDao().insert(profile)
+                    takenIds.add(profile.id)
+                    profile.id
+                }
+                else -> {
+                    val newId = nextId++
+                    database.profileDao().insert(profile.copy(id = newId))
+                    takenIds.add(newId)
+                    newId
+                }
+            }
+            map[profile.id] = finalId
+        }
+        return map
+    }
+
     /**
      * Import user preferences
      */

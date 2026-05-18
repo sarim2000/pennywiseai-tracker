@@ -457,7 +457,14 @@ class BudgetGroupRepository @Inject constructor(
                         dailySpend = dailySpend
                     )
                 }
-                val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                // "Category Limits" are optional — the group-level limit is the
+                // source of truth when set, with the per-cat sum as a fallback
+                // for budgets that only define per-cat amounts.
+                val totalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
+                    group.budget.limitAmount
+                } else {
+                    catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                }
                 val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
                 val remaining = totalBudget - totalActual
                 val pctUsed = if (totalBudget > BigDecimal.ZERO) {

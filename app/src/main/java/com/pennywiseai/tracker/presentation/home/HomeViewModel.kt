@@ -1375,6 +1375,7 @@ class HomeViewModel @Inject constructor(
         )
 
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
+            val isTrackingAll = group.categories.isEmpty()
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
@@ -1394,8 +1395,23 @@ class HomeViewModel @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val totalBudget = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val convertedGroupLimit = currencyConversionService.convertAmount(
+                group.budget.limitAmount, baseCurrency, displayCurrency
+            )
+            // "Category Limits" are optional — the group-level limit is the
+            // source of truth when set (including when isTrackingAll), with
+            // the per-cat sum as a fallback for budgets that only define
+            // per-cat amounts.
+            val totalBudget = if (convertedGroupLimit > BigDecimal.ZERO) {
+                convertedGroupLimit
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            }
+            val totalActual = if (isTrackingAll) {
+                categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            }
             val remaining = totalBudget - totalActual
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
@@ -1405,14 +1421,15 @@ class HomeViewModel @Inject constructor(
             } else BigDecimal.ZERO
             BudgetGroupSpending(
                 group = group,
-                categorySpending = catSpending,
+                categorySpending = if (isTrackingAll) emptyList() else catSpending,
                 totalBudget = totalBudget,
                 totalActual = totalActual,
                 remaining = remaining,
                 percentageUsed = pctUsed,
                 dailyAllowance = dailyAllowance,
                 daysRemaining = raw.daysRemaining,
-                daysElapsed = raw.daysElapsed
+                daysElapsed = raw.daysElapsed,
+                isTrackingAllExpenses = isTrackingAll
             )
         }
 

@@ -264,14 +264,35 @@ class BackupImporter @Inject constructor(
                 // refs on transactions get stripped to NULL — preventing the
                 // ghost-link bug where an old loan_id silently collides with
                 // a future auto-generated loan ID.
+                //
+                // Dedup by an immutable composite key so a repeat MERGE of the
+                // same backup maps each backup row to its already-imported
+                // local row instead of inserting a ghost duplicate. We avoid
+                // mutable fields (amount, note, status) so user edits between
+                // imports don't break the match.
+                val existingLoans = database.loanDao().getAllLoans().first()
+                val existingLoanKeyToId = existingLoans.associate {
+                    Triple(it.personName, it.direction, it.createdAt) to it.id
+                }
                 val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
                 backup.database.loans.forEach { loan ->
-                    val newId = database.loanDao().insertLoan(loan.copy(id = 0))
+                    val key = Triple(loan.personName, loan.direction, loan.createdAt)
+                    val existingId = existingLoanKeyToId[key]
+                    val newId = existingId
+                        ?: database.loanDao().insertLoan(loan.copy(id = 0))
                     if (loan.id != 0L) oldToNewLoanIdMap[loan.id] = newId
+                }
+
+                val existingGroups = database.transactionGroupDao().getAllGroups().first()
+                val existingGroupKeyToId = existingGroups.associate {
+                    (it.name to it.createdAt) to it.id
                 }
                 val oldToNewGroupIdMap = mutableMapOf<Long, Long>()
                 backup.database.transactionGroups.forEach { group ->
-                    val newId = database.transactionGroupDao().insertGroup(group.copy(id = 0))
+                    val key = group.name to group.createdAt
+                    val existingId = existingGroupKeyToId[key]
+                    val newId = existingId
+                        ?: database.transactionGroupDao().insertGroup(group.copy(id = 0))
                     if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
                 }
 

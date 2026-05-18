@@ -88,7 +88,21 @@ class BackupImporter @Inject constructor(
     private suspend fun replaceAllData(backup: PennyWiseBackup): ImportResult {
         var importedTransactions = 0
         var importedCategories = 0
-        
+
+        // Older backups (pre-v1.1) didn't serialize loans / transaction_groups.
+        // The transactions inside such backups still carry loan_id / group_id
+        // values that point at entities we never restored — and when the user
+        // later creates a new loan/group, Room auto-assigns an ID starting at 1
+        // and silently collides with those orphaned pointers (ghost-linking
+        // unrelated transactions). Strip the orphan refs at import time so
+        // those columns are NULL by the time anything new is inserted.
+        val backupLoanIds = backup.database.loans.map { it.id }.toSet()
+        val backupGroupIds = backup.database.transactionGroups.map { it.id }.toSet()
+        fun cleanTransaction(tx: TransactionEntity): TransactionEntity = tx.copy(
+            loanId = tx.loanId?.takeIf { it in backupLoanIds },
+            groupId = tx.groupId?.takeIf { it in backupGroupIds }
+        )
+
         return database.withTransaction {
             try {
                 // Clear existing data
@@ -105,16 +119,33 @@ class BackupImporter @Inject constructor(
                 database.budgetDao().deleteAllBudgets()
                 database.exchangeRateDao().deleteAllRates()
                 database.bankNotificationDao().deleteAllNotifications()
+                database.loanDao().deleteAllLoans()
+                database.transactionGroupDao().deleteAllGroups()
+                database.budgetSnapshotDao().deleteAllGroupSnapshots()
+                database.budgetSnapshotDao().deleteAllCategorySnapshots()
                 // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
-                
+                // Profiles deliberately preserved — defaults (Personal=1, Business=2)
+                // are seeded on first launch and we don't want to wipe them.
+
+                // Import loans / groups BEFORE transactions so the foreign-key
+                // references on TransactionEntity.loan_id / group_id resolve.
+                // Both DAOs respect the explicit `id` field on @Insert when it
+                // is non-zero, so the backup's original IDs are preserved.
+                backup.database.loans.forEach { loan ->
+                    database.loanDao().insertLoan(loan)
+                }
+                backup.database.transactionGroups.forEach { group ->
+                    database.transactionGroupDao().insertGroup(group)
+                }
+
                 // Import all data
                 backup.database.categories.forEach { category ->
                     database.categoryDao().insertCategory(category)
                     importedCategories++
                 }
-                
+
                 backup.database.transactions.forEach { transaction ->
-                    database.transactionDao().insertTransaction(transaction)
+                    database.transactionDao().insertTransaction(cleanTransaction(transaction))
                     importedTransactions++
                 }
                 
@@ -164,10 +195,25 @@ class BackupImporter @Inject constructor(
                 backup.database.bankNotifications.forEach { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
-                
+
+                // Profiles: insert only ones we don't already have (preserves
+                // the default Personal=1 / Business=2 rows and any custom
+                // profiles the user has set up locally).
+                if (backup.database.profiles.isNotEmpty()) {
+                    val existingProfileIds = database.profileDao().getAllProfiles()
+                        .map { it.id }.toSet()
+                    backup.database.profiles
+                        .filter { it.id !in existingProfileIds }
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { database.profileDao().insertAll(it) }
+                }
+
+                database.budgetSnapshotDao().insertGroupSnapshots(backup.database.budgetMonthSnapshots)
+                database.budgetSnapshotDao().insertCategorySnapshots(backup.database.budgetCategoryMonthSnapshots)
+
                 // Import preferences
                 importPreferences(backup.preferences)
-                
+
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
@@ -186,7 +232,7 @@ class BackupImporter @Inject constructor(
         var importedTransactions = 0
         var importedCategories = 0
         var skippedDuplicates = 0
-        
+
         return database.withTransaction {
             try {
                 // Get existing data for duplicate checking
@@ -194,12 +240,12 @@ class BackupImporter @Inject constructor(
                     .getAllTransactions().first()
                 val existingTransactionHashes = existingTransactions.map { it.transactionHash }.toSet()
                 val existingHashToIdMap = existingTransactions.associateBy({ it.transactionHash }, { it.id })
-                
+
                 val existingCategories = database.categoryDao()
                     .getAllCategories().first()
                     .map { it.name }
                     .toSet()
-                
+
                 // Import categories (merge by name)
                 backup.database.categories.forEach { category ->
                     if (!existingCategories.contains(category.name)) {
@@ -209,15 +255,38 @@ class BackupImporter @Inject constructor(
                         importedCategories++
                     }
                 }
-                
+
+                // Import loans / groups BEFORE transactions so we can remap
+                // TransactionEntity.loan_id and group_id to the new local IDs
+                // (Room hands us fresh IDs because we insert with id = 0 in
+                // merge mode). For older backups that don't carry these
+                // entities at all, the maps stay empty and the corresponding
+                // refs on transactions get stripped to NULL — preventing the
+                // ghost-link bug where an old loan_id silently collides with
+                // a future auto-generated loan ID.
+                val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
+                backup.database.loans.forEach { loan ->
+                    val newId = database.loanDao().insertLoan(loan.copy(id = 0))
+                    if (loan.id != 0L) oldToNewLoanIdMap[loan.id] = newId
+                }
+                val oldToNewGroupIdMap = mutableMapOf<Long, Long>()
+                backup.database.transactionGroups.forEach { group ->
+                    val newId = database.transactionGroupDao().insertGroup(group.copy(id = 0))
+                    if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
+                }
+
                 // Import transactions (skip duplicates by hash)
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
-                
+
                 backup.database.transactions.forEach { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
                         val oldId = transaction.id
-                        val newTransaction = transaction.copy(id = 0)
+                        val newTransaction = transaction.copy(
+                            id = 0,
+                            loanId = transaction.loanId?.let { oldToNewLoanIdMap[it] },
+                            groupId = transaction.groupId?.let { oldToNewGroupIdMap[it] }
+                        )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
@@ -287,7 +356,42 @@ class BackupImporter @Inject constructor(
                 backup.database.bankNotifications.forEach { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
-                
+
+                // Profiles: insert ones we don't have locally yet so custom
+                // profiles from the backup come along, but the user's existing
+                // defaults / customisations are preserved.
+                if (backup.database.profiles.isNotEmpty()) {
+                    val existingProfileIds = database.profileDao().getAllProfiles()
+                        .map { it.id }.toSet()
+                    backup.database.profiles
+                        .filter { it.id !in existingProfileIds }
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { database.profileDao().insertAll(it) }
+                }
+
+                // Budget month snapshots: merge by (year, month) pair —
+                // backup wins for any month the local DB also has so a stale
+                // local snapshot doesn't double up with the imported one.
+                if (backup.database.budgetMonthSnapshots.isNotEmpty() ||
+                    backup.database.budgetCategoryMonthSnapshots.isNotEmpty()
+                ) {
+                    val groupByMonth = backup.database.budgetMonthSnapshots
+                        .groupBy { it.year to it.month }
+                    val catByMonth = backup.database.budgetCategoryMonthSnapshots
+                        .groupBy { it.year to it.month }
+                    val allMonths = (groupByMonth.keys + catByMonth.keys)
+                    allMonths.forEach { (year, month) ->
+                        database.budgetSnapshotDao().replaceMonthSnapshots(
+                            year = year,
+                            month = month,
+                            groupSnapshots = (groupByMonth[year to month] ?: emptyList())
+                                .map { it.copy(id = 0) },
+                            categorySnapshots = (catByMonth[year to month] ?: emptyList())
+                                .map { it.copy(id = 0) }
+                        )
+                    }
+                }
+
                 // Import preferences (merge with existing)
                 importPreferences(backup.preferences)
                 

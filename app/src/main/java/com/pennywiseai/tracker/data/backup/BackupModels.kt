@@ -9,7 +9,7 @@ import java.time.LocalDateTime
  */
 data class PennyWiseBackup(
     @SerializedName("_format")
-    val format: String = "PennyWise Backup v1.0",
+    val format: String = "PennyWise Backup v1.1",
     
     @SerializedName("_warning")
     val warning: String = "Contains sensitive financial data. Keep this file secure.",
@@ -86,7 +86,22 @@ data class BackupStatistics(
     
     @SerializedName("total_bank_notifications")
     val totalBankNotifications: Int = 0,
-    
+
+    @SerializedName("total_loans")
+    val totalLoans: Int = 0,
+
+    @SerializedName("total_transaction_groups")
+    val totalTransactionGroups: Int = 0,
+
+    @SerializedName("total_profiles")
+    val totalProfiles: Int = 0,
+
+    @SerializedName("total_budget_month_snapshots")
+    val totalBudgetMonthSnapshots: Int = 0,
+
+    @SerializedName("total_budget_category_month_snapshots")
+    val totalBudgetCategoryMonthSnapshots: Int = 0,
+
     @SerializedName("date_range")
     val dateRange: DateRange?
 )
@@ -149,7 +164,22 @@ data class DatabaseSnapshot(
     val transactionSplits: List<TransactionSplitEntity> = emptyList(),
     
     @SerializedName("bank_notifications")
-    val bankNotifications: List<BankNotificationEntity> = emptyList()
+    val bankNotifications: List<BankNotificationEntity> = emptyList(),
+
+    @SerializedName("loans")
+    val loans: List<LoanEntity> = emptyList(),
+
+    @SerializedName("transaction_groups")
+    val transactionGroups: List<TransactionGroupEntity> = emptyList(),
+
+    @SerializedName("profiles")
+    val profiles: List<ProfileEntity> = emptyList(),
+
+    @SerializedName("budget_month_snapshots")
+    val budgetMonthSnapshots: List<BudgetMonthSnapshotEntity> = emptyList(),
+
+    @SerializedName("budget_category_month_snapshots")
+    val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList()
 )
 
 /**

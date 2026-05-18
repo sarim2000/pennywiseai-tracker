@@ -233,10 +233,16 @@ class BudgetGroupsViewModel @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val totalBudget = if (isTrackingAll) {
-                currencyConversionService.convertAmount(group.budget.limitAmount, baseCurrency, displayCurrency)
-            } else {
-                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            val convertedGroupLimit = currencyConversionService.convertAmount(
+                group.budget.limitAmount, baseCurrency, displayCurrency
+            )
+            val totalBudget = when {
+                isTrackingAll -> convertedGroupLimit
+                // "Category Limits" are optional — the group-level limit is
+                // the source of truth when set, with the per-cat sum as a
+                // fallback for budgets that only define per-cat amounts.
+                convertedGroupLimit > BigDecimal.ZERO -> convertedGroupLimit
+                else -> catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
             val totalActual = if (isTrackingAll) {
                 categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }

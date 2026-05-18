@@ -14,6 +14,7 @@ object BankParserFactory {
         IndianBankParser(),
         FederalBankParser(),
         JuspayParser(),
+        CashfreeParser(),  // Cashfree payment gateway (India) — grouped with other aggregators
         SliceParser(),
         CredParser(),
         LazyPayParser(),

@@ -105,6 +105,7 @@ object BankParserFactory {
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
+        SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)
         EnparaBankParser(),  // Enpara (Turkey) — push notifications
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser()  // Greater Bank (India)

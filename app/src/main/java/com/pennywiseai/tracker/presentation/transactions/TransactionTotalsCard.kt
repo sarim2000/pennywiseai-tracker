@@ -78,7 +78,9 @@ fun TransactionTotalsCard(
             ) {
                 // Totals Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     // Income Column

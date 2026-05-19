@@ -38,7 +38,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
@@ -89,7 +89,6 @@ fun TransactionsScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
     val filteredTotals by viewModel.filteredTotals.collectAsState()
-    val currencyGroupedTotals by viewModel.currencyGroupedTotals.collectAsState()
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val sortOption by viewModel.sortOption.collectAsState()
@@ -113,7 +112,13 @@ fun TransactionsScreen(
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val density = LocalDensity.current
     val view = LocalView.current
+
+    val primaryVisibleCurrency = availableCurrencies.firstOrNull() ?: selectedCurrency
+    val hasCurrencyFilter = !isUnifiedMode &&
+            availableCurrencies.size > 1 &&
+            !selectedCurrency.equals(primaryVisibleCurrency, ignoreCase = true)
     
     // Check if any filter is active (for showing "Clear all" button)
     val hasAnyActiveFilter = searchQuery.isNotEmpty() ||
@@ -122,15 +127,18 @@ fun TransactionsScreen(
         categoriesFilter != null ||
         transactionTypeFilter != TransactionTypeFilter.ALL ||
         selectedProfileId != null ||
+        hasCurrencyFilter ||
         customDateRange != null
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()
     }
-    val collapseTransactionHeader by remember {
+    val collapseThresholdPx = with(density) { 48.dp.roundToPx() }
+    val collapseTransactionHeader by remember(collapseThresholdPx) {
         derivedStateOf {
-            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 48
+            listState.firstVisibleItemIndex > 0 ||
+                    listState.firstVisibleItemScrollOffset > collapseThresholdPx
         }
     }
 
@@ -871,7 +879,7 @@ private fun moreFiltersLabel(
     hasProfileFilter: Boolean
 ): String {
     return when {
-        hasCategoryFilter && hasProfileFilter -> "Filters 2"
+        hasCategoryFilter && hasProfileFilter -> "2 Filters"
         hasCategoryFilter -> categoryLabel ?: "Category"
         hasProfileFilter -> selectedProfileName
         else -> "Filters"

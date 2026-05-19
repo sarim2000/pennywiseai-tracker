@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -47,6 +46,8 @@ import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.filterIcon
+import com.pennywiseai.tracker.ui.components.shortLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -544,8 +545,8 @@ private fun AnalyticsFilterBar(
             Box {
                 AnalyticsFilterChip(
                     selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE,
-                    text = transactionTypeFilter.analyticsLabel(),
-                    icon = transactionTypeFilter.analyticsIcon(),
+                    text = transactionTypeFilter.shortLabel(),
+                    icon = transactionTypeFilter.filterIcon(),
                     onClick = onTypeClick
                 )
 
@@ -561,7 +562,7 @@ private fun AnalyticsFilterBar(
                                 if (transactionTypeFilter == typeFilter) {
                                     Icon(Icons.Default.Check, contentDescription = null)
                                 } else {
-                                    Icon(typeFilter.analyticsIcon(), contentDescription = null)
+                                    Icon(typeFilter.filterIcon(), contentDescription = null)
                                 }
                             },
                             onClick = { onTypeSelected(typeFilter) }
@@ -639,10 +640,14 @@ private fun AnalyticsFilterBar(
                                     )
                                 },
                                 leadingIcon = {
-                                    CategoryIcon(
-                                        category = category,
-                                        size = Dimensions.Icon.small
-                                    )
+                                    if (categoryFilter == category) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    } else {
+                                        CategoryIcon(
+                                            category = category,
+                                            size = Dimensions.Icon.small
+                                        )
+                                    }
                                 },
                                 onClick = { onCategorySelected(category) }
                             )
@@ -704,24 +709,6 @@ private fun AnalyticsFilterChip(
         ),
         modifier = modifier
     )
-}
-
-private fun TransactionTypeFilter.analyticsLabel(): String = when (this) {
-    TransactionTypeFilter.ALL -> "All"
-    TransactionTypeFilter.INCOME -> "Income"
-    TransactionTypeFilter.EXPENSE -> "Expense"
-    TransactionTypeFilter.CREDIT -> "Credit"
-    TransactionTypeFilter.TRANSFER -> "Transfer"
-    TransactionTypeFilter.INVESTMENT -> "Invest"
-}
-
-private fun TransactionTypeFilter.analyticsIcon(): ImageVector = when (this) {
-    TransactionTypeFilter.ALL -> Icons.AutoMirrored.Filled.ReceiptLong
-    TransactionTypeFilter.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-    TransactionTypeFilter.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-    TransactionTypeFilter.CREDIT -> Icons.Default.CreditCard
-    TransactionTypeFilter.TRANSFER -> Icons.Default.SwapHoriz
-    TransactionTypeFilter.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
 }
 
 @Composable

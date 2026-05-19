@@ -357,7 +357,7 @@ private fun RegularTopAppBar(
                         text = title,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Start,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.animatedOffsetModifier(
                             hasBackButton = hasBackButton,
                             hasActionButton = hasActionButton,

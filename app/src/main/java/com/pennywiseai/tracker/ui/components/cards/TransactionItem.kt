@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -30,6 +31,7 @@ fun TransactionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
+    listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -46,8 +48,10 @@ fun TransactionItem(
         }
     }
 
-    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("d MMM \u00B7 h:mm a") }
-    val dateTimeText = remember(transaction.dateTime) {
+    val dateTimeFormatter = remember(showDate) {
+        DateTimeFormatter.ofPattern(if (showDate) "d MMM \u00B7 h:mm a" else "h:mm a")
+    }
+    val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
     }
 
@@ -64,6 +68,11 @@ fun TransactionItem(
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
             add(dateTimeText)
+            if (transaction.category.isNotBlank() &&
+                !transaction.category.equals("Uncategorized", ignoreCase = true)
+            ) {
+                add(transaction.category)
+            }
             when (transaction.transactionType) {
                 TransactionType.CREDIT -> add("Credit")
                 TransactionType.TRANSFER -> add("Transfer")
@@ -72,6 +81,9 @@ fun TransactionItem(
             }
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")
+            transaction.balanceAfter?.let { balance ->
+                add("Bal ${CurrencyFormatter.formatCurrency(balance, transaction.currency)}")
+            }
         }.joinToString(" \u00B7 ")
     }
 
@@ -97,6 +109,8 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
+        shape = listItemPosition.toShape(),
+        contentPadding = 14.dp,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -129,12 +143,16 @@ fun TransactionItem(
                         text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = amountColor
+                        color = amountColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "(${transaction.formatAmount()})",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             } else {
@@ -142,7 +160,9 @@ fun TransactionItem(
                     text = "$amountPrefix$formattedAmount",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = amountColor
+                    color = amountColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

@@ -214,8 +214,12 @@ fun SubscriptionsScreen(
 
             // Cancelled subscriptions (collapsible; only rendered when any
             // exist so the section disappears entirely on empty state).
+            // Stable key so `rememberSaveable` below isn't bound to the
+            // positional slot index — without it, expanding the section and
+            // then reactivating / hiding an active subscription would shift
+            // the index and silently collapse the section.
             if (uiState.endedSubscriptions.isNotEmpty()) {
-                item {
+                item(key = "cancelled-section") {
                     var expanded by rememberSaveable { mutableStateOf(false) }
                     EndedSubscriptionsSection(
                         endedSubscriptions = uiState.endedSubscriptions,

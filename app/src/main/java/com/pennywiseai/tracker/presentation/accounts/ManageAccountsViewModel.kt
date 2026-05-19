@@ -401,6 +401,56 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Overrides the parser's auto-detected card metadata. Used when a card
+     * has been wrongly classified (e.g. detected as DEBIT when it's really
+     * a credit card, or filed under the wrong bank). Nickname is purely
+     * cosmetic but lives on the same dialog because the user already has
+     * the edit sheet open.
+     *
+     * Trimming + null-on-blank for nickname keeps the entity column tidy
+     * (empty strings would otherwise leak through to the UI).
+     */
+    fun updateCardDetails(
+        cardId: Long,
+        bankName: String,
+        cardType: CardType,
+        nickname: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                val existing = cardRepository.getCardById(cardId)
+                if (existing == null) {
+                    // The card was removed from another session between the
+                    // dialog opening and Save. Surface it so the user isn't
+                    // left wondering why nothing happened.
+                    _uiState.update {
+                        it.copy(errorMessage = "Card no longer exists — it may have been deleted.")
+                    }
+                    return@launch
+                }
+                // updatedAt is stamped inside CardRepository.updateCard, so
+                // we leave it alone here.
+                cardRepository.updateCard(
+                    existing.copy(
+                        bankName = bankName.trim(),
+                        cardType = cardType,
+                        nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
+                    )
+                )
+                _uiState.update { it.copy(successMessage = "Card updated") }
+                delay(2000)
+                _uiState.update { it.copy(successMessage = null) }
+                loadCards()
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to update card: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun deleteAccount(bankName: String, accountLast4: String) {
         viewModelScope.launch {
             try {

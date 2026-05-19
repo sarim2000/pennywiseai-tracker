@@ -252,6 +252,9 @@ fun ManageAccountsScreen(
                             },
                             onDeleteCard = { cardId ->
                                 viewModel.deleteCard(cardId)
+                            },
+                            onUpdateCard = { bankName, cardType, nickname ->
+                                viewModel.updateCardDetails(card.id, bankName, cardType, nickname)
                             }
                         )
                     }
@@ -1387,9 +1390,15 @@ private fun OrphanedCardItem(
     card: com.pennywiseai.tracker.data.database.entity.CardEntity,
     accounts: List<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity>,
     onLinkToAccount: (String) -> Unit,
-    onDeleteCard: (Long) -> Unit
+    onDeleteCard: (Long) -> Unit,
+    onUpdateCard: (
+        bankName: String,
+        cardType: com.pennywiseai.tracker.data.database.entity.CardType,
+        nickname: String?
+    ) -> Unit = { _, _, _ -> }
 ) {
     var showLinkDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var expandedSource by remember { mutableStateOf(false) }
     
     Card(
@@ -1468,7 +1477,19 @@ private fun OrphanedCardItem(
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Link")
                     }
-                    
+
+                    OutlinedButton(
+                        onClick = { showEditDialog = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Edit")
+                    }
+
                     OutlinedButton(
                         onClick = { onDeleteCard(card.id) },
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -1499,6 +1520,94 @@ private fun OrphanedCardItem(
             }
         )
     }
+
+    if (showEditDialog) {
+        EditCardDialog(
+            card = card,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { bankName, cardType, nickname ->
+                onUpdateCard(bankName, cardType, nickname)
+                showEditDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditCardDialog(
+    card: com.pennywiseai.tracker.data.database.entity.CardEntity,
+    onDismiss: () -> Unit,
+    onConfirm: (
+        bankName: String,
+        cardType: com.pennywiseai.tracker.data.database.entity.CardType,
+        nickname: String?
+    ) -> Unit
+) {
+    var bankName by remember { mutableStateOf(card.bankName) }
+    var cardType by remember { mutableStateOf(card.cardType) }
+    var nickname by remember { mutableStateOf(card.nickname.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit card") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                Text(
+                    text = "••${card.cardLast4}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = bankName,
+                    onValueChange = { bankName = it },
+                    label = { Text("Bank") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        text = "Card type",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        val options = listOf(
+                            com.pennywiseai.tracker.data.database.entity.CardType.DEBIT to "Debit",
+                            com.pennywiseai.tracker.data.database.entity.CardType.CREDIT to "Credit"
+                        )
+                        options.forEachIndexed { index, (type, label) ->
+                            SegmentedButton(
+                                selected = cardType == type,
+                                onClick = { cardType = type },
+                                shape = SegmentedButtonDefaults.itemShape(index, options.size)
+                            ) { Text(label) }
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = nickname,
+                    onValueChange = { nickname = it },
+                    label = { Text("Nickname (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(bankName, cardType, nickname.ifBlank { null })
+                },
+                enabled = bankName.isNotBlank()
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

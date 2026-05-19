@@ -309,6 +309,8 @@ private fun EndedSubscriptionItem(
     onReactivate: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -330,7 +332,7 @@ private fun EndedSubscriptionItem(
                 )
             }
             TextButton(onClick = onReactivate) { Text("Reactivate") }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { showDeleteConfirm = true }) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
@@ -338,6 +340,29 @@ private fun EndedSubscriptionItem(
                 )
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete subscription?") },
+            text = {
+                Text("Permanently delete '${subscription.merchantName}'? This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 

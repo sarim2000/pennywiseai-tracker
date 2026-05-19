@@ -401,6 +401,43 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Overrides the parser's auto-detected card metadata. Used when a card
+     * has been wrongly classified (e.g. detected as DEBIT when it's really
+     * a credit card, or filed under the wrong bank). Nickname is purely
+     * cosmetic but lives on the same dialog because the user already has
+     * the edit sheet open.
+     *
+     * Trimming + null-on-blank for nickname keeps the entity column tidy
+     * (empty strings would otherwise leak through to the UI).
+     */
+    fun updateCardDetails(
+        cardId: Long,
+        bankName: String,
+        cardType: CardType,
+        nickname: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                val existing = cardRepository.getCardById(cardId) ?: return@launch
+                cardRepository.updateCard(
+                    existing.copy(
+                        bankName = bankName.trim(),
+                        cardType = cardType,
+                        nickname = nickname?.trim()?.takeIf { it.isNotEmpty() },
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
+                loadCards()
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
+                _uiState.update {
+                    it.copy(errorMessage = "Failed to update card: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun deleteAccount(bankName: String, accountLast4: String) {
         viewModelScope.launch {
             try {

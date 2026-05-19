@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -54,6 +55,7 @@ import com.pennywiseai.tracker.ui.components.profileIcon
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.DateRangeUtils
@@ -404,7 +406,7 @@ fun TransactionsScreen(
                         top = Spacing.md,
                         bottom = paddingValues.calculateBottomPadding()
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
                     stickyHeader {
@@ -471,24 +473,19 @@ fun TransactionsScreen(
                             }
                             
                             // Transactions in this group
-                            items(
+                            itemsIndexed(
                                 items = transactions,
-                                key = { it.id }
-                            ) { transaction ->
+                                key = { _, transaction -> transaction.id }
+                            ) { index, transaction ->
                                 com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                     transaction = transaction,
                                     showDate = dateGroup == DateGroup.EARLIER,
+                                    listItemPosition = ListItemPosition.from(index, transactions.size),
                                     convertedAmount = convertedAmounts[transaction.id],
                                     displayCurrency = if (isUnifiedMode) selectedCurrency else null,
                                     profileAccountKeys = profileAccountKeys,
                                     onClick = { onTransactionClick(transaction.id) }
                                 )
-                                if (transaction != transactions.last()) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = Spacing.md),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                }
                             }
                         }
                     }

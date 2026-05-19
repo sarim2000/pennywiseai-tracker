@@ -49,5 +49,6 @@ data class SubscriptionEntity(
 
 enum class SubscriptionState {
     ACTIVE,
-    HIDDEN  // Soft delete - hidden from view but kept for reactivation detection
+    HIDDEN, // Soft delete - hidden from view but kept for reactivation detection
+    ENDED   // User explicitly cancelled; never auto-reactivates on new mandate SMS
 }

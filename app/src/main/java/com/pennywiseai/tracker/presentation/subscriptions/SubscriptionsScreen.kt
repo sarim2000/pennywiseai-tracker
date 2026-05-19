@@ -98,6 +98,23 @@ fun SubscriptionsScreen(
         }
     }
 
+    // Show snackbar with undo action when a subscription is ended.
+    // ENDED is intentionally a "soft action" — there's the Cancelled section
+    // for later recovery — but mirroring the hide-undo flow keeps parity
+    // with the rest of the screen and gives an instant escape hatch.
+    LaunchedEffect(uiState.lastEndedSubscription) {
+        uiState.lastEndedSubscription?.let { subscription ->
+            val result = snackbarHostState.showSnackbar(
+                message = "${subscription.merchantName} ended",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoEnd()
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -185,6 +202,7 @@ fun SubscriptionsScreen(
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onHide = { viewModel.hideSubscription(subscription.id) },
+                            onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
                             onEdit = { merchantName, amount, nextDate, category ->
                                 viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category)
                             },
@@ -194,8 +212,33 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // Empty State
-            if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+            // Cancelled subscriptions (collapsible; only rendered when any
+            // exist so the section disappears entirely on empty state).
+            // Stable key so `rememberSaveable` below isn't bound to the
+            // positional slot index — without it, expanding the section and
+            // then reactivating / hiding an active subscription would shift
+            // the index and silently collapse the section.
+            if (uiState.endedSubscriptions.isNotEmpty()) {
+                item(key = "cancelled-section") {
+                    var expanded by rememberSaveable { mutableStateOf(false) }
+                    EndedSubscriptionsSection(
+                        endedSubscriptions = uiState.endedSubscriptions,
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        onReactivate = { viewModel.reactivateSubscription(it) },
+                        onDelete = { viewModel.deleteSubscription(it) }
+                    )
+                }
+            }
+
+            // Empty State — only when there's truly nothing to show. A user
+            // who has ended every subscription would otherwise see the
+            // "No subscriptions detected yet" message right above their
+            // Cancelled section, which is contradictory.
+            if (uiState.activeSubscriptions.isEmpty() &&
+                uiState.endedSubscriptions.isEmpty() &&
+                !uiState.isLoading
+            ) {
                 item {
                     PennyWiseEmptyState(
                         icon = Icons.Default.Subscriptions,
@@ -212,6 +255,114 @@ fun SubscriptionsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EndedSubscriptionsSection(
+    endedSubscriptions: List<SubscriptionEntity>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onReactivate: (Long) -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Cancelled (${endedSubscriptions.size})",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                endedSubscriptions.forEach { sub ->
+                    EndedSubscriptionItem(
+                        subscription = sub,
+                        onReactivate = { onReactivate(sub.id) },
+                        onDelete = { onDelete(sub.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EndedSubscriptionItem(
+    subscription: SubscriptionEntity,
+    onReactivate: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = subscription.merchantName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = CurrencyFormatter.formatCurrency(
+                        subscription.amount, subscription.currency
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = onReactivate) { Text("Reactivate") }
+            IconButton(onClick = { showDeleteConfirm = true }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete subscription?") },
+            text = {
+                Text("Permanently delete '${subscription.merchantName}'? This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -245,6 +396,7 @@ private fun SwipeableSubscriptionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onHide: () -> Unit,
+    onMarkAsEnded: () -> Unit = {},
     onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit = { _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
@@ -442,6 +594,14 @@ private fun SwipeableSubscriptionItem(
                                     onClick = {
                                         showMenu = false
                                         showEditDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("End subscription") },
+                                    leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
+                                    onClick = {
+                                        showMenu = false
+                                        onMarkAsEnded()
                                     }
                                 )
                                 DropdownMenuItem(

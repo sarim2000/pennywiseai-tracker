@@ -98,6 +98,23 @@ fun SubscriptionsScreen(
         }
     }
 
+    // Show snackbar with undo action when a subscription is ended.
+    // ENDED is intentionally a "soft action" — there's the Cancelled section
+    // for later recovery — but mirroring the hide-undo flow keeps parity
+    // with the rest of the screen and gives an instant escape hatch.
+    LaunchedEffect(uiState.lastEndedSubscription) {
+        uiState.lastEndedSubscription?.let { subscription ->
+            val result = snackbarHostState.showSnackbar(
+                message = "${subscription.merchantName} ended",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoEnd()
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -210,8 +227,14 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // Empty State
-            if (uiState.activeSubscriptions.isEmpty() && !uiState.isLoading) {
+            // Empty State — only when there's truly nothing to show. A user
+            // who has ended every subscription would otherwise see the
+            // "No subscriptions detected yet" message right above their
+            // Cancelled section, which is contradictory.
+            if (uiState.activeSubscriptions.isEmpty() &&
+                uiState.endedSubscriptions.isEmpty() &&
+                !uiState.isLoading
+            ) {
                 item {
                     PennyWiseEmptyState(
                         icon = Icons.Default.Subscriptions,
@@ -546,7 +569,7 @@ private fun SwipeableSubscriptionItem(
                                 )
                                 DropdownMenuItem(
                                     text = { Text("End subscription") },
-                                    leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                    leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
                                         onMarkAsEnded()

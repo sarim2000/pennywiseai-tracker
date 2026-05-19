@@ -195,6 +195,13 @@ class SubscriptionRepository @Inject constructor(
             // ENDED is terminal — the user explicitly cancelled and we never
             // auto-reactivate or overwrite. Return the ID untouched so any
             // downstream linking still resolves but the row stays cancelled.
+            //
+            // Tradeoff: if the user genuinely re-subscribes to the same
+            // service at the same price, the new mandate gets silently
+            // absorbed into the ENDED row instead of resurrecting it. That's
+            // intentional — auto-reactivation would defeat the whole point
+            // of the ENDED state — and recovery is one tap: open the
+            // Cancelled section on the subscriptions screen → Reactivate.
             if (existing.state == SubscriptionState.ENDED) {
                 Log.d(TAG, "Subscription ${existing.id} is ENDED — leaving untouched.")
                 return existing.id

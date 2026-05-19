@@ -107,7 +107,18 @@ class SubscriptionsViewModel @Inject constructor(
 
     fun markAsEnded(subscriptionId: Long) {
         viewModelScope.launch {
+            val snapshot = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }
             subscriptionRepository.markAsEnded(subscriptionId)
+            _uiState.value = _uiState.value.copy(lastEndedSubscription = snapshot)
+        }
+    }
+
+    fun undoEnd() {
+        _uiState.value.lastEndedSubscription?.let { subscription ->
+            viewModelScope.launch {
+                subscriptionRepository.reactivateSubscription(subscription.id)
+                _uiState.value = _uiState.value.copy(lastEndedSubscription = null)
+            }
         }
     }
 
@@ -153,5 +164,6 @@ data class SubscriptionsUiState(
     val displayCurrency: String? = null,
     val isUnifiedMode: Boolean = false,
     val isLoading: Boolean = true,
-    val lastHiddenSubscription: SubscriptionEntity? = null
+    val lastHiddenSubscription: SubscriptionEntity? = null,
+    val lastEndedSubscription: SubscriptionEntity? = null
 )

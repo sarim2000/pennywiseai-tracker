@@ -35,6 +35,7 @@ object TransactionDeduplication {
         val existingIsPartnerBank = existing.bankName.equals("State Bank of India", ignoreCase = true)
         val incomingIsPartnerBank = incoming.bankName.equals("State Bank of India", ignoreCase = true)
         if (existingIsPartnerBank && !incomingIsPartnerBank) return true
+        if (!existingIsPartnerBank && incomingIsPartnerBank) return false
 
         return existing.balanceAfter == null && incoming.balanceAfter != null
     }
@@ -48,16 +49,26 @@ object TransactionDeduplication {
                     amount = it.amount.stripTrailingZeros().toPlainString(),
                     accountNumber = it.accountNumber.orEmpty(),
                     transactionType = it.transactionType.name,
-                    currency = it.currency,
-                    date = it.dateTime.toLocalDate().toString()
+                    currency = it.currency
                 )
             }
             .values
-            .flatMap { group ->
-                group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
-                    .drop(1)
-                    .map { it.id }
+            .flatMap { group -> duplicateIdsFromGroup(group) }
+    }
+
+    private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Long> {
+        val seen = mutableListOf<TransactionEntity>()
+        val duplicateIds = mutableListOf<Long>()
+
+        group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
+            .forEach { transaction ->
+                if (seen.any { previous -> isSameUpiTransaction(previous, transaction) }) {
+                    duplicateIds += transaction.id
+                }
+                seen += transaction
             }
+
+        return duplicateIds
     }
 
     private fun accountsMatch(existingAccount: String?, incomingAccount: String?): Boolean {
@@ -71,7 +82,6 @@ object TransactionDeduplication {
         val amount: String,
         val accountNumber: String,
         val transactionType: String,
-        val currency: String,
-        val date: String
+        val currency: String
     )
 }

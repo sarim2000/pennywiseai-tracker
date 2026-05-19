@@ -162,11 +162,9 @@ class TransactionRepository @Inject constructor(
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
 
-    suspend fun cleanupGPayDuplicates(): Int {
+    suspend fun findGPayDuplicateIdsForCleanup(): List<Long> {
         val candidates = transactionDao.findPotentialDuplicatesByReference()
-        val duplicateIds = TransactionDeduplication.duplicateIdsToDelete(candidates)
-        duplicateIds.forEach { id -> transactionDao.softDeleteTransaction(id) }
-        return duplicateIds.size
+        return TransactionDeduplication.duplicateIdsToDelete(candidates)
     }
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {

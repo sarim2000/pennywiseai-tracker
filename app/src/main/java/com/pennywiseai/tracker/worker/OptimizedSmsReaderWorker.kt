@@ -639,6 +639,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     )
                     transactionRepository.updateTransaction(replacement)
                     accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                    replaceRuleApplications(duplicate.id, ruleApps)
                     processBalanceUpdate(parsed, replacement, duplicate.id)
                     return SaveOutcome.UPDATED_DUPLICATE
                 }
@@ -648,7 +649,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val rowId = transactionRepository.insertTransaction(finalEntity)
             if (rowId == -1L) return SaveOutcome.SKIPPED
 
-            if (ruleApps.isNotEmpty()) ruleRepository.saveRuleApplications(ruleApps)
+            saveRuleApplications(rowId, ruleApps)
             processBalanceUpdate(parsed, finalEntity, rowId)
             SaveOutcome.SAVED
 
@@ -656,6 +657,24 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.e(TAG, "Error saving transaction: ${e.message}")
             SaveOutcome.SKIPPED
         }
+    }
+
+    private suspend fun replaceRuleApplications(
+        transactionId: Long,
+        ruleApps: List<com.pennywiseai.tracker.domain.model.rule.RuleApplication>
+    ) {
+        ruleRepository.deleteRuleApplicationsForTransaction(transactionId.toString())
+        saveRuleApplications(transactionId, ruleApps)
+    }
+
+    private suspend fun saveRuleApplications(
+        transactionId: Long,
+        ruleApps: List<com.pennywiseai.tracker.domain.model.rule.RuleApplication>
+    ) {
+        if (ruleApps.isEmpty()) return
+        ruleRepository.saveRuleApplications(
+            ruleApps.map { it.copy(transactionId = transactionId.toString()) }
+        )
     }
 
     // ─── Balance update ───────────────────────────────────────────────────────
@@ -773,10 +792,28 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private suspend fun cleanUpAndFinalize(stats: ProcessingStats) {
         try { unrecognizedSmsRepository.cleanupOldEntries() }
         catch (e: Exception) { Log.e(TAG, "Cleanup error: ${e.message}") }
+        try {
+            val deletedDuplicates = cleanupExistingGPayDuplicates()
+            if (deletedDuplicates > 0) {
+                Log.i(TAG, "Cleaned up $deletedDuplicates existing GPay duplicate transactions")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "GPay duplicate cleanup error: ${e.message}")
+        }
         if (stats.saved.get() > 0) {
             try { llmRepository.updateSystemPrompt() }
             catch (e: Exception) { Log.e(TAG, "Prompt update error: ${e.message}") }
         }
+    }
+
+    private suspend fun cleanupExistingGPayDuplicates(): Int {
+        val duplicateIds = transactionRepository.findGPayDuplicateIdsForCleanup()
+        duplicateIds.forEach { id ->
+            transactionRepository.deleteTransactionById(id)
+            accountBalanceRepository.deleteBalancesForTransaction(id)
+            ruleRepository.deleteRuleApplicationsForTransaction(id.toString())
+        }
+        return duplicateIds.size
     }
 
     // ─── Progress ─────────────────────────────────────────────────────────────

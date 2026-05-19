@@ -539,7 +539,11 @@ class TransactionsViewModel @Inject constructor(
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
-        // Don't reset currency as it might be user preference
+        if (!_isUnifiedMode.value) {
+            viewModelScope.launch {
+                _selectedCurrency.value = userPreferencesRepository.baseCurrency.first()
+            }
+        }
     }
     
     fun applyInitialFilters(

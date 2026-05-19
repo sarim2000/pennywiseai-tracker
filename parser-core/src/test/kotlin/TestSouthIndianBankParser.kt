@@ -77,6 +77,34 @@ class SouthIndianBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "UPI credit extracts reference from info path",
+                message = "UPI Credit:INR Rs.15000.00 in A/c X2468. Info: UPI/TGRB/111222333444/ Sample Payer on 26-12-25 19:02:01.Final balance is Rs.34567.67 -South Indian Bank",
+                sender = "SIBSMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Sample Payer",
+                    accountLast4 = "2468",
+                    balance = BigDecimal("34567.67"),
+                    reference = "111222333444"
+                )
+            ),
+            ParserTestCase(
+                name = "UPI debit extracts reference from compact info path",
+                message = "UPI debit:INR Rs.250.50 in A/c X2468. Info:UPI/ICIC/222333444555/Demo Merchant on 26-12-25 19:05:01. Final balance is Rs.34317.17 -South Indian Bank",
+                sender = "VM-SIBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250.50"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Demo Merchant",
+                    accountLast4 = "2468",
+                    balance = BigDecimal("34317.17"),
+                    reference = "222333444555"
+                )
+            ),
+            ParserTestCase(
                 name = "IMPS credit with different bank code and merchant",
                 message = "Dear Customer, Your A/c X1234 is credited with Rs.1000.00 Info: IMPS/PUNB/123456789012/ METRO TRADERS. Final balance is Rs.10000.00-South Indian Bank",
                 sender = "SIBSMS",

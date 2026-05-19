@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -215,6 +216,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val processed = AtomicInteger(0)
         val parsed    = AtomicInteger(0)
         val saved     = AtomicInteger(0)
+        val duplicates = AtomicInteger(0)
         val blocked   = AtomicInteger(0)
         val startTime = System.currentTimeMillis()
 
@@ -263,6 +265,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val remaining = total - processed.get()
             return if (mps > 0f && remaining > 0) maxOf(0, (remaining / mps).toInt()) else 0
         }
+    }
+
+    private enum class SaveOutcome {
+        SAVED,
+        UPDATED_DUPLICATE,
+        SKIPPED_DUPLICATE,
+        SKIPPED
     }
 
     // ─── Expedited work ───────────────────────────────────────────────────────
@@ -402,9 +411,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             stats.parsed.incrementAndGet()
                             Trace.beginSection("saveTransaction")
                             try {
-                                if (saveTransaction(result.parsed, result.sms, stats)) {
-                                    stats.saved.incrementAndGet()
-                                    widgetNeedsUpdate = true
+                                when (saveTransaction(result.parsed, result.sms, stats)) {
+                                    SaveOutcome.SAVED -> {
+                                        stats.saved.incrementAndGet()
+                                        widgetNeedsUpdate = true
+                                    }
+                                    SaveOutcome.UPDATED_DUPLICATE -> {
+                                        stats.duplicates.incrementAndGet()
+                                        widgetNeedsUpdate = true
+                                    }
+                                    SaveOutcome.SKIPPED_DUPLICATE -> {
+                                        stats.duplicates.incrementAndGet()
+                                    }
+                                    SaveOutcome.SKIPPED -> Unit
                                 }
                             } finally {
                                 Trace.endSection()
@@ -580,13 +599,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Stage 3b: Regular transactions ──────────────────────────────────────
 
-    private suspend fun saveTransaction(parsed: ParsedTransaction, sms: SmsMessage, stats: ProcessingStats): Boolean {
+    private suspend fun saveTransaction(parsed: ParsedTransaction, sms: SmsMessage, stats: ProcessingStats): SaveOutcome {
         return try {
             val entity = parsed.toEntity()
 
             // getTransactionByHash returns rows where is_deleted=1 too, so
             // soft-deleted transactions are never re-imported.
-            if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return false
+            if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return SaveOutcome.SKIPPED
 
             val customCategory = merchantMappingCache[entity.merchantName]
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
@@ -594,7 +613,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
             if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) {
                 stats.blocked.incrementAndGet()
-                return false
+                return SaveOutcome.SKIPPED
             }
 
             val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
@@ -609,16 +628,33 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 withRules.copy(isRecurring = true)
             } else withRules
 
+            val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
+            if (duplicate != null) {
+                if (TransactionDeduplication.shouldReplaceWithIncoming(duplicate, finalEntity)) {
+                    val replacement = finalEntity.copy(
+                        id = duplicate.id,
+                        transactionHash = duplicate.transactionHash,
+                        isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
+                        createdAt = duplicate.createdAt
+                    )
+                    transactionRepository.updateTransaction(replacement)
+                    accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                    processBalanceUpdate(parsed, replacement, duplicate.id)
+                    return SaveOutcome.UPDATED_DUPLICATE
+                }
+                return SaveOutcome.SKIPPED_DUPLICATE
+            }
+
             val rowId = transactionRepository.insertTransaction(finalEntity)
-            if (rowId == -1L) return false
+            if (rowId == -1L) return SaveOutcome.SKIPPED
 
             if (ruleApps.isNotEmpty()) ruleRepository.saveRuleApplications(ruleApps)
             processBalanceUpdate(parsed, finalEntity, rowId)
-            true
+            SaveOutcome.SAVED
 
         } catch (e: Exception) {
             Log.e(TAG, "Error saving transaction: ${e.message}")
-            false
+            SaveOutcome.SKIPPED
         }
     }
 
@@ -936,6 +972,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         │  Processed : ${stats.processed.get()}
         │  Parsed    : ${stats.parsed.get()}
         │  Saved     : ${stats.saved.get()}
+        │  Duplicates: ${stats.duplicates.get()}
         │  Elapsed   : ${elapsedMs}ms
         │  Speed     : ${"%.1f".format(stats.msgPerSec())} msg/s
         └──────────────────────────────────────────────

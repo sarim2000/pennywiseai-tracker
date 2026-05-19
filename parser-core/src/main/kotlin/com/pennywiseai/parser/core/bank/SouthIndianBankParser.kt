@@ -136,7 +136,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
         if (message.contains("UPI", ignoreCase = true)) {
             // Pattern for "Info:UPI/IPOS/number/MERCHANT NAME on" format
             val infoPattern =
-                Regex("""Info:UPI/[^/]+/[^/]+/([^/]+?)\s+on""", RegexOption.IGNORE_CASE)
+                Regex("""Info:\s*UPI/[^/]+/\d{12}/\s*([^/]+?)\s+on""", RegexOption.IGNORE_CASE)
             infoPattern.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
@@ -263,6 +263,15 @@ class SouthIndianBankParser : BaseIndianBankParser() {
                     return ref
                 }
             }
+        }
+
+        // Pattern for UPI reference in "Info: UPI/provider/rrn/..." format.
+        val upiInfoPattern = Regex(
+            """Info:\s*UPI/[^/]+/(\d{12})(?:/|\s|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        upiInfoPattern.find(message)?.let { match ->
+            return match.groupValues[1].trim()
         }
 
         // Pattern for RRN (e.g., "RRN:523273398527" or "RRN:567304295699.")

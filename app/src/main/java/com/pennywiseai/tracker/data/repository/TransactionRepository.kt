@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -137,12 +138,36 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
 
+    suspend fun findPotentialDuplicates(transaction: TransactionEntity): List<TransactionEntity> {
+        if (!TransactionDeduplication.hasUpiReference(transaction)) return emptyList()
+
+        return transactionDao.findPotentialDuplicatesByReference(
+            reference = transaction.reference.orEmpty(),
+            amount = transaction.amount,
+            transactionType = transaction.transactionType,
+            currency = transaction.currency,
+            accountNumber = transaction.accountNumber,
+            startDate = transaction.dateTime.minus(TransactionDeduplication.UPI_DUPLICATE_WINDOW),
+            endDate = transaction.dateTime.plus(TransactionDeduplication.UPI_DUPLICATE_WINDOW)
+        ).filter { candidate ->
+            candidate.id != transaction.id &&
+                    TransactionDeduplication.isSameUpiTransaction(candidate, transaction)
+        }
+    }
+
     suspend fun getTransactionByAmountAndDate(
         amount: BigDecimal,
         dateStart: LocalDateTime,
         dateEnd: LocalDateTime
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
+
+    suspend fun cleanupGPayDuplicates(): Int {
+        val candidates = transactionDao.findPotentialDuplicatesByReference()
+        val duplicateIds = TransactionDeduplication.duplicateIdsToDelete(candidates)
+        duplicateIds.forEach { id -> transactionDao.softDeleteTransaction(id) }
+        return duplicateIds.size
+    }
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))

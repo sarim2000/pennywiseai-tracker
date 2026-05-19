@@ -33,7 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -510,7 +509,11 @@ private fun AnalyticsFilterBar(
 
         item {
             Box {
-                AnalyticsFilterChip(
+                ExpressiveFilterChip(
+                    colors = analyticsFilterChipColors(),
+                    border = analyticsFilterChipBorder(
+                        selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null
+                    ),
                     selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null,
                     text = if (selectedPeriod == TimePeriod.CUSTOM && customRangeLabel != null) {
                         customRangeLabel
@@ -543,7 +546,11 @@ private fun AnalyticsFilterBar(
 
         item {
             Box {
-                AnalyticsFilterChip(
+                ExpressiveFilterChip(
+                    colors = analyticsFilterChipColors(),
+                    border = analyticsFilterChipBorder(
+                        selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE
+                    ),
                     selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE,
                     text = transactionTypeFilter.shortLabel(),
                     icon = transactionTypeFilter.filterIcon(),
@@ -575,7 +582,11 @@ private fun AnalyticsFilterBar(
         if (availableCurrencies.size > 1 && !isUnifiedMode) {
             item {
                 Box {
-                    AnalyticsFilterChip(
+                    ExpressiveFilterChip(
+                        colors = analyticsFilterChipColors(),
+                        border = analyticsFilterChipBorder(
+                            selected = selectedCurrency != availableCurrencies.firstOrNull()
+                        ),
                         selected = selectedCurrency != availableCurrencies.firstOrNull(),
                         text = selectedCurrency.ifBlank { "Currency" },
                         icon = Icons.Default.CurrencyExchange,
@@ -606,7 +617,9 @@ private fun AnalyticsFilterBar(
         if (availableCategories.isNotEmpty() || categoryFilter != null) {
             item {
                 Box {
-                    AnalyticsFilterChip(
+                    ExpressiveFilterChip(
+                        colors = analyticsFilterChipColors(),
+                        border = analyticsFilterChipBorder(selected = categoryFilter != null),
                         selected = categoryFilter != null,
                         text = categoryFilter ?: "Category",
                         icon = Icons.Default.Category,
@@ -660,56 +673,23 @@ private fun AnalyticsFilterBar(
 }
 
 @Composable
-private fun AnalyticsFilterChip(
-    selected: Boolean,
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        shape = if (selected) MaterialTheme.shapes.medium else MaterialTheme.shapes.extraLarge,
-        label = {
-            Text(
-                text = text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.small)
-            )
-        },
-        trailingIcon = {
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.small)
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            labelColor = MaterialTheme.colorScheme.onSurface,
-            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            selected = selected,
-            enabled = true,
-            borderWidth = 0.dp,
-            selectedBorderWidth = 0.dp
-        ),
-        modifier = modifier
-    )
-}
+private fun analyticsFilterChipColors() = FilterChipDefaults.filterChipColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    labelColor = MaterialTheme.colorScheme.onSurface,
+    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+)
+
+@Composable
+private fun analyticsFilterChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
+    selected = selected,
+    enabled = true,
+    borderWidth = 0.dp,
+    selectedBorderWidth = 0.dp
+)
 
 @Composable
 private fun CategoryListItem(

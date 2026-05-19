@@ -33,6 +33,25 @@ class TransactionDeduplicationTest {
     }
 
     @Test
+    fun `does not replace account bank transaction with partner bank transaction`() {
+        val accountBank = transaction(
+            id = 1,
+            bankName = "South Indian Bank",
+            dateTime = baseTime,
+            balanceAfter = null
+        )
+        val partnerBank = transaction(
+            id = 2,
+            bankName = "State Bank of India",
+            dateTime = baseTime.plusMinutes(2),
+            balanceAfter = BigDecimal("34567.67")
+        )
+
+        assertTrue(TransactionDeduplication.isSameUpiTransaction(accountBank, partnerBank))
+        assertFalse(TransactionDeduplication.shouldReplaceWithIncoming(accountBank, partnerBank))
+    }
+
+    @Test
     fun `does not match outside duplicate window`() {
         val first = transaction(id = 1, dateTime = baseTime)
         val later = transaction(id = 2, dateTime = baseTime.plusMinutes(4))
@@ -57,17 +76,28 @@ class TransactionDeduplicationTest {
     }
 
     @Test
-    fun `cleanup keeps earliest transaction per reference amount account and day`() {
+    fun `cleanup keeps earliest transaction per matching time window`() {
         val transactions = listOf(
             transaction(id = 3, dateTime = baseTime.plusMinutes(2)),
             transaction(id = 1, dateTime = baseTime),
             transaction(id = 2, dateTime = baseTime.plusMinutes(1)),
-            transaction(id = 4, dateTime = baseTime.plusDays(1)),
+            transaction(id = 4, dateTime = baseTime.plusMinutes(10)),
             transaction(id = 5, amount = BigDecimal("15001.00")),
             transaction(id = 6, accountNumber = "1357")
         )
 
         assertEquals(listOf(2L, 3L), TransactionDeduplication.duplicateIdsToDelete(transactions))
+    }
+
+    @Test
+    fun `cleanup catches duplicate across midnight within matching window`() {
+        val beforeMidnight = LocalDateTime.of(2025, 12, 26, 23, 59, 0)
+        val transactions = listOf(
+            transaction(id = 1, dateTime = beforeMidnight),
+            transaction(id = 2, dateTime = beforeMidnight.plusMinutes(2))
+        )
+
+        assertEquals(listOf(2L), TransactionDeduplication.duplicateIdsToDelete(transactions))
     }
 
     private fun transaction(

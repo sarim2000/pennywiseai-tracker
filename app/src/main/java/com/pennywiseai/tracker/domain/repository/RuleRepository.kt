@@ -23,4 +23,5 @@ interface RuleRepository {
     suspend fun getRuleApplicationsForTransaction(transactionId: String): List<RuleApplication>
     fun getRuleApplicationsForRule(ruleId: String): Flow<List<RuleApplication>>
     suspend fun getRuleApplicationCount(ruleId: String): Int
+    suspend fun deleteRuleApplicationsForTransaction(transactionId: String)
 }

@@ -137,6 +137,10 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun deleteBalanceById(id: Long) {
         accountBalanceDao.deleteBalanceById(id)
     }
+
+    suspend fun deleteBalancesForTransaction(transactionId: Long): Int {
+        return accountBalanceDao.deleteBalancesForTransaction(transactionId)
+    }
     
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal) {
         accountBalanceDao.updateBalanceById(id, newBalance)

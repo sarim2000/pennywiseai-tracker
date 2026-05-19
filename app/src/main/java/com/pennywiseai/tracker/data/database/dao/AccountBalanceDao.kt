@@ -157,6 +157,9 @@ interface AccountBalanceDao {
     
     @Query("DELETE FROM account_balances WHERE id = :id")
     suspend fun deleteBalanceById(id: Long)
+
+    @Query("DELETE FROM account_balances WHERE transaction_id = :transactionId")
+    suspend fun deleteBalancesForTransaction(transactionId: Long): Int
     
     @Query("UPDATE account_balances SET balance = :newBalance WHERE id = :id")
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal)

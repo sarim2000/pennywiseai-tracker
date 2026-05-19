@@ -341,9 +341,12 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         // Pattern for "HDFC Bank Credit Card ####" / "HDFC Bank Debit Card ####"
-        // (refund SMS uses this format without the `x` mask prefix).
+        // (refund SMS uses this format without the `x` mask prefix). The `\b`
+        // after the capture group prevents us from greedily grabbing the
+        // first 4 of a longer digit run, which would return the wrong
+        // last-4 if HDFC ever uses 5+ digits.
         val plainCardPattern = Regex(
-            """HDFC\s+Bank\s+(?:Credit|Debit)\s+Card\s+(\d{4})""",
+            """HDFC\s+Bank\s+(?:Credit|Debit)\s+Card\s+(\d{4})\b""",
             RegexOption.IGNORE_CASE
         )
         plainCardPattern.find(message)?.let { match ->

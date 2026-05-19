@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SettingsEthernet
 import androidx.compose.material3.*
@@ -18,11 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -57,131 +58,165 @@ fun TransactionTotalsCard(
         label = "net_alpha"
     )
 
-    PennyWiseCard(
-        modifier = modifier.fillMaxWidth()
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.BottomEnd
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.lg),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(Spacing.lg)
         ) {
-            // Currency Selector (if multiple currencies available)
-            if (availableCurrencies.size > 1 && !isUnifiedMode) {
-                CurrencySelector(
-                    selectedCurrency = currency,
-                    availableCurrencies = availableCurrencies,
-                    onCurrencySelected = onCurrencySelected,
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.xs)
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-            }
-
-            // Totals Row with individual backgrounds
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.sm)
             ) {
-                // Income Column
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(
-                                topStart = Spacing.md,
-                                bottomStart = Spacing.md,
-                                topEnd = Spacing.xs,
-                                bottomEnd = Spacing.xs
-                            )
-                        )
-                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
-                    contentAlignment = Alignment.Center
+                // Totals Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    TotalColumn(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                contentDescription = "Income",
-                                modifier = Modifier.size(Dimensions.Icon.medium),
-                                tint = if (!isSystemInDarkTheme()) income_light else income_dark
+                    // Income Column
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(
+                                    topEnd = Spacing.xs,
+                                    topStart = Spacing.md,
+                                    bottomEnd = Spacing.xs,
+                                    bottomStart = Spacing.md
+                                )
                             )
-                        },
-                        label = "Income",
-                        amount = CurrencyFormatter.formatCurrency(income, currency),
-                        color = if (!isSystemInDarkTheme()) income_light else income_dark,
-                        modifier = Modifier.alpha(incomeAlpha)
-                    )
-                }
-
-                // Expenses Column
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(Spacing.xs)
+                            .padding(Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TotalColumn(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                    contentDescription = "Income",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (!isSystemInDarkTheme()) income_light else income_dark
+                                )
+                            },
+                            label = "Income",
+                            amount = CurrencyFormatter.formatCurrency(income, currency),
+                            color = if (!isSystemInDarkTheme()) income_light else income_dark,
+                            modifier = Modifier.alpha(incomeAlpha)
                         )
-                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
-                    contentAlignment = Alignment.Center
-                ) {
-                    TotalColumn(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                                contentDescription = "Expenses",
-                                modifier = Modifier.size(Dimensions.Icon.medium),
-                                tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                            )
-                        },
-                        label = "Expenses",
-                        amount = CurrencyFormatter.formatCurrency(expenses, currency),
-                        color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
-                        modifier = Modifier.alpha(expenseAlpha)
+                    }
+
+                    // Vertical Divider
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .padding(horizontal = 0.5.dp),
+                        color = Color.Transparent
                     )
-                }
 
-                // Net Balance Column
-                val netColor = when {
-                    netBalance > BigDecimal.ZERO -> if (!isSystemInDarkTheme()) income_light else income_dark
-                    netBalance < BigDecimal.ZERO -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-
-                val netPrefix = when {
-                    netBalance > BigDecimal.ZERO -> "+"
-                    else -> ""
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(
-                                topStart = Spacing.xs,
-                                bottomStart = Spacing.xs,
-                                topEnd = Spacing.md,
-                                bottomEnd = Spacing.md
+                    // Expenses Column
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(
+                                    topEnd = Spacing.xs,
+                                    topStart = Spacing.xs,
+                                    bottomEnd = Spacing.xs,
+                                    bottomStart = Spacing.xs
+                                )
                             )
+                            .padding(Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TotalColumn(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = "Expenses",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                )
+                            },
+                            label = "Expenses",
+                            amount = CurrencyFormatter.formatCurrency(expenses, currency),
+                            color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
+                            modifier = Modifier.alpha(expenseAlpha)
                         )
-                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
-                    contentAlignment = Alignment.Center
-                ) {
-                    TotalColumn(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Filled.SettingsEthernet,
-                                contentDescription = "Net",
-                                modifier = Modifier.size(Dimensions.Icon.medium),
-                                tint = netColor
-                            )
-                        },
-                        label = "Net",
-                        amount = "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
-                        color = netColor,
-                        modifier = Modifier.alpha(netAlpha)
+                    }
+
+                    // Vertical Divider
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .padding(horizontal = 0.5.dp),
+                        color = Color.Transparent
                     )
+
+                    // Net Balance Column
+                    val netColor = when {
+                        netBalance > BigDecimal.ZERO -> if (!isSystemInDarkTheme()) income_light else income_dark
+                        netBalance < BigDecimal.ZERO -> if (!isSystemInDarkTheme()) expense_light else expense_dark
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    val netPrefix = when {
+                        netBalance > BigDecimal.ZERO -> "+"
+                        else -> ""
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(
+                                    topEnd = Spacing.md,
+                                    topStart = Spacing.xs,
+                                    bottomEnd = Spacing.md,
+                                    bottomStart = Spacing.xs
+                                )
+                            )
+                            .padding(Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TotalColumn(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Filled.SettingsEthernet,
+                                    contentDescription = "Net",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = netColor
+                                )
+                            },
+                            label = "Net",
+                            amount = "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
+                            color = netColor,
+                            modifier = Modifier.alpha(netAlpha)
+                        )
+                    }
                 }
             }
+        }
+
+        if (availableCurrencies.size > 1 && !isUnifiedMode) {
+            CurrencyPickerPill(
+                selectedCurrency = currency,
+                availableCurrencies = availableCurrencies,
+                onCurrencySelected = onCurrencySelected,
+                modifier = Modifier.padding(end = Spacing.sm)
+            )
         }
     }
 }
@@ -212,20 +247,19 @@ private fun TotalColumn(
         }
         Text(
             text = amount,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             color = color,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.basicMarquee()
+            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CurrencySelector(
+private fun CurrencyPickerPill(
     selectedCurrency: String,
     availableCurrencies: List<String>,
     onCurrencySelected: (String) -> Unit,
@@ -233,17 +267,12 @@ private fun CurrencySelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
+    Box(modifier = modifier) {
         Surface(
-            shape = RoundedCornerShape(Spacing.sm),
+            shape = RoundedCornerShape(Spacing.lg),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .clickable { expanded = !expanded }
+            tonalElevation = 0.dp,
+            modifier = Modifier.clickable { expanded = true }
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -264,9 +293,10 @@ private fun CurrencySelector(
             }
         }
 
-        ExposedDropdownMenu(
+        DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            shape = MaterialTheme.shapes.large
         ) {
             availableCurrencies.forEach { currency ->
                 DropdownMenuItem(
@@ -274,6 +304,14 @@ private fun CurrencySelector(
                     onClick = {
                         onCurrencySelected(currency)
                         expanded = false
+                    },
+                    leadingIcon = {
+                        if (currency == selectedCurrency) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null
+                            )
+                        }
                     }
                 )
             }

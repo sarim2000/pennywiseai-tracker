@@ -34,17 +34,20 @@ class SubscriptionsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 subscriptionRepository.getActiveSubscriptions(),
+                subscriptionRepository.getEndedSubscriptions(),
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency
-            ) { subscriptions, isUnified, displayCurrency, baseCurrency ->
-                arrayOf(subscriptions, isUnified, displayCurrency, baseCurrency)
+            ) { subscriptions, ended, isUnified, displayCurrency, baseCurrency ->
+                arrayOf(subscriptions, ended, isUnified, displayCurrency, baseCurrency)
             }.collect { values ->
                 @Suppress("UNCHECKED_CAST")
                 val subscriptions = values[0] as List<SubscriptionEntity>
-                val isUnified = values[1] as Boolean
-                val displayCurrency = values[2] as String
-                val baseCurrency = values[3] as String
+                @Suppress("UNCHECKED_CAST")
+                val endedSubscriptions = values[1] as List<SubscriptionEntity>
+                val isUnified = values[2] as Boolean
+                val displayCurrency = values[3] as String
+                val baseCurrency = values[4] as String
                 val totalMonthlyAmount = if (isUnified) {
                     var total = BigDecimal.ZERO
                     for (sub in subscriptions) {
@@ -73,6 +76,7 @@ class SubscriptionsViewModel @Inject constructor(
 
                 _uiState.value = _uiState.value.copy(
                     activeSubscriptions = subscriptions,
+                    endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
                     convertedAmounts = convertedAmounts,
                     displayCurrency = if (isUnified) displayCurrency else baseCurrency,
@@ -98,6 +102,18 @@ class SubscriptionsViewModel @Inject constructor(
                 subscriptionRepository.unhideSubscription(subscription.id)
                 _uiState.value = _uiState.value.copy(lastHiddenSubscription = null)
             }
+        }
+    }
+
+    fun markAsEnded(subscriptionId: Long) {
+        viewModelScope.launch {
+            subscriptionRepository.markAsEnded(subscriptionId)
+        }
+    }
+
+    fun reactivateSubscription(subscriptionId: Long) {
+        viewModelScope.launch {
+            subscriptionRepository.reactivateSubscription(subscriptionId)
         }
     }
 
@@ -131,6 +147,7 @@ class SubscriptionsViewModel @Inject constructor(
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),
+    val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
     val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,
     val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val displayCurrency: String? = null,

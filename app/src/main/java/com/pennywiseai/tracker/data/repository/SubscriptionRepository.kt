@@ -29,8 +29,11 @@ class SubscriptionRepository @Inject constructor(
     fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> = 
         subscriptionDao.getAllSubscriptions()
     
-    fun getActiveSubscriptions(): Flow<List<SubscriptionEntity>> = 
+    fun getActiveSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getActiveSubscriptions()
+
+    fun getEndedSubscriptions(): Flow<List<SubscriptionEntity>> =
+        subscriptionDao.getSubscriptionsByState(SubscriptionState.ENDED)
     
     fun getUpcomingSubscriptions(daysAhead: Int = 7): Flow<List<SubscriptionEntity>> {
         val futureDate = LocalDate.now().plusDays(daysAhead.toLong())
@@ -54,7 +57,26 @@ class SubscriptionRepository @Inject constructor(
         updateSubscriptionState(id, SubscriptionState.HIDDEN)
     }
     
-    suspend fun unhideSubscription(id: Long) = 
+    suspend fun unhideSubscription(id: Long) =
+        updateSubscriptionState(id, SubscriptionState.ACTIVE)
+
+    /**
+     * Marks a subscription as ENDED. Unlike HIDDEN, an ENDED subscription
+     * is treated as terminal: new mandate SMS for the same merchant/amount
+     * will not auto-reactivate it. The user can still manually reactivate
+     * via [reactivateSubscription].
+     */
+    suspend fun markAsEnded(id: Long) {
+        Log.d(TAG, "Marking subscription with ID: $id as ENDED")
+        updateSubscriptionState(id, SubscriptionState.ENDED)
+    }
+
+    /**
+     * Manual escape hatch: revert ENDED → ACTIVE. Same code path as
+     * unhideSubscription but separated for symmetry with markAsEnded so
+     * callers can express intent clearly.
+     */
+    suspend fun reactivateSubscription(id: Long) =
         updateSubscriptionState(id, SubscriptionState.ACTIVE)
     
     suspend fun deleteSubscription(id: Long) = 
@@ -170,6 +192,14 @@ class SubscriptionRepository @Inject constructor(
                   "StoredDate=${it.nextPaymentDate}" } ?: "NOT FOUND"}")
 
         val subscription = if (existing != null) {
+            // ENDED is terminal — the user explicitly cancelled and we never
+            // auto-reactivate or overwrite. Return the ID untouched so any
+            // downstream linking still resolves but the row stays cancelled.
+            if (existing.state == SubscriptionState.ENDED) {
+                Log.d(TAG, "Subscription ${existing.id} is ENDED — leaving untouched.")
+                return existing.id
+            }
+
             // Check if this is a hidden subscription that should be reactivated
             // Only reactivate if the new payment date is LATER than the stored date
             val shouldReactivate = existing.state == SubscriptionState.HIDDEN &&

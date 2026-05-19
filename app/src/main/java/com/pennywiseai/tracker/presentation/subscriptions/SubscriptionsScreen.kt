@@ -185,12 +185,28 @@ fun SubscriptionsScreen(
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onHide = { viewModel.hideSubscription(subscription.id) },
+                            onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
                             onEdit = { merchantName, amount, nextDate, category ->
                                 viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
                     }
+                }
+            }
+
+            // Cancelled subscriptions (collapsible; only rendered when any
+            // exist so the section disappears entirely on empty state).
+            if (uiState.endedSubscriptions.isNotEmpty()) {
+                item {
+                    var expanded by rememberSaveable { mutableStateOf(false) }
+                    EndedSubscriptionsSection(
+                        endedSubscriptions = uiState.endedSubscriptions,
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        onReactivate = { viewModel.reactivateSubscription(it) },
+                        onDelete = { viewModel.deleteSubscription(it) }
+                    )
                 }
             }
 
@@ -210,6 +226,89 @@ fun SubscriptionsScreen(
                 items(5) {
                     SubscriptionItemSkeleton()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EndedSubscriptionsSection(
+    endedSubscriptions: List<SubscriptionEntity>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onReactivate: (Long) -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Cancelled (${endedSubscriptions.size})",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                endedSubscriptions.forEach { sub ->
+                    EndedSubscriptionItem(
+                        subscription = sub,
+                        onReactivate = { onReactivate(sub.id) },
+                        onDelete = { onDelete(sub.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EndedSubscriptionItem(
+    subscription: SubscriptionEntity,
+    onReactivate: () -> Unit,
+    onDelete: () -> Unit
+) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = subscription.merchantName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = CurrencyFormatter.formatCurrency(
+                        subscription.amount, subscription.currency
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = onReactivate) { Text("Reactivate") }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
@@ -245,6 +344,7 @@ private fun SwipeableSubscriptionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onHide: () -> Unit,
+    onMarkAsEnded: () -> Unit = {},
     onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit = { _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
@@ -442,6 +542,14 @@ private fun SwipeableSubscriptionItem(
                                     onClick = {
                                         showMenu = false
                                         showEditDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("End subscription") },
+                                    leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                    onClick = {
+                                        showMenu = false
+                                        onMarkAsEnded()
                                     }
                                 )
                                 DropdownMenuItem(

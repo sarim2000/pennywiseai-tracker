@@ -419,15 +419,28 @@ class ManageAccountsViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                val existing = cardRepository.getCardById(cardId) ?: return@launch
+                val existing = cardRepository.getCardById(cardId)
+                if (existing == null) {
+                    // The card was removed from another session between the
+                    // dialog opening and Save. Surface it so the user isn't
+                    // left wondering why nothing happened.
+                    _uiState.update {
+                        it.copy(errorMessage = "Card no longer exists — it may have been deleted.")
+                    }
+                    return@launch
+                }
+                // updatedAt is stamped inside CardRepository.updateCard, so
+                // we leave it alone here.
                 cardRepository.updateCard(
                     existing.copy(
                         bankName = bankName.trim(),
                         cardType = cardType,
-                        nickname = nickname?.trim()?.takeIf { it.isNotEmpty() },
-                        updatedAt = LocalDateTime.now()
+                        nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
                     )
                 )
+                _uiState.update { it.copy(successMessage = "Card updated") }
+                delay(2000)
+                _uiState.update { it.copy(successMessage = null) }
                 loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)

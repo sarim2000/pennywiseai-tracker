@@ -100,6 +100,46 @@ class TransactionDeduplicationTest {
         assertEquals(listOf(2L), TransactionDeduplication.duplicateIdsToDelete(transactions))
     }
 
+    @Test
+    fun `cleanup keeps account bank over earlier partner bank duplicate`() {
+        val transactions = listOf(
+            transaction(
+                id = 1,
+                bankName = "State Bank of India",
+                dateTime = baseTime,
+                balanceAfter = null
+            ),
+            transaction(
+                id = 2,
+                bankName = "South Indian Bank",
+                dateTime = baseTime.plusMinutes(2),
+                balanceAfter = BigDecimal("34567.67")
+            )
+        )
+
+        assertEquals(listOf(1L), TransactionDeduplication.duplicateIdsToDelete(transactions))
+    }
+
+    @Test
+    fun `cleanup keeps balance bearing transaction when bank priority is equal`() {
+        val transactions = listOf(
+            transaction(
+                id = 1,
+                bankName = "South Indian Bank",
+                dateTime = baseTime,
+                balanceAfter = null
+            ),
+            transaction(
+                id = 2,
+                bankName = "South Indian Bank",
+                dateTime = baseTime.plusMinutes(1),
+                balanceAfter = BigDecimal("34567.67")
+            )
+        )
+
+        assertEquals(listOf(1L), TransactionDeduplication.duplicateIdsToDelete(transactions))
+    }
+
     private fun transaction(
         id: Long,
         amount: BigDecimal = BigDecimal("15000.00"),

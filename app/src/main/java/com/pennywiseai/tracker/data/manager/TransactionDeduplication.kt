@@ -57,19 +57,36 @@ object TransactionDeduplication {
     }
 
     private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Long> {
-        val seen = mutableListOf<TransactionEntity>()
-        val duplicateIds = mutableListOf<Long>()
+        val duplicateClusters = mutableListOf<MutableList<TransactionEntity>>()
 
         group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
             .forEach { transaction ->
-                if (seen.any { previous -> isSameUpiTransaction(previous, transaction) }) {
-                    duplicateIds += transaction.id
+                val matchingCluster = duplicateClusters.firstOrNull { cluster ->
+                    cluster.any { previous -> isSameUpiTransaction(previous, transaction) }
                 }
-                seen += transaction
+
+                if (matchingCluster == null) {
+                    duplicateClusters += mutableListOf(transaction)
+                } else {
+                    matchingCluster += transaction
+                }
             }
 
-        return duplicateIds
+        return duplicateClusters.flatMap { cluster ->
+            val keeper = cluster.minWith(transactionQualityComparator)
+            cluster
+                .filter { it.id != keeper.id }
+                .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
+                .map { it.id }
+        }
     }
+
+    private val transactionQualityComparator = compareBy<TransactionEntity>(
+        { it.bankName.equals("State Bank of India", ignoreCase = true) },
+        { it.balanceAfter == null },
+        { it.dateTime },
+        { it.id }
+    )
 
     private fun accountsMatch(existingAccount: String?, incomingAccount: String?): Boolean {
         return existingAccount.isNullOrBlank() ||

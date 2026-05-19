@@ -718,7 +718,7 @@ private fun TransactionFilterHeader(
                         ExpressiveFilterChip(
                             selected = transactionTypeFilter != TransactionTypeFilter.ALL,
                             text = transactionTypeFilter.shortLabel(),
-                            icon = transactionTypeFilter.icon(),
+                            icon = transactionTypeFilter.filterIcon(),
                             onClick = onTypeClick
                         )
 
@@ -735,7 +735,7 @@ private fun TransactionFilterHeader(
                                             Icon(Icons.Default.Check, contentDescription = null)
                                         } else {
                                             Icon(
-                                                imageVector = typeFilter.icon(),
+                                                imageVector = typeFilter.filterIcon(),
                                                 contentDescription = null
                                             )
                                         }
@@ -782,10 +782,14 @@ private fun TransactionFilterHeader(
                                 DropdownMenuItem(
                                     text = { Text(category, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
-                                        CategoryIcon(
-                                            category = category,
-                                            size = Dimensions.Icon.small
-                                        )
+                                        if (categoryFilter == category) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        } else {
+                                            CategoryIcon(
+                                                category = category,
+                                                size = Dimensions.Icon.small
+                                            )
+                                        }
                                     },
                                     onClick = { onCategorySelected(category) }
                                 )
@@ -808,10 +812,14 @@ private fun TransactionFilterHeader(
                                 DropdownMenuItem(
                                     text = { Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
-                                        Icon(
-                                            profileIcon(profile),
-                                            contentDescription = null
-                                        )
+                                        if (selectedProfileId == profile.id) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        } else {
+                                            Icon(
+                                                profileIcon(profile),
+                                                contentDescription = null
+                                            )
+                                        }
                                     },
                                     onClick = { onProfileSelected(profile.id) }
                                 )
@@ -881,24 +889,6 @@ private fun moreFiltersLabel(
         hasProfileFilter -> selectedProfileName
         else -> "Filters"
     }
-}
-
-private fun TransactionTypeFilter.shortLabel(): String = when (this) {
-    TransactionTypeFilter.ALL -> "All"
-    TransactionTypeFilter.INCOME -> "Income"
-    TransactionTypeFilter.EXPENSE -> "Expense"
-    TransactionTypeFilter.CREDIT -> "Credit"
-    TransactionTypeFilter.TRANSFER -> "Transfer"
-    TransactionTypeFilter.INVESTMENT -> "Invest"
-}
-
-private fun TransactionTypeFilter.icon(): androidx.compose.ui.graphics.vector.ImageVector = when (this) {
-    TransactionTypeFilter.ALL -> Icons.AutoMirrored.Filled.ReceiptLong
-    TransactionTypeFilter.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-    TransactionTypeFilter.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-    TransactionTypeFilter.CREDIT -> Icons.Default.CreditCard
-    TransactionTypeFilter.TRANSFER -> Icons.Default.SwapHoriz
-    TransactionTypeFilter.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

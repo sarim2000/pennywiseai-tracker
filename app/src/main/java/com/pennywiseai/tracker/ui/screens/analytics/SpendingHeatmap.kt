@@ -17,8 +17,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.BalancePoint
+import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import java.time.DayOfWeek
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @Composable
@@ -40,40 +40,7 @@ fun SpendingHeatmap(
     val totalWeeks = ChronoUnit.WEEKS.between(startDate, endDate.plusDays(1)).toInt() + 1
 
     val monthLabels = remember(startDate, endDate) {
-        val allMonthStarts = mutableListOf<Pair<Int, String>>()
-        var current = startDate
-        var lastMonth = -1
-        var weekIndex = 0
-
-        while (current <= endDate) {
-            if (current.monthValue != lastMonth) {
-                val formatter = DateTimeFormatter.ofPattern("MMM")
-                allMonthStarts.add(weekIndex to current.format(formatter))
-                lastMonth = current.monthValue
-            }
-            current = current.plusWeeks(1)
-            weekIndex++
-        }
-
-        val filteredLabels = mutableListOf<Pair<Int, String>>()
-        for (i in allMonthStarts.indices) {
-            val (week, label) = allMonthStarts[i]
-
-            if (i == 0 && allMonthStarts.size > 1) {
-                val nextWeek = allMonthStarts[1].first
-                if (nextWeek - week < 4) continue
-            }
-
-            if (filteredLabels.isEmpty()) {
-                filteredLabels.add(week to label)
-            } else {
-                val lastAddedWeek = filteredLabels.last().first
-                if (week - lastAddedWeek >= 4) {
-                    filteredLabels.add(week to label)
-                }
-            }
-        }
-        filteredLabels
+        buildHeatmapMonthLabels(startDate, endDate)
     }
 
     val scrollState = rememberScrollState()

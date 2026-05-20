@@ -23,15 +23,15 @@ class ManjushreeFinanceParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Debited example with merchant",
-                message = """Your A/C ##0168658000001, has been debited by NPR 15,000.00 on 01/04/2026 10:27,Remarks:9769780059~2309320,IBFT,transfer laxmi paudyal~RBB
+                message = """Your A/C ##0168658000001, has been debited by NPR 15,000.00 on 01/04/2026 10:27,Remarks:9800000000~2309320,IBFT,transfer FIRST LAST~RBB
 Manjushree Finance""",
                 sender = "MFL_ALERT",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("15000.00"),
                     currency = "NPR",
                     type = TransactionType.EXPENSE,
-                    reference = "9769780059~2309320",
-                    merchant = "laxmi paudyal"
+                    reference = "9800000000~2309320",
+                    merchant = "FIRST LAST"
                 )
             )
         )

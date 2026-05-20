@@ -69,7 +69,9 @@ object BankParserFactory {
         AlecuBankParser(),  // ALECU Credit Union (USA)
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
+        NabilBankParser(),  // Nabil Bank (Nepal) — must be before NMBBankParser (NMB handles NABIL senders broadly)
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
+        ManjushreeFinanceParser(), // Manjushree Finance (Nepal)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
         PrimeCommercialBankParser(),  // Prime Commercial Bank (Nepal)
         MPesaTanzaniaParser(),  // M-Pesa Tanzania (must be before Kenya M-PESA)
@@ -109,7 +111,8 @@ object BankParserFactory {
         SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)
         EnparaBankParser(),  // Enpara (Turkey) — push notifications
         BankMuscatParser(),  // Bank Muscat (Oman)
-        GreaterBankParser()  // Greater Bank (India)
+        GreaterBankParser(),  // Greater Bank (India)
+        BPCEParser()  // BPCE (France)
         // Add more bank parsers here as we implement them
     )
 

@@ -48,6 +48,7 @@ class BPCEParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         return when {
+            lowerMessage.contains("virement instantané") && lowerMessage.contains("reçu") -> TransactionType.INCOME
             lowerMessage.contains("virement instantané") -> TransactionType.EXPENSE
             else -> super.extractTransactionType(message)
         }

@@ -11,7 +11,7 @@ class ManjushreeFinanceParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val s = sender.uppercase()
-        return s.contains("MFL") || s == "MFL_ALERT" || s.contains("MANJUSHREE")
+        return s == "MFL" || s == "MFL_ALERT" || s.contains("MANJUSHREE")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

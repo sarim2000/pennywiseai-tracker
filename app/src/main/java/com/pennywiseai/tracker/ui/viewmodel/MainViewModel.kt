@@ -22,7 +22,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
-    val contactsResolver: ContactsResolver
+    internal val contactsResolver: ContactsResolver
 ) : ViewModel() {
 
     private val _whatsNewVersion = MutableStateFlow<WhatsNewVersion?>(null)

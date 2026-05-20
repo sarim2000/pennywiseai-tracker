@@ -34,6 +34,11 @@ fun displayMerchantName(
     return resolver.resolve(phone) ?: merchant
 }
 
+// Compiled once. Captures an optional +91 prefix followed by exactly 10
+// digits. Lookbehind / lookahead reject longer digit runs without
+// false-positive-ing on the underscores common in Indian VPAs (\b would).
+private val INDIAN_MOBILE_REGEX = Regex("""(?<!\d)(?:\+?91)?(\d{10})(?!\d)""")
+
 /**
  * Pulls a 10-digit Indian mobile number out of [text] if one is present.
  * Returns the last 10 digits of the matched run so a `+91` prefix is
@@ -41,11 +46,6 @@ fun displayMerchantName(
  * country-code) run is present.
  */
 internal fun extractIndianMobile(text: String): String? {
-    // Capture an optional +91 prefix followed by exactly 10 digits. The
-    // surrounding boundaries (\b would also accept underscores, which
-    // Indian VPAs sometimes use, so we hand-roll a non-digit / SOI / EOI
-    // guard via a non-capturing lookbehind / lookahead.
-    val regex = Regex("""(?<!\d)(?:\+?91)?(\d{10})(?!\d)""")
-    val match = regex.find(text) ?: return null
+    val match = INDIAN_MOBILE_REGEX.find(text) ?: return null
     return match.groupValues[1]
 }

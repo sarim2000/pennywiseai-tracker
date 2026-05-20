@@ -47,7 +47,8 @@ class SettingsViewModel @Inject constructor(
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
     private val backupExporter: BackupExporter,
-    private val backupImporter: BackupImporter
+    private val backupImporter: BackupImporter,
+    private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver
 ) : ViewModel() {
     
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -84,6 +85,9 @@ class SettingsViewModel @Inject constructor(
     // Unified Currency Mode
     val unifiedCurrencyMode = userPreferencesRepository.unifiedCurrencyMode
     val displayCurrency = userPreferencesRepository.displayCurrency
+
+    // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
+    val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 
     val availableCurrencies: StateFlow<List<String>> = transactionRepository.getAllCurrencies()
         .map { transactionCurrencies ->
@@ -419,6 +423,20 @@ class SettingsViewModel @Inject constructor(
     fun toggleDeveloperMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDeveloperModeEnabled(enabled)
+        }
+    }
+
+    /**
+     * Flip the UPI-contact-resolution preference. The screen is responsible
+     * for ensuring READ_CONTACTS is granted before passing `true` — this
+     * just persists. Toggling either direction wipes the resolver cache so
+     * stale results don't leak across the flag flip (and so a re-enable
+     * after permission grant picks up the user's contacts immediately).
+     */
+    fun setUseContactsForVpa(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setUseContactsForVpa(enabled)
+            contactsResolver.clearCache()
         }
     }
     

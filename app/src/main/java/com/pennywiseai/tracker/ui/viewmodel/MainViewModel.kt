@@ -4,25 +4,35 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.data.contacts.ContactsResolver
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.WhatsNewContent
 import com.pennywiseai.tracker.ui.components.WhatsNewVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    val contactsResolver: ContactsResolver
 ) : ViewModel() {
 
     private val _whatsNewVersion = MutableStateFlow<WhatsNewVersion?>(null)
     val whatsNewVersion: StateFlow<WhatsNewVersion?> = _whatsNewVersion.asStateFlow()
+
+    // Project the toggle as a StateFlow so MainScreen can synchronously
+    // build a CompositionLocal closure over the latest value without
+    // collecting on every render path.
+    val useContactsForVpa: StateFlow<Boolean> = userPreferencesRepository.useContactsForVpa
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     init {
         checkWhatsNew()

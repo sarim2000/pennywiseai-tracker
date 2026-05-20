@@ -69,10 +69,48 @@ class BackupImporter @Inject constructor(
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val content = reader.readText()
-                gson.fromJson(content, PennyWiseBackup::class.java)
+                val parsed = gson.fromJson(content, PennyWiseBackup::class.java)
+                parsed.copy(database = parsed.database.normalized())
             } ?: throw Exception("Failed to read backup file")
         }
     }
+
+    /**
+     * Gson sets every collection field via reflection, bypassing the Kotlin
+     * `= emptyList()` default initialisers on [DatabaseSnapshot]. Older
+     * backups that don't carry a given list key end up with `null` stored
+     * under a property whose declared type is non-null `List<T>` — any
+     * .forEach / .map / .isNotEmpty() call on it then NPEs at runtime even
+     * though the code looks safe.
+     *
+     * Run every collection field through an elvis to empty-list once, right
+     * after parsing, so the rest of the importer can keep its non-null
+     * assumptions. USELESS_ELVIS warnings are suppressed because they are
+     * deliberately load-bearing here.
+     */
+    @Suppress("USELESS_ELVIS")
+    private fun DatabaseSnapshot.normalized(): DatabaseSnapshot = copy(
+        transactions = transactions ?: emptyList(),
+        categories = categories ?: emptyList(),
+        cards = cards ?: emptyList(),
+        accountBalances = accountBalances ?: emptyList(),
+        subscriptions = subscriptions ?: emptyList(),
+        merchantMappings = merchantMappings ?: emptyList(),
+        unrecognizedSms = unrecognizedSms ?: emptyList(),
+        chatMessages = chatMessages ?: emptyList(),
+        rules = rules ?: emptyList(),
+        ruleApplications = ruleApplications ?: emptyList(),
+        exchangeRates = exchangeRates ?: emptyList(),
+        budgets = budgets ?: emptyList(),
+        budgetCategories = budgetCategories ?: emptyList(),
+        transactionSplits = transactionSplits ?: emptyList(),
+        bankNotifications = bankNotifications ?: emptyList(),
+        loans = loans ?: emptyList(),
+        transactionGroups = transactionGroups ?: emptyList(),
+        profiles = profiles ?: emptyList(),
+        budgetMonthSnapshots = budgetMonthSnapshots ?: emptyList(),
+        budgetCategoryMonthSnapshots = budgetCategoryMonthSnapshots ?: emptyList()
+    )
     
     /**
      * Check if backup version is compatible

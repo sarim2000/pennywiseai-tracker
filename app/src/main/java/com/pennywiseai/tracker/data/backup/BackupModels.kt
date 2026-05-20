@@ -118,7 +118,16 @@ data class DateRange(
 )
 
 /**
- * Complete database snapshot
+ * Complete database snapshot.
+ *
+ * WARNING for future maintainers: when adding a new `List<T>` field here,
+ * also add the matching `field = field ?: emptyList()` line to
+ * BackupImporter.normalized(). Gson uses `Unsafe.allocateInstance` for
+ * deserialisation and never calls the Kotlin constructor, so the
+ * `= emptyList()` default below has no effect for backups whose JSON
+ * omits the new key — the field arrives as null at runtime under a
+ * non-null declared type, and the first .forEach / .map / .isNotEmpty()
+ * NPEs. normalized() is the runtime safety net that fixes that up.
  */
 data class DatabaseSnapshot(
     @SerializedName("transactions")

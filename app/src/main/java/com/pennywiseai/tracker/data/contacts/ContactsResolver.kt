@@ -61,11 +61,17 @@ class ContactsResolver @Inject constructor(
      * cached, else null while scheduling a background query. The first
      * render after this call paints the original merchant; the second
      * (triggered by Compose when the cache map updates) paints the contact.
+     *
+     * Permission is rechecked on every call AHEAD of the cache lookup so
+     * that revoking READ_CONTACTS via OS Settings stops surfacing cached
+     * contact names on the next render. On Android 10 and below the
+     * process survives permission revocation, so a check that only ran on
+     * new queries would leave the cache leaking names.
      */
     fun resolve(phoneLast10: String): String? {
         if (phoneLast10.length != 10 || !phoneLast10.all { it.isDigit() }) return null
-        if (cache.containsKey(phoneLast10)) return cache[phoneLast10]
         if (!hasPermission()) return null
+        if (cache.containsKey(phoneLast10)) return cache[phoneLast10]
         scheduleQuery(phoneLast10)
         return null
     }

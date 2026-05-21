@@ -70,6 +70,102 @@ class StatementImportProcessorTest {
     }
 
     @Test
+    fun `amount date fallback enriches generic transaction when statement time does not match`() = runBlocking {
+        val existingSmsWithoutReference = transaction(
+            id = 8,
+            merchantName = "UPI Transaction",
+            description = null,
+            reference = null,
+            dateTime = baseTime
+        )
+        val store = FakeTransactionStore(
+            amountDateMatches = listOf(existingSmsWithoutReference)
+        )
+        val processor = StatementImportProcessor(store)
+
+        val result = processor.process(
+            listOf(
+                parsedTransaction(
+                    merchant = "Swiggy",
+                    reference = "190200588907",
+                    timestamp = baseTime.toLocalDate()
+                        .atStartOfDay()
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                )
+            )
+        )
+
+        assertEquals(0, result.imported)
+        assertEquals(1, result.enriched)
+        assertEquals(0, result.skippedByAmountDate)
+        assertEquals("Swiggy", store.updated.single().merchantName)
+        assertTrue(store.inserted.isEmpty())
+        assertEquals(1, store.amountDateQueries.size)
+    }
+
+    @Test
+    fun `amount date fallback does not enrich opposite direction transaction`() = runBlocking {
+        val store = FakeTransactionStore(
+            amountDateMatches = listOf(
+                transaction(
+                    id = 8,
+                    merchantName = "UPI Transaction",
+                    transactionType = TransactionType.INCOME,
+                    reference = null
+                )
+            )
+        )
+        val processor = StatementImportProcessor(store)
+
+        val result = processor.process(
+            listOf(
+                parsedTransaction(
+                    merchant = "Swiggy",
+                    reference = "190200588907",
+                    type = ParsedTransactionType.EXPENSE
+                )
+            )
+        )
+
+        assertEquals(0, result.imported)
+        assertEquals(0, result.enriched)
+        assertEquals(1, result.skippedByAmountDate)
+        assertTrue(store.updated.isEmpty())
+        assertTrue(store.inserted.isEmpty())
+    }
+
+    @Test
+    fun `hash duplicate enriches generic transaction instead of skipping`() = runBlocking {
+        val existingGeneric = transaction(
+            id = 8,
+            merchantName = "UPI Transaction",
+            description = null,
+            reference = "190200588907"
+        )
+        val store = FakeTransactionStore(hashMatch = existingGeneric)
+        val processor = StatementImportProcessor(store)
+
+        val result = processor.process(
+            listOf(
+                parsedTransaction(
+                    merchant = "Swiggy",
+                    reference = "190200588907",
+                    transactionHash = existingGeneric.transactionHash
+                )
+            )
+        )
+
+        assertEquals(0, result.imported)
+        assertEquals(1, result.enriched)
+        assertEquals(0, result.skippedByHash)
+        assertEquals("Swiggy", store.updated.single().merchantName)
+        assertTrue(store.inserted.isEmpty())
+        assertTrue(store.amountDateQueries.isEmpty())
+    }
+
+    @Test
     fun `amount date fallback does not enrich ambiguous generic transactions`() = runBlocking {
         val store = FakeTransactionStore(
             amountDateMatches = listOf(

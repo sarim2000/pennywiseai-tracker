@@ -36,8 +36,15 @@ internal class StatementImportProcessor(
                 ?: parsed.generateTransactionId()
             val statementEntity = parsed.toEntity()
 
-            if (transactionStore.getTransactionByHash(hash) != null) {
-                skippedByHash++
+            val hashMatch = transactionStore.getTransactionByHash(hash)
+            if (hashMatch != null) {
+                val merged = StatementTransactionEnricher.enrich(hashMatch, statementEntity)
+                if (!hashMatch.isDeleted && StatementTransactionEnricher.hasEnrichment(hashMatch, merged)) {
+                    transactionStore.updateTransaction(merged)
+                    enriched++
+                } else {
+                    skippedByHash++
+                }
                 return@mapNotNull null
             }
 
@@ -69,7 +76,7 @@ internal class StatementImportProcessor(
                 parsed.amount, startOfDay, endOfDay
             )
             val fallbackMergeCandidates = amountMatches.filter { candidate ->
-                StatementTransactionEnricher.isFallbackStatementMatch(candidate, statementEntity)
+                StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(candidate, statementEntity)
             }
             if (fallbackMergeCandidates.size == 1) {
                 val existing = fallbackMergeCandidates.single()

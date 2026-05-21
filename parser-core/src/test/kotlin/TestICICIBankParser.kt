@@ -182,6 +182,21 @@ class ICICIBankParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "NEFT Transfer"
                 )
+            ),
+            ParserTestCase(
+                name = "IMPS dual-account debit is TRANSFER",
+                message = "ICICI Bank Acct XX123 debited with Rs 10 on 20-Dec-25 & Acct XX456 credited.IMPS:ABCDEF123456. Call 18002662 for dispute or SMS BLOCK 700 to 9215676766",
+                sender = "JD-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10"),
+                    currency = "INR",
+                    type = TransactionType.TRANSFER,
+                    merchant = "IMPS Transfer",
+                    accountLast4 = "123",
+                    fromAccount = "123",
+                    toAccount = "456",
+                    reference = "ABCDEF123456"
+                )
             )
         )
 

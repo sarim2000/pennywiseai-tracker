@@ -55,10 +55,16 @@ class ICICIBankParser : BaseIndianBankParser() {
             null
         }
 
+        val merchant = if (transferAccounts != null) {
+            labelTransferRail(smsBody)
+        } else {
+            extractMerchant(smsBody, sender)
+        }
+
         return ParsedTransaction(
             amount = amount,
             type = type,
-            merchant = extractMerchant(smsBody, sender),
+            merchant = merchant,
             reference = extractReference(smsBody),
             accountLast4 = transferAccounts?.first ?: extractAccountLast4(smsBody),
             balance = extractBalance(smsBody),
@@ -74,6 +80,12 @@ class ICICIBankParser : BaseIndianBankParser() {
         )
     }
 
+    private fun labelTransferRail(message: String): String = when {
+        message.contains("IMPS", ignoreCase = true) -> "IMPS Transfer"
+        message.contains("NEFT", ignoreCase = true) -> "NEFT Transfer"
+        else -> "Account Transfer"
+    }
+
     /**
      * Detects ICICI's `Acct XX debited ... & Acct YY credited` IMPS/NEFT pattern
      * and returns (fromAccount, toAccount) when both account references appear
@@ -86,7 +98,7 @@ class ICICIBankParser : BaseIndianBankParser() {
             RegexOption.IGNORE_CASE
         )
         val creditedAcctPattern = Regex(
-            """Acct\s+([X*\d]+)\s+credited""",
+            """Acct\s+([X*\d]+)\s+(?:is\s+)?credited""",
             RegexOption.IGNORE_CASE
         )
 
@@ -235,16 +247,6 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Pattern -1: dual-account transfer (IMPS/NEFT). The SMS has no merchant
-        // name in this case, so label it by the rail.
-        if (extractTransferAccounts(message) != null) {
-            return when {
-                message.contains("IMPS", ignoreCase = true) -> "IMPS Transfer"
-                message.contains("NEFT", ignoreCase = true) -> "NEFT Transfer"
-                else -> "Account Transfer"
-            }
-        }
-
         // Pattern 0: NEFT/RTGS transfer to beneficiary - use "NEFT Transfer" as merchant
         // These are outgoing transfers where we don't know the beneficiary name
         if (message.contains("credited to the beneficiary", ignoreCase = true) ||

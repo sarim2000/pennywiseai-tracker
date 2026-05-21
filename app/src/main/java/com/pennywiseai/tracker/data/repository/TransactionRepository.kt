@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -137,6 +138,14 @@ class TransactionRepository @Inject constructor(
 
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
+
+    suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
+        val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
+        return transactionDao.getTransactionsByReference(reference)
+            .firstOrNull { candidate ->
+                StatementTransactionEnricher.isStatementMatch(candidate, transaction)
+            }
+    }
 
     suspend fun findPotentialDuplicates(transaction: TransactionEntity): List<TransactionEntity> {
         if (!TransactionDeduplication.hasUpiReference(transaction)) return emptyList()

@@ -240,6 +240,14 @@ private fun SuccessContent(
                 isHighlighted = true
             )
 
+            if (result.enriched > 0) {
+                ResultRow(
+                    label = "Transactions enriched",
+                    value = "${result.enriched}",
+                    isHighlighted = true
+                )
+            }
+
             ResultRow(
                 label = "Total parsed from PDF",
                 value = "${result.totalParsed}"

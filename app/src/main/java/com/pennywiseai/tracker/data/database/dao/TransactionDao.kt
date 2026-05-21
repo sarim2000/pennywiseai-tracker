@@ -189,6 +189,14 @@ interface TransactionDao {
 
     @Query("""
         SELECT * FROM transactions
+        WHERE reference = :reference
+        AND is_deleted = 0
+        ORDER BY date_time ASC
+    """)
+    suspend fun getTransactionsByReference(reference: String): List<TransactionEntity>
+
+    @Query("""
+        SELECT * FROM transactions
         WHERE is_deleted = 0
         AND reference = :reference
         AND amount = :amount

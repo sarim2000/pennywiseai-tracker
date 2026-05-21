@@ -53,6 +53,38 @@ class StatementTransactionEnricherTest {
     }
 
     @Test
+    fun `amount date fallback candidate allows same-day statement without matching time`() {
+        val sms = transaction(id = 1, merchantName = "UPI Transaction", reference = "")
+        val statement = transaction(
+            id = 2,
+            merchantName = "Sample Store",
+            sender = "PhonePe PDF",
+            dateTime = baseTime.toLocalDate().atStartOfDay()
+        )
+
+        assertTrue(StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(sms, statement))
+    }
+
+    @Test
+    fun `amount date fallback candidate still rejects opposite direction`() {
+        val sms = transaction(
+            id = 1,
+            merchantName = "UPI Transaction",
+            transactionType = TransactionType.INCOME,
+            reference = ""
+        )
+        val statement = transaction(
+            id = 2,
+            merchantName = "Sample Store",
+            transactionType = TransactionType.EXPENSE,
+            sender = "PhonePe PDF",
+            dateTime = baseTime.toLocalDate().atStartOfDay()
+        )
+
+        assertFalse(StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(sms, statement))
+    }
+
+    @Test
     fun `does not match amount mismatch`() {
         val sms = transaction(id = 1, amount = BigDecimal("450.00"))
         val statement = transaction(id = 2, amount = BigDecimal("451.00"))

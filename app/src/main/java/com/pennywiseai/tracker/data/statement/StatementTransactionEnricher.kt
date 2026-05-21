@@ -28,6 +28,24 @@ object StatementTransactionEnricher {
 
     fun isFallbackStatementMatch(existing: TransactionEntity, statement: TransactionEntity): Boolean {
         if (!hasSameTransactionDetails(existing, statement)) return false
+        return hasUsableStatementDetails(existing, statement)
+    }
+
+    fun isAmountDateFallbackEnrichmentCandidate(
+        existing: TransactionEntity,
+        statement: TransactionEntity
+    ): Boolean {
+        if (existing.amount.compareTo(statement.amount) != 0) return false
+        if (existing.currency != statement.currency) return false
+        if (existing.transactionType != statement.transactionType) return false
+        if (!accountsMatch(existing.accountNumber, statement.accountNumber)) return false
+        return hasUsableStatementDetails(existing, statement)
+    }
+
+    private fun hasUsableStatementDetails(
+        existing: TransactionEntity,
+        statement: TransactionEntity
+    ): Boolean {
         return canUseStatementValue(existing.merchantName, statement.merchantName) ||
                 canUseStatementValue(existing.description, statement.description) ||
                 existing.fromAccount.isNullOrBlank() && !statement.fromAccount.isNullOrBlank() ||

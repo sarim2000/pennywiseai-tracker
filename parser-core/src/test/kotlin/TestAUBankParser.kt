@@ -54,6 +54,38 @@ class AUBankParserTest {
                     accountLast4 = "1234",
                     isFromCard = true
                 )
+            ),
+            ParserTestCase(
+                name = "Short Dr form with placeholder merchant",
+                message = "Dr INR 29,000.00 from A/c X7661 on 05-MAY-2026\n" +
+                    "UPI/DR/012345678901/Bank Account XXXXX\n" +
+                    "Bal INR 10,952.10\n" +
+                    "Not you? Call 180012001200 & dial 0\n" +
+                    "-AU Bank",
+                sender = "VM-AUBANK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("29000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "7661",
+                    balance = BigDecimal("10952.10")
+                )
+            ),
+            ParserTestCase(
+                name = "Short Dr form with merchant name",
+                message = "Dr INR 10.00 - AU A/c X4541 12-MAY-2026\n" +
+                    "UPI/DR/424941009000/ALADDIN SHAWARMA/Y\n" +
+                    "Bal INR 18,838.10\n" +
+                    "Fraud? Call 180012001200/SMS BLOCK UPI to 5676767",
+                sender = "VM-AUBANK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ALADDIN SHAWARMA",
+                    accountLast4 = "4541",
+                    balance = BigDecimal("18838.10")
+                )
             )
         )
 

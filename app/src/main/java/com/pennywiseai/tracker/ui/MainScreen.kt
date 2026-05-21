@@ -26,6 +26,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
+import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
@@ -60,6 +64,16 @@ fun MainScreen(
 
     // What's New dialog state
     val whatsNewVersion by mainViewModel.whatsNewVersion.collectAsState()
+
+    // UPI VPA → contact name. Read the toggle as state; the lambda closes
+    // over the current value + the singleton resolver, and is provided
+    // through a CompositionLocal so every transaction-rendering composable
+    // (TransactionItem, TransactionDetailScreen header, etc.) can apply the
+    // same rule without prop-drilling the resolver everywhere.
+    val useContactsForVpa by mainViewModel.useContactsForVpa.collectAsState()
+    val merchantDisplay = remember(useContactsForVpa) {
+        { raw: String? -> displayMerchantName(raw, useContactsForVpa, mainViewModel.contactsResolver) }
+    }
 
     // Haze state for blur effects
     val hazeState = remember { HazeState() }
@@ -98,6 +112,7 @@ fun MainScreen(
         }
     }
 
+    CompositionLocalProvider(LocalMerchantDisplay provides merchantDisplay) {
     Box(modifier = Modifier
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
@@ -507,4 +522,5 @@ fun MainScreen(
             )
         }
     }
+    } // CompositionLocalProvider
 }

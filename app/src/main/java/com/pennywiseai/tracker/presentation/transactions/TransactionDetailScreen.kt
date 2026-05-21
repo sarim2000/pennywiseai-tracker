@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import android.content.Intent
 import android.net.Uri
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -555,8 +556,12 @@ private fun TransactionReceipt(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
+                // Show the contact-resolved name when the user has the
+                // toggle on; the raw merchant is still what the Edit
+                // field below renders so users can correct mis-detections.
+                val merchantDisplay = LocalMerchantDisplay.current
                 Text(
-                    text = transaction.merchantName,
+                    text = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center

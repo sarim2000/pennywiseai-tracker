@@ -116,6 +116,9 @@ class UserPreferencesRepository @Inject constructor(
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
+
+        // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
+        val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -545,6 +548,19 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setBalanceHidden(hidden: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
+        }
+    }
+
+    // Replace UPI VPAs with matching contact names at display time.
+    // Off by default — turning on prompts for READ_CONTACTS.
+    val useContactsForVpa: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.USE_CONTACTS_FOR_VPA] ?: false
+        }
+
+    suspend fun setUseContactsForVpa(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_CONTACTS_FOR_VPA] = enabled
         }
     }
 

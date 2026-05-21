@@ -59,6 +59,23 @@ class GPayPdfParserTest {
         Paid by HDFC Bank 1234
     """.trimIndent()
 
+    private val tableLayoutStatementText = """
+        Transaction statement
+        Date & time               Transaction details                                      Amount
+
+        15 Oct, 2025              Paid to SAMPLE MERCHANT A                               ₹12.34
+        11:08 AM                  UPI Transaction ID: 123456789012
+                                       Paid by Example Bank 1234
+
+        16 Oct, 2025              Received from SAMPLE SENDER                            ₹567.89
+        09:41 AM                  UPI Transaction ID: 223456789012
+                                       Paid to Example Bank 1234
+
+        16 Oct, 2025              Paid to SAMPLE MERCHANT B                                ₹42.00
+        11:13 AM                  UPI Transaction ID: 323456789012
+                                       Paid by Example Bank 1234
+    """.trimIndent()
+
     @Test
     fun `parser handles the fixture`() {
         assertTrue("canHandle should recognise the GPay statement", parser.canHandle(statementText))
@@ -116,6 +133,32 @@ class GPayPdfParserTest {
         assertEquals("Amazon", txs[2].merchant)
         assertEquals(TransactionType.EXPENSE, txs[2].type)
         assertEquals(BigDecimal("1250.50"), txs[2].amount)
+    }
+
+    @Test
+    fun `parses table layout extracted from Google Pay PDF`() {
+        val txs = parser.parse(tableLayoutStatementText)
+
+        assertEquals(3, txs.size)
+
+        assertEquals("SAMPLE MERCHANT A", txs[0].merchant)
+        assertEquals(TransactionType.EXPENSE, txs[0].type)
+        assertEquals(BigDecimal("12.34"), txs[0].amount)
+        assertEquals("123456789012", txs[0].reference)
+        assertEquals("1234", txs[0].accountLast4)
+        assertEquals(epochForIstDate("15 Oct, 2025 11:08 AM"), txs[0].timestamp)
+
+        assertEquals("SAMPLE SENDER", txs[1].merchant)
+        assertEquals(TransactionType.INCOME, txs[1].type)
+        assertEquals(BigDecimal("567.89"), txs[1].amount)
+        assertEquals("223456789012", txs[1].reference)
+        assertEquals(epochForIstDate("16 Oct, 2025 09:41 AM"), txs[1].timestamp)
+
+        assertEquals("SAMPLE MERCHANT B", txs[2].merchant)
+        assertEquals(TransactionType.EXPENSE, txs[2].type)
+        assertEquals(BigDecimal("42.00"), txs[2].amount)
+        assertEquals("323456789012", txs[2].reference)
+        assertEquals(epochForIstDate("16 Oct, 2025 11:13 AM"), txs[2].timestamp)
     }
 
     @Test

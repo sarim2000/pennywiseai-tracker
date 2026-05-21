@@ -21,6 +21,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -36,6 +39,12 @@ jobs:
 
     - name: Run parser-core tests
       run: ./gradlew :parser-core:test --continue
+
+    - name: Compile standard debug app Kotlin
+      run: ./gradlew :app:compileStandardDebugKotlin
+
+    - name: Run standard debug unit tests
+      run: ./gradlew :app:testStandardDebugUnitTest
 
     - name: Upload parser test results
       uses: actions/upload-artifact@v4

@@ -15,6 +15,12 @@ import java.math.BigDecimal
  */
 class AUBankParser : BaseIndianBankParser() {
 
+    private companion object {
+        // Hoisted so the Regex isn't recompiled on every extractTransactionType call.
+        private val DR_INR_REGEX = Regex("""\bdr\s+inr\b""")
+        private val CR_INR_REGEX = Regex("""\bcr\s+inr\b""")
+    }
+
     override fun getBankName() = "AU Small Finance Bank"
 
     override fun canHandle(sender: String): Boolean {
@@ -196,8 +202,8 @@ class AUBankParser : BaseIndianBankParser() {
 
             // Short-form Dr/Cr (AU's newer SMS format) — checked before the long-form
             // keywords below so we don't false-match on substrings.
-            Regex("""\bdr\s+inr\b""").containsMatchIn(lowerMessage) -> TransactionType.EXPENSE
-            Regex("""\bcr\s+inr\b""").containsMatchIn(lowerMessage) -> TransactionType.INCOME
+            DR_INR_REGEX.containsMatchIn(lowerMessage) -> TransactionType.EXPENSE
+            CR_INR_REGEX.containsMatchIn(lowerMessage) -> TransactionType.INCOME
 
             // Income keywords
             lowerMessage.contains("credited") -> TransactionType.INCOME

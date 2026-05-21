@@ -86,6 +86,22 @@ class AUBankParserTest {
                     accountLast4 = "4541",
                     balance = BigDecimal("18838.10")
                 )
+            ),
+            ParserTestCase(
+                name = "Short Cr form is INCOME",
+                message = "Cr INR 5,000.00 to A/c X4541 12-MAY-2026\n" +
+                    "UPI/CR/424941009999/JANE DOE/Y\n" +
+                    "Bal INR 23,838.10\n" +
+                    "-AU Bank",
+                sender = "VM-AUBANK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "JANE DOE",
+                    accountLast4 = "4541",
+                    balance = BigDecimal("23838.10")
+                )
             )
         )
 

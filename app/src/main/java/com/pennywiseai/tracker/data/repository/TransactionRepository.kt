@@ -183,6 +183,10 @@ class TransactionRepository @Inject constructor(
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {
         transactionDao.updateCategoryForMerchant(merchantName, newCategory)
     }
+
+    suspend fun updateCategory(transactionId: Long, category: String) {
+        transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
+    }
     
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)

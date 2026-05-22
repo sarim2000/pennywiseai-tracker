@@ -440,7 +440,14 @@ class TransactionsViewModel @Inject constructor(
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
-    
+
+    fun updateCategory(transaction: TransactionEntity, newCategory: String) {
+        if (transaction.category == newCategory) return
+        viewModelScope.launch {
+            transactionRepository.updateCategory(transaction.id, newCategory)
+        }
+    }
+
     fun selectPeriod(period: TimePeriod) {
         _selectedPeriod.value = period
     }

@@ -785,12 +785,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled || scanAllTimeToggledOff
 
             val scanStartTime = if (needsFullScan) {
-                java.util.Calendar.getInstance().apply {
-                    if (scanAllTime) add(java.util.Calendar.YEAR, -10)
-                    else             add(java.util.Calendar.MONTH, -scanMonths)
-                    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
-                }.timeInMillis
+                if (scanAllTime) {
+                    // "All Time" must mean truly all SMS the Telephony provider still
+                    // has, not the last 10 years. Anything older simply isn't on the
+                    // device any more, so a 0L lower bound is safe.
+                    0L
+                } else {
+                    java.util.Calendar.getInstance().apply {
+                        add(java.util.Calendar.MONTH, -scanMonths)
+                        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                }
             } else {
                 val threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000L
                 val periodLimit  = java.util.Calendar.getInstance().apply {

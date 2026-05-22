@@ -15,6 +15,12 @@ import java.math.BigDecimal
  */
 class AUBankParser : BaseIndianBankParser() {
 
+    private companion object {
+        // Hoisted so the Regex isn't recompiled on every extractTransactionType call.
+        private val DR_INR_REGEX = Regex("""\bdr\s+inr\b""")
+        private val CR_INR_REGEX = Regex("""\bcr\s+inr\b""")
+    }
+
     override fun getBankName() = "AU Small Finance Bank"
 
     override fun canHandle(sender: String): Boolean {
@@ -43,6 +49,20 @@ class AUBankParser : BaseIndianBankParser() {
             RegexOption.IGNORE_CASE
         )
         debitedPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
+        // Pattern 2b: Short-form "Dr INR XXX" / "Cr INR XXX" (AU's newer SMS format)
+        val shortFormPattern = Regex(
+            """\b(?:Dr|Cr)\s+INR\s+([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        shortFormPattern.find(message)?.let { match ->
             val amount = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(amount)
@@ -108,6 +128,24 @@ class AUBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Pattern 1b: Short SMS form `UPI/DR/<ref>/<merchant>` with no IFSC follow-up
+        // (e.g. AU's newer messages end the segment at a slash + letter or newline).
+        // Reject the all-X "Bank Account XXXXX" placeholder AU uses when no merchant
+        // name is available, then fall through to remaining patterns.
+        val upiShortPattern = Regex(
+            """UPI/(?:DR|CR)/\d+/([^/\n]+?)(?:/[A-Z]|/\s|\n|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        upiShortPattern.find(message)?.let { match ->
+            val candidate = match.groupValues[1].trim()
+            if (!candidate.matches(Regex("""Bank\s+Account\s+X+""", RegexOption.IGNORE_CASE))) {
+                val merchant = cleanMerchantName(candidate)
+                if (isValidMerchantName(merchant)) {
+                    return merchant
+                }
+            }
+        }
+
         // Pattern 2: UPI transactions - extract name from Ref UPI/.../.../.../name(account)
         val upiPattern = Regex(
             """Ref\s+UPI/[^/]+/[^/]+/[^/]+\s+([^(]+)\([^)]+\)""",
@@ -161,6 +199,11 @@ class AUBankParser : BaseIndianBankParser() {
         return when {
             // Credit card transactions (must be checked before generic "spent" keyword)
             lowerMessage.contains("credit card") -> TransactionType.CREDIT
+
+            // Short-form Dr/Cr (AU's newer SMS format) — checked before the long-form
+            // keywords below so we don't false-match on substrings.
+            DR_INR_REGEX.containsMatchIn(lowerMessage) -> TransactionType.EXPENSE
+            CR_INR_REGEX.containsMatchIn(lowerMessage) -> TransactionType.INCOME
 
             // Income keywords
             lowerMessage.contains("credited") -> TransactionType.INCOME
@@ -227,6 +270,8 @@ class AUBankParser : BaseIndianBankParser() {
             "credited inr",
             "debited inr",
             "withdrawn inr",
+            "dr inr",
+            "cr inr",
             "bal inr",
             "ref upi",
             "spent"

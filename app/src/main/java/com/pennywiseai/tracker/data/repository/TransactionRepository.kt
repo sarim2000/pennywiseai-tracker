@@ -6,6 +6,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
+import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -137,12 +139,42 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
 
+    suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
+        val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
+        return transactionDao.getTransactionsByReference(reference)
+            .firstOrNull { candidate ->
+                StatementTransactionEnricher.isStatementMatch(candidate, transaction)
+            }
+    }
+
+    suspend fun findPotentialDuplicates(transaction: TransactionEntity): List<TransactionEntity> {
+        if (!TransactionDeduplication.hasUpiReference(transaction)) return emptyList()
+
+        return transactionDao.findPotentialDuplicatesByReference(
+            reference = transaction.reference.orEmpty(),
+            amount = transaction.amount,
+            transactionType = transaction.transactionType,
+            currency = transaction.currency,
+            accountNumber = transaction.accountNumber,
+            startDate = transaction.dateTime.minus(TransactionDeduplication.UPI_DUPLICATE_WINDOW),
+            endDate = transaction.dateTime.plus(TransactionDeduplication.UPI_DUPLICATE_WINDOW)
+        ).filter { candidate ->
+            candidate.id != transaction.id &&
+                    TransactionDeduplication.isSameUpiTransaction(candidate, transaction)
+        }
+    }
+
     suspend fun getTransactionByAmountAndDate(
         amount: BigDecimal,
         dateStart: LocalDateTime,
         dateEnd: LocalDateTime
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
+
+    suspend fun findGPayDuplicateIdsForCleanup(): List<Long> {
+        val candidates = transactionDao.findPotentialDuplicatesByReference()
+        return TransactionDeduplication.duplicateIdsToDelete(candidates)
+    }
     
     suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))
@@ -164,24 +196,9 @@ class TransactionRepository @Inject constructor(
     )
     
     fun getCurrentMonthBreakdown(): Flow<MonthlyBreakdown> {
-        val now = LocalDate.now()
-        val startDate = now.withDayOfMonth(1).atStartOfDay()
-        val endDate = now.atTime(23, 59, 59)
-
-        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+        return getTransactionsForCurrentMonth()
             .map { transactions ->
-                val nonLoan = transactions.filter { it.loanId == null }
-                val income = nonLoan
-                    .filter { it.transactionType == TransactionType.INCOME }
-                    .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                val expenses = nonLoan
-                    .filter { it.transactionType == TransactionType.EXPENSE }
-                    .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                MonthlyBreakdown(
-                    total = income - expenses,
-                    income = income,
-                    expenses = expenses
-                )
+                transactions.toMonthlyBreakdown()
             }
     }
     
@@ -190,29 +207,9 @@ class TransactionRepository @Inject constructor(
     }
     
     fun getLastMonthBreakdown(): Flow<MonthlyBreakdown> {
-        val now = LocalDate.now()
-        val dayOfMonth = now.dayOfMonth
-        val lastMonth = now.minusMonths(1)
-
-        // Compare same period: if today is 10th, compare 1st-10th of last month
-        val startDate = lastMonth.withDayOfMonth(1).atStartOfDay()
-        val lastMonthMaxDay = min(dayOfMonth, lastMonth.lengthOfMonth())
-        val endDate = lastMonth.withDayOfMonth(lastMonthMaxDay).atTime(23, 59, 59)
-
-        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+        return getTransactionsForComparableLastMonth()
             .map { transactions ->
-                val nonLoan = transactions.filter { it.loanId == null }
-                val income = nonLoan
-                    .filter { it.transactionType == TransactionType.INCOME }
-                    .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                val expenses = nonLoan
-                    .filter { it.transactionType == TransactionType.EXPENSE }
-                    .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                MonthlyBreakdown(
-                    total = income - expenses,
-                    income = income,
-                    expenses = expenses
-                )
+                transactions.toMonthlyBreakdown()
             }
     }
     
@@ -222,29 +219,27 @@ class TransactionRepository @Inject constructor(
 
     // Currency-grouped breakdown methods
     fun getCurrentMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
-        val now = LocalDate.now()
-        val startDate = now.withDayOfMonth(1).atStartOfDay()
-        val endDate = now.atTime(23, 59, 59)
-
-        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+        return getTransactionsForCurrentMonth()
             .map { transactions ->
-                transactions.filter { it.loanId == null }.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
-                    val income = currencyTransactions
-                        .filter { it.transactionType == TransactionType.INCOME }
-                        .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                    val expenses = currencyTransactions
-                        .filter { it.transactionType == TransactionType.EXPENSE }
-                        .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                    MonthlyBreakdown(
-                        total = income - expenses,
-                        income = income,
-                        expenses = expenses
-                    )
-                }
+                transactions.toMonthlyBreakdownByCurrency()
             }
     }
 
     fun getLastMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
+        return getTransactionsForComparableLastMonth()
+            .map { transactions ->
+                transactions.toMonthlyBreakdownByCurrency()
+            }
+    }
+
+    private fun getTransactionsForCurrentMonth(): Flow<List<TransactionEntity>> {
+        val now = LocalDate.now()
+        val startDate = now.withDayOfMonth(1).atStartOfDay()
+        val endDate = now.atTime(23, 59, 59)
+        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+    }
+
+    private fun getTransactionsForComparableLastMonth(): Flow<List<TransactionEntity>> {
         val now = LocalDate.now()
         val dayOfMonth = now.dayOfMonth
         val lastMonth = now.minusMonths(1)
@@ -253,23 +248,28 @@ class TransactionRepository @Inject constructor(
         val startDate = lastMonth.withDayOfMonth(1).atStartOfDay()
         val lastMonthMaxDay = min(dayOfMonth, lastMonth.lengthOfMonth())
         val endDate = lastMonth.withDayOfMonth(lastMonthMaxDay).atTime(23, 59, 59)
-
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
-            .map { transactions ->
-                transactions.filter { it.loanId == null }.groupBy { it.currency }.mapValues { (_, currencyTransactions) ->
-                    val income = currencyTransactions
-                        .filter { it.transactionType == TransactionType.INCOME }
-                        .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                    val expenses = currencyTransactions
-                        .filter { it.transactionType == TransactionType.EXPENSE }
-                        .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-                    MonthlyBreakdown(
-                        total = income - expenses,
-                        income = income,
-                        expenses = expenses
-                    )
-                }
-            }
+    }
+
+    private fun List<TransactionEntity>.toMonthlyBreakdown(): MonthlyBreakdown {
+        val income = sumTransactionType(TransactionType.INCOME)
+        val expenses = sumTransactionType(TransactionType.EXPENSE)
+        return MonthlyBreakdown(
+            total = income - expenses,
+            income = income,
+            expenses = expenses
+        )
+    }
+
+    private fun List<TransactionEntity>.toMonthlyBreakdownByCurrency(): Map<String, MonthlyBreakdown> {
+        return filter { it.loanId == null }
+            .groupBy { it.currency }
+            .mapValues { (_, transactions) -> transactions.toMonthlyBreakdown() }
+    }
+
+    private fun List<TransactionEntity>.sumTransactionType(type: TransactionType): BigDecimal {
+        return filter { it.loanId == null && it.transactionType == type }
+            .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
     }
     
     fun getRecentTransactions(limit: Int = 5): Flow<List<TransactionEntity>> {

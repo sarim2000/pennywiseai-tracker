@@ -21,11 +21,25 @@ import javax.inject.Singleton
 
 @Singleton
 class CsvExporter @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     companion object {
         private const val PROVIDER_AUTHORITY = ".fileprovider"
         private const val EXPORT_DIR = "exports"
+        private val CSV_HEADER = arrayOf(
+            "Date",
+            "Time",
+            "Merchant",
+            "Category",
+            "Type",
+            "Amount",
+            "Currency",
+            "Bank",
+            "Account",
+            "Balance After",
+            "Description",
+            "SMS Body"
+        )
         
         // Date and time formatters
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -65,46 +79,12 @@ class CsvExporter @Inject constructor(
             // Write CSV using OpenCSV for proper escaping
             FileWriter(file).use { fileWriter ->
                 CSVWriter(fileWriter).use { csvWriter ->
-                    // Write header
-                    csvWriter.writeNext(arrayOf(
-                        "Date",
-                        "Time",
-                        "Merchant",
-                        "Category",
-                        "Type",
-                        "Amount",
-                        "Currency",
-                        "Bank",
-                        "Account",
-                        "Balance After",
-                        "Description",
-                        "SMS Body"
-                    ))
+                    csvWriter.writeNext(CSV_HEADER)
 
                     // Write transactions with progress updates
                     val totalTransactions = transactions.size
                     transactions.forEachIndexed { index, transaction ->
-                        // Write transaction row
-                        csvWriter.writeNext(arrayOf(
-                            transaction.dateTime.format(dateFormatter),
-                            transaction.dateTime.format(timeFormatter),
-                            transaction.merchantName,
-                            transaction.category,
-                            when (transaction.transactionType) {
-                                TransactionType.INCOME -> "Income"
-                                TransactionType.EXPENSE -> "Expense"
-                                TransactionType.CREDIT -> "Credit Card"
-                                TransactionType.TRANSFER -> "Transfer"
-                                TransactionType.INVESTMENT -> "Investment"
-                            },
-                            transaction.amount.toString(),
-                            transaction.currency,
-                            transaction.bankName ?: "",
-                            transaction.accountNumber ?: "",
-                            transaction.balanceAfter?.toString() ?: "",
-                            transaction.description ?: "",
-                            transaction.smsBody ?: ""
-                        ))
+                        csvWriter.writeNext(transaction.toCsvRow())
                         
                         // Update progress (10% to 90% for writing)
                         val progress = 0.1f + (0.8f * (index + 1) / totalTransactions)
@@ -161,44 +141,11 @@ class CsvExporter @Inject constructor(
         
         FileWriter(file).use { fileWriter ->
             CSVWriter(fileWriter).use { csvWriter ->
-                // Write header
-                csvWriter.writeNext(arrayOf(
-                    "Date",
-                    "Time",
-                    "Merchant",
-                    "Category",
-                    "Type",
-                    "Amount",
-                    "Currency",
-                    "Bank",
-                    "Account",
-                    "Balance After",
-                    "Description",
-                    "SMS Body"
-                ))
+                csvWriter.writeNext(CSV_HEADER)
 
                 // Write transactions
                 transactions.forEach { transaction ->
-                    csvWriter.writeNext(arrayOf(
-                        transaction.dateTime.format(dateFormatter),
-                        transaction.dateTime.format(timeFormatter),
-                        transaction.merchantName,
-                        transaction.category,
-                        when (transaction.transactionType) {
-                            TransactionType.INCOME -> "Income"
-                            TransactionType.EXPENSE -> "Expense"
-                            TransactionType.CREDIT -> "Credit Card"
-                            TransactionType.TRANSFER -> "Transfer"
-                            TransactionType.INVESTMENT -> "Investment"
-                        },
-                        transaction.amount.toString(),
-                        transaction.currency,
-                        transaction.bankName ?: "",
-                        transaction.accountNumber ?: "",
-                        transaction.balanceAfter?.toString() ?: "",
-                        transaction.description ?: "",
-                        transaction.smsBody ?: ""
-                    ))
+                    csvWriter.writeNext(transaction.toCsvRow())
                 }
             }
         }
@@ -220,6 +167,31 @@ class CsvExporter @Inject constructor(
                 file.delete()
             }
         }
+    }
+
+    private fun TransactionEntity.toCsvRow(): Array<String> {
+        return arrayOf(
+            dateTime.format(dateFormatter),
+            dateTime.format(timeFormatter),
+            merchantName,
+            category,
+            transactionType.exportLabel(),
+            amount.toString(),
+            currency,
+            bankName ?: "",
+            accountNumber ?: "",
+            balanceAfter?.toString() ?: "",
+            description ?: "",
+            smsBody ?: ""
+        )
+    }
+
+    private fun TransactionType.exportLabel(): String = when (this) {
+        TransactionType.INCOME -> "Income"
+        TransactionType.EXPENSE -> "Expense"
+        TransactionType.CREDIT -> "Credit Card"
+        TransactionType.TRANSFER -> "Transfer"
+        TransactionType.INVESTMENT -> "Investment"
     }
 }
 

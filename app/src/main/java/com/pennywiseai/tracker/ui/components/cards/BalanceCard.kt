@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -156,98 +157,25 @@ fun BalanceCard(
                             .fillMaxWidth()
                             .padding(bottom = Spacing.xs)
                     ) {
-                        Text(
-                            text = "Spent this month",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.Medium
+                        SpendingAmountHeader(
+                            amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
+                            amountStyle = MaterialTheme.typography.headlineSmall,
+                            isBalanceHidden = isBalanceHidden,
+                            onToggleBalanceVisibility = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                onToggleBalanceVisibility()
+                            }
                         )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            AnimatedCurrencyText(
-                                text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            IconButton(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                    onToggleBalanceVisibility()
-                                },
-                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
-                            ) {
-                                Icon(
-                                    imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
-                            }
-                        }
 
                         Spacer(modifier = Modifier.height(Spacing.xs))
 
-                        // Currency chip + monthly change pill
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            // Currency chip
-                            if (availableCurrencies.size > 1 && !isUnifiedMode) {
-                                Surface(
-                                    onClick = onCurrencyClick,
-                                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
-                                    border = BorderStroke(
-                                        0.5.dp,
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(
-                                            horizontal = Spacing.sm,
-                                            vertical = Spacing.xs
-                                        ),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                                    ) {
-                                        Text(
-                                            text = currency,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Default.KeyboardArrowDown,
-                                            contentDescription = "Change currency",
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Monthly change pill
-                            Surface(
-                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest
-                            ) {
-                                Text(
-                                    text = if (isBalanceHidden) "••••" else changeText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = changeColor,
-                                    modifier = Modifier.padding(
-                                        horizontal = Spacing.sm,
-                                        vertical = Spacing.xs
-                                    )
-                                )
-                            }
-                        }
+                        SpendingMetaRow(
+                            currency = currency,
+                            showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
+                            onCurrencyClick = onCurrencyClick,
+                            changeText = if (isBalanceHidden) "••••" else changeText,
+                            changeColor = changeColor
+                        )
 
                         // Balance line (only if accounts exist)
                         if (accountBalances.isNotEmpty()) {
@@ -275,108 +203,26 @@ fun BalanceCard(
                 } else {
                     // ── Expanded View ──
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        // Spending label
-                        Text(
-                            text = "Spent this month",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-
-                        // Spending at top as hero
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            AnimatedCurrencyText(
-                                text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            IconButton(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                    onToggleBalanceVisibility()
-                                },
-                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
-                            ) {
-                                Icon(
-                                    imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
-                            }
-                        }
-
-                        // Last month subtitle
-                        Text(
-                            text = if (isBalanceHidden) "Last month: ••••" else "Last month: ${CurrencyFormatter.formatCurrency(lastMonthSpending, currency)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        SpendingAmountHeader(
+                            amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
+                            amountStyle = MaterialTheme.typography.headlineMedium,
+                            isBalanceHidden = isBalanceHidden,
+                            onToggleBalanceVisibility = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                onToggleBalanceVisibility()
+                            },
+                            supportingText = if (isBalanceHidden) "Last month: ••••" else "Last month: ${CurrencyFormatter.formatCurrency(lastMonthSpending, currency)}"
                         )
 
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Currency chip + monthly change pill
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            // Currency chip
-                            if (availableCurrencies.size > 1 && !isUnifiedMode) {
-                                Surface(
-                                    onClick = onCurrencyClick,
-                                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
-                                    border = BorderStroke(
-                                        0.5.dp,
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(
-                                            horizontal = Spacing.sm,
-                                            vertical = Spacing.xs
-                                        ),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                                    ) {
-                                        Text(
-                                            text = currency,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Default.KeyboardArrowDown,
-                                            contentDescription = "Change currency",
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Monthly change pill
-                            Surface(
-                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest
-                            ) {
-                                Text(
-                                    text = if (isBalanceHidden) "••••" else changeText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = changeColor,
-                                    modifier = Modifier.padding(
-                                        horizontal = Spacing.sm,
-                                        vertical = Spacing.xs
-                                    )
-                                )
-                            }
-                        }
+                        SpendingMetaRow(
+                            currency = currency,
+                            showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
+                            onCurrencyClick = onCurrencyClick,
+                            changeText = if (isBalanceHidden) "••••" else changeText,
+                            changeColor = changeColor
+                        )
                         // Spending sparkline
                         if (spendingHistory.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.md))
@@ -598,6 +444,126 @@ fun BalanceCard(
                         .rotate(chevronRotation)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SpendingAmountHeader(
+    amountText: String,
+    amountStyle: TextStyle,
+    isBalanceHidden: Boolean,
+    onToggleBalanceVisibility: () -> Unit,
+    supportingText: String? = null
+) {
+    Text(
+        text = "Spent this month",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        fontWeight = FontWeight.Medium
+    )
+    Spacer(modifier = Modifier.height(Spacing.xs))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        AnimatedCurrencyText(
+            text = amountText,
+            style = amountStyle,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        IconButton(
+            onClick = onToggleBalanceVisibility,
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+        ) {
+            Icon(
+                imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(Dimensions.Icon.medium)
+            )
+        }
+    }
+    supportingText?.let { text ->
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+    }
+}
+
+@Composable
+private fun SpendingMetaRow(
+    currency: String,
+    showCurrencyChip: Boolean,
+    onCurrencyClick: () -> Unit,
+    changeText: String,
+    changeColor: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        if (showCurrencyChip) {
+            CurrencyChip(
+                currency = currency,
+                onClick = onCurrencyClick
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest
+        ) {
+            Text(
+                text = changeText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = changeColor,
+                modifier = Modifier.padding(
+                    horizontal = Spacing.sm,
+                    vertical = Spacing.xs
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun CurrencyChip(
+    currency: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = Spacing.sm,
+                vertical = Spacing.xs
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = currency,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Change currency",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
         }
     }
 }

@@ -151,6 +151,10 @@ class RuleRepositoryImpl @Inject constructor(
         return ruleApplicationDao.getApplicationCountForRule(ruleId)
     }
 
+    override suspend fun deleteRuleApplicationsForTransaction(transactionId: String) {
+        ruleApplicationDao.deleteApplicationsByTransaction(transactionId)
+    }
+
     private fun ruleToEntity(rule: TransactionRule): RuleEntity {
         return RuleEntity(
             id = rule.id,

@@ -51,8 +51,10 @@ class GPayPdfParser : PdfStatementParser {
 
     // Date parts — each on its own line
     private val dateLineRegex = Regex("""^(\d{1,2})\s+(\w{3}),?$""")       // "01 Sep,"
+    private val fullDateLineRegex = Regex("""^(\d{1,2}\s+\w{3},\s+20\d{2})$""") // "15 Oct, 2025"
+    private val datePrefixedRowRegex = Regex("""^(\d{1,2}\s+\w{3},\s+20\d{2})\s+(.+)$""")
     private val yearLineRegex = Regex("""^(20\d{2})$""")                    // "2025"
-    private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})\s*([AaPp][Mm])$""") // "03:02 PM"
+    private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})\s*([AaPp][Mm])(?:\s+(.+))?$""") // "03:02 PM ..."
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
@@ -107,8 +109,30 @@ class GPayPdfParser : PdfStatementParser {
             if (line.isEmpty()) continue
 
             val isDate = dateLineRegex.matches(line)
+            val isFullDate = fullDateLineRegex.matches(line)
             val isYear = yearLineRegex.matches(line)
             val isTime = timeLineRegex.matches(line)
+
+            val datePrefixedRow = datePrefixedRowRegex.find(line)
+            if (datePrefixedRow != null) {
+                val fullDate = datePrefixedRow.groupValues[1]
+                val rest = datePrefixedRow.groupValues[2].trim()
+                val rowParts = splitAnchorAndAmount(rest)
+                if (isTransactionAnchor(rowParts.anchorLine)) {
+                    if (inBlock && current.isNotEmpty()) {
+                        blocks.add(current.toString().trim())
+                        current.clear()
+                    }
+                    current.appendLine(fullDate)
+                    current.appendLine(rowParts.anchorLine)
+                    rowParts.amountLine?.let { current.appendLine(it) }
+                    pendingDate = null
+                    pendingYear = null
+                    pendingTime = null
+                    inBlock = true
+                    continue
+                }
+            }
 
             if (isTransactionAnchor(line)) {
                 if (inBlock && current.isNotEmpty()) {
@@ -133,7 +157,12 @@ class GPayPdfParser : PdfStatementParser {
             // always belong to the next anchor's transaction. Track the most
             // recent triplet so the next anchor can consume it.
             if (isDate) { pendingDate = line; continue }
+            if (isFullDate) { pendingDate = line; pendingYear = null; continue }
             if (isYear) { pendingYear = line; continue }
+            if (isTime && inBlock && !timeLineRegex.find(line)?.groupValues?.getOrNull(3).isNullOrBlank()) {
+                current.appendLine(line)
+                continue
+            }
             if (isTime) { pendingTime = line; continue }
 
             if (inBlock) current.appendLine(line)
@@ -241,14 +270,22 @@ class GPayPdfParser : PdfStatementParser {
 
         for (line in lines) {
             when {
-                dateLine == null && dateLineRegex.matches(line) -> dateLine = line
+                dateLine == null && (dateLineRegex.matches(line) || fullDateLineRegex.matches(line)) -> {
+                    dateLine = line
+                }
                 yearLine == null && yearLineRegex.matches(line) -> yearLine = line
-                timeLine == null && timeLineRegex.matches(line) -> timeLine = line
+                timeLine == null && timeLineRegex.matches(line) -> {
+                    val match = timeLineRegex.find(line)
+                    timeLine = listOfNotNull(
+                        match?.groupValues?.getOrNull(1),
+                        match?.groupValues?.getOrNull(2)
+                    ).joinToString(" ")
+                }
             }
-            if (dateLine != null && yearLine != null && timeLine != null) break
+            if (dateLine != null && (yearLine != null || fullDateLineRegex.matches(dateLine)) && timeLine != null) break
         }
 
-        if (dateLine == null || yearLine == null || timeLine == null) {
+        if (dateLine == null || timeLine == null || (yearLine == null && !fullDateLineRegex.matches(dateLine))) {
             Log.e(TAG, "Incomplete timestamp for '$merchant' — " +
                     "date='$dateLine' year='$yearLine' time='$timeLine' | lines=$lines")
             return null
@@ -257,7 +294,11 @@ class GPayPdfParser : PdfStatementParser {
         // Normalise: "01 Sep," → "01 Sep" then build "01 Sep, 2025 03:02 PM"
         val dateClean = dateLine.trimEnd(',', ' ')
         val timeClean = timeLine.replace(Regex("""\s+"""), " ").uppercase()
-        val combined  = "$dateClean, $yearLine $timeClean"
+        val combined = if (fullDateLineRegex.matches(dateLine)) {
+            "$dateClean $timeClean"
+        } else {
+            "$dateClean, $yearLine $timeClean"
+        }
 
         return try {
             val sdf = SimpleDateFormat(DATE_FORMAT_PATTERN, Locale.ENGLISH).apply {
@@ -276,6 +317,15 @@ class GPayPdfParser : PdfStatementParser {
             Log.e(TAG, "Date parse exception for '$merchant' — input='$combined': ${e.message}")
             null
         }
+    }
+
+    private fun splitAnchorAndAmount(value: String): RowParts {
+        val amountMatch = Regex("""\s+((?:₹|Rs\.?)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?)$""")
+            .find(value)
+            ?: return RowParts(value.trim(), null)
+
+        val anchorLine = value.substring(0, amountMatch.range.first).trim()
+        return RowParts(anchorLine, amountMatch.groupValues[1].trim())
     }
 
     /**
@@ -306,4 +356,5 @@ class GPayPdfParser : PdfStatementParser {
     // ─── Data classes ─────────────────────────────────────────────────────────
 
     private data class AccountInfo(val bankName: String?, val last4: String?)
+    private data class RowParts(val anchorLine: String, val amountLine: String?)
 }

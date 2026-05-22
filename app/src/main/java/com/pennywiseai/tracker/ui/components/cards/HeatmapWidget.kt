@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeDefaults
@@ -34,7 +35,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun HeatmapWidget(
@@ -48,38 +48,7 @@ fun HeatmapWidget(
     val startDate = today.minusWeeks((weeksToShow - 1).toLong()).with(DayOfWeek.MONDAY)
 
     val monthLabels = remember(startDate, today) {
-        val allMonthStarts = mutableListOf<Pair<Int, String>>()
-        var current = startDate
-        var lastMonth = -1
-        var weekIndex = 0
-
-        while (current <= today) {
-            if (current.monthValue != lastMonth) {
-                val formatter = DateTimeFormatter.ofPattern("MMM")
-                allMonthStarts.add(weekIndex to current.format(formatter))
-                lastMonth = current.monthValue
-            }
-            current = current.plusWeeks(1)
-            weekIndex++
-        }
-
-        val filteredLabels = mutableListOf<Pair<Int, String>>()
-        for (i in allMonthStarts.indices) {
-            val (week, label) = allMonthStarts[i]
-            if (i == 0 && allMonthStarts.size > 1) {
-                val nextWeek = allMonthStarts[1].first
-                if (nextWeek - week < 4) continue
-            }
-            if (filteredLabels.isEmpty()) {
-                filteredLabels.add(week to label)
-            } else {
-                val lastAddedWeek = filteredLabels.last().first
-                if (week - lastAddedWeek >= 4) {
-                    filteredLabels.add(week to label)
-                }
-            }
-        }
-        filteredLabels
+        buildHeatmapMonthLabels(startDate, today)
     }
 
     val scrollState = rememberScrollState()

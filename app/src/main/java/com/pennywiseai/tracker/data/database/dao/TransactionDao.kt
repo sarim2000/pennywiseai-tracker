@@ -126,6 +126,9 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category = :newCategory WHERE merchant_name = :merchantName")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
+    @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
+    suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)
+
     @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 

@@ -444,12 +444,7 @@ class TransactionsViewModel @Inject constructor(
     fun updateCategory(transaction: TransactionEntity, newCategory: String) {
         if (transaction.category == newCategory) return
         viewModelScope.launch {
-            transactionRepository.updateTransaction(
-                transaction.copy(
-                    category = newCategory,
-                    updatedAt = LocalDateTime.now()
-                )
-            )
+            transactionRepository.updateCategory(transaction.id, newCategory)
         }
     }
 

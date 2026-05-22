@@ -109,9 +109,11 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
-    // Holds the transaction whose category is being quick-edited via swipe.
-    // Non-null while the picker sheet is open.
-    var pendingCategoryEdit by remember { mutableStateOf<TransactionEntity?>(null) }
+    // Holds the id of the transaction whose category is being quick-edited via
+    // swipe. Stored as Long? (not TransactionEntity?) so it survives rotation
+    // without making the entity Parcelable; we look up the live row from the
+    // current list when rendering the sheet.
+    var pendingCategoryEditId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
@@ -486,7 +488,7 @@ fun TransactionsScreen(
                             ) { index, transaction ->
                                 SwipeToEditCategory(
                                     transaction = transaction,
-                                    onRequestEdit = { pendingCategoryEdit = it }
+                                    onRequestEdit = { pendingCategoryEditId = it.id }
                                 ) {
                                     com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                         transaction = transaction,
@@ -527,16 +529,23 @@ fun TransactionsScreen(
         )
     }
 
-    pendingCategoryEdit?.let { transaction ->
-        QuickCategoryPickerSheet(
-            transaction = transaction,
-            categories = categoriesMap.values.toList(),
-            onCategorySelected = { name ->
-                viewModel.updateCategory(transaction, name)
-                pendingCategoryEdit = null
-            },
-            onDismiss = { pendingCategoryEdit = null }
-        )
+    pendingCategoryEditId?.let { id ->
+        val transaction = uiState.transactions.firstOrNull { it.id == id }
+        if (transaction == null) {
+            // Row vanished (e.g. deleted via another path while sheet was open).
+            // Drop the pending edit so we don't keep an orphan sheet alive.
+            LaunchedEffect(id) { pendingCategoryEditId = null }
+        } else {
+            QuickCategoryPickerSheet(
+                transaction = transaction,
+                categories = categoriesMap.values.toList(),
+                onCategorySelected = { name ->
+                    viewModel.updateCategory(transaction, name)
+                    pendingCategoryEditId = null
+                },
+                onDismiss = { pendingCategoryEditId = null }
+            )
+        }
     }
 }
 
@@ -611,21 +620,24 @@ private fun QuickCategoryPickerSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
-        Column(
+        Text(
+            text = "Change category",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                bottom = Spacing.sm
+            )
+        )
+        // LazyColumn so long category lists stay reachable when the sheet is
+        // fully expanded — a plain Column would render items past the screen
+        // bottom unscrollable.
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = Spacing.md)
         ) {
-            Text(
-                text = "Change category",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(
-                    start = Dimensions.Padding.content,
-                    end = Dimensions.Padding.content,
-                    bottom = Spacing.sm
-                )
-            )
-            categories.forEach { category ->
+            items(categories, key = { it.id }) { category ->
                 val selected = transaction.category == category.name
                 Row(
                     modifier = Modifier

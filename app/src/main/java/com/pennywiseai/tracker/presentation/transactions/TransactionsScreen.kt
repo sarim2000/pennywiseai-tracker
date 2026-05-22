@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -104,6 +105,9 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
+    // Holds the transaction whose category is being quick-edited via swipe.
+    // Non-null while the picker sheet is open.
+    var pendingCategoryEdit by remember { mutableStateOf<TransactionEntity?>(null) }
     // Use rememberSaveable to preserve UI state across navigation
     var showAdvancedFilters by rememberSaveable { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
@@ -726,14 +730,19 @@ fun TransactionsScreen(
                                 items = transactions,
                                 key = { it.id }
                             ) { transaction ->
-                                com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                SwipeToEditCategory(
                                     transaction = transaction,
-                                    showDate = dateGroup == DateGroup.EARLIER,
-                                    convertedAmount = convertedAmounts[transaction.id],
-                                    displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                    profileAccountKeys = profileAccountKeys,
-                                    onClick = { onTransactionClick(transaction.id) }
-                                )
+                                    onRequestEdit = { pendingCategoryEdit = it }
+                                ) {
+                                    com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                        transaction = transaction,
+                                        showDate = dateGroup == DateGroup.EARLIER,
+                                        convertedAmount = convertedAmounts[transaction.id],
+                                        displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                        profileAccountKeys = profileAccountKeys,
+                                        onClick = { onTransactionClick(transaction.id) }
+                                    )
+                                }
                                 if (transaction != transactions.last()) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(horizontal = Spacing.md),
@@ -767,6 +776,136 @@ fun TransactionsScreen(
             initialStartDate = customDateRange?.first,
             initialEndDate = customDateRange?.second
         )
+    }
+
+    pendingCategoryEdit?.let { transaction ->
+        QuickCategoryPickerSheet(
+            transaction = transaction,
+            categories = categoriesMap.values.toList(),
+            onCategorySelected = { name ->
+                viewModel.updateCategory(transaction, name)
+                pendingCategoryEdit = null
+            },
+            onDismiss = { pendingCategoryEdit = null }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToEditCategory(
+    transaction: TransactionEntity,
+    onRequestEdit: (TransactionEntity) -> Unit,
+    content: @Composable () -> Unit
+) {
+    val view = LocalView.current
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                onRequestEdit(transaction)
+            }
+            // Never let the swipe complete — we use it purely as a gesture trigger
+            // and snap back to the resting state.
+            false
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val color by animateColorAsState(
+                when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.EndToStart ->
+                        MaterialTheme.colorScheme.secondaryContainer
+                    else -> Color.Transparent
+                },
+                label = "swipe_edit_background"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color)
+                    .padding(horizontal = Dimensions.Padding.content),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Category,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        text = "Change category",
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        },
+        content = { content() }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickCategoryPickerSheet(
+    transaction: TransactionEntity,
+    categories: List<CategoryEntity>,
+    onCategorySelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.md)
+        ) {
+            Text(
+                text = "Change category",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    bottom = Spacing.sm
+                )
+            )
+            categories.forEach { category ->
+                val selected = transaction.category == category.name
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCategorySelected(category.name) }
+                        .padding(
+                            horizontal = Dimensions.Padding.content,
+                            vertical = Spacing.sm
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    CategoryChip(category = category, showText = false)
+                    Text(
+                        text = category.name,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                    if (selected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -833,7 +833,7 @@ fun HomeScreen(
                     }
                 }
                 // Hint for long-press functionality - only show for new users (no transactions yet)
-                if (uiState.recentTransactions.isEmpty() && !uiState.isLoading) {
+                if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
                     Text(
                         text = "Hold for full resync",
                         style = MaterialTheme.typography.labelSmall,

@@ -1482,7 +1482,6 @@ data class HomeUiState(
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
     val monthlyChangePercent: Int = 0,
-    val recentTransactions: List<TransactionEntity> = emptyList(), // kept for widget compat
     val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,

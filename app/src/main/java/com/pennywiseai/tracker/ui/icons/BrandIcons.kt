@@ -244,11 +244,32 @@ object BrandIcons {
             brandMappings["cred"]?.let { return it }
         }
 
+        // Match brand keys on whole-word boundaries and prefer the most specific
+        // (longest) match. A plain substring + first-match scan produced wrong
+        // logos, e.g. "Slice Credit" hit "lic" (inside s-LIC-e) and "South Indian
+        // Bank" hit "indian bank". (#350, #355)
         return brandMappings.entries
-            .firstOrNull { (key, _) ->
-                key != "cred" && normalized.contains(key)
-            }
+            .filter { (key, _) -> key != "cred" && normalized.containsWord(key) }
+            .maxByOrNull { (key, _) -> key.length }
             ?.value
+    }
+
+    /**
+     * True if [key] appears in this string delimited by word boundaries
+     * (treating letters and digits as word characters). Avoids false hits where
+     * a short key is embedded inside a longer word, e.g. "lic" within "slice".
+     */
+    private fun String.containsWord(key: String): Boolean {
+        var index = indexOf(key)
+        while (index >= 0) {
+            val before = index - 1
+            val after = index + key.length
+            val boundaryBefore = before < 0 || !this[before].isLetterOrDigit()
+            val boundaryAfter = after >= length || !this[after].isLetterOrDigit()
+            if (boundaryBefore && boundaryAfter) return true
+            index = indexOf(key, index + 1)
+        }
+        return false
     }
     
     fun getBrandColor(merchantName: String): String? = when {

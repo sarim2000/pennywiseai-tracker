@@ -239,8 +239,11 @@ object BrandIcons {
     fun getIconResource(merchantName: String): Int? {
         val normalized = merchantName.lowercase()
 
-        // Special handling for "cred" to avoid matching "credit/credited" banking terms
-        if (normalized.contains("cred") && !normalized.contains("credit")) {
+        // Special handling for "cred": match it as a whole word so banking terms
+        // ("credit"/"credited") and embeddings ("Incredible", "Accreditation") do
+        // not resolve to the CRED icon. Word-boundary matching makes the old
+        // !contains("credit") guard unnecessary.
+        if (normalized.containsWord("cred")) {
             brandMappings["cred"]?.let { return it }
         }
 

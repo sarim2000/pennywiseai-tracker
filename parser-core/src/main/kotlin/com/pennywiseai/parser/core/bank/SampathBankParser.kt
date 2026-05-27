@@ -32,6 +32,16 @@ class SampathBankParser : BankParser() {
         return normalized.contains("SAMPATHTXN") || normalized.contains("SAMPCCTXN")
     }
 
+    override fun detectIsCard(message: String): Boolean {
+        // Sampath credit-card SMS use "Cr Crd no..**0282"; the base class only
+        // recognises "card no."/"credit card", so detect the abbreviated form here.
+        val lower = message.lowercase()
+        if (lower.contains("crd no") || lower.contains("cr crd")) {
+            return true
+        }
+        return super.detectIsCard(message)
+    }
+
     /**
      * Extracts the currency code that precedes the transaction amount.
      * Falls back to the bank default if no code is present.

@@ -61,7 +61,8 @@ class SampathBankParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "SPICE ASIA - DELIVERY",
                     accountLast4 = "0282",
-                    balance = BigDecimal("250000.00")
+                    balance = BigDecimal("250000.00"),
+                    isFromCard = true
                 )
             )
         )

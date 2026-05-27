@@ -26,7 +26,9 @@ object BrandIcons {
         "bandhan bank" to R.drawable.ic_brand_bandhan_bank,
         "bank of baroda" to R.drawable.ic_brand_bank_of_baroda,
         "barbeque nation" to R.drawable.ic_brand_barbeque_nation,
-        "bhim" to R.drawable.ic_brand_bhim,
+        // "bhim" intentionally unmapped: the bundled ic_brand_bhim asset was wrong
+        // art (not the BHIM mark). Removed until a correct logo is added so BHIM
+        // transactions fall back to a neutral icon instead of a misleading one. (#349)
         "bigbasket" to R.drawable.ic_brand_bigbasket,
         "blinkit" to R.drawable.ic_brand_blinkit,
         "blu smart" to R.drawable.ic_brand_blu_smart,

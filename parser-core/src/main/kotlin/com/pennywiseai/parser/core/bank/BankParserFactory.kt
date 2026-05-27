@@ -112,7 +112,8 @@ object BankParserFactory {
         EnparaBankParser(),  // Enpara (Turkey) — push notifications
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser(),  // Greater Bank (India)
-        BPCEParser()  // BPCE (France)
+        BPCEParser(),  // BPCE (France)
+        SampathBankParser()  // Sampath Bank (Sri Lanka)
         // Add more bank parsers here as we implement them
     )
 

@@ -27,10 +27,9 @@ class SampathBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
-        // Tolerate operator/DLT prefixes such as "AD-SAMPATHTXN" by checking containment.
-        return normalized.contains("SAMPATHTXN") ||
-                normalized.contains("SAMPCCTXN") ||
-                normalized.matches(Regex("""^[A-Z]{2}-SAMP(?:ATHTXN|CCTXN)-[A-Z]$"""))
+        // Containment covers bare senders and any operator/DLT prefix or suffix
+        // (e.g. "AD-SAMPATHTXN", "SAMPATHTXN-S").
+        return normalized.contains("SAMPATHTXN") || normalized.contains("SAMPCCTXN")
     }
 
     /**

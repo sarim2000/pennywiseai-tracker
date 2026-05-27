@@ -931,8 +931,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (!trId.startsWith("proto:")) continue
 
                 val sender = extractRcsSender(trId) ?: continue
-                if (!sender.uppercase().contains("PUNJAB NATIONAL BANK")) continue
-
                 var text = getRcsMessageText(messageId) ?: continue
                 if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
 

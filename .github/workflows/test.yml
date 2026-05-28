@@ -78,7 +78,6 @@ jobs:
     name: App Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: app-compile
 
     steps:
     - uses: actions/checkout@v4

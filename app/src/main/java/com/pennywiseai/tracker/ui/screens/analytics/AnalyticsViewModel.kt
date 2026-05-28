@@ -185,7 +185,8 @@ class AnalyticsViewModel @Inject constructor(
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits
-                    .flatMap { txWithSplits -> txWithSplits.getAmountByCategory().keys }
+                    .map { txWithSplits -> txWithSplits.getAmountByCategory().keys }
+                    .flatten()
                     .map { it.ifEmpty { "Others" } }
                     .distinct()
                     .sorted()
@@ -209,7 +210,7 @@ class AnalyticsViewModel @Inject constructor(
                         totalSpending += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
                     }
                 } else {
-                    totalSpending = filteredTransactions.sumOf { it.amount.toDouble() }.toBigDecimal()
+                    totalSpending = filteredTransactions.map { it.amount.toDouble() }.sum().toBigDecimal()
                 }
 
                 // Build category breakdown considering splits
@@ -253,7 +254,7 @@ class AnalyticsViewModel @Inject constructor(
                             }
                             sum
                         } else {
-                            txns.sumOf { it.amount.toDouble() }.toBigDecimal()
+                            txns.map { it.amount.toDouble() }.sum().toBigDecimal()
                         }
                         MerchantData(
                             name = merchant,
@@ -380,7 +381,7 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfYear = currentYear.withDayOfYear(currentYear.lengthOfYear())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
-                        }.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        }.map { it.amount.toDouble() }.sum().toBigDecimal()
                         trend.add(BalancePoint(timestamp = currentYear.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentYear = currentYear.plusYears(1)
                     }
@@ -391,7 +392,7 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
-                        }.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        }.map { it.amount.toDouble() }.sum().toBigDecimal()
                         trend.add(BalancePoint(timestamp = currentMonth.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentMonth = currentMonth.plusMonths(1)
                     }
@@ -401,7 +402,7 @@ class AnalyticsViewModel @Inject constructor(
                 val transactionsByDate = transactions.groupBy { it.dateTime.toLocalDate() }
                 var currentDate = startDate
                 while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
-                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).sumOf { it.amount.toDouble() }.toBigDecimal()
+                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).map { it.amount.toDouble() }.sum().toBigDecimal()
                     trend.add(BalancePoint(timestamp = currentDate.atStartOfDay(), balance = totalAmount, currency = currency))
                     currentDate = currentDate.plusDays(1)
                 }

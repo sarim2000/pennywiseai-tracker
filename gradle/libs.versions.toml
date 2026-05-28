@@ -1,32 +1,32 @@
 [versions]
-agp = "9.1.0"
+agp = "9.2.1"
 appUpdate = "2.1.0"
 appUpdateKtx = "2.1.0"
 biometric = "1.1.0"
-colorpickerCompose = "1.1.3"
+colorpickerCompose = "1.1.4"
 coreSplashscreen = "1.2.0"
-datastorePreferences = "1.2.0"
+datastorePreferences = "1.2.1"
 glance = "1.1.1"
-gson = "2.13.2"
-hiltAndroid = "2.58"
-hiltAndroidCompiler = "2.58"
+gson = "2.14.0"
+hiltAndroid = "2.59.2"
+hiltAndroidCompiler = "2.59.2"
 hiltCompiler = "1.3.0"
 hiltNavigationCompose = "1.3.0"
 hiltWork = "1.3.0"
-kotlin = "2.3.0"
-coreKtx = "1.17.0"
+kotlin = "2.3.21"
+coreKtx = "1.18.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-kotlinxSerializationJson = "1.9.0"
-ktorVersion = "2.3.12"
+kotlinxSerializationJson = "1.11.0"
+ktorVersion = "2.3.13"
 lifecycleRuntimeCompose = "2.10.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.2"
-composeBom = "2026.01.00"
+activityCompose = "1.13.0"
+composeBom = "2026.05.01"
 lifecycleViewmodelCompose = "2.10.0"
 markdown = "0.7.3"
-mockk = "1.13.13"
+mockk = "1.14.9"
 navVersion = "2.9.6"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
@@ -35,11 +35,11 @@ reviewKtx = "2.0.2"
 roomVersion = "2.8.4"
 litertlm = "0.+"
 visionInternalVkp = "18.2.3"
-workVersion = "2.11.0"
+workVersion = "2.11.2"
 coil = "2.7.0"
 material3 = "1.5.0-alpha12"
 haze = "1.7.1"
-composeCharts = "0.2.0"
+composeCharts = "0.2.5"
 
 [libraries]
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
@@ -103,6 +103,6 @@ compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

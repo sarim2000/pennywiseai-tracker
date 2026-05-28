@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.PennyWiseCard
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -181,7 +181,7 @@ fun FAQScreen(
             faqCategories.forEachIndexed { categoryIndex, category ->
                 SectionHeaderV2(title = category.title)
                 
-                PennyWiseCard(
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -268,7 +268,7 @@ fun FAQScreen(
             // Still need help section
             SectionHeaderV2(title = "Still Need Help?")
             
-            PennyWiseCard(
+            PennyWiseCardV2(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {

@@ -27,7 +27,7 @@ fun CategoryBreakdownCard(
     modifier: Modifier = Modifier,
     onCategoryClick: (CategoryData) -> Unit = {}
 ) {
-    val maxAmount = categories.maxOfOrNull { it.amount } ?: java.math.BigDecimal.ZERO
+    val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
 
     PennyWiseCard(
         modifier = modifier.fillMaxWidth()

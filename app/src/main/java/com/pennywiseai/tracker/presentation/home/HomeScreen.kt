@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
@@ -1015,9 +1015,9 @@ private fun BreakdownDialog(
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
-    val currentPeriod = "${now.month.name.lowercase().replaceFirstChar { it.uppercase() }} 1-${now.dayOfMonth}"
+    val currentPeriod = "${now.month.name.lowercase().let { s -> if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1) }} 1-${now.dayOfMonth}"
     val lastMonth = now.minusMonths(1)
-    val lastPeriod = "${lastMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }} 1-${now.dayOfMonth}"
+    val lastPeriod = "${lastMonth.month.name.lowercase().let { s -> if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1) }} 1-${now.dayOfMonth}"
     
     Dialog(onDismissRequest = onDismiss) {
         PennyWiseCardV2(

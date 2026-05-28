@@ -922,7 +922,7 @@ class TransactionsViewModel @Inject constructor(
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val income = currencyTransactions
@@ -930,28 +930,28 @@ class TransactionsViewModel @Inject constructor(
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val rawExpenses = currencyTransactions
                 .filter { it.transactionType == TransactionType.EXPENSE }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
             val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
             val credit = currencyTransactions
                 .filter { it.transactionType == TransactionType.CREDIT }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val transfer = currencyTransactions
                 .filter { it.transactionType == TransactionType.TRANSFER }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val investment = currencyTransactions
                 .filter { it.transactionType == TransactionType.INVESTMENT }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             CurrencyTotals(

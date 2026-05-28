@@ -26,7 +26,7 @@ data class TransactionWithSplits(
         return if (hasSplits) {
             // Group by category and sum amounts (in case of duplicates)
             splits.groupBy { it.category }
-                .mapValues { (_, splitList) -> splitList.sumOf { it.amount } }
+                .mapValues { (_, splitList) -> splitList.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount } }
         } else {
             mapOf(transaction.category to transaction.amount)
         }
@@ -36,7 +36,7 @@ data class TransactionWithSplits(
      * Calculates total of all splits. Should equal transaction.amount when valid.
      */
     fun getSplitsTotal(): BigDecimal {
-        return splits.sumOf { it.amount }
+        return splits.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
     }
 
     /**

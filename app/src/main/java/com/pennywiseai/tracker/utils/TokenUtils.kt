@@ -29,7 +29,7 @@ object TokenUtils {
      * @return Total estimated token count
      */
     fun estimateTokensForMessages(messages: List<String>): Int {
-        return messages.sumOf { estimateTokens(it) }
+        return messages.fold(0) { acc, msg -> acc + estimateTokens(msg) }
     }
     
     /**

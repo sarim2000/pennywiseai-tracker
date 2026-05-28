@@ -79,7 +79,7 @@ class AddViewModel @Inject constructor(
 
     val activeBudgetCategories = budgetGroupRepository.getActiveGroups()
         .map { groups ->
-            groups.flatMap { it.categories.map { cat -> cat.categoryName } }.distinct().sorted()
+            groups.map { it.categories.map { cat -> cat.categoryName } }.flatten().distinct().sorted()
         }
         .stateIn(
             scope = viewModelScope,

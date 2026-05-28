@@ -68,3 +68,5 @@ deploy.sh
 
 # VSCode build files
 parser-core/bin/*
+
+.antigravitycli/*

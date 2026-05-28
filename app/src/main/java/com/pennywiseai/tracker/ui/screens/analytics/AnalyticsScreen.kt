@@ -37,7 +37,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
@@ -489,21 +489,30 @@ private fun AnalyticsFilterBar(
     ) {
         if (hasActiveFilter) {
             item {
-                AssistChip(
+                Surface(
                     onClick = onResetFilters,
-                    label = { Text("Clear") },
-                    leadingIcon = {
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
+                            modifier = Modifier.size(Dimensions.Icon.small),
+                            tint = MaterialTheme.colorScheme.error
                         )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = MaterialTheme.colorScheme.error,
-                        leadingIconContentColor = MaterialTheme.colorScheme.error
-                    )
-                )
+                        Text(
+                            text = "Clear",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
         }
 

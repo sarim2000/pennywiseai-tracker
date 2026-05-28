@@ -309,7 +309,7 @@ class CurrencyConversionService @Inject constructor(
             hasValidUsdRates = usdRates.isNotEmpty(),
             validUsdRatesCount = usdRates.size,
             latestUpdateTime = latestRate?.updatedAt,
-            latestExpiryTime = usdRates.maxOfOrNull { it.expiresAt },
+            latestExpiryTime = usdRates.map { it.expiresAt }.maxOrNull(),
             isStale = areOverallRatesStale(),
             currentTime = currentTime
         )

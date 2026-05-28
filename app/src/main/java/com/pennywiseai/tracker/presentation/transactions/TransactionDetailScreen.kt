@@ -50,7 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -570,8 +570,9 @@ private fun TransactionReceipt(
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Transaction type chip
-                val typeLabel = transaction.transactionType.name.lowercase()
-                    .replaceFirstChar { it.uppercase() }
+                val typeLabel = transaction.transactionType.name.lowercase().let { s ->
+                    if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
+                }
                 val typeIcon = when (transaction.transactionType) {
                     TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
                     TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
@@ -601,7 +602,7 @@ private fun TransactionReceipt(
                         labelColor = typeColor,
                         iconContentColor = typeColor
                     ),
-                    border = null
+                    border = null as androidx.compose.foundation.BorderStroke?
                 )
 
                 // Loan chip
@@ -632,7 +633,7 @@ private fun TransactionReceipt(
                             labelColor = loanColor,
                             iconContentColor = loanColor
                         ),
-                        border = null
+                        border = null as androidx.compose.foundation.BorderStroke?
                     )
                 } else {
                     SuggestionChip(
@@ -655,7 +656,7 @@ private fun TransactionReceipt(
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        border = null
+                        border = null as androidx.compose.foundation.BorderStroke?
                     )
                 }
 
@@ -1115,7 +1116,14 @@ private fun EditableTransactionHeader(
                 FilterChip(
                     selected = transaction.transactionType == type,
                     onClick = { viewModel.updateTransactionType(type) },
-                    label = { Text(type.name.lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }, maxLines = 1) },
+                    label = {
+                        Text(
+                            type.name.lowercase(Locale.getDefault()).let { s ->
+                                if (s.isEmpty()) s else s.substring(0, 1).uppercase(Locale.getDefault()) + s.substring(1)
+                            },
+                            maxLines = 1
+                        )
+                    },
                     leadingIcon = if (transaction.transactionType == type) {
                         { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
                     } else null,

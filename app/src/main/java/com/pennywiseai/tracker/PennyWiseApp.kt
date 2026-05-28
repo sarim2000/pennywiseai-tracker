@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,15 +27,19 @@ import com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker
 
 @Composable
 fun PennyWiseApp(
-    themeViewModel: ThemeViewModel = hiltViewModel(),
-    appLockViewModel: AppLockViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel? = null,
+    appLockViewModel: AppLockViewModel? = null,
     editTransactionId: Long? = null,
     openAddTransaction: Boolean = false,
-    onEditComplete: () -> Unit = {},
-    onAddTransactionShortcutHandled: () -> Unit = {}
+    onEditComplete: (() -> Unit)? = null,
+    onAddTransactionShortcutHandled: (() -> Unit)? = null
 ) {
-    val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
-    val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+    val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
+    val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
+    val actualAppLockViewModel: AppLockViewModel = appLockViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
+
+    val themeUiState by actualThemeViewModel.themeUiState.collectAsStateWithLifecycle()
+    val appLockUiState by actualAppLockViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val darkTheme = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
@@ -48,7 +52,7 @@ fun PennyWiseApp(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 // App came to foreground - check if it should be locked
-                appLockViewModel.refreshLockState()
+                actualAppLockViewModel.refreshLockState()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -70,7 +74,7 @@ fun PennyWiseApp(
                 context, Manifest.permission.READ_SMS
             ) == PackageManager.PERMISSION_GRANTED
             if (hasSmsPermission) {
-                themeViewModel.markOnboardingCompleted()
+                actualThemeViewModel.markOnboardingCompleted()
             }
         }
     }
@@ -110,7 +114,7 @@ fun PennyWiseApp(
             navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction) {
                 launchSingleTop = true
             }
-            onAddTransactionShortcutHandled()
+            onAddTransactionShortcutHandled?.invoke()
         }
     }
 
@@ -130,9 +134,9 @@ fun PennyWiseApp(
     ) {
         PennyWiseNavHost(
             navController = navController,
-            themeViewModel = themeViewModel,
+            themeViewModel = actualThemeViewModel,
             startDestination = startDestination,
-            onEditComplete = onEditComplete
+            onEditComplete = onEditComplete ?: {}
         )
     }
 }

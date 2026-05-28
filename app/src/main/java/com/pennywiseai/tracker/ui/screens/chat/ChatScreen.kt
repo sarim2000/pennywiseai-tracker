@@ -25,7 +25,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -869,17 +869,29 @@ private fun ChatEmptyState(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             examplePrompts.forEach { prompt ->
-                SuggestionChip(
+                Surface(
                     onClick = { onPromptClick(prompt) },
-                    label = { Text(prompt) },
-                    icon = {
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
                         Icon(
                             Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
+                            modifier = Modifier.size(Dimensions.Icon.small),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = prompt,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                )
+                }
             }
         }
     }

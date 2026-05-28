@@ -756,7 +756,7 @@ class HomeViewModel @Inject constructor(
                     }
                     total
                 } else {
-                    subscriptions.sumOf { it.amount }
+                    subscriptions.fold(java.math.BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
@@ -1146,13 +1146,13 @@ class HomeViewModel @Inject constructor(
 
             val creditCardTotal = currencyTransactions
                 .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
-                .sumOf { it.amount }
+                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
             val transferTotal = currencyTransactions
                 .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER }
-                .sumOf { it.amount }
+                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
             val investmentTotal = currencyTransactions
                 .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT }
-                .sumOf { it.amount }
+                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
 
             _uiState.value = _uiState.value.copy(
                 currentMonthCreditCard = creditCardTotal,

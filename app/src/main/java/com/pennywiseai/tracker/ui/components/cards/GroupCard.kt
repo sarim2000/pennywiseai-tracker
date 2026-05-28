@@ -58,7 +58,7 @@ fun GroupCard(
         if (isDark) expense_dark else expense_light
     }
 
-    val latestDate = remember(transactions) { transactions.maxOfOrNull { it.dateTime } }
+    val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }
     val dateText = latestDate?.format(DateTimeFormatter.ofPattern("d MMM")) ?: ""
     val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
 

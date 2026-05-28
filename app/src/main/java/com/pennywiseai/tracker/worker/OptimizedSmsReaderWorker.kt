@@ -317,7 +317,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             } finally {
                 Trace.endSection()
             }
-            Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.sumOf { it.size }} rules")
+            Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.map { it.size }.sum()} rules")
 
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
             Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | ${messages.size} messages")
@@ -944,7 +944,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val decoded = String(android.util.Base64.decode(trId.removePrefix("proto:"), android.util.Base64.DEFAULT))
         Regex("""([a-z_]+)_[a-z0-9]+_agent@rbm\.goog""").find(decoded)?.let { m ->
             return m.groupValues[1].split("_")
-                .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                .joinToString(" ") { if (it.isNotEmpty()) it.substring(0, 1).uppercase() + it.substring(1) else it }
         }
         Regex("""[\x12\x1a][\x00-\x20]([A-Za-z][A-Za-z\s]+)""").find(decoded)?.let { m ->
             val name = m.groupValues[1].trim()

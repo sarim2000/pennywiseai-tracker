@@ -179,8 +179,9 @@ fun TransactionTabContent(
                         selected = uiState.transactionType == type,
                         onClick = { viewModel.updateTransactionType(type) },
                         label = {
-                            Text(type.name.lowercase(Locale.getDefault())
-                                .replaceFirstChar { it.titlecase(Locale.getDefault()) })
+                            Text(type.name.lowercase(Locale.getDefault()).let { s ->
+                                if (s.isEmpty()) s else s.substring(0, 1).uppercase(Locale.getDefault()) + s.substring(1)
+                            })
                         },
                         leadingIcon = if (uiState.transactionType == type) {
                             {

@@ -161,7 +161,7 @@ class BudgetGroupRepository @Inject constructor(
 
     private suspend fun recomputeGroupTotal(budgetId: Long) {
         val categories = budgetDao.getCategoriesForBudgetList(budgetId)
-        val total = categories.sumOf { it.budgetAmount }
+        val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.budgetAmount }
         budgetDao.updateBudgetLimitAmount(budgetId, total)
     }
 
@@ -183,7 +183,7 @@ class BudgetGroupRepository @Inject constructor(
                 displayOrder = bwc.budget.displayOrder
             )
         }
-        val categorySnapshots = budgets.flatMap { bwc ->
+        val categorySnapshots = budgets.map { bwc ->
             bwc.categories.map { cat ->
                 BudgetCategoryMonthSnapshotEntity(
                     budgetId = bwc.budget.id,
@@ -193,7 +193,7 @@ class BudgetGroupRepository @Inject constructor(
                     budgetAmount = cat.budgetAmount
                 )
             }
-        }
+        }.flatten()
         snapshotDao.replaceMonthSnapshots(year, month, groupSnapshots, categorySnapshots)
     }
 

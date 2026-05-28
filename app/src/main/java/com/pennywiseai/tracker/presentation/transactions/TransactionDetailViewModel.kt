@@ -102,7 +102,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     val activeBudgetCategories: StateFlow<List<String>> = budgetGroupRepository.getActiveGroups()
         .map { groups ->
-            groups.flatMap { it.categories.map { cat -> cat.categoryName } }.distinct().sorted()
+            groups.map { it.categories.map { cat -> cat.categoryName } }.flatten().distinct().sorted()
         }
         .stateIn(
             scope = viewModelScope,
@@ -516,7 +516,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         // Splits must sum to transaction total (within 0.01 tolerance)
-        val splitsTotal = currentSplits.sumOf { it.amount }
+        val splitsTotal = currentSplits.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
         val difference = (transaction.amount - splitsTotal).abs()
         val tolerance = BigDecimal("0.01")
 
@@ -735,7 +735,7 @@ class TransactionDetailViewModel @Inject constructor(
         // If it's all uppercase, convert to proper case
         return if (trimmed == trimmed.uppercase()) {
             trimmed.lowercase().split(" ").joinToString(" ") { word ->
-                word.replaceFirstChar { it.uppercase() }
+                if (word.isEmpty()) word else word.substring(0, 1).uppercase() + word.substring(1)
             }
         } else {
             // Already has mixed case, keep as is

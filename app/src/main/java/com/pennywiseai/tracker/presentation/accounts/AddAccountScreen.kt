@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -152,8 +152,9 @@ fun AddAccountScreen(
                 onExpandedChange = { showTypeDropdown = it }
             ) {
                 TextField(
-                    value = formState.accountType.name.lowercase()
-                        .replaceFirstChar { it.uppercase() },
+                    value = formState.accountType.name.lowercase().let { s ->
+                        if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
+                    },
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Account Type", fontWeight = FontWeight.SemiBold) },
@@ -182,7 +183,9 @@ fun AddAccountScreen(
                     AccountType.values().forEach { type ->
                         DropdownMenuItem(
                             text = {
-                                Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
+                                Text(type.name.lowercase().let { s ->
+                                    if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
+                                })
                             },
                             onClick = {
                                 viewModel.updateAccountType(type)

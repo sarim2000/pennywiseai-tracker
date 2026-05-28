@@ -21,7 +21,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*

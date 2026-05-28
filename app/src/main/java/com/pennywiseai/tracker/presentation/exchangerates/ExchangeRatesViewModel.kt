@@ -44,7 +44,7 @@ class ExchangeRatesViewModel @Inject constructor(
             try {
                 val currencies = transactionRepository.getAllCurrencies().first()
                 val rates = currencyConversionService.getActiveRates(currencies)
-                val lastUpdated = rates.maxOfOrNull { it.updatedAt }
+                val lastUpdated = rates.map { it.updatedAt }.maxOrNull()
 
                 _uiState.update {
                     it.copy(
@@ -71,7 +71,7 @@ class ExchangeRatesViewModel @Inject constructor(
                 }
                 currencyConversionService.refreshExchangeRates(currencies)
                 val rates = currencyConversionService.getActiveRates(currencies)
-                val lastUpdated = rates.maxOfOrNull { it.updatedAt }
+                val lastUpdated = rates.map { it.updatedAt }.maxOrNull()
 
                 _uiState.update {
                     it.copy(

@@ -65,7 +65,7 @@ private fun normalizeMerchantName(name: String): String {
     // If it's all uppercase, convert to proper case
     return if (trimmed == trimmed.uppercase()) {
         trimmed.lowercase().split(" ").joinToString(" ") { word ->
-            word.replaceFirstChar { it.uppercase() }
+            if (word.isEmpty()) word else word.substring(0, 1).uppercase() + word.substring(1)
         }
     } else {
         // Already has mixed case, keep as is

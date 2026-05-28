@@ -84,7 +84,7 @@ class LlmRepository @Inject constructor(
 
         // Estimate tokens from all messages
         val currentMessages = chatDao.getAllMessagesForContext()
-        val totalChars = currentMessages.sumOf { it.message.length } + userMessage.length
+        val totalChars = currentMessages.map { it.message.length }.sum() + userMessage.length
         val estimatedTokens = totalChars / 4
 
         if (estimatedTokens > 1200) {
@@ -191,7 +191,7 @@ class LlmRepository @Inject constructor(
         val stats = context.quickStats
         val currency = userPreferencesRepository.baseCurrency.first()
 
-        val totalSubAmount = activeSubs.sumOf { it.amount.toDouble() }.toBigDecimal()
+        val totalSubAmount = activeSubs.map { it.amount.toDouble() }.sum().toBigDecimal()
         val upcomingPayments = activeSubs.filter { it.nextPaymentDays <= 7 }
 
         return """

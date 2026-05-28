@@ -6,45 +6,37 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   parser-tests:
+    name: Parser Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
+    - uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    - uses: android-actions/setup-android@v3
 
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - uses: gradle/actions/setup-gradle@v4
 
     - name: Run parser-core tests
       run: ./gradlew :parser-core:test --continue
-
-    - name: Compile standard debug app Kotlin
-      run: ./gradlew :app:compileStandardDebugKotlin
-
-    - name: Run standard debug unit tests
-      run: ./gradlew :app:testStandardDebugUnitTest
 
     - name: Upload parser test results
       uses: actions/upload-artifact@v4
@@ -52,4 +44,61 @@ jobs:
       with:
         name: parser-test-results
         path: parser-core/build/test-results/test/
+        retention-days: 7
+
+  app-compile:
+    name: App Compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@v3
+
+    - uses: gradle/actions/setup-gradle@v4
+
+    - name: Compile standard debug app
+      run: ./gradlew :app:compileStandardDebugKotlin --build-cache
+
+    - name: Upload compile report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: compile-report
+        path: app/build/reports/
+        retention-days: 7
+
+  app-unit-tests:
+    name: App Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: app-compile
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@v3
+
+    - uses: gradle/actions/setup-gradle@v4
+
+    - name: Run standard debug unit tests
+      run: ./gradlew :app:testStandardDebugUnitTest --build-cache --continue
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: app-test-results
+        path: app/build/test-results/
         retention-days: 7

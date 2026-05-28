@@ -227,6 +227,32 @@ class ICICIBankParserTest {
                     toAccount = "444",
                     reference = "LMNOPQ987654"
                 )
+            ),
+            ParserTestCase(
+                name = "ACH credit via ICICI",
+                message = "ICICI Bank Account XX227 credited:Rs. 104.00 on 19-May-26. Info ACH*VARUNBEVERAGES LIMI*778. Available Balance is Rs 1,11,231.93",
+                sender = "AD-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("104.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "VARUNBEVERAGES LIMI Dividend",
+                    accountLast4 = "227",
+                    balance = BigDecimal("111231.93")
+                )
+            ),
+            ParserTestCase(
+                name = "ACH debit via ICICI is INVESTMENT",
+                message = "ICICI Bank Account XX123 debited Rs. 5,000.00 on 19-May-26 InfoACH*BD-ACHKFL.Avl Bal Rs. 3,25,000.04.To dispute call 1800 blah blah",
+                sender = "AX-ICICIT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.INVESTMENT,
+                    //merchant = "", - can't detect merchant
+                    accountLast4 = "123",
+                    balance = BigDecimal("325000.04")
+                )
             )
         )
 

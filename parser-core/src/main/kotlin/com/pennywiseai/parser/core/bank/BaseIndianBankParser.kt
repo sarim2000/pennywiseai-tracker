@@ -19,6 +19,14 @@ abstract class BaseIndianBankParser : BankParser() {
      * Contains keywords specific to Indian investment platforms and terms.
      */
     override fun isInvestmentTransaction(lowerMessage: String): Boolean {
+        // Credits to a bank account are income, not investment (ACH dividends, vendor payments, etc.)
+        // Only use "credited" and "deposited" — "received" is ambiguous
+        // (e.g. "X has received Rs Y from your A/c" means outgoing money)
+        if (lowerMessage.contains("credited") ||
+            lowerMessage.contains("deposited")) {
+            return false
+        }
+
         val investmentKeywords = listOf(
             // Clearing corporations
             "iccl",                         // Indian Clearing Corporation Limited

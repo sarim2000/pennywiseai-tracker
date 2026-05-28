@@ -74,7 +74,7 @@ object TransactionDeduplication {
             }
 
         return duplicateClusters.map { cluster ->
-            val keeper = cluster.minWith(transactionQualityComparator)!!
+            val keeper = cluster.minWith(transactionQualityComparator) ?: return@map emptyList()
             cluster
                 .filter { it.id != keeper.id }
                 .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })

@@ -87,7 +87,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private const val NOTIFICATION_ID           = 9001
         private const val PARSE_CHANNEL_CAPACITY    = 512
         private const val RESULT_CHANNEL_CAPACITY   = 512
-        private const val PROGRESS_REPORT_INTERVAL  = 10
+        private const val PROGRESS_REPORT_INTERVAL  = 1
         private const val UNRECOGNIZED_BATCH_SIZE   = 50
         private const val ETA_WINDOW_MS             = 2000L
 
@@ -440,16 +440,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(applicationContext)
         }
 
-        // Real-time UI refresh every 50ms
-        val progressMonitor = launch(Dispatchers.IO) {
-            while (stats.processed.get() < stats.total) {
-                reportProgress(stats)
-            }
-        }
-
         saver.join()
         reportProgress(stats)
-        progressMonitor.cancel()
     }
 
     // ─── Stage 2: Parse (plain fun — no suspend overhead on the hot path) ─────

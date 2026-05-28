@@ -88,7 +88,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private const val PARSE_CHANNEL_CAPACITY    = 512
         private const val RESULT_CHANNEL_CAPACITY   = 512
         private const val PROGRESS_REPORT_INTERVAL  = 10
-        private const val PROGRESS_MONITOR_INTERVAL = 50L
         private const val UNRECOGNIZED_BATCH_SIZE   = 50
         private const val ETA_WINDOW_MS             = 2000L
 
@@ -444,7 +443,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // Real-time UI refresh every 50ms
         val progressMonitor = launch(Dispatchers.IO) {
             while (stats.processed.get() < stats.total) {
-                delay(PROGRESS_MONITOR_INTERVAL)
                 reportProgress(stats)
             }
         }

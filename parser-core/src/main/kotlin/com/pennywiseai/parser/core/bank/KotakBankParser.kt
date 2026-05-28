@@ -18,7 +18,14 @@ class KotakBankParser : BankParser() {
         val normalizedSender = sender.uppercase()
 
         // DLT patterns for Kotak Bank — covers KOTAKB, KOTAKD, and similar variants
-        return normalizedSender.matches(Regex("^[A-Z]{2}-KOTAK[A-Z]-[ST]$"))
+        if (normalizedSender.matches(Regex("^[A-Z]{2}-KOTAK[A-Z]-[ST]$"))) {
+            return true
+        }
+
+        // RCS senders arrive with a decoded display name (e.g. "Kotak",
+        // "Kotak Mahindra Bank", "Kotak811") instead of the DLT header, so match
+        // any sender that contains the brand token.
+        return normalizedSender.contains("KOTAK")
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

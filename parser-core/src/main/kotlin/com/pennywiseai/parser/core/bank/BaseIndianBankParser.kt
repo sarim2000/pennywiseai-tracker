@@ -27,61 +27,7 @@ abstract class BaseIndianBankParser : BankParser() {
             return false
         }
 
-        val investmentKeywords = listOf(
-            // Clearing corporations
-            "iccl",                         // Indian Clearing Corporation Limited
-            "indian clearing corporation",
-            "nsccl",                        // NSE Clearing Corporation
-            "nse clearing",
-            "clearing corporation",
-
-            // Auto-pay indicators (excluding mandate/UMRN to avoid subscription false positives)
-            "nach",                         // National Automated Clearing House
-            "ach",                          // Automated Clearing House
-            "ecs",                          // Electronic Clearing Service
-
-            // Investment platforms
-            "groww",
-            "zerodha",
-            "upstox",
-            "kite",
-            "kuvera",
-            "paytm money",
-            "etmoney",
-            "coin by zerodha",
-            "smallcase",
-            "angel one",
-            "angel broking",
-            "5paisa",
-            "icici securities",
-            "icici direct",
-            "hdfc securities",
-            "kotak securities",
-            "motilal oswal",
-            "sharekhan",
-            "edelweiss",
-            "axis direct",
-            "sbi securities",
-
-            // Investment types
-            "mutual fund",
-            "sip",                          // Systematic Investment Plan
-            "elss",                         // Tax saving funds
-            "ipo",                          // Initial Public Offering
-            "folio",                        // Mutual fund folio
-            "demat",
-            "stockbroker",
-            "digital gold",                 // Digital Gold investments
-            "sovereign gold",               // Sovereign Gold Bonds
-
-            // Stock exchanges
-            "nse",                          // National Stock Exchange
-            "bse",                          // Bombay Stock Exchange
-            "cdsl",                         // Central Depository Services
-            "nsdl"                          // National Securities Depository
-        )
-
-        return investmentKeywords.any { lowerMessage.contains(it) }
+        return super.isInvestmentTransaction(lowerMessage)
     }
 
     // ==========================================

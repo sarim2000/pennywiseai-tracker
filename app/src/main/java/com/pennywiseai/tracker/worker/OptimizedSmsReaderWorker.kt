@@ -916,7 +916,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             applicationContext.contentResolver.query(
                 "content://mms".toUri(),
                 arrayOf("COUNT(*)"),
-                "date >= ?",
+                "date >= ? AND tr_id LIKE 'proto:%'",
                 arrayOf(scanStartSeconds.toString()),
                 null
             )?.use { c ->

@@ -70,16 +70,18 @@ fun TransactionItem(
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
             add(dateTimeText)
-            if (transaction.category.isNotBlank() &&
-                !transaction.category.equals("Uncategorized", ignoreCase = true)
-            ) {
-                add(transaction.category)
-            }
-            if (showTypeLabel) when (transaction.transactionType) {
-                TransactionType.CREDIT -> add("Credit")
-                TransactionType.TRANSFER -> add("Transfer")
-                TransactionType.INVESTMENT -> add("Investment")
-                else -> {}
+            if (showTypeLabel) {
+                if (transaction.category.isNotBlank() &&
+                    !transaction.category.equals("Uncategorized", ignoreCase = true)
+                ) {
+                    add(transaction.category)
+                }
+                when (transaction.transactionType) {
+                    TransactionType.CREDIT -> add("Credit")
+                    TransactionType.TRANSFER -> add("Transfer")
+                    TransactionType.INVESTMENT -> add("Investment")
+                    else -> {}
+                }
             }
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")

@@ -360,12 +360,14 @@ class HomeViewModel @Inject constructor(
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-                // Calculate totals from (possibly converted) entities
+                // Calculate totals from (possibly converted) entities.
+                // convertAmount returns the original amount when no rate is available,
+                // so we skip the hasValidRate check to avoid silently dropping accounts.
                 var totalBalanceInSelectedCurrency = BigDecimal.ZERO
                 for (account in regularAccounts) {
                     if (account.currency == selectedCurrency) {
                         totalBalanceInSelectedCurrency += account.balance
-                    } else if (currencyConversionService.hasValidRate(account.currency, selectedCurrency)) {
+                    } else {
                         totalBalanceInSelectedCurrency += currencyConversionService.convertAmount(
                             amount = account.balance,
                             fromCurrency = account.currency,
@@ -379,7 +381,7 @@ class HomeViewModel @Inject constructor(
                     val availableInCardCurrency = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
                     if (card.currency == selectedCurrency) {
                         totalAvailableCreditInSelectedCurrency += availableInCardCurrency
-                    } else if (currencyConversionService.hasValidRate(card.currency, selectedCurrency)) {
+                    } else {
                         totalAvailableCreditInSelectedCurrency += currencyConversionService.convertAmount(
                             amount = availableInCardCurrency,
                             fromCurrency = card.currency,
@@ -399,18 +401,9 @@ class HomeViewModel @Inject constructor(
                         }
                     }
 
-                // Determine if balance is ready (all conversions successful)
-                val needsConversion = allAccountCurrencies.size > 1 &&
-                    allAccountCurrencies.any { it != selectedCurrency }
-                val balanceReady = if (needsConversion) {
-                    allAccountCurrencies
-                        .filter { it != selectedCurrency }
-                        .all { currency ->
-                            currencyConversionService.hasValidRate(currency, selectedCurrency)
-                        }
-                } else {
-                    true
-                }
+                // Balance is ready as soon as we have account data.
+                // Conversion failures are non-blocking — convertAmount returns the
+                // original amount as fallback, so no account is silently dropped.
 
                 _uiState.value = _uiState.value.copy(
                     accountBalances = regularAccounts,  // Pre-converted in unified mode
@@ -418,7 +411,7 @@ class HomeViewModel @Inject constructor(
                     totalBalance = totalBalanceInSelectedCurrency,
                     totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                     availableCurrencies = updatedAvailableCurrencies,
-                    isBalanceReady = balanceReady
+                    isBalanceReady = true
                 )
             }
         }

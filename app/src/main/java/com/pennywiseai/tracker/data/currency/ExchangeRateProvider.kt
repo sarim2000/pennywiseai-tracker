@@ -86,6 +86,7 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
                         baseCurrency = exchangeRateResponse.base_code
                     )
                 } else {
+                    println("Exchange rate API returned result='${exchangeRateResponse.result}' base='${exchangeRateResponse.base_code}'")
                     null
                 }
             }

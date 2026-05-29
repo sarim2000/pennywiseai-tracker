@@ -81,7 +81,7 @@ class SabbBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         return when {
             // Incoming / deposit first so it wins over generic "حوالة"
-            message.contains("راتب") -> TransactionType.INCOME   // salary credit
+            message.contains("حوالة راتب") -> TransactionType.INCOME   // salary credit
             message.contains("إيداع") -> TransactionType.INCOME
             message.contains("واردة") -> TransactionType.INCOME
 
@@ -96,7 +96,7 @@ class SabbBankParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Salary credit (حوالة راتب) has no merchant line; label it as "Salary".
-        if (message.contains("راتب")) {
+        if (message.contains("حوالة راتب")) {
             return "Salary"
         }
 

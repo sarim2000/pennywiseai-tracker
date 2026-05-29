@@ -929,6 +929,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     /** Robust query for RCS messages. */
     private suspend fun countRcsMessages(scanStartSeconds: Long): Int {
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("COUNT(*)"),
+                "date >= ? AND tr_id LIKE 'proto:%'",
+                arrayOf(scanStartSeconds.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) {
+                    return c.getInt(0)
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.w(TAG, "Fast RCS count failed, falling back to cursor iteration: ${e.message}")
+        }
+
         var count = 0
         try {
             applicationContext.contentResolver.query(
@@ -950,7 +967,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Log.e(TAG, "Error counting RCS", e)
+            Log.e(TAG, "Error counting RCS via fallback scan", e)
         }
         return count
     }

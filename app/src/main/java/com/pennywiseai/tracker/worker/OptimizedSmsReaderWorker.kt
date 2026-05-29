@@ -367,13 +367,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             } finally {
                 feed.close()
             }
-            // Persist scan state after all messages are fed
-            userPreferencesRepository.setLastScanTimestamp(now)
-            if (needsFullScan) {
-                val scanMonths = userPreferencesRepository.getSmsScanMonths()
-                val scanAllTime = userPreferencesRepository.getSmsScanAllTime()
-                userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
-            }
         }
 
         // Stage 2 – Parse (all available CPU cores)
@@ -475,6 +468,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         saver.join()
         balanceUpdates.close()
         balanceUpdater.join()
+
+        // Persist scan state after all stages (including saving) finish successfully
+        userPreferencesRepository.setLastScanTimestamp(now)
+        if (needsFullScan) {
+            val scanMonths = userPreferencesRepository.getSmsScanMonths()
+            val scanAllTime = userPreferencesRepository.getSmsScanAllTime()
+            userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
+        }
+
         reportProgress(stats)
     }
 

@@ -11,6 +11,7 @@ import java.math.BigDecimal
  *   شراء إنترنت                            (Online / internet purchase)
  *   حوالة صادرة مقبولة                     (Outgoing transfer)
  *   إيداع حوالة واردة                      (Incoming deposit / transfer)
+ *   حوالة راتب                             (Salary transfer / credit)
  *
  * Common fields:
  *   بطاقة: ***1234;mada(Samsung Pay)       Card with last 4
@@ -80,6 +81,7 @@ class SabbBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         return when {
             // Incoming / deposit first so it wins over generic "حوالة"
+            message.contains("راتب") -> TransactionType.INCOME   // salary credit
             message.contains("إيداع") -> TransactionType.INCOME
             message.contains("واردة") -> TransactionType.INCOME
 
@@ -93,6 +95,11 @@ class SabbBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Salary credit (حوالة راتب) has no merchant line; label it as "Salary".
+        if (message.contains("راتب")) {
+            return "Salary"
+        }
+
         val isIncoming = message.contains("إيداع") || message.contains("واردة")
         val isOutgoingTransfer = message.contains("صادرة")
 

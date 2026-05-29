@@ -32,6 +32,7 @@ fun TransactionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
+    showTypeLabel: Boolean = true,
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
@@ -74,7 +75,12 @@ fun TransactionItem(
             ) {
                 add(transaction.category)
             }
-
+            if (showTypeLabel) when (transaction.transactionType) {
+                TransactionType.CREDIT -> add("Credit")
+                TransactionType.TRANSFER -> add("Transfer")
+                TransactionType.INVESTMENT -> add("Investment")
+                else -> {}
+            }
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")
             transaction.balanceAfter?.let { balance ->

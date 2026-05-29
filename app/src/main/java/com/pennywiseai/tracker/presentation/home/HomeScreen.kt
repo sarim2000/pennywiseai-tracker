@@ -614,6 +614,7 @@ fun HomeScreen(
                                         transaction = item.transaction,
                                         convertedAmount = item.convertedAmount,
                                         displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                        showTypeLabel = false,
                                         profileAccountKeys = profileAccountKeys,
                                         onClick = { onTransactionClick(item.transaction.id) }
                                     )

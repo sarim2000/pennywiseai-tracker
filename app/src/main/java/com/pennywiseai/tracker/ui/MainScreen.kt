@@ -186,7 +186,7 @@ fun MainScreen(
                     },
                     onNavigateToAddScreen = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.AddTransaction
+                            com.pennywiseai.tracker.navigation.AddTransaction()
                         ) { launchSingleTop = true }
                     },
                     onTransactionClick = { transactionId ->
@@ -274,7 +274,7 @@ fun MainScreen(
                     },
                     onAddTransactionClick = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.AddTransaction
+                            com.pennywiseai.tracker.navigation.AddTransaction()
                         ) { launchSingleTop = true }
                     },
                     onNavigateToSettings = {
@@ -302,7 +302,7 @@ fun MainScreen(
                     },
                     onAddSubscriptionClick = {
                         rootNavController?.navigate(
-                            com.pennywiseai.tracker.navigation.AddTransaction
+                            com.pennywiseai.tracker.navigation.AddTransaction()
                         ) { launchSingleTop = true }
                     }
                 )

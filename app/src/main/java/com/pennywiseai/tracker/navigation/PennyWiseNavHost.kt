@@ -168,11 +168,16 @@ fun PennyWiseNavHost(
                         navController.navigate(LoanDetail(loanId)) {
                             launchSingleTop = true
                         }
+                    },
+                    onDuplicateTransaction = { sourceId ->
+                        navController.navigate(AddTransaction(sourceTransactionId = sourceId)) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
         }
-        
+
         composable<AddTransaction>(
             enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
             exitTransition = { fadeOut(tween(200)) },
@@ -428,7 +433,7 @@ fun PennyWiseNavHost(
                     navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
                 },
                 onAddTransactionClick = {
-                    navController.navigate(AddTransaction) { launchSingleTop = true }
+                    navController.navigate(AddTransaction()) { launchSingleTop = true }
                 },
                 onNavigateToSettings = {
                     navController.navigate(Settings) { launchSingleTop = true }

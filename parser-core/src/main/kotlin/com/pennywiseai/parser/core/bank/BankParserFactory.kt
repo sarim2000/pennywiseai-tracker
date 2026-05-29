@@ -113,7 +113,8 @@ object BankParserFactory {
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser(),  // Greater Bank (India)
         BPCEParser(),  // BPCE (France)
-        SampathBankParser()  // Sampath Bank (Sri Lanka)
+        SampathBankParser(),  // Sampath Bank (Sri Lanka)
+        StandardBankMozambiqueParser()  // Standard Bank Mozambique
         // Add more bank parsers here as we implement them
     )
 

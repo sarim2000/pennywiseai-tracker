@@ -429,7 +429,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             }
                         }
                     }
-                    if (p % PROGRESS_REPORT_INTERVAL == 0 || p == stats.total) reportProgress(stats)
+                    if (p % PROGRESS_REPORT_INTERVAL == 0 || p == stats.total) launch { reportProgress(stats) }
                 }
             } finally {
                 Trace.endSection()

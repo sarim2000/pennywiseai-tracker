@@ -241,18 +241,10 @@ fun CreateRuleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         commonPresets.forEach { (label, action) ->
-                            Surface(
+                            ElevatedAssistChip(
                                 onClick = action,
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                            ) {
-                                Text(
-                                    text = label,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
+                                label = { Text(label, style = MaterialTheme.typography.bodySmall) }
+                            )
                         }
                     }
                 }
@@ -602,18 +594,10 @@ fun CreateRuleScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 commonMerchants.forEach { merchant ->
-                                    Surface(
-                                        onClick = { actionValue = merchant },
-                                        shape = MaterialTheme.shapes.small,
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                    ) {
-                                        Text(
-                                            text = merchant,
-                                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
+                                ElevatedAssistChip(
+                                    onClick = { actionValue = merchant },
+                                    label = { Text(merchant, style = MaterialTheme.typography.bodySmall) }
+                                )
                                 }
                             }
 

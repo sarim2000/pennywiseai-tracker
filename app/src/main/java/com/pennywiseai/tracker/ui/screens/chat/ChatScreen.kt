@@ -869,29 +869,17 @@ private fun ChatEmptyState(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             examplePrompts.forEach { prompt ->
-                Surface(
+                SuggestionChip(
                     onClick = { onPromptClick(prompt) },
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
+                    label = { Text(prompt) },
+                    icon = {
                         Icon(
                             Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = prompt,
-                            style = MaterialTheme.typography.bodySmall
+                            modifier = Modifier.size(Dimensions.Icon.small)
                         )
                     }
-                }
+                )
             }
         }
     }

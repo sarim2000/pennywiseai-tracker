@@ -23,7 +23,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -165,18 +164,11 @@ fun PermissionScreen(
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     if (uiState.hasNotificationAccess) {
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                        ) {
-                            Text(
-                                text = "Notification access enabled",
-                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text("Notification access enabled") }
+                        )
                     } else {
                         Button(
                             onClick = {

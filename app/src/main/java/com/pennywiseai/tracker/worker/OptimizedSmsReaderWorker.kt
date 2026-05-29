@@ -240,8 +240,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             var count    = 0
             val mask     = RING_SIZE - 1
             val limit    = writtenCount.get()
+            val currentHead = head.get()
             for (i in 0 until limit) {
-                val pos = (head.get() - 1 - i) and mask
+                val pos = (currentHead - 1 - i) and mask
                 val ts  = ring.get(pos)
                 if (ts <= cutoff) break
                 if (ts <= now) count++
@@ -923,20 +924,29 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         return count
     }
 
-    /** Fast COUNT-only query for RCS messages. */
+    /** Robust query for RCS messages. */
     private suspend fun countRcsMessages(scanStartSeconds: Long): Int {
         var count = 0
         try {
             applicationContext.contentResolver.query(
                 "content://mms".toUri(),
-                arrayOf("COUNT(*)"),
-                "date >= ? AND tr_id LIKE 'proto:%'",
+                arrayOf("tr_id"),
+                "date >= ?",
                 arrayOf(scanStartSeconds.toString()),
                 null
             )?.use { c ->
-                if (c.moveToFirst()) count = c.getInt(0)
+                val trIdIdx = c.getColumnIndex("tr_id")
+                if (trIdIdx >= 0) {
+                    while (c.moveToNext()) {
+                        val trId = c.getString(trIdIdx)
+                        if (trId != null && trId.startsWith("proto:")) {
+                            count++
+                        }
+                    }
+                }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "Error counting RCS", e)
         }
         return count

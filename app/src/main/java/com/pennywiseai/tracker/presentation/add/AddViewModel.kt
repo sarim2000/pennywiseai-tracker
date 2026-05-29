@@ -83,15 +83,6 @@ class AddViewModel @Inject constructor(
     private suspend fun prefillFromTransaction(transactionId: Long) {
         val source = transactionRepository.getTransactionById(transactionId) ?: return
 
-        // Best-effort match of the source account to an existing account so the
-        // account selector is pre-populated when possible.
-        val matchedAccount = source.accountNumber?.let { accountNumber ->
-            val last4 = accountNumber.takeLast(4)
-            accounts.value.firstOrNull { account ->
-                account.bankName == source.bankName && account.accountLast4 == last4
-            }
-        }
-
         _transactionUiState.update { currentState ->
             currentState.copy(
                 amount = source.amount.stripTrailingZeros().toPlainString(),
@@ -105,10 +96,26 @@ class AddViewModel @Inject constructor(
                 notes = source.description ?: "",
                 isRecurring = source.isRecurring,
                 currency = source.currency,
-                selectedAccount = matchedAccount,
                 budgetImpactType = source.budgetImpactType,
                 budgetCategory = source.budgetCategory
             )
+        }
+
+        // Best-effort match of the source account to an existing account. `accounts`
+        // is a WhileSubscribed StateFlow whose value is still empty at init time, so
+        // we wait for the first non-empty emission instead of reading .value once
+        // (which always returned emptyList() and left the selector blank).
+        val last4 = source.accountNumber?.takeLast(4)
+        if (source.bankName != null || last4 != null) {
+            viewModelScope.launch {
+                val matched = accounts.first { it.isNotEmpty() }
+                    .firstOrNull { it.bankName == source.bankName && it.accountLast4 == last4 }
+                    ?: return@launch
+                // Don't override a selection the user may have already made.
+                _transactionUiState.update { state ->
+                    if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
+                }
+            }
         }
     }
 

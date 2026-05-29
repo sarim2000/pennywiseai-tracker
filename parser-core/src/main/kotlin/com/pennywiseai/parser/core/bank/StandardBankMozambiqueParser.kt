@@ -95,16 +95,20 @@ class StandardBankMozambiqueParser : BankParser() {
     }
 
     override fun extractCurrency(message: String): String? {
-        // Currency follows the amount: "1.234,56 MZN", "1.234,56, MT", "1.234,56 USD"
+        // Currency follows the amount: "1.234,56 MZN", "1.234,56, MT", "1.234,56 USD".
+        // Anchor to a standalone token and accept only known codes so a Portuguese
+        // word (e.g. "na") is never mistaken for a currency when the code is absent;
+        // callers fall back to getCurrency() (MZN) when this returns null.
         val pattern = Regex(
-            """de\s+[0-9.]+,[0-9]{2},?\s+([A-Z]{2,3})""",
+            """de\s+[0-9.]+,[0-9]{2},?\s+([A-Za-z]{2,3})(?=\s|,|${'$'})""",
             RegexOption.IGNORE_CASE
         )
-        pattern.find(message)?.let { match ->
-            val currency = match.groupValues[1].uppercase()
-            return if (currency == "MT") "MZN" else currency
+        val token = pattern.find(message)?.groupValues?.get(1)?.uppercase() ?: return null
+        return when (token) {
+            "MT", "MZN" -> "MZN"
+            "USD" -> "USD"
+            else -> null
         }
-        return null
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

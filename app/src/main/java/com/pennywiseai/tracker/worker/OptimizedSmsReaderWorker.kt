@@ -630,21 +630,24 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         stats: ProcessingStats,
         balanceUpdates: SendChannel<DeferredBalanceUpdate>
     ): SaveOutcome = try {
-        val entity = parsed.toEntity()
-        val customCategory = merchantMappingCache[entity.merchantName]
-        val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
-
-        val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
-        if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) {
-            stats.blocked.incrementAndGet()
-            return SaveOutcome.SKIPPED
-        }
-
         coroutineScope {
+            val entity = parsed.toEntity()
             val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
-            val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
+
+            val customCategory = merchantMappingCache[entity.merchantName]
+            val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
+
+            val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
+            val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
 
             if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+
+            if (isBlocked) {
+                stats.blocked.incrementAndGet()
+                return@coroutineScope SaveOutcome.SKIPPED
+            }
+
+            val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
 
             val matchedSub = subscriptionRepository.matchTransactionToSubscription(
                 withRules.merchantName, withRules.amount

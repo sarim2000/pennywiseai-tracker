@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.add
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -12,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -36,8 +38,14 @@ class AddViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val receiptManager: ReceiptManager
+    private val transactionRepository: TransactionRepository,
+    private val receiptManager: ReceiptManager,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // When launched via "Duplicate", this holds the id of the source transaction
+    // whose values should pre-fill the form. Null for a fresh add.
+    private val sourceTransactionId: Long? = savedStateHandle.get<Long>("sourceTransactionId")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -58,6 +66,49 @@ class AddViewModel @Inject constructor(
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             _transactionUiState.update { it.copy(currency = baseCurrency) }
             _subscriptionUiState.update { it.copy(currency = baseCurrency) }
+
+            // If launched via "Duplicate", prefill the transaction form from the
+            // source. Done after the default currency so the source's currency wins.
+            sourceTransactionId?.let { prefillFromTransaction(it) }
+        }
+    }
+
+    /**
+     * Loads the given transaction and copies its editable values into the
+     * transaction form as a brand-new draft. The original is never modified;
+     * id/hash/receipt are intentionally not copied so saving creates a new
+     * transaction. The date defaults to now (template behaviour) while all
+     * other fields are copied verbatim.
+     */
+    private suspend fun prefillFromTransaction(transactionId: Long) {
+        val source = transactionRepository.getTransactionById(transactionId) ?: return
+
+        // Best-effort match of the source account to an existing account so the
+        // account selector is pre-populated when possible.
+        val matchedAccount = source.accountNumber?.let { accountNumber ->
+            val last4 = accountNumber.takeLast(4)
+            accounts.value.firstOrNull { account ->
+                account.bankName == source.bankName && account.accountLast4 == last4
+            }
+        }
+
+        _transactionUiState.update { currentState ->
+            currentState.copy(
+                amount = source.amount.stripTrailingZeros().toPlainString(),
+                amountError = null,
+                transactionType = source.transactionType,
+                merchant = source.merchantName,
+                merchantError = null,
+                category = source.category,
+                categoryError = null,
+                date = LocalDateTime.now(),
+                notes = source.description ?: "",
+                isRecurring = source.isRecurring,
+                currency = source.currency,
+                selectedAccount = matchedAccount,
+                budgetImpactType = source.budgetImpactType,
+                budgetCategory = source.budgetCategory
+            )
         }
     }
 

@@ -285,6 +285,15 @@ class RuleEngine @Inject constructor() {
                 }
                 transaction.copy(transactionType = newType) to newType.name
             }
+            TransactionField.BANK_NAME -> {
+                // The account a transaction belongs to is identified by its bank name.
+                val newValue = when (action.actionType) {
+                    ActionType.SET -> action.value
+                    ActionType.CLEAR -> ""
+                    else -> transaction.bankName ?: ""
+                }
+                transaction.copy(bankName = newValue.takeIf { it.isNotBlank() }) to newValue
+            }
             else -> transaction to getFieldValue(transaction, null, action.field)
         }
     }

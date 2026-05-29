@@ -30,7 +30,10 @@ import java.util.UUID
 fun CreateRuleScreen(
     onNavigateBack: () -> Unit,
     onSaveRule: (TransactionRule) -> Unit,
-    existingRule: TransactionRule? = null
+    existingRule: TransactionRule? = null,
+    // True only when editing a saved rule. A duplicate passes a prefilled [existingRule]
+    // (carrying a fresh id) but isEditing = false, so it saves as a brand-new rule.
+    isEditing: Boolean = existingRule != null
 ) {
     var ruleName by remember(existingRule) { mutableStateOf(existingRule?.name ?: "") }
     var description by remember(existingRule) { mutableStateOf(existingRule?.description ?: "") }
@@ -157,7 +160,7 @@ fun CreateRuleScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = if (existingRule != null) "Edit Rule" else "Create Rule",
+                title = if (isEditing) "Edit Rule" else "Create Rule",
                 hasBackButton = true,
                 hasActionButton = true,
                 navigationContent = {
@@ -484,6 +487,7 @@ fun CreateRuleScreen(
                                 TransactionField.MERCHANT -> "Set Merchant Name"
                                 TransactionField.TYPE -> "Set Transaction Type"
                                 TransactionField.NARRATION -> "Set Description"
+                                TransactionField.BANK_NAME -> "Set Account"
                                 else -> "Set Field"
                             },
                             onValueChange = { },
@@ -500,7 +504,8 @@ fun CreateRuleScreen(
                                 TransactionField.CATEGORY to "Set Category",
                                 TransactionField.MERCHANT to "Set Merchant Name",
                                 TransactionField.TYPE to "Set Transaction Type",
-                                TransactionField.NARRATION to "Set Description"
+                                TransactionField.NARRATION to "Set Description",
+                                TransactionField.BANK_NAME to "Set Account"
                             ).forEach { (field, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
@@ -621,6 +626,18 @@ fun CreateRuleScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2,
                                 maxLines = 3
+                            )
+                        }
+
+                        TransactionField.BANK_NAME -> {
+                            // Account / bank the transaction belongs to.
+                            TextField(
+                                value = actionValue,
+                                onValueChange = { actionValue = it },
+                                label = { Text("Account / Bank Name") },
+                                placeholder = { Text("e.g., HDFC Bank") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
                             )
                         }
 

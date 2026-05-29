@@ -33,7 +33,9 @@ fun CreateRuleScreen(
     existingRule: TransactionRule? = null,
     // True only when editing a saved rule. A duplicate passes a prefilled [existingRule]
     // (carrying a fresh id) but isEditing = false, so it saves as a brand-new rule.
-    isEditing: Boolean = existingRule != null
+    // Defaults to false: a non-null prefill must NOT imply edit, or a duplicate that
+    // omits this flag would overwrite its source. Callers state edit intent explicitly.
+    isEditing: Boolean = false
 ) {
     var ruleName by remember(existingRule) { mutableStateOf(existingRule?.name ?: "") }
     var description by remember(existingRule) { mutableStateOf(existingRule?.description ?: "") }

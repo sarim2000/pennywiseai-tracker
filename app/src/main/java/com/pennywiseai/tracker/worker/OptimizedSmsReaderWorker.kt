@@ -87,7 +87,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private const val NOTIFICATION_ID           = 9001
         private const val PARSE_CHANNEL_CAPACITY    = 512
         private const val RESULT_CHANNEL_CAPACITY   = 512
-        private const val PROGRESS_REPORT_INTERVAL  = 1
         private const val UNRECOGNIZED_BATCH_SIZE   = 50
         private const val ETA_WINDOW_MS             = 2000L
 
@@ -429,7 +428,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             }
                         }
                     }
-                    if (p % PROGRESS_REPORT_INTERVAL == 0 || p == stats.total) launch { reportProgress(stats) }
+                    reportProgress(stats)
                 }
             } finally {
                 Trace.endSection()

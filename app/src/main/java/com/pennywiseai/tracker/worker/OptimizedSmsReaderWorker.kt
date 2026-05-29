@@ -412,6 +412,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
             val unrecognizedBatch = ArrayList<SmsMessage>(UNRECOGNIZED_BATCH_SIZE)
             var widgetNeedsUpdate = false
+            var lastReportTime = 0L
 
             Trace.beginSection("save")
             try {
@@ -453,7 +454,12 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             }
                         }
                     }
-                    reportProgress(stats)
+
+                    val nowMs = System.currentTimeMillis()
+                    if (nowMs - lastReportTime >= 250L || p == 1 || p == stats.total) {
+                        reportProgress(stats)
+                        lastReportTime = nowMs
+                    }
                 }
             } finally {
                 Trace.endSection()

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -231,6 +232,11 @@ fun PennyWiseNavHost(
                     navController.navigate(CreateRule(ruleId = ruleId)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToDuplicateRule = { ruleId ->
+                    navController.navigate(CreateRule(duplicateFromId = ruleId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -244,10 +250,27 @@ fun PennyWiseNavHost(
             val createRule = backStackEntry.toRoute<CreateRule>()
             val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
 
-            // Collect rules from the flow to find the existing rule
+            // Collect rules from the flow to find the rule being edited or duplicated.
             val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
-            val existingRule = createRule.ruleId?.let { ruleId ->
-                rules.firstOrNull { it.id == ruleId }
+            val isEditing = createRule.ruleId != null
+
+            // Stable id for a duplicate, kept across recompositions/config changes.
+            val duplicateId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+
+            // Edit prefills from the saved rule; duplicate prefills from the source but
+            // becomes a fresh rule (new id, "(copy)" name) so saving inserts a new one.
+            val prefillRule = when {
+                createRule.ruleId != null ->
+                    rules.firstOrNull { it.id == createRule.ruleId }
+                createRule.duplicateFromId != null ->
+                    rules.firstOrNull { it.id == createRule.duplicateFromId }?.let { source ->
+                        source.copy(
+                            id = duplicateId,
+                            name = "${source.name} (copy)",
+                            isSystemTemplate = false
+                        )
+                    }
+                else -> null
             }
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
@@ -255,10 +278,16 @@ fun PennyWiseNavHost(
                     navController.safePopBackStack()
                 },
                 onSaveRule = { rule ->
-                    rulesViewModel.createRule(rule)
+                    // Edit updates in place; create/duplicate inserts a new rule.
+                    if (isEditing) {
+                        rulesViewModel.updateRule(rule)
+                    } else {
+                        rulesViewModel.createRule(rule)
+                    }
                     navController.safePopBackStack()
                 },
-                existingRule = existingRule
+                existingRule = prefillRule,
+                isEditing = isEditing
             )
         }
         

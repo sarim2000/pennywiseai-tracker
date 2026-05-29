@@ -38,6 +38,7 @@ fun RulesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreateRule: () -> Unit,
     onNavigateToEditRule: (String) -> Unit,
+    onNavigateToDuplicateRule: (String) -> Unit,
     viewModel: RulesViewModel = hiltViewModel()
 ) {
     val rules by viewModel.rules.collectAsStateWithLifecycle()
@@ -217,6 +218,9 @@ fun RulesScreen(
                                     onEdit = {
                                         onNavigateToEditRule(rule.id)
                                     },
+                                    onDuplicate = {
+                                        onNavigateToDuplicateRule(rule.id)
+                                    },
                                     onDelete = {
                                         viewModel.deleteRule(rule.id)
                                     },
@@ -275,6 +279,7 @@ private fun RuleCard(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
     onApplyToPast: () -> Unit
 ) {
@@ -383,6 +388,18 @@ private fun RuleCard(
                                 onClick = {
                                     showActionsMenu = false
                                     onEdit()
+                                }
+                            )
+
+                            // Duplicate rule (opens the editor prefilled as a new rule)
+                            DropdownMenuItem(
+                                text = { Text("Duplicate Rule") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                                },
+                                onClick = {
+                                    showActionsMenu = false
+                                    onDuplicate()
                                 }
                             )
 

@@ -49,7 +49,7 @@ object Faq
 object Rules
 
 @Serializable
-data class CreateRule(val ruleId: String? = null)
+data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? = null)
 
 @Serializable
 object ExchangeRates

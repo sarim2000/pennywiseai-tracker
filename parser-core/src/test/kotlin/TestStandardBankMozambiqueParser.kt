@@ -59,4 +59,18 @@ class StandardBankMozambiqueParserTest {
 
         return ParserTestUtils.runTestSuite(parser, cases, handleChecks, "Standard Bank Mozambique Parser")
     }
+
+    @Test
+    fun `factory routes STDBank and numeric shortcode to this parser`() {
+        // The 7832265 shortcode is a 7-digit numeric sender; EverestBankParser greedily
+        // claims ^\d{7,10}$, so registration order must keep this parser ahead of it.
+        Assertions.assertTrue(
+            BankParserFactory.getParser("STDBank") is StandardBankMozambiqueParser,
+            "STDBank should route to StandardBankMozambiqueParser"
+        )
+        Assertions.assertTrue(
+            BankParserFactory.getParser("7832265") is StandardBankMozambiqueParser,
+            "shortcode 7832265 should route to StandardBankMozambiqueParser, not EverestBankParser"
+        )
+    }
 }

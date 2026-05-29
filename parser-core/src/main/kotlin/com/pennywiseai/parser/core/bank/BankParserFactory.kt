@@ -60,6 +60,7 @@ object BankParserFactory {
         LaxmiBankParser(),  // Laxmi Sunrise Bank (Nepal)
         CBEBankParser(),  // Commercial Bank of Ethiopia
         AltanaFCUParser(),  // Altana Federal Credit Union (USA) — must precede EverestBank, which greedily claims numeric senders
+        StandardBankMozambiqueParser(),  // Standard Bank Mozambique — must precede EverestBank (shortcode 7832265 is a 7-digit numeric sender)
         EverestBankParser(),  // Everest Bank (Nepal)
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)
@@ -113,8 +114,7 @@ object BankParserFactory {
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser(),  // Greater Bank (India)
         BPCEParser(),  // BPCE (France)
-        SampathBankParser(),  // Sampath Bank (Sri Lanka)
-        StandardBankMozambiqueParser()  // Standard Bank Mozambique
+        SampathBankParser()  // Sampath Bank (Sri Lanka)
         // Add more bank parsers here as we implement them
     )
 

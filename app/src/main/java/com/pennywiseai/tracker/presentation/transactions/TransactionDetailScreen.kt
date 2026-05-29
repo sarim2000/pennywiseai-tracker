@@ -63,6 +63,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -537,10 +538,8 @@ private fun TransactionReceipt(
             ) {
                 val heroIconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
-                        Modifier.sharedElement(
-                            sharedTransitionScope.rememberSharedContentState(
-                                key = "brand_icon_${transaction.id}"
-                            ),
+                        sharedElementIcon(
+                            key = "brand_icon_${transaction.id}",
                             animatedVisibilityScope = animatedVisibilityScope
                         )
                     }

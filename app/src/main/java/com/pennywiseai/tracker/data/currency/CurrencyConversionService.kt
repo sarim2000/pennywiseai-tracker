@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.currency
 
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ class CurrencyConversionService @Inject constructor(
 
     // Cooldown to avoid hammering the API when it keeps failing
     private var lastFailedRefreshTime: Long = 0L
-    private val failedRefreshCooldownMs = 5 * 60 * 1000L // 5 minutes
+    private val failedRefreshCooldownMs = TimeConstants.MILLIS_PER_5_MINUTES
 
     /**
      * Convert amount from one currency to another

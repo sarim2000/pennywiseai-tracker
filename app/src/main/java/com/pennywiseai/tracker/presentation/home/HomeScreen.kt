@@ -361,7 +361,7 @@ fun HomeScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    if (!uiState.isBalanceReady) {
+                    if (uiState.accountBalances.isEmpty() && uiState.creditCards.isEmpty()) {
                         BalanceCardSkeleton(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )

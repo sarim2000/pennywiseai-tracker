@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -124,10 +125,8 @@ fun TransactionItem(
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                 with(sharedTransitionScope) {
-                    Modifier.sharedElement(
-                        sharedTransitionScope.rememberSharedContentState(
-                            key = "brand_icon_${transaction.id}"
-                        ),
+                    sharedElementIcon(
+                        key = "brand_icon_${transaction.id}",
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 }

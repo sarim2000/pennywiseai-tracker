@@ -2,6 +2,7 @@ package com.pennywiseai.shared.domain.usecase
 
 import com.pennywiseai.shared.data.local.entity.SharedExchangeRateEntity
 import com.pennywiseai.shared.data.repository.SharedExchangeRateRepository
+import com.pennywiseai.shared.core.SharedTimeConstants
 import com.pennywiseai.shared.data.util.currentTimeMillis
 
 class ManageExchangeRateUseCase(
@@ -11,7 +12,7 @@ class ManageExchangeRateUseCase(
         fromCurrency: String,
         toCurrency: String,
         rateMicros: Long,
-        ttlMillis: Long = 24L * 60L * 60L * 1000L
+        ttlMillis: Long = SharedTimeConstants.MILLIS_PER_DAY
     ) {
         val now = currentTimeMillis()
         repository.upsert(

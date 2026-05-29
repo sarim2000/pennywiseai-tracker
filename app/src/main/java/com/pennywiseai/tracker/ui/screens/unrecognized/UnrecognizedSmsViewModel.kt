@@ -15,7 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
-import java.net.URLEncoder
+import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,26 +52,8 @@ class UnrecognizedSmsViewModel @Inject constructor(
     fun reportMessage(message: UnrecognizedSmsEntity) {
         viewModelScope.launch {
             try {
-                // URL encode the parameters
-                val encodedMessage = URLEncoder.encode(message.smsBody, "UTF-8")
-                val encodedSender = URLEncoder.encode(message.sender, "UTF-8")
-                
-                // Encrypt device data for verification
-                val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-                Log.d("UnrecognizedSmsViewModel", "Encrypted device data: ${encryptedDeviceData?.take(50)}... (length: ${encryptedDeviceData?.length})")
-                
-                val encodedDeviceData = if (encryptedDeviceData != null) {
-                    URLEncoder.encode(encryptedDeviceData, "UTF-8")
-                } else {
-                    ""
-                }
-                Log.d("UnrecognizedSmsViewModel", "Encoded device data: ${encodedDeviceData.take(50)}... (length: ${encodedDeviceData.length})")
-                
-                // Create the report URL using hash fragment for privacy
-                val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+                val url = SmsReportUrlBuilder.buildUrl(context, message.smsBody, message.sender)
                 Log.d("UnrecognizedSmsViewModel", "Full URL length: ${url.length}")
-                
-                // Open in browser
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }

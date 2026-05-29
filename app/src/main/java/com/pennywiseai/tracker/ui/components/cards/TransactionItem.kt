@@ -74,12 +74,7 @@ fun TransactionItem(
             ) {
                 add(transaction.category)
             }
-            when (transaction.transactionType) {
-                TransactionType.CREDIT -> add("Credit")
-                TransactionType.TRANSFER -> add("Transfer")
-                TransactionType.INVESTMENT -> add("Investment")
-                else -> {}
-            }
+
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")
             transaction.balanceAfter?.let { balance ->

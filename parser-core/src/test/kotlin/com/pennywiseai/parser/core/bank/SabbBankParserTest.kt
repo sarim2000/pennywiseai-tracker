@@ -94,6 +94,23 @@ class SabbBankParserTest {
                     merchant = "FAHAD Ahmed",
                     accountLast4 = "9999"
                 )
+            ),
+            ParserTestCase(
+                name = "Salary credit (حوالة راتب) as income",
+                message = """
+                    حوالة راتب
+                    إلى: **001
+                    مبلغ: 12,345.67 SAR
+                    في: 2026-05 21 10:00:00
+                """.trimIndent(),
+                sender = "SAB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12345.67"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME,
+                    merchant = "Salary",
+                    accountLast4 = "001"
+                )
             )
         )
 

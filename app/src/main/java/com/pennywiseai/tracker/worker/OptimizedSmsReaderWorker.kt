@@ -318,8 +318,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
             Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.map { it.size }.sum()} rules")
 
-            // Fast COUNT query — avoids loading all messages before the pipeline
-            val total = countSmsMessages(scanStartTime)
+            // Fast COUNT queries — avoids loading all messages before the pipeline
+            val smsCount = countSmsMessages(scanStartTime)
+            val rcsCount = countRcsMessages(scanStartTime / 1000)
+            val total = smsCount + rcsCount
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
             Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
 
@@ -903,6 +905,25 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error counting SMS", e)
+        }
+        return count
+    }
+
+    /** Fast COUNT-only query for RCS messages. */
+    private suspend fun countRcsMessages(scanStartSeconds: Long): Int {
+        var count = 0
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("COUNT(*)"),
+                "date >= ?",
+                arrayOf(scanStartSeconds.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) count = c.getInt(0)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error counting RCS", e)
         }
         return count
     }

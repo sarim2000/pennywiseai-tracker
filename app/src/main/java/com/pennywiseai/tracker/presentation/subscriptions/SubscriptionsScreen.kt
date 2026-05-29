@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
-import androidx.compose.foundation.shape.CircleShape
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -27,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -823,61 +822,6 @@ private fun EditSubscriptionDialog(
 private fun SubscriptionItemSkeleton(
     modifier: Modifier = Modifier
 ) {
-    val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHighest
-
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = 0.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Circle placeholder for BrandIcon (48dp)
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-
-            // Two stacked rectangles for merchant name + metadata
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(120.dp)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                        .background(placeholderColor)
-                        .shimmer()
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Box(
-                    modifier = Modifier
-                        .width(90.dp)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                        .background(placeholderColor)
-                        .shimmer()
-                )
-            }
-
-            // Right-aligned amount rectangle
-            Box(
-                modifier = Modifier
-                    .width(64.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-        }
-    }
+    TransactionItemSkeleton(modifier = modifier)
 }
 

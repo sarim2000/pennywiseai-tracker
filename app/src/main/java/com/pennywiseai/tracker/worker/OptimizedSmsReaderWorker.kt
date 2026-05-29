@@ -385,6 +385,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         try {
                             results.send(parseSms(sms))
                         } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             Log.e(TAG, "Error parsing SMS from ${sms.sender}: ${e.message}")
                             results.send(ParseResult.Discard(sms))
                         }
@@ -407,7 +408,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
                 try { processBalanceUpdate(update.parsed, update.entity, update.transactionId) }
-                catch (e: Exception) { Log.e(TAG, "Balance update failed: ${e.message}") }
+                catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.e(TAG, "Balance update failed: ${e.message}")
+                }
             }
         }
 
@@ -677,6 +681,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             SaveOutcome.SAVED
         }
     } catch (e: Exception) {
+        if (e is CancellationException) throw e
         Log.e(TAG, "Error saving transaction: ${e.message}")
         SaveOutcome.SKIPPED
     }
@@ -801,6 +806,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         try {
             unrecognizedSmsRepository.insertAll(entities)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")
         }
         batch.clear()
@@ -810,18 +816,25 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private suspend fun cleanUpAndFinalize(stats: ProcessingStats) {
         try { unrecognizedSmsRepository.cleanupOldEntries() }
-        catch (e: Exception) { Log.e(TAG, "Cleanup error: ${e.message}") }
+        catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Cleanup error: ${e.message}")
+        }
         try {
             val deletedDuplicates = cleanupExistingGPayDuplicates()
             if (deletedDuplicates > 0) {
                 Log.i(TAG, "Cleaned up $deletedDuplicates existing GPay duplicate transactions")
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "GPay duplicate cleanup error: ${e.message}")
         }
         if (stats.saved.get() > 0) {
             try { llmRepository.updateSystemPrompt() }
-            catch (e: Exception) { Log.e(TAG, "Prompt update error: ${e.message}") }
+            catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.e(TAG, "Prompt update error: ${e.message}")
+            }
         }
     }
 
@@ -960,6 +973,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "Error streaming SMS", e)
         }
         Log.i(TAG, "Streamed $count SMS messages to pipeline")
@@ -995,6 +1009,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "Error streaming RCS", e)
         }
         Log.i(TAG, "Streamed $count RCS messages to pipeline")

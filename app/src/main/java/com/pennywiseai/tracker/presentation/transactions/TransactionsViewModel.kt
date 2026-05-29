@@ -554,6 +554,12 @@ class TransactionsViewModel @Inject constructor(
         }
     }
     
+    private fun decodeUrlParam(value: String): String {
+        return if (value.contains("+") || value.contains("%")) {
+            java.net.URLDecoder.decode(value, "UTF-8")
+        } else value
+    }
+
     fun applyInitialFilters(
         category: String?,
         merchant: String?,
@@ -569,16 +575,12 @@ class TransactionsViewModel @Inject constructor(
             setSortOption(SortOption.DATE_NEWEST)
 
             category?.let {
-                val decoded = if (it.contains("+") || it.contains("%")) {
-                    java.net.URLDecoder.decode(it, "UTF-8")
-                } else it
+                val decoded = decodeUrlParam(it)
                 setCategoryFilter(decoded)
             }
 
             merchant?.let {
-                val decoded = if (it.contains("+") || it.contains("%")) {
-                    java.net.URLDecoder.decode(it, "UTF-8")
-                } else it
+                val decoded = decodeUrlParam(it)
                 updateSearchQuery(decoded)
             }
 
@@ -628,16 +630,12 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
 
         category?.let {
-            val decoded = if (it.contains("+") || it.contains("%")) {
-                java.net.URLDecoder.decode(it, "UTF-8")
-            } else it
+            val decoded = decodeUrlParam(it)
             setCategoryFilter(decoded)
         }
 
         merchant?.let {
-            val decoded = if (it.contains("+") || it.contains("%")) {
-                java.net.URLDecoder.decode(it, "UTF-8")
-            } else it
+            val decoded = decodeUrlParam(it)
             updateSearchQuery(decoded)
         }
 
@@ -708,11 +706,7 @@ class TransactionsViewModel @Inject constructor(
         // Set multiple categories filter
         categories?.let { cats ->
             val categoryList = cats.split(",").map { cat ->
-                if (cat.contains("+") || cat.contains("%")) {
-                    java.net.URLDecoder.decode(cat, "UTF-8")
-                } else {
-                    cat
-                }
+                decodeUrlParam(cat)
             }.filter { it.isNotBlank() }
 
             if (categoryList.isNotEmpty()) {

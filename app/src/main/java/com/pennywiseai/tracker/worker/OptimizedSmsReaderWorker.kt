@@ -294,7 +294,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.i(TAG, "Starting SMS worker (forceResync=$forceResync)")
 
             if (forceResync) {
-                // try/finally ensures endSection even if the suspend calls throw
                 Trace.beginSection("clearDatabase")
                 try {
                     transactionRepository.deleteAllTransactions()
@@ -305,12 +304,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.i(TAG, "Force resync: database cleared")
             }
 
-            Trace.beginSection("readSmsMessages")
-            val messages = try {
-                readSmsMessages(forceResync)
-            } finally {
-                Trace.endSection()
-            }
+            val (scanStartTime, needsFullScan) = computeScanParams(forceResync)
+            val now = System.currentTimeMillis()
 
             Trace.beginSection("preloadCaches")
             try {
@@ -323,13 +318,17 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
             Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.map { it.size }.sum()} rules")
 
+            // Fast COUNT query — avoids loading all messages before the pipeline
+            val total = countSmsMessages(scanStartTime)
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
-            Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | ${messages.size} messages")
+            Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
 
-            val stats = ProcessingStats(total = messages.size)
+            val stats = ProcessingStats(total = total)
             reportProgress(stats)
 
-            val totalTime = measureTimeMillis { runPipeline(messages, stats, parserConcurrency) }
+            val totalTime = measureTimeMillis {
+                streamPipeline(scanStartTime, needsFullScan, now, stats, parserConcurrency)
+            }
 
             Log.i(TAG, buildSummary(stats, totalTime))
             cleanUpAndFinalize(stats)
@@ -346,19 +345,31 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
 
-    private suspend fun runPipeline(
-        messages: List<SmsMessage>,
+    private suspend fun streamPipeline(
+        scanStartTime: Long,
+        needsFullScan: Boolean,
+        now: Long,
         stats: ProcessingStats,
         parserConcurrency: Int
     ) = coroutineScope {
-        // Explicit local vals — captured by the launch lambdas below
         val feed    = Channel<SmsMessage>(PARSE_CHANNEL_CAPACITY)
         val results = Channel<ParseResult>(RESULT_CHANNEL_CAPACITY)
 
-        // Stage 1 – Feed
+        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel)
         launch(Dispatchers.IO) {
-            try { messages.forEach { sms -> feed.send(sms) } }
-            finally { feed.close() }
+            try {
+                streamSmsToChannel(feed, scanStartTime)
+                streamRcsToChannel(feed, scanStartTime / 1000)
+            } finally {
+                feed.close()
+            }
+            // Persist scan state after all messages are fed
+            userPreferencesRepository.setLastScanTimestamp(now)
+            if (needsFullScan) {
+                val scanMonths = userPreferencesRepository.getSmsScanMonths()
+                val scanAllTime = userPreferencesRepository.getSmsScanAllTime()
+                userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
+            }
         }
 
         // Stage 2 – Parse (all available CPU cores)
@@ -844,45 +855,65 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         } catch (_: Exception) {}
     }
 
-    // ─── SMS / RCS reading ────────────────────────────────────────────────────
+    // ─── SMS / RCS reading (streaming) ─────────────────────────────────────────
 
-    private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessage> {
-        val messages = mutableListOf<SmsMessage>()
+    /** Computes scan params without reading any message bodies. */
+    private suspend fun computeScanParams(forceResync: Boolean): Pair<Long, Boolean> {
+        val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first() ?: 0L
+        val scanMonths        = userPreferencesRepository.getSmsScanMonths()
+        val scanAllTime       = userPreferencesRepository.getSmsScanAllTime()
+        val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
+        val now               = System.currentTimeMillis()
+
+        val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
+        val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
+        val needsFullScan = forceResync || lastScanTimestamp == 0L ||
+            (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) ||
+            scanAllTimeToggled || scanAllTimeToggledOff
+
+        val scanStartTime = if (needsFullScan) {
+            if (scanAllTime) 0L
+            else java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.MONTH, -scanMonths)
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else {
+            val threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000L
+            val periodLimit  = java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.MONTH, -scanMonths)
+            }.timeInMillis
+            maxOf(minOf(lastScanTimestamp, threeDaysAgo), periodLimit)
+        }
+        return scanStartTime to needsFullScan
+    }
+
+    /** Fast COUNT-only query — reads zero message bodies. */
+    private suspend fun countSmsMessages(scanStartTime: Long): Int {
+        var count = 0
         try {
-            val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first() ?: 0L
-            val scanMonths        = userPreferencesRepository.getSmsScanMonths()
-            val scanAllTime       = userPreferencesRepository.getSmsScanAllTime()
-            val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
-            val now               = System.currentTimeMillis()
-
-            // First run, resync, period change, or scanAllTime toggled: full scan.
-            // scanAllTime=false→true detected via lastScanPeriod != -1 sentinel.
-            // scanAllTime=true→false detected via lastScanPeriod == -1 with scanAllTime=false.
-            val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
-            val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled || scanAllTimeToggledOff
-
-            val scanStartTime = if (needsFullScan) {
-                if (scanAllTime) {
-                    // "All Time" must mean truly all SMS the Telephony provider still
-                    // has, not the last 10 years. Anything older simply isn't on the
-                    // device any more, so a 0L lower bound is safe.
-                    0L
-                } else {
-                    java.util.Calendar.getInstance().apply {
-                        add(java.util.Calendar.MONTH, -scanMonths)
-                        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
-                    }.timeInMillis
-                }
-            } else {
-                val threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000L
-                val periodLimit  = java.util.Calendar.getInstance().apply {
-                    add(java.util.Calendar.MONTH, -scanMonths)
-                }.timeInMillis
-                maxOf(minOf(lastScanTimestamp, threeDaysAgo), periodLimit)
+            applicationContext.contentResolver.query(
+                Telephony.Sms.CONTENT_URI,
+                arrayOf("COUNT(*)"),
+                "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
+                arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) count = c.getInt(0)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error counting SMS", e)
+        }
+        return count
+    }
 
+    /** Streams SMS cursor rows directly into the feed channel — no intermediate list. */
+    private suspend fun streamSmsToChannel(
+        feed: SendChannel<SmsMessage>,
+        scanStartTime: Long
+    ) {
+        var count = 0
+        try {
             applicationContext.contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
                 SMS_PROJECTION,
@@ -896,53 +927,55 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 val bodyIdx    = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
                 val typeIdx    = c.getColumnIndexOrThrow(Telephony.Sms.TYPE)
                 while (c.moveToNext()) {
-                    messages.add(SmsMessage(
+                    feed.send(SmsMessage(
                         id        = c.getLong(idIdx),
                         sender    = c.getString(addressIdx) ?: "",
                         timestamp = c.getLong(dateIdx),
                         body      = c.getString(bodyIdx) ?: "",
                         type      = c.getInt(typeIdx)
                     ))
+                    count++
                 }
             }
-
-            userPreferencesRepository.setLastScanTimestamp(now)
-            if (needsFullScan) userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
-
-            try { messages.addAll(readRcsMessages(scanStartTime / 1000)) }
-            catch (e: Exception) { Log.e(TAG, "RCS read error: ${e.message}") }
-
         } catch (e: Exception) {
-            Log.e(TAG, "Error reading SMS", e)
+            Log.e(TAG, "Error streaming SMS", e)
         }
-        Log.i(TAG, "Loaded ${messages.size} messages (SMS + RCS)")
-        return messages
+        Log.i(TAG, "Streamed $count SMS messages to pipeline")
     }
 
-    private fun readRcsMessages(scanStartSeconds: Long): List<SmsMessage> {
-        val result = mutableListOf<SmsMessage>()
-        applicationContext.contentResolver.query(
-            "content://mms".toUri(),
-            arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
-            "date >= ?",
-            arrayOf(scanStartSeconds.toString()),
-            "date DESC"
-        )?.use { c ->
-            while (c.moveToNext()) {
-                val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))
-                val date      = c.getLong(c.getColumnIndexOrThrow("date"))
-                val trId      = c.getColumnIndex("tr_id").takeIf { it >= 0 }
-                    ?.let { c.getString(it) } ?: continue
-                if (!trId.startsWith("proto:")) continue
+    /** Streams RCS messages into the feed channel. */
+    private suspend fun streamRcsToChannel(
+        feed: SendChannel<SmsMessage>,
+        scanStartSeconds: Long
+    ) {
+        var count = 0
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
+                "date >= ?",
+                arrayOf(scanStartSeconds.toString()),
+                "date DESC"
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))
+                    val date      = c.getLong(c.getColumnIndexOrThrow("date"))
+                    val trId      = c.getColumnIndex("tr_id").takeIf { it >= 0 }
+                        ?.let { c.getString(it) } ?: continue
+                    if (!trId.startsWith("proto:")) continue
 
-                val sender = extractRcsSender(trId) ?: continue
-                var text = getRcsMessageText(messageId) ?: continue
-                if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
+                    val sender = extractRcsSender(trId) ?: continue
+                    var text = getRcsMessageText(messageId) ?: continue
+                    if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
 
-                result.add(SmsMessage(messageId, sender, date * 1000, text, Telephony.Sms.MESSAGE_TYPE_INBOX))
+                    feed.send(SmsMessage(messageId, sender, date * 1000, text, Telephony.Sms.MESSAGE_TYPE_INBOX))
+                    count++
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error streaming RCS", e)
         }
-        return result
+        Log.i(TAG, "Streamed $count RCS messages to pipeline")
     }
 
     // ─── RCS helpers ──────────────────────────────────────────────────────────

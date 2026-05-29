@@ -27,6 +27,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.toJavaLocalDateTime
 import java.math.BigDecimal
@@ -387,10 +388,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
 
         // Stage 3 – Save (single sequential coroutine — no balance race conditions)
+        // Balance updates run concurrently via a dedicated consumer so they never block the saver.
+        val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
+        val balanceUpdater = launch(Dispatchers.IO) {
+            for (update in balanceUpdates) {
+                try { processBalanceUpdate(update.parsed, update.entity, update.transactionId) }
+                catch (e: Exception) { Log.e(TAG, "Balance update failed: ${e.message}") }
+            }
+        }
+
         val saver = launch(Dispatchers.IO) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
             val unrecognizedBatch = ArrayList<SmsMessage>(UNRECOGNIZED_BATCH_SIZE)
-            val deferredBalanceUpdates = ArrayList<DeferredBalanceUpdate>()
             var widgetNeedsUpdate = false
 
             Trace.beginSection("save")
@@ -414,7 +423,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             stats.parsed.incrementAndGet()
                             Trace.beginSection("saveTransaction")
                             try {
-                                when (saveTransaction(result.parsed, result.sms, stats, deferredBalanceUpdates)) {
+                                when (saveTransaction(result.parsed, result.sms, stats, balanceUpdates)) {
                                     SaveOutcome.SAVED -> {
                                         stats.saved.incrementAndGet()
                                         widgetNeedsUpdate = true
@@ -440,19 +449,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             if (unrecognizedBatch.isNotEmpty()) flushUnrecognizedBatch(unrecognizedBatch)
-            Trace.beginSection("processDeferredBalanceUpdates")
-            try {
-                for (update in deferredBalanceUpdates) {
-                    processBalanceUpdate(update.parsed, update.entity, update.transactionId)
-                }
-            } finally {
-                Trace.endSection()
-            }
             if (widgetNeedsUpdate)
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(applicationContext)
         }
 
         saver.join()
+        balanceUpdates.close()
+        balanceUpdater.join()
         reportProgress(stats)
     }
 
@@ -605,7 +608,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         parsed: ParsedTransaction,
         sms: SmsMessage,
         stats: ProcessingStats,
-        deferredBalanceUpdates: MutableList<DeferredBalanceUpdate>
+        balanceUpdates: SendChannel<DeferredBalanceUpdate>
     ): SaveOutcome = try {
         coroutineScope {
             val entity = parsed.toEntity()
@@ -646,7 +649,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     transactionRepository.updateTransaction(replacement)
                     accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
                     replaceRuleApplications(duplicate.id, ruleApps)
-                    deferredBalanceUpdates.add(DeferredBalanceUpdate(parsed, replacement, duplicate.id))
+                    balanceUpdates.send(DeferredBalanceUpdate(parsed, replacement, duplicate.id))
                     return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
                 }
                 return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
@@ -656,7 +659,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
             saveRuleApplications(rowId, ruleApps)
-            deferredBalanceUpdates.add(DeferredBalanceUpdate(parsed, finalEntity, rowId))
+            balanceUpdates.send(DeferredBalanceUpdate(parsed, finalEntity, rowId))
             SaveOutcome.SAVED
         }
     } catch (e: Exception) {

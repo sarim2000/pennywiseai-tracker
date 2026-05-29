@@ -39,6 +39,10 @@ class UnrecognizedSmsRepository @Inject constructor(
      * Insert a new unrecognized SMS
      */
     suspend fun insert(sms: UnrecognizedSmsEntity): Long = dao.insert(sms)
+
+    suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
+        dao.insertAll(smsList)
+    }
     
     /**
      * Mark messages as reported

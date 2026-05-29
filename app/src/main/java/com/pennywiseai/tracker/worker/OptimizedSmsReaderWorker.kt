@@ -124,7 +124,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val systemZone: ZoneId = ZoneId.systemDefault()
 
     /** Set once at the start of doWork to avoid calling LocalDateTime.now() per SMS. */
-    private lateinit var thirtyDaysAgo: LocalDateTime
+    private var thirtyDaysAgoMillis: Long = 0L
 
     /** O(1) sender-to-parser lookup. Factory is only called once per unique sender string. */
     private class ParserHolder(val parser: BankParser?)
@@ -218,39 +218,37 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val blocked   = AtomicInteger(0)
         val startTime = System.currentTimeMillis()
 
-        // Must be a power of 2 (for bitmask) and large enough that the ring never
-        // wraps within ETA_WINDOW_MS at peak throughput. 8192 / 3 ≈ 2730 msg/s max.
         private val RING_SIZE          = 8192
         private val MIN_SAMPLES        = 10
-        private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)   // zeros = epoch 1970, never in window
+        private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)
         private val head               = AtomicInteger(0)
+        private val writtenCount       = AtomicInteger(0)
 
         fun recordCompletion() {
-            // Bitmask modulo: (RING_SIZE - 1) works because RING_SIZE is power of 2
             val pos = head.getAndIncrement() and (RING_SIZE - 1)
             ring.lazySet(pos, System.currentTimeMillis())
+            if (writtenCount.get() < RING_SIZE) writtenCount.incrementAndGet()
         }
 
         fun elapsedMs() = System.currentTimeMillis() - startTime
 
-        /**
-         * Instantaneous msg/s over the last [ETA_WINDOW_MS].
-         * Falls back to overall average during warmup so ETA is always meaningful.
-         */
         fun msgPerSec(): Float {
             val now      = System.currentTimeMillis()
             val cutoff   = now - ETA_WINDOW_MS
             var count    = 0
-            for (i in 0 until RING_SIZE) {
-                val ts = ring.get(i)
-                if (ts in (cutoff + 1)..now) count++   // bounds-check: exclude zeros AND future timestamps
+            val mask     = RING_SIZE - 1
+            val limit    = writtenCount.get()
+            for (i in 0 until limit) {
+                val pos = (head.get() - 1 - i) and mask
+                val ts  = ring.get(pos)
+                if (ts <= cutoff) break
+                if (ts <= now) count++
             }
             return when {
                 count >= MIN_SAMPLES ->
-                    count / (ETA_WINDOW_MS / 1000f)     // accurate window rate
+                    count / (ETA_WINDOW_MS / 1000f)
 
                 else -> {
-                    // Warmup or very slow: fall back to overall elapsed average
                     val elapsedSec = elapsedMs() / 1000f
                     val done       = processed.get()
                     if (elapsedSec > 0.1f && done > 0) done / elapsedSec else 0f
@@ -281,7 +279,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
-        thirtyDaysAgo = LocalDateTime.now(systemZone).minusDays(30)
+        thirtyDaysAgoMillis = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
 
         Trace.beginSection("SmsWorker.doWork")
         try {
@@ -457,7 +455,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             else
                 ParseResult.Discard(sms)
 
-        val isRecent = sms.timestamp.toLocalDateTime().isAfter(thirtyDaysAgo)
+        val isRecent = sms.timestamp > thirtyDaysAgoMillis
 
         checkSubscriptionOrBalance(parser, sms, isRecent)?.let { return it }
 
@@ -758,20 +756,17 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────
 
     private suspend fun flushUnrecognizedBatch(batch: ArrayList<SmsMessage>) {
-        for (sms in batch) {
-            try {
-                if (!unrecognizedSmsRepository.exists(sms.sender, sms.body)) {
-                    unrecognizedSmsRepository.insert(
-                        UnrecognizedSmsEntity(
-                            sender     = sms.sender,
-                            smsBody    = sms.body,
-                            receivedAt = sms.timestamp.toLocalDateTime()
-                        )
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error storing unrecognized SMS: ${e.message}")
-            }
+        val entities = batch.map { sms ->
+            UnrecognizedSmsEntity(
+                sender     = sms.sender,
+                smsBody    = sms.body,
+                receivedAt = sms.timestamp.toLocalDateTime()
+            )
+        }
+        try {
+            unrecognizedSmsRepository.insertAll(entities)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")
         }
         batch.clear()
     }

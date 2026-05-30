@@ -241,9 +241,8 @@ object IconProvider {
             return IconResource.DrawableResource(iconRes)
         }
 
-        val effectiveCategory = if (!category.isNullOrBlank()
-            && !category.equals("Uncategorized", ignoreCase = true)
-        ) category else CategoryMapping.getCategory(merchantName)
+        val effectiveCategory = if (category.isValidCategoryOverride()) category
+            else CategoryMapping.getCategory(merchantName)
 
         val categoryInfo = CategoryMapping.categories[effectiveCategory]
             ?: CategoryMapping.categories["Others"]!!
@@ -262,3 +261,10 @@ sealed class IconResource {
     data class DrawableResource(val resId: Int) : IconResource()
     data class VectorIcon(val icon: ImageVector, val tint: Color) : IconResource()
 }
+
+/**
+ * Returns true if this category string represents a valid override
+ * (non-null, non-blank, not the "Uncategorized" sentinel).
+ */
+internal fun String?.isValidCategoryOverride(): Boolean =
+    !this.isNullOrBlank() && !this.equals("Uncategorized", ignoreCase = true)

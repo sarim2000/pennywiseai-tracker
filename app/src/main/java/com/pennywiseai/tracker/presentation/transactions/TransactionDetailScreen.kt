@@ -549,6 +549,7 @@ private fun TransactionReceipt(
                 }
                 BrandIcon(
                     merchantName = transaction.merchantName,
+                    category = transaction.category,
                     modifier = heroIconModifier,
                     size = 56.dp,
                     showBackground = true
@@ -1077,6 +1078,7 @@ private fun EditableTransactionHeader(
                 leadingIcon = {
                     BrandIcon(
                         merchantName = transaction.merchantName,
+                        category = transaction.category,
                         size = 24.dp,
                         showBackground = false
                     )

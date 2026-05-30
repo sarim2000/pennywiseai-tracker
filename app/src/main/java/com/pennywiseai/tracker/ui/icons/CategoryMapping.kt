@@ -228,6 +228,31 @@ object IconProvider {
         return CategoryMapping.categories[category]
             ?: CategoryMapping.categories["Others"]!!
     }
+
+    /**
+     * Get icon for a transaction, using an explicitly set category when available.
+     * 1. Try brand-specific icon
+     * 2. If not found, use provided category (if valid)
+     * 3. Otherwise, derive category from merchant name
+     * 4. If still not found, use default icon
+     */
+    fun getTransactionIcon(merchantName: String, category: String?): IconResource {
+        BrandIcons.getIconResource(merchantName)?.let { iconRes ->
+            return IconResource.DrawableResource(iconRes)
+        }
+
+        val effectiveCategory = if (!category.isNullOrBlank()
+            && !category.equals("Uncategorized", ignoreCase = true)
+        ) category else CategoryMapping.getCategory(merchantName)
+
+        val categoryInfo = CategoryMapping.categories[effectiveCategory]
+            ?: CategoryMapping.categories["Others"]!!
+
+        return IconResource.VectorIcon(
+            icon = categoryInfo.icon,
+            tint = categoryInfo.color
+        )
+    }
 }
 
 /**

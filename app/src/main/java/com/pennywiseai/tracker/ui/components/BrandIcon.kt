@@ -30,11 +30,12 @@ import com.pennywiseai.tracker.ui.icons.IconResource
 @Composable
 fun BrandIcon(
     merchantName: String,
+    category: String? = null,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     showBackground: Boolean = true
 ) {
-    val iconResource = IconProvider.getIconForMerchant(merchantName)
+    val iconResource = IconProvider.getTransactionIcon(merchantName, category)
     val brandColor = BrandIcons.getBrandColor(merchantName)
     
     Box(

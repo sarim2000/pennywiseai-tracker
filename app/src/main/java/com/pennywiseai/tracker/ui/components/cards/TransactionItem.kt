@@ -135,7 +135,8 @@ fun TransactionItem(
                 merchantName = transaction.merchantName,
                 modifier = iconModifier,
                 size = Dimensions.Icon.list,
-                showBackground = true
+                showBackground = true,
+                category = transaction.category
             )
         },
         trailingContent = {

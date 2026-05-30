@@ -41,8 +41,7 @@ fun BrandIcon(
     val backgroundColor = if (category.isValidCategoryOverride()
         && iconResource !is IconResource.DrawableResource
     ) {
-        CategoryMapping.categories[category]?.color
-            ?: MaterialTheme.colorScheme.surfaceVariant
+        (iconResource as IconResource.VectorIcon).tint
     } else {
         val brandColor = BrandIcons.getBrandColor(merchantName)
         brandColor?.let { Color(it.toColorInt()) }

@@ -19,7 +19,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -35,7 +37,8 @@ fun CreateRuleScreen(
     // (carrying a fresh id) but isEditing = false, so it saves as a brand-new rule.
     // Defaults to false: a non-null prefill must NOT imply edit, or a duplicate that
     // omits this flag would overwrite its source. Callers state edit intent explicitly.
-    isEditing: Boolean = false
+    isEditing: Boolean = false,
+    allAccounts: List<RulesViewModel.AccountInfo> = emptyList()
 ) {
     var ruleName by remember(existingRule) { mutableStateOf(existingRule?.name ?: "") }
     var description by remember(existingRule) { mutableStateOf(existingRule?.description ?: "") }
@@ -175,7 +178,7 @@ fun CreateRuleScreen(
                         onClick = {
                             // Validate: rule name + all conditions have values + action is valid
                             val areConditionsValid = conditions.isNotEmpty() &&
-                                conditions.all { it.value.isNotBlank() }
+                                conditions.all { it.validate() }
                             val isActionValid = actionType == ActionType.BLOCK || actionValue.isNotBlank()
                             val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
 
@@ -203,7 +206,7 @@ fun CreateRuleScreen(
                         },
                         enabled = ruleName.isNotBlank() &&
                                  conditions.isNotEmpty() &&
-                                 conditions.all { it.value.isNotBlank() } &&
+                                 conditions.all { it.validate() } &&
                                  (actionType == ActionType.BLOCK || actionValue.isNotBlank())
                     ) {
                         Text("Save")
@@ -374,7 +377,8 @@ fun CreateRuleScreen(
                                         conditions = conditions.toMutableList().apply {
                                             set(index, newCondition)
                                         }
-                                    }
+                                    },
+                                    allAccounts = allAccounts
                                 )
                             }
                         }
@@ -662,7 +666,7 @@ fun CreateRuleScreen(
             // Preview
             val showPreview = ruleName.isNotBlank() &&
                              conditions.isNotEmpty() &&
-                             conditions.all { it.value.isNotBlank() } &&
+                             conditions.all { it.validate() } &&
                              (actionType == ActionType.BLOCK || actionValue.isNotBlank())
             if (showPreview) {
                 Card(
@@ -697,6 +701,7 @@ fun CreateRuleScreen(
                                         TransactionField.TRANSACTION_DAY_OF_WEEK -> "day of week"
                                         TransactionField.TRANSACTION_DAY_OF_MONTH -> "day of month"
                                         TransactionField.TRANSACTION_DATE -> "date"
+                                        TransactionField.ACCOUNT -> "account"
                                     })
                                     append(" ")
                                     append(when(condition.operator) {
@@ -729,6 +734,14 @@ fun CreateRuleScreen(
                                         }
                                         condition.field == TransactionField.TRANSACTION_DAY_OF_WEEK -> {
                                             append(condition.value.split(",").joinToString(", ") { dayNames[it.trim()] ?: it })
+                                        }
+                                        condition.field == TransactionField.ACCOUNT -> {
+                                            val parts = condition.value.split("||")
+                                            if (parts.size == 2) {
+                                                append("${parts[0]} ••${parts[1]}")
+                                            } else {
+                                                append(condition.value)
+                                            }
                                         }
                                         else -> append(condition.value)
                                     }
@@ -773,7 +786,8 @@ fun CreateRuleScreen(
 @Composable
 private fun ConditionFieldSelector(
     condition: RuleCondition,
-    onConditionChange: (RuleCondition) -> Unit
+    onConditionChange: (RuleCondition) -> Unit,
+    allAccounts: List<RulesViewModel.AccountInfo> = emptyList()
 ) {
     var fieldDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -793,7 +807,8 @@ private fun ConditionFieldSelector(
             TransactionField.TRANSACTION_HOUR to "Hour",
             TransactionField.TRANSACTION_DAY_OF_WEEK to "Day of Week",
             TransactionField.TRANSACTION_DAY_OF_MONTH to "Day of Month",
-            TransactionField.TRANSACTION_DATE to "Date"
+            TransactionField.TRANSACTION_DATE to "Date",
+            TransactionField.ACCOUNT to "Account"
         )
         TextField(
             value = fieldOptions.firstOrNull { it.first == condition.field }?.second ?: "Amount",
@@ -855,6 +870,10 @@ private fun ConditionFieldSelector(
             ConditionOperator.EQUALS to "is",
             ConditionOperator.LESS_THAN to "before",
             ConditionOperator.GREATER_THAN to "after"
+        )
+        TransactionField.ACCOUNT -> listOf(
+            ConditionOperator.EQUALS to "is",
+            ConditionOperator.NOT_EQUALS to "is not"
         )
         else -> listOf(
             ConditionOperator.CONTAINS to "contains",
@@ -1019,6 +1038,86 @@ private fun ConditionFieldSelector(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+        }
+
+        TransactionField.ACCOUNT -> {
+            // Account dropdown picker
+            var accountDropdownExpanded by remember { mutableStateOf(false) }
+
+            val selectedAccount = allAccounts.firstOrNull {
+                "${it.bankName}||${it.accountLast4}" == condition.value
+            }
+
+            val displayText = selectedAccount?.let {
+                it.displayName
+            } ?: if (condition.value.isNotBlank()) {
+                // Show raw value if account not found (e.g., deleted)
+                condition.value
+            } else {
+                "Select an account"
+            }
+
+            Column {
+                ExposedDropdownMenuBox(
+                    expanded = accountDropdownExpanded,
+                    onExpandedChange = { accountDropdownExpanded = !accountDropdownExpanded }
+                ) {
+                    TextField(
+                        value = displayText,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Account") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = accountDropdownExpanded,
+                        onDismissRequest = { accountDropdownExpanded = false }
+                    ) {
+                        allAccounts.forEach { account ->
+                            val key = "${account.bankName}||${account.accountLast4}"
+                            val accountTypeLabel = when {
+                                account.isCreditCard -> "Credit"
+                                account.accountType != null -> account.accountType
+                                else -> ""
+                            }
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                    ) {
+                                        FinancialAccountIdentity(
+                                            bankName = account.bankName,
+                                            accountLast4 = account.accountLast4
+                                        )
+                                        if (accountTypeLabel.isNotBlank()) {
+                                            AssistChip(
+                                                onClick = {},
+                                                label = { Text(accountTypeLabel, style = MaterialTheme.typography.labelSmall) },
+                                                modifier = Modifier.height(24.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    onConditionChange(condition.copy(value = key))
+                                    accountDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (allAccounts.isEmpty()) {
+                    Text(
+                        text = "No accounts found. Add an account first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xs)
+                    )
+                }
+            }
         }
 
         else -> {

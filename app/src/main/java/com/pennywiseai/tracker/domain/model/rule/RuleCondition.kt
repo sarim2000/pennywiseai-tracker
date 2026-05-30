@@ -41,6 +41,10 @@ data class RuleCondition(
                     else -> value.toIntOrNull()?.let { it in 1..31 } == true
                 }
             }
+            TransactionField.ACCOUNT -> {
+                val parts = value.split("||")
+                parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()
+            }
             else -> true
         }
     }
@@ -59,7 +63,20 @@ enum class TransactionField {
     TRANSACTION_TIME,        // Time as HH:mm
     TRANSACTION_DAY_OF_WEEK, // 1=Monday .. 7=Sunday
     TRANSACTION_DAY_OF_MONTH,// 01-31
-    TRANSACTION_DATE         // yyyy-MM-dd
+    TRANSACTION_DATE,        // yyyy-MM-dd
+    /**
+     * Account composite key: "BankName||Last4" (e.g. "HDFC Bank||1234").
+     *
+     * Scopes the rule to transactions from a specific account by matching
+     * the transaction's [TransactionEntity.bankName] and last 4 digits of
+     * its [TransactionEntity.accountNumber]. When selected in the UI, the
+     * user picks from available accounts and the value is stored as the
+     * `bankName||last4` composite key.
+     *
+     * Only [ConditionOperator.EQUALS] and [ConditionOperator.NOT_EQUALS]
+     * are supported (enforced in [CreateRuleScreen]'s operator selector).
+     */
+    ACCOUNT
 }
 
 @Serializable

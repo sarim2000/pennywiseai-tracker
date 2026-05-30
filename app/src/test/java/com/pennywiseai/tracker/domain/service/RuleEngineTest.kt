@@ -4,16 +4,20 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
+import com.pennywiseai.tracker.domain.model.rule.LogicalOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.util.UUID
 
 /**
  * Covers the account (BANK_NAME) rule action added for issue #373 — previously a
@@ -22,6 +26,8 @@ import java.time.LocalDateTime
 class RuleEngineTest {
 
     private val engine = RuleEngine()
+
+    // --- HEAD: BANK_NAME action tests (SET / CLEAR) ---
 
     private fun txn(bankName: String? = null) = TransactionEntity(
         amount = BigDecimal("100.00"),
@@ -63,4 +69,393 @@ class RuleEngineTest {
 
         assertNull(result.bankName)
     }
+
+    // --- Incoming: ACCOUNT condition tests (EQUALS, CONTAINS, etc.) ---
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS when bankName and accountNumber match`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected rule to match", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT NOT_EQUALS when account differs`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.NOT_EQUALS,
+            value = "HDFC Bank||9999"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected rule to match because account differs", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS as false when bankName differs`() {
+        val txn = transaction(
+            bankName = "State Bank of India",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match because bankName differs", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS as false when accountNumber is null`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = null
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match when accountNumber is null and condition has a last4",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS as false when accountNumber is null even with empty last4 in condition`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = null
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match when accountNumber is null (derived value is '')",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS as false when bankName is null`() {
+        val txn = transaction(
+            bankName = null,
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match because bankName is null", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT EQUALS correctly with mixed case bank name`() {
+        val txn = transaction(
+            bankName = "hdfc bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected EQUALS to be case-insensitive", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT CONTAINS when bankName fragment matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.CONTAINS,
+            value = "HDFC"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected CONTAINS to match bank name fragment", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT CONTAINS when last4 fragment matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.CONTAINS,
+            value = "5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected CONTAINS to match last4 fragment", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT CONTAINS as false when no part matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.CONTAINS,
+            value = "ICICI"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected CONTAINS to NOT match", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT STARTS_WITH when bank name matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.STARTS_WITH,
+            value = "HDFC"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected STARTS_WITH to match beginning of ACCOUNT value",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT ENDS_WITH when last4 matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.ENDS_WITH,
+            value = "5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected ENDS_WITH to match last4", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT IS_NOT_EMPTY when both bankName and accountNumber present`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.IS_NOT_EMPTY,
+            value = ""
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected IS_NOT_EMPTY to be true when both fields present",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT IS_NOT_EMPTY as false when both bankName and accountNumber are null`() {
+        val txn = transaction(
+            bankName = null,
+            accountNumber = null
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.IS_NOT_EMPTY,
+            value = ""
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected IS_NOT_EMPTY to be false when both fields are null (derived value is '')",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `ACCOUNT EQUALS combined with AMOUNT condition using AND`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678",
+            amount = BigDecimal("500.00")
+        )
+        val conditions = listOf(
+            RuleCondition(
+                field = TransactionField.ACCOUNT,
+                operator = ConditionOperator.EQUALS,
+                value = "HDFC Bank||5678"
+            ),
+            RuleCondition(
+                field = TransactionField.AMOUNT,
+                operator = ConditionOperator.GREATER_THAN,
+                value = "100",
+                logicalOperator = LogicalOperator.AND
+            )
+        )
+        val rule = TransactionRule(
+            name = "Combined AND Rule",
+            conditions = conditions,
+            actions = listOf(RuleAction(
+                field = TransactionField.CATEGORY,
+                actionType = ActionType.SET,
+                value = "Matched"
+            ))
+        )
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertTrue("Expected combined AND conditions to match", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `ACCOUNT EQUALS with AMOUNT condition using AND when amount fails`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678",
+            amount = BigDecimal("50.00")
+        )
+        val conditions = listOf(
+            RuleCondition(
+                field = TransactionField.ACCOUNT,
+                operator = ConditionOperator.EQUALS,
+                value = "HDFC Bank||5678"
+            ),
+            RuleCondition(
+                field = TransactionField.AMOUNT,
+                operator = ConditionOperator.GREATER_THAN,
+                value = "100",
+                logicalOperator = LogicalOperator.AND
+            )
+        )
+        val rule = TransactionRule(
+            name = "Combined AND Rule - Should Fail",
+            conditions = conditions,
+            actions = listOf(RuleAction(
+                field = TransactionField.CATEGORY,
+                actionType = ActionType.SET,
+                value = "Matched"
+            ))
+        )
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected combined AND conditions to NOT match when amount is too low",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `shouldBlockTransaction returns rule when ACCOUNT condition matches with BLOCK action`() {
+        val txn = transaction(
+            bankName = "Suspicious Bank",
+            accountNumber = "99998888"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.EQUALS,
+            value = "Suspicious Bank||8888"
+        )
+        val rule = TransactionRule(
+            name = "Block Suspicious Account",
+            conditions = listOf(condition),
+            actions = listOf(RuleAction(
+                field = TransactionField.CATEGORY,
+                actionType = ActionType.BLOCK,
+                value = ""
+            ))
+        )
+
+        val result = engine.shouldBlockTransaction(txn, null, listOf(rule))
+
+        assertNotNull("Expected blocking rule to match", result)
+    }
+
+    // --- factory helpers (shared) ---
+
+    private fun transaction(
+        bankName: String? = "HDFC Bank",
+        accountNumber: String? = "12345678",
+        amount: BigDecimal = BigDecimal("100.00"),
+        merchantName: String = "Test",
+        category: String = "",
+        transactionType: TransactionType = TransactionType.EXPENSE,
+        dateTime: LocalDateTime = LocalDateTime.now(),
+        transactionHash: String = UUID.randomUUID().toString()
+    ): TransactionEntity = TransactionEntity(
+        id = 1,
+        amount = amount,
+        merchantName = merchantName,
+        category = category,
+        transactionType = transactionType,
+        dateTime = dateTime,
+        bankName = bankName,
+        accountNumber = accountNumber,
+        transactionHash = transactionHash
+    )
+
+    private fun rule(condition: RuleCondition): TransactionRule = TransactionRule(
+        name = "Test Rule",
+        conditions = listOf(condition),
+        actions = listOf(RuleAction(
+            field = TransactionField.CATEGORY,
+            actionType = ActionType.SET,
+            value = "Auto-Categorized"
+        ))
+    )
 }

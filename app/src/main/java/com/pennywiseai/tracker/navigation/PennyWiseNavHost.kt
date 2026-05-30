@@ -277,6 +277,7 @@ fun PennyWiseNavHost(
                     }
                 else -> null
             }
+            val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
@@ -292,7 +293,8 @@ fun PennyWiseNavHost(
                     navController.safePopBackStack()
                 },
                 existingRule = prefillRule,
-                isEditing = isEditing
+                isEditing = isEditing,
+                allAccounts = accounts
             )
         }
         

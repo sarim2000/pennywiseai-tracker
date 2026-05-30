@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleTemplateService
@@ -10,17 +12,22 @@ import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.domain.usecase.InitializeRuleTemplatesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class RulesViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val ruleRepository: RuleRepository,
     private val ruleTemplateService: RuleTemplateService,
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
-    private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase
+    private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) : ViewModel() {
+
+    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -35,6 +42,34 @@ class RulesViewModel @Inject constructor(
     val dryRunResult: StateFlow<DryRunResult?> = _dryRunResult.asStateFlow()
 
     val rules: StateFlow<List<TransactionRule>> = ruleRepository.getAllRules()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    /**
+     * Unhidden accounts, filtered via `hidden_accounts` SharedPreferences key
+     */
+    val accounts: StateFlow<List<AccountInfo>> = accountBalanceRepository.getAllLatestBalances()
+        .map { balances ->
+            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            balances
+                .filter { balance ->
+                    val key = "${balance.bankName}_${balance.accountLast4}"
+                    !hiddenAccounts.contains(key)
+                }
+                .map { balance ->
+                    AccountInfo(
+                        bankName = balance.bankName,
+                        accountLast4 = balance.accountLast4,
+                        displayName = "${balance.bankName} ••${balance.accountLast4}",
+                        isCreditCard = balance.isCreditCard,
+                        accountType = balance.accountType
+                    )
+                }
+                .distinctBy { "${it.bankName}_${it.accountLast4}" }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -204,4 +239,15 @@ class RulesViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * UI model for an account in the rule condition picker
+     */
+    data class AccountInfo(
+        val bankName: String,
+        val accountLast4: String,
+        val displayName: String,
+        val isCreditCard: Boolean,
+        val accountType: String?
+    )
 }

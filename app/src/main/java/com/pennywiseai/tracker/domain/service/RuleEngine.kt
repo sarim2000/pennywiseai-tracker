@@ -172,6 +172,17 @@ class RuleEngine @Inject constructor() {
         }
     }
 
+    /**
+     * Extracts the string value of a [TransactionField] from a transaction.
+     *
+     * For [TransactionField.ACCOUNT], the value is derived as a composite key
+     * in the format `"BankName||Last4"` (e.g. `"HDFC Bank||1234"`). This is
+     * matched against the condition value during [evaluateCondition].
+     *
+     * Returns an empty string if the field cannot be resolved (e.g. ACCOUNT
+     * when [TransactionEntity.bankName] or [TransactionEntity.accountNumber]
+     * is null).
+     */
     private fun getFieldValue(
         transaction: TransactionEntity,
         smsText: String?,
@@ -195,6 +206,11 @@ class RuleEngine @Inject constructor() {
                 String.format("%02d", transaction.dateTime.dayOfMonth)
             TransactionField.TRANSACTION_DATE ->
                 transaction.dateTime.toLocalDate().toString()
+            TransactionField.ACCOUNT -> {
+                val bank = transaction.bankName
+                val last4 = transaction.accountNumber?.takeLast(4)
+                if (bank != null && last4 != null) "$bank||$last4" else ""
+            }
         }
     }
 

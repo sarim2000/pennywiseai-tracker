@@ -554,9 +554,13 @@ class ManageAccountsViewModel @Inject constructor(
                         sourceAccountLast4 = source.accountLast4,
                         targetAccountLast4 = target.accountLast4
                     )
-                    // Unlink any cards bound to the source so they don't dangle.
+                    // Re-link any debit cards bound to the source so they
+                    // keep working against the merged-into target. (Unlinking
+                    // would silently strip the user's card→account binding.)
                     (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
-                        .forEach { card -> cardRepository.unlinkCard(card.id) }
+                        .forEach { card ->
+                            cardRepository.linkCardToAccount(card.id, target.accountLast4)
+                        }
                     // Drop the source's balance snapshots. Source's running
                     // balance was for source's standalone account, so
                     // retargeting these snapshots into the target would

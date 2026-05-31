@@ -173,15 +173,8 @@ class RuleEngine @Inject constructor() {
     }
 
     /**
-     * Extracts the string value of a [TransactionField] from a transaction.
-     *
-     * For [TransactionField.ACCOUNT], the value is derived as a composite key
-     * in the format `"BankName||Last4"` (e.g. `"HDFC Bank||1234"`). This is
-     * matched against the condition value during [evaluateCondition].
-     *
-     * Returns an empty string if the field cannot be resolved (e.g. ACCOUNT
-     * when [TransactionEntity.bankName] or [TransactionEntity.accountNumber]
-     * is null).
+     * Returns the string value of a [TransactionField] for a given transaction.
+     * For [TransactionField.ACCOUNT] returns `"BankName||Last4"`, or empty if bank/account is null.
      */
     private fun getFieldValue(
         transaction: TransactionEntity,

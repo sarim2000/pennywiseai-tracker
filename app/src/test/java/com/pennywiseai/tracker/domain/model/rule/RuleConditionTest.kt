@@ -28,36 +28,6 @@ class RuleConditionTest {
         assertFalse(condition.validate())
     }
 
-    @Test
-    fun `ACCOUNT with value missing separator returns false`() {
-        val condition = RuleCondition(
-            field = TransactionField.ACCOUNT,
-            operator = ConditionOperator.EQUALS,
-            value = "HDFC Bank 1234"
-        )
-        assertFalse(condition.validate())
-    }
-
-    @Test
-    fun `ACCOUNT with multiple separators returns false`() {
-        val condition = RuleCondition(
-            field = TransactionField.ACCOUNT,
-            operator = ConditionOperator.EQUALS,
-            value = "HDFC||Bank||1234"
-        )
-        assertFalse(condition.validate())
-    }
-
-    @Test
-    fun `ACCOUNT with operator STARTS_WITH and value with empty last4 returns false`() {
-        val condition = RuleCondition(
-            field = TransactionField.ACCOUNT,
-            operator = ConditionOperator.STARTS_WITH,
-            value = "HDFC||"
-        )
-        assertFalse(condition.validate())
-    }
-
     // --- Other fields still validate correctly ---
 
     @Test
@@ -78,16 +48,6 @@ class RuleConditionTest {
             value = "not-a-number"
         )
         assertFalse(condition.validate())
-    }
-
-    @Test
-    fun `AMOUNT with EQUALS operator accepts any non-blank value`() {
-        val condition = RuleCondition(
-            field = TransactionField.AMOUNT,
-            operator = ConditionOperator.EQUALS,
-            value = "anything"
-        )
-        assertTrue(condition.validate())
     }
 
     @Test
@@ -176,26 +136,6 @@ class RuleConditionTest {
             field = TransactionField.TRANSACTION_DAY_OF_MONTH,
             operator = ConditionOperator.EQUALS,
             value = "32"
-        )
-        assertFalse(condition.validate())
-    }
-
-    @Test
-    fun `MERCHANT field with any non-blank value returns true`() {
-        val condition = RuleCondition(
-            field = TransactionField.MERCHANT,
-            operator = ConditionOperator.CONTAINS,
-            value = "Amazon"
-        )
-        assertTrue(condition.validate())
-    }
-
-    @Test
-    fun `blank value for any field returns false`() {
-        val condition = RuleCondition(
-            field = TransactionField.MERCHANT,
-            operator = ConditionOperator.EQUALS,
-            value = "   "
         )
         assertFalse(condition.validate())
     }

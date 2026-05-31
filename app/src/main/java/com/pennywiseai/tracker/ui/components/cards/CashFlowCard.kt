@@ -53,6 +53,7 @@ fun CashFlowCard(
     investments: BigDecimal,
     transfers: BigDecimal,
     isBalanceHidden: Boolean,
+    onToggleBalanceVisibility: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val channels = remember(creditCardSpend, investments, transfers) {
@@ -66,7 +67,12 @@ fun CashFlowCard(
 
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.md
+        contentPadding = Spacing.md,
+        // Whole card toggles the global hide-amounts flag; mirrors the eye
+        // button on BalanceCard so the entire summary tier reveals/hides
+        // together. Without this the masked '••••' chips look interactive
+        // but stay inert.
+        onClick = onToggleBalanceVisibility
     ) {
         Text(
             text = "Money in motion",

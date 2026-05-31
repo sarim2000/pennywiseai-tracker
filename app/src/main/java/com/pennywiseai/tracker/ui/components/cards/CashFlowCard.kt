@@ -73,9 +73,20 @@ fun CashFlowCard(
     // Stay quiet on dormant months.
     if (netCashFlow.signum() == 0 && channels.isEmpty()) return
 
-    val isNegative = netCashFlow.signum() < 0
-    val heroColor = if (isNegative) MaterialTheme.colorScheme.expense else MaterialTheme.colorScheme.income
-    val heroSign = if (isNegative) "-" else "+"
+    // Three-way: negative → expense red, positive → income green, exactly zero
+    // → neutral (a month with only a credit-card spend nets to 0 but isn't
+    // really "positive", so we don't paint it green or sign it with "+").
+    val heroSignum = netCashFlow.signum()
+    val heroColor = when (heroSignum) {
+        -1 -> MaterialTheme.colorScheme.expense
+        1 -> MaterialTheme.colorScheme.income
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val heroSign = when (heroSignum) {
+        -1 -> "-"
+        1 -> "+"
+        else -> ""
+    }
 
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),

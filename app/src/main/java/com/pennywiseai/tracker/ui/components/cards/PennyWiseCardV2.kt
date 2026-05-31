@@ -23,9 +23,10 @@ fun PennyWiseCardV2(
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
     /**
-     * Overrides [colors] when set. Convenience for callers that only need to
-     * swap the container colour (e.g. a selected-state tint) without
-     * constructing a full [CardColors] elsewhere.
+     * Default-only convenience for callers that just want to swap the
+     * container colour (e.g. a selected-state tint) without constructing a
+     * full [CardColors]. Wired into the default value of [colors]; if a
+     * caller passes [colors] explicitly, that wins and this value is unused.
      */
     containerColor: androidx.compose.ui.graphics.Color? = null,
     colors: CardColors = CardDefaults.cardColors(
@@ -35,11 +36,15 @@ fun PennyWiseCardV2(
     border: BorderStroke? = null,
     onClick: (() -> Unit)? = null,
     /**
-     * Optional long-press handler. When provided alongside [onClick] the card
-     * is wired via [Modifier.combinedClickable] so tap and long-press resolve
-     * on the same gesture surface — important when the card lives inside a
-     * scrolling container or another drag-aware parent (e.g. SwipeToDismissBox)
-     * that would otherwise race with a child pointerInput.
+     * Optional long-press handler. Routes the card through
+     * [Modifier.combinedClickable] so tap and long-press resolve on the same
+     * gesture surface — important when the card lives inside a scrolling
+     * container or another drag-aware parent (e.g. SwipeToDismissBox) that
+     * would otherwise race with a child pointerInput.
+     *
+     * **Requires [onClick]** to also be non-null. A long-press-only card
+     * would still announce as a button to accessibility but no-op on tap;
+     * we fail fast rather than ship that affordance.
      */
     onLongClick: (() -> Unit)? = null,
     contentPadding: Dp = Spacing.md,
@@ -55,10 +60,15 @@ fun PennyWiseCardV2(
         onLongClick != null -> {
             // Combined click + long-click. Material's Card composable doesn't
             // accept onLongClick directly, so we wrap a non-clickable Card with
-            // combinedClickable on the outer modifier.
+            // combinedClickable on the outer modifier. Require onClick here so
+            // the card never advertises a button affordance whose tap is a
+            // no-op (would mislead screen readers and touch users).
+            val tap = requireNotNull(onClick) {
+                "PennyWiseCardV2: onLongClick requires onClick to also be non-null."
+            }
             Card(
                 modifier = modifier.combinedClickable(
-                    onClick = onClick ?: {},
+                    onClick = tap,
                     onLongClick = onLongClick
                 ),
                 colors = colors,

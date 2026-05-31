@@ -66,8 +66,16 @@ fun TransactionItem(
         effectiveProfileId == ProfileEntity.BUSINESS_ID
     }
 
+    // Prefer a user-written description over the parsed merchant name as the
+    // row heading — UPI merchant strings are often cryptic VPAs and a description,
+    // when present, is what the user actually wrote about the transaction. (#383)
+    val description = transaction.description?.takeIf { it.isNotBlank() }
+
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
+            // When the title shows the description, keep the merchant visible here so
+            // the user still sees who the transaction was with.
+            if (description != null) add(transaction.merchantName)
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
                 !transaction.category.equals("Uncategorized", ignoreCase = true)
@@ -107,7 +115,7 @@ fun TransactionItem(
     val merchantDisplay = LocalMerchantDisplay.current
 
     ListItemCardV2(
-        title = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = description ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,

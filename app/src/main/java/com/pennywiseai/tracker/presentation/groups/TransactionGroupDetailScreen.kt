@@ -328,15 +328,25 @@ private fun GroupTransactionItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Prefer the user-written description as the heading; fall back to the
+            // (often cryptic) merchant name. (#383)
+            val description = transaction.description?.takeIf { it.isNotBlank() }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    transaction.merchantName,
+                    description ?: transaction.merchantName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val secondary = buildString {
+                    if (description != null) {
+                        append(transaction.merchantName)
+                        append(" · ")
+                    }
+                    append(transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy")))
+                }
                 Text(
-                    transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy")),
+                    secondary,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

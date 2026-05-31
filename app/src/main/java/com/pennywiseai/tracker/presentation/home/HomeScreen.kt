@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
+import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
@@ -97,6 +98,9 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.TextStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -426,9 +430,9 @@ fun HomeScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    com.pennywiseai.tracker.ui.components.cards.CashFlowCard(
-                        month = java.time.YearMonth.now().month
-                            .getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()),
+                    CashFlowCard(
+                        month = YearMonth.now().month
+                            .getDisplayName(TextStyle.FULL, Locale.getDefault()),
                         currency = uiState.selectedCurrency,
                         netCashFlow = uiState.currentMonthTotal,
                         creditCardSpend = uiState.currentMonthCreditCard,

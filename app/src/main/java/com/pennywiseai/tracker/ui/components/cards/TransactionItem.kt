@@ -89,7 +89,26 @@ fun TransactionItem(
             }
             when (transaction.transactionType) {
                 TransactionType.CREDIT -> add("Credit")
-                TransactionType.TRANSFER -> add("Transfer")
+                TransactionType.TRANSFER -> {
+                    add("Transfer")
+                    // Disambiguate the two legs of a paired self-transfer (#385).
+                    // When fromAccount/toAccount are set, identify which leg
+                    // this row represents from its own accountNumber and show
+                    // the other account's last-4 as a directional hint.
+                    val mine = transaction.accountNumber
+                    val from = transaction.fromAccount
+                    val to = transaction.toAccount
+                    val legHint = when {
+                        from != null && to != null && mine == from ->
+                            "→ ${to.takeLast(4)}"
+                        from != null && to != null && mine == to ->
+                            "from ${from.takeLast(4)}"
+                        to != null && mine != to -> "→ ${to.takeLast(4)}"
+                        from != null && mine != from -> "from ${from.takeLast(4)}"
+                        else -> null
+                    }
+                    if (legHint != null) add(legHint)
+                }
                 TransactionType.INVESTMENT -> add("Investment")
                 else -> {}
             }

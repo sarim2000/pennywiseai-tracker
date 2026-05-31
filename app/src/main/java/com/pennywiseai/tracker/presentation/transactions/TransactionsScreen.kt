@@ -563,7 +563,18 @@ fun TransactionsScreen(
                                         modifier = Modifier
                                             .pointerInput(transaction.id) {
                                                 detectTapGestures(
-                                                    onLongPress = { viewModel.toggleSelection(transaction.id) }
+                                                    // Haptic so an accidental long-press during
+                                                    // an unusually slow swipe is immediately
+                                                    // obvious to the user; selection mode is
+                                                    // then trivially recoverable via Back or the
+                                                    // close button in the contextual top bar.
+                                                    // detectTapGestures already cancels on
+                                                    // touch-slop movement, so a normal-paced
+                                                    // swipe doesn't reach this lambda.
+                                                    onLongPress = {
+                                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                        viewModel.toggleSelection(transaction.id)
+                                                    }
                                                 )
                                             }
                                     ) {

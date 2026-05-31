@@ -8,6 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -105,6 +109,12 @@ fun TransactionsScreen(
     val selectedProfileId by viewModel.selectedProfileId.collectAsState()
     val profiles by viewModel.profiles.collectAsState()
     val profileAccountKeys by viewModel.profileAccountKeys.collectAsState()
+
+    // Bulk-edit selection (#369)
+    val selectedIds by viewModel.selectedIds.collectAsState()
+    val bulkSnack by viewModel.bulkSnack.collectAsState()
+    val selectionMode = selectedIds.isNotEmpty()
+    var showBulkCategorySheet by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -244,21 +254,51 @@ fun TransactionsScreen(
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Transactions",
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                hazeState = hazeState
-            )
+            if (selectionMode) {
+                // Contextual top bar for bulk-edit (#369): close left, count as title,
+                // Change Category + Delete on the right.
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = "${selectedIds.size} selected",
+                    hasBackButton = true,
+                    hasActionButton = true,
+                    navigationContent = {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Exit selection")
+                        }
+                    },
+                    actionContent = {
+                        IconButton(onClick = { showBulkCategorySheet = true }) {
+                            Icon(Icons.Default.Category, contentDescription = "Change category")
+                        }
+                        IconButton(onClick = { viewModel.bulkDelete() }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete selected",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    hazeState = hazeState
+                )
+            } else {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = "Transactions",
+                    hasBackButton = true,
+                    navigationContent = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    hazeState = hazeState
+                )
+            }
         },
         floatingActionButton = {
             Column(
@@ -486,19 +526,62 @@ fun TransactionsScreen(
                                 items = transactions,
                                 key = { _, transaction -> transaction.id }
                             ) { index, transaction ->
-                                SwipeToEditCategory(
-                                    transaction = transaction,
-                                    onRequestEdit = { pendingCategoryEditId = it.id }
-                                ) {
-                                    com.pennywiseai.tracker.ui.components.cards.TransactionItem(
-                                        transaction = transaction,
-                                        showDate = dateGroup == DateGroup.EARLIER,
-                                        listItemPosition = ListItemPosition.from(index, transactions.size),
-                                        convertedAmount = convertedAmounts[transaction.id],
-                                        displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                        profileAccountKeys = profileAccountKeys,
-                                        onClick = { onTransactionClick(transaction.id) }
-                                    )
+                                val isSelected = transaction.id in selectedIds
+                                val rowBackground = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                else Color.Transparent
+
+                                if (selectionMode) {
+                                    // In selection mode: outer combinedClickable owns the row.
+                                    // Tap toggles; long-press also toggles (additive). Swipe-to-
+                                    // edit is intentionally suppressed so we don't mix the
+                                    // single-row category quick-edit with the bulk flow.
+                                    Box(
+                                        modifier = Modifier
+                                            .background(rowBackground)
+                                            .combinedClickable(
+                                                onClick = { viewModel.toggleSelection(transaction.id) },
+                                                onLongClick = { viewModel.toggleSelection(transaction.id) }
+                                            )
+                                    ) {
+                                        com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                            transaction = transaction,
+                                            showDate = dateGroup == DateGroup.EARLIER,
+                                            listItemPosition = ListItemPosition.from(index, transactions.size),
+                                            convertedAmount = convertedAmounts[transaction.id],
+                                            displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                            profileAccountKeys = profileAccountKeys,
+                                            onClick = {} // tap owned by the wrapper
+                                        )
+                                    }
+                                } else {
+                                    // Out of selection mode: keep the existing tap (navigate)
+                                    // and swipe (quick-edit category) behaviours, and add a
+                                    // long-press-only detector to enter selection mode without
+                                    // blocking either of them.
+                                    Box(
+                                        modifier = Modifier
+                                            .pointerInput(transaction.id) {
+                                                detectTapGestures(
+                                                    onLongPress = { viewModel.toggleSelection(transaction.id) }
+                                                )
+                                            }
+                                    ) {
+                                        SwipeToEditCategory(
+                                            transaction = transaction,
+                                            onRequestEdit = { pendingCategoryEditId = it.id }
+                                        ) {
+                                            com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                                transaction = transaction,
+                                                showDate = dateGroup == DateGroup.EARLIER,
+                                                listItemPosition = ListItemPosition.from(index, transactions.size),
+                                                convertedAmount = convertedAmounts[transaction.id],
+                                                displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                                profileAccountKeys = profileAccountKeys,
+                                                onClick = { onTransactionClick(transaction.id) }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -546,6 +629,41 @@ fun TransactionsScreen(
                 onDismiss = { pendingCategoryEditId = null }
             )
         }
+    }
+
+    // Bulk category picker (#369). If every selected row already shares a
+    // category, mark it; otherwise pass a "(multiple)" sentinel so nothing is
+    // pre-checked.
+    if (showBulkCategorySheet && selectedIds.isNotEmpty()) {
+        val selectedTxns = uiState.transactions.filter { it.id in selectedIds }
+        val commonCategory = selectedTxns.map { it.category }.distinct().singleOrNull()
+        QuickCategoryPickerSheet(
+            currentCategory = commonCategory ?: "(multiple)",
+            categories = categoriesMap.values.toList(),
+            onCategorySelected = { name ->
+                viewModel.bulkUpdateCategory(name)
+                showBulkCategorySheet = false
+            },
+            onDismiss = { showBulkCategorySheet = false }
+        )
+    }
+
+    // Bulk action snackbar with Undo (#369).
+    LaunchedEffect(bulkSnack) {
+        bulkSnack?.let { snack ->
+            val result = snackbarHostState.showSnackbar(
+                message = snack.message,
+                actionLabel = snack.undo?.let { "Undo" },
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) snack.undo?.invoke()
+            viewModel.consumeBulkSnack()
+        }
+    }
+
+    // Hardware back exits selection mode instead of leaving the screen.
+    BackHandler(enabled = selectionMode) {
+        viewModel.clearSelection()
     }
 }
 

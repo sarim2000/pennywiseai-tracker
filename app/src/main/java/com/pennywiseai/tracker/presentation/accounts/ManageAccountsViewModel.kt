@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.accounts
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
@@ -53,7 +54,8 @@ class ManageAccountsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
-    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase
 ) : ViewModel() {
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
@@ -532,18 +534,38 @@ class ManageAccountsViewModel @Inject constructor(
                     return@launch
                 }
 
-                val moved = transactionRepository.mergeAccountTransactions(
-                    sourceBankName = source.bankName,
-                    sourceAccountLast4 = source.accountLast4,
-                    targetBankName = target.bankName,
-                    targetAccountLast4 = target.accountLast4
-                )
-                // Unlink any cards bound to the source account so they don't
-                // dangle, then drop the source's balance rows entirely. The
-                // source account effectively ceases to exist after this.
-                (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
-                    .forEach { card -> cardRepository.unlinkCard(card.id) }
-                accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                // Run the full merge under a single Room transaction so a
+                // crash mid-flight can't leave partially-merged state (e.g.
+                // transactions retargeted but source balances still around,
+                // or vice versa). The source account effectively ceases to
+                // exist after this block commits.
+                val moved = database.withTransaction {
+                    val rows = transactionRepository.mergeAccountTransactions(
+                        sourceBankName = source.bankName,
+                        sourceAccountLast4 = source.accountLast4,
+                        targetBankName = target.bankName,
+                        targetAccountLast4 = target.accountLast4
+                    )
+                    // Self-transfer rows (#385) reference accounts via
+                    // `fromAccount` / `toAccount`. Re-target any references
+                    // to the source so the detail screen's From → To stays
+                    // pointing at a live account.
+                    transactionRepository.retargetTransferLegRefs(
+                        sourceAccountLast4 = source.accountLast4,
+                        targetAccountLast4 = target.accountLast4
+                    )
+                    // Unlink any cards bound to the source so they don't dangle.
+                    (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                        .forEach { card -> cardRepository.unlinkCard(card.id) }
+                    // Drop the source's balance snapshots. Source's running
+                    // balance was for source's standalone account, so
+                    // retargeting these snapshots into the target would
+                    // invent fictional history. Dropping is the only correct
+                    // option; the merged transactions appear on the target
+                    // without a historical balance trace.
+                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                    rows
+                }
 
                 // Clear any "hidden" preference for the now-gone source.
                 val key = "${source.bankName}_${source.accountLast4}"

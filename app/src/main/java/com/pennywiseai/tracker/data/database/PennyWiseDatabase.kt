@@ -50,6 +50,15 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 
 /**
+ * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so it
+ * is usable both in the `@Database(version = ...)` annotation below and in
+ * non-Room code (e.g. [com.pennywiseai.tracker.data.backup.BackupExporter])
+ * that needs to record the version it was exported against. Bump this in lock-
+ * step with any schema change.
+ */
+const val SCHEMA_VERSION = 47
+
+/**
  * The PennyWise Room database.
  * 
  * This database stores all financial transaction data locally on the device.
@@ -61,7 +70,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
-    version = 47,
+    version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),

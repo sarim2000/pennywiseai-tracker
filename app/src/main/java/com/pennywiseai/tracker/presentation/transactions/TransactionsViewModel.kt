@@ -222,6 +222,20 @@ class TransactionsViewModel @Inject constructor(
 
     fun clearSelection() { _selectedIds.value = emptySet() }
 
+    init {
+        // Prune selected ids that fall out of the visible list (filter change,
+        // search, delete from elsewhere). Otherwise a bulk op would silently
+        // skip rows the user thinks they had selected.
+        viewModelScope.launch {
+            _uiState
+                .map { it.transactions.mapTo(HashSet()) { tx -> tx.id } }
+                .distinctUntilChanged()
+                .collect { visible ->
+                    _selectedIds.update { it intersect visible }
+                }
+        }
+    }
+
     /**
      * Apply [newCategory] to every currently-selected transaction. Captures the
      * (id → previous-category) pairs first so the snackbar's Undo can restore

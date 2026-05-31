@@ -187,10 +187,16 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
 
+    /**
+     * Total transactions on an account, including soft-deleted ones. Used by
+     * the account-merge confirmation dialog (#368) — must match
+     * [mergeAccountTransactions]'s WHERE clause exactly, otherwise the dialog
+     * would under-report the actual number of rows about to be moved for an
+     * irreversible operation.
+     */
     @Query("""
         SELECT COUNT(*) FROM transactions
-        WHERE is_deleted = 0
-          AND bank_name = :bankName
+        WHERE bank_name = :bankName
           AND account_number = :accountLast4
     """)
     suspend fun countByAccount(bankName: String, accountLast4: String): Int

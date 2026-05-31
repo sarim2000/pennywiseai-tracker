@@ -333,34 +333,62 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
-     * User-confirmed self-transfer: flip both rows to TRANSFER. Undo restores
-     * the original [TransactionType] for each row. No structural link between
-     * the rows is created — TRANSFER already excludes them from Net cash flow,
-     * which is what the suggestion was about.
+     * User-confirmed self-transfer: flip both rows to TRANSFER and populate
+     * their `fromAccount` / `toAccount` so the detail screen can render the
+     * "From → To" account flow (it falls back to `accountNumber` otherwise).
+     * Undo restores the original `transactionType` + `fromAccount` /
+     * `toAccount` for each row. No structural link is created between the
+     * rows — TRANSFER already excludes them from Net cash flow.
      */
     fun markPairAsTransfer(aId: Long, bId: Long) {
         viewModelScope.launch {
             val all = _uiState.value.transactions
             val a = all.firstOrNull { it.id == aId } ?: return@launch
             val b = all.firstOrNull { it.id == bId } ?: return@launch
-            val originals = mapOf(a.id to a.transactionType, b.id to b.transactionType)
+
+            // Source of the money = the EXPENSE row's account.
+            // Destination = the INCOME row's account.
+            val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
+            val fromAcct = expense.accountNumber
+            val toAcct = income.accountNumber
+
+            // Snapshot for Undo: type + the two account fields per row.
+            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?)
+            val originals = listOf(a, b).associate {
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount)
+            }
+
+            val now = java.time.LocalDateTime.now()
             transactionRepository.updateTransaction(
-                a.copy(transactionType = TransactionType.TRANSFER, updatedAt = java.time.LocalDateTime.now())
+                a.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = fromAcct,
+                    toAccount = toAcct,
+                    updatedAt = now
+                )
             )
             transactionRepository.updateTransaction(
-                b.copy(transactionType = TransactionType.TRANSFER, updatedAt = java.time.LocalDateTime.now())
+                b.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = fromAcct,
+                    toAccount = toAcct,
+                    updatedAt = now
+                )
             )
             _bulkSnack.value = BulkSnack(
                 message = "Marked as transfer",
                 undo = {
                     viewModelScope.launch {
                         val current = _uiState.value.transactions
-                        originals.forEach { (id, originalType) ->
+                        val nowUndo = java.time.LocalDateTime.now()
+                        originals.forEach { (id, snapshot) ->
                             current.firstOrNull { it.id == id }?.let { row ->
                                 transactionRepository.updateTransaction(
                                     row.copy(
-                                        transactionType = originalType,
-                                        updatedAt = java.time.LocalDateTime.now()
+                                        transactionType = snapshot.type,
+                                        fromAccount = snapshot.fromAccount,
+                                        toAccount = snapshot.toAccount,
+                                        updatedAt = nowUndo
                                     )
                                 )
                             }

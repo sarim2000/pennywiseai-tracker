@@ -56,6 +56,9 @@ fun ManageAccountsScreen(
     var showHiddenAccounts by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var accountToEdit by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
+    // Account merge (#368) — single screen-level entry point; the sheet handles
+    // source + target selection + confirmation in one self-contained flow.
+    var showMergeSheet by remember { mutableStateOf(false) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -74,6 +77,14 @@ fun ManageAccountsScreen(
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actionContent = {
+                    // Show Merge only when there are at least 2 accounts to choose between.
+                    if (uiState.accounts.size >= 2) {
+                        IconButton(onClick = { showMergeSheet = true }) {
+                            Icon(Icons.Default.Merge, contentDescription = "Merge accounts")
+                        }
                     }
                 },
                 hazeState = hazeState
@@ -525,6 +536,21 @@ fun ManageAccountsScreen(
                 showEditDialog = false
                 accountToEdit = null
             }
+        )
+    }
+
+    // Merge accounts sheet (#368)
+    if (showMergeSheet) {
+        MergeAccountsSheet(
+            accounts = uiState.accounts,
+            countTransactionsOn = { bankName, last4 ->
+                viewModel.countTransactionsOn(bankName, last4)
+            },
+            onConfirm = { source, target ->
+                viewModel.mergeAccounts(source, target)
+                showMergeSheet = false
+            },
+            onDismiss = { showMergeSheet = false }
         )
     }
 }

@@ -52,7 +52,8 @@ enum class AccountType {
 class ManageAccountsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val cardRepository: CardRepository
+    private val cardRepository: CardRepository,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository
 ) : ViewModel() {
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
@@ -485,6 +486,83 @@ class ManageAccountsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(errorMessage = "Failed to delete account: ${e.message}")
                 }
+            }
+        }
+    }
+
+    /**
+     * Number of (non-deleted) transactions currently on [bankName]/[accountLast4].
+     * Used to populate the merge confirmation dialog ("Move N transactions to …").
+     */
+    suspend fun countTransactionsOn(bankName: String, accountLast4: String): Int =
+        transactionRepository.countByAccount(bankName, accountLast4)
+
+    /**
+     * Merge [source] into [target] (#368): re-target every transaction from
+     * source to target, then drop the source's balance rows. Validates first
+     * that the two accounts are compatible (same currency, same `isCreditCard`)
+     * and that they aren't the same account. Caller should pre-call
+     * [countTransactionsOn] for the confirmation dialog.
+     *
+     * One-way for v1 — no undo. Run inside a single coroutine so the
+     * partial-merge window is short.
+     */
+    fun mergeAccounts(
+        source: AccountBalanceEntity,
+        target: AccountBalanceEntity
+    ) {
+        viewModelScope.launch {
+            try {
+                val sameAccount = source.bankName.equals(target.bankName, ignoreCase = true) &&
+                    source.accountLast4 == target.accountLast4
+                if (sameAccount) {
+                    _uiState.update { it.copy(errorMessage = "Source and target are the same account") }
+                    return@launch
+                }
+                if (!source.currency.equals(target.currency, ignoreCase = true)) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Currencies don't match (${source.currency} vs ${target.currency})")
+                    }
+                    return@launch
+                }
+                if (source.isCreditCard != target.isCreditCard) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Can't merge a credit card with a regular account")
+                    }
+                    return@launch
+                }
+
+                val moved = transactionRepository.mergeAccountTransactions(
+                    sourceBankName = source.bankName,
+                    sourceAccountLast4 = source.accountLast4,
+                    targetBankName = target.bankName,
+                    targetAccountLast4 = target.accountLast4
+                )
+                // Unlink any cards bound to the source account so they don't
+                // dangle, then drop the source's balance rows entirely. The
+                // source account effectively ceases to exist after this.
+                (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                    .forEach { card -> cardRepository.unlinkCard(card.id) }
+                accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+
+                // Clear any "hidden" preference for the now-gone source.
+                val key = "${source.bankName}_${source.accountLast4}"
+                val hidden = _uiState.value.hiddenAccounts.toMutableSet()
+                if (hidden.remove(key)) {
+                    sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                    _uiState.update { it.copy(hiddenAccounts = hidden) }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        successMessage = "Merged $moved transactions into ${target.bankName} ••${target.accountLast4}"
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(successMessage = null) }
+                loadCards()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Merge failed: ${e.message}") }
             }
         }
     }

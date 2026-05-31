@@ -286,7 +286,29 @@ class TransactionRepository @Inject constructor(
     fun getTransactionsByAccount(bankName: String, accountLast4: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByAccount(bankName, accountLast4)
     }
-    
+
+    suspend fun countByAccount(bankName: String, accountLast4: String): Int =
+        transactionDao.countByAccount(bankName, accountLast4)
+
+    /**
+     * Bulk re-target every transaction on the source account to the target
+     * account. Used by the account-merge feature (#368). Returns the row
+     * count actually updated. Caller cleans up the source account's balance
+     * rows afterwards via [AccountBalanceRepository.deleteAccount].
+     */
+    suspend fun mergeAccountTransactions(
+        sourceBankName: String,
+        sourceAccountLast4: String,
+        targetBankName: String,
+        targetAccountLast4: String
+    ): Int = transactionDao.mergeAccountTransactions(
+        sourceBankName = sourceBankName,
+        sourceAccountLast4 = sourceAccountLast4,
+        targetBankName = targetBankName,
+        targetAccountLast4 = targetAccountLast4,
+        updatedAt = LocalDateTime.now()
+    )
+
     fun getTransactionsByAccountAndDateRange(
         bankName: String,
         accountLast4: String,

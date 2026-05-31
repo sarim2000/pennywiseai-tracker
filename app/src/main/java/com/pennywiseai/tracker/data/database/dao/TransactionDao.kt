@@ -187,6 +187,36 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
 
+    @Query("""
+        SELECT COUNT(*) FROM transactions
+        WHERE is_deleted = 0
+          AND bank_name = :bankName
+          AND account_number = :accountLast4
+    """)
+    suspend fun countByAccount(bankName: String, accountLast4: String): Int
+
+    /**
+     * Bulk re-target every transaction on [sourceBankName]/[sourceAccountLast4]
+     * to [targetBankName]/[targetAccountLast4]. Used by the account-merge
+     * feature (#368). Returns the row count actually updated.
+     */
+    @Query("""
+        UPDATE transactions
+        SET bank_name = :targetBankName,
+            account_number = :targetAccountLast4,
+            updated_at = :updatedAt
+        WHERE is_deleted = 0
+          AND bank_name = :sourceBankName
+          AND account_number = :sourceAccountLast4
+    """)
+    suspend fun mergeAccountTransactions(
+        sourceBankName: String,
+        sourceAccountLast4: String,
+        targetBankName: String,
+        targetAccountLast4: String,
+        updatedAt: LocalDateTime
+    ): Int
+
     @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
     suspend fun getTransactionByReference(reference: String): TransactionEntity?
 

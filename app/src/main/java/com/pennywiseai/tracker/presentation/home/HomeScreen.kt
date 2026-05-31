@@ -413,6 +413,32 @@ fun HomeScreen(
                 }
             }
 
+            // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
+            item {
+                val visible = remember { mutableStateOf(hasAnimated) }
+                LaunchedEffect(Unit) {
+                    if (!hasAnimated) { delay(25); visible.value = true }
+                }
+                AnimatedVisibility(
+                    visible = visible.value,
+                    enter = fadeIn(tween(300)) + slideInVertically(
+                        initialOffsetY = { slideOffsetPx },
+                        animationSpec = tween(300)
+                    )
+                ) {
+                    com.pennywiseai.tracker.ui.components.cards.CashFlowCard(
+                        month = java.time.YearMonth.now().month
+                            .getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()),
+                        currency = uiState.selectedCurrency,
+                        netCashFlow = uiState.currentMonthTotal,
+                        creditCardSpend = uiState.currentMonthCreditCard,
+                        investments = uiState.currentMonthInvestment,
+                        transfers = uiState.currentMonthTransfer,
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                    )
+                }
+            }
+
             // 2. Budget Carousel (50ms delay)
             uiState.budgetSummary?.let { summary ->
                 item {

@@ -104,6 +104,18 @@ val ColorScheme.expense: Color
     @Composable
     get() = if (isSystemInDarkTheme()) expense_dark else expense_light
 
+val ColorScheme.credit: Color
+    @Composable
+    get() = if (isSystemInDarkTheme()) credit_dark else credit_light
+
+val ColorScheme.transfer: Color
+    @Composable
+    get() = if (isSystemInDarkTheme()) transfer_dark else transfer_light
+
+val ColorScheme.investment: Color
+    @Composable
+    get() = if (isSystemInDarkTheme()) investment_dark else investment_light
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PennyWiseTheme(

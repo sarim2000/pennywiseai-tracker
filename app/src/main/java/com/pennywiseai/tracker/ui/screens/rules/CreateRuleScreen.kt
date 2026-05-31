@@ -1051,7 +1051,7 @@ private fun ConditionFieldSelector(
             val displayText = selectedAccount?.let {
                 it.displayName
             } ?: if (condition.value.isNotBlank()) {
-                // Show raw value if account not found (e.g., deleted)
+                // Show raw value if account no longer exists
                 condition.value
             } else {
                 "Select an account"

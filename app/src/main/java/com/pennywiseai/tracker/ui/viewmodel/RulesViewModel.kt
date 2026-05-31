@@ -49,7 +49,7 @@ class RulesViewModel @Inject constructor(
         )
 
     /**
-     * Unhidden accounts, filtered via `hidden_accounts` SharedPreferences key
+     * Non-hidden accounts from `hidden_accounts` SharedPreferences key.
      */
     val accounts: StateFlow<List<AccountInfo>> = accountBalanceRepository.getAllLatestBalances()
         .map { balances ->

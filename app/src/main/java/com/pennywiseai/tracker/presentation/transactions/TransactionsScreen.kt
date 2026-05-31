@@ -53,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -112,6 +113,9 @@ fun TransactionsScreen(
     val bulkSnack by viewModel.bulkSnack.collectAsState()
     val selectionMode = selectedIds.isNotEmpty()
     var showBulkCategorySheet by remember { mutableStateOf(false) }
+
+    // Self-transfer suggestions (#385): map of txn-id → partner-id.
+    val transferPartnerOf by viewModel.suggestedTransferPartnerOf.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -561,20 +565,41 @@ fun TransactionsScreen(
                                         containerColor = rowContainerColor
                                     )
                                 } else {
-                                    SwipeToEditCategory(
-                                        transaction = transaction,
-                                        onRequestEdit = { pendingCategoryEditId = it.id }
-                                    ) {
-                                        com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                    Column {
+                                        SwipeToEditCategory(
                                             transaction = transaction,
-                                            showDate = dateGroup == DateGroup.EARLIER,
-                                            listItemPosition = ListItemPosition.from(index, transactions.size),
-                                            convertedAmount = convertedAmounts[transaction.id],
-                                            displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                            profileAccountKeys = profileAccountKeys,
-                                            onClick = { onTransactionClick(transaction.id) },
-                                            onLongClick = longPressToggle
-                                        )
+                                            onRequestEdit = { pendingCategoryEditId = it.id }
+                                        ) {
+                                            com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                                transaction = transaction,
+                                                showDate = dateGroup == DateGroup.EARLIER,
+                                                listItemPosition = ListItemPosition.from(index, transactions.size),
+                                                convertedAmount = convertedAmounts[transaction.id],
+                                                displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                                profileAccountKeys = profileAccountKeys,
+                                                onClick = { onTransactionClick(transaction.id) },
+                                                onLongClick = longPressToggle
+                                            )
+                                        }
+                                        // Self-transfer suggestion (#385): show the affordance on
+                                        // the EXPENSE row only so each pair surfaces once.
+                                        val partnerId = transferPartnerOf[transaction.id]
+                                        if (partnerId != null &&
+                                            transaction.transactionType == TransactionType.EXPENSE
+                                        ) {
+                                            AssistChip(
+                                                onClick = { viewModel.markPairAsTransfer(transaction.id, partnerId) },
+                                                label = { Text("Mark as transfer") },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.SwapHoriz,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                },
+                                                modifier = Modifier.padding(start = Spacing.sm, top = 4.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }

@@ -271,6 +271,106 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    // ─── Self-transfer suggestions (#385) ───────────────────────────────────
+    //
+    // Cheap heuristic on the *visible* (filtered) transactions: pair each
+    // EXPENSE with an INCOME row of the same currency + amount that landed on
+    // a different account within ±10 minutes. No silent merge — the UI just
+    // surfaces a "↔ Mark as transfer" chip on the expense row, and the user
+    // confirms with one tap. Confirming flips both rows' transactionType to
+    // TRANSFER (which already excludes them from Net), with Undo restoring
+    // the originals.
+    val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
+        .map { state -> findSelfTransferPairs(state.transactions) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
+
+    private fun findSelfTransferPairs(txns: List<TransactionEntity>): Map<Long, Long> {
+        if (txns.size < 2) return emptyMap()
+        val matchWindowMinutes = 10L
+        val acctOf: (TransactionEntity) -> String =
+            { "${it.bankName.orEmpty()}|${it.accountNumber.orEmpty()}" }
+
+        // Bucket INCOME rows by (currency, amount) for O(1) lookup per EXPENSE.
+        val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
+        for (tx in txns) {
+            if (tx.transactionType == TransactionType.INCOME) {
+                incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+            }
+        }
+        if (incomesByKey.isEmpty()) return emptyMap()
+
+        val pair = HashMap<Long, Long>(txns.size / 8)
+        val claimedIncome = HashSet<Long>()
+        for (expense in txns) {
+            if (expense.transactionType != TransactionType.EXPENSE) continue
+            val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+            // Closest in time within the window, on a *different* account, not
+            // already claimed by another expense.
+            val expenseAcct = acctOf(expense)
+            val match = candidates
+                .asSequence()
+                .filter { it.id !in claimedIncome }
+                .filter { acctOf(it) != expenseAcct }
+                .filter {
+                    java.time.Duration.between(expense.dateTime, it.dateTime)
+                        .toMinutes().let { d -> kotlin.math.abs(d) <= matchWindowMinutes }
+                }
+                .minByOrNull {
+                    kotlin.math.abs(
+                        java.time.Duration.between(expense.dateTime, it.dateTime).toMinutes()
+                    )
+                }
+                ?: continue
+            pair[expense.id] = match.id
+            pair[match.id] = expense.id
+            claimedIncome.add(match.id)
+        }
+        return pair
+    }
+
+    /**
+     * User-confirmed self-transfer: flip both rows to TRANSFER. Undo restores
+     * the original [TransactionType] for each row. No structural link between
+     * the rows is created — TRANSFER already excludes them from Net cash flow,
+     * which is what the suggestion was about.
+     */
+    fun markPairAsTransfer(aId: Long, bId: Long) {
+        viewModelScope.launch {
+            val all = _uiState.value.transactions
+            val a = all.firstOrNull { it.id == aId } ?: return@launch
+            val b = all.firstOrNull { it.id == bId } ?: return@launch
+            val originals = mapOf(a.id to a.transactionType, b.id to b.transactionType)
+            transactionRepository.updateTransaction(
+                a.copy(transactionType = TransactionType.TRANSFER, updatedAt = java.time.LocalDateTime.now())
+            )
+            transactionRepository.updateTransaction(
+                b.copy(transactionType = TransactionType.TRANSFER, updatedAt = java.time.LocalDateTime.now())
+            )
+            _bulkSnack.value = BulkSnack(
+                message = "Marked as transfer",
+                undo = {
+                    viewModelScope.launch {
+                        val current = _uiState.value.transactions
+                        originals.forEach { (id, originalType) ->
+                            current.firstOrNull { it.id == id }?.let { row ->
+                                transactionRepository.updateTransaction(
+                                    row.copy(
+                                        transactionType = originalType,
+                                        updatedAt = java.time.LocalDateTime.now()
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    }
+
     /**
      * Soft-delete every currently-selected transaction. Undo restores them all
      * via the same per-row undoDelete path the single-row flow uses.

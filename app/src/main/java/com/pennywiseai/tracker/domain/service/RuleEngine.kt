@@ -153,7 +153,10 @@ class RuleEngine @Inject constructor() {
 
         return when (condition.operator) {
             ConditionOperator.EQUALS -> fieldValue.equals(condition.value, ignoreCase = true)
-            ConditionOperator.NOT_EQUALS -> !fieldValue.equals(condition.value, ignoreCase = true)
+            ConditionOperator.NOT_EQUALS -> {
+                if (condition.field == TransactionField.ACCOUNT && fieldValue.isBlank()) false
+                else !fieldValue.equals(condition.value, ignoreCase = true)
+            }
             ConditionOperator.CONTAINS -> fieldValue.contains(condition.value, ignoreCase = true)
             ConditionOperator.NOT_CONTAINS -> !fieldValue.contains(condition.value, ignoreCase = true)
             ConditionOperator.STARTS_WITH -> fieldValue.startsWith(condition.value, ignoreCase = true)

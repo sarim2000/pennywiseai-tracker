@@ -98,9 +98,6 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.YearMonth
-import java.time.format.TextStyle
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -431,13 +428,11 @@ fun HomeScreen(
                     )
                 ) {
                     CashFlowCard(
-                        month = YearMonth.now().month
-                            .getDisplayName(TextStyle.FULL, Locale.getDefault()),
                         currency = uiState.selectedCurrency,
-                        netCashFlow = uiState.currentMonthTotal,
                         creditCardSpend = uiState.currentMonthCreditCard,
                         investments = uiState.currentMonthInvestment,
                         transfers = uiState.currentMonthTransfer,
+                        isBalanceHidden = uiState.isBalanceHidden,
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                     )
                 }

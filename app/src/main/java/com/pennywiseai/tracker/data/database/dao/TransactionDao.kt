@@ -199,20 +199,43 @@ interface TransactionDao {
      * Bulk re-target every transaction on [sourceBankName]/[sourceAccountLast4]
      * to [targetBankName]/[targetAccountLast4]. Used by the account-merge
      * feature (#368). Returns the row count actually updated.
+     *
+     * Includes soft-deleted rows on purpose: if the source account is
+     * about to be removed, any trashed transactions on it would otherwise
+     * orphan-point at an account that no longer exists, breaking a
+     * future "restore from trash" flow.
      */
     @Query("""
         UPDATE transactions
         SET bank_name = :targetBankName,
             account_number = :targetAccountLast4,
             updated_at = :updatedAt
-        WHERE is_deleted = 0
-          AND bank_name = :sourceBankName
+        WHERE bank_name = :sourceBankName
           AND account_number = :sourceAccountLast4
     """)
     suspend fun mergeAccountTransactions(
         sourceBankName: String,
         sourceAccountLast4: String,
         targetBankName: String,
+        targetAccountLast4: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    /**
+     * Re-target any TRANSFER row that referenced [sourceAccountLast4] in its
+     * `from_account` / `to_account` columns so the detail screen's From → To
+     * flow keeps pointing at a live account after a merge (#368). Note:
+     * these columns don't carry a bank — match is by account last-4 only.
+     */
+    @Query("""
+        UPDATE transactions
+        SET from_account = CASE WHEN from_account = :sourceAccountLast4 THEN :targetAccountLast4 ELSE from_account END,
+            to_account   = CASE WHEN to_account   = :sourceAccountLast4 THEN :targetAccountLast4 ELSE to_account   END,
+            updated_at   = :updatedAt
+        WHERE from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4
+    """)
+    suspend fun retargetTransferLegRefs(
+        sourceAccountLast4: String,
         targetAccountLast4: String,
         updatedAt: LocalDateTime
     ): Int

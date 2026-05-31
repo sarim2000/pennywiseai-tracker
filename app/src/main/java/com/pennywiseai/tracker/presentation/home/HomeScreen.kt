@@ -433,6 +433,7 @@ fun HomeScreen(
                         investments = uiState.currentMonthInvestment,
                         transfers = uiState.currentMonthTransfer,
                         isBalanceHidden = uiState.isBalanceHidden,
+                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                     )
                 }

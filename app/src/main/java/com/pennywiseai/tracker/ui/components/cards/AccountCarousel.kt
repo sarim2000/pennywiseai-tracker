@@ -41,8 +41,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
-import com.pennywiseai.tracker.utils.formatCreditLimit
-import java.math.BigDecimal
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState

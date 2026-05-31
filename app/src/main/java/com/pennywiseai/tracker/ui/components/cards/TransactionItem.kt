@@ -90,24 +90,11 @@ fun TransactionItem(
             when (transaction.transactionType) {
                 TransactionType.CREDIT -> add("Credit")
                 TransactionType.TRANSFER -> {
-                    add("Transfer")
-                    // Disambiguate the two legs of a paired self-transfer (#385).
-                    // When fromAccount/toAccount are set, identify which leg
-                    // this row represents from its own accountNumber and show
-                    // the other account's last-4 as a directional hint.
-                    val mine = transaction.accountNumber
-                    val from = transaction.fromAccount
-                    val to = transaction.toAccount
-                    val legHint = when {
-                        from != null && to != null && mine == from ->
-                            "→ ${to.takeLast(4)}"
-                        from != null && to != null && mine == to ->
-                            "from ${from.takeLast(4)}"
-                        to != null && mine != to -> "→ ${to.takeLast(4)}"
-                        from != null && mine != from -> "from ${from.takeLast(4)}"
-                        else -> null
-                    }
-                    if (legHint != null) add(legHint)
+                    // When the row has a usable Transfer title (computed below)
+                    // the title carries the "Transfer" + leg labels — don't
+                    // restate them here. Only annotate the subtitle for legacy
+                    // TRANSFER rows that lack from/to data.
+                    if (transferTitleOverride(transaction) == null) add("Transfer")
                 }
                 TransactionType.INVESTMENT -> add("Investment")
                 else -> {}
@@ -138,8 +125,14 @@ fun TransactionItem(
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
     val merchantDisplay = LocalMerchantDisplay.current
 
+    // For a paired self-transfer row, the event ("Transfer → 9999" /
+    // "Transfer from 1234") is more informative than the merchant name (often
+    // the user's own contact name), and stops the two legs from looking like
+    // duplicate rows in the list. Falls back to merchant otherwise.
+    val transferTitle = transferTitleOverride(transaction)
+
     ListItemCardV2(
-        title = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
@@ -204,4 +197,24 @@ fun TransactionItem(
             }
         }
     )
+}
+
+/**
+ * For TRANSFER rows that have `fromAccount` and `toAccount` populated,
+ * synthesise a title that describes the event (which leg + the other
+ * account's last-4) rather than the merchant. Returns null for any other
+ * row, in which case the default merchant-as-title rendering wins.
+ */
+private fun transferTitleOverride(transaction: TransactionEntity): String? {
+    if (transaction.transactionType != TransactionType.TRANSFER) return null
+    val mine = transaction.accountNumber
+    val from = transaction.fromAccount
+    val to = transaction.toAccount
+    return when {
+        from != null && to != null && mine == from -> "Transfer → ${to.takeLast(4)}"
+        from != null && to != null && mine == to -> "Transfer from ${from.takeLast(4)}"
+        to != null && mine != to -> "Transfer → ${to.takeLast(4)}"
+        from != null && mine != from -> "Transfer from ${from.takeLast(4)}"
+        else -> null
+    }
 }

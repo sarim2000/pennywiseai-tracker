@@ -501,6 +501,19 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
                     },
+                    position = ItemPosition.MIDDLE,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.FavoriteBorder,
+                    iconBgColor = red_light,
+                    iconTint = red_dark,
+                    title = "Support development",
+                    subtitle = "Help offset AI & infra costs via GitHub Sponsors",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sponsors/sarim2000"))
+                        context.startActivity(intent)
+                    },
                     position = ItemPosition.BOTTOM,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
                 )

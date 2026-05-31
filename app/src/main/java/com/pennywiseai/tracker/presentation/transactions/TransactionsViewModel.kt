@@ -200,6 +200,79 @@ class TransactionsViewModel @Inject constructor(
     
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()
+
+    // ─── Bulk-edit selection (#369) ──────────────────────────────────────────
+    //
+    // Selection mode is implicit in [selectedIds.isNotEmpty()] — no separate flag.
+    // Long-press in the list enters this mode and tap-toggles add/remove rows.
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+    /** One-shot snackbar payload for a bulk action; cleared by the UI after showing. */
+    data class BulkSnack(val message: String, val undo: (() -> Unit)? = null)
+    private val _bulkSnack = MutableStateFlow<BulkSnack?>(null)
+    val bulkSnack: StateFlow<BulkSnack?> = _bulkSnack.asStateFlow()
+    fun consumeBulkSnack() { _bulkSnack.value = null }
+
+    fun toggleSelection(id: Long) {
+        _selectedIds.update { current ->
+            if (current.contains(id)) current - id else current + id
+        }
+    }
+
+    fun clearSelection() { _selectedIds.value = emptySet() }
+
+    /**
+     * Apply [newCategory] to every currently-selected transaction. Captures the
+     * (id → previous-category) pairs first so the snackbar's Undo can restore
+     * them; if a row had its category changed elsewhere in between, the undo
+     * will overwrite that change too — acceptable for an explicit user action.
+     */
+    fun bulkUpdateCategory(newCategory: String) {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val previous = _uiState.value.transactions
+                .filter { it.id in ids }
+                .associate { it.id to it.category }
+            previous.keys.forEach { id ->
+                transactionRepository.updateCategory(id, newCategory)
+            }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${previous.size} updated to \"$newCategory\"",
+                undo = {
+                    viewModelScope.launch {
+                        previous.forEach { (id, oldCategory) ->
+                            transactionRepository.updateCategory(id, oldCategory)
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Soft-delete every currently-selected transaction. Undo restores them all
+     * via the same per-row undoDelete path the single-row flow uses.
+     */
+    fun bulkDelete() {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val snapshot = _uiState.value.transactions.filter { it.id in ids }
+            snapshot.forEach { transactionRepository.deleteTransaction(it) }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${snapshot.size} deleted",
+                undo = {
+                    viewModelScope.launch {
+                        snapshot.forEach { transactionRepository.undoDeleteTransaction(it) }
+                    }
+                }
+            )
+        }
+    }
     
     // Track if initial filters have been applied to prevent resetting on back navigation
     private var hasAppliedInitialFilters = false

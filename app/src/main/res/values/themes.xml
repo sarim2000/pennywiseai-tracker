@@ -2,7 +2,19 @@
 <resources>
     <!-- Base theme -->
     <style name="Theme.Pennywisecompose" parent="android:Theme.Material.Light.NoActionBar" />
-    
+
+    <!-- Transparent host theme for QuickCategoryPickerActivity: a Compose
+         bottom-sheet floats over whatever's behind it, no window decor,
+         no background dim (the ModalBottomSheet draws its own scrim). -->
+    <style name="Theme.PennyWise.Transparent" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+
     <!-- Splash Screen theme for light mode -->
     <style name="Theme.PennyWise.SplashScreen" parent="Theme.SplashScreen">
         <!-- Set the background color -->

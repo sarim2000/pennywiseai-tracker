@@ -607,69 +607,6 @@ private fun SwipeToEditCategory(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QuickCategoryPickerSheet(
-    transaction: TransactionEntity,
-    categories: List<CategoryEntity>,
-    onCategorySelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Text(
-            text = "Change category",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                bottom = Spacing.sm
-            )
-        )
-        // LazyColumn so long category lists stay reachable when the sheet is
-        // fully expanded — a plain Column would render items past the screen
-        // bottom unscrollable.
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Spacing.md)
-        ) {
-            items(categories, key = { it.id }) { category ->
-                val selected = transaction.category == category.name
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(category.name) }
-                        .padding(
-                            horizontal = Dimensions.Padding.content,
-                            vertical = Spacing.sm
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    CategoryChip(category = category, showText = false)
-                    Text(
-                        text = category.name,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                    if (selected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun TransactionDateHeader(
     title: String,

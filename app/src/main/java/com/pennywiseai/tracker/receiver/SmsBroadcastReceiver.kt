@@ -219,9 +219,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
 
-                // Add quick action buttons for top categories (only if different from current)
+                // Notification action slots are precious (Android collapses past 3),
+                // so we reserve the last for "More…" — the full picker — and let the
+                // top 2 most-used categories fill the first two for one-tap recategorise. (#303)
                 val notificationId = transactionId.toInt()
-                topCategories.filter { it != category }.take(3).forEachIndexed { index, topCategory ->
+                topCategories.filter { it != category }.take(2).forEachIndexed { index, topCategory ->
                     val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
                         action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY
                         putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)
@@ -242,6 +244,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         categoryPendingIntent
                     )
                 }
+
+                // "More…" — launches the translucent picker activity so the user
+                // can choose any category, not just the top 2 quick-picks above.
+                val pickerIntent = Intent(context, QuickCategoryPickerActivity::class.java).apply {
+                    putExtra(QuickCategoryPickerActivity.EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, notificationId)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                val pickerPendingIntent = PendingIntent.getActivity(
+                    context,
+                    transactionId.toInt() + 100, // distinct request-code lane
+                    pickerIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                notificationBuilder.addAction(0, "More…", pickerPendingIntent)
 
                 val notification = notificationBuilder.build()
                 notificationManager.notify(notificationId, notification)

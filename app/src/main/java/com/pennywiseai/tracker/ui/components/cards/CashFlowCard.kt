@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.components.cards
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,42 +22,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.credit
-import com.pennywiseai.tracker.ui.theme.expense
-import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.transfer
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
 /**
- * Home-screen "This Month" cash-flow card (#384).
+ * Home-screen "Money in motion" card (#384).
  *
- * Frames the month as one headline number — net cash flow — plus the channels
- * that net flow deliberately doesn't include: credit-card spend, investments,
- * and transfers. The hero answers "how am I doing?", the channel chips answer
- * "what's moving outside that number?". A channel chip is omitted when its
- * amount is zero; if every value is zero the card returns nothing so the home
- * feed stays quiet on dormant months.
+ * Complements [com.pennywiseai.tracker.presentation.home.HomeScreen]'s
+ * BalanceCard, which already owns the headline "spent / earned this month"
+ * numbers. This card adds the one thing BalanceCard doesn't show: the
+ * **channels outside the net cash flow** — credit-card spend, investments,
+ * and transfers. It deliberately omits a duplicate "net" hero so the two
+ * cards don't compete.
  *
- * Aesthetic is editorial-calm: small-caps section labels, one display-size
- * hero, and a single row of semantic-color-dotted chips for the breakdown.
- * The card deliberately doesn't duplicate BalanceCard (overall balance + MoM)
- * — it complements it.
+ * The card honours the global [isBalanceHidden] flag (same eye toggle as
+ * BalanceCard), masking amounts when the user has hidden their balances. If
+ * every channel is zero the card renders nothing so the feed stays quiet on
+ * dormant months.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CashFlowCard(
-    month: String,
     currency: String,
-    netCashFlow: BigDecimal,
     creditCardSpend: BigDecimal,
     investments: BigDecimal,
     transfers: BigDecimal,
+    isBalanceHidden: Boolean,
     modifier: Modifier = Modifier
 ) {
     val channels = remember(creditCardSpend, investments, transfers) {
@@ -69,89 +62,45 @@ fun CashFlowCard(
             ChannelSlot("Transferred", transfers)
         ).filter { it.amount.signum() != 0 }
     }
-
-    // Stay quiet on dormant months.
-    if (netCashFlow.signum() == 0 && channels.isEmpty()) return
-
-    // Three-way: negative → expense red, positive → income green, exactly zero
-    // → neutral (a month with only a credit-card spend nets to 0 but isn't
-    // really "positive", so we don't paint it green or sign it with "+").
-    val heroSignum = netCashFlow.signum()
-    val heroColor = when (heroSignum) {
-        -1 -> MaterialTheme.colorScheme.expense
-        1 -> MaterialTheme.colorScheme.income
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val heroSign = when (heroSignum) {
-        -1 -> "-"
-        1 -> "+"
-        else -> ""
-    }
+    if (channels.isEmpty()) return
 
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.lg
+        contentPadding = Spacing.md
     ) {
-        // Header: small-caps section label + month on the right.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            SmallCapsLabel("This Month")
-            Text(
-                text = month,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        Spacer(Modifier.height(Spacing.md))
-
-        // Hero: net cash flow.
         Text(
-            text = "Net cash flow",
-            style = MaterialTheme.typography.labelMedium,
+            text = "Money in motion",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "Channels outside your net cash flow this month",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            text = "$heroSign${CurrencyFormatter.formatCurrency(netCashFlow.abs(), currency)}",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = heroColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
 
-        if (channels.isNotEmpty()) {
-            Spacer(Modifier.height(Spacing.md))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            Spacer(Modifier.height(Spacing.md))
+        Spacer(Modifier.height(Spacing.sm))
 
-            SmallCapsLabel("Also flowed")
-            Spacer(Modifier.height(Spacing.sm))
-
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                for (ch in channels) {
-                    val dotColor = when (ch.label) {
-                        "Credit" -> MaterialTheme.colorScheme.credit
-                        "Invested" -> MaterialTheme.colorScheme.investment
-                        "Transferred" -> MaterialTheme.colorScheme.transfer
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                    ChannelChip(
-                        label = ch.label,
-                        amount = ch.amount,
-                        currency = currency,
-                        dotColor = dotColor
-                    )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            for (ch in channels) {
+                val dotColor = when (ch.label) {
+                    "Credit" -> MaterialTheme.colorScheme.credit
+                    "Invested" -> MaterialTheme.colorScheme.investment
+                    "Transferred" -> MaterialTheme.colorScheme.transfer
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
+                ChannelChip(
+                    label = ch.label,
+                    amount = ch.amount,
+                    currency = currency,
+                    dotColor = dotColor,
+                    isHidden = isBalanceHidden
+                )
             }
         }
     }
@@ -162,7 +111,8 @@ private fun ChannelChip(
     label: String,
     amount: BigDecimal,
     currency: String,
-    dotColor: Color
+    dotColor: Color,
+    isHidden: Boolean
 ) {
     Surface(
         shape = RoundedCornerShape(50),
@@ -185,7 +135,9 @@ private fun ChannelChip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = CurrencyFormatter.formatCurrency(amount.abs(), currency),
+                // Mirror BalanceCard's masking so the eye toggle works the
+                // same way across the whole home feed.
+                text = if (isHidden) "••••" else CurrencyFormatter.formatCurrency(amount.abs(), currency),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -193,20 +145,6 @@ private fun ChannelChip(
             )
         }
     }
-}
-
-/**
- * Tracking-spaced uppercase label — a small-caps stand-in (Compose doesn't
- * have a native font-feature for small caps). Used as the section header.
- */
-@Composable
-private fun SmallCapsLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.8.sp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.Medium
-    )
 }
 
 private data class ChannelSlot(val label: String, val amount: BigDecimal)

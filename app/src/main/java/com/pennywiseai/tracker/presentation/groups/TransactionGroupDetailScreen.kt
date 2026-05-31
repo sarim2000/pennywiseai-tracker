@@ -456,15 +456,26 @@ private fun AddTransactionToGroupSheet(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Match the description-first heading used on the group's
+                                // own rows so the picker label is consistent with what
+                                // the user will see once the txn is added. (#383)
+                                val txnDescription = txn.description?.takeIf { it.isNotBlank() }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        txn.merchantName,
+                                        txnDescription ?: txn.merchantName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
+                                    val pickerSecondary = buildString {
+                                        if (txnDescription != null) {
+                                            append(txn.merchantName)
+                                            append(" · ")
+                                        }
+                                        append(txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")))
+                                    }
                                     Text(
-                                        txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")),
+                                        pickerSecondary,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

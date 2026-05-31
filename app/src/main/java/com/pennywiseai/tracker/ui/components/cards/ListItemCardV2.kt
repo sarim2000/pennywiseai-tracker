@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 enum class ListItemPosition {
@@ -65,13 +67,22 @@ fun ListItemCardV2(
     trailingContent: @Composable (() -> Unit)? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: Dp = Spacing.md,
-    onClick: (() -> Unit)? = null
+    /** Overrides the card's container colour when set (e.g. for selected state). */
+    containerColor: Color? = null,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
         contentPadding = contentPadding,
-        onClick = onClick
+        containerColor = containerColor,
+        // Suppress the inherited 0.5dp dark-mode hairline on list rows: long
+        // lists of bordered rows read as a chunky grid; bare surfaces with the
+        // surrounding column's spacing carry the divisions better.
+        border = BorderStroke(0.dp, Color.Transparent),
+        onClick = onClick,
+        onLongClick = onLongClick
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

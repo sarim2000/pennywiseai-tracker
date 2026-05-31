@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -21,12 +22,26 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 fun PennyWiseCardV2(
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
+    /**
+     * Overrides [colors] when set. Convenience for callers that only need to
+     * swap the container colour (e.g. a selected-state tint) without
+     * constructing a full [CardColors] elsewhere.
+     */
+    containerColor: androidx.compose.ui.graphics.Color? = null,
     colors: CardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        containerColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow
     ),
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     border: BorderStroke? = null,
     onClick: (() -> Unit)? = null,
+    /**
+     * Optional long-press handler. When provided alongside [onClick] the card
+     * is wired via [Modifier.combinedClickable] so tap and long-press resolve
+     * on the same gesture surface — important when the card lives inside a
+     * scrolling container or another drag-aware parent (e.g. SwipeToDismissBox)
+     * that would otherwise race with a child pointerInput.
+     */
+    onLongClick: (() -> Unit)? = null,
     contentPadding: Dp = Spacing.md,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -36,33 +51,45 @@ fun PennyWiseCardV2(
         null
     }
 
-    if (onClick != null) {
-        Card(
-            modifier = modifier,
-            onClick = onClick,
-            colors = colors,
-            shape = shape,
-            elevation = elevation,
-            border = effectiveBorder
-        ) {
-            Column(
-                modifier = Modifier.padding(contentPadding)
+    when {
+        onLongClick != null -> {
+            // Combined click + long-click. Material's Card composable doesn't
+            // accept onLongClick directly, so we wrap a non-clickable Card with
+            // combinedClickable on the outer modifier.
+            Card(
+                modifier = modifier.combinedClickable(
+                    onClick = onClick ?: {},
+                    onLongClick = onLongClick
+                ),
+                colors = colors,
+                shape = shape,
+                elevation = elevation,
+                border = effectiveBorder
             ) {
-                content()
+                Column(modifier = Modifier.padding(contentPadding)) { content() }
             }
         }
-    } else {
-        Card(
-            modifier = modifier,
-            colors = colors,
-            shape = shape,
-            elevation = elevation,
-            border = effectiveBorder
-        ) {
-            Column(
-                modifier = Modifier.padding(contentPadding)
+        onClick != null -> {
+            Card(
+                modifier = modifier,
+                onClick = onClick,
+                colors = colors,
+                shape = shape,
+                elevation = elevation,
+                border = effectiveBorder
             ) {
-                content()
+                Column(modifier = Modifier.padding(contentPadding)) { content() }
+            }
+        }
+        else -> {
+            Card(
+                modifier = modifier,
+                colors = colors,
+                shape = shape,
+                elevation = elevation,
+                border = effectiveBorder
+            ) {
+                Column(modifier = Modifier.padding(contentPadding)) { content() }
             }
         }
     }

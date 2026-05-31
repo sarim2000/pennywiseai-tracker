@@ -8,9 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -269,15 +266,19 @@ fun TransactionsScreen(
                         }
                     },
                     actionContent = {
-                        IconButton(onClick = { showBulkCategorySheet = true }) {
-                            Icon(Icons.Default.Category, contentDescription = "Change category")
-                        }
-                        IconButton(onClick = { viewModel.bulkDelete() }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete selected",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        // Wrap explicitly in a Row so both action IconButtons render
+                        // even when the top-bar's actions slot is constrained.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { showBulkCategorySheet = true }) {
+                                Icon(Icons.Default.Category, contentDescription = "Change category")
+                            }
+                            IconButton(onClick = { viewModel.bulkDelete() }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete selected",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     },
                     hazeState = hazeState
@@ -527,22 +528,39 @@ fun TransactionsScreen(
                                 key = { _, transaction -> transaction.id }
                             ) { index, transaction ->
                                 val isSelected = transaction.id in selectedIds
-                                val rowBackground = if (isSelected)
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                                else Color.Transparent
+                                // Selected highlight via the Card's container colour — the prior
+                                // Modifier.background on a wrapping Box was painted *under* the
+                                // Card and was completely covered by the Card's own surface, so
+                                // selection had no visible effect.
+                                val rowContainerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else null
 
+                                // Long-press now lives on TransactionItem's own
+                                // gesture surface (Material combinedClickable),
+                                // which cooperates with the parent SwipeToDismissBox
+                                // — fixes bulk-edit not firing in nested gesture
+                                // contexts.
+                                val longPressToggle = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.toggleSelection(transaction.id)
+                                }
                                 if (selectionMode) {
-                                    // In selection mode: outer combinedClickable owns the row.
-                                    // Tap toggles; long-press also toggles (additive). Swipe-to-
-                                    // edit is intentionally suppressed so we don't mix the
-                                    // single-row category quick-edit with the bulk flow.
-                                    Box(
-                                        modifier = Modifier
-                                            .background(rowBackground)
-                                            .combinedClickable(
-                                                onClick = { viewModel.toggleSelection(transaction.id) },
-                                                onLongClick = { viewModel.toggleSelection(transaction.id) }
-                                            )
+                                    com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                        transaction = transaction,
+                                        showDate = dateGroup == DateGroup.EARLIER,
+                                        listItemPosition = ListItemPosition.from(index, transactions.size),
+                                        convertedAmount = convertedAmounts[transaction.id],
+                                        displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                        profileAccountKeys = profileAccountKeys,
+                                        onClick = { viewModel.toggleSelection(transaction.id) },
+                                        onLongClick = longPressToggle,
+                                        containerColor = rowContainerColor
+                                    )
+                                } else {
+                                    SwipeToEditCategory(
+                                        transaction = transaction,
+                                        onRequestEdit = { pendingCategoryEditId = it.id }
                                     ) {
                                         com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                             transaction = transaction,
@@ -551,47 +569,9 @@ fun TransactionsScreen(
                                             convertedAmount = convertedAmounts[transaction.id],
                                             displayCurrency = if (isUnifiedMode) selectedCurrency else null,
                                             profileAccountKeys = profileAccountKeys,
-                                            onClick = {} // tap owned by the wrapper
+                                            onClick = { onTransactionClick(transaction.id) },
+                                            onLongClick = longPressToggle
                                         )
-                                    }
-                                } else {
-                                    // Out of selection mode: keep the existing tap (navigate)
-                                    // and swipe (quick-edit category) behaviours, and add a
-                                    // long-press-only detector to enter selection mode without
-                                    // blocking either of them.
-                                    Box(
-                                        modifier = Modifier
-                                            .pointerInput(transaction.id) {
-                                                detectTapGestures(
-                                                    // Haptic so an accidental long-press during
-                                                    // an unusually slow swipe is immediately
-                                                    // obvious to the user; selection mode is
-                                                    // then trivially recoverable via Back or the
-                                                    // close button in the contextual top bar.
-                                                    // detectTapGestures already cancels on
-                                                    // touch-slop movement, so a normal-paced
-                                                    // swipe doesn't reach this lambda.
-                                                    onLongPress = {
-                                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                                        viewModel.toggleSelection(transaction.id)
-                                                    }
-                                                )
-                                            }
-                                    ) {
-                                        SwipeToEditCategory(
-                                            transaction = transaction,
-                                            onRequestEdit = { pendingCategoryEditId = it.id }
-                                        ) {
-                                            com.pennywiseai.tracker.ui.components.cards.TransactionItem(
-                                                transaction = transaction,
-                                                showDate = dateGroup == DateGroup.EARLIER,
-                                                listItemPosition = ListItemPosition.from(index, transactions.size),
-                                                convertedAmount = convertedAmounts[transaction.id],
-                                                displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                                profileAccountKeys = profileAccountKeys,
-                                                onClick = { onTransactionClick(transaction.id) }
-                                            )
-                                        }
                                     }
                                 }
                             }

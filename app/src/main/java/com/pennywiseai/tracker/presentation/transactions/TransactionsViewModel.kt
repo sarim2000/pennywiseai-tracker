@@ -178,7 +178,12 @@ class TransactionsViewModel @Inject constructor(
                 }
                 count += totals.transactionCount
             }
-            val netBalance = income - expenses - credit - transfer - investment
+            // Net = true cash flow (income − expenses). Credit-card spend,
+            // transfers, and investments are *not* in the visible Expenses tile,
+            // so subtracting them here produced a Net that didn't reconcile with
+            // the user-visible math. Those channels live on the home Cash-Flow
+            // card as deliberately separate categories.
+            val netBalance = income - expenses
             FilteredTotals(income, expenses, credit, transfer, investment, netBalance, count)
         } else {
             val currencyTotals = groupedTotals.getTotalsForCurrency(currency)

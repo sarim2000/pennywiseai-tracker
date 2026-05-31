@@ -141,7 +141,7 @@ class RuleEngineTest {
 
         val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
 
-        assertFalse("Expected rule to NOT match when accountNumber is null and condition has a last4",
+        assertFalse("Expected rule to NOT match when accountNumber is null",
             applications.isNotEmpty())
     }
 
@@ -161,6 +161,82 @@ class RuleEngineTest {
         val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
 
         assertFalse("Expected rule to NOT match because bankName is null", applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT NOT_EQUALS as false when accountNumber is null`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = null
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.NOT_EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match when accountNumber is null",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT NOT_EQUALS as false when bankName is null`() {
+        val txn = transaction(
+            bankName = null,
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.NOT_EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match when bankName is null",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT NOT_EQUALS as false when both bankName and accountNumber are null`() {
+        val txn = transaction(
+            bankName = null,
+            accountNumber = null
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.NOT_EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected rule to NOT match when both bankName and accountNumber are null",
+            applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluates ACCOUNT NOT_EQUALS as false when account matches`() {
+        val txn = transaction(
+            bankName = "HDFC Bank",
+            accountNumber = "12345678"
+        )
+        val condition = RuleCondition(
+            field = TransactionField.ACCOUNT,
+            operator = ConditionOperator.NOT_EQUALS,
+            value = "HDFC Bank||5678"
+        )
+        val rule = rule(condition)
+
+        val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertFalse("Expected NOT_EQUALS to NOT match when account matches",
+            applications.isNotEmpty())
     }
 
     @Test

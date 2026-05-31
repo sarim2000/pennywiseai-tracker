@@ -35,6 +35,10 @@ fun TransactionItem(
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
+    /** Optional long-press handler — used for bulk-edit selection entry. */
+    onLongClick: (() -> Unit)? = null,
+    /** Overrides the row's container colour (e.g. for selected state). */
+    containerColor: androidx.compose.ui.graphics.Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -66,16 +70,17 @@ fun TransactionItem(
         effectiveProfileId == ProfileEntity.BUSINESS_ID
     }
 
-    // Prefer a user-written description over the parsed merchant name as the
-    // row heading — UPI merchant strings are often cryptic VPAs and a description,
-    // when present, is what the user actually wrote about the transaction. (#383)
+    // User-written description, if present, is surfaced as the LEAD segment of
+    // the subtitle (kept short) — not as the title. Promoting it to title made
+    // casual notes ("movie night with sarah") read as inconsistent next to
+    // brand-name merchants ("Uber", "Netflix") and routinely got truncated. The
+    // merchant stays the visual heading; the description is a small contextual
+    // tag below. (#383)
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
-            // When the title shows the description, keep the merchant visible here so
-            // the user still sees who the transaction was with.
-            if (description != null) add(transaction.merchantName)
+            if (description != null) add(description)
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
                 !transaction.category.equals("Uncategorized", ignoreCase = true)
@@ -115,7 +120,7 @@ fun TransactionItem(
     val merchantDisplay = LocalMerchantDisplay.current
 
     ListItemCardV2(
-        title = description ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
@@ -125,6 +130,8 @@ fun TransactionItem(
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
         },
+        onLongClick = onLongClick,
+        containerColor = containerColor,
         modifier = modifier,
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {

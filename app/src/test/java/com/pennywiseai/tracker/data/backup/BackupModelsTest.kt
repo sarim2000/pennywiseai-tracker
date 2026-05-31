@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.backup
 
 import com.google.gson.GsonBuilder
+import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -294,7 +295,7 @@ class BackupModelsTest {
             metadata = BackupMetadata(
                 exportId = "loans-groups-test",
                 appVersion = "test",
-                databaseVersion = 47,
+                databaseVersion = SCHEMA_VERSION,
                 device = "Test",
                 androidVersion = 30,
                 statistics = BackupStatistics(
@@ -350,7 +351,11 @@ class BackupModelsTest {
         assertEquals(LoanStatus.SETTLED, deserializedSettled.status)
         assertEquals(LoanDirection.BORROWED, deserializedSettled.direction)
         assertEquals(BigDecimal.ZERO, deserializedSettled.remainingAmount)
-        assertNotNull(deserializedSettled.settledAt)
+        // Equality (not just non-null) — guards against silent timestamp drift
+        // through LocalDateTimeTypeAdapter.
+        assertEquals(settledLoan.settledAt, deserializedSettled.settledAt)
+        assertEquals(settledLoan.createdAt, deserializedSettled.createdAt)
+        assertEquals(settledLoan.updatedAt, deserializedSettled.updatedAt)
 
         // Transaction group round-trips with every field intact.
         assertEquals(1, deserialized.database.transactionGroups.size)

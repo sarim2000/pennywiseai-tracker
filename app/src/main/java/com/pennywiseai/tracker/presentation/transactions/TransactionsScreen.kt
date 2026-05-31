@@ -461,7 +461,10 @@ fun TransactionsScreen(
                 ) {
                     stickyHeader {
                         Surface(
-                            color = MaterialTheme.colorScheme.surface,
+                            // Match the Scaffold's `background` so AMOLED-style
+                            // themes (true-black bg + tinted surface) don't paint
+                            // a visible slab behind the sticky totals card.
+                            color = MaterialTheme.colorScheme.background,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             TransactionTotalsCard(
@@ -721,6 +724,12 @@ private fun TransactionDateHeader(
     title: String,
     modifier: Modifier = Modifier
 ) {
+    // Fade the sticky date header into a transparent base so scrolling content
+    // looks like it's passing under the label. Use `background` (the Scaffold
+    // surface) instead of `surface`, otherwise an AMOLED-style theme — where
+    // `background` is true-black but `surface` is tinted — paints a visible
+    // dark slab behind every date header.
+    val pageBg = MaterialTheme.colorScheme.background
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -729,10 +738,10 @@ private fun TransactionDateHeader(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                        pageBg,
+                        pageBg,
+                        pageBg.copy(alpha = 0.92f),
+                        pageBg.copy(alpha = 0f)
                     )
                 )
             )

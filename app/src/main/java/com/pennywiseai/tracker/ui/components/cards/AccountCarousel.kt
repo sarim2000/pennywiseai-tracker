@@ -204,12 +204,11 @@ private fun AccountCarouselCard(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
+                    // The label above is "Outstanding" for credit cards; that is the
+                    // amount owed (account.balance), NOT the total creditLimit. Mirrors
+                    // CreditCardsCard / AccountDetailScreen, which already do this.
                     text = if (isAmountHidden) "••••••"
-                           else if (isUnifiedMode) {
-                               if (isCreditCard) CurrencyFormatter.formatCurrency(account.creditLimit ?: BigDecimal.ZERO, selectedCurrency)
-                               else CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
-                           }
-                           else if (isCreditCard) account.formatCreditLimit()
+                           else if (isUnifiedMode) CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
                            else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,

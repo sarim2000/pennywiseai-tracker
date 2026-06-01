@@ -156,22 +156,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(
-                        MIGRATION_12_14,
-                        MIGRATION_13_14,
-                        MIGRATION_14_15,
-                        MIGRATION_20_21,
-                        MIGRATION_21_22,
-                        MIGRATION_22_23,
-                        MIGRATION_38_39,
-                        // 44_45 and 45_46 were never added here, so a receiver
-                        // upgrading past v44 before Hilt initialised would crash.
-                        // Bringing this list in sync with the Hilt module.
-                        MIGRATION_44_45,
-                        MIGRATION_45_46,
-                        MIGRATION_46_47,
-                        MIGRATION_47_48
-                    )
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
                 instance
@@ -508,6 +493,28 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 return false
             }
         }
+
+        /**
+         * Single source of truth for the migration list. Both the Hilt-built
+         * database (DatabaseModule.providePennyWiseDatabase) and the
+         * BroadcastReceiver fallback path (getInstance above) reference this
+         * — adding a new migration here registers it for both. Splitting
+         * them previously caused a v47→v48 boot crash because the Hilt
+         * builder didn't know about MIGRATION_47_48.
+         */
+        val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_12_14,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_20_21,
+            MIGRATION_21_22,
+            MIGRATION_22_23,
+            MIGRATION_38_39,
+            MIGRATION_44_45,
+            MIGRATION_45_46,
+            MIGRATION_46_47,
+            MIGRATION_47_48,
+        )
     }
     
     /**

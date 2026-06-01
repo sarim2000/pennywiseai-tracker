@@ -56,7 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 47
+const val SCHEMA_VERSION = 48
 
 /**
  * The PennyWise Room database.
@@ -169,7 +169,8 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                         // Bringing this list in sync with the Hilt module.
                         MIGRATION_44_45,
                         MIGRATION_45_46,
-                        MIGRATION_46_47
+                        MIGRATION_46_47,
+                        MIGRATION_47_48
                     )
                     .build()
                 INSTANCE = instance
@@ -454,6 +455,29 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         val MIGRATION_46_47 = object : Migration(46, 47) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `loan_contribution` TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * Income autopay + cycle persistence (#371). Adds two columns to
+         * `subscriptions`:
+         *
+         *  - `direction` — EXPENSE (today's behaviour: Netflix, EMIs) or
+         *    INCOME (wallet top-ups, allowance) for the new income-autopay
+         *    flow that phantom-creates a transaction when `next_payment_date`
+         *    rolls past today.
+         *  - `billing_cycle` — previously collected by the Add-Subscription
+         *    UI but silently dropped by the use case, so the matcher's
+         *    hard-coded +30-day advance ran for every cycle. Persist it now
+         *    so cycle-aware advance + phantom creation can honour the
+         *    user-chosen cadence (Weekly / Monthly / Quarterly / Annual).
+         *
+         * Existing rows default to EXPENSE + Monthly so behaviour is unchanged.
+         */
+        val MIGRATION_47_48 = object : Migration(47, 48) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `direction` TEXT NOT NULL DEFAULT 'EXPENSE'")
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly'")
             }
         }
 

@@ -341,6 +341,15 @@ class AddViewModel @Inject constructor(
             )
         }
     }
+
+    /** Toggle Income / Expense for the recurring entry (#371). */
+    fun updateSubscriptionDirection(
+        direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+    ) {
+        _subscriptionUiState.update { currentState ->
+            currentState.copy(direction = direction)
+        }
+    }
     
     fun updateSubscriptionNextPaymentDate(dateMillis: Long) {
         val instant = Instant.ofEpochMilli(dateMillis)
@@ -414,7 +423,8 @@ class AddViewModel @Inject constructor(
                     autoRenewal = false, // Not implemented yet
                     paymentReminder = false, // Not implemented yet
                     notes = state.notes.takeIf { it.isNotBlank() },
-                    currency = state.currency
+                    currency = state.currency,
+                    direction = state.direction
                 )
                 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -510,7 +520,14 @@ data class SubscriptionUiState(
     val notes: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currency: String = "INR"
+    val currency: String = "INR",
+    /**
+     * Income vs Expense (#371). Income subscriptions get phantom-created
+     * on schedule (wallet top-ups etc.); expense subscriptions match
+     * incoming bank-debit SMS as today.
+     */
+    val direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection =
+        com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
 ) {
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&

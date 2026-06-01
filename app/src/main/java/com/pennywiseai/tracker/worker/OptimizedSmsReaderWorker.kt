@@ -65,7 +65,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -330,6 +331,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             Log.i(TAG, buildSummary(stats, totalTime))
             cleanUpAndFinalize(stats)
+            // Materialise any due income-autopay phantoms (#371). Runs after
+            // SMS processing so a real INCOME SMS that landed for the same
+            // amount + merchant in this scan can dedupe via the autopay hash
+            // check if the user manually re-uses the same hash format later.
+            try {
+                generateIncomeAutopayUseCase.execute()
+            } catch (e: Exception) {
+                Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
+            }
             reportProgress(stats)
             Result.success()
 

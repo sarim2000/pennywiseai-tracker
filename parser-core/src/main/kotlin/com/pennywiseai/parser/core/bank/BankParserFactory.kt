@@ -7,6 +7,7 @@ object BankParserFactory {
 
     private val parsers = listOf(
         HDFCMutualFundParser(),  // HDFC Mutual Fund (must be before HDFCBankParser to avoid interception by HDFC's broad DLT pattern)
+        NaviMutualFundParser(),  // Navi Mutual Fund (AMC SIP / unit-allotment SMS — NAVAMC sender)
         HDFCBankParser(),
         SBIBankParser(),
         SaraswatBankParser(),

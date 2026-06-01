@@ -100,25 +100,53 @@ class SliceParser : BankParser() {
         }
     }
 
+    /**
+     * Returns true when the message clearly references a Slice credit-card product
+     * (legacy, pre-2022 RBI PPI pivot). Modern Slice is a UPI / savings-account
+     * product, so without explicit card context we treat debits as EXPENSE, not
+     * CREDIT (which downstream is interpreted as "credit card account").
+     */
+    private fun hasCardContext(lowerMessage: String): Boolean {
+        return lowerMessage.contains("credit card") ||
+                lowerMessage.contains("credit limit") ||
+                lowerMessage.contains("available limit") ||
+                lowerMessage.contains("card ending") ||
+                lowerMessage.contains("card xx") ||
+                lowerMessage.contains("card no") ||
+                lowerMessage.contains("on your slice card") ||
+                lowerMessage.contains("slice card")
+    }
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
+        val cardContext = hasCardContext(lowerMessage)
 
         return when {
-            // Slice credits/cashbacks
+            // Slice credits/cashbacks (income side unchanged)
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("received") -> TransactionType.INCOME
             lowerMessage.contains("cashback") -> TransactionType.INCOME
             lowerMessage.contains("refund") -> TransactionType.INCOME
 
-            // Slice payments/debits
-            lowerMessage.contains("debited") -> TransactionType.CREDIT
-            lowerMessage.contains("spent") -> TransactionType.CREDIT
-            lowerMessage.contains("paid") -> TransactionType.CREDIT
-            lowerMessage.contains("sent") -> TransactionType.CREDIT  // UPI transfers
-            lowerMessage.contains("payment") && !lowerMessage.contains("received") -> TransactionType.CREDIT
-            // Only map "transaction" to CREDIT if it's a successful transaction
-            lowerMessage.contains("transaction") && !lowerMessage.contains("credited") && 
-                isSuccessMessage(message) && !isFailureMessage(message) -> TransactionType.CREDIT
+            // Slice payments/debits.
+            // After RBI's 2022 PPI guidelines, Slice pivoted from a credit-card
+            // product to a UPI / savings-account product (Slice Bank). Debits
+            // from the bank account must be EXPENSE so that downstream code
+            // does not classify the account as a credit card. Only fall back
+            // to CREDIT when the message explicitly mentions card context.
+            lowerMessage.contains("debited") -> TransactionType.EXPENSE
+            lowerMessage.contains("sent") -> TransactionType.EXPENSE  // UPI transfer
+            lowerMessage.contains("spent") ->
+                if (cardContext) TransactionType.CREDIT else TransactionType.EXPENSE
+            lowerMessage.contains("paid") ->
+                if (cardContext) TransactionType.CREDIT else TransactionType.EXPENSE
+            lowerMessage.contains("payment") && !lowerMessage.contains("received") ->
+                if (cardContext) TransactionType.CREDIT else TransactionType.EXPENSE
+            // Only map bare "transaction" word to a type if it's a successful
+            // transaction; default to EXPENSE unless clearly card-context.
+            lowerMessage.contains("transaction") && !lowerMessage.contains("credited") &&
+                isSuccessMessage(message) && !isFailureMessage(message) ->
+                if (cardContext) TransactionType.CREDIT else TransactionType.EXPENSE
 
             else -> super.extractTransactionType(message)
         }

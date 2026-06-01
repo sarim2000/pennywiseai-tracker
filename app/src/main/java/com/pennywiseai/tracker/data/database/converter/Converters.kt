@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
@@ -86,6 +87,16 @@ class Converters {
     @TypeConverter
     fun toSubscriptionState(value: String): SubscriptionState {
         return SubscriptionState.valueOf(value)
+    }
+
+    @TypeConverter
+    fun fromSubscriptionDirection(value: SubscriptionDirection): String {
+        return value.name
+    }
+
+    @TypeConverter
+    fun toSubscriptionDirection(value: String): SubscriptionDirection {
+        return SubscriptionDirection.valueOf(value)
     }
 
     @TypeConverter

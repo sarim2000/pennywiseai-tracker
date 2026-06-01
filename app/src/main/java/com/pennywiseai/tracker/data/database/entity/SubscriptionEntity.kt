@@ -44,11 +44,37 @@ data class SubscriptionEntity(
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
-    val currency: String = "INR"
+    val currency: String = "INR",
+
+    /**
+     * Whether this recurring entry is money OUT (an EXPENSE — Netflix, EMI,
+     * mandate debit) or money IN (an INCOME — wallet top-up, allowance,
+     * salary). Income autopay (#371) gets phantom-created automatically when
+     * `nextPaymentDate` rolls past today; expense autopay continues to be
+     * matched against incoming bank-debit SMS.
+     */
+    @ColumnInfo(name = "direction", defaultValue = "EXPENSE")
+    val direction: SubscriptionDirection = SubscriptionDirection.EXPENSE,
+
+    /**
+     * User-chosen recurrence cadence as a display string ("Weekly",
+     * "Monthly", "Quarterly", "Semi-Annual", "Annual"). Drives
+     * [SubscriptionRepository.advanceNextPaymentDate]'s date arithmetic
+     * and the income-autopay phantom creator. Previously this was collected
+     * by the form but silently dropped — a latent bug that meant every
+     * subscription advanced by exactly +30 days regardless of cycle.
+     */
+    @ColumnInfo(name = "billing_cycle", defaultValue = "Monthly")
+    val billingCycle: String = "Monthly"
 )
 
 enum class SubscriptionState {
     ACTIVE,
     HIDDEN, // Soft delete - hidden from view but kept for reactivation detection
     ENDED   // User explicitly cancelled; never auto-reactivates on new mandate SMS
+}
+
+enum class SubscriptionDirection {
+    EXPENSE,  // Recurring money out (Netflix, mandates, EMIs)
+    INCOME    // Recurring money in (wallet top-ups, allowance — phantom-created on schedule, #371)
 }

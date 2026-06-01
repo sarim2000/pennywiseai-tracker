@@ -21,8 +21,29 @@ interface SubscriptionDao {
     
     @Query("SELECT * FROM subscriptions WHERE next_payment_date <= :date AND state = 'ACTIVE' ORDER BY next_payment_date ASC")
     fun getUpcomingSubscriptions(date: LocalDate): Flow<List<SubscriptionEntity>>
+
+    /**
+     * Active INCOME-direction subscriptions whose next_payment_date is today
+     * or earlier — the phantom auto-creator (#371) materialises one
+     * transaction per missed cycle for each row returned here.
+     */
+    @Query("""
+        SELECT * FROM subscriptions
+        WHERE direction = 'INCOME'
+          AND state = 'ACTIVE'
+          AND next_payment_date IS NOT NULL
+          AND next_payment_date <= :date
+        ORDER BY next_payment_date ASC
+    """)
+    suspend fun getDueIncomeSubscriptions(date: LocalDate): List<SubscriptionEntity>
     
-    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'ACTIVE' LIMIT 1")
+    /**
+     * Used by the SMS-debit matcher only — explicitly filtered to
+     * EXPENSE-direction so an incoming bank-debit SMS doesn't accidentally
+     * match an INCOME-direction subscription (#371). INCOME subs are
+     * advanced by the phantom auto-creator, not by SMS match.
+     */
+    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'ACTIVE' AND direction = 'EXPENSE' LIMIT 1")
     suspend fun getActiveSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
     
     @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'HIDDEN' LIMIT 1")

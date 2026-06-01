@@ -110,16 +110,41 @@ class SubscriptionRepository @Inject constructor(
     }
     
     /**
-     * Updates the next payment date after a subscription charge
+     * Updates the next payment date after a subscription charge fires.
+     * Advances by the subscription's persisted [SubscriptionEntity.billingCycle]
+     * (Weekly / Monthly / Quarterly / Semi-Annual / Annual). Previously this
+     * hard-coded `+30 days`, silently ignoring the user's chosen cycle (#371).
      */
     suspend fun updateNextPaymentDateAfterCharge(
         subscriptionId: Long,
         chargeDate: LocalDate = LocalDate.now()
     ) {
-        // Assume monthly subscription, add 30 days
-        val nextDate = chargeDate.plusDays(30)
-        subscriptionDao.updateNextPaymentDate(subscriptionId, nextDate)
+        val sub = subscriptionDao.getSubscriptionById(subscriptionId) ?: return
+        subscriptionDao.updateNextPaymentDate(subscriptionId, advance(chargeDate, sub.billingCycle))
     }
+
+    /**
+     * Cycle-aware date advance. Months/years use real calendar arithmetic
+     * (so "Monthly" lands on the same day-of-month next month, not strictly
+     * +30 days). Unknown cycles fall back to monthly so a stale or hand-
+     * inserted row never silently advances by 0 days.
+     */
+    fun advance(date: LocalDate, billingCycle: String): LocalDate = when (billingCycle.uppercase()) {
+        "WEEKLY" -> date.plusWeeks(1)
+        "MONTHLY" -> date.plusMonths(1)
+        "QUARTERLY" -> date.plusMonths(3)
+        "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6)
+        "ANNUAL", "YEARLY" -> date.plusYears(1)
+        else -> date.plusMonths(1)
+    }
+
+    /** Active INCOME subscriptions due on or before [date] (#371). */
+    suspend fun getDueIncomeSubscriptions(date: LocalDate = LocalDate.now()): List<SubscriptionEntity> =
+        subscriptionDao.getDueIncomeSubscriptions(date)
+
+    /** Direct DAO passthrough — used by the income-autopay phantom creator. */
+    suspend fun updateNextPaymentDate(subscriptionId: Long, nextPaymentDate: LocalDate) =
+        subscriptionDao.updateNextPaymentDate(subscriptionId, nextPaymentDate)
     
     
     private fun areAmountsEqual(amount1: BigDecimal, amount2: BigDecimal): Boolean {

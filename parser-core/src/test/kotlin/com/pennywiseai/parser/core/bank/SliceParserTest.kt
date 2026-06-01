@@ -13,10 +13,50 @@ class SliceParserTest {
     private val parser = SliceParser()
 
     @TestFactory
-    fun `slice parser handles credit card transactions`(): List<DynamicTest> {
+    fun `slice parser classifies bank vs card debits correctly`(): List<DynamicTest> {
         val testCases = listOf(
+            // --- Modern Slice Bank (post-2022 RBI PPI pivot): UPI / savings account ---
             ParserTestCase(
-                name = "Slice credit card transaction on amazon.in",
+                name = "Modern Slice UPI transfer (sent to) should be EXPENSE, not CREDIT",
+                message = "Sent Rs.500 to MERCHANT NAME (UPI transaction success). Sent from slice.",
+                sender = "JK-SLICEIT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "MERCHANT NAME",
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "Modern Slice debited (bank account)",
+                message = "Rs.250 debited from your slice account via UPI. Txn ID 1234567890.",
+                sender = "AD-SLCEIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "Modern Slice paid via UPI (no card context) is EXPENSE",
+                message = "Rs.100 paid to MERCHANT via slice UPI. Txn ID 9876543210.",
+                sender = "AD-SLCEIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = null,
+                    reference = null
+                )
+            ),
+
+            // --- Legacy Slice credit card (kept for regression: must remain CREDIT) ---
+            ParserTestCase(
+                name = "Legacy slice credit card transaction on amazon.in (CREDIT)",
                 message = "Your slice credit card transaction of RS. 50000 on amazon.in is successful. If not you, call 08048329999 - slice",
                 sender = "AD-SLCEIT-S",
                 expected = ExpectedTransaction(
@@ -29,7 +69,7 @@ class SliceParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Slice credit card transaction with different amount",
+                name = "Legacy slice credit card transaction with decimal amount (CREDIT)",
                 message = "Your slice credit card transaction of RS. 1234.56 on flipkart.com is successful.",
                 sender = "AX-SLICEIT-S",
                 expected = ExpectedTransaction(
@@ -42,20 +82,21 @@ class SliceParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Slice UPI transfer (sent to)",
-                message = "Sent Rs.500 to John Doe (UPI transaction success). Sent from slice.",
-                sender = "JK-SLICEIT",
+                name = "Slice card 'spent' wording with card context stays CREDIT",
+                message = "Rs.350 spent on your slice credit card at MERCHANT. Available limit: Rs.10000.",
+                sender = "AD-SLCEIT-S",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("500"),
+                    amount = BigDecimal("350"),
                     currency = "INR",
                     type = TransactionType.CREDIT,
-                    merchant = "John Doe",
                     accountLast4 = null,
                     reference = null
                 )
             ),
+
+            // --- Income side (regression: must remain INCOME) ---
             ParserTestCase(
-                name = "Slice credit (credited)",
+                name = "Cashback credited to slice account (INCOME)",
                 message = "Rs.1000 credited to your slice account as cashback.",
                 sender = "AD-SLCEIT-S",
                 expected = ExpectedTransaction(
@@ -67,6 +108,8 @@ class SliceParserTest {
                     reference = null
                 )
             ),
+
+            // --- Non-transaction / failure regressions ---
             ParserTestCase(
                 name = "Non-transaction message (OTP)",
                 message = "Your OTP for slice transaction is 123456. Do not share.",
@@ -92,14 +135,14 @@ class SliceParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
-                name = "Date phrase should not be extracted as merchant",
+                name = "Date phrase should not be extracted as merchant (legacy card path)",
                 message = "Your slice credit card transaction of RS. 50000 on Feb 15 is successful.",
                 sender = "AD-SLCEIT-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("50000"),
                     currency = "INR",
                     type = TransactionType.CREDIT,
-                    merchant = null,  // Date phrase should be rejected, fallback to super.extractMerchant which may return "Slice"
+                    merchant = null,
                     accountLast4 = null,
                     reference = null
                 )

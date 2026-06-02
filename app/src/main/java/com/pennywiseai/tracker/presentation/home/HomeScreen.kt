@@ -887,6 +887,8 @@ fun HomeScreen(
                     Text(
                         "This will reprocess all SMS messages from scratch. " +
                         "Use this to fix issues caused by updated bank parsers.\n\n" +
+                        "Your loans, grouped transactions, and merchant mappings " +
+                        "are preserved.\n\n" +
                         "This may take a few seconds depending on your message history."
                     )
                 },

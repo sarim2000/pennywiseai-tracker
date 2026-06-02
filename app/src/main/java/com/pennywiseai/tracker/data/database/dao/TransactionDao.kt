@@ -122,6 +122,18 @@ interface TransactionDao {
     
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
+
+    /**
+     * Deletes only transactions that don't carry user-curated annotations
+     * (no loan link, no group membership). Used by the full-rescan path so
+     * rebuilding the SMS-derived view doesn't blow away loans + their
+     * linked history or grouped transactions. Fixes #401.
+     *
+     * Re-parse uses `transaction_hash` UNIQUE + `OnConflictStrategy.IGNORE`,
+     * so the surviving rows are not duplicated when SMS is re-read.
+     */
+    @Query("DELETE FROM transactions WHERE loan_id IS NULL AND group_id IS NULL")
+    suspend fun deleteUncuratedTransactions()
     
     @Query("UPDATE transactions SET category = :newCategory WHERE merchant_name = :merchantName")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)

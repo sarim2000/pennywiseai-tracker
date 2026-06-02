@@ -84,6 +84,9 @@ class UserPreferencesRepository @Inject constructor(
         val PRO_IS_LEGACY_USER = booleanPreferencesKey("pro_is_legacy_user")
         val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
 
+        // Pro tier — statement-import monthly quota tracking.
+        val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
+
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
 
@@ -510,6 +513,21 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setProCachedIsPro(isPro: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
+        }
+    }
+
+    /**
+     * Epoch-millis of the last successful PDF statement import, or null if
+     * the user has never imported. Consumed by the statement-import gate —
+     * free users get one import per calendar month, so this single
+     * timestamp is enough (no per-month counter needed since the limit is 1).
+     */
+    val lastStatementImportAt: Flow<Long?> = context.dataStore.data
+        .map { it[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] }
+
+    suspend fun markStatementImported(epochMillis: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] = epochMillis
         }
     }
 

@@ -34,6 +34,10 @@ fun ExportTransactionsDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var exportState by remember { mutableStateOf<ExportState>(ExportState.Ready) }
+    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val csvLimit = com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
+    val exceedsFreeQuota = !isProEntitled && transactions.size > csvLimit
     
     Dialog(onDismissRequest = {
         if (exportState !is ExportState.Exporting) {
@@ -237,27 +241,31 @@ fun ExportTransactionsDialog(
                             
                             Button(
                                 onClick = {
-                                    scope.launch {
-                                        viewModel.exportTransactions(transactions).collect { result ->
-                                            when (result) {
-                                                is ExportResult.Progress -> {
-                                                    exportState = ExportState.Exporting(
-                                                        progress = result.progress,
-                                                        message = result.message
-                                                    )
-                                                }
-                                                is ExportResult.Success -> {
-                                                    exportState = ExportState.Success(
-                                                        uri = result.uri,
-                                                        fileName = result.fileName,
-                                                        transactionCount = result.transactionCount,
-                                                        fileSizeBytes = result.fileSizeBytes
-                                                    )
-                                                }
-                                                is ExportResult.Error -> {
-                                                    exportState = ExportState.Error(
-                                                        message = result.message
-                                                    )
+                                    if (exceedsFreeQuota) {
+                                        showUpgradeSheet = true
+                                    } else {
+                                        scope.launch {
+                                            viewModel.exportTransactions(transactions).collect { result ->
+                                                when (result) {
+                                                    is ExportResult.Progress -> {
+                                                        exportState = ExportState.Exporting(
+                                                            progress = result.progress,
+                                                            message = result.message
+                                                        )
+                                                    }
+                                                    is ExportResult.Success -> {
+                                                        exportState = ExportState.Success(
+                                                            uri = result.uri,
+                                                            fileName = result.fileName,
+                                                            transactionCount = result.transactionCount,
+                                                            fileSizeBytes = result.fileSizeBytes
+                                                        )
+                                                    }
+                                                    is ExportResult.Error -> {
+                                                        exportState = ExportState.Error(
+                                                            message = result.message
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -265,7 +273,7 @@ fun ExportTransactionsDialog(
                                 },
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Export")
+                                Text(if (exceedsFreeQuota) "Unlock to export" else "Export")
                             }
                         }
                         
@@ -325,6 +333,12 @@ fun ExportTransactionsDialog(
                 }
             }
         }
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
     }
 }
 

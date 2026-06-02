@@ -46,6 +46,8 @@ fun RulesScreen(
     val batchApplyProgress by viewModel.batchApplyProgress.collectAsStateWithLifecycle()
     val batchApplyResult by viewModel.batchApplyResult.collectAsStateWithLifecycle()
     val dryRunResult by viewModel.dryRunResult.collectAsStateWithLifecycle()
+    val canCreateMoreRules by viewModel.canCreateMoreRules.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
@@ -90,7 +92,10 @@ fun RulesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToCreateRule,
+                onClick = {
+                    if (canCreateMoreRules) onNavigateToCreateRule()
+                    else showUpgradeSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Rule")
@@ -270,6 +275,12 @@ fun RulesScreen(
             onApplyToUncategorized = {
                 viewModel.applyRuleToPastTransactions(selectedRuleForBatch!!, applyToUncategorizedOnly = true)
             }
+        )
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
         )
     }
 }

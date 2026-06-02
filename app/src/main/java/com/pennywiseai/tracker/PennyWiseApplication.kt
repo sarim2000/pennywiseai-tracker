@@ -22,6 +22,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var appLockRepository: AppLockRepository
 
+    @Inject
+    lateinit var legacyUserDetector: com.pennywiseai.tracker.billing.LegacyUserDetector
+
+    @Inject
+    lateinit var purchaseGateway: com.pennywiseai.tracker.billing.PurchaseGateway
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -42,6 +48,24 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+
+        // One-shot legacy grandfathering + initial billing-entitlement sync.
+        // Legacy check is cheap (single DAO read, persisted afterwards);
+        // refresh() reaches out to Play (no-op on F-Droid). Both run off the
+        // main thread, and a failure here is non-fatal — the cached
+        // entitlement (DataStore) keeps the UI consistent until the next try.
+        applicationScope.launch {
+            try {
+                legacyUserDetector.ensureEvaluated()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Legacy-user check failed: ${e.message}", e)
+            }
+            try {
+                purchaseGateway.refresh()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
     }
 
     /**

@@ -55,8 +55,16 @@ class ManageAccountsViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
-    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase
+    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
+    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
+
+    /**
+     * Drives the Merge-accounts action — Pro-only gate. Free users still
+     * see the icon (so they discover the feature) but tapping it opens
+     * the paywall instead of the merge sheet.
+     */
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     

@@ -12,6 +12,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,7 +36,13 @@ class UpgradeViewModel @Inject constructor(
     private val entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(UpgradeUiState())
+    // Snapshot entitlement at construction time so the UI can render the
+    // right variant ("Active" vs upgrade plans) without flickering and the
+    // auto-dismiss collector below knows what's a TRANSITION vs the
+    // pre-existing state.
+    private val initialEntitled = entitlementGate.isProEntitled.value
+
+    private val _state = MutableStateFlow(UpgradeUiState(isAlreadyEntitled = initialEntitled))
     val state: StateFlow<UpgradeUiState> = _state.asStateFlow()
 
     init {
@@ -55,12 +63,16 @@ class UpgradeViewModel @Inject constructor(
             }
         }
 
-        // Auto-dismiss the sheet once the entitlement flips to Pro — covers
-        // both fresh-purchase and restore-purchases paths uniformly.
+        // Auto-dismiss ONLY on a fresh false → true transition (purchase
+        // succeeded or restore landed an entitlement mid-sheet). drop(1)
+        // skips the StateFlow's replay of the current value, so a user
+        // who was already Pro when they opened the sheet doesn't see it
+        // auto-close on frame 1.
         viewModelScope.launch {
-            entitlementGate.isProEntitled.collect { entitled ->
-                if (entitled) _state.update { it.copy(didBecomePro = true) }
-            }
+            entitlementGate.isProEntitled
+                .drop(1)
+                .filter { it }
+                .collect { _state.update { ui -> ui.copy(didBecomePro = true) } }
         }
 
         // Kick off a fresh catalog + entitlement read.

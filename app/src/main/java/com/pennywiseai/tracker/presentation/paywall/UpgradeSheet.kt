@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.CallMerge
 import androidx.compose.material.icons.automirrored.outlined.Rule
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.PictureAsPdf
@@ -132,23 +133,31 @@ private fun UpgradeSheetContent(
             .padding(bottom = Spacing.md),
     ) {
         CloseHeader(onClose = onClose)
-        HeroSection()
+        HeroSection(isAlreadyEntitled = state.isAlreadyEntitled)
         Spacer(Modifier.height(Spacing.lg))
         FeatureList()
         Spacer(Modifier.height(Spacing.xl))
-        PlanList(
-            products = state.products,
-            selectedSku = state.selectedSku,
-            isLoading = state.isLoading,
-            onSelect = onSelectPlan,
-        )
-        Spacer(Modifier.height(Spacing.lg))
-        PurchaseCta(
-            state = state,
-            onPurchase = onPurchase,
-        )
-        Spacer(Modifier.height(Spacing.md))
-        FooterRow(onRestore = onRestore)
+        if (state.isAlreadyEntitled) {
+            // Already-Pro view: status card + manage subscription + restore.
+            // No plan cards (they own it), no Buy CTA (no SKU to sell).
+            ActiveStatusCard()
+            Spacer(Modifier.height(Spacing.md))
+            ActiveActions(onRestore = onRestore)
+        } else {
+            PlanList(
+                products = state.products,
+                selectedSku = state.selectedSku,
+                isLoading = state.isLoading,
+                onSelect = onSelectPlan,
+            )
+            Spacer(Modifier.height(Spacing.lg))
+            PurchaseCta(
+                state = state,
+                onPurchase = onPurchase,
+            )
+            Spacer(Modifier.height(Spacing.md))
+            FooterRow(onRestore = onRestore)
+        }
     }
 }
 
@@ -173,10 +182,11 @@ private fun CloseHeader(onClose: () -> Unit) {
 /**
  * Hero: subtle vertical gradient (primaryContainer → transparent),
  * single icon chip, two-line type stack. No graphics, no stock art —
- * the typography carries the moment.
+ * the typography carries the moment. Subtitle adapts to entitlement —
+ * already-Pro users see a confirmation, free users see the value pitch.
  */
 @Composable
-private fun HeroSection() {
+private fun HeroSection(isAlreadyEntitled: Boolean) {
     val gradient = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
@@ -218,7 +228,11 @@ private fun HeroSection() {
             )
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                text = "Power features for serious tracking",
+                text = if (isAlreadyEntitled) {
+                    "You're a Pro member — thank you!"
+                } else {
+                    "Power features for serious tracking"
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -460,6 +474,97 @@ private fun PurchaseCta(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
+            )
+        }
+    }
+}
+
+/**
+ * Already-Pro variant of the lower content: a single confirmation card with
+ * a check glyph. No plans, no Buy CTA. Tone is "thank you," not "upgrade."
+ */
+@Composable
+private fun ActiveStatusCard() {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = Dimensions.Padding.card,
+                vertical = Spacing.md,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(Modifier.width(Spacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Pro is active",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(
+                    text = "All Pro features are unlocked on this account.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Quiet row of subscription-management actions for already-Pro users.
+ * "Manage subscription" deep-links into Play Store's subscription page;
+ * "Restore purchases" forces a fresh entitlement query (covers reinstalls,
+ * Google account switches, and the rare case where the Play server lags
+ * a few minutes on a refund).
+ */
+@Composable
+private fun ActiveActions(onRestore: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        TextButton(
+            onClick = {
+                runCatching {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse(
+                            "https://play.google.com/store/account/subscriptions" +
+                                "?package=${context.packageName}",
+                        ),
+                    )
+                    context.startActivity(intent)
+                }
+            },
+        ) {
+            Text(
+                text = "Manage subscription",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        TextButton(onClick = onRestore) {
+            Text(
+                text = "Restore purchases",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
             )
         }
     }

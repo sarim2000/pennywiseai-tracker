@@ -16,10 +16,10 @@ data class UpgradeUiState(
     /** Surfaced as snackbar; cleared by [UpgradeViewModel.onErrorDismissed]. */
     val errorMessage: String? = null,
     /**
-     * True when the user was already Pro at the moment the sheet opened —
-     * legacy-grandfathered or owns a Pro SKU. Drives the "Active" content
-     * variant (status + manage-subscription + restore) instead of the plan
-     * cards + buy CTA. Captured once on init; never recomputed.
+     * True when the user already owned a Pro SKU at the moment the sheet
+     * opened. Drives the "Active" content variant (status + manage-subscription
+     * + restore) instead of the plan cards + buy CTA. Captured once on init;
+     * never recomputed.
      */
     val isAlreadyEntitled: Boolean = false,
     /**

@@ -185,8 +185,8 @@ fun SettingsScreen(
             // ── PennyWise Pro ──
             // Top of Settings on purpose: highest-discoverability slot for
             // the upgrade entry. Row content adapts to entitlement state —
-            // legacy / paid users see "Active" so the row reads as status,
-            // free users see "Upgrade" so it reads as a call-to-action.
+            // paid users see "Active" so the row reads as status, free
+            // users see "Upgrade" so it reads as a call-to-action.
             SectionHeaderV2(title = "PennyWise Pro")
             SettingsGroup {
                 SettingsNavItem(

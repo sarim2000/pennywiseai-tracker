@@ -31,9 +31,8 @@ class RulesViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * Pro entitlement (paid OR legacy-grandfathered). Drives both the
-     * "create another rule" gate below and the inline quota caption on
-     * the Rules screen.
+     * Pro entitlement. Drives both the "create another rule" gate below
+     * and the inline quota caption on the Rules screen.
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 

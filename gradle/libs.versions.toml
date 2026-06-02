@@ -40,6 +40,7 @@ coil = "2.7.0"
 material3 = "1.5.0-alpha12"
 haze = "1.7.1"
 composeCharts = "0.2.0"
+billingKtx = "9.0.0"
 
 [libraries]
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
@@ -98,6 +99,7 @@ vision-internal-vkp = { group = "com.google.mlkit", name = "vision-internal-vkp"
 
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
+billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

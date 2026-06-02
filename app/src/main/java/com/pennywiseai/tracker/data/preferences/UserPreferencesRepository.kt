@@ -79,6 +79,11 @@ class UserPreferencesRepository @Inject constructor(
         // Feature discovery
         val HAS_USED_FULL_RESYNC = booleanPreferencesKey("has_used_full_resync")
 
+        // Pro tier — legacy grandfathering + UI-cached entitlement
+        val PRO_LEGACY_EVALUATED = booleanPreferencesKey("pro_legacy_evaluated")
+        val PRO_IS_LEGACY_USER = booleanPreferencesKey("pro_is_legacy_user")
+        val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
+
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
 
@@ -476,6 +481,35 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun markFullResyncUsed() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] = true
+        }
+    }
+
+    // Pro tier — legacy grandfathering flag.
+    // `proLegacyEvaluated` flips once on the first launch of the Pro-enabled
+    // build. `proIsLegacyUser` records the verdict: users with prior usage
+    // (transactions, rules) when Pro launched keep all features free.
+    val proLegacyEvaluated: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PRO_LEGACY_EVALUATED] ?: false }
+
+    val proIsLegacyUser: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PRO_IS_LEGACY_USER] ?: false }
+
+    suspend fun recordLegacyEvaluation(isLegacy: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRO_LEGACY_EVALUATED] = true
+            preferences[PreferencesKeys.PRO_IS_LEGACY_USER] = isLegacy
+        }
+    }
+
+    // Pro tier — UI-cached entitlement so first frame after cold start
+    // doesn't flicker `false → true` while BillingClient connects. Real
+    // source of truth is Play; this is a hint only.
+    val proCachedIsPro: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PRO_CACHED_IS_PRO] ?: false }
+
+    suspend fun setProCachedIsPro(isPro: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
         }
     }
 

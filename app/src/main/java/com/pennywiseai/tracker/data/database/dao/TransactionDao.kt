@@ -144,6 +144,15 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 
+    /**
+     * Total transaction count including soft-deleted rows. Used by the
+     * one-shot legacy-user check on first launch of the Pro release — any
+     * non-trivial usage signal grandfathers the user into free-forever for
+     * all currently-Pro features.
+     */
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun getTransactionCount(): Int
+
     @Query("SELECT DISTINCT currency FROM transactions WHERE is_deleted = 0 ORDER BY currency")
     fun getAllCurrencies(): Flow<List<String>>
 

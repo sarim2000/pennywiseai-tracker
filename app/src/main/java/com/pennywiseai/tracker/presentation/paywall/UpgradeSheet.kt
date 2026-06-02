@@ -4,6 +4,9 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -114,6 +118,7 @@ fun UpgradeSheet(
             onSelectKey = viewModel::onSelectPlan,
             onPurchase = { activity?.let(viewModel::onPurchase) },
             onRestore = viewModel::onRestore,
+            onCelebrationComplete = viewModel::markCelebrationComplete,
         )
     }
 }
@@ -124,7 +129,15 @@ private fun UpgradeSheetContent(
     onSelectKey: (String) -> Unit,
     onPurchase: () -> Unit,
     onRestore: () -> Unit,
+    onCelebrationComplete: () -> Unit,
 ) {
+    // Celebration takes the whole sheet — even members shouldn't see the
+    // status card when a fresh purchase has just landed.
+    if (state.showCelebration) {
+        CelebrationContent(onContinue = onCelebrationComplete)
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -615,6 +628,138 @@ private fun Dot() {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Celebration — post-purchase moment. Animated sparkle, congratulations,
+// includes list, Continue. Auto-dismisses after a short hold.
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun CelebrationContent(onContinue: () -> Unit) {
+    // Auto-dismiss timer — gives the user time to read but doesn't trap
+    // them. Tapping Continue short-circuits.
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(4_000L)
+        onContinue()
+    }
+
+    // Run the entrance animation once on mount.
+    var animateIn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animateIn = true }
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "celebration-icon-scale",
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (animateIn) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, delayMillis = 200),
+        label = "celebration-content-alpha",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = Dimensions.Padding.content,
+                vertical = Spacing.xl,
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Animated yellow tile carrying the sparkle — same identity as the
+        // Settings entry and the brand header, so the celebration feels
+        // like the natural climax of the journey, not a stranger.
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
+                .background(yellow_light, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = yellow_dark,
+                modifier = Modifier.size(48.dp),
+            )
+        }
+        Spacer(Modifier.height(Spacing.lg))
+
+        Column(
+            modifier = Modifier.graphicsLayer { alpha = contentAlpha },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            EyebrowChip(text = "WELCOME", isAccent = true)
+            Spacer(Modifier.height(Spacing.md))
+            Text(
+                text = "You're a Pro member",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = "Thank you for backing PennyWise — every feature on the list is now yours.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(Spacing.lg))
+
+            // Quiet recap of what they unlocked.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                PRO_FEATURES.forEach { feature ->
+                    Row(
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text(
+                            text = feature,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.lg))
+
+            Button(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Text(
+                    text = "Continue",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────

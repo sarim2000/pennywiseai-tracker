@@ -52,19 +52,30 @@ class UpgradeViewModel @Inject constructor(
             }
         }
 
-        // Auto-dismiss ONLY on a fresh false → true transition (purchase
-        // succeeded or restore landed an entitlement mid-sheet). drop(1)
-        // skips the StateFlow's replay of the current value, so a user
-        // who was already Pro when they opened the sheet doesn't see it
-        // auto-close on frame 1.
+        // On a fresh false → true transition (purchase succeeded or
+        // restore landed an entitlement mid-sheet), trigger the
+        // celebration content. drop(1) skips the StateFlow's replay of
+        // the current value, so users who were already Pro when they
+        // opened the sheet don't see a celebration on frame 1.
+        // The actual sheet dismiss is gated on [didBecomePro] which the
+        // UI flips after the celebration timer (or a Continue tap).
         viewModelScope.launch {
             entitlementGate.isProEntitled
                 .drop(1)
                 .filter { it }
-                .collect { _state.update { ui -> ui.copy(didBecomePro = true) } }
+                .collect { _state.update { ui -> ui.copy(showCelebration = true) } }
         }
 
         refresh()
+    }
+
+    /**
+     * Called by the UI when the celebration view finishes — either the
+     * auto-timer elapses or the user taps Continue. Flips the dismiss
+     * gate so the sheet closes.
+     */
+    fun markCelebrationComplete() {
+        _state.update { it.copy(didBecomePro = true) }
     }
 
     fun onSelectPlan(key: String) {

@@ -29,9 +29,15 @@ data class UpgradeUiState(
     val isAlreadyEntitled: Boolean = false,
     /**
      * Set when entitlement TRANSITIONS from false to true mid-sheet (i.e.
-     * a fresh purchase or a restore-purchases finding an entitlement). The
-     * UI consumes this to dismiss; we do NOT set it for users who were Pro
-     * at open time, otherwise the sheet would auto-close on frame 1.
+     * a fresh purchase or a restore-purchases finding an entitlement).
+     * The UI swaps to a celebration view; the actual dismiss is triggered
+     * later via [didBecomePro]. We never set this for users who were
+     * already Pro when the sheet opened.
+     */
+    val showCelebration: Boolean = false,
+    /**
+     * Set by the UI once the celebration view has finished (auto-timer or
+     * user tapped "Continue"). When this flips true the sheet hides.
      */
     val didBecomePro: Boolean = false,
 )

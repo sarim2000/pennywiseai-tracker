@@ -132,6 +132,10 @@ class TransactionRepository @Inject constructor(
     suspend fun deleteAllTransactions() =
         transactionDao.deleteAllTransactions()
 
+    /** See [TransactionDao.deleteUncuratedTransactions]. */
+    suspend fun deleteUncuratedTransactions() =
+        transactionDao.deleteUncuratedTransactions()
+
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)

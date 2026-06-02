@@ -295,12 +295,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 // try/finally ensures endSection even if the suspend calls throw
                 Trace.beginSection("clearDatabase")
                 try {
-                    transactionRepository.deleteAllTransactions()
+                    // Preserve user-curated rows (loan-linked + grouped) so
+                    // months of curation work survive a rescan. Re-parse uses
+                    // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
+                    // surviving rows are not duplicated. Fixes #401.
+                    transactionRepository.deleteUncuratedTransactions()
                     accountBalanceRepository.deleteAllBalances()
                 } finally {
                     Trace.endSection()
                 }
-                Log.i(TAG, "Force resync: database cleared")
+                Log.i(TAG, "Force resync: uncurated rows cleared (loans + groups preserved)")
             }
 
             Trace.beginSection("readSmsMessages")

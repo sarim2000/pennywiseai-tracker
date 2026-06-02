@@ -170,6 +170,11 @@ class AccountBalanceRepository @Inject constructor(
         accountBalanceDao.deleteAllBalances()
     }
 
+    /** See [AccountBalanceDao.deleteRebuildableBalances]. */
+    suspend fun deleteRebuildableBalances() {
+        accountBalanceDao.deleteRebuildableBalances()
+    }
+
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int {
         return accountBalanceDao.setAccountProfile(bankName, accountLast4, profileId)
     }

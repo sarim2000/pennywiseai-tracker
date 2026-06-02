@@ -76,6 +76,38 @@ interface AccountBalanceDao {
     
     @Query("DELETE FROM account_balances")
     suspend fun deleteAllBalances()
+
+    /**
+     * Resync companion to [TransactionDao.deleteUncuratedTransactions].
+     * Wipes balance entries the SMS re-parse will regenerate, while
+     * preserving:
+     *
+     *  - Entries linked to a transaction that survived the resync
+     *    (loan-linked / grouped) — their `transaction_id` still points
+     *    at an existing row. Without this, balance time-series develops
+     *    gaps because the re-parse short-circuits on hash collision and
+     *    never calls processBalanceUpdate() for surviving rows.
+     *  - User-curated entries with `source_type` MANUAL or CARD_LINK
+     *    (added from the Manage Accounts screen). These have no SMS to
+     *    re-derive from, so a wipe would lose them permanently.
+     *
+     * What it does delete:
+     *  - Orphans: `transaction_id` pointed at a transaction wiped this
+     *    resync.
+     *  - Balance-only SMS notifications (`transaction_id IS NULL` AND
+     *    `source_type IS NULL`) — these will be re-inserted by the
+     *    re-parse and REPLACE on the (bank, account, timestamp) unique
+     *    index, so the wipe-then-rebuild round-trip is a no-op.
+     */
+    @Query("""
+        DELETE FROM account_balances
+        WHERE
+            (transaction_id IS NOT NULL
+             AND transaction_id NOT IN (SELECT id FROM transactions))
+            OR
+            (transaction_id IS NULL AND source_type IS NULL)
+    """)
+    suspend fun deleteRebuildableBalances()
     
     @Query("""
         SELECT DISTINCT 

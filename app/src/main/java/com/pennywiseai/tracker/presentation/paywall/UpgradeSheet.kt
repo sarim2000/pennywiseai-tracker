@@ -98,11 +98,17 @@ fun UpgradeSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(state.didBecomePro) {
-        if (state.didBecomePro) {
-            scope.launch {
-                sheetState.hide()
-                onDismiss()
+    // One-shot dismiss event from the ViewModel. Modeled as a Channel/Flow
+    // rather than persistent state so a stale ViewModel (Hilt scopes it to
+    // the Activity, surviving sheet open/close cycles) can't re-trigger
+    // dismiss on the next open. Collected once per composition.
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                UpgradeEvent.Dismiss -> {
+                    sheetState.hide()
+                    onDismiss()
+                }
             }
         }
     }

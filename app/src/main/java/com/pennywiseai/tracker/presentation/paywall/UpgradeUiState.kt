@@ -30,14 +30,16 @@ data class UpgradeUiState(
     /**
      * Set when entitlement TRANSITIONS from false to true mid-sheet (i.e.
      * a fresh purchase or a restore-purchases finding an entitlement).
-     * The UI swaps to a celebration view; the actual dismiss is triggered
-     * later via [didBecomePro]. We never set this for users who were
-     * already Pro when the sheet opened.
+     * The UI swaps to a celebration view; the actual dismiss is fired
+     * through [UpgradeViewModel.events] (one-shot Channel) — NOT via
+     * sticky state, so a stale VM doesn't re-trigger dismiss the next
+     * time the sheet opens.
      */
     val showCelebration: Boolean = false,
-    /**
-     * Set by the UI once the celebration view has finished (auto-timer or
-     * user tapped "Continue"). When this flips true the sheet hides.
-     */
-    val didBecomePro: Boolean = false,
 )
+
+/** One-shot UI events emitted by [UpgradeViewModel]. */
+sealed class UpgradeEvent {
+    /** The sheet should hide. Fired after celebration completes. */
+    data object Dismiss : UpgradeEvent()
+}

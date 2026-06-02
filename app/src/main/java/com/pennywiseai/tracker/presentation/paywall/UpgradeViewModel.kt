@@ -9,11 +9,14 @@ import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,6 +42,15 @@ class UpgradeViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(UpgradeUiState(isAlreadyEntitled = initialEntitled))
     val state: StateFlow<UpgradeUiState> = _state.asStateFlow()
+
+    // One-shot events (currently just Dismiss). Modeled as a Channel rather
+    // than persistent state so they fire exactly once even if the VM
+    // survives across sheet open/close cycles. Sticky state was the source
+    // of the "Active row not clickable after purchase until restart" bug —
+    // didBecomePro stayed true in state, LaunchedEffect re-triggered on
+    // next sheet open, sheet auto-dismissed on frame 1.
+    private val _events = Channel<UpgradeEvent>(Channel.BUFFERED)
+    val events: Flow<UpgradeEvent> = _events.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -71,11 +83,13 @@ class UpgradeViewModel @Inject constructor(
 
     /**
      * Called by the UI when the celebration view finishes — either the
-     * auto-timer elapses or the user taps Continue. Flips the dismiss
-     * gate so the sheet closes.
+     * auto-timer elapses or the user taps Continue. Clears the
+     * showCelebration flag (so reopening the sheet doesn't re-run the
+     * celebration) and fires a one-shot Dismiss event.
      */
     fun markCelebrationComplete() {
-        _state.update { it.copy(didBecomePro = true) }
+        _state.update { it.copy(showCelebration = false) }
+        _events.trySend(UpgradeEvent.Dismiss)
     }
 
     fun onSelectPlan(key: String) {

@@ -1,0 +1,8 @@
+What's new in v2.15.57
+
+• Introducing PennyWise Pro — unlock unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, and account merging
+• Income autopay — wallet top-ups and salary credits now auto-track even without an SMS
+• Loans + grouped transactions are now preserved on full SMS rescan
+• Slice Bank UPI fix — modern Slice debits classify correctly as expenses
+• Navi Mutual Fund SIP parser
+• Smaller fixes and polish

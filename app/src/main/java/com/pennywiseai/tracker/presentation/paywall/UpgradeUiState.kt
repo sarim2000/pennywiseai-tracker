@@ -8,7 +8,12 @@ import com.pennywiseai.tracker.billing.ProProduct
  */
 data class UpgradeUiState(
     val products: List<ProProduct> = emptyList(),
-    val selectedSku: String? = null,
+    /**
+     * Unique key of the currently-selected plan — uses [ProProduct.key]
+     * (e.g. `pro_lifetime` or `pro_subscription#monthly`). Distinguishes
+     * subscription base plans, which share an SKU.
+     */
+    val selectedKey: String? = null,
     /** Initial product/entitlement load in flight. Drives the skeleton view. */
     val isLoading: Boolean = true,
     /** `launchBillingFlow` in flight. Disables the CTA + shows spinner. */

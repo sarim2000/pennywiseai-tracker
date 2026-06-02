@@ -29,6 +29,6 @@ class FdroidBillingGateway @Inject constructor() : PurchaseGateway {
 
     override suspend fun launchPurchase(
         activity: Activity,
-        productId: String,
+        product: ProProduct,
     ): PurchaseResult = PurchaseResult.Unsupported
 }

@@ -18,9 +18,12 @@ interface PurchaseLauncher {
     suspend fun refresh(): PurchaseResult
 
     /**
-     * Kicks off the Google Play purchase sheet for [productId]. The actual
-     * entitlement update arrives asynchronously through Play Billing's
-     * `PurchasesUpdatedListener`, which feeds back into [EntitlementSource.isPro].
+     * Kicks off the Google Play purchase sheet for [product]. Carries the
+     * caller's exact [ProProduct] so the gateway can use the right
+     * `offerToken` — required for subscription base plans, where the SKU
+     * alone is ambiguous between Monthly and Annual. Entitlement updates
+     * arrive asynchronously through Play Billing's `PurchasesUpdatedListener`
+     * which feeds back into [EntitlementSource.isPro].
      */
-    suspend fun launchPurchase(activity: Activity, productId: String): PurchaseResult
+    suspend fun launchPurchase(activity: Activity, product: ProProduct): PurchaseResult
 }

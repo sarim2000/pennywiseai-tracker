@@ -1,13 +1,3 @@
-489 characters, under the 500 limit:
+What's new
 
-```
-What's New in v2.15.54
-
-• Swipe left on a transaction to change its category
-• New Personal/Business profiles to filter accounts & transactions
-• Group related transactions together
-• Show contact names instead of UPI IDs
-• Edit & cancel subscriptions; Smart Rules now support AND/OR
-• Redesigned transactions list + Add Transaction widget
-• New banks: SABB, Enpara, Sparkasse, Nabil, AU Bank, Cashfree & more
-• Fixes for refunds, loans, budg
+Bug fixes and improvements. Thanks for using PennyWise!

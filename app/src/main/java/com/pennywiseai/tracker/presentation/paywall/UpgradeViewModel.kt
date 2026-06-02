@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.billing.EntitlementSource
-import com.pennywiseai.tracker.billing.ProSku
+import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,13 +21,12 @@ import javax.inject.Inject
 /**
  * Backs [UpgradeSheet]. Reads from [EntitlementSource] (catalog) and
  * [EntitlementGate] (auto-dismiss when Pro lands); writes through
- * [PurchaseLauncher]. Notice the constructor depends only on the narrow
- * interfaces it actually needs — never the full `PurchaseGateway`
- * (Interface Segregation).
+ * [PurchaseLauncher]. Constructor depends only on the narrow interfaces it
+ * actually needs — never the full `PurchaseGateway` (Interface Segregation).
  *
- * The sheet's lifecycle is "open → purchase or dismiss." We refresh the
- * catalog on init so the user sees current prices on every open (Play
- * prices localize per-account, so caching across cold starts isn't safe).
+ * Selection is tracked by [ProProduct.key], not raw SKU — subscription base
+ * plans share a SKU (e.g. monthly + annual both live on `pro_subscription`),
+ * so SKU alone can't disambiguate which plan the user picked.
  */
 @HiltViewModel
 class UpgradeViewModel @Inject constructor(
@@ -36,27 +35,17 @@ class UpgradeViewModel @Inject constructor(
     private val entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
-    // Snapshot entitlement at construction time so the UI can render the
-    // right variant ("Active" vs upgrade plans) without flickering and the
-    // auto-dismiss collector below knows what's a TRANSITION vs the
-    // pre-existing state.
     private val initialEntitled = entitlementGate.isProEntitled.value
 
     private val _state = MutableStateFlow(UpgradeUiState(isAlreadyEntitled = initialEntitled))
     val state: StateFlow<UpgradeUiState> = _state.asStateFlow()
 
     init {
-        // Surface the catalog as it arrives.
         viewModelScope.launch {
             entitlementSource.products.collect { products ->
                 _state.update { current ->
                     current.copy(
                         products = products,
-                        // Default selection prefers founder lifetime → regular
-                        // lifetime → annual → monthly. Anchors lifetime as
-                        // the recommended choice without hard-coding SKUs in
-                        // the UI layer.
-                        selectedSku = current.selectedSku ?: products.preferredDefaultSku(),
                         isLoading = products.isEmpty() && current.isLoading,
                     )
                 }
@@ -75,33 +64,30 @@ class UpgradeViewModel @Inject constructor(
                 .collect { _state.update { ui -> ui.copy(didBecomePro = true) } }
         }
 
-        // Kick off a fresh catalog + entitlement read.
         refresh()
     }
 
-    fun onSelectPlan(sku: String) {
-        _state.update { it.copy(selectedSku = sku) }
+    fun onSelectPlan(key: String) {
+        _state.update { it.copy(selectedKey = key) }
     }
 
     /**
-     * User tapped the CTA. Launches the Play purchase flow for whichever SKU
-     * is currently selected. Outcome lands via the gateway's purchase
-     * listener — which updates [EntitlementGate.isProEntitled] which triggers
-     * the auto-dismiss collector above.
+     * User tapped the CTA. Resolves the selected key to a [ProProduct] and
+     * hands it to the gateway — which needs the offer token (subscription
+     * base plans) and the SKU together. Outcome lands via the gateway's
+     * purchase listener → [EntitlementGate.isProEntitled] → auto-dismiss
+     * collector above.
      */
     fun onPurchase(activity: Activity) {
-        val sku = _state.value.selectedSku ?: return
+        val state = _state.value
+        val product = state.products.firstOrNull { it.key == state.selectedKey } ?: return
         viewModelScope.launch {
             _state.update { it.copy(isPurchasing = true, errorMessage = null) }
-            val result = purchaseLauncher.launchPurchase(activity, sku)
+            val result = purchaseLauncher.launchPurchase(activity, product)
             handlePurchaseResult(result)
         }
     }
 
-    /**
-     * Settings → "Restore Purchases" entry-point. Re-queries Play; outcome
-     * is observed via [EntitlementGate].
-     */
     fun onRestore() {
         viewModelScope.launch {
             _state.update { it.copy(isPurchasing = true, errorMessage = null) }
@@ -124,8 +110,6 @@ class UpgradeViewModel @Inject constructor(
 
     private fun handlePurchaseResult(result: PurchaseResult) {
         when (result) {
-            // Success / Pending close the flow; isPro lands via the
-            // entitlement collector, which dismisses the sheet.
             is PurchaseResult.Success,
             is PurchaseResult.Pending -> _state.update { it.copy(isPurchasing = false) }
 
@@ -166,20 +150,7 @@ class UpgradeViewModel @Inject constructor(
                     errorMessage = "Couldn't reach Play Store. Try again later.",
                 )
             }
-            // Any other state from refresh is unexpected (refresh shouldn't
-            // produce Pending / UserCancelled) — fall back to a generic state.
             else -> _state.update { it.copy(isLoading = false, isPurchasing = false) }
-        }
-    }
-
-    private fun List<com.pennywiseai.tracker.billing.ProProduct>.preferredDefaultSku(): String? {
-        val skus = map { it.sku }.toSet()
-        return when {
-            ProSku.LIFETIME_FOUNDER in skus -> ProSku.LIFETIME_FOUNDER
-            ProSku.LIFETIME in skus -> ProSku.LIFETIME
-            ProSku.ANNUAL in skus -> ProSku.ANNUAL
-            ProSku.MONTHLY in skus -> ProSku.MONTHLY
-            else -> firstOrNull()?.sku
         }
     }
 }

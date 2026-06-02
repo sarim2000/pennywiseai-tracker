@@ -111,26 +111,26 @@ class PlayBillingGateway @Inject constructor(
 
     override suspend fun launchPurchase(
         activity: Activity,
-        productId: String,
+        product: ProProduct,
     ): PurchaseResult = withContext(Dispatchers.Main) {
         val connect = ensureConnected()
         if (connect !is PurchaseResult.Success) return@withContext connect
 
         // ProductDetails must be fresh per Google's guidance — re-query if
         // we don't have it cached (e.g. paywall opened before refresh).
-        val details = productDetailsMutex.withLock { productDetailsCache[productId] }
+        val details = productDetailsMutex.withLock { productDetailsCache[product.sku] }
             ?: run {
                 queryProductsInternal()
-                productDetailsMutex.withLock { productDetailsCache[productId] }
+                productDetailsMutex.withLock { productDetailsCache[product.sku] }
             }
             ?: return@withContext PurchaseResult.Failed(
                 code = BillingClient.BillingResponseCode.ITEM_UNAVAILABLE,
-                debugMessage = "Product details for $productId unavailable",
+                debugMessage = "Product details for ${product.sku} unavailable",
             )
 
-        val params = buildFlowParams(details) ?: return@withContext PurchaseResult.Failed(
+        val params = buildFlowParams(details, product) ?: return@withContext PurchaseResult.Failed(
             code = BillingClient.BillingResponseCode.DEVELOPER_ERROR,
-            debugMessage = "Could not build BillingFlowParams for $productId",
+            debugMessage = "Could not build BillingFlowParams for ${product.key}",
         )
 
         val launchResult = billingClient.launchBillingFlow(activity, params)
@@ -217,7 +217,9 @@ class PlayBillingGateway @Inject constructor(
             all.forEach { productDetailsCache[it.productId] = it }
         }
 
-        _products.value = all.mapNotNull { it.toProProduct() }
+        // One ProductDetails can expand into multiple ProProducts (sub with
+        // 2 base plans → 2 entries) — flatMap, not map.
+        _products.value = all.flatMap { it.toProProducts() }
     }
 
     private suspend fun queryPurchasesInternal() {
@@ -310,16 +312,24 @@ class PlayBillingGateway @Inject constructor(
     }
 
     /**
-     * Subscriptions need an offer token; one-time products take the bare
-     * ProductDetails. Returns null if we can't determine a valid flow
-     * configuration.
+     * Subscriptions need an offer token matching the user's selected base
+     * plan; one-time products take the bare ProductDetails (Play resolves
+     * which offer to apply automatically based on eligibility). Returns
+     * null if we can't determine a valid flow configuration.
      */
-    private fun buildFlowParams(details: ProductDetails): BillingFlowParams? {
+    private fun buildFlowParams(details: ProductDetails, product: ProProduct): BillingFlowParams? {
         val productParams = when (details.productType) {
             BillingClient.ProductType.SUBS -> {
-                val offerToken = details.subscriptionOfferDetails
-                    ?.firstOrNull()
-                    ?.offerToken
+                // Prefer the offer token the UI explicitly tracked, fall
+                // back to the matching base plan, fall back to the first
+                // available offer. This makes the call survive a stale UI
+                // token (e.g. Play rotated offerTokens between query and
+                // launch).
+                val offerToken = product.offerToken
+                    ?: details.subscriptionOfferDetails
+                        ?.firstOrNull { it.basePlanId == product.basePlanId }
+                        ?.offerToken
+                    ?: details.subscriptionOfferDetails?.firstOrNull()?.offerToken
                     ?: return null
                 BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(details)
@@ -338,39 +348,66 @@ class PlayBillingGateway @Inject constructor(
             .build()
     }
 
-    private fun ProductDetails.toProProduct(): ProProduct? {
+    /**
+     * Expands one [ProductDetails] into the purchasable [ProProduct]s the
+     * paywall renders:
+     *   - Subscriptions return one entry per subscription offer detail
+     *     (typically one per base plan: monthly + annual = 2 entries).
+     *     Each carries its own offer token + base plan ID + cadence type
+     *     derived from the pricing phase's billing period (P1M/P1Y).
+     *   - One-time products return a single entry. When the catalog
+     *     surfaces multiple [oneTimePurchaseOfferDetailsList] offers
+     *     (i.e. a Play Console Discount offer is active), the cheapest is
+     *     the active price and the most expensive becomes the strikethrough
+     *     "original" — so the paywall can render Save ₹N · X% off natively.
+     */
+    private fun ProductDetails.toProProducts(): List<ProProduct> {
         return when (productType) {
             BillingClient.ProductType.SUBS -> {
-                val offer = subscriptionOfferDetails?.firstOrNull() ?: return null
-                val phase = offer.pricingPhases.pricingPhaseList.firstOrNull() ?: return null
-                ProProduct(
-                    sku = productId,
-                    type = if (productId == ProSku.ANNUAL) {
-                        ProProduct.ProductType.SUBSCRIPTION_ANNUAL
-                    } else {
-                        ProProduct.ProductType.SUBSCRIPTION_MONTHLY
-                    },
-                    priceFormatted = phase.formattedPrice,
-                    priceMicros = phase.priceAmountMicros,
-                    currencyCode = phase.priceCurrencyCode,
-                    offerToken = offer.offerToken,
-                )
+                subscriptionOfferDetails.orEmpty().mapNotNull { offer ->
+                    val phase = offer.pricingPhases.pricingPhaseList.firstOrNull() ?: return@mapNotNull null
+                    ProProduct(
+                        sku = productId,
+                        basePlanId = offer.basePlanId,
+                        type = if (phase.billingPeriod.equals("P1Y", ignoreCase = true)) {
+                            ProProduct.ProductType.SUBSCRIPTION_ANNUAL
+                        } else {
+                            ProProduct.ProductType.SUBSCRIPTION_MONTHLY
+                        },
+                        priceFormatted = phase.formattedPrice,
+                        priceMicros = phase.priceAmountMicros,
+                        currencyCode = phase.priceCurrencyCode,
+                        offerToken = offer.offerToken,
+                    )
+                }
             }
             BillingClient.ProductType.INAPP -> {
-                val offer = oneTimePurchaseOfferDetails ?: return null
-                ProProduct(
-                    sku = productId,
-                    type = if (productId == ProSku.LIFETIME_FOUNDER) {
-                        ProProduct.ProductType.LIFETIME_FOUNDER
-                    } else {
-                        ProProduct.ProductType.LIFETIME
-                    },
-                    priceFormatted = offer.formattedPrice,
-                    priceMicros = offer.priceAmountMicros,
-                    currencyCode = offer.priceCurrencyCode,
+                // Billing 9: `oneTimePurchaseOfferDetailsList` carries every
+                // active offer Play resolved for this user (typically just
+                // the base offer; two entries when a Discount offer is
+                // running). The singular getter remains for backward compat
+                // when no Discount is configured; fall back to it.
+                val offers = oneTimePurchaseOfferDetailsList?.takeIf { it.isNotEmpty() }
+                    ?: oneTimePurchaseOfferDetails?.let { listOf(it) }
+                    ?: return emptyList()
+
+                val active = offers.minByOrNull { it.priceAmountMicros } ?: return emptyList()
+                val original = offers.maxByOrNull { it.priceAmountMicros }
+                    ?.takeIf { it.priceAmountMicros > active.priceAmountMicros }
+
+                listOf(
+                    ProProduct(
+                        sku = productId,
+                        type = ProProduct.ProductType.LIFETIME,
+                        priceFormatted = active.formattedPrice,
+                        priceMicros = active.priceAmountMicros,
+                        originalPriceFormatted = original?.formattedPrice,
+                        originalPriceMicros = original?.priceAmountMicros,
+                        currencyCode = active.priceCurrencyCode,
+                    ),
                 )
             }
-            else -> null
+            else -> emptyList()
         }
     }
 

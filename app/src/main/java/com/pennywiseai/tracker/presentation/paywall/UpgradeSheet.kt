@@ -1,10 +1,13 @@
 package com.pennywiseai.tracker.presentation.paywall
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,19 +28,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.CallMerge
-import androidx.compose.material.icons.automirrored.outlined.Rule
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -46,36 +43,45 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.ProSku
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.yellow_dark
+import com.pennywiseai.tracker.ui.theme.yellow_light
 import kotlinx.coroutines.launch
 
 /**
- * The Pro upgrade sheet. Three plan cards (lifetime / annual / monthly),
- * a short feature list, single CTA at the bottom. Material 3 with
- * restrained accent — no rainbow gradients, no emoji-laden hype. The
- * premium feel comes from spacing, type hierarchy, and a single soft
- * gradient over the hero.
+ * PennyWise Pro upgrade sheet.
  *
- * State is hoisted into [UpgradeViewModel]; this composable is a pure
- * renderer + click forwarder. The caller controls visibility via [onDismiss].
+ * Backed by a two-SKU billing model: a single managed `pro_lifetime` product
+ * (carries an optional Play Console Discount offer for time-limited founder
+ * pricing) and a single `pro_subscription` product (carries two base plans,
+ * monthly + annual). The renderer is agnostic to launch-marketing state — the
+ * "is there a discount?" question is answered by [ProProduct.isDiscounted],
+ * which the gateway populates from Play's offer details. Retiring the
+ * founder window is a Play Console toggle, no code change.
+ *
+ * Single-decision layout: one segmented control flips Monthly / Annual /
+ * Lifetime, and one big price block dominates the middle of the sheet. The
+ * strikethrough original price is shown above the active price when (and
+ * only when) Play is returning a discount offer for the selected plan.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +94,6 @@ fun UpgradeSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    // Auto-dismiss when entitlement lands (purchase / restore success).
     LaunchedEffect(state.didBecomePro) {
         if (state.didBecomePro) {
             scope.launch {
@@ -102,18 +107,13 @@ fun UpgradeSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets.navigationBars },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         UpgradeSheetContent(
             state = state,
-            onSelectPlan = viewModel::onSelectPlan,
+            onSelectKey = viewModel::onSelectPlan,
             onPurchase = { activity?.let(viewModel::onPurchase) },
             onRestore = viewModel::onRestore,
-            onClose = {
-                scope.launch {
-                    sheetState.hide()
-                    onDismiss()
-                }
-            },
         )
     }
 }
@@ -121,119 +121,486 @@ fun UpgradeSheet(
 @Composable
 private fun UpgradeSheetContent(
     state: UpgradeUiState,
-    onSelectPlan: (String) -> Unit,
+    onSelectKey: (String) -> Unit,
     onPurchase: () -> Unit,
     onRestore: () -> Unit,
-    onClose: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Spacing.md),
+            .padding(bottom = Spacing.lg),
     ) {
-        CloseHeader(onClose = onClose)
-        HeroSection(isAlreadyEntitled = state.isAlreadyEntitled)
+        BrandHeader(isMember = state.isAlreadyEntitled)
         Spacer(Modifier.height(Spacing.lg))
-        FeatureList()
-        Spacer(Modifier.height(Spacing.xl))
         if (state.isAlreadyEntitled) {
-            // Already-Pro view: status card + manage subscription + restore.
-            // No plan cards (they own it), no Buy CTA (no SKU to sell).
-            ActiveStatusCard()
+            MemberCard()
             Spacer(Modifier.height(Spacing.md))
-            ActiveActions(onRestore = onRestore)
+            ManageRow(onRestore = onRestore)
         } else {
-            PlanList(
-                products = state.products,
-                selectedSku = state.selectedSku,
-                isLoading = state.isLoading,
-                onSelect = onSelectPlan,
-            )
-            Spacer(Modifier.height(Spacing.lg))
-            PurchaseCta(
+            UpgradeBody(
                 state = state,
+                onSelectKey = onSelectKey,
                 onPurchase = onPurchase,
+                onRestore = onRestore,
             )
-            Spacer(Modifier.height(Spacing.md))
-            FooterRow(onRestore = onRestore)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Brand header — yellow icon tile + title row, matches Settings entry
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrandHeader(isMember: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(yellow_light, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = yellow_dark,
+                modifier = Modifier.size(Dimensions.Icon.medium),
+            )
+        }
+        Spacer(Modifier.width(Spacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "PennyWise Pro",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = if (isMember) {
+                    "All Pro capabilities active"
+                } else {
+                    "One tap to unlock everything"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Upgrade variant
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun UpgradeBody(
+    state: UpgradeUiState,
+    onSelectKey: (String) -> Unit,
+    onPurchase: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    val merged = remember(state.products) { mergedPlans(state.products) }
+
+    var activeTier by remember { mutableStateOf(PlanTier.Lifetime) }
+
+    val activeProduct by remember(merged, activeTier) {
+        derivedStateOf { merged.productForTier(activeTier) }
+    }
+
+    LaunchedEffect(activeProduct?.key) {
+        activeProduct?.key?.let(onSelectKey)
+    }
+
+    val monthlyMicros = remember(merged) {
+        merged.find { it.type == ProProduct.ProductType.SUBSCRIPTION_MONTHLY }?.priceMicros
+    }
+
+    PlanSegment(
+        selected = activeTier,
+        onSelect = { activeTier = it },
+    )
+    Spacer(Modifier.height(Spacing.xl))
+
+    PriceStage(
+        product = activeProduct,
+        monthlyMicros = monthlyMicros,
+    )
+    Spacer(Modifier.height(Spacing.lg))
+
+    CtaButton(
+        state = state,
+        selectedPlan = activeProduct,
+        onPurchase = onPurchase,
+    )
+    Spacer(Modifier.height(Spacing.lg))
+
+    IncludesBlock()
+    Spacer(Modifier.height(Spacing.lg))
+
+    TrustRow(
+        liveCatalogEmpty = state.products.isEmpty() && !state.isLoading,
+        onRestore = onRestore,
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Plan segment — 3 tabs in a pill, single source of truth for cadence.
+// ─────────────────────────────────────────────────────────────────────────
+
+private enum class PlanTier(val displayName: String) {
+    Monthly("Monthly"),
+    Annual("Annual"),
+    Lifetime("Lifetime"),
+}
+
+@Composable
+private fun PlanSegment(
+    selected: PlanTier,
+    onSelect: (PlanTier) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                PlanTier.entries.forEach { tier ->
+                    SegmentTab(
+                        tier = tier,
+                        isSelected = tier == selected,
+                        onClick = { onSelect(tier) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun CloseHeader(onClose: () -> Unit) {
-    Row(
+private fun SegmentTab(
+    tier: PlanTier,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val container by animateColorAsState(
+        targetValue = if (isSelected) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 180),
+        label = "tab-bg",
+    )
+    val content by animateColorAsState(
+        targetValue = if (isSelected) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(durationMillis = 180),
+        label = "tab-fg",
+    )
+    Surface(
+        onClick = onClick,
+        color = container,
+        shape = RoundedCornerShape(50),
+        modifier = modifier.heightIn(min = 40.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = tier.displayName,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                color = content,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Price stage — eyebrow, optional strike-through original, big price, deal line.
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PriceStage(
+    product: ProProduct?,
+    monthlyMicros: Long?,
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(end = Spacing.xs, top = Spacing.xs),
-        horizontalArrangement = Arrangement.End,
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        IconButton(onClick = onClose) {
-            Icon(
-                imageVector = Icons.Outlined.Close,
-                contentDescription = "Close",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        Box(modifier = Modifier.heightIn(min = 28.dp), contentAlignment = Alignment.Center) {
+            AnimatedContent(
+                targetState = product?.eyebrowText(),
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
+                label = "eyebrow",
+            ) { eyebrow ->
+                if (eyebrow != null) {
+                    EyebrowChip(
+                        text = eyebrow,
+                        isAccent = product?.isDiscounted == true,
+                    )
+                } else {
+                    Spacer(Modifier.height(28.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(Spacing.md))
+
+        Box(modifier = Modifier.heightIn(min = 20.dp), contentAlignment = Alignment.Center) {
+            AnimatedContent(
+                targetState = product?.originalPriceFormatted,
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(140)) },
+                label = "comparison",
+            ) { original ->
+                if (original != null) {
+                    Text(
+                        text = original,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textDecoration = TextDecoration.LineThrough,
+                    )
+                } else {
+                    Spacer(Modifier.height(20.dp))
+                }
+            }
+        }
+
+        AnimatedContent(
+            targetState = product?.priceFormatted ?: "—",
+            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+            label = "price",
+        ) { price ->
+            Text(
+                text = price,
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(Spacing.xs))
+
+        AnimatedContent(
+            targetState = product?.dealOrCadence(monthlyMicros) ?: ("" to false),
+            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(140)) },
+            label = "deal-cadence",
+        ) { (line, isDeal) ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isDeal) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isDeal) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                textAlign = TextAlign.Center,
             )
         }
     }
 }
 
 /**
- * Hero: subtle vertical gradient (primaryContainer → transparent),
- * single icon chip, two-line type stack. No graphics, no stock art —
- * the typography carries the moment. Subtitle adapts to entitlement —
- * already-Pro users see a confirmation, free users see the value pitch.
+ * Small filled-tonal eyebrow chip. Accent variant uses the gold identity
+ * for active-discount moments; standard uses surfaceContainerLow + primary
+ * for neutral classifiers.
  */
 @Composable
-private fun HeroSection(isAlreadyEntitled: Boolean) {
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-            Color.Transparent,
-        ),
-    )
-    Box(
+private fun EyebrowChip(text: String, isAccent: Boolean) {
+    val container = if (isAccent) yellow_light else MaterialTheme.colorScheme.surfaceContainerLow
+    val content = if (isAccent) yellow_dark else MaterialTheme.colorScheme.primary
+    Surface(
+        color = container,
+        shape = RoundedCornerShape(50),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                letterSpacing = 1.6.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = content,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CTA — primary fill, 56dp tall. Label tracks active plan.
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun CtaButton(
+    state: UpgradeUiState,
+    selectedPlan: ProProduct?,
+    onPurchase: () -> Unit,
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(gradient)
-            .padding(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                top = Spacing.lg,
-                bottom = Spacing.md,
-            ),
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                modifier = Modifier.size(56.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Outlined.AutoAwesome,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
+        Button(
+            onClick = onPurchase,
+            enabled = !state.isPurchasing && selectedPlan != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            contentPadding = PaddingValues(horizontal = Spacing.md),
+        ) {
+            if (state.isPurchasing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.Component.progressIndicatorSize),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Text(
+                    text = selectedPlan?.ctaLabel() ?: "Select a plan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
-            Spacer(Modifier.height(Spacing.md))
+        }
+        AnimatedVisibility(
+            visible = state.errorMessage != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            state.errorMessage?.let { msg ->
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    text = msg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Includes — checklist of unlocked features. Reassures post-decision.
+// ─────────────────────────────────────────────────────────────────────────
+
+private val PRO_FEATURES = listOf(
+    "Unlimited custom rules",
+    "Unlimited PDF statement imports",
+    "Unlimited CSV export",
+    "Merge duplicate accounts",
+)
+
+@Composable
+private fun IncludesBlock() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+    ) {
+        Text(
+            text = "Includes",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(vertical = Spacing.xs),
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        PRO_FEATURES.forEach { feature ->
+            Row(
+                modifier = Modifier.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    text = feature,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Trust row + fallback disclosure
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TrustRow(
+    liveCatalogEmpty: Boolean,
+    onRestore: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "PennyWise Pro",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
+                text = "Cancel anytime",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Dot()
+            Text(
+                text = "On-device data",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Dot()
+            TextButton(
+                onClick = onRestore,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+            ) {
+                Text(
+                    text = "Restore",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+        if (liveCatalogEmpty) {
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                text = if (isAlreadyEntitled) {
-                    "You're a Pro member — thank you!"
-                } else {
-                    "Power features for serious tracking"
-                },
-                style = MaterialTheme.typography.bodyLarge,
+                text = "Prices shown are indicative · Play Store confirms at checkout",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -242,295 +609,51 @@ private fun HeroSection(isAlreadyEntitled: Boolean) {
 }
 
 @Composable
-private fun FeatureList() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        FeatureRow(Icons.AutoMirrored.Outlined.Rule, "Unlimited custom rules")
-        FeatureRow(Icons.Outlined.PictureAsPdf, "Unlimited PDF statement imports")
-        FeatureRow(Icons.Outlined.FileDownload, "Unlimited CSV export")
-        FeatureRow(Icons.AutoMirrored.Outlined.CallMerge, "Merge duplicate accounts")
-    }
+private fun Dot() {
+    Text(
+        text = " · ",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
-@Composable
-private fun FeatureRow(icon: ImageVector, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(Dimensions.Icon.medium),
-        )
-        Spacer(Modifier.width(Spacing.md))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
+// ─────────────────────────────────────────────────────────────────────────
+// Member variant — already entitled. Status block + manage row.
+// ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun PlanList(
-    products: List<ProProduct>,
-    selectedSku: String?,
-    isLoading: Boolean,
-    onSelect: (String) -> Unit,
-) {
-    val ordered = remember(products) { products.orderedForPaywall() }
-    val monthlyMicros = ordered.find { it.sku == ProSku.MONTHLY }?.priceMicros
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        if (isLoading && ordered.isEmpty()) {
-            PlanCardSkeleton()
-            PlanCardSkeleton()
-            PlanCardSkeleton()
-        } else {
-            ordered.forEach { product ->
-                PlanCard(
-                    product = product,
-                    isSelected = product.sku == selectedSku,
-                    monthlyMicros = monthlyMicros,
-                    onClick = { onSelect(product.sku) },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Single plan card. Selected = filled background + 2dp primary outline.
- * Unselected = surfaceContainer (one level of elevation). Big price on the
- * right, cadence below; left side carries the plan name + optional badge.
- */
-@Composable
-private fun PlanCard(
-    product: ProProduct,
-    isSelected: Boolean,
-    monthlyMicros: Long?,
-    onClick: () -> Unit,
-) {
-    val container = if (isSelected) {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
-    }
-    val border = if (isSelected) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        null
-    }
-
+private fun MemberCard() {
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = container,
-        border = border,
-        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(
                 horizontal = Dimensions.Padding.card,
-                vertical = Spacing.md,
+                vertical = Spacing.lg,
             ),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = product.planTitle(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    product.badgeLabel()?.let { label ->
-                        Spacer(Modifier.width(Spacing.sm))
-                        PlanBadge(
-                            label = label,
-                            tone = if (product.type == ProProduct.ProductType.LIFETIME_FOUNDER) {
-                                BadgeTone.Founder
-                            } else {
-                                BadgeTone.Saving
-                            },
-                        )
-                    }
-                }
-                product.cadenceLabel()?.let { cadence ->
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        text = cadence,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                product.savingsLabel(monthlyMicros = monthlyMicros)?.let { savings ->
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        text = savings,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-            Spacer(Modifier.width(Spacing.md))
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = product.priceFormatted,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlanCardSkeleton() {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 76.dp),
-    ) {}
-}
-
-private enum class BadgeTone { Founder, Saving }
-
-@Composable
-private fun PlanBadge(label: String, tone: BadgeTone) {
-    val (bg, fg) = when (tone) {
-        BadgeTone.Founder ->
-            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        BadgeTone.Saving ->
-            MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-    }
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = bg,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = fg,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
-        )
-    }
-}
-
-@Composable
-private fun PurchaseCta(
-    state: UpgradeUiState,
-    onPurchase: () -> Unit,
-) {
-    val selected = state.products.firstOrNull { it.sku == state.selectedSku }
-    val canPurchase = !state.isLoading && !state.isPurchasing && selected != null
-    Button(
-        onClick = onPurchase,
-        enabled = canPurchase,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content)
-            .height(Dimensions.Component.buttonHeight),
-        contentPadding = PaddingValues(horizontal = Spacing.md),
-    ) {
-        if (state.isPurchasing) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(Dimensions.Component.progressIndicatorSize),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        } else {
+            EyebrowChip(text = "ACTIVE", isAccent = true)
+            Spacer(Modifier.height(Spacing.md))
             Text(
-                text = selected?.ctaLabel() ?: "Unlock Pro",
-                style = MaterialTheme.typography.titleSmall,
+                text = "All Pro features unlocked",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-    AnimatedVisibility(
-        visible = state.errorMessage != null,
-        enter = fadeIn(),
-        exit = fadeOut(),
-    ) {
-        state.errorMessage?.let { msg ->
-            Text(
-                text = msg,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
             )
+            Spacer(Modifier.height(Spacing.md))
+            IncludesBlock()
         }
     }
 }
 
-/**
- * Already-Pro variant of the lower content: a single confirmation card with
- * a check glyph. No plans, no Buy CTA. Tone is "thank you," not "upgrade."
- */
 @Composable
-private fun ActiveStatusCard() {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content),
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = Dimensions.Padding.card,
-                vertical = Spacing.md,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Pro is active",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                Text(
-                    text = "All Pro features are unlocked on this account.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
-        }
-    }
-}
-
-/**
- * Quiet row of subscription-management actions for already-Pro users.
- * "Manage subscription" deep-links into Play Store's subscription page;
- * "Restore purchases" forces a fresh entitlement query (covers reinstalls,
- * Google account switches, and the rare case where the Play server lags
- * a few minutes on a refund).
- */
-@Composable
-private fun ActiveActions(onRestore: () -> Unit) {
+private fun ManageRow(onRestore: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     Row(
         modifier = Modifier
@@ -561,7 +684,7 @@ private fun ActiveActions(onRestore: () -> Unit) {
         }
         TextButton(onClick = onRestore) {
             Text(
-                text = "Restore purchases",
+                text = "Restore",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -570,87 +693,111 @@ private fun ActiveActions(onRestore: () -> Unit) {
     }
 }
 
-@Composable
-private fun FooterRow(onRestore: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Cancel anytime · ",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(
-            onClick = onRestore,
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-        ) {
-            Text(
-                text = "Restore purchases",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    }
+// ─────────────────────────────────────────────────────────────────────────
+// Fallback catalog + display extensions
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Static fallback used when the live Play catalog hasn't landed (e.g. dev
+ * emulator with no Play Console setup, or a brief network blip on cold
+ * start). Models the SAME shape Play would return:
+ *   - Lifetime with both an active ₹999 founder offer AND the regular
+ *     ₹1,999 baseline → the renderer shows the strikethrough exactly as
+ *     it would with a real Play Console Discount offer active.
+ *   - Subscription expanded into 2 entries (monthly + annual), each with
+ *     its own basePlanId.
+ *
+ * `offerToken` is null in fallback — if the user taps Purchase before
+ * the live catalog arrives, the gateway raises a meaningful "plans
+ * loading" error, not a dead CTA.
+ */
+private val FALLBACK_CATALOG = listOf(
+    ProProduct(
+        sku = ProSku.LIFETIME,
+        type = ProProduct.ProductType.LIFETIME,
+        priceFormatted = "₹999",
+        priceMicros = 999_000_000L,
+        originalPriceFormatted = "₹1,999",
+        originalPriceMicros = 1_999_000_000L,
+        currencyCode = "INR",
+    ),
+    ProProduct(
+        sku = ProSku.SUBSCRIPTION,
+        basePlanId = ProSku.BASE_PLAN_MONTHLY,
+        type = ProProduct.ProductType.SUBSCRIPTION_MONTHLY,
+        priceFormatted = "₹49",
+        priceMicros = 49_000_000L,
+        currencyCode = "INR",
+    ),
+    ProProduct(
+        sku = ProSku.SUBSCRIPTION,
+        basePlanId = ProSku.BASE_PLAN_ANNUAL,
+        type = ProProduct.ProductType.SUBSCRIPTION_ANNUAL,
+        priceFormatted = "₹399",
+        priceMicros = 399_000_000L,
+        currencyCode = "INR",
+    ),
+)
+
+/**
+ * Live entries win on `key` collision (e.g. `pro_subscription#monthly`),
+ * fallback entries fill any gaps. Result is never empty in practice.
+ */
+private fun mergedPlans(live: List<ProProduct>): List<ProProduct> {
+    val liveKeys = live.map { it.key }.toSet()
+    return live + FALLBACK_CATALOG.filter { it.key !in liveKeys }
 }
 
-// region: ProProduct extensions — display-only labels
-
-private fun List<ProProduct>.orderedForPaywall(): List<ProProduct> {
-    val priority = mapOf(
-        ProSku.LIFETIME_FOUNDER to 0,
-        ProSku.LIFETIME to 1,
-        ProSku.ANNUAL to 2,
-        ProSku.MONTHLY to 3,
-    )
-    return sortedBy { priority[it.sku] ?: Int.MAX_VALUE }
+private fun List<ProProduct>.productForTier(tier: PlanTier): ProProduct? = when (tier) {
+    PlanTier.Monthly -> find { it.type == ProProduct.ProductType.SUBSCRIPTION_MONTHLY }
+    PlanTier.Annual -> find { it.type == ProProduct.ProductType.SUBSCRIPTION_ANNUAL }
+    PlanTier.Lifetime -> find { it.type == ProProduct.ProductType.LIFETIME }
 }
 
-private fun ProProduct.planTitle(): String = when (type) {
-    ProProduct.ProductType.LIFETIME_FOUNDER,
-    ProProduct.ProductType.LIFETIME -> "Lifetime"
-    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> "Annual"
-    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> "Monthly"
-}
-
-private fun ProProduct.cadenceLabel(): String? = when (type) {
-    ProProduct.ProductType.LIFETIME_FOUNDER -> "One-time · keep forever"
-    ProProduct.ProductType.LIFETIME -> "One-time · keep forever"
-    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> "Billed every 12 months"
-    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> "Billed monthly"
-}
-
-private fun ProProduct.badgeLabel(): String? = when (type) {
-    ProProduct.ProductType.LIFETIME_FOUNDER -> "Founder price"
-    ProProduct.ProductType.LIFETIME -> null
-    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> null // savings shown as separate row
-    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> null
+private fun ProProduct.eyebrowText(): String = when (type) {
+    ProProduct.ProductType.LIFETIME -> if (isDiscounted) "FOUNDER OFFER" else "LIFETIME ACCESS"
+    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> if (isDiscounted) "LIMITED OFFER" else "BILLED ANNUALLY"
+    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> if (isDiscounted) "LIMITED OFFER" else "BILLED MONTHLY"
 }
 
 /**
- * "Save 32%" — derived from annual vs monthly × 12. Returns null when the
- * comparison isn't meaningful (this product is monthly, or we don't have
- * monthly to compare against).
+ * Returns (text, isDeal). `isDeal == true` renders in primary + SemiBold,
+ * the "you're saving money" highlight. For lifetime we lead with the rupee
+ * amount saved (Indian shoppers respond to ₹ saved more than to %).
  */
-private fun ProProduct.savingsLabel(monthlyMicros: Long?): String? {
+private fun ProProduct.dealOrCadence(monthlyMicros: Long?): Pair<String, Boolean> = when (type) {
+    ProProduct.ProductType.LIFETIME -> when {
+        isDiscounted -> {
+            val savedMicros = (originalPriceMicros ?: 0L) - priceMicros
+            val savedRupees = (savedMicros / 1_000_000.0).toInt()
+            val pct = ((savedMicros.toDouble() / (originalPriceMicros ?: priceMicros).toDouble()) * 100).toInt()
+            "Save ₹$savedRupees · $pct% off · Pay once, keep forever" to true
+        }
+        else -> "Pay once. Keep forever." to false
+    }
+    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> {
+        val pct = annualSavingsPct(monthlyMicros)
+        val perMo = (priceMicros / 12L / 1_000_000.0).toInt()
+        if (pct != null) {
+            "Save $pct% · works out to ₹$perMo/month" to true
+        } else {
+            "Works out to ₹$perMo/month" to false
+        }
+    }
+    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> "Cancel anytime" to false
+}
+
+private fun ProProduct.ctaLabel(): String = when (type) {
+    ProProduct.ProductType.LIFETIME -> "Get Lifetime · $priceFormatted"
+    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> "Subscribe · $priceFormatted/year"
+    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> "Start · $priceFormatted/month"
+}
+
+private fun ProProduct.annualSavingsPct(monthlyMicros: Long?): Int? {
     if (type != ProProduct.ProductType.SUBSCRIPTION_ANNUAL) return null
     if (monthlyMicros == null || monthlyMicros == 0L) return null
     val twelveMonths = monthlyMicros * 12
     if (twelveMonths <= priceMicros) return null
-    val savedPercent = ((twelveMonths - priceMicros).toDouble() / twelveMonths * 100).toInt()
-    if (savedPercent <= 0) return null
-    return "Save $savedPercent% vs monthly"
+    val saved = ((twelveMonths - priceMicros).toDouble() / twelveMonths * 100).toInt()
+    return saved.takeIf { it > 0 }
 }
-
-private fun ProProduct.ctaLabel(): String = when (type) {
-    ProProduct.ProductType.LIFETIME_FOUNDER -> "Get Lifetime · $priceFormatted"
-    ProProduct.ProductType.LIFETIME -> "Get Lifetime · $priceFormatted"
-    ProProduct.ProductType.SUBSCRIPTION_ANNUAL -> "Subscribe annually · $priceFormatted"
-    ProProduct.ProductType.SUBSCRIPTION_MONTHLY -> "Start monthly · $priceFormatted"
-}
-
-// endregion

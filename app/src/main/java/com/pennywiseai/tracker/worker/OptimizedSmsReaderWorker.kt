@@ -299,8 +299,17 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // months of curation work survive a rescan. Re-parse uses
                     // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
                     // surviving rows are not duplicated. Fixes #401.
+                    //
+                    // Order matters: drop the transactions FIRST, then run the
+                    // companion balance-cleanup which decides orphan-status
+                    // against the now-current transactions table. Without the
+                    // companion, deleteAllBalances() would wipe balance entries
+                    // for the preserved transactions and the re-parse would
+                    // never regenerate them (hash collision short-circuits
+                    // processBalanceUpdate), leaving gaps in the balance
+                    // time-series.
                     transactionRepository.deleteUncuratedTransactions()
-                    accountBalanceRepository.deleteAllBalances()
+                    accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
                 }

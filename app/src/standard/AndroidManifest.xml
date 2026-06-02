@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Standard-flavor manifest fragment.
+
+    The `com.android.vending.BILLING` permission is required for Google Play
+    Console to recognise this APK/AAB as billing-enabled — without it the
+    Console refuses to let you create in-app products and subscriptions.
+    The Billing Library 9 runtime no longer requires the permission at the
+    code level, but the Play Console upload scanner still gates product
+    creation on its presence in the manifest.
+
+    Declared in the standard flavor ONLY: the fdroid build must stay clean
+    of Play-proprietary permission declarations to remain F-Droid-inclusion-
+    eligible. The flavor-specific manifest merges into the main manifest
+    automatically for `standardDebug` / `standardRelease`; F-Droid builds
+    use only `app/src/main/AndroidManifest.xml`.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="com.android.vending.BILLING" />
+
+</manifest>

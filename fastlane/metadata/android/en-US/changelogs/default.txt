@@ -1,8 +1,8 @@
 What's new in v2.15.56
 
-• Income autopay — recurring credits like salary and wallet top-ups auto-track even without an SMS
-• Loans + grouped transactions are now preserved through full SMS rescan
-• Slice Bank — modern UPI transactions classify correctly as expenses
-• Navi Mutual Fund SIP parser
-• Account merge — combine duplicate accounts safely
-• Smaller fixes and polish
+• Income autopay — salary, wallet top-ups & allowances auto-track even without an SMS
+• Loans + grouped transactions preserved through full SMS rescan
+• Bulk-edit transactions, edit/duplicate Smart Rules, self-transfer suggestions
+• Account merge for duplicates
+• Slice UPI + Kotak RCS + SABB salary fixes
+• New parsers: Sampath Bank (Sri Lanka), Standard Bank Mozambique, Navi MF SIP

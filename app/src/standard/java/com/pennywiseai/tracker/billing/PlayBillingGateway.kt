@@ -207,10 +207,27 @@ class PlayBillingGateway @Inject constructor(
         val subResult = billingClient.queryProductDetails(subParams)
         val inappResult = billingClient.queryProductDetails(inappParams)
 
-        val all = buildList {
-            subResult.productDetailsList?.let { addAll(it) }
-            inappResult.productDetailsList?.let { addAll(it) }
+        // Surface non-OK response codes so a misconfigured Play Console
+        // (wrong SKU IDs, inactive products, region restrictions) is
+        // diagnosable from logcat instead of silently producing an empty
+        // catalog. Also log when a requested SKU yields zero ProductDetails
+        // entries — the clearest signal of a Product ID typo against the
+        // values configured in Play Console.
+        subResult.billingResult.takeIf { it.responseCode != BillingClient.BillingResponseCode.OK }?.let {
+            Log.w(TAG, "Subscription query failed: code=${it.responseCode} msg=${it.debugMessage}")
         }
+        inappResult.billingResult.takeIf { it.responseCode != BillingClient.BillingResponseCode.OK }?.let {
+            Log.w(TAG, "In-app query failed: code=${it.responseCode} msg=${it.debugMessage}")
+        }
+
+        val subDetails = subResult.productDetailsList ?: emptyList()
+        val inappDetails = inappResult.productDetailsList ?: emptyList()
+        val fetchedSkus = (subDetails + inappDetails).map { it.productId }.toSet()
+        ProSku.ALL.filterNot { it in fetchedSkus }.forEach {
+            Log.w(TAG, "Play returned no ProductDetails for '$it' — check Play Console product ID + active state")
+        }
+
+        val all = subDetails + inappDetails
 
         productDetailsMutex.withLock {
             productDetailsCache.clear()
@@ -351,10 +368,14 @@ class PlayBillingGateway @Inject constructor(
     /**
      * Expands one [ProductDetails] into the purchasable [ProProduct]s the
      * paywall renders:
-     *   - Subscriptions return one entry per subscription offer detail
-     *     (typically one per base plan: monthly + annual = 2 entries).
-     *     Each carries its own offer token + base plan ID + cadence type
-     *     derived from the pricing phase's billing period (P1M/P1Y).
+     *   - Subscriptions return ONE entry per base plan. Play returns
+     *     `subscriptionOfferDetails` with potentially multiple entries per
+     *     base plan when a promotional offer (free trial, intro price) is
+     *     attached — base offer has `offerId == null`, promo offers have
+     *     an `offerId`. We group by basePlanId and pick the base offer for
+     *     display so the price reads as the recurring rate (not ₹0 from a
+     *     trial phase). Promo offers can be selected via a separate flow
+     *     later if/when we surface "Try free" CTAs.
      *   - One-time products return a single entry. When the catalog
      *     surfaces multiple [oneTimePurchaseOfferDetailsList] offers
      *     (i.e. a Play Console Discount offer is active), the cheapest is
@@ -364,21 +385,37 @@ class PlayBillingGateway @Inject constructor(
     private fun ProductDetails.toProProducts(): List<ProProduct> {
         return when (productType) {
             BillingClient.ProductType.SUBS -> {
-                subscriptionOfferDetails.orEmpty().mapNotNull { offer ->
-                    val phase = offer.pricingPhases.pricingPhaseList.firstOrNull() ?: return@mapNotNull null
-                    ProProduct(
-                        sku = productId,
-                        basePlanId = offer.basePlanId,
-                        type = if (phase.billingPeriod.equals("P1Y", ignoreCase = true)) {
-                            ProProduct.ProductType.SUBSCRIPTION_ANNUAL
-                        } else {
-                            ProProduct.ProductType.SUBSCRIPTION_MONTHLY
-                        },
-                        priceFormatted = phase.formattedPrice,
-                        priceMicros = phase.priceAmountMicros,
-                        currencyCode = phase.priceCurrencyCode,
-                        offerToken = offer.offerToken,
-                    )
+                // Group offers by base plan, pick one canonical offer per
+                // plan for paywall display. Preference order:
+                //   1. The base offer (offerId is null/empty) — recurring rate
+                //   2. The offer whose first pricing phase has the highest
+                //      priceAmountMicros — i.e. NOT a trial / intro
+                //   3. First available, as fallback
+                // This makes the displayed price stable when a promo is
+                // configured AND ensures the displayed price isn't ₹0.
+                subscriptionOfferDetails.orEmpty()
+                    .groupBy { it.basePlanId }
+                    .mapNotNull { (_, offers) ->
+                        val canonical = offers.firstOrNull { it.offerId.isNullOrEmpty() }
+                            ?: offers.maxByOrNull {
+                                it.pricingPhases.pricingPhaseList.firstOrNull()?.priceAmountMicros ?: 0L
+                            }
+                            ?: offers.firstOrNull()
+                            ?: return@mapNotNull null
+                        val phase = canonical.pricingPhases.pricingPhaseList.firstOrNull() ?: return@mapNotNull null
+                        ProProduct(
+                            sku = productId,
+                            basePlanId = canonical.basePlanId,
+                            type = if (phase.billingPeriod.equals("P1Y", ignoreCase = true)) {
+                                ProProduct.ProductType.SUBSCRIPTION_ANNUAL
+                            } else {
+                                ProProduct.ProductType.SUBSCRIPTION_MONTHLY
+                            },
+                            priceFormatted = phase.formattedPrice,
+                            priceMicros = phase.priceAmountMicros,
+                            currencyCode = phase.priceCurrencyCode,
+                            offerToken = canonical.offerToken,
+                        )
                 }
             }
             BillingClient.ProductType.INAPP -> {

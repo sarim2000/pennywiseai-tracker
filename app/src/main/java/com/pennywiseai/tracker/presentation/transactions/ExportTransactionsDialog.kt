@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -37,7 +38,13 @@ fun ExportTransactionsDialog(
     val isProEntitled by viewModel.isProEntitled.collectAsState()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     val csvLimit = com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
-    val exceedsFreeQuota = !isProEntitled && transactions.size > csvLimit
+    // Free users get the FIRST `csvLimit` rows on every export — never a
+    // hard block. The advertised free tier is "first 100 rows," so we
+    // actually deliver them when the selection exceeds the limit. Pro is
+    // unlimited. Truncation is surfaced in the summary card + CTA label so
+    // it's never a silent surprise.
+    val willTruncate = !isProEntitled && transactions.size > csvLimit
+    val transactionsToExport = if (willTruncate) transactions.take(csvLimit) else transactions
     
     Dialog(onDismissRequest = {
         if (exportState !is ExportState.Exporting) {
@@ -129,11 +136,11 @@ fun ExportTransactionsDialog(
                                 // Date range in column layout to prevent wrapping
                                 if (transactions.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
                                     val startDate = transactions.last().dateTime.format(dateFormatter)
                                     val endDate = transactions.first().dateTime.format(dateFormatter)
-                                    
+
                                     Column(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
@@ -149,6 +156,36 @@ fun ExportTransactionsDialog(
                                         )
                                     }
                                 }
+                        }
+
+                        // Free-tier truncation notice. Shown ONLY when we're
+                        // about to truncate; surfaces what the user will
+                        // actually receive and offers a one-tap upgrade.
+                        if (willTruncate) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Free export: first $csvLimit of ${transactions.size} rows",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(
+                                    onClick = { showUpgradeSheet = true },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                ) {
+                                    Text(
+                                        text = "Unlock all",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -241,31 +278,32 @@ fun ExportTransactionsDialog(
                             
                             Button(
                                 onClick = {
-                                    if (exceedsFreeQuota) {
-                                        showUpgradeSheet = true
-                                    } else {
-                                        scope.launch {
-                                            viewModel.exportTransactions(transactions).collect { result ->
-                                                when (result) {
-                                                    is ExportResult.Progress -> {
-                                                        exportState = ExportState.Exporting(
-                                                            progress = result.progress,
-                                                            message = result.message
-                                                        )
-                                                    }
-                                                    is ExportResult.Success -> {
-                                                        exportState = ExportState.Success(
-                                                            uri = result.uri,
-                                                            fileName = result.fileName,
-                                                            transactionCount = result.transactionCount,
-                                                            fileSizeBytes = result.fileSizeBytes
-                                                        )
-                                                    }
-                                                    is ExportResult.Error -> {
-                                                        exportState = ExportState.Error(
-                                                            message = result.message
-                                                        )
-                                                    }
+                                    // Always export the (possibly truncated)
+                                    // list — never hard-block free users.
+                                    // Truncation case still surfaces the
+                                    // paywall via the link beside this
+                                    // button so they can unlock the rest.
+                                    scope.launch {
+                                        viewModel.exportTransactions(transactionsToExport).collect { result ->
+                                            when (result) {
+                                                is ExportResult.Progress -> {
+                                                    exportState = ExportState.Exporting(
+                                                        progress = result.progress,
+                                                        message = result.message
+                                                    )
+                                                }
+                                                is ExportResult.Success -> {
+                                                    exportState = ExportState.Success(
+                                                        uri = result.uri,
+                                                        fileName = result.fileName,
+                                                        transactionCount = result.transactionCount,
+                                                        fileSizeBytes = result.fileSizeBytes
+                                                    )
+                                                }
+                                                is ExportResult.Error -> {
+                                                    exportState = ExportState.Error(
+                                                        message = result.message
+                                                    )
                                                 }
                                             }
                                         }
@@ -273,7 +311,9 @@ fun ExportTransactionsDialog(
                                 },
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text(if (exceedsFreeQuota) "Unlock to export" else "Export")
+                                Text(
+                                    if (willTruncate) "Export first $csvLimit" else "Export"
+                                )
                             }
                         }
                         

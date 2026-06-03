@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
@@ -154,6 +156,35 @@ class SubscriptionsViewModel @Inject constructor(
             subscriptionRepository.deleteSubscription(subscriptionId)
         }
     }
+
+    /**
+     * #412 — user-initiated "mark as paid" (or "mark as received" for
+     * income-direction subscriptions). Creates the transaction + advances
+     * the schedule, then publishes a snackbar message the UI consumes.
+     */
+    fun markAsPaid(subscriptionId: Long, paymentDate: java.time.LocalDate) {
+        viewModelScope.launch {
+            val result = markSubscriptionPaidUseCase.execute(subscriptionId, paymentDate)
+            val merchant = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }?.merchantName
+                ?: "Subscription"
+            val message = when (result) {
+                is MarkSubscriptionPaidUseCase.Result.Created ->
+                    "$merchant marked paid · next cycle on ${result.nextPaymentDate}"
+                is MarkSubscriptionPaidUseCase.Result.AlreadyMarked ->
+                    "$merchant already marked this cycle · advanced to ${result.nextPaymentDate}"
+                MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
+                    "Set a next-payment date on $merchant first"
+                MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
+                    "Couldn't find that subscription"
+            }
+            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+        }
+    }
+
+    /** UI calls this after consuming the snackbar message. */
+    fun clearMarkPaidMessage() {
+        _uiState.value = _uiState.value.copy(markPaidMessage = null)
+    }
 }
 
 data class SubscriptionsUiState(
@@ -165,5 +196,7 @@ data class SubscriptionsUiState(
     val isUnifiedMode: Boolean = false,
     val isLoading: Boolean = true,
     val lastHiddenSubscription: SubscriptionEntity? = null,
-    val lastEndedSubscription: SubscriptionEntity? = null
+    val lastEndedSubscription: SubscriptionEntity? = null,
+    /** Snackbar text after a mark-as-paid action; cleared by [SubscriptionsViewModel.clearMarkPaidMessage]. */
+    val markPaidMessage: String? = null,
 )

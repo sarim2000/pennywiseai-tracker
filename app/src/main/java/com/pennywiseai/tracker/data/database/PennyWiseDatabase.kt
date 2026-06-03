@@ -56,7 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 48
+const val SCHEMA_VERSION = 49
 
 /**
  * The PennyWise Room database.
@@ -466,6 +466,18 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds `last_paid_at` to subscriptions so the UI can show a "Paid"
+         * badge after the user marks a cycle paid, and the use case can
+         * refuse a same-cycle re-tap (#412 follow-up). Nullable — existing
+         * rows have no payment history yet.
+         */
+        val MIGRATION_48_49 = object : Migration(48, 49) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `last_paid_at` TEXT DEFAULT NULL")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -514,6 +526,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_45_46,
             MIGRATION_46_47,
             MIGRATION_47_48,
+            MIGRATION_48_49,
         )
     }
     

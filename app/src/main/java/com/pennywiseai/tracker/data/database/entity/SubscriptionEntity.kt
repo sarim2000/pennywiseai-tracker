@@ -65,7 +65,19 @@ data class SubscriptionEntity(
      * subscription advanced by exactly +30 days regardless of cycle.
      */
     @ColumnInfo(name = "billing_cycle", defaultValue = "Monthly")
-    val billingCycle: String = "Monthly"
+    val billingCycle: String = "Monthly",
+
+    /**
+     * When the user (or auto-pay link) last confirmed this subscription's
+     * cycle was paid. Drives the "Paid" badge on the row so users don't
+     * accidentally re-tap mark-as-paid for the same cycle (#412). The
+     * mark-as-paid use case also reads this to refuse a re-tap in the
+     * same cycle window — without it, a re-tap would create a new
+     * phantom for the (now-future) next cycle and advance the schedule
+     * again. Null when the subscription has never been marked paid.
+     */
+    @ColumnInfo(name = "last_paid_at")
+    val lastPaidAt: LocalDate? = null,
 )
 
 enum class SubscriptionState {

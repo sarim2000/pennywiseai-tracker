@@ -160,6 +160,30 @@ interface TransactionDao {
     // Method to check if transaction exists by hash (including deleted)
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
+
+    /**
+     * Find recent EXPENSE transactions whose merchant matches (case-
+     * insensitive) — used to surface candidate auto-pay charges when the
+     * user opens the mark-as-paid sheet for a subscription (#412). Skips
+     * phantom rows we created ourselves (`subpay-...`, `autopay-...`
+     * transaction hashes) so the user only sees real bank-derived
+     * payments to link against.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE LOWER(merchant_name) = LOWER(:merchant)
+          AND transaction_type = 'EXPENSE'
+          AND is_deleted = 0
+          AND date_time >= :since
+          AND (transaction_hash NOT LIKE 'subpay-%' AND transaction_hash NOT LIKE 'autopay-%')
+        ORDER BY date_time DESC
+        LIMIT :limit
+    """)
+    suspend fun findRecentExpensesByMerchant(
+        merchant: String,
+        since: LocalDateTime,
+        limit: Int = 5,
+    ): List<TransactionEntity>
     
     @Query("""
         SELECT * FROM transactions 

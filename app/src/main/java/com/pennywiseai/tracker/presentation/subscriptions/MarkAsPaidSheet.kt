@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -78,8 +80,10 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun MarkAsPaidSheet(
     subscription: SubscriptionEntity,
+    candidates: List<TransactionEntity> = emptyList(),
     onDismiss: () -> Unit,
     onConfirm: (LocalDate) -> Unit,
+    onLinkExisting: (TransactionEntity) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -99,6 +103,14 @@ fun MarkAsPaidSheet(
 
     val confirmAndDismiss: () -> Unit = {
         onConfirm(selectedDate)
+        scope.launch {
+            sheetState.hide()
+            onDismiss()
+        }
+    }
+
+    val linkAndDismiss: (TransactionEntity) -> Unit = { txn ->
+        onLinkExisting(txn)
         scope.launch {
             sheetState.hide()
             onDismiss()
@@ -168,6 +180,31 @@ fun MarkAsPaidSheet(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(Spacing.lg))
+
+            // Suggested-payment candidates (#412 follow-up). When the
+            // subscription is on auto-pay, the bank SMS already created
+            // EXPENSE rows for the merchant — tap one of these to link
+            // (advances the schedule, no duplicate phantom row created).
+            if (candidates.isNotEmpty()) {
+                Text(
+                    text = if (candidates.size == 1) {
+                        "Found 1 matching payment"
+                    } else {
+                        "Found ${candidates.size} matching payments"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(Spacing.sm))
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    candidates.forEach { txn ->
+                        CandidateCard(txn, onClick = { linkAndDismiss(txn) })
+                    }
+                }
+                Spacer(Modifier.height(Spacing.lg))
+                OrDivider()
+                Spacer(Modifier.height(Spacing.lg))
+            }
 
             // Date selector — chips for the common cases (today, yesterday)
             // + a "Pick date" option that defers to the system date picker.
@@ -245,6 +282,90 @@ fun MarkAsPaidSheet(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+}
+
+/**
+ * One suggested-payment card. Compact row: amount on the left (in expense
+ * tint to mirror the transactions list), merchant + relative date on the
+ * right. Tap = link this transaction as the cycle's payment.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CandidateCard(
+    txn: TransactionEntity,
+    onClick: () -> Unit,
+) {
+    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    androidx.compose.material3.Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(Dimensions.CornerRadius.large),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = Dimensions.Padding.card,
+                vertical = Spacing.md,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = amountColor,
+                )
+                Text(
+                    text = relativeDate(txn.dateTime.toLocalDate()) +
+                        (txn.bankName?.let { " · $it" } ?: ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = "Link this payment",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/** "─── or mark today ───" divider sitting between the candidates list and the date selector. */
+@Composable
+private fun OrDivider() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        androidx.compose.material3.HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+        Text(
+            text = "or mark today",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        androidx.compose.material3.HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+    }
+}
+
+private fun relativeDate(date: LocalDate): String {
+    val today = LocalDate.now()
+    val days = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+    return when {
+        days == 0L -> "Today"
+        days == 1L -> "Yesterday"
+        days in 2..6 -> "$days days ago"
+        else -> date.format(DateTimeFormatter.ofPattern("d MMM"))
     }
 }
 

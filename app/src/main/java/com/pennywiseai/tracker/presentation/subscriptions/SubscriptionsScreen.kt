@@ -66,6 +66,15 @@ fun SubscriptionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     // Subscription currently being marked-as-paid. Null = sheet closed.
     var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    // Suggested-payment candidates resolved when target changes. Empty list
+    // = no recent SMS-derived matches (user falls through to date picker).
+    var markPaidCandidates by remember {
+        mutableStateOf<List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>>(emptyList())
+    }
+    LaunchedEffect(markPaidTarget) {
+        val target = markPaidTarget
+        markPaidCandidates = if (target != null) viewModel.candidatesFor(target.merchantName) else emptyList()
+    }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -274,9 +283,13 @@ fun SubscriptionsScreen(
     markPaidTarget?.let { target ->
         MarkAsPaidSheet(
             subscription = target,
+            candidates = markPaidCandidates,
             onDismiss = { markPaidTarget = null },
             onConfirm = { paymentDate ->
                 viewModel.markAsPaid(target.id, paymentDate)
+            },
+            onLinkExisting = { txn ->
+                viewModel.linkExistingTransaction(target.id, txn.id)
             },
         )
     }
@@ -509,11 +522,16 @@ private fun SwipeableSubscriptionItem(
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                             
+                            // Due-date line — icon + relative-time copy. Single
+                            // line, ellipsised. Previously this row also tried to
+                            // fit the category, which wrapped mid-word
+                            // ("Entert\nainment") whenever the right column was
+                            // wide enough to be visible.
+                            Spacer(modifier = Modifier.height(2.dp))
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // SMS indicator if available
                                 if (!subscription.smsBody.isNullOrBlank()) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
@@ -523,33 +541,29 @@ private fun SwipeableSubscriptionItem(
                                     )
                                 }
 
-                                // Calculate the actual next payment date
                                 val today = LocalDate.now()
                                 val subscriptionDate = subscription.nextPaymentDate
-                                
-                                // Handle null date
                                 if (subscriptionDate == null) {
                                     Text(
-                                        text = "• No date set",
+                                        text = "No date set",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    // If the stored date is in the past, calculate the next occurrence
                                     var nextPaymentDate: LocalDate = subscriptionDate
                                     while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
                                         nextPaymentDate = nextPaymentDate.plusMonths(1)
                                     }
-                                    
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
-                                
+
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    
                                     Text(
                                         text = when {
                                             daysUntilNext == 0L -> "Due today"
@@ -563,17 +577,24 @@ private fun SwipeableSubscriptionItem(
                                         color = when {
                                             daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
+                                        },
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 }
-                                
-                                subscription.category?.let { category ->
-                                    Text(
-                                        text = "• $category",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                            }
+
+                            // Category — its own line. No bullet, no row
+                            // sharing. Wraps if very long but won't break
+                            // mid-word against a narrow column.
+                            subscription.category?.let { category ->
+                                Text(
+                                    text = category,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
                             }
                         }
                         

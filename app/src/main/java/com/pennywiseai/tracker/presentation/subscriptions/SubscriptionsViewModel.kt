@@ -23,6 +23,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
@@ -170,6 +171,8 @@ class SubscriptionsViewModel @Inject constructor(
             val message = when (result) {
                 is MarkSubscriptionPaidUseCase.Result.Created ->
                     "$merchant marked paid · next cycle on ${result.nextPaymentDate}"
+                is MarkSubscriptionPaidUseCase.Result.Linked ->
+                    "$merchant linked · next cycle on ${result.nextPaymentDate}"
                 is MarkSubscriptionPaidUseCase.Result.AlreadyMarked ->
                     "$merchant already marked this cycle · advanced to ${result.nextPaymentDate}"
                 MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
@@ -184,6 +187,42 @@ class SubscriptionsViewModel @Inject constructor(
     /** UI calls this after consuming the snackbar message. */
     fun clearMarkPaidMessage() {
         _uiState.value = _uiState.value.copy(markPaidMessage = null)
+    }
+
+    /**
+     * Suggested-payment candidates for the mark-as-paid sheet (#412
+     * follow-up). When an EXPENSE subscription is on auto-pay, the bank
+     * SMS already created a transaction — we surface those here so the
+     * user can link instead of creating a duplicate phantom.
+     *
+     * Match window: last 30 days, exact (case-insensitive) merchant match,
+     * EXPENSE only, excluding phantoms we've already created.
+     */
+    suspend fun candidatesFor(merchant: String): List<com.pennywiseai.tracker.data.database.entity.TransactionEntity> {
+        val cutoff = java.time.LocalDate.now().minusDays(30).atStartOfDay()
+        return transactionRepository.findRecentExpensesByMerchant(merchant, cutoff, limit = 5)
+    }
+
+    /**
+     * Link an existing bank-derived transaction as this subscription's
+     * current-cycle payment. Advances the schedule; doesn't duplicate.
+     */
+    fun linkExistingTransaction(subscriptionId: Long, transactionId: Long) {
+        viewModelScope.launch {
+            val result = markSubscriptionPaidUseCase.linkExisting(subscriptionId, transactionId)
+            val merchant = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }?.merchantName
+                ?: "Subscription"
+            val message = when (result) {
+                is MarkSubscriptionPaidUseCase.Result.Linked ->
+                    "$merchant linked to existing payment · next cycle on ${result.nextPaymentDate}"
+                MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
+                    "Set a next-payment date on $merchant first"
+                MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
+                    "Couldn't find that subscription"
+                else -> "Linked"
+            }
+            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+        }
     }
 }
 

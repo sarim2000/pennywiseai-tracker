@@ -48,6 +48,13 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
 
     sealed class Result {
         data class Created(val transactionId: Long, val nextPaymentDate: LocalDate) : Result()
+        /**
+         * User linked an existing bank-derived transaction to this cycle.
+         * No new phantom row inserted; schedule advanced. The linked
+         * transaction stays as-is so anything else (split, recategorise,
+         * delete) still works on it.
+         */
+        data class Linked(val transactionId: Long, val nextPaymentDate: LocalDate) : Result()
         data class AlreadyMarked(val nextPaymentDate: LocalDate) : Result()
         data object SubscriptionNotFound : Result()
         data object NoScheduledDate : Result()
@@ -110,6 +117,29 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             // the same instant). Treat as already-marked — schedule advanced.
             Result.AlreadyMarked(nextDate)
         }
+    }
+
+    /**
+     * Link an existing bank-derived transaction to this subscription's
+     * current cycle — used when an auto-pay charge already arrived via
+     * SMS and the user wants to acknowledge it as the cycle payment
+     * (avoiding a duplicate phantom row). Advances `nextPaymentDate` by
+     * the billing cycle; does NOT mutate the linked transaction itself.
+     */
+    suspend fun linkExisting(subscriptionId: Long, transactionId: Long): Result {
+        val sub = subscriptionRepository.getSubscriptionById(subscriptionId)
+            ?: return Result.SubscriptionNotFound
+        val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
+
+        val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
+        subscriptionRepository.updateNextPaymentDate(sub.id, nextDate)
+
+        Log.i(
+            TAG,
+            "Linked existing txn=$transactionId to sub=${sub.id} ${sub.merchantName} " +
+                "→ nextPaymentDate=$nextDate (no new transaction created)",
+        )
+        return Result.Linked(transactionId = transactionId, nextPaymentDate = nextDate)
     }
 
     private companion object {

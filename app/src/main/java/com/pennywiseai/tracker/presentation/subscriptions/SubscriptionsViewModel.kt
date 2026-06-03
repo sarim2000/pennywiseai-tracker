@@ -77,8 +77,31 @@ class SubscriptionsViewModel @Inject constructor(
                     emptyMap()
                 }
 
+                // Order the active list so "needs attention" rises to the
+                // top: unpaid-this-cycle subs first (sorted by next-payment
+                // date ascending, nulls last), recently-paid subs at the
+                // bottom (sorted by last-paid descending). Reduces the
+                // visual hunt for what still needs the user's attention.
+                val cycleStart: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> java.time.LocalDate? = { sub ->
+                    sub.nextPaymentDate?.let { next ->
+                        subscriptionRepository.advance(next, sub.billingCycle, reverse = true)
+                    }
+                }
+                val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
+                    val anchor = sub.nextPaymentDate
+                    val start = cycleStart(sub)
+                    val paid = sub.lastPaidAt
+                    paid != null && anchor != null && start != null &&
+                        !paid.isBefore(start) && !paid.isAfter(anchor)
+                }
+                val (paid, unpaid) = subscriptions.partition(isPaidThisCycle)
+                val ordered = unpaid.sortedWith(
+                    compareBy(nullsLast()) { it.nextPaymentDate },
+                ) + paid.sortedByDescending { it.lastPaidAt }
+
                 _uiState.value = _uiState.value.copy(
-                    activeSubscriptions = subscriptions,
+                    activeSubscriptions = ordered,
+                    paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
                     convertedAmounts = convertedAmounts,
@@ -237,6 +260,8 @@ class SubscriptionsViewModel @Inject constructor(
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),
+    /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
+    val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
     val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,
     val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),

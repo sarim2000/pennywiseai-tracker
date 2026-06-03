@@ -79,6 +79,13 @@ class UserPreferencesRepository @Inject constructor(
         // Feature discovery
         val HAS_USED_FULL_RESYNC = booleanPreferencesKey("has_used_full_resync")
 
+        // Pro tier — UI-cached entitlement to avoid first-frame flicker
+        // while the BillingClient connects.
+        val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
+
+        // Pro tier — statement-import monthly quota tracking.
+        val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
+
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
 
@@ -476,6 +483,33 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun markFullResyncUsed() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] = true
+        }
+    }
+
+    // Pro tier — UI-cached entitlement so first frame after cold start
+    // doesn't flicker `false → true` while BillingClient connects. Real
+    // source of truth is Play; this is a hint only.
+    val proCachedIsPro: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PRO_CACHED_IS_PRO] ?: false }
+
+    suspend fun setProCachedIsPro(isPro: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
+        }
+    }
+
+    /**
+     * Epoch-millis of the last successful PDF statement import, or null if
+     * the user has never imported. Consumed by the statement-import gate —
+     * free users get one import per calendar month, so this single
+     * timestamp is enough (no per-month counter needed since the limit is 1).
+     */
+    val lastStatementImportAt: Flow<Long?> = context.dataStore.data
+        .map { it[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] }
+
+    suspend fun markStatementImported(epochMillis: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] = epochMillis
         }
     }
 

@@ -1,0 +1,478 @@
+package com.pennywiseai.tracker.billing
+
+import android.app.Activity
+import android.content.Context
+import android.util.Log
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
+import com.android.billingclient.api.queryProductDetails
+import com.android.billingclient.api.queryPurchasesAsync
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.di.ApplicationScope
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.coroutines.resume
+
+/**
+ * Google Play Billing 9 implementation. Single [BillingClient] instance per
+ * process (Google's docs are strict about this — multiple clients cause
+ * duplicate callbacks).
+ *
+ * Threading: all suspend functions hop to [Dispatchers.IO] before touching
+ * BillingClient. StateFlow emissions are thread-safe via MutableStateFlow.
+ *
+ * Lifecycle: the client is started lazily on first read. We don't bind to
+ * Activity / lifecycle here — the whole API is process-scoped and the
+ * `enableAutoServiceReconnection()` flag (added in Billing v8) handles
+ * transient disconnects without ceremony.
+ *
+ * Pro UX: on construction we publish the cached `isPro` from DataStore
+ * immediately so the first frame after cold start doesn't flicker
+ * `false → true`. The real value lands once the first
+ * `queryPurchasesAsync` resolves.
+ */
+@Singleton
+class PlayBillingGateway @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val preferences: UserPreferencesRepository,
+    @ApplicationScope private val applicationScope: CoroutineScope,
+) : PurchaseGateway {
+
+    private val _isPro = MutableStateFlow(false)
+    override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
+
+    private val _products = MutableStateFlow<List<ProProduct>>(emptyList())
+    override val products: StateFlow<List<ProProduct>> = _products.asStateFlow()
+
+    /** Cached `ProductDetails` keyed by SKU. Required to launch a purchase. */
+    private val productDetailsCache = mutableMapOf<String, ProductDetails>()
+    private val productDetailsMutex = Mutex()
+
+    private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->
+        applicationScope.launch {
+            handlePurchasesUpdated(result, purchases)
+        }
+    }
+
+    private val billingClient: BillingClient = BillingClient.newBuilder(context)
+        .setListener(purchasesUpdatedListener)
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build(),
+        )
+        .enableAutoServiceReconnection()
+        .build()
+
+    private val connectionMutex = Mutex()
+
+    init {
+        // Hydrate the cached `isPro` so UI doesn't flicker on cold start.
+        // Genuine verification follows when `refresh()` lands.
+        applicationScope.launch {
+            _isPro.value = preferences.proCachedIsPro.first()
+        }
+    }
+
+    override suspend fun refresh(): PurchaseResult = withContext(Dispatchers.IO) {
+        when (val connect = ensureConnected()) {
+            is PurchaseResult.Success -> {
+                // Refresh both halves of state in parallel — products for the
+                // paywall, purchases for the entitlement flag.
+                queryProductsInternal()
+                queryPurchasesInternal()
+                PurchaseResult.Success
+            }
+            else -> connect
+        }
+    }
+
+    override suspend fun launchPurchase(
+        activity: Activity,
+        product: ProProduct,
+    ): PurchaseResult = withContext(Dispatchers.Main) {
+        val connect = ensureConnected()
+        if (connect !is PurchaseResult.Success) return@withContext connect
+
+        // ProductDetails must be fresh per Google's guidance — re-query if
+        // we don't have it cached (e.g. paywall opened before refresh).
+        val details = productDetailsMutex.withLock { productDetailsCache[product.sku] }
+            ?: run {
+                queryProductsInternal()
+                productDetailsMutex.withLock { productDetailsCache[product.sku] }
+            }
+            ?: return@withContext PurchaseResult.Failed(
+                code = BillingClient.BillingResponseCode.ITEM_UNAVAILABLE,
+                debugMessage = "Product details for ${product.sku} unavailable",
+            )
+
+        val params = buildFlowParams(details, product) ?: return@withContext PurchaseResult.Failed(
+            code = BillingClient.BillingResponseCode.DEVELOPER_ERROR,
+            debugMessage = "Could not build BillingFlowParams for ${product.key}",
+        )
+
+        val launchResult = billingClient.launchBillingFlow(activity, params)
+        when (launchResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> PurchaseResult.Success
+            BillingClient.BillingResponseCode.USER_CANCELED -> PurchaseResult.UserCancelled
+            else -> PurchaseResult.Failed(launchResult.responseCode, launchResult.debugMessage)
+        }
+    }
+
+    // region: connection
+
+    /**
+     * Awaits a ready BillingClient. Cheap on subsequent calls — the client
+     * tracks its own state and `startConnection` is a no-op when already
+     * connected.
+     */
+    private suspend fun ensureConnected(): PurchaseResult = connectionMutex.withLock {
+        if (billingClient.isReady) return@withLock PurchaseResult.Success
+
+        suspendCancellableCoroutine<PurchaseResult> { cont ->
+            billingClient.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    if (!cont.isActive) return
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        cont.resume(PurchaseResult.Success)
+                    } else {
+                        cont.resume(
+                            PurchaseResult.ServiceUnavailable(
+                                billingResult.responseCode,
+                                billingResult.debugMessage,
+                            ),
+                        )
+                    }
+                }
+
+                override fun onBillingServiceDisconnected() {
+                    // No-op: enableAutoServiceReconnection() means the
+                    // library reconnects on the next API call. The original
+                    // suspendCancellableCoroutine already resumed (or not),
+                    // and subsequent operations will re-enter ensureConnected.
+                }
+            })
+        }
+    }
+
+    // endregion
+
+    // region: query
+
+    private suspend fun queryProductsInternal() {
+        val subParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                ProSku.SUBSCRIPTIONS.map { sku ->
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(sku)
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build()
+                },
+            )
+            .build()
+
+        val inappParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                ProSku.ONE_TIME.map { sku ->
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(sku)
+                        .setProductType(BillingClient.ProductType.INAPP)
+                        .build()
+                },
+            )
+            .build()
+
+        val subResult = billingClient.queryProductDetails(subParams)
+        val inappResult = billingClient.queryProductDetails(inappParams)
+
+        // Surface non-OK response codes so a misconfigured Play Console
+        // (wrong SKU IDs, inactive products, region restrictions) is
+        // diagnosable from logcat instead of silently producing an empty
+        // catalog. Also log when a requested SKU yields zero ProductDetails
+        // entries — the clearest signal of a Product ID typo against the
+        // values configured in Play Console.
+        subResult.billingResult.takeIf { it.responseCode != BillingClient.BillingResponseCode.OK }?.let {
+            Log.w(TAG, "Subscription query failed: code=${it.responseCode} msg=${it.debugMessage}")
+        }
+        inappResult.billingResult.takeIf { it.responseCode != BillingClient.BillingResponseCode.OK }?.let {
+            Log.w(TAG, "In-app query failed: code=${it.responseCode} msg=${it.debugMessage}")
+        }
+
+        val subDetails = subResult.productDetailsList ?: emptyList()
+        val inappDetails = inappResult.productDetailsList ?: emptyList()
+        val fetchedSkus = (subDetails + inappDetails).map { it.productId }.toSet()
+        ProSku.ALL.filterNot { it in fetchedSkus }.forEach {
+            Log.w(TAG, "Play returned no ProductDetails for '$it' — check Play Console product ID + active state")
+        }
+
+        val all = subDetails + inappDetails
+
+        productDetailsMutex.withLock {
+            productDetailsCache.clear()
+            all.forEach { productDetailsCache[it.productId] = it }
+        }
+
+        // One ProductDetails can expand into multiple ProProducts (sub with
+        // 2 base plans → 2 entries) — flatMap, not map.
+        _products.value = all.flatMap { it.toProProducts() }
+    }
+
+    private suspend fun queryPurchasesInternal() {
+        val subPurchases = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build(),
+        )
+        val inappPurchases = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build(),
+        )
+
+        // CRITICAL: never demote a Pro user based on a failed query.
+        // A transient SERVICE_UNAVAILABLE / NETWORK_ERROR returns an
+        // empty purchasesList, which without this guard would write
+        // `isPro = false` to the DataStore cache — meaning a genuine
+        // Pro user with a brief network blip during refresh() would
+        // see the free tier on the next cold start. Bail on non-OK and
+        // keep whatever the cached entitlement currently is; the next
+        // successful query (cold start + connectivity, or a Restore tap)
+        // will reconcile.
+        //
+        // Trade-off: a refunded/revoked user keeps Pro a little longer
+        // when their network is flaky. That's the right side to err on
+        // — false positives (briefly seeing Pro after revoke) are far
+        // less harmful than false negatives (briefly losing Pro after
+        // a blip).
+        val subOk = subPurchases.billingResult.responseCode == BillingClient.BillingResponseCode.OK
+        val inappOk = inappPurchases.billingResult.responseCode == BillingClient.BillingResponseCode.OK
+        if (!subOk || !inappOk) {
+            Log.w(
+                TAG,
+                "queryPurchases failed (sub=${subPurchases.billingResult.responseCode}, " +
+                    "inapp=${inappPurchases.billingResult.responseCode}). " +
+                    "Keeping cached entitlement.",
+            )
+            return
+        }
+
+        val allPurchases = subPurchases.purchasesList + inappPurchases.purchasesList
+
+        // Acknowledge any purchased-but-unacked entitlement. Failing to
+        // acknowledge within 3 days auto-refunds — we ack as soon as we see
+        // a purchase, even if we discovered it via a restore-purchases flow.
+        allPurchases
+            .filter {
+                it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged
+            }
+            .forEach { acknowledgePurchase(it) }
+
+        val ownsActiveProSku = allPurchases.any { purchase ->
+            purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                purchase.products.any { it in ProSku.ALL }
+        }
+
+        updateProState(ownsActiveProSku)
+    }
+
+    // endregion
+
+    // region: purchase update handler
+
+    private suspend fun handlePurchasesUpdated(
+        result: BillingResult,
+        purchases: List<Purchase>?,
+    ) {
+        when (result.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                purchases?.forEach { purchase ->
+                    when (purchase.purchaseState) {
+                        Purchase.PurchaseState.PURCHASED -> {
+                            if (!purchase.isAcknowledged) acknowledgePurchase(purchase)
+                            if (purchase.products.any { it in ProSku.ALL }) {
+                                updateProState(true)
+                            }
+                        }
+                        Purchase.PurchaseState.PENDING -> {
+                            // Out-of-band payment (UPI Collect, cash). Do
+                            // NOT grant entitlement yet. Play will fire a
+                            // fresh update when the payment completes.
+                            Log.i(TAG, "Pending purchase: ${purchase.products}")
+                        }
+                    }
+                }
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> Unit // expected
+            else -> Log.w(
+                TAG,
+                "Purchase update failed: code=${result.responseCode} msg=${result.debugMessage}",
+            )
+        }
+    }
+
+    private suspend fun acknowledgePurchase(purchase: Purchase) {
+        val params = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        val result = billingClient.acknowledgePurchase(params)
+        if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+            Log.w(
+                TAG,
+                "Acknowledge failed: code=${result.responseCode} msg=${result.debugMessage}",
+            )
+        }
+    }
+
+    // endregion
+
+    private suspend fun updateProState(isPro: Boolean) {
+        _isPro.value = isPro
+        preferences.setProCachedIsPro(isPro)
+    }
+
+    /**
+     * Subscriptions need an offer token matching the user's selected base
+     * plan; one-time products take the bare ProductDetails (Play resolves
+     * which offer to apply automatically based on eligibility). Returns
+     * null if we can't determine a valid flow configuration.
+     */
+    private fun buildFlowParams(details: ProductDetails, product: ProProduct): BillingFlowParams? {
+        val productParams = when (details.productType) {
+            BillingClient.ProductType.SUBS -> {
+                // Prefer the offer token the UI explicitly tracked, fall
+                // back to the matching base plan, fall back to the first
+                // available offer. This makes the call survive a stale UI
+                // token (e.g. Play rotated offerTokens between query and
+                // launch).
+                val offerToken = product.offerToken
+                    ?: details.subscriptionOfferDetails
+                        ?.firstOrNull { it.basePlanId == product.basePlanId }
+                        ?.offerToken
+                    ?: details.subscriptionOfferDetails?.firstOrNull()?.offerToken
+                    ?: return null
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(details)
+                    .setOfferToken(offerToken)
+                    .build()
+            }
+            BillingClient.ProductType.INAPP -> {
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(details)
+                    .build()
+            }
+            else -> return null
+        }
+        return BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(productParams))
+            .build()
+    }
+
+    /**
+     * Expands one [ProductDetails] into the purchasable [ProProduct]s the
+     * paywall renders:
+     *   - Subscriptions return ONE entry per base plan. Play returns
+     *     `subscriptionOfferDetails` with potentially multiple entries per
+     *     base plan when a promotional offer (free trial, intro price) is
+     *     attached — base offer has `offerId == null`, promo offers have
+     *     an `offerId`. We group by basePlanId and pick the base offer for
+     *     display so the price reads as the recurring rate (not ₹0 from a
+     *     trial phase). Promo offers can be selected via a separate flow
+     *     later if/when we surface "Try free" CTAs.
+     *   - One-time products return a single entry. When the catalog
+     *     surfaces multiple [oneTimePurchaseOfferDetailsList] offers
+     *     (i.e. a Play Console Discount offer is active), the cheapest is
+     *     the active price and the most expensive becomes the strikethrough
+     *     "original" — so the paywall can render Save ₹N · X% off natively.
+     */
+    private fun ProductDetails.toProProducts(): List<ProProduct> {
+        return when (productType) {
+            BillingClient.ProductType.SUBS -> {
+                // Group offers by base plan, pick one canonical offer per
+                // plan for paywall display. Preference order:
+                //   1. The base offer (offerId is null/empty) — recurring rate
+                //   2. The offer whose first pricing phase has the highest
+                //      priceAmountMicros — i.e. NOT a trial / intro
+                //   3. First available, as fallback
+                // This makes the displayed price stable when a promo is
+                // configured AND ensures the displayed price isn't ₹0.
+                subscriptionOfferDetails.orEmpty()
+                    .groupBy { it.basePlanId }
+                    .mapNotNull { (_, offers) ->
+                        val canonical = offers.firstOrNull { it.offerId.isNullOrEmpty() }
+                            ?: offers.maxByOrNull {
+                                it.pricingPhases.pricingPhaseList.firstOrNull()?.priceAmountMicros ?: 0L
+                            }
+                            ?: offers.firstOrNull()
+                            ?: return@mapNotNull null
+                        val phase = canonical.pricingPhases.pricingPhaseList.firstOrNull() ?: return@mapNotNull null
+                        ProProduct(
+                            sku = productId,
+                            basePlanId = canonical.basePlanId,
+                            type = if (phase.billingPeriod.equals("P1Y", ignoreCase = true)) {
+                                ProProduct.ProductType.SUBSCRIPTION_ANNUAL
+                            } else {
+                                ProProduct.ProductType.SUBSCRIPTION_MONTHLY
+                            },
+                            priceFormatted = phase.formattedPrice,
+                            priceMicros = phase.priceAmountMicros,
+                            currencyCode = phase.priceCurrencyCode,
+                            offerToken = canonical.offerToken,
+                        )
+                }
+            }
+            BillingClient.ProductType.INAPP -> {
+                // Billing 9: `oneTimePurchaseOfferDetailsList` carries every
+                // active offer Play resolved for this user (typically just
+                // the base offer; two entries when a Discount offer is
+                // running). The singular getter remains for backward compat
+                // when no Discount is configured; fall back to it.
+                val offers = oneTimePurchaseOfferDetailsList?.takeIf { it.isNotEmpty() }
+                    ?: oneTimePurchaseOfferDetails?.let { listOf(it) }
+                    ?: return emptyList()
+
+                val active = offers.minByOrNull { it.priceAmountMicros } ?: return emptyList()
+                val original = offers.maxByOrNull { it.priceAmountMicros }
+                    ?.takeIf { it.priceAmountMicros > active.priceAmountMicros }
+
+                listOf(
+                    ProProduct(
+                        sku = productId,
+                        type = ProProduct.ProductType.LIFETIME,
+                        priceFormatted = active.formattedPrice,
+                        priceMicros = active.priceAmountMicros,
+                        originalPriceFormatted = original?.formattedPrice,
+                        originalPriceMicros = original?.priceAmountMicros,
+                        currencyCode = active.priceCurrencyCode,
+                    ),
+                )
+            }
+            else -> emptyList()
+        }
+    }
+
+    private companion object {
+        const val TAG = "PlayBillingGateway"
+    }
+}

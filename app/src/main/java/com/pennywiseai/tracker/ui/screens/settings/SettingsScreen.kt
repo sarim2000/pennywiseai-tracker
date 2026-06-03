@@ -107,6 +107,8 @@ fun SettingsScreen(
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
+    val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
     // Launches the runtime permission request. If granted, we flip the
     // preference on; if denied, leave the switch off so the user can try
     // again without us silently turning the feature on later.
@@ -180,6 +182,28 @@ fun SettingsScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            // ── PennyWise Pro ──
+            // Top of Settings on purpose: highest-discoverability slot for
+            // the upgrade entry. Row content adapts to entitlement state —
+            // paid users see "Active" so the row reads as status, free
+            // users see "Upgrade" so it reads as a call-to-action.
+            SectionHeaderV2(title = "PennyWise Pro")
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.AutoAwesome,
+                    iconBgColor = yellow_light,
+                    iconTint = yellow_dark,
+                    title = if (isProEntitled) "PennyWise Pro" else "Upgrade to PennyWise Pro",
+                    subtitle = if (isProEntitled) {
+                        "Active · all power features unlocked"
+                    } else {
+                        "Unlimited rules, statements, exports, and more"
+                    },
+                    onClick = { showUpgradeSheet = true },
+                    position = ItemPosition.SINGLE,
+                )
+            }
+
             // ── Personalization ──
             SectionHeaderV2(title = "Personalization")
             SettingsGroup {
@@ -770,6 +794,12 @@ fun SettingsScreen(
                     Text("Done")
                 }
             }
+        )
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
         )
     }
 }

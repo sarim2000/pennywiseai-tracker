@@ -22,6 +22,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var appLockRepository: AppLockRepository
 
+    @Inject
+    lateinit var purchaseGateway: com.pennywiseai.tracker.billing.PurchaseGateway
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -42,6 +45,18 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+
+        // Initial billing-entitlement sync. No-op on F-Droid (the stub
+        // gateway returns immediately). Failure here is non-fatal — the
+        // cached entitlement (DataStore) keeps the UI consistent until
+        // the next attempt.
+        applicationScope.launch {
+            try {
+                purchaseGateway.refresh()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
     }
 
     /**

@@ -59,6 +59,8 @@ fun ManageAccountsScreen(
     // Account merge (#368) — single screen-level entry point; the sheet handles
     // source + target selection + confirmation in one self-contained flow.
     var showMergeSheet by remember { mutableStateOf(false) }
+    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -81,8 +83,13 @@ fun ManageAccountsScreen(
                 },
                 actionContent = {
                     // Show Merge only when there are at least 2 accounts to choose between.
+                    // Pro-only feature — free users see the icon (so the feature is
+                    // discoverable) but the tap routes to the paywall instead.
                     if (uiState.accounts.size >= 2) {
-                        IconButton(onClick = { showMergeSheet = true }) {
+                        IconButton(onClick = {
+                            if (isProEntitled) showMergeSheet = true
+                            else showUpgradeSheet = true
+                        }) {
                             Icon(Icons.Default.Merge, contentDescription = "Merge accounts")
                         }
                     }
@@ -551,6 +558,12 @@ fun ManageAccountsScreen(
                 showMergeSheet = false
             },
             onDismiss = { showMergeSheet = false }
+        )
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
         )
     }
 }

@@ -21,8 +21,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 94
-        versionName = "2.15.56"
+        versionCode = 95
+        versionName = "2.15.58"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -300,5 +300,11 @@ dependencies {
 
     // PDFBox Android for PDF statement parsing
     implementation(libs.pdfbox.android)
+
+    // Google Play Billing — STANDARD FLAVOR ONLY. F-Droid forbids the
+    // proprietary library; its build keeps Pro features unlocked via the
+    // FdroidBillingGateway stub and does not need the dep.
+    "standardImplementation"(libs.billing.ktx)
+
     testImplementation(kotlin("test"))
 }

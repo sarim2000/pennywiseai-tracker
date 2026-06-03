@@ -192,6 +192,7 @@ fun SubscriptionsScreen(
                     TotalSubscriptionsSummary(
                         totalAmount = uiState.totalMonthlyAmount,
                         activeCount = uiState.activeSubscriptions.size,
+                        paidThisCycleCount = uiState.paidThisCycleCount,
                         currency = uiState.displayCurrency
                     )
                 }
@@ -407,9 +408,22 @@ private fun EndedSubscriptionItem(
 private fun TotalSubscriptionsSummary(
     totalAmount: BigDecimal,
     activeCount: Int,
+    paidThisCycleCount: Int = 0,
     currency: String? = null
 ) {
     val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
+    val pluralActive = if (activeCount != 1) "s" else ""
+
+    // Subtitle shape:
+    //   no paid yet  → "5 active subscriptions"
+    //   some paid    → "3 of 5 paid this cycle"
+    //   all paid     → "All 5 paid this cycle ✓"
+    val subtitle = when {
+        activeCount == 0 -> "No active subscriptions"
+        paidThisCycleCount == 0 -> "$activeCount active subscription$pluralActive"
+        paidThisCycleCount == activeCount -> "All $activeCount paid this cycle"
+        else -> "$paidThisCycleCount of $activeCount paid this cycle"
+    }
 
     SummaryCardV2(
         title = "Monthly Subscriptions",
@@ -418,7 +432,7 @@ private fun TotalSubscriptionsSummary(
         } else {
             totalAmount.toPlainString()
         },
-        subtitle = "$activeCount active subscription${if (activeCount != 1) "s" else ""}",
+        subtitle = subtitle,
         amountColor = amountColor,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer

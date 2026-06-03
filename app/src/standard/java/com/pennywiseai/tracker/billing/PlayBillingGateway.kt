@@ -251,10 +251,34 @@ class PlayBillingGateway @Inject constructor(
                 .build(),
         )
 
-        val allPurchases = buildList {
-            subPurchases.purchasesList.let { addAll(it) }
-            inappPurchases.purchasesList.let { addAll(it) }
+        // CRITICAL: never demote a Pro user based on a failed query.
+        // A transient SERVICE_UNAVAILABLE / NETWORK_ERROR returns an
+        // empty purchasesList, which without this guard would write
+        // `isPro = false` to the DataStore cache — meaning a genuine
+        // Pro user with a brief network blip during refresh() would
+        // see the free tier on the next cold start. Bail on non-OK and
+        // keep whatever the cached entitlement currently is; the next
+        // successful query (cold start + connectivity, or a Restore tap)
+        // will reconcile.
+        //
+        // Trade-off: a refunded/revoked user keeps Pro a little longer
+        // when their network is flaky. That's the right side to err on
+        // — false positives (briefly seeing Pro after revoke) are far
+        // less harmful than false negatives (briefly losing Pro after
+        // a blip).
+        val subOk = subPurchases.billingResult.responseCode == BillingClient.BillingResponseCode.OK
+        val inappOk = inappPurchases.billingResult.responseCode == BillingClient.BillingResponseCode.OK
+        if (!subOk || !inappOk) {
+            Log.w(
+                TAG,
+                "queryPurchases failed (sub=${subPurchases.billingResult.responseCode}, " +
+                    "inapp=${inappPurchases.billingResult.responseCode}). " +
+                    "Keeping cached entitlement.",
+            )
+            return
         }
+
+        val allPurchases = subPurchases.purchasesList + inappPurchases.purchasesList
 
         // Acknowledge any purchased-but-unacked entitlement. Failing to
         // acknowledge within 3 days auto-refunds — we ack as soon as we see

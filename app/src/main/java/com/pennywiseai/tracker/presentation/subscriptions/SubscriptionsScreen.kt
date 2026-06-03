@@ -220,6 +220,7 @@ fun SubscriptionsScreen(
                     ) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
+                            isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onTap = { markPaidTarget = subscription },
@@ -284,6 +285,7 @@ fun SubscriptionsScreen(
     markPaidTarget?.let { target ->
         MarkAsPaidSheet(
             subscription = target,
+            isPaidThisCycle = target.id in uiState.paidThisCycleIds,
             candidates = markPaidCandidates,
             onDismiss = { markPaidTarget = null },
             onConfirm = { paymentDate ->
@@ -444,6 +446,7 @@ private fun TotalSubscriptionsSummary(
 @Composable
 private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
+    isPaidThisCycle: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onTap: () -> Unit = {},
@@ -599,23 +602,12 @@ private fun SwipeableSubscriptionItem(
                             }
 
                             // "Paid Mar 15" badge — shown when this cycle has
-                            // already been marked. Inline filled-tonal pill so
-                            // users don't accidentally re-tap. Sits ABOVE the
-                            // category since payment state is more important
-                            // than the category label.
-                            val recentlyPaid = subscription.lastPaidAt?.let { lastPaid ->
-                                val cycleStart = run {
-                                    val anchor = subscription.nextPaymentDate ?: return@let false
-                                    // Compute cycle-start cheaply: 30 days back
-                                    // works for monthly+; for accurate cycle
-                                    // arithmetic we'd plumb the repo's
-                                    // advance() helper into the composable.
-                                    !lastPaid.isBefore(anchor.minusDays(35)) && !lastPaid.isAfter(anchor)
-                                }
-                                cycleStart == true
-                            } ?: false
-
-                            if (recentlyPaid) {
+                            // already been marked. Computed in the VM
+                            // (today-anchored cycle check, single source of
+                            // truth shared with the partition sort). Sits
+                            // ABOVE the category since payment state is more
+                            // important than the category label.
+                            if (isPaidThisCycle) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,

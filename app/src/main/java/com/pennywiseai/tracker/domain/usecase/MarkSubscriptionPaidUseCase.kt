@@ -68,14 +68,18 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             ?: return Result.SubscriptionNotFound
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
-        // Refuse a re-tap inside the same cycle window. Without this, a
-        // mistaken second tap would create another phantom for the now-
-        // future cycle AND advance the schedule a second time. The
-        // condition: lastPaidAt sits between (scheduled - billingCycle)
-        // and scheduled — i.e. it was set during this cycle.
-        val cycleStart = subscriptionRepository.advance(scheduled, sub.billingCycle, reverse = true)
+        // Same-cycle re-tap guard, anchored on TODAY not on the schedule.
+        // Earlier version anchored on the (sliding) schedule, which broke
+        // the moment we advanced it — lastPaidAt fell BEHIND the new cycle
+        // window so the guard stopped triggering and the user could keep
+        // tapping forever, marching the schedule forward each time.
+        //
+        // Real semantic: a subscription can't legitimately be paid twice
+        // within one billing cycle. So if today < lastPaidAt + 1 cycle,
+        // it's a re-tap of the cycle we just paid.
         sub.lastPaidAt?.let { lastPaid ->
-            if (!lastPaid.isBefore(cycleStart) && !lastPaid.isAfter(scheduled)) {
+            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+            if (LocalDate.now().isBefore(nextLegitMark)) {
                 return Result.AlreadyMarked(nextPaymentDate = scheduled)
             }
         }
@@ -139,10 +143,10 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             ?: return Result.SubscriptionNotFound
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
-        // Same-cycle re-tap guard (see [execute]).
-        val cycleStart = subscriptionRepository.advance(scheduled, sub.billingCycle, reverse = true)
+        // Same-cycle re-tap guard — see [execute] for the semantic.
         sub.lastPaidAt?.let { lastPaid ->
-            if (!lastPaid.isBefore(cycleStart) && !lastPaid.isAfter(scheduled)) {
+            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+            if (LocalDate.now().isBefore(nextLegitMark)) {
                 return Result.AlreadyMarked(nextPaymentDate = scheduled)
             }
         }

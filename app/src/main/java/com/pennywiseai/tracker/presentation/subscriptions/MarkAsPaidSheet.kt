@@ -80,6 +80,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun MarkAsPaidSheet(
     subscription: SubscriptionEntity,
+    isPaidThisCycle: Boolean = false,
     candidates: List<TransactionEntity> = emptyList(),
     onDismiss: () -> Unit,
     onConfirm: (LocalDate) -> Unit,
@@ -182,16 +183,10 @@ fun MarkAsPaidSheet(
             Spacer(Modifier.height(Spacing.lg))
 
             // Already-paid notice — shown when this cycle was marked paid
-            // already. Doesn't hide the rest of the sheet (user might want
-            // to see the history or hit a different date) but makes the
-            // status unambiguous so they don't double-tap.
-            val recentlyPaid = subscription.lastPaidAt?.let { lastPaid ->
-                val anchor = subscription.nextPaymentDate
-                anchor != null &&
-                    !lastPaid.isBefore(anchor.minusDays(35)) &&
-                    !lastPaid.isAfter(anchor)
-            } ?: false
-            if (recentlyPaid) {
+            // already. Truth comes from the screen's VM (today-anchored
+            // cycle check), passed in via [isPaidThisCycle] so the sheet
+            // and row badge can't disagree.
+            if (isPaidThisCycle) {
                 androidx.compose.material3.Surface(
                     shape = RoundedCornerShape(Dimensions.CornerRadius.large),
                     color = MaterialTheme.colorScheme.secondaryContainer,

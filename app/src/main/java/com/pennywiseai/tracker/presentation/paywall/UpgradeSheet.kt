@@ -122,7 +122,7 @@ fun UpgradeSheet(
         UpgradeSheetContent(
             state = state,
             onSelectKey = viewModel::onSelectPlan,
-            onPurchase = { activity?.let(viewModel::onPurchase) },
+            onPurchase = { product -> activity?.let { viewModel.onPurchase(it, product) } },
             onRestore = viewModel::onRestore,
             onCelebrationComplete = viewModel::markCelebrationComplete,
         )
@@ -133,7 +133,7 @@ fun UpgradeSheet(
 private fun UpgradeSheetContent(
     state: UpgradeUiState,
     onSelectKey: (String) -> Unit,
-    onPurchase: () -> Unit,
+    onPurchase: (ProProduct?) -> Unit,
     onRestore: () -> Unit,
     onCelebrationComplete: () -> Unit,
 ) {
@@ -221,7 +221,7 @@ private fun BrandHeader(isMember: Boolean) {
 private fun UpgradeBody(
     state: UpgradeUiState,
     onSelectKey: (String) -> Unit,
-    onPurchase: () -> Unit,
+    onPurchase: (ProProduct?) -> Unit,
     onRestore: () -> Unit,
 ) {
     val merged = remember(state.products) { mergedPlans(state.products) }
@@ -474,7 +474,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
 private fun CtaButton(
     state: UpgradeUiState,
     selectedPlan: ProProduct?,
-    onPurchase: () -> Unit,
+    onPurchase: (ProProduct?) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -483,7 +483,10 @@ private fun CtaButton(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Button(
-            onClick = onPurchase,
+            // Hand the resolved (merged live + fallback) plan to the VM
+            // so it doesn't fall back to a state.products lookup that
+            // could be empty during the initial refresh() window.
+            onClick = { onPurchase(selectedPlan) },
             enabled = !state.isPurchasing && selectedPlan != null,
             modifier = Modifier
                 .fillMaxWidth()

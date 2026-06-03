@@ -97,15 +97,30 @@ class UpgradeViewModel @Inject constructor(
     }
 
     /**
-     * User tapped the CTA. Resolves the selected key to a [ProProduct] and
-     * hands it to the gateway — which needs the offer token (subscription
-     * base plans) and the SKU together. Outcome lands via the gateway's
-     * purchase listener → [EntitlementGate.isProEntitled] → auto-dismiss
-     * collector above.
+     * User tapped the CTA. The UI passes the active product (already
+     * resolved from the merged live + fallback catalog) so we can launch
+     * even during the initial refresh() window when [state.products] may
+     * still be empty.
+     *
+     * Previously this looked up the product itself from `state.products`
+     * and silently returned when the lookup missed — meaning a tap during
+     * the catalog-load gap was a dead no-op. Now we hand whatever the UI
+     * resolved straight to the gateway:
+     *   - If the gateway has live ProductDetails cached → flow launches.
+     *   - If not → the gateway's own retry path re-queries Play once.
+     *   - If still missing → the gateway returns
+     *     [PurchaseResult.Failed], which we surface as an inline error.
+     *
+     * The user always gets feedback: success, error, or spinner — never
+     * a silent dropped tap.
      */
-    fun onPurchase(activity: Activity) {
-        val state = _state.value
-        val product = state.products.firstOrNull { it.key == state.selectedKey } ?: return
+    fun onPurchase(activity: Activity, product: ProProduct?) {
+        if (product == null) {
+            _state.update {
+                it.copy(errorMessage = "Plans are still loading. Try again in a moment.")
+            }
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(isPurchasing = true, errorMessage = null) }
             val result = purchaseLauncher.launchPurchase(activity, product)

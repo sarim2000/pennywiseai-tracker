@@ -73,7 +73,7 @@ fun SubscriptionsScreen(
     }
     LaunchedEffect(markPaidTarget) {
         val target = markPaidTarget
-        markPaidCandidates = if (target != null) viewModel.candidatesFor(target.merchantName) else emptyList()
+        markPaidCandidates = if (target != null) viewModel.candidatesFor(target) else emptyList()
     }
 
     // Scroll behaviors for collapsible TopAppBar

@@ -80,27 +80,29 @@ class SubscriptionsViewModel @Inject constructor(
                 // Order the active list so "needs attention" rises to the
                 // top: unpaid-this-cycle subs first (sorted by next-payment
                 // date ascending, nulls last), recently-paid subs at the
-                // bottom (sorted by last-paid descending). Reduces the
-                // visual hunt for what still needs the user's attention.
-                val cycleStart: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> java.time.LocalDate? = { sub ->
-                    sub.nextPaymentDate?.let { next ->
-                        subscriptionRepository.advance(next, sub.billingCycle, reverse = true)
-                    }
-                }
+                // bottom (sorted by last-paid descending).
+                //
+                // Today-anchored cycle check (NOT schedule-anchored — the
+                // schedule slides forward every time we advance, which used
+                // to break this guard once any sub had been marked once).
+                // Semantic: a sub is "paid this cycle" if today is still
+                // within one billing cycle of lastPaidAt.
+                val today = java.time.LocalDate.now()
                 val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
-                    val anchor = sub.nextPaymentDate
-                    val start = cycleStart(sub)
-                    val paid = sub.lastPaidAt
-                    paid != null && anchor != null && start != null &&
-                        !paid.isBefore(start) && !paid.isAfter(anchor)
+                    sub.lastPaidAt?.let { lastPaid ->
+                        val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+                        today.isBefore(nextLegitMark)
+                    } ?: false
                 }
                 val (paid, unpaid) = subscriptions.partition(isPaidThisCycle)
                 val ordered = unpaid.sortedWith(
                     compareBy(nullsLast()) { it.nextPaymentDate },
                 ) + paid.sortedByDescending { it.lastPaidAt }
+                val paidIds = paid.map { it.id }.toSet()
 
                 _uiState.value = _uiState.value.copy(
                     activeSubscriptions = ordered,
+                    paidThisCycleIds = paidIds,
                     paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
@@ -260,6 +262,8 @@ class SubscriptionsViewModel @Inject constructor(
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),
+    /** IDs of subs in [activeSubscriptions] whose current cycle is paid — used to drive the row badge. */
+    val paidThisCycleIds: Set<Long> = emptySet(),
     /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
     val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),

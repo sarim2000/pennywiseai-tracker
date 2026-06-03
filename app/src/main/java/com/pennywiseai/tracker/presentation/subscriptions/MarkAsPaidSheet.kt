@@ -181,6 +181,47 @@ fun MarkAsPaidSheet(
             )
             Spacer(Modifier.height(Spacing.lg))
 
+            // Already-paid notice — shown when this cycle was marked paid
+            // already. Doesn't hide the rest of the sheet (user might want
+            // to see the history or hit a different date) but makes the
+            // status unambiguous so they don't double-tap.
+            val recentlyPaid = subscription.lastPaidAt?.let { lastPaid ->
+                val anchor = subscription.nextPaymentDate
+                anchor != null &&
+                    !lastPaid.isBefore(anchor.minusDays(35)) &&
+                    !lastPaid.isAfter(anchor)
+            } ?: false
+            if (recentlyPaid) {
+                androidx.compose.material3.Surface(
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.large),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(
+                            horizontal = Dimensions.Padding.card,
+                            vertical = Spacing.md,
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text(
+                            text = "Already marked paid on ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("d MMM"))}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(Spacing.lg))
+            }
+
             // Suggested-payment candidates (#412 follow-up). When the
             // subscription is on auto-pay, the bank SMS already created
             // EXPENSE rows for the merchant — tap one of these to link

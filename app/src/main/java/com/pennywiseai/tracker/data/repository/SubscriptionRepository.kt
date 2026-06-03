@@ -129,13 +129,16 @@ class SubscriptionRepository @Inject constructor(
      * +30 days). Unknown cycles fall back to monthly so a stale or hand-
      * inserted row never silently advances by 0 days.
      */
-    fun advance(date: LocalDate, billingCycle: String): LocalDate = when (billingCycle.uppercase()) {
-        "WEEKLY" -> date.plusWeeks(1)
-        "MONTHLY" -> date.plusMonths(1)
-        "QUARTERLY" -> date.plusMonths(3)
-        "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6)
-        "ANNUAL", "YEARLY" -> date.plusYears(1)
-        else -> date.plusMonths(1)
+    fun advance(date: LocalDate, billingCycle: String, reverse: Boolean = false): LocalDate {
+        val sign = if (reverse) -1L else 1L
+        return when (billingCycle.uppercase()) {
+            "WEEKLY" -> date.plusWeeks(sign)
+            "MONTHLY" -> date.plusMonths(sign)
+            "QUARTERLY" -> date.plusMonths(3L * sign)
+            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * sign)
+            "ANNUAL", "YEARLY" -> date.plusYears(sign)
+            else -> date.plusMonths(sign)
+        }
     }
 
     /** Active INCOME subscriptions due on or before [date] (#371). */
@@ -145,6 +148,10 @@ class SubscriptionRepository @Inject constructor(
     /** Direct DAO passthrough — used by the income-autopay phantom creator. */
     suspend fun updateNextPaymentDate(subscriptionId: Long, nextPaymentDate: LocalDate) =
         subscriptionDao.updateNextPaymentDate(subscriptionId, nextPaymentDate)
+
+    /** See [SubscriptionDao.markPaid]. */
+    suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) =
+        subscriptionDao.markPaid(subscriptionId, paidAt, nextPaymentDate)
     
     
     private fun areAmountsEqual(amount1: BigDecimal, amount2: BigDecimal): Boolean {

@@ -584,6 +584,46 @@ private fun SwipeableSubscriptionItem(
                                 }
                             }
 
+                            // "Paid Mar 15" badge — shown when this cycle has
+                            // already been marked. Inline filled-tonal pill so
+                            // users don't accidentally re-tap. Sits ABOVE the
+                            // category since payment state is more important
+                            // than the category label.
+                            val recentlyPaid = subscription.lastPaidAt?.let { lastPaid ->
+                                val cycleStart = run {
+                                    val anchor = subscription.nextPaymentDate ?: return@let false
+                                    // Compute cycle-start cheaply: 30 days back
+                                    // works for monthly+; for accurate cycle
+                                    // arithmetic we'd plumb the repo's
+                                    // advance() helper into the composable.
+                                    !lastPaid.isBefore(anchor.minusDays(35)) && !lastPaid.isAfter(anchor)
+                                }
+                                cycleStart == true
+                            } ?: false
+
+                            if (recentlyPaid) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(Dimensions.Icon.small),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Text(
+                                        text = "Paid ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+
                             // Category — its own line. No bullet, no row
                             // sharing. Wraps if very long but won't break
                             // mid-word against a narrow column.

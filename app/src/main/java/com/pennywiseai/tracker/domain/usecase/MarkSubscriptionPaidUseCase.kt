@@ -68,6 +68,18 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             ?: return Result.SubscriptionNotFound
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
+        // Refuse a re-tap inside the same cycle window. Without this, a
+        // mistaken second tap would create another phantom for the now-
+        // future cycle AND advance the schedule a second time. The
+        // condition: lastPaidAt sits between (scheduled - billingCycle)
+        // and scheduled — i.e. it was set during this cycle.
+        val cycleStart = subscriptionRepository.advance(scheduled, sub.billingCycle, reverse = true)
+        sub.lastPaidAt?.let { lastPaid ->
+            if (!lastPaid.isBefore(cycleStart) && !lastPaid.isAfter(scheduled)) {
+                return Result.AlreadyMarked(nextPaymentDate = scheduled)
+            }
+        }
+
         val isIncome = sub.direction == SubscriptionDirection.INCOME
         val hash = if (isIncome) {
             "autopay-${sub.id}-$scheduled"
@@ -75,14 +87,12 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             "subpay-${sub.id}-$scheduled"
         }
 
+        // Hash-level guard catches the unlikely race where lastPaidAt
+        // wasn't yet written (crash between insert and markPaid).
         val existing = transactionRepository.getTransactionByHash(hash)
         if (existing != null) {
-            // Cycle already accounted for. Still advance the schedule —
-            // the user clearly thinks they need to mark this cycle done.
-            // (Without advancing, the subscription would stay "due" and
-            // keep prompting them. Advancing is the recovery path.)
             val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
-            subscriptionRepository.updateNextPaymentDate(sub.id, nextDate)
+            subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)
             return Result.AlreadyMarked(nextDate)
         }
 
@@ -103,7 +113,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         val rowId = transactionRepository.insertTransaction(transaction)
 
         val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
-        subscriptionRepository.updateNextPaymentDate(sub.id, nextDate)
+        subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)
 
         Log.i(
             TAG,
@@ -113,8 +123,6 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         return if (rowId != -1L) {
             Result.Created(transactionId = rowId, nextPaymentDate = nextDate)
         } else {
-            // Insert failed (unique-constraint race with autopay running at
-            // the same instant). Treat as already-marked — schedule advanced.
             Result.AlreadyMarked(nextDate)
         }
     }
@@ -131,8 +139,19 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             ?: return Result.SubscriptionNotFound
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
+        // Same-cycle re-tap guard (see [execute]).
+        val cycleStart = subscriptionRepository.advance(scheduled, sub.billingCycle, reverse = true)
+        sub.lastPaidAt?.let { lastPaid ->
+            if (!lastPaid.isBefore(cycleStart) && !lastPaid.isAfter(scheduled)) {
+                return Result.AlreadyMarked(nextPaymentDate = scheduled)
+            }
+        }
+
+        val linkedTxn = transactionRepository.getTransactionById(transactionId)
+        val paidAt = linkedTxn?.dateTime?.toLocalDate() ?: LocalDate.now()
+
         val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
-        subscriptionRepository.updateNextPaymentDate(sub.id, nextDate)
+        subscriptionRepository.markPaid(sub.id, paidAt, nextDate)
 
         Log.i(
             TAG,

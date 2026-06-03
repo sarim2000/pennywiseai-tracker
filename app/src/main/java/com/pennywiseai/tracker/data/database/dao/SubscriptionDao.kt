@@ -79,7 +79,22 @@ interface SubscriptionDao {
     
     @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id")
     suspend fun updateNextPaymentDate(id: Long, nextPaymentDate: LocalDate)
-    
+
+    /**
+     * Atomic write of both fields when the user marks-as-paid (#412): we
+     * record the date they confirmed payment AND advance the schedule in
+     * one DB hit. The "Paid" badge on the row reads `last_paid_at`; the
+     * use case reads it to refuse a same-cycle re-tap.
+     */
+    @Query("""
+        UPDATE subscriptions
+        SET last_paid_at = :paidAt,
+            next_payment_date = :nextPaymentDate,
+            updated_at = datetime('now')
+        WHERE id = :id
+    """)
+    suspend fun markPaid(id: Long, paidAt: LocalDate, nextPaymentDate: LocalDate)
+
     @Delete
     suspend fun deleteSubscription(subscription: SubscriptionEntity)
     

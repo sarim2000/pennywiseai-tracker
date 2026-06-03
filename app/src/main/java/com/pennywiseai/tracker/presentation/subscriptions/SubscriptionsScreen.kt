@@ -64,6 +64,8 @@ fun SubscriptionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    // Subscription currently being marked-as-paid. Null = sheet closed.
+    var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -95,6 +97,15 @@ fun SubscriptionsScreen(
             if (result == SnackbarResult.ActionPerformed) {
                 viewModel.undoHide()
             }
+        }
+    }
+
+    // Mark-as-paid feedback snackbar (#412). The sheet itself closes
+    // optimistically; the VM publishes the outcome string here.
+    LaunchedEffect(uiState.markPaidMessage) {
+        uiState.markPaidMessage?.let { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+            viewModel.clearMarkPaidMessage()
         }
     }
 
@@ -201,6 +212,7 @@ fun SubscriptionsScreen(
                             subscription = subscription,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
+                            onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
                             onEdit = { merchantName, amount, nextDate, category ->
@@ -255,6 +267,18 @@ fun SubscriptionsScreen(
                 }
             }
         }
+    }
+
+    // Mark-as-paid sheet (#412). Rendered at screen scope so a list item
+    // re-composition (snackbar, scroll) can't tear down the sheet.
+    markPaidTarget?.let { target ->
+        MarkAsPaidSheet(
+            subscription = target,
+            onDismiss = { markPaidTarget = null },
+            onConfirm = { paymentDate ->
+                viewModel.markAsPaid(target.id, paymentDate)
+            },
+        )
     }
 }
 
@@ -395,6 +419,7 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
+    onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
     onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit = { _, _, _, _ -> },
@@ -449,9 +474,11 @@ private fun SwipeableSubscriptionItem(
                 PennyWiseCardV2(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = !subscription.smsBody.isNullOrBlank()) {
-                            showSmsBody = !showSmsBody
-                        },
+                        // Tap = mark as paid (#412). Existing SMS-body expand
+                        // moved to the kebab menu's "View source" item so the
+                        // primary tap action is meaningful for ALL subs, not
+                        // only those that arrived via SMS.
+                        .clickable(onClick = onTap),
                     contentPadding = 0.dp
                 ) {
                     Row(
@@ -588,6 +615,24 @@ private fun SwipeableSubscriptionItem(
                                 expanded = showMenu,
                                 onDismissRequest = { showMenu = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Mark as paid") },
+                                    leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                    onClick = {
+                                        showMenu = false
+                                        onTap()
+                                    }
+                                )
+                                if (!subscription.smsBody.isNullOrBlank()) {
+                                    DropdownMenuItem(
+                                        text = { Text("View source") },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
+                                        onClick = {
+                                            showMenu = false
+                                            showSmsBody = !showSmsBody
+                                        }
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text("Edit") },
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },

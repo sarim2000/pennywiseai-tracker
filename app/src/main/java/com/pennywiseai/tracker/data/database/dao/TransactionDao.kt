@@ -162,16 +162,26 @@ interface TransactionDao {
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
 
     /**
-     * Find recent EXPENSE transactions whose merchant matches (case-
-     * insensitive) — used to surface candidate auto-pay charges when the
-     * user opens the mark-as-paid sheet for a subscription (#412). Skips
-     * phantom rows we created ourselves (`subpay-...`, `autopay-...`
+     * Find recent EXPENSE transactions whose merchant AND amount match —
+     * used to surface candidate auto-pay charges when the user opens the
+     * mark-as-paid sheet for a subscription (#412). Both filters matter:
+     * a one-off ₹789 Netflix purchase shouldn't show up as a candidate
+     * for a ₹499 monthly sub.
+     *
+     * Skips phantom rows we created ourselves (`subpay-...`, `autopay-...`
      * transaction hashes) so the user only sees real bank-derived
      * payments to link against.
+     *
+     * Amount comparison: `CAST(amount AS REAL)` handles the BigDecimal
+     * text representation drift ("499" vs "499.00"). Tiny epsilon
+     * (±₹0.01) absorbs any float-conversion rounding without matching
+     * meaningfully different amounts.
      */
     @Query("""
         SELECT * FROM transactions
         WHERE LOWER(merchant_name) = LOWER(:merchant)
+          AND CAST(amount AS REAL) BETWEEN CAST(:amount AS REAL) - 0.01
+                                       AND CAST(:amount AS REAL) + 0.01
           AND transaction_type = 'EXPENSE'
           AND is_deleted = 0
           AND date_time >= :since
@@ -179,8 +189,9 @@ interface TransactionDao {
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    suspend fun findRecentExpensesByMerchant(
+    suspend fun findRecentExpensesByMerchantAndAmount(
         merchant: String,
+        amount: java.math.BigDecimal,
         since: LocalDateTime,
         limit: Int = 5,
     ): List<TransactionEntity>

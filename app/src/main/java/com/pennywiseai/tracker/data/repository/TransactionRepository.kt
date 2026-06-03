@@ -140,13 +140,14 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
-    /** See [TransactionDao.findRecentExpensesByMerchant]. */
-    suspend fun findRecentExpensesByMerchant(
+    /** See [TransactionDao.findRecentExpensesByMerchantAndAmount]. */
+    suspend fun findRecentExpensesByMerchantAndAmount(
         merchant: String,
+        amount: java.math.BigDecimal,
         since: java.time.LocalDateTime,
         limit: Int = 5,
     ): List<TransactionEntity> =
-        transactionDao.findRecentExpensesByMerchant(merchant, since, limit)
+        transactionDao.findRecentExpensesByMerchantAndAmount(merchant, amount, since, limit)
 
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)

@@ -195,12 +195,21 @@ class SubscriptionsViewModel @Inject constructor(
      * SMS already created a transaction — we surface those here so the
      * user can link instead of creating a duplicate phantom.
      *
-     * Match window: last 30 days, exact (case-insensitive) merchant match,
-     * EXPENSE only, excluding phantoms we've already created.
+     * Matching: case-insensitive merchant exact + amount exact (±₹0.01)
+     * over the last 30 days, EXPENSE only, excluding phantoms we've
+     * created ourselves. Amount match is required — a one-off ₹789
+     * Netflix purchase shouldn't surface as a candidate for a ₹499 sub.
      */
-    suspend fun candidatesFor(merchant: String): List<com.pennywiseai.tracker.data.database.entity.TransactionEntity> {
+    suspend fun candidatesFor(
+        sub: SubscriptionEntity,
+    ): List<com.pennywiseai.tracker.data.database.entity.TransactionEntity> {
         val cutoff = java.time.LocalDate.now().minusDays(30).atStartOfDay()
-        return transactionRepository.findRecentExpensesByMerchant(merchant, cutoff, limit = 5)
+        return transactionRepository.findRecentExpensesByMerchantAndAmount(
+            merchant = sub.merchantName,
+            amount = sub.amount,
+            since = cutoff,
+            limit = 5,
+        )
     }
 
     /**

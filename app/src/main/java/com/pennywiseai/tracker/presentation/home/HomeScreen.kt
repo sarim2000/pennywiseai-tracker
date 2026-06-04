@@ -123,7 +123,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isProEntitled by viewModel.isProEntitled.collectAsState()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
+    var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val activity = LocalActivity.current

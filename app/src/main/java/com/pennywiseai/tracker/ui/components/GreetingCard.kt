@@ -102,6 +102,9 @@ fun GreetingCard(
         Box(
             modifier = Modifier
                 .size(52.dp)
+                // Clip to a circle before clickable so the tap ripple stays
+                // within the ring instead of rendering as a square.
+                .clip(CircleShape)
                 .drawBehind {
                     val stroke = 2.dp.toPx()
                     val dash = if (!isProEntitled) {

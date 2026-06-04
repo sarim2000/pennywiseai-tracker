@@ -7,6 +7,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "transaction_splits",
@@ -20,6 +22,7 @@ import java.time.LocalDateTime
     ],
     indices = [Index("transaction_id")]
 )
+@Serializable
 data class TransactionSplitEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -29,8 +32,10 @@ data class TransactionSplitEntity(
 
     val category: String,
 
+    @Contextual
     val amount: BigDecimal,
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

@@ -592,7 +592,8 @@ class SettingsViewModel @Inject constructor(
                 val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
                 when (result) {
                     is ImportResult.Success -> {
-                        _importExportMessage.value = "Import successful! Imported ${result.importedTransactions} transactions, ${result.importedCategories} categories. Skipped ${result.skippedDuplicates} duplicates."
+                        val skipped = if (result.skippedRows > 0) " ${result.skippedRows} rows could not be imported." else ""
+                        _importExportMessage.value = "Import successful! Imported ${result.importedTransactions} transactions, ${result.importedCategories} categories. Skipped ${result.skippedDuplicates} duplicates.$skipped"
                     }
                     is ImportResult.Error -> {
                         _importExportMessage.value = "Import failed: ${result.message}"

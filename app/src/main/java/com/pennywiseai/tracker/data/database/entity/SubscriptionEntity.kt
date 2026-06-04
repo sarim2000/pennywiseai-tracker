@@ -6,8 +6,11 @@ import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "subscriptions")
+@Serializable
 data class SubscriptionEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -17,9 +20,11 @@ data class SubscriptionEntity(
     val merchantName: String,
     
     @ColumnInfo(name = "amount")
+    @Contextual
     val amount: BigDecimal,
-    
+
     @ColumnInfo(name = "next_payment_date")
+    @Contextual
     val nextPaymentDate: LocalDate?,
     
     @ColumnInfo(name = "state")
@@ -38,9 +43,11 @@ data class SubscriptionEntity(
     val smsBody: String? = null,
     
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
@@ -77,15 +84,18 @@ data class SubscriptionEntity(
      * again. Null when the subscription has never been marked paid.
      */
     @ColumnInfo(name = "last_paid_at")
+    @Contextual
     val lastPaidAt: LocalDate? = null,
 )
 
+@Serializable
 enum class SubscriptionState {
     ACTIVE,
     HIDDEN, // Soft delete - hidden from view but kept for reactivation detection
     ENDED   // User explicitly cancelled; never auto-reactivates on new mandate SMS
 }
 
+@Serializable
 enum class SubscriptionDirection {
     EXPENSE,  // Recurring money out (Netflix, mandates, EMIs)
     INCOME    // Recurring money in (wallet top-ups, allowance — phantom-created on schedule, #371)

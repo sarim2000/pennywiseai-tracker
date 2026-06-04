@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.data.backup
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.google.gson.GsonBuilder
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
@@ -12,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.decodeFromString
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.LocalDate
@@ -25,13 +25,6 @@ class BackupImporter @Inject constructor(
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
-    
-    private val gson = GsonBuilder()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
-        .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(java.math.BigDecimal::class.java, BigDecimalTypeAdapter())
-        .create()
     
     /**
      * Import backup from a file URI
@@ -69,55 +62,43 @@ class BackupImporter @Inject constructor(
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val content = reader.readText()
-                val parsed = gson.fromJson(content, PennyWiseBackup::class.java)
-                parsed.copy(database = parsed.database.normalized())
+                // backupJson tolerates missing keys (older backups → Kotlin
+                // defaults) and unknown keys (newer backups → ignored). The
+                // old Gson `normalized()` net is no longer needed because the
+                // `= emptyList()` / field defaults on the models now actually
+                // apply. See BackupSerializers + docs/backup-format.md.
+                backupJson.decodeFromString<PennyWiseBackup>(content)
             } ?: throw Exception("Failed to read backup file")
         }
     }
 
     /**
-     * Gson sets every collection field via reflection, bypassing the Kotlin
-     * `= emptyList()` default initialisers on [DatabaseSnapshot]. Older
-     * backups that don't carry a given list key end up with `null` stored
-     * under a property whose declared type is non-null `List<T>` — any
-     * .forEach / .map / .isNotEmpty() call on it then NPEs at runtime even
-     * though the code looks safe.
-     *
-     * Run every collection field through an elvis to empty-list once, right
-     * after parsing, so the rest of the importer can keep its non-null
-     * assumptions. USELESS_ELVIS warnings are suppressed because they are
-     * deliberately load-bearing here.
-     */
-    @Suppress("USELESS_ELVIS")
-    private fun DatabaseSnapshot.normalized(): DatabaseSnapshot = copy(
-        transactions = transactions ?: emptyList(),
-        categories = categories ?: emptyList(),
-        cards = cards ?: emptyList(),
-        accountBalances = accountBalances ?: emptyList(),
-        subscriptions = subscriptions ?: emptyList(),
-        merchantMappings = merchantMappings ?: emptyList(),
-        unrecognizedSms = unrecognizedSms ?: emptyList(),
-        chatMessages = chatMessages ?: emptyList(),
-        rules = rules ?: emptyList(),
-        ruleApplications = ruleApplications ?: emptyList(),
-        exchangeRates = exchangeRates ?: emptyList(),
-        budgets = budgets ?: emptyList(),
-        budgetCategories = budgetCategories ?: emptyList(),
-        transactionSplits = transactionSplits ?: emptyList(),
-        bankNotifications = bankNotifications ?: emptyList(),
-        loans = loans ?: emptyList(),
-        transactionGroups = transactionGroups ?: emptyList(),
-        profiles = profiles ?: emptyList(),
-        budgetMonthSnapshots = budgetMonthSnapshots ?: emptyList(),
-        budgetCategoryMonthSnapshots = budgetCategoryMonthSnapshots ?: emptyList()
-    )
-    
-    /**
-     * Check if backup version is compatible
+     * Check if backup version is compatible. Accepts any `v1.x` backup; real
+     * cross-version tolerance is handled by [backupJson], not by this gate.
      */
     private fun isCompatibleVersion(backup: PennyWiseBackup): Boolean {
-        // For now, accept all v1.x backups
-        return backup.format.startsWith("PennyWise Backup v1")
+        return backup.format.startsWith(PennyWiseBackup.COMPATIBLE_PREFIX)
+    }
+
+    /**
+     * Insert each item, skipping (and counting via [onSkip]) any single row
+     * that fails so one bad/corrupt record can't abort the entire restore.
+     * Schema-drift safety (older backups missing newer columns) is already
+     * handled upstream by [backupJson] defaults — this guards the rarer case
+     * of a genuinely malformed row or a constraint violation.
+     */
+    private inline fun <T> List<T>.insertEachCounting(
+        onSkip: () -> Unit,
+        action: (T) -> Unit
+    ) {
+        for (item in this) {
+            try {
+                action(item)
+            } catch (e: Exception) {
+                Log.w("BackupImporter", "Skipped a row during import: ${e.message}")
+                onSkip()
+            }
+        }
     }
     
     /**
@@ -126,6 +107,7 @@ class BackupImporter @Inject constructor(
     private suspend fun replaceAllData(backup: PennyWiseBackup): ImportResult {
         var importedTransactions = 0
         var importedCategories = 0
+        var skippedRows = 0
 
         return database.withTransaction {
             try {
@@ -201,7 +183,7 @@ class BackupImporter @Inject constructor(
                     importedCategories++
                 }
 
-                backup.database.transactions.forEach { transaction ->
+                backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     database.transactionDao().insertTransaction(cleanTransaction(transaction))
                     importedTransactions++
                 }
@@ -272,7 +254,8 @@ class BackupImporter @Inject constructor(
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
-                    skippedDuplicates = 0
+                    skippedDuplicates = 0,
+                    skippedRows = skippedRows
                 )
             } catch (e: Exception) {
                 throw e
@@ -287,6 +270,7 @@ class BackupImporter @Inject constructor(
         var importedTransactions = 0
         var importedCategories = 0
         var skippedDuplicates = 0
+        var skippedRows = 0
 
         return database.withTransaction {
             try {
@@ -369,7 +353,7 @@ class BackupImporter @Inject constructor(
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
 
-                backup.database.transactions.forEach { transaction ->
+                backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
                         val oldId = transaction.id
                         val newTransaction = transaction.copy(
@@ -480,7 +464,8 @@ class BackupImporter @Inject constructor(
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
-                    skippedDuplicates = skippedDuplicates
+                    skippedDuplicates = skippedDuplicates,
+                    skippedRows = skippedRows
                 )
             } catch (e: Exception) {
                 throw e

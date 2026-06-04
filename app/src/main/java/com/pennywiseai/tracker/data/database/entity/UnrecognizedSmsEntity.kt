@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 /**
  * Entity for storing unrecognized SMS messages from potential financial providers.
@@ -19,6 +21,7 @@ import java.time.LocalDateTime
         )
     ]
 )
+@Serializable
 data class UnrecognizedSmsEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -31,6 +34,7 @@ data class UnrecognizedSmsEntity(
     val smsBody: String,
     
     @ColumnInfo(name = "received_at")
+    @Contextual
     val receivedAt: LocalDateTime,
     
     @ColumnInfo(name = "reported")
@@ -40,5 +44,6 @@ data class UnrecognizedSmsEntity(
     val isDeleted: Boolean = false,
     
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

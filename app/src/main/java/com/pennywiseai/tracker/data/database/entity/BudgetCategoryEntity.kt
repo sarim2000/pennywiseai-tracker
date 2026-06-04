@@ -6,6 +6,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "budget_categories",
@@ -22,6 +24,7 @@ import java.math.BigDecimal
         Index(value = ["budget_id", "category_name"], unique = true)
     ]
 )
+@Serializable
 data class BudgetCategoryEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -34,5 +37,6 @@ data class BudgetCategoryEntity(
     val categoryName: String,
 
     @ColumnInfo(name = "budget_amount", defaultValue = "0")
+    @Contextual
     val budgetAmount: BigDecimal = BigDecimal.ZERO
 )

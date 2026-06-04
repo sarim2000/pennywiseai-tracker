@@ -1,284 +1,307 @@
 package com.pennywiseai.tracker.data.backup
 
-import com.google.gson.annotations.SerializedName
 import com.pennywiseai.tracker.data.database.entity.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 
 /**
- * Root container for PennyWise backup data
+ * Backup format models.
+ *
+ * ## Compatibility contract (see docs/backup-format.md)
+ *
+ * Serialized with [backupJson] (kotlinx.serialization), which is configured to
+ * be tolerant in both directions:
+ *  - **Backward** (old backup → new app): every field here has a Kotlin
+ *    default, so a key missing from an older backup falls back to that default
+ *    instead of crashing. THIS is the property that fixes the "can't restore an
+ *    old backup" bug — never remove a default from a field that ships in a
+ *    release.
+ *  - **Forward** (new backup → old app): `ignoreUnknownKeys = true` means a
+ *    field added in a newer version is silently ignored by an older app.
+ *
+ * Invariant for maintainers: **every property in this file, and every backup-
+ * serialized entity, must have a default value.** A `BackupSchemaGuardTest`
+ * enforces this in CI.
  */
+@Serializable
 data class PennyWiseBackup(
-    @SerializedName("_format")
-    val format: String = "PennyWise Backup v1.1",
-    
-    @SerializedName("_warning")
+    @SerialName("_format")
+    val format: String = CURRENT_FORMAT,
+
+    @SerialName("_warning")
     val warning: String = "Contains sensitive financial data. Keep this file secure.",
-    
-    @SerializedName("_created")
+
+    @SerialName("_created")
     val created: String = LocalDateTime.now().toString(),
-    
-    @SerializedName("metadata")
-    val metadata: BackupMetadata,
-    
-    @SerializedName("database")
-    val database: DatabaseSnapshot,
-    
-    @SerializedName("preferences")
-    val preferences: PreferencesSnapshot
-)
+
+    @SerialName("metadata")
+    val metadata: BackupMetadata = BackupMetadata(),
+
+    @SerialName("database")
+    val database: DatabaseSnapshot = DatabaseSnapshot(),
+
+    @SerialName("preferences")
+    val preferences: PreferencesSnapshot = PreferencesSnapshot()
+) {
+    companion object {
+        /** Current format string written by this app version. */
+        const val CURRENT_FORMAT = "PennyWise Backup v1.2"
+
+        /** Prefix accepted on import — any `v1.x` backup is compatible. */
+        const val COMPATIBLE_PREFIX = "PennyWise Backup v1"
+    }
+}
 
 /**
- * Metadata about the backup
+ * Metadata about the backup. Informational only — never block an import on it,
+ * so every field is defaulted and a malformed/absent metadata block still lets
+ * the database restore.
  */
+@Serializable
 data class BackupMetadata(
-    @SerializedName("export_id")
-    val exportId: String,
-    
-    @SerializedName("app_version")
-    val appVersion: String,
-    
-    @SerializedName("database_version")
-    val databaseVersion: Int,
-    
-    @SerializedName("device")
-    val device: String,
-    
-    @SerializedName("android_version")
-    val androidVersion: Int,
-    
-    @SerializedName("statistics")
-    val statistics: BackupStatistics
+    @SerialName("export_id")
+    val exportId: String = "",
+
+    @SerialName("app_version")
+    val appVersion: String = "",
+
+    @SerialName("database_version")
+    val databaseVersion: Int = 0,
+
+    @SerialName("device")
+    val device: String = "",
+
+    @SerialName("android_version")
+    val androidVersion: Int = 0,
+
+    @SerialName("statistics")
+    val statistics: BackupStatistics = BackupStatistics()
 )
 
 /**
- * Statistics about the backup content
+ * Statistics about the backup content.
  */
+@Serializable
 data class BackupStatistics(
-    @SerializedName("total_transactions")
-    val totalTransactions: Int,
-    
-    @SerializedName("total_categories")
-    val totalCategories: Int,
-    
-    @SerializedName("total_cards")
-    val totalCards: Int,
-    
-    @SerializedName("total_subscriptions")
-    val totalSubscriptions: Int,
-    
-    @SerializedName("total_rules")
+    @SerialName("total_transactions")
+    val totalTransactions: Int = 0,
+
+    @SerialName("total_categories")
+    val totalCategories: Int = 0,
+
+    @SerialName("total_cards")
+    val totalCards: Int = 0,
+
+    @SerialName("total_subscriptions")
+    val totalSubscriptions: Int = 0,
+
+    @SerialName("total_rules")
     val totalRules: Int = 0,
-    
-    @SerializedName("total_rule_applications")
+
+    @SerialName("total_rule_applications")
     val totalRuleApplications: Int = 0,
-    
-    @SerializedName("total_exchange_rates")
+
+    @SerialName("total_exchange_rates")
     val totalExchangeRates: Int = 0,
-    
-    @SerializedName("total_budgets")
+
+    @SerialName("total_budgets")
     val totalBudgets: Int = 0,
-    
-    @SerializedName("total_budget_categories")
+
+    @SerialName("total_budget_categories")
     val totalBudgetCategories: Int = 0,
-    
-    @SerializedName("total_transaction_splits")
+
+    @SerialName("total_transaction_splits")
     val totalTransactionSplits: Int = 0,
-    
-    @SerializedName("total_bank_notifications")
+
+    @SerialName("total_bank_notifications")
     val totalBankNotifications: Int = 0,
 
-    @SerializedName("total_loans")
+    @SerialName("total_loans")
     val totalLoans: Int = 0,
 
-    @SerializedName("total_transaction_groups")
+    @SerialName("total_transaction_groups")
     val totalTransactionGroups: Int = 0,
 
-    @SerializedName("total_profiles")
+    @SerialName("total_profiles")
     val totalProfiles: Int = 0,
 
-    @SerializedName("total_budget_month_snapshots")
+    @SerialName("total_budget_month_snapshots")
     val totalBudgetMonthSnapshots: Int = 0,
 
-    @SerializedName("total_budget_category_month_snapshots")
+    @SerialName("total_budget_category_month_snapshots")
     val totalBudgetCategoryMonthSnapshots: Int = 0,
 
-    @SerializedName("date_range")
-    val dateRange: DateRange?
+    @SerialName("date_range")
+    val dateRange: DateRange? = null
 )
 
 /**
- * Date range of transactions
+ * Date range of transactions.
  */
+@Serializable
 data class DateRange(
-    @SerializedName("earliest")
-    val earliest: String?,
-    
-    @SerializedName("latest")
-    val latest: String?
+    @SerialName("earliest")
+    val earliest: String? = null,
+
+    @SerialName("latest")
+    val latest: String? = null
 )
 
 /**
  * Complete database snapshot.
  *
- * WARNING for future maintainers: when adding a new `List<T>` field here,
- * also add the matching `field = field ?: emptyList()` line to
- * BackupImporter.normalized(). Gson uses `Unsafe.allocateInstance` for
- * deserialisation and never calls the Kotlin constructor, so the
- * `= emptyList()` default below has no effect for backups whose JSON
- * omits the new key — the field arrives as null at runtime under a
- * non-null declared type, and the first .forEach / .map / .isNotEmpty()
- * NPEs. normalized() is the runtime safety net that fixes that up.
+ * Every list defaults to `emptyList()`, so a backup that omits a whole table
+ * (older formats, or a newer table an older app never knew about) imports
+ * cleanly with that table simply empty.
  */
+@Serializable
 data class DatabaseSnapshot(
-    @SerializedName("transactions")
-    val transactions: List<TransactionEntity>,
-    
-    @SerializedName("categories")
-    val categories: List<CategoryEntity>,
-    
-    @SerializedName("cards")
-    val cards: List<CardEntity>,
-    
-    @SerializedName("account_balances")
-    val accountBalances: List<AccountBalanceEntity>,
-    
-    @SerializedName("subscriptions")
-    val subscriptions: List<SubscriptionEntity>,
-    
-    @SerializedName("merchant_mappings")
-    val merchantMappings: List<MerchantMappingEntity>,
-    
-    @SerializedName("unrecognized_sms")
-    val unrecognizedSms: List<UnrecognizedSmsEntity>,
-    
-    @SerializedName("chat_messages")
-    val chatMessages: List<ChatMessage>,
-    
-    @SerializedName("rules")
+    @SerialName("transactions")
+    val transactions: List<TransactionEntity> = emptyList(),
+
+    @SerialName("categories")
+    val categories: List<CategoryEntity> = emptyList(),
+
+    @SerialName("cards")
+    val cards: List<CardEntity> = emptyList(),
+
+    @SerialName("account_balances")
+    val accountBalances: List<AccountBalanceEntity> = emptyList(),
+
+    @SerialName("subscriptions")
+    val subscriptions: List<SubscriptionEntity> = emptyList(),
+
+    @SerialName("merchant_mappings")
+    val merchantMappings: List<MerchantMappingEntity> = emptyList(),
+
+    @SerialName("unrecognized_sms")
+    val unrecognizedSms: List<UnrecognizedSmsEntity> = emptyList(),
+
+    @SerialName("chat_messages")
+    val chatMessages: List<ChatMessage> = emptyList(),
+
+    @SerialName("rules")
     val rules: List<RuleEntity> = emptyList(),
-    
-    @SerializedName("rule_applications")
+
+    @SerialName("rule_applications")
     val ruleApplications: List<RuleApplicationEntity> = emptyList(),
-    
-    @SerializedName("exchange_rates")
+
+    @SerialName("exchange_rates")
     val exchangeRates: List<ExchangeRateEntity> = emptyList(),
-    
-    @SerializedName("budgets")
+
+    @SerialName("budgets")
     val budgets: List<BudgetEntity> = emptyList(),
-    
-    @SerializedName("budget_categories")
+
+    @SerialName("budget_categories")
     val budgetCategories: List<BudgetCategoryEntity> = emptyList(),
-    
-    @SerializedName("transaction_splits")
+
+    @SerialName("transaction_splits")
     val transactionSplits: List<TransactionSplitEntity> = emptyList(),
-    
-    @SerializedName("bank_notifications")
+
+    @SerialName("bank_notifications")
     val bankNotifications: List<BankNotificationEntity> = emptyList(),
 
-    @SerializedName("loans")
+    @SerialName("loans")
     val loans: List<LoanEntity> = emptyList(),
 
-    @SerializedName("transaction_groups")
+    @SerialName("transaction_groups")
     val transactionGroups: List<TransactionGroupEntity> = emptyList(),
 
-    @SerializedName("profiles")
+    @SerialName("profiles")
     val profiles: List<ProfileEntity> = emptyList(),
 
-    @SerializedName("budget_month_snapshots")
+    @SerialName("budget_month_snapshots")
     val budgetMonthSnapshots: List<BudgetMonthSnapshotEntity> = emptyList(),
 
-    @SerializedName("budget_category_month_snapshots")
+    @SerialName("budget_category_month_snapshots")
     val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList()
 )
 
 /**
- * User preferences snapshot
+ * User preferences snapshot. Every section is defaulted so a backup missing a
+ * whole section (or written by an app that didn't have it yet) still imports.
  */
+@Serializable
 data class PreferencesSnapshot(
-    @SerializedName("theme")
-    val theme: ThemePreferences,
-    
-    @SerializedName("sms")
-    val sms: SmsPreferences,
-    
-    @SerializedName("developer")
-    val developer: DeveloperPreferences,
-    
-    @SerializedName("app")
-    val app: AppPreferences
+    @SerialName("theme")
+    val theme: ThemePreferences = ThemePreferences(),
+
+    @SerialName("sms")
+    val sms: SmsPreferences = SmsPreferences(),
+
+    @SerialName("developer")
+    val developer: DeveloperPreferences = DeveloperPreferences(),
+
+    @SerialName("app")
+    val app: AppPreferences = AppPreferences()
 )
 
-/**
- * Theme-related preferences
- */
+@Serializable
 data class ThemePreferences(
-    @SerializedName("is_dark_theme_enabled")
-    val isDarkThemeEnabled: Boolean?,
-    
-    @SerializedName("is_dynamic_color_enabled")
-    val isDynamicColorEnabled: Boolean
+    @SerialName("is_dark_theme_enabled")
+    val isDarkThemeEnabled: Boolean? = null,
+
+    @SerialName("is_dynamic_color_enabled")
+    val isDynamicColorEnabled: Boolean = false
 )
 
-/**
- * SMS-related preferences
- */
+@Serializable
 data class SmsPreferences(
-    @SerializedName("has_skipped_sms_permission")
-    val hasSkippedSmsPermission: Boolean,
-    
-    @SerializedName("sms_scan_months")
-    val smsScanMonths: Int,
-    
-    @SerializedName("last_scan_timestamp")
-    val lastScanTimestamp: Long?,
-    
-    @SerializedName("last_scan_period")
-    val lastScanPeriod: Int?
+    @SerialName("has_skipped_sms_permission")
+    val hasSkippedSmsPermission: Boolean = false,
+
+    @SerialName("sms_scan_months")
+    val smsScanMonths: Int = 6,
+
+    @SerialName("last_scan_timestamp")
+    val lastScanTimestamp: Long? = null,
+
+    @SerialName("last_scan_period")
+    val lastScanPeriod: Int? = null
 )
 
-/**
- * Developer mode preferences
- */
+@Serializable
 data class DeveloperPreferences(
-    @SerializedName("is_developer_mode_enabled")
-    val isDeveloperModeEnabled: Boolean,
-    
-    @SerializedName("system_prompt")
-    val systemPrompt: String?
+    @SerialName("is_developer_mode_enabled")
+    val isDeveloperModeEnabled: Boolean = false,
+
+    @SerialName("system_prompt")
+    val systemPrompt: String? = null
 )
 
-/**
- * App-related preferences
- */
+@Serializable
 data class AppPreferences(
-    @SerializedName("has_shown_scan_tutorial")
-    val hasShownScanTutorial: Boolean,
-    
-    @SerializedName("first_launch_time")
-    val firstLaunchTime: Long?,
-    
-    @SerializedName("has_shown_review_prompt")
-    val hasShownReviewPrompt: Boolean,
-    
-    @SerializedName("last_review_prompt_time")
-    val lastReviewPromptTime: Long?
+    @SerialName("has_shown_scan_tutorial")
+    val hasShownScanTutorial: Boolean = false,
+
+    @SerialName("first_launch_time")
+    val firstLaunchTime: Long? = null,
+
+    @SerialName("has_shown_review_prompt")
+    val hasShownReviewPrompt: Boolean = false,
+
+    @SerialName("last_review_prompt_time")
+    val lastReviewPromptTime: Long? = null
 )
 
 /**
- * Import result
+ * Import result. [skippedRows] counts entity rows that failed to insert and
+ * were skipped so a single bad row never aborts the whole restore.
  */
 sealed class ImportResult {
     data class Success(
         val importedTransactions: Int,
         val importedCategories: Int,
-        val skippedDuplicates: Int
+        val skippedDuplicates: Int,
+        val skippedRows: Int = 0
     ) : ImportResult()
-    
+
     data class Error(val message: String) : ImportResult()
 }
 
 /**
- * Export result
+ * Export result.
  */
 sealed class ExportResult {
     data class Success(val file: java.io.File) : ExportResult()
@@ -287,7 +310,7 @@ sealed class ExportResult {
 }
 
 /**
- * Import strategy options
+ * Import strategy options.
  */
 enum class ImportStrategy {
     REPLACE_ALL,    // Replace all existing data
@@ -296,7 +319,7 @@ enum class ImportStrategy {
 }
 
 /**
- * Privacy level for export
+ * Privacy level for export.
  */
 enum class ExportPrivacy {
     FULL,          // Export everything as-is

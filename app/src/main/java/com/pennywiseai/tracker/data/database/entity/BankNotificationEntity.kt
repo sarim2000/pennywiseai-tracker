@@ -5,6 +5,8 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "bank_notifications",
@@ -12,6 +14,7 @@ import java.time.LocalDateTime
         Index(value = ["package_name", "message_hash"], unique = true)
     ]
 )
+@Serializable
 data class BankNotificationEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -30,6 +33,7 @@ data class BankNotificationEntity(
     val messageHash: String,
 
     @ColumnInfo(name = "posted_at")
+    @Contextual
     val postedAt: LocalDateTime,
 
     @ColumnInfo(name = "processed")
@@ -39,5 +43,6 @@ data class BankNotificationEntity(
     val transactionId: Long? = null,
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

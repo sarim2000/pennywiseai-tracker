@@ -6,6 +6,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "account_balances",
@@ -15,6 +17,7 @@ import java.time.LocalDateTime
         Index(value = ["timestamp"])
     ]
 )
+@Serializable
 data class AccountBalanceEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -27,15 +30,18 @@ data class AccountBalanceEntity(
     val accountLast4: String,
     
     @ColumnInfo(name = "balance")
+    @Contextual
     val balance: BigDecimal,
-    
+
     @ColumnInfo(name = "timestamp")
+    @Contextual
     val timestamp: LocalDateTime,
     
     @ColumnInfo(name = "transaction_id")
     val transactionId: Long? = null,
     
     @ColumnInfo(name = "credit_limit")
+    @Contextual
     val creditLimit: BigDecimal? = null,
     
     @ColumnInfo(name = "is_credit_card", defaultValue = "0")
@@ -51,6 +57,7 @@ data class AccountBalanceEntity(
     val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")

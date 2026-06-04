@@ -63,9 +63,15 @@ Imports accept any `PennyWiseBackup.COMPATIBLE_PREFIX` (`"PennyWise Backup v1"`)
 
 Beyond schema tolerance, the importer skips and **counts** any single row that
 fails to insert (`insertEachCounting`) instead of letting it abort the whole
-restore. The count surfaces to the user ("N rows could not be imported"). This
-guards against genuinely corrupt rows or constraint violations — schema drift
-is already handled upstream by the defaults.
+restore. This is applied to **every** entity insert loop in both `MERGE` and
+`REPLACE_ALL` (and the merge helpers); batch snapshot inserts are wrapped in a
+table-level `try/catch`. The skipped count surfaces to the user ("N rows could
+not be imported"). This guards against genuinely corrupt rows or constraint
+violations — schema drift is already handled upstream by the defaults.
+
+The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
+the profile id-remap map that transactions/balances depend on, so it stays
+strict (a profile failure should surface, not be silently swallowed).
 
 ## How to change the format safely
 
@@ -107,7 +113,14 @@ Always give it a default. `BackupSchemaGuardTest` fails the build otherwise.
 `BackupModelsTest` covers round-trip, the loans/groups regression (#386), the
 #414 backward-compat regression (`oldBackupMissingNewerFields_*`), forward-compat
 (`newerBackupWithUnknownKeys_isIgnored`), missing sections, and null coercion.
-`BackupSchemaGuardTest` enforces the "every wrapper field defaulted" invariant.
+
+`BackupSchemaGuardTest` enforces the compatibility invariant on two layers:
+- **wrapper models** — every field must have a default; and
+- **entities** — the set of *required* (non-defaulted) fields is pinned to a
+  baseline (`KNOWN_REQUIRED_ENTITY_FIELDS`). Adding a new non-defaulted field to
+  any backed-up entity — the exact #414 footgun — grows that set and fails the
+  build, telling you to add a default (or, rarely, update the baseline for a
+  field guaranteed present in every existing backup).
 
 Run them:
 ```bash

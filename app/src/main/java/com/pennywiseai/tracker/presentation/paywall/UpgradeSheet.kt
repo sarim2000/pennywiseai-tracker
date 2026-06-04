@@ -29,10 +29,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -262,10 +264,44 @@ private fun UpgradeBody(
     IncludesBlock()
     Spacer(Modifier.height(Spacing.lg))
 
+    SupportNote()
+    Spacer(Modifier.height(Spacing.lg))
+
     TrustRow(
         liveCatalogEmpty = state.products.isEmpty() && !state.isLoading,
         onRestore = onRestore,
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Support note — the emotional beat at the buy moment. Reminds the buyer
+// there's a real person behind the app and what their money actually funds.
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SupportNote() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content)
+            .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+            .background(yellow_light)
+            .padding(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.FavoriteBorder,
+            contentDescription = null,
+            tint = yellow_dark,
+            modifier = Modifier.size(Dimensions.Icon.medium),
+        )
+        Text(
+            text = "Built by a solo dev — your upgrade funds what's next. Thank you.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF3A2B00),
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────

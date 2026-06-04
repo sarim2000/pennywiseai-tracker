@@ -1,25 +1,19 @@
 package com.pennywiseai.tracker.data.backup
 
-import com.google.gson.GsonBuilder
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 class BackupModelsTest {
-
-    private val gson = GsonBuilder()
-        .setPrettyPrinting()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
-        .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(BigDecimal::class.java, BigDecimalTypeAdapter())
-        .create()
 
     @Test
     fun backupSerializationRoundtripWithAllFields() {
@@ -200,10 +194,10 @@ class BackupModelsTest {
             )
         )
 
-        val json = gson.toJson(backup)
+        val json = backupJson.encodeToString(backup)
         assertNotNull(json)
 
-        val deserialized = gson.fromJson(json, PennyWiseBackup::class.java)
+        val deserialized = backupJson.decodeFromString<PennyWiseBackup>(json)
         assertNotNull(deserialized)
 
         assertEquals(backup.metadata.statistics.totalRules, deserialized.metadata.statistics.totalRules)
@@ -328,8 +322,8 @@ class BackupModelsTest {
             )
         )
 
-        val json = gson.toJson(backup)
-        val deserialized = gson.fromJson(json, PennyWiseBackup::class.java)
+        val json = backupJson.encodeToString(backup)
+        val deserialized = backupJson.decodeFromString<PennyWiseBackup>(json)
 
         // Statistics survive.
         assertEquals(2, deserialized.metadata.statistics.totalLoans)
@@ -352,7 +346,7 @@ class BackupModelsTest {
         assertEquals(LoanDirection.BORROWED, deserializedSettled.direction)
         assertEquals(BigDecimal.ZERO, deserializedSettled.remainingAmount)
         // Equality (not just non-null) — guards against silent timestamp drift
-        // through LocalDateTimeTypeAdapter.
+        // through the LocalDateTime serializer.
         assertEquals(settledLoan.settledAt, deserializedSettled.settledAt)
         assertEquals(settledLoan.createdAt, deserializedSettled.createdAt)
         assertEquals(settledLoan.updatedAt, deserializedSettled.updatedAt)
@@ -420,11 +414,157 @@ class BackupModelsTest {
             )
         )
 
-        val json = gson.toJson(backup)
-        val deserialized = gson.fromJson(json, PennyWiseBackup::class.java)
-        
+        val json = backupJson.encodeToString(backup)
+        val deserialized = backupJson.decodeFromString<PennyWiseBackup>(json)
+
         assertEquals(0, deserialized.database.rules.size)
         assertEquals(0, deserialized.database.exchangeRates.size)
         assertEquals(0, deserialized.database.budgets.size)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Forward / backward compatibility — the core of issues #414 + #415.
+    // These build raw JSON shaped like an OLDER app's backup (fields the
+    // current entities have were simply not written yet) and assert it
+    // imports with defaults instead of crashing.
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * #414 regression. An older backup's subscription has NO `billingCycle`
+     * or `direction` key, and an older transaction has no `isDeleted` /
+     * `profileId`. Under Gson these arrived as null on non-null fields and
+     * blew up the whole restore. kotlinx must fall back to the Kotlin
+     * defaults instead.
+     */
+    @Test
+    fun oldBackupMissingNewerFields_fallsBackToDefaults() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.0",
+          "metadata": { "export_id": "old", "app_version": "2.0.0" },
+          "database": {
+            "transactions": [
+              {
+                "id": 5,
+                "amount": "250.00",
+                "merchantName": "Old Merchant",
+                "category": "Food",
+                "transactionType": "EXPENSE",
+                "dateTime": "2023-05-01T09:30:00",
+                "transactionHash": "old-hash-1"
+              }
+            ],
+            "subscriptions": [
+              {
+                "id": 9,
+                "merchantName": "Netflix",
+                "amount": "499.00",
+                "nextPaymentDate": "2023-06-01"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        // Transaction: newer non-null columns fall back to their defaults.
+        val tx = backup.database.transactions.single()
+        assertEquals("Old Merchant", tx.merchantName)
+        assertEquals(false, tx.isDeleted)        // default
+        assertEquals("INR", tx.currency)          // default
+        assertNull(tx.profileId)                  // nullable default
+
+        // Subscription: billingCycle + direction were added later — must
+        // default, not crash.
+        val sub = backup.database.subscriptions.single()
+        assertEquals("Netflix", sub.merchantName)
+        assertEquals("Monthly", sub.billingCycle)                 // default
+        assertEquals(SubscriptionDirection.EXPENSE, sub.direction) // default enum
+        assertEquals(SubscriptionState.ACTIVE, sub.state)          // default enum
+
+        // Whole tables omitted by the old format default to empty, not null.
+        assertTrue(backup.database.loans.isEmpty())
+        assertTrue(backup.database.budgets.isEmpty())
+        assertTrue(backup.database.profiles.isEmpty())
+    }
+
+    /**
+     * Forward compatibility (#415). A backup from a *newer* app carries keys
+     * this version has never heard of — both unknown object keys and a whole
+     * unknown table. They must be ignored, not rejected.
+     */
+    @Test
+    fun newerBackupWithUnknownKeys_isIgnored() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v9.9",
+          "metadata": { "export_id": "future", "some_future_meta": 123 },
+          "database": {
+            "transactions": [
+              {
+                "id": 1,
+                "amount": "10.00",
+                "merchantName": "Future",
+                "category": "X",
+                "transactionType": "EXPENSE",
+                "dateTime": "2030-01-01T00:00:00",
+                "transactionHash": "f1",
+                "a_field_from_the_future": "ignore me"
+              }
+            ],
+            "a_table_that_does_not_exist_yet": [ { "whatever": true } ]
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertEquals(1, backup.database.transactions.size)
+        assertEquals("Future", backup.database.transactions.single().merchantName)
+    }
+
+    /**
+     * A backup that omits the entire `preferences` block (or a section of it)
+     * still imports — each section defaults.
+     */
+    @Test
+    fun missingPreferencesAndMetadata_useDefaults() {
+        val json = """{ "database": { "transactions": [] } }"""
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        assertEquals(false, backup.preferences.developer.isDeveloperModeEnabled)
+        assertEquals(6, backup.preferences.sms.smsScanMonths)
+        assertNull(backup.preferences.theme.isDarkThemeEnabled)
+        assertEquals("", backup.metadata.exportId)
+        assertTrue(backup.database.transactions.isEmpty())
+    }
+
+    /**
+     * Present-but-null on a defaulted field is coerced to the default rather
+     * than failing (`coerceInputValues = true`).
+     */
+    @Test
+    fun explicitNullOnDefaultedField_isCoerced() {
+        val json = """
+        {
+          "database": {
+            "subscriptions": [
+              {
+                "id": 1,
+                "merchantName": "X",
+                "amount": "1.00",
+                "nextPaymentDate": null,
+                "billingCycle": null,
+                "direction": null
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val sub = backupJson.decodeFromString<PennyWiseBackup>(json)
+            .database.subscriptions.single()
+        assertEquals("Monthly", sub.billingCycle)
+        assertEquals(SubscriptionDirection.EXPENSE, sub.direction)
     }
 }

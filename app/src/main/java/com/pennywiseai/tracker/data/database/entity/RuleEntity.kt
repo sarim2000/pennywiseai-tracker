@@ -5,6 +5,8 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "transaction_rules",
@@ -13,6 +15,7 @@ import java.time.LocalDateTime
         Index(value = ["name"])
     ]
 )
+@Serializable
 data class RuleEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")
@@ -40,8 +43,10 @@ data class RuleEntity(
     val isSystemTemplate: Boolean = false,
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime,
 
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime
 )

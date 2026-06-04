@@ -6,6 +6,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "rule_applications",
@@ -29,6 +31,7 @@ import java.time.LocalDateTime
         Index(value = ["applied_at"])
     ]
 )
+@Serializable
 data class RuleApplicationEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")
@@ -47,5 +50,6 @@ data class RuleApplicationEntity(
     val fieldsModified: String, // JSON string
 
     @ColumnInfo(name = "applied_at")
+    @Contextual
     val appliedAt: LocalDateTime
 )

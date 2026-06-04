@@ -5,11 +5,14 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "transaction_groups",
     indices = [Index(value = ["updated_at"])]
 )
+@Serializable
 data class TransactionGroupEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -22,8 +25,10 @@ data class TransactionGroupEntity(
     val note: String? = null,
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )

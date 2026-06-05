@@ -204,6 +204,27 @@ class TransactionRepository @Inject constructor(
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)
     }
+
+    suspend fun countExplicitProfileMismatchForAccount(
+        bankName: String,
+        accountLast4: String,
+        profileId: Long
+    ): Int {
+        return transactionDao.countExplicitProfileMismatchForAccount(bankName, accountLast4, profileId)
+    }
+
+    suspend fun setProfileForAccountTransactions(
+        bankName: String,
+        accountLast4: String,
+        profileId: Long
+    ): Int {
+        return transactionDao.setProfileForAccountTransactions(
+            bankName,
+            accountLast4,
+            profileId,
+            LocalDateTime.now()
+        )
+    }
     
     // Additional methods for Home screen
     data class MonthlyBreakdown(

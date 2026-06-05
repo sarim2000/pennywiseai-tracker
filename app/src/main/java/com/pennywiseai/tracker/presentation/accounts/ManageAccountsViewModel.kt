@@ -49,6 +49,13 @@ enum class AccountType {
     CASH
 }
 
+data class PendingProfileReassign(
+    val bankName: String,
+    val accountLast4: String,
+    val profileId: Long,
+    val transactionCount: Int
+)
+
 @HiltViewModel
 class ManageAccountsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -73,6 +80,9 @@ class ManageAccountsViewModel @Inject constructor(
     
     private val _formState = MutableStateFlow(AccountFormState())
     val formState: StateFlow<AccountFormState> = _formState.asStateFlow()
+
+    private val _pendingProfileReassign = MutableStateFlow<PendingProfileReassign?>(null)
+    val pendingProfileReassign: StateFlow<PendingProfileReassign?> = _pendingProfileReassign.asStateFlow()
     
     init {
         loadAccounts()
@@ -604,7 +614,35 @@ class ManageAccountsViewModel @Inject constructor(
     fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {
         viewModelScope.launch {
             accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+
+            // Offer to move EXISTING transactions that carry an explicit, mismatched
+            // profile (NULL/dynamic ones already follow the account, so they're left alone).
+            val count = transactionRepository.countExplicitProfileMismatchForAccount(
+                bankName,
+                accountLast4,
+                profileId
+            )
+            if (count > 0) {
+                _pendingProfileReassign.value = PendingProfileReassign(
+                    bankName = bankName,
+                    accountLast4 = accountLast4,
+                    profileId = profileId,
+                    transactionCount = count
+                )
+            }
         }
+    }
+
+    fun applyPendingProfileReassign() {
+        viewModelScope.launch {
+            val p = _pendingProfileReassign.value ?: return@launch
+            transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
+            _pendingProfileReassign.value = null
+        }
+    }
+
+    fun dismissPendingProfileReassign() {
+        _pendingProfileReassign.value = null
     }
 
     fun editAccount(

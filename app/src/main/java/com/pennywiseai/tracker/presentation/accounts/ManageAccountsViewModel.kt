@@ -634,10 +634,17 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun applyPendingProfileReassign() {
+        val p = _pendingProfileReassign.value ?: return
         viewModelScope.launch {
-            val p = _pendingProfileReassign.value ?: return@launch
-            transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
-            _pendingProfileReassign.value = null
+            try {
+                transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to reassign account transactions", e)
+            } finally {
+                // Always clear the prompt so the dialog can't get stuck open if
+                // the update throws.
+                _pendingProfileReassign.value = null
+            }
         }
     }
 

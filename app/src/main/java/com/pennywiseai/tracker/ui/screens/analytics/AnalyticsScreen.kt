@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
@@ -75,6 +76,8 @@ fun AnalyticsScreen(
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
     val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
     val categoryFilter by viewModel.categoryFilter.collectAsStateWithLifecycle()
+    val selectedProfileId by viewModel.selectedProfileId.collectAsStateWithLifecycle()
+    val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var showChartTypeSelector by remember { mutableStateOf(false) }
@@ -82,6 +85,7 @@ fun AnalyticsScreen(
     var showTypeMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
+    var showProfileMenu by remember { mutableStateOf(false) }
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -148,10 +152,13 @@ fun AnalyticsScreen(
                 isUnifiedMode = isUnifiedMode,
                 categoryFilter = categoryFilter,
                 availableCategories = uiState.availableCategories,
+                profiles = profiles,
+                selectedProfileId = selectedProfileId,
                 showPeriodMenu = showPeriodMenu,
                 showTypeMenu = showTypeMenu,
                 showCurrencyMenu = showCurrencyMenu,
                 showCategoryMenu = showCategoryMenu,
+                showProfileMenu = showProfileMenu,
                 hasActiveFilter = hasActiveAnalyticsFilter,
                 onPeriodClick = { showPeriodMenu = true },
                 onPeriodDismiss = { showPeriodMenu = false },
@@ -184,6 +191,12 @@ fun AnalyticsScreen(
                         viewModel.setCategoryFilter(category)
                     }
                     showCategoryMenu = false
+                },
+                onProfileClick = { showProfileMenu = true },
+                onProfileDismiss = { showProfileMenu = false },
+                onProfileSelected = { profileId ->
+                    viewModel.selectProfile(profileId)
+                    showProfileMenu = false
                 },
                 onResetFilters = {
                     viewModel.selectPeriod(TimePeriod.THIS_MONTH)
@@ -463,10 +476,13 @@ private fun AnalyticsFilterBar(
     isUnifiedMode: Boolean,
     categoryFilter: String?,
     availableCategories: List<String>,
+    profiles: List<ProfileEntity>,
+    selectedProfileId: Long?,
     showPeriodMenu: Boolean,
     showTypeMenu: Boolean,
     showCurrencyMenu: Boolean,
     showCategoryMenu: Boolean,
+    showProfileMenu: Boolean,
     hasActiveFilter: Boolean,
     onPeriodClick: () -> Unit,
     onPeriodDismiss: () -> Unit,
@@ -480,6 +496,9 @@ private fun AnalyticsFilterBar(
     onCategoryClick: () -> Unit,
     onCategoryDismiss: () -> Unit,
     onCategorySelected: (String?) -> Unit,
+    onProfileClick: () -> Unit,
+    onProfileDismiss: () -> Unit,
+    onProfileSelected: (Long?) -> Unit,
     onResetFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -504,6 +523,30 @@ private fun AnalyticsFilterBar(
                         leadingIconContentColor = MaterialTheme.colorScheme.error
                     )
                 )
+            }
+        }
+
+        if (profiles.isNotEmpty()) {
+            item {
+                val selectedProfileLabel = profiles.find { it.id == selectedProfileId }?.name
+                Box {
+                    ExpressiveFilterChip(
+                        colors = analyticsFilterChipColors(),
+                        border = analyticsFilterChipBorder(selected = selectedProfileId != null),
+                        selected = selectedProfileId != null,
+                        text = selectedProfileLabel ?: "All Accounts",
+                        icon = profileFilterIcon(profiles, selectedProfileId),
+                        onClick = onProfileClick
+                    )
+
+                    ProfileFilterDropdown(
+                        expanded = showProfileMenu,
+                        profiles = profiles,
+                        selectedProfileId = selectedProfileId,
+                        onProfileSelected = onProfileSelected,
+                        onDismiss = onProfileDismiss
+                    )
+                }
             }
         }
 

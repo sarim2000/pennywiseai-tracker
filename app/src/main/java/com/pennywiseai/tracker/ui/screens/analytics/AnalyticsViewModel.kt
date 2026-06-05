@@ -1,14 +1,20 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,11 +32,25 @@ enum class ChartType { LINE, BAR, HEATMAP }
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
     private val transactionRepository: TransactionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val profileRepository: ProfileRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
+
+    // Profile filter — reuses the global Home profile selection so the two stay in sync.
+    val selectedProfileId: StateFlow<Long?> = userPreferencesRepository.selectedProfileId
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val profiles: StateFlow<List<ProfileEntity>> = profileRepository.observeAllProfiles()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun selectProfile(id: Long?) {
+        viewModelScope.launch { userPreferencesRepository.updateSelectedProfileId(id) }
+    }
     
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
@@ -106,10 +126,12 @@ class AnalyticsViewModel @Inject constructor(
         customDateRange,
         _transactionTypeFilter,
         _selectedCurrency,
-        combine(_isUnifiedMode, _categoryFilter) { a, b -> a to b }
-    ) { period, customRange, typeFilter, currency, (isUnified, catFilter) ->
-        FilterState(period, customRange, typeFilter, currency, isUnified, catFilter)
-    }.flatMapLatest { filterState ->
+        combine(_isUnifiedMode, _categoryFilter, selectedProfileId) { u, c, p -> Triple(u, c, p) }
+    ) { period, customRange, typeFilter, currency, (isUnified, catFilter, profileId) ->
+        FilterState(period, customRange, typeFilter, currency, isUnified, catFilter, profileId)
+    }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
+        fs to balances
+    }.flatMapLatest { (filterState, balances) ->
         // Determine date range based on selected period
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
             val customRange = filterState.customRange
@@ -160,19 +182,38 @@ class AnalyticsViewModel @Inject constructor(
                     TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
                 }
 
+                // Scope a loaded transaction list to the selected profile and exclude
+                // hidden accounts (mirrors the Home screen's account scoping).
+                fun scopeTransactions(
+                    txs: List<TransactionWithSplits>
+                ): List<TransactionWithSplits> {
+                    val hidden = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
+                        .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+                    val profileKeys = buildProfileAccountKeys(balances)
+                    val keptIds = filterTransactionsByProfile(
+                        txs.map { it.transaction },
+                        filterState.profileId,
+                        profileKeys
+                    ).mapTo(HashSet()) { it.id }
+                    return txs.filter { tw ->
+                        tw.transaction.id in keptIds &&
+                            "${tw.transaction.bankName}_${tw.transaction.accountNumber}" !in hidden
+                    }
+                }
+
                 // Load transactions with splits for proper category breakdown
                 if (filterState.isUnifiedMode) {
                     // Unified mode: load ALL currencies
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second
-                    ).map { txs -> Triple(txs, dbTransactionType, true) }
+                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, true) }
                 } else {
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second,
                         currency = filterState.currency
-                    ).map { txs -> Triple(txs, dbTransactionType, false) }
+                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, false) }
                 }
             }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
                 // Filter by transaction type in memory (splits are already loaded)
@@ -421,7 +462,8 @@ private data class FilterState(
     val typeFilter: TransactionTypeFilter,
     val currency: String,
     val isUnifiedMode: Boolean = false,
-    val categoryFilter: String? = null
+    val categoryFilter: String? = null,
+    val profileId: Long? = null
 )
 
 data class AnalyticsUiState(

@@ -613,22 +613,27 @@ class ManageAccountsViewModel @Inject constructor(
 
     fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {
         viewModelScope.launch {
-            accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+            try {
+                accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
 
-            // Offer to move EXISTING transactions that carry an explicit, mismatched
-            // profile (NULL/dynamic ones already follow the account, so they're left alone).
-            val count = transactionRepository.countExplicitProfileMismatchForAccount(
-                bankName,
-                accountLast4,
-                profileId
-            )
-            if (count > 0) {
-                _pendingProfileReassign.value = PendingProfileReassign(
-                    bankName = bankName,
-                    accountLast4 = accountLast4,
-                    profileId = profileId,
-                    transactionCount = count
+                // Offer to move EXISTING transactions that carry an explicit, mismatched
+                // profile (NULL/dynamic ones already follow the account, so they're left alone).
+                val count = transactionRepository.countExplicitProfileMismatchForAccount(
+                    bankName,
+                    accountLast4,
+                    profileId
                 )
+                if (count > 0) {
+                    _pendingProfileReassign.value = PendingProfileReassign(
+                        bankName = bankName,
+                        accountLast4 = accountLast4,
+                        profileId = profileId,
+                        transactionCount = count
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to set account profile", e)
+                _uiState.update { it.copy(errorMessage = "Failed to update account profile: ${e.message}") }
             }
         }
     }
@@ -640,6 +645,7 @@ class ManageAccountsViewModel @Inject constructor(
                 transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to reassign account transactions", e)
+                _uiState.update { it.copy(errorMessage = "Failed to move transactions: ${e.message}") }
             } finally {
                 // Always clear the prompt so the dialog can't get stuck open if
                 // the update throws.

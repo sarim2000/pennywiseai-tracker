@@ -5,6 +5,7 @@ import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -300,6 +301,7 @@ class SmsTransactionProcessor @Inject constructor(
                 smsSource = parsedTransaction.smsBody.take(500),
                 sourceType = "TRANSACTION",
                 currency = parsedTransaction.currency,
+                profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existingAccount?.alias
             )
 

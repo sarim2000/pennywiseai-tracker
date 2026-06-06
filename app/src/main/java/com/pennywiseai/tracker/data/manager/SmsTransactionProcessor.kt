@@ -67,14 +67,16 @@ class SmsTransactionProcessor @Inject constructor(
         timestamp: Long
     ): ProcessingResult {
         try {
-            // Get the appropriate parser for this sender
-            val parser = BankParserFactory.getParser(sender)
-            if (parser == null) {
+            // Some senders are shared by multiple parsers (e.g. M-Pesa
+            // Kenya/Tanzania/Mozambique all use "M-Pesa"), so try every parser
+            // that handles this sender and use the first whose content parses.
+            val parsers = BankParserFactory.getParsers(sender)
+            if (parsers.isEmpty()) {
                 return ProcessingResult(false, reason = "No parser found for sender: $sender")
             }
 
             // Parse the SMS
-            val parsedTransaction = parser.parse(body, sender, timestamp)
+            val parsedTransaction = parsers.firstNotNullOfOrNull { it.parse(body, sender, timestamp) }
             if (parsedTransaction == null) {
                 return ProcessingResult(false, reason = "Could not parse transaction from SMS")
             }

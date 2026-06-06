@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,12 +44,14 @@ private val presetColors = listOf(
 fun CategoryEditDialog(
     category: CategoryEntity? = null,
     onDismiss: () -> Unit,
-    onSave: (name: String, color: String, isIncome: Boolean) -> Unit
+    onSave: (name: String, color: String, isIncome: Boolean) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     var name by remember { mutableStateOf(category?.name ?: "") }
     var isIncome by remember { mutableStateOf(category?.isIncome ?: false) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         PennyWiseCardV2(
@@ -228,7 +231,54 @@ fun CategoryEditDialog(
                         Text(if (category == null) "Add" else "Save")
                     }
                 }
+
+                // Discoverable delete for custom categories (the swipe-to-delete
+                // gesture stays as a shortcut). System categories never show this.
+                if (category != null && !category.isSystem && onDelete != null) {
+                    TextButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text("Delete category")
+                    }
+                }
             }
         }
+    }
+
+    if (showDeleteConfirm && category != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete category?") },
+            text = {
+                Text(
+                    "\"${category.name}\" will be removed. Existing transactions keep " +
+                        "their current label. This can't be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete?.invoke()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

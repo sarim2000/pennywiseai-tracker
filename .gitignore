@@ -75,8 +75,8 @@ play-store-key.json
 
 # Local secrets / keys folder — manually backed up, NEVER committed
 secrets/
+
+# Local tooling (screenshot editor, agent skills) — not part of the app
 aso-screenshots/
 .agents/
 skills-lock.json
-
-# Local tooling (screenshot editor, agent skills) — not part of the app

@@ -32,6 +32,9 @@ jobs:
           upload_sources: true
           upload_translations: false
           download_translations: true
+          # Only pull fully-translated files, so we never publish English copy
+          # in a non-English store listing.
+          skip_untranslated_files: true
           localization_branch_name: l10n/crowdin
           create_pull_request: true
           pull_request_title: 'i18n: new Play Store metadata translations'

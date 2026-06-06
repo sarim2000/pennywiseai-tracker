@@ -19,14 +19,22 @@ preserve_hierarchy: true
 # Only Play-supported codes here; enabling a language in the Crowdin project
 # that maps to an unsupported folder will make `fastlane supply` reject it.
 #   Priority: Hindi (India is ~87% of the install base) then Arabic (UAE+Saudi).
+#   Crowdin's default %locale% over-regionalizes some languages (e.g. sw-KE,
+#   th-TH) which Play REJECTS — Play wants bare `sw` / `th`. Every entry below is
+#   the exact Google Play listing code (verified against fastlane's ALL_LANGUAGES).
 languages_mapping:
   locale:
-    hi: hi-IN     # Hindi  -> India
-    ar: ar        # Arabic -> UAE / Saudi
-    # --- uncomment as you expand (all Play-supported) ---
-    # ru: ru-RU   # Russian
-    # cs: cs-CZ   # Czech
-    # sw: sw      # Swahili (Kenya/Tanzania)
+    hi: hi-IN     # Hindi      -> India
+    ar: ar        # Arabic     -> UAE / Saudi / Egypt
+    th: th        # Thai       -> Thailand   (NOT th-TH)
+    sw: sw        # Swahili    -> Kenya / Tanzania (NOT sw-KE)
+    ne: ne-NP     # Nepali     -> Nepal
+    ru: ru-RU     # Russian    -> Russia / Belarus
+    be: be        # Belarusian -> Belarus
+    cs: cs-CZ     # Czech      -> Czechia
+    fa: fa        # Persian    -> Iran
+    am: am        # Amharic    -> Ethiopia
+    es: es-419    # Spanish    -> Latin America (Colombia)
 
 files:
   - source: /fastlane/metadata/android/en-US/title.txt

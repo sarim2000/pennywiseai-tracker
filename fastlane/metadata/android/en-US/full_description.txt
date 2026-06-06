@@ -1,16 +1,26 @@
-Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
+PennyWise is a private expense tracker and budget app that turns your bank SMS into an automatic money timeline — powered by on-device AI. No manual entry, no accounts, no cloud.
 
-Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no cloud, no effort.
+Your bank already texts you every transaction. PennyWise reads those SMS locally and instantly tracks your spending, so expense tracking, budgeting, and money management happen with zero setup.
 
-Key Features:
-- 100% On-Device & Private — All AI processing runs locally, no cloud, no servers, no tracking
-- Zero Setup — Just grant SMS permission, no accounts to create, works instantly
-- Free & Open Source — AGPL v3 licensed, no ads, no hidden costs
-- On-Device AI Assistant — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
-- 90+ Banks Supported across 18 countries with multi-currency capabilities
-- Smart Analytics — Monthly trends, category breakdowns, spending patterns
-- Budget Tracking — Set budgets per category and track progress
-- Subscription Detection — Automatically identifies recurring payments
-- Smart Rules — Auto-categorize transactions with customizable rules
+★ Why PennyWise
+• 100% on-device & private — AI runs locally, nothing leaves your phone
+• Zero setup — grant SMS permission and it works instantly, no sign-up
+• On-device AI assistant — ask "what did I spend on food?" (powered by Qwen 2.5)
+• 90+ banks across 18 countries, multi-currency
+• Smart analytics — spending trends, category breakdowns, insights
+• Budgets — set limits per category and track progress
+• Subscription detection — automatically finds recurring payments
+• Smart rules — auto-categorize transactions your way
+• Dark mode, no ads, no tracking
+• Open source (AGPL-3.0)
 
-All AI processing happens on your device using Qwen 2.5 — no cloud, no API calls, no data leaving your phone.
+★ Expense tracking on autopilot
+PennyWise is the money manager for people who hate manual entry. Every bank SMS becomes a categorized transaction in a clean, searchable timeline — a spending tracker that's always up to date.
+
+★ Private by design
+All AI processing happens on your device. No servers, no API calls, no data leaving your phone. There are no accounts to create, and the full source is open (AGPL-3.0) so anyone can verify exactly what the app does.
+
+★ Free, with optional Pro
+PennyWise is free to use. An optional PennyWise Pro upgrade unlocks power-user extras — unlimited custom rules, PDF statement imports, CSV export, and duplicate-account merge — and directly supports a solo developer building PennyWise independently.
+
+Download PennyWise and turn your bank SMS into effortless, private expense tracking.

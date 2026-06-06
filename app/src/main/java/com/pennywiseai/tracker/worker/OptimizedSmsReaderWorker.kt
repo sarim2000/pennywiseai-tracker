@@ -11,6 +11,7 @@ import androidx.work.*
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
@@ -777,6 +778,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             currency      = parsed.currency,
+            profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias
         )
 

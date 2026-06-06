@@ -39,5 +39,7 @@ jobs:
           pull_request_base_branch_name: main
           commit_message: 'i18n: update Play Store metadata translations'
         env:
+          # Auto-provided by GitHub Actions — needed to open the translations PR.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

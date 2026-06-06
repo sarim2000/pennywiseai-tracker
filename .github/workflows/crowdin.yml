@@ -23,10 +23,25 @@ permissions:
 jobs:
   crowdin:
     runs-on: ubuntu-latest
+    env:
+      CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+      CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
+      # Skip cleanly (instead of failing red) until the two repo secrets exist.
+      - name: Check for Crowdin credentials
+        id: creds
+        run: |
+          if [ -n "$CROWDIN_PROJECT_ID" ] && [ -n "$CROWDIN_PERSONAL_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Crowdin secrets not set — skipping. Add CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN in repo Settings → Secrets to enable store-metadata localization."
+          fi
+
       - name: Crowdin push sources & download translations
+        if: steps.creds.outputs.ready == 'true'
         uses: crowdin/github-action@v2
         with:
           upload_sources: true

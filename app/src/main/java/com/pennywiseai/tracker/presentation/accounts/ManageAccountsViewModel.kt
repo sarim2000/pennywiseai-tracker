@@ -240,6 +240,7 @@ class ManageAccountsViewModel @Inject constructor(
                     currency = latestBalance?.currency ?: "INR",
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = latestBalance?.alias,
                     sourceType = "MANUAL",
                     timestamp = LocalDateTime.now()
                 )
@@ -262,6 +263,7 @@ class ManageAccountsViewModel @Inject constructor(
                     currency = latestBalance?.currency ?: "INR",
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = latestBalance?.alias,
                     sourceType = "MANUAL"
                 )
             )
@@ -715,6 +717,7 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = latestBalance?.currency ?: "INR",
                         accountType = latestBalance?.accountType,
                         profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                        alias = latestBalance?.alias,
                         sourceType = "MANUAL"
                     )
                 )

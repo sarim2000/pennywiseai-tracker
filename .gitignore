@@ -68,3 +68,7 @@ deploy.sh
 
 # VSCode build files
 parser-core/bin/*
+
+# Local Play service-account key (used by scripts/upload-play.sh)
+play-store-key.json
+*play-store*.json

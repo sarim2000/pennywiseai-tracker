@@ -1,1 +1,1 @@
-Private, SMS-powered expense tracker with on-device AI
+Private expense tracker & budget app — auto-reads bank SMS, on-device AI.

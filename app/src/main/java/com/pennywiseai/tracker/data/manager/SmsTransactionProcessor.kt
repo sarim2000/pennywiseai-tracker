@@ -299,7 +299,8 @@ class SmsTransactionProcessor @Inject constructor(
                 isCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false),
                 smsSource = parsedTransaction.smsBody.take(500),
                 sourceType = "TRANSACTION",
-                currency = parsedTransaction.currency
+                currency = parsedTransaction.currency,
+                alias = existingAccount?.alias
             )
 
             accountBalanceRepository.insertBalance(balanceEntity)

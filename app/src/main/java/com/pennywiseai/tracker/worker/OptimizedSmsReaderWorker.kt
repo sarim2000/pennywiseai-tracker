@@ -776,7 +776,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
-            currency      = parsed.currency
+            currency      = parsed.currency,
+            alias         = existing?.alias
         )
 
         accountBalanceRepository.insertBalance(balanceEntity)

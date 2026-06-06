@@ -42,7 +42,7 @@ for arg in "$@"; do
 done
 
 PACKAGE="com.pennywiseai.tracker"
-JSON_KEY="${PLAY_JSON_KEY:-play-store-key.json}"
+JSON_KEY="${PLAY_JSON_KEY:-secrets/play-store-key.json}"
 TRACK="${PLAY_TRACK:-production}"
 STATUS="${PLAY_STATUS:-draft}"
 META_PATH="fastlane/metadata/android"

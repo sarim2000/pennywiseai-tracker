@@ -193,6 +193,20 @@ All AI processing happens on your device using MediaPipe's Qwen 2.5 model — no
 
 ## Screenshots
 
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="150"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="150"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="150"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="150"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="150"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="150"/>
+</p>
+
+<details>
+<summary>In-app screenshots (light &amp; dark themes)</summary>
+
+<br/>
+
 **Light Theme**
 
 <table>
@@ -230,6 +244,8 @@ All AI processing happens on your device using MediaPipe's Qwen 2.5 model — no
 <td align="center">AI Chat</td>
 </tr>
 </table>
+
+</details>
 
 ## Quick Start
 

@@ -1,0 +1,11 @@
+Term,Description
+PennyWise AI,Brand name. Do NOT translate — always keep "PennyWise AI" in Latin script.
+PennyWise,Brand name. Do NOT translate — keep in Latin script.
+Pro,Product tier (PennyWise Pro). Do NOT translate — keep "Pro".
+SMS,Technical term. Keep as "SMS" — universally understood; do not expand or translate.
+AI,Keep as "AI" in Latin. Do not translate to a local word for artificial intelligence.
+on-device,The privacy hook. Translate the meaning naturally but keep it clearly "runs on your phone, not the cloud".
+open source,May be translated; keep the meaning. Leave the license name "AGPL" untranslated.
+AGPL,Software license name. Do NOT translate.
+Qwen,On-device AI model name. Do NOT translate.
+UPI,Indian payments rail. Do NOT translate — keep "UPI".

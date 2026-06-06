@@ -228,6 +228,30 @@ object IconProvider {
         return CategoryMapping.categories[category]
             ?: CategoryMapping.categories["Others"]!!
     }
+
+    /**
+     * Get icon for a transaction, using an explicitly set category when available.
+     * 1. Try brand-specific icon
+     * 2. If not found, use provided category (if valid)
+     * 3. Otherwise, derive category from merchant name
+     * 4. If still not found, use default icon
+     */
+    fun getTransactionIcon(merchantName: String, category: String?): IconResource {
+        BrandIcons.getIconResource(merchantName)?.let { iconRes ->
+            return IconResource.DrawableResource(iconRes)
+        }
+
+        val effectiveCategory = if (category.isValidCategoryOverride()) category
+            else CategoryMapping.getCategory(merchantName)
+
+        val categoryInfo = CategoryMapping.categories[effectiveCategory]
+            ?: CategoryMapping.categories["Others"]!!
+
+        return IconResource.VectorIcon(
+            icon = categoryInfo.icon,
+            tint = categoryInfo.color
+        )
+    }
 }
 
 /**
@@ -237,3 +261,10 @@ sealed class IconResource {
     data class DrawableResource(val resId: Int) : IconResource()
     data class VectorIcon(val icon: ImageVector, val tint: Color) : IconResource()
 }
+
+/**
+ * Returns true if this category string represents a valid override
+ * (non-null, non-blank, not the "Uncategorized" sentinel).
+ */
+internal fun String?.isValidCategoryOverride(): Boolean =
+    !this.isNullOrBlank() && !this.equals("Uncategorized", ignoreCase = true)

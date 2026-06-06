@@ -51,6 +51,15 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 
 /**
+ * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so it
+ * is usable both in the `@Database(version = ...)` annotation below and in
+ * non-Room code (e.g. [com.pennywiseai.tracker.data.backup.BackupExporter])
+ * that needs to record the version it was exported against. Bump this in lock-
+ * step with any schema change.
+ */
+const val SCHEMA_VERSION = 49
+
+/**
  * The PennyWise Room database.
  * 
  * This database stores all financial transaction data locally on the device.
@@ -62,7 +71,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  */
 @Database(
     entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
-    version = 47,
+    version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -148,21 +157,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .addMigrations(
-                        MIGRATION_12_14,
-                        MIGRATION_13_14,
-                        MIGRATION_14_15,
-                        MIGRATION_20_21,
-                        MIGRATION_21_22,
-                        MIGRATION_22_23,
-                        MIGRATION_38_39,
-                        // 44_45 and 45_46 were never added here, so a receiver
-                        // upgrading past v44 before Hilt initialised would crash.
-                        // Bringing this list in sync with the Hilt module.
-                        MIGRATION_44_45,
-                        MIGRATION_45_46,
-                        MIGRATION_46_47
-                    )
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
                 instance
@@ -449,6 +444,41 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Income autopay + cycle persistence (#371). Adds two columns to
+         * `subscriptions`:
+         *
+         *  - `direction` — EXPENSE (today's behaviour: Netflix, EMIs) or
+         *    INCOME (wallet top-ups, allowance) for the new income-autopay
+         *    flow that phantom-creates a transaction when `next_payment_date`
+         *    rolls past today.
+         *  - `billing_cycle` — previously collected by the Add-Subscription
+         *    UI but silently dropped by the use case, so the matcher's
+         *    hard-coded +30-day advance ran for every cycle. Persist it now
+         *    so cycle-aware advance + phantom creation can honour the
+         *    user-chosen cadence (Weekly / Monthly / Quarterly / Annual).
+         *
+         * Existing rows default to EXPENSE + Monthly so behaviour is unchanged.
+         */
+        val MIGRATION_47_48 = object : Migration(47, 48) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `direction` TEXT NOT NULL DEFAULT 'EXPENSE'")
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly'")
+            }
+        }
+
+        /**
+         * Adds `last_paid_at` to subscriptions so the UI can show a "Paid"
+         * badge after the user marks a cycle paid, and the use case can
+         * refuse a same-cycle re-tap (#412 follow-up). Nullable — existing
+         * rows have no payment history yet.
+         */
+        val MIGRATION_48_49 = object : Migration(48, 49) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `last_paid_at` TEXT DEFAULT NULL")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -476,6 +506,29 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 return false
             }
         }
+
+        /**
+         * Single source of truth for the migration list. Both the Hilt-built
+         * database (DatabaseModule.providePennyWiseDatabase) and the
+         * BroadcastReceiver fallback path (getInstance above) reference this
+         * — adding a new migration here registers it for both. Splitting
+         * them previously caused a v47→v48 boot crash because the Hilt
+         * builder didn't know about MIGRATION_47_48.
+         */
+        val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+            MIGRATION_12_14,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_20_21,
+            MIGRATION_21_22,
+            MIGRATION_22_23,
+            MIGRATION_38_39,
+            MIGRATION_44_45,
+            MIGRATION_45_46,
+            MIGRATION_46_47,
+            MIGRATION_47_48,
+            MIGRATION_48_49,
+        )
     }
     
     /**

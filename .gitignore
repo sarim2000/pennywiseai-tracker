@@ -70,3 +70,6 @@ deploy.sh
 parser-core/bin/*
 
 .antigravitycli/*
+# Local Play service-account key (used by scripts/upload-play.sh)
+play-store-key.json
+*play-store*.json

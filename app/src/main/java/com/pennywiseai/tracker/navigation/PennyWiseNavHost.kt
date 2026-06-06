@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -168,11 +169,16 @@ fun PennyWiseNavHost(
                         navController.navigate(LoanDetail(loanId)) {
                             launchSingleTop = true
                         }
+                    },
+                    onDuplicateTransaction = { sourceId ->
+                        navController.navigate(AddTransaction(sourceTransactionId = sourceId)) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
         }
-        
+
         composable<AddTransaction>(
             enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
             exitTransition = { fadeOut(tween(200)) },
@@ -231,6 +237,11 @@ fun PennyWiseNavHost(
                     navController.navigate(CreateRule(ruleId = ruleId)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToDuplicateRule = { ruleId ->
+                    navController.navigate(CreateRule(duplicateFromId = ruleId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -244,21 +255,46 @@ fun PennyWiseNavHost(
             val createRule = backStackEntry.toRoute<CreateRule>()
             val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
 
-            // Collect rules from the flow to find the existing rule
+            // Collect rules from the flow to find the rule being edited or duplicated.
             val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
-            val existingRule = createRule.ruleId?.let { ruleId ->
-                rules.firstOrNull { it.id == ruleId }
+            val isEditing = createRule.ruleId != null
+
+            // Stable id for a duplicate, kept across recompositions/config changes.
+            val duplicateId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+
+            // Edit prefills from the saved rule; duplicate prefills from the source but
+            // becomes a fresh rule (new id, "(copy)" name) so saving inserts a new one.
+            val prefillRule = when {
+                createRule.ruleId != null ->
+                    rules.firstOrNull { it.id == createRule.ruleId }
+                createRule.duplicateFromId != null ->
+                    rules.firstOrNull { it.id == createRule.duplicateFromId }?.let { source ->
+                        source.copy(
+                            id = duplicateId,
+                            name = "${source.name} (copy)",
+                            isSystemTemplate = false
+                        )
+                    }
+                else -> null
             }
+            val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
                 },
                 onSaveRule = { rule ->
-                    rulesViewModel.createRule(rule)
+                    // Edit updates in place; create/duplicate inserts a new rule.
+                    if (isEditing) {
+                        rulesViewModel.updateRule(rule)
+                    } else {
+                        rulesViewModel.createRule(rule)
+                    }
                     navController.safePopBackStack()
                 },
-                existingRule = existingRule
+                existingRule = prefillRule,
+                isEditing = isEditing,
+                allAccounts = accounts
             )
         }
         
@@ -428,7 +464,7 @@ fun PennyWiseNavHost(
                     navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
                 },
                 onAddTransactionClick = {
-                    navController.navigate(AddTransaction) { launchSingleTop = true }
+                    navController.navigate(AddTransaction()) { launchSingleTop = true }
                 },
                 onNavigateToSettings = {
                     navController.navigate(Settings) { launchSingleTop = true }

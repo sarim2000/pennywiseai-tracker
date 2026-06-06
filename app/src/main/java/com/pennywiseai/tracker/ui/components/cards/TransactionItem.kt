@@ -37,6 +37,10 @@ fun TransactionItem(
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
+    /** Optional long-press handler — used for bulk-edit selection entry. */
+    onLongClick: (() -> Unit)? = null,
+    /** Overrides the row's container colour (e.g. for selected state). */
+    containerColor: androidx.compose.ui.graphics.Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -68,18 +72,32 @@ fun TransactionItem(
         effectiveProfileId == ProfileEntity.BUSINESS_ID
     }
 
+    // User-written description, if present, is surfaced as the LEAD segment of
+    // the subtitle (kept short) — not as the title. Promoting it to title made
+    // casual notes ("movie night with sarah") read as inconsistent next to
+    // brand-name merchants ("Uber", "Netflix") and routinely got truncated. The
+    // merchant stays the visual heading; the description is a small contextual
+    // tag below. (#383)
+    val description = transaction.description?.takeIf { it.isNotBlank() }
+
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
+            if (description != null) add(description)
             add(dateTimeText)
+            if (transaction.category.isNotBlank() &&
+                !transaction.category.equals("Uncategorized", ignoreCase = true)
+            ) {
+                add(transaction.category)
+            }
+
             if (showTypeLabel) {
-                if (transaction.category.isNotBlank() &&
-                    !transaction.category.equals("Uncategorized", ignoreCase = true)
-                ) {
-                    add(transaction.category)
-                }
                 when (transaction.transactionType) {
                     TransactionType.CREDIT -> add("Credit")
-                    TransactionType.TRANSFER -> add("Transfer")
+                    TransactionType.TRANSFER -> {
+                        if (transferTitleOverride(transaction) == null) {
+                            add("Transfer")
+                        }
+                    }
                     TransactionType.INVESTMENT -> add("Investment")
                     else -> {}
                 }
@@ -110,8 +128,14 @@ fun TransactionItem(
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
     val merchantDisplay = LocalMerchantDisplay.current
 
+    // For a paired self-transfer row, the event ("Transfer → 9999" /
+    // "Transfer from 1234") is more informative than the merchant name (often
+    // the user's own contact name), and stops the two legs from looking like
+    // duplicate rows in the list. Falls back to merchant otherwise.
+    val transferTitle = transferTitleOverride(transaction)
+
     ListItemCardV2(
-        title = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
@@ -121,6 +145,8 @@ fun TransactionItem(
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
         },
+        onLongClick = onLongClick,
+        containerColor = containerColor,
         modifier = modifier,
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -137,7 +163,8 @@ fun TransactionItem(
                 merchantName = transaction.merchantName,
                 modifier = iconModifier,
                 size = Dimensions.Icon.list,
-                showBackground = true
+                showBackground = true,
+                category = transaction.category
             )
         },
         trailingContent = {
@@ -171,4 +198,24 @@ fun TransactionItem(
             }
         }
     )
+}
+
+/**
+ * For TRANSFER rows that have `fromAccount` and `toAccount` populated,
+ * synthesise a title that describes the event (which leg + the other
+ * account's last-4) rather than the merchant. Returns null for any other
+ * row, in which case the default merchant-as-title rendering wins.
+ */
+private fun transferTitleOverride(transaction: TransactionEntity): String? {
+    if (transaction.transactionType != TransactionType.TRANSFER) return null
+    val mine = transaction.accountNumber
+    val from = transaction.fromAccount
+    val to = transaction.toAccount
+    return when {
+        from != null && to != null && mine == from -> "Transfer → ${to.takeLast(4)}"
+        from != null && to != null && mine == to -> "Transfer from ${from.takeLast(4)}"
+        to != null && mine != to -> "Transfer → ${to.takeLast(4)}"
+        from != null && mine != from -> "Transfer from ${from.takeLast(4)}"
+        else -> null
+    }
 }

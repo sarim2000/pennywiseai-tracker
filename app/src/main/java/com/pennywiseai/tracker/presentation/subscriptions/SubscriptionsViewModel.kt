@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,9 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
@@ -74,8 +77,33 @@ class SubscriptionsViewModel @Inject constructor(
                     emptyMap()
                 }
 
+                // Order the active list so "needs attention" rises to the
+                // top: unpaid-this-cycle subs first (sorted by next-payment
+                // date ascending, nulls last), recently-paid subs at the
+                // bottom (sorted by last-paid descending).
+                //
+                // Today-anchored cycle check (NOT schedule-anchored — the
+                // schedule slides forward every time we advance, which used
+                // to break this guard once any sub had been marked once).
+                // Semantic: a sub is "paid this cycle" if today is still
+                // within one billing cycle of lastPaidAt.
+                val today = java.time.LocalDate.now()
+                val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
+                    sub.lastPaidAt?.let { lastPaid ->
+                        val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+                        today.isBefore(nextLegitMark)
+                    } ?: false
+                }
+                val (paid, unpaid) = subscriptions.partition(isPaidThisCycle)
+                val ordered = unpaid.sortedWith(
+                    compareBy(nullsLast()) { it.nextPaymentDate },
+                ) + paid.sortedByDescending { it.lastPaidAt }
+                val paidIds = paid.map { it.id }.toSet()
+
                 _uiState.value = _uiState.value.copy(
-                    activeSubscriptions = subscriptions,
+                    activeSubscriptions = ordered,
+                    paidThisCycleIds = paidIds,
+                    paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
                     convertedAmounts = convertedAmounts,
@@ -154,10 +182,90 @@ class SubscriptionsViewModel @Inject constructor(
             subscriptionRepository.deleteSubscription(subscriptionId)
         }
     }
+
+    /**
+     * #412 — user-initiated "mark as paid" (or "mark as received" for
+     * income-direction subscriptions). Creates the transaction + advances
+     * the schedule, then publishes a snackbar message the UI consumes.
+     */
+    fun markAsPaid(subscriptionId: Long, paymentDate: java.time.LocalDate) {
+        viewModelScope.launch {
+            val result = markSubscriptionPaidUseCase.execute(subscriptionId, paymentDate)
+            val merchant = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }?.merchantName
+                ?: "Subscription"
+            val message = when (result) {
+                is MarkSubscriptionPaidUseCase.Result.Created ->
+                    "$merchant marked paid · next cycle on ${result.nextPaymentDate}"
+                is MarkSubscriptionPaidUseCase.Result.Linked ->
+                    "$merchant linked · next cycle on ${result.nextPaymentDate}"
+                is MarkSubscriptionPaidUseCase.Result.AlreadyMarked ->
+                    "$merchant already marked this cycle · advanced to ${result.nextPaymentDate}"
+                MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
+                    "Set a next-payment date on $merchant first"
+                MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
+                    "Couldn't find that subscription"
+            }
+            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+        }
+    }
+
+    /** UI calls this after consuming the snackbar message. */
+    fun clearMarkPaidMessage() {
+        _uiState.value = _uiState.value.copy(markPaidMessage = null)
+    }
+
+    /**
+     * Suggested-payment candidates for the mark-as-paid sheet (#412
+     * follow-up). When an EXPENSE subscription is on auto-pay, the bank
+     * SMS already created a transaction — we surface those here so the
+     * user can link instead of creating a duplicate phantom.
+     *
+     * Matching: case-insensitive merchant exact + amount exact (±₹0.01)
+     * over the last 30 days, EXPENSE only, excluding phantoms we've
+     * created ourselves. Amount match is required — a one-off ₹789
+     * Netflix purchase shouldn't surface as a candidate for a ₹499 sub.
+     */
+    suspend fun candidatesFor(
+        sub: SubscriptionEntity,
+    ): List<com.pennywiseai.tracker.data.database.entity.TransactionEntity> {
+        val cutoff = java.time.LocalDate.now().minusDays(30).atStartOfDay()
+        return transactionRepository.findRecentExpensesByMerchantAndAmount(
+            merchant = sub.merchantName,
+            amount = sub.amount,
+            since = cutoff,
+            limit = 5,
+        )
+    }
+
+    /**
+     * Link an existing bank-derived transaction as this subscription's
+     * current-cycle payment. Advances the schedule; doesn't duplicate.
+     */
+    fun linkExistingTransaction(subscriptionId: Long, transactionId: Long) {
+        viewModelScope.launch {
+            val result = markSubscriptionPaidUseCase.linkExisting(subscriptionId, transactionId)
+            val merchant = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }?.merchantName
+                ?: "Subscription"
+            val message = when (result) {
+                is MarkSubscriptionPaidUseCase.Result.Linked ->
+                    "$merchant linked to existing payment · next cycle on ${result.nextPaymentDate}"
+                MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
+                    "Set a next-payment date on $merchant first"
+                MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
+                    "Couldn't find that subscription"
+                else -> "Linked"
+            }
+            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+        }
+    }
 }
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),
+    /** IDs of subs in [activeSubscriptions] whose current cycle is paid — used to drive the row badge. */
+    val paidThisCycleIds: Set<Long> = emptySet(),
+    /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
+    val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
     val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,
     val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
@@ -165,5 +273,7 @@ data class SubscriptionsUiState(
     val isUnifiedMode: Boolean = false,
     val isLoading: Boolean = true,
     val lastHiddenSubscription: SubscriptionEntity? = null,
-    val lastEndedSubscription: SubscriptionEntity? = null
+    val lastEndedSubscription: SubscriptionEntity? = null,
+    /** Snackbar text after a mark-as-paid action; cleared by [SubscriptionsViewModel.clearMarkPaidMessage]. */
+    val markPaidMessage: String? = null,
 )

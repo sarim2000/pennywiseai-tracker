@@ -132,9 +132,22 @@ class TransactionRepository @Inject constructor(
     suspend fun deleteAllTransactions() =
         transactionDao.deleteAllTransactions()
 
+    /** See [TransactionDao.deleteUncuratedTransactions]. */
+    suspend fun deleteUncuratedTransactions() =
+        transactionDao.deleteUncuratedTransactions()
+
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
+
+    /** See [TransactionDao.findRecentExpensesByMerchantAndAmount]. */
+    suspend fun findRecentExpensesByMerchantAndAmount(
+        merchant: String,
+        amount: java.math.BigDecimal,
+        since: java.time.LocalDateTime,
+        limit: Int = 5,
+    ): List<TransactionEntity> =
+        transactionDao.findRecentExpensesByMerchantAndAmount(merchant, amount, since, limit)
 
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
@@ -190,6 +203,27 @@ class TransactionRepository @Inject constructor(
     
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)
+    }
+
+    suspend fun countExplicitProfileMismatchForAccount(
+        bankName: String,
+        accountLast4: String,
+        profileId: Long
+    ): Int {
+        return transactionDao.countExplicitProfileMismatchForAccount(bankName, accountLast4, profileId)
+    }
+
+    suspend fun setProfileForAccountTransactions(
+        bankName: String,
+        accountLast4: String,
+        profileId: Long
+    ): Int {
+        return transactionDao.setProfileForAccountTransactions(
+            bankName,
+            accountLast4,
+            profileId,
+            LocalDateTime.now()
+        )
     }
     
     // Additional methods for Home screen
@@ -286,7 +320,39 @@ class TransactionRepository @Inject constructor(
     fun getTransactionsByAccount(bankName: String, accountLast4: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByAccount(bankName, accountLast4)
     }
-    
+
+    suspend fun countByAccount(bankName: String, accountLast4: String): Int =
+        transactionDao.countByAccount(bankName, accountLast4)
+
+    /**
+     * Bulk re-target every transaction on the source account to the target
+     * account. Used by the account-merge feature (#368). Returns the row
+     * count actually updated. Caller cleans up the source account's balance
+     * rows afterwards via [AccountBalanceRepository.deleteAccount].
+     */
+    suspend fun mergeAccountTransactions(
+        sourceBankName: String,
+        sourceAccountLast4: String,
+        targetBankName: String,
+        targetAccountLast4: String
+    ): Int = transactionDao.mergeAccountTransactions(
+        sourceBankName = sourceBankName,
+        sourceAccountLast4 = sourceAccountLast4,
+        targetBankName = targetBankName,
+        targetAccountLast4 = targetAccountLast4,
+        updatedAt = LocalDateTime.now()
+    )
+
+    /** Re-target TRANSFER from/to-account refs after an account merge (#368). */
+    suspend fun retargetTransferLegRefs(
+        sourceAccountLast4: String,
+        targetAccountLast4: String
+    ): Int = transactionDao.retargetTransferLegRefs(
+        sourceAccountLast4 = sourceAccountLast4,
+        targetAccountLast4 = targetAccountLast4,
+        updatedAt = LocalDateTime.now()
+    )
+
     fun getTransactionsByAccountAndDateRange(
         bankName: String,
         accountLast4: String,

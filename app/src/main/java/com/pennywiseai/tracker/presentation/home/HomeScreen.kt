@@ -31,6 +31,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -73,6 +74,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
+import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
@@ -120,6 +122,8 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val activity = LocalActivity.current
@@ -250,6 +254,35 @@ fun HomeScreen(
                         modifier = Modifier.padding(end = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Subtle Pro discovery chip — yellow sparkle that ties
+                        // back to the Settings → PennyWise Pro entry. Hidden
+                        // for already-entitled users so it's never pushy.
+                        // Tap → opens the same UpgradeSheet as Settings.
+                        if (!isProEntitled) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = com.pennywiseai.tracker.ui.theme.yellow_light,
+                                        shape = CircleShape,
+                                    )
+                                    .clickable(
+                                        onClick = { showUpgradeSheet = true },
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Upgrade to PennyWise Pro",
+                                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+
                         // Business/Personal filter dropdown
                         Box {
                             Box(
@@ -316,7 +349,9 @@ fun HomeScreen(
                         onMenuClick = { showMenuSheet = true },
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
-                        onProfileSelected = { viewModel.updateSelectedProfile(it) }
+                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                        isProEntitled = isProEntitled,
+                        onUpgradeClick = { showUpgradeSheet = true }
                     )
                 }
             )
@@ -411,6 +446,31 @@ fun HomeScreen(
                             }
                         )
                     }
+                }
+            }
+
+            // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
+            item {
+                val visible = remember { mutableStateOf(hasAnimated) }
+                LaunchedEffect(Unit) {
+                    if (!hasAnimated) { delay(25); visible.value = true }
+                }
+                AnimatedVisibility(
+                    visible = visible.value,
+                    enter = fadeIn(tween(300)) + slideInVertically(
+                        initialOffsetY = { slideOffsetPx },
+                        animationSpec = tween(300)
+                    )
+                ) {
+                    CashFlowCard(
+                        currency = uiState.selectedCurrency,
+                        creditCardSpend = uiState.currentMonthCreditCard,
+                        investments = uiState.currentMonthInvestment,
+                        transfers = uiState.currentMonthTransfer,
+                        isBalanceHidden = uiState.isBalanceHidden,
+                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                    )
                 }
             }
 
@@ -863,6 +923,8 @@ fun HomeScreen(
                     Text(
                         "This will reprocess all SMS messages from scratch. " +
                         "Use this to fix issues caused by updated bank parsers.\n\n" +
+                        "Your loans, grouped transactions, and merchant mappings " +
+                        "are preserved.\n\n" +
                         "This may take a few seconds depending on your message history."
                     )
                 },
@@ -1001,6 +1063,14 @@ fun HomeScreen(
             }
         }
     }
+    }
+
+    // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar
+    // for free users; reuses the same composable Settings uses.
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
     }
 }
 

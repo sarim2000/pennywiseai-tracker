@@ -1,0 +1,48 @@
+name: Crowdin Sync
+
+# Keeps the Play Store metadata translations in sync with the English source.
+#  - When English store copy changes on main, push the new sources to Crowdin.
+#  - On a weekly schedule (and on demand), pull completed translations back as a PR.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fastlane/metadata/android/en-US/title.txt'
+      - 'fastlane/metadata/android/en-US/short_description.txt'
+      - 'fastlane/metadata/android/en-US/full_description.txt'
+      - 'fastlane/metadata/android/en-US/changelogs/default.txt'
+      - 'crowdin.yml'
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC — pull fresh translations
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  crowdin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crowdin push sources & download translations
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: true
+          # Only pull fully-translated files, so we never publish English copy
+          # in a non-English store listing.
+          skip_untranslated_files: true
+          localization_branch_name: l10n/crowdin
+          create_pull_request: true
+          pull_request_title: 'i18n: new Play Store metadata translations'
+          pull_request_body: 'Automated pull of completed store-listing translations from Crowdin.'
+          pull_request_base_branch_name: main
+          commit_message: 'i18n: update Play Store metadata translations'
+        env:
+          # Auto-provided by GitHub Actions — needed to open the translations PR.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

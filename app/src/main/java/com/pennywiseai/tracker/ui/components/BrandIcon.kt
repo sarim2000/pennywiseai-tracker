@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
+import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 
 /**
  * Displays a brand icon with intelligent fallback
@@ -30,12 +31,22 @@ import com.pennywiseai.tracker.ui.icons.IconResource
 @Composable
 fun BrandIcon(
     merchantName: String,
+    category: String? = null,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     showBackground: Boolean = true
 ) {
-    val iconResource = IconProvider.getIconForMerchant(merchantName)
-    val brandColor = BrandIcons.getBrandColor(merchantName)
+    val iconResource = IconProvider.getTransactionIcon(merchantName, category)
+
+    val backgroundColor = if (category.isValidCategoryOverride()
+        && iconResource !is IconResource.DrawableResource
+    ) {
+        (iconResource as IconResource.VectorIcon).tint
+    } else {
+        val brandColor = BrandIcons.getBrandColor(merchantName)
+        brandColor?.let { Color(it.toColorInt()) }
+            ?: MaterialTheme.colorScheme.surfaceVariant
+    }
     
     Box(
         modifier = modifier
@@ -44,10 +55,7 @@ fun BrandIcon(
                 if (showBackground) {
                     Modifier
                         .clip(CircleShape)
-                        .background(
-                            brandColor?.let { Color(it.toColorInt()) }
-                                ?: MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        .background(backgroundColor)
                         .padding(8.dp)
                 } else {
                     Modifier

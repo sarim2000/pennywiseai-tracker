@@ -57,19 +57,9 @@ object DatabaseModule {
             PennyWiseDatabase::class.java,
             PennyWiseDatabase.DATABASE_NAME
         )
-            // Add manual migrations here when needed
-            .addMigrations(
-                PennyWiseDatabase.MIGRATION_12_14,
-                PennyWiseDatabase.MIGRATION_13_14,
-                PennyWiseDatabase.MIGRATION_14_15,
-                PennyWiseDatabase.MIGRATION_20_21,
-                PennyWiseDatabase.MIGRATION_21_22,
-                PennyWiseDatabase.MIGRATION_22_23,
-                PennyWiseDatabase.MIGRATION_38_39,
-                PennyWiseDatabase.MIGRATION_44_45,
-                PennyWiseDatabase.MIGRATION_45_46,
-                PennyWiseDatabase.MIGRATION_46_47
-            )
+            // Single source of truth lives in PennyWiseDatabase.ALL_MIGRATIONS
+            // so the BroadcastReceiver fallback builder stays in sync.
+            .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
 
             // Enable auto-migrations
             // Room will automatically detect schema changes between versions

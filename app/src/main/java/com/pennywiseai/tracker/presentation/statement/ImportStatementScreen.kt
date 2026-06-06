@@ -38,6 +38,8 @@ fun ImportStatementScreen(
     viewModel: ImportStatementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val canImportThisMonth by viewModel.canImportThisMonth.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
 
     val pdfPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -45,6 +47,14 @@ fun ImportStatementScreen(
             uri?.let { viewModel.importStatement(it) }
         }
     )
+
+    // Free users get 1 import / calendar month; Pro is unlimited. Centralising
+    // the gate here means all three "select PDF" entry points (Idle / Success /
+    // Error) share the same enforcement without sprinkling checks.
+    val onTryLaunchPicker: () -> Unit = {
+        if (canImportThisMonth) pdfPicker.launch("application/pdf")
+        else showUpgradeSheet = true
+    }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -104,14 +114,14 @@ fun ImportStatementScreen(
         ) {
             when (val state = uiState) {
                 is ImportStatementUiState.Idle -> IdleContent(
-                    onSelectPdf = { pdfPicker.launch("application/pdf") }
+                    onSelectPdf = onTryLaunchPicker
                 )
                 is ImportStatementUiState.Loading -> LoadingContent()
                 is ImportStatementUiState.Success -> SuccessContent(
                     result = state.result,
                     onImportAnother = {
                         viewModel.resetState()
-                        pdfPicker.launch("application/pdf")
+                        onTryLaunchPicker()
                     },
                     onDone = onNavigateBack
                 )
@@ -119,11 +129,17 @@ fun ImportStatementScreen(
                     message = state.message,
                     onTryAgain = {
                         viewModel.resetState()
-                        pdfPicker.launch("application/pdf")
+                        onTryLaunchPicker()
                     }
                 )
             }
         }
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
     }
 }
 

@@ -37,6 +37,12 @@ data class CurrencyTotals(
     val investment: BigDecimal = BigDecimal.ZERO,
     val transactionCount: Int = 0
 ) {
+    /**
+     * Net = true cash flow (income − expenses). Credit-card spend, transfers,
+     * and investments are tracked as separate channels (see the home Cash-Flow
+     * card) and intentionally aren't deducted here — otherwise Net wouldn't
+     * reconcile with the user-visible Income and Expenses tiles.
+     */
     val netBalance: BigDecimal
-        get() = income - expenses - credit - transfer - investment
+        get() = income - expenses
 }

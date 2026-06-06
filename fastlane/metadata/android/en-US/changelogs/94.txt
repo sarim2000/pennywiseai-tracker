@@ -1,0 +1,8 @@
+What's new in v2.15.56
+
+• Income autopay — salary, wallet top-ups & allowances auto-track even without an SMS
+• Loans + grouped transactions preserved through full SMS rescan
+• Bulk-edit transactions, edit/duplicate Smart Rules, self-transfer suggestions
+• Account merge for duplicates
+• Slice UPI + Kotak RCS + SABB salary fixes
+• New parsers: Sampath Bank (Sri Lanka), Standard Bank Mozambique, Navi MF SIP

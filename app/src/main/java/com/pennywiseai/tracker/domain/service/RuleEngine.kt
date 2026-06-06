@@ -153,7 +153,10 @@ class RuleEngine @Inject constructor() {
 
         return when (condition.operator) {
             ConditionOperator.EQUALS -> fieldValue.equals(condition.value, ignoreCase = true)
-            ConditionOperator.NOT_EQUALS -> !fieldValue.equals(condition.value, ignoreCase = true)
+            ConditionOperator.NOT_EQUALS -> {
+                if (condition.field == TransactionField.ACCOUNT && fieldValue.isBlank()) false
+                else !fieldValue.equals(condition.value, ignoreCase = true)
+            }
             ConditionOperator.CONTAINS -> fieldValue.contains(condition.value, ignoreCase = true)
             ConditionOperator.NOT_CONTAINS -> !fieldValue.contains(condition.value, ignoreCase = true)
             ConditionOperator.STARTS_WITH -> fieldValue.startsWith(condition.value, ignoreCase = true)
@@ -172,6 +175,10 @@ class RuleEngine @Inject constructor() {
         }
     }
 
+    /**
+     * Returns the string value of a [TransactionField] for a given transaction.
+     * For [TransactionField.ACCOUNT] returns `"BankName||Last4"`, or empty if bank/account is null.
+     */
     private fun getFieldValue(
         transaction: TransactionEntity,
         smsText: String?,
@@ -195,6 +202,11 @@ class RuleEngine @Inject constructor() {
                 String.format("%02d", transaction.dateTime.dayOfMonth)
             TransactionField.TRANSACTION_DATE ->
                 transaction.dateTime.toLocalDate().toString()
+            TransactionField.ACCOUNT -> {
+                val bank = transaction.bankName
+                val last4 = transaction.accountNumber?.takeLast(4)
+                if (bank != null && last4 != null) "$bank||$last4" else ""
+            }
         }
     }
 
@@ -284,6 +296,15 @@ class RuleEngine @Inject constructor() {
                     else -> transaction.transactionType
                 }
                 transaction.copy(transactionType = newType) to newType.name
+            }
+            TransactionField.BANK_NAME -> {
+                // The account a transaction belongs to is identified by its bank name.
+                val newValue = when (action.actionType) {
+                    ActionType.SET -> action.value
+                    ActionType.CLEAR -> ""
+                    else -> transaction.bankName ?: ""
+                }
+                transaction.copy(bankName = newValue.takeIf { it.isNotBlank() }) to newValue
             }
             else -> transaction to getFieldValue(transaction, null, action.field)
         }

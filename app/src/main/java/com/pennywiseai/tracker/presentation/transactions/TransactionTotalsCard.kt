@@ -58,6 +58,11 @@ fun TransactionTotalsCard(
         label = "net_alpha"
     )
 
+    // The bottom inset only exists to host the optional [CurrencyPickerPill],
+    // which floats at BottomEnd of the parent Box. When no pill is rendered
+    // (single-currency case) keep the card flush — otherwise a phantom blank
+    // band sits under the totals.
+    val hasCurrencyPill = availableCurrencies.size > 1 && !isUnifiedMode
     Box(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.BottomEnd
@@ -65,7 +70,7 @@ fun TransactionTotalsCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = Spacing.lg),
+                .then(if (hasCurrencyPill) Modifier.padding(bottom = Spacing.lg) else Modifier),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
@@ -212,7 +217,7 @@ fun TransactionTotalsCard(
             }
         }
 
-        if (availableCurrencies.size > 1 && !isUnifiedMode) {
+        if (hasCurrencyPill) {
             CurrencyPickerPill(
                 selectedCurrency = currency,
                 availableCurrencies = availableCurrencies,

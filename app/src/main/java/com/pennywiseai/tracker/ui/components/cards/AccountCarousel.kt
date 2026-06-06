@@ -41,8 +41,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
-import com.pennywiseai.tracker.utils.formatCreditLimit
-import java.math.BigDecimal
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
@@ -204,12 +202,11 @@ private fun AccountCarouselCard(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
+                    // The label above is "Outstanding" for credit cards; that is the
+                    // amount owed (account.balance), NOT the total creditLimit. Mirrors
+                    // CreditCardsCard / AccountDetailScreen, which already do this.
                     text = if (isAmountHidden) "••••••"
-                           else if (isUnifiedMode) {
-                               if (isCreditCard) CurrencyFormatter.formatCurrency(account.creditLimit ?: BigDecimal.ZERO, selectedCurrency)
-                               else CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
-                           }
-                           else if (isCreditCard) account.formatCreditLimit()
+                           else if (isUnifiedMode) CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
                            else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,

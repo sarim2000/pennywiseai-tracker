@@ -41,6 +41,10 @@ data class RuleCondition(
                     else -> value.toIntOrNull()?.let { it in 1..31 } == true
                 }
             }
+            TransactionField.ACCOUNT -> {
+                val parts = value.split("||")
+                parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()
+            }
             else -> true
         }
     }
@@ -59,7 +63,12 @@ enum class TransactionField {
     TRANSACTION_TIME,        // Time as HH:mm
     TRANSACTION_DAY_OF_WEEK, // 1=Monday .. 7=Sunday
     TRANSACTION_DAY_OF_MONTH,// 01-31
-    TRANSACTION_DATE         // yyyy-MM-dd
+    TRANSACTION_DATE,        // yyyy-MM-dd
+    /**
+     * Composite key "BankName||Last4" scoping rules to a specific account.
+     * Supports only [ConditionOperator.EQUALS] and [ConditionOperator.NOT_EQUALS].
+     */
+    ACCOUNT
 }
 
 @Serializable

@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.accounts
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
@@ -48,12 +49,29 @@ enum class AccountType {
     CASH
 }
 
+data class PendingProfileReassign(
+    val bankName: String,
+    val accountLast4: String,
+    val profileId: Long,
+    val transactionCount: Int
+)
+
 @HiltViewModel
 class ManageAccountsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val cardRepository: CardRepository
+    private val cardRepository: CardRepository,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
+    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
+
+    /**
+     * Drives the Merge-accounts action — Pro-only gate. Free users still
+     * see the icon (so they discover the feature) but tapping it opens
+     * the paywall instead of the merge sheet.
+     */
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     
@@ -62,6 +80,9 @@ class ManageAccountsViewModel @Inject constructor(
     
     private val _formState = MutableStateFlow(AccountFormState())
     val formState: StateFlow<AccountFormState> = _formState.asStateFlow()
+
+    private val _pendingProfileReassign = MutableStateFlow<PendingProfileReassign?>(null)
+    val pendingProfileReassign: StateFlow<PendingProfileReassign?> = _pendingProfileReassign.asStateFlow()
     
     init {
         loadAccounts()
@@ -489,10 +510,152 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Number of (non-deleted) transactions currently on [bankName]/[accountLast4].
+     * Used to populate the merge confirmation dialog ("Move N transactions to …").
+     */
+    suspend fun countTransactionsOn(bankName: String, accountLast4: String): Int =
+        transactionRepository.countByAccount(bankName, accountLast4)
+
+    /**
+     * Merge [source] into [target] (#368): re-target every transaction from
+     * source to target, then drop the source's balance rows. Validates first
+     * that the two accounts are compatible (same currency, same `isCreditCard`)
+     * and that they aren't the same account. Caller should pre-call
+     * [countTransactionsOn] for the confirmation dialog.
+     *
+     * One-way for v1 — no undo. Run inside a single coroutine so the
+     * partial-merge window is short.
+     */
+    fun mergeAccounts(
+        source: AccountBalanceEntity,
+        target: AccountBalanceEntity
+    ) {
+        viewModelScope.launch {
+            try {
+                val sameAccount = source.bankName.equals(target.bankName, ignoreCase = true) &&
+                    source.accountLast4 == target.accountLast4
+                if (sameAccount) {
+                    _uiState.update { it.copy(errorMessage = "Source and target are the same account") }
+                    return@launch
+                }
+                if (!source.currency.equals(target.currency, ignoreCase = true)) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Currencies don't match (${source.currency} vs ${target.currency})")
+                    }
+                    return@launch
+                }
+                if (source.isCreditCard != target.isCreditCard) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Can't merge a credit card with a regular account")
+                    }
+                    return@launch
+                }
+
+                // Run the full merge under a single Room transaction so a
+                // crash mid-flight can't leave partially-merged state (e.g.
+                // transactions retargeted but source balances still around,
+                // or vice versa). The source account effectively ceases to
+                // exist after this block commits.
+                val moved = database.withTransaction {
+                    val rows = transactionRepository.mergeAccountTransactions(
+                        sourceBankName = source.bankName,
+                        sourceAccountLast4 = source.accountLast4,
+                        targetBankName = target.bankName,
+                        targetAccountLast4 = target.accountLast4
+                    )
+                    // Self-transfer rows (#385) reference accounts via
+                    // `fromAccount` / `toAccount`. Re-target any references
+                    // to the source so the detail screen's From → To stays
+                    // pointing at a live account.
+                    transactionRepository.retargetTransferLegRefs(
+                        sourceAccountLast4 = source.accountLast4,
+                        targetAccountLast4 = target.accountLast4
+                    )
+                    // Re-link any debit cards bound to the source so they
+                    // keep working against the merged-into target. (Unlinking
+                    // would silently strip the user's card→account binding.)
+                    (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                        .forEach { card ->
+                            cardRepository.linkCardToAccount(card.id, target.accountLast4)
+                        }
+                    // Drop the source's balance snapshots. Source's running
+                    // balance was for source's standalone account, so
+                    // retargeting these snapshots into the target would
+                    // invent fictional history. Dropping is the only correct
+                    // option; the merged transactions appear on the target
+                    // without a historical balance trace.
+                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                    rows
+                }
+
+                // Clear any "hidden" preference for the now-gone source.
+                val key = "${source.bankName}_${source.accountLast4}"
+                val hidden = _uiState.value.hiddenAccounts.toMutableSet()
+                if (hidden.remove(key)) {
+                    sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                    _uiState.update { it.copy(hiddenAccounts = hidden) }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        successMessage = "Merged $moved transactions into ${target.bankName} ••${target.accountLast4}"
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(successMessage = null) }
+                loadCards()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Merge failed: ${e.message}") }
+            }
+        }
+    }
+
     fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {
         viewModelScope.launch {
-            accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+            try {
+                accountBalanceRepository.setAccountProfile(bankName, accountLast4, profileId)
+
+                // Offer to move EXISTING transactions that carry an explicit, mismatched
+                // profile (NULL/dynamic ones already follow the account, so they're left alone).
+                val count = transactionRepository.countExplicitProfileMismatchForAccount(
+                    bankName,
+                    accountLast4,
+                    profileId
+                )
+                if (count > 0) {
+                    _pendingProfileReassign.value = PendingProfileReassign(
+                        bankName = bankName,
+                        accountLast4 = accountLast4,
+                        profileId = profileId,
+                        transactionCount = count
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to set account profile", e)
+                _uiState.update { it.copy(errorMessage = "Failed to update account profile: ${e.message}") }
+            }
         }
+    }
+
+    fun applyPendingProfileReassign() {
+        val p = _pendingProfileReassign.value ?: return
+        viewModelScope.launch {
+            try {
+                transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to reassign account transactions", e)
+                _uiState.update { it.copy(errorMessage = "Failed to move transactions: ${e.message}") }
+            } finally {
+                // Always clear the prompt so the dialog can't get stuck open if
+                // the update throws.
+                _pendingProfileReassign.value = null
+            }
+        }
+    }
+
+    fun dismissPendingProfileReassign() {
+        _pendingProfileReassign.value = null
     }
 
     fun editAccount(

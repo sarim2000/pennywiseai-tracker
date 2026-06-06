@@ -56,6 +56,12 @@ fun ManageAccountsScreen(
     var showHiddenAccounts by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var accountToEdit by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
+    // Account merge (#368) — single screen-level entry point; the sheet handles
+    // source + target selection + confirmation in one self-contained flow.
+    var showMergeSheet by remember { mutableStateOf(false) }
+    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -74,6 +80,19 @@ fun ManageAccountsScreen(
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actionContent = {
+                    // Show Merge only when there are at least 2 accounts to choose between.
+                    // Pro-only feature — free users see the icon (so the feature is
+                    // discoverable) but the tap routes to the paywall instead.
+                    if (uiState.accounts.size >= 2) {
+                        IconButton(onClick = {
+                            if (isProEntitled) showMergeSheet = true
+                            else showUpgradeSheet = true
+                        }) {
+                            Icon(Icons.Default.Merge, contentDescription = "Merge accounts")
+                        }
                     }
                 },
                 hazeState = hazeState
@@ -524,6 +543,52 @@ fun ManageAccountsScreen(
                 )
                 showEditDialog = false
                 accountToEdit = null
+            }
+        )
+    }
+
+    // Merge accounts sheet (#368)
+    if (showMergeSheet) {
+        MergeAccountsSheet(
+            accounts = uiState.accounts,
+            countTransactionsOn = { bankName, last4 ->
+                viewModel.countTransactionsOn(bankName, last4)
+            },
+            onConfirm = { source, target ->
+                viewModel.mergeAccounts(source, target)
+                showMergeSheet = false
+            },
+            onDismiss = { showMergeSheet = false }
+        )
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
+    }
+
+    // Offer to move existing transactions that carry an explicit, mismatched
+    // profile after the account's profile changes (#420).
+    pendingProfileReassign?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissPendingProfileReassign() },
+            title = { Text("Move existing transactions?") },
+            text = {
+                Text(
+                    "${pending.transactionCount} transaction(s) from this account are set to a " +
+                        "different profile. Move them to the new profile too?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.applyPendingProfileReassign() }) {
+                    Text("Move them")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }) {
+                    Text("Keep as is")
+                }
             }
         )
     }

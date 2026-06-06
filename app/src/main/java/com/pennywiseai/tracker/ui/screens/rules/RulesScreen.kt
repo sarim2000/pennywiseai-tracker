@@ -38,6 +38,7 @@ fun RulesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreateRule: () -> Unit,
     onNavigateToEditRule: (String) -> Unit,
+    onNavigateToDuplicateRule: (String) -> Unit,
     viewModel: RulesViewModel = hiltViewModel()
 ) {
     val rules by viewModel.rules.collectAsStateWithLifecycle()
@@ -45,6 +46,8 @@ fun RulesScreen(
     val batchApplyProgress by viewModel.batchApplyProgress.collectAsStateWithLifecycle()
     val batchApplyResult by viewModel.batchApplyResult.collectAsStateWithLifecycle()
     val dryRunResult by viewModel.dryRunResult.collectAsStateWithLifecycle()
+    val canCreateMoreRules by viewModel.canCreateMoreRules.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
@@ -89,7 +92,10 @@ fun RulesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToCreateRule,
+                onClick = {
+                    if (canCreateMoreRules) onNavigateToCreateRule()
+                    else showUpgradeSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Rule")
@@ -214,6 +220,9 @@ fun RulesScreen(
                                     onEdit = {
                                         onNavigateToEditRule(rule.id)
                                     },
+                                    onDuplicate = {
+                                        onNavigateToDuplicateRule(rule.id)
+                                    },
                                     onDelete = {
                                         viewModel.deleteRule(rule.id)
                                     },
@@ -265,6 +274,12 @@ fun RulesScreen(
             }
         )
     }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
+    }
 }
 
 @Composable
@@ -272,6 +287,7 @@ private fun RuleCard(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
     onApplyToPast: () -> Unit
 ) {
@@ -380,6 +396,18 @@ private fun RuleCard(
                                 onClick = {
                                     showActionsMenu = false
                                     onEdit()
+                                }
+                            )
+
+                            // Duplicate rule (opens the editor prefilled as a new rule)
+                            DropdownMenuItem(
+                                text = { Text("Duplicate Rule") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                                },
+                                onClick = {
+                                    showActionsMenu = false
+                                    onDuplicate()
                                 }
                             )
 

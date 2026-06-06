@@ -1,0 +1,49 @@
+# Crowdin configuration — Google Play store-metadata localization.
+#
+# Scope: this localizes the fastlane / Triple-T "supply" metadata only — the
+# Play Store listing copy (title, descriptions, release notes). The in-app UI
+# is not yet i18n-ready (strings are still hardcoded in Compose), so app
+# strings are intentionally NOT wired up here. Add them later once the UI is
+# extracted into string resources.
+#
+# Auth is read from the environment (and from GitHub Actions secrets):
+#   CROWDIN_PROJECT_ID, CROWDIN_PERSONAL_TOKEN
+# See docs/store-localization.md for setup.
+
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_PERSONAL_TOKEN
+
+preserve_hierarchy: true
+
+# Map Crowdin language codes -> Google Play listing locale folder names.
+# Only Play-supported codes here; enabling a language in the Crowdin project
+# that maps to an unsupported folder will make `fastlane supply` reject it.
+#   Priority: Hindi (India is ~87% of the install base) then Arabic (UAE+Saudi).
+#   Crowdin's default %locale% over-regionalizes some languages (e.g. sw-KE,
+#   th-TH) which Play REJECTS — Play wants bare `sw` / `th`. Every entry below is
+#   the exact Google Play listing code (verified against fastlane's ALL_LANGUAGES).
+languages_mapping:
+  locale:
+    hi: hi-IN     # Hindi      -> India
+    ar: ar        # Arabic     -> UAE / Saudi / Egypt
+    th: th        # Thai       -> Thailand   (NOT th-TH)
+    sw: sw        # Swahili    -> Kenya / Tanzania (NOT sw-KE)
+    ne: ne-NP     # Nepali     -> Nepal
+    ru: ru-RU     # Russian    -> Russia / Belarus
+    be: be        # Belarusian -> Belarus
+    cs: cs-CZ     # Czech      -> Czechia
+    fa: fa        # Persian    -> Iran
+    am: am        # Amharic    -> Ethiopia
+    es: es-419    # Spanish    -> Latin America (Colombia)
+
+files:
+  - source: /fastlane/metadata/android/en-US/title.txt
+    translation: /fastlane/metadata/android/%locale%/title.txt
+  - source: /fastlane/metadata/android/en-US/short_description.txt
+    translation: /fastlane/metadata/android/%locale%/short_description.txt
+  - source: /fastlane/metadata/android/en-US/full_description.txt
+    translation: /fastlane/metadata/android/%locale%/full_description.txt
+  # Release notes: only the rolling fallback is localized. Per-version numbered
+  # changelogs are left source-only to avoid re-translating historical notes.
+  - source: /fastlane/metadata/android/en-US/changelogs/default.txt
+    translation: /fastlane/metadata/android/%locale%/changelogs/default.txt

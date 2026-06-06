@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "budgets",
@@ -15,6 +17,7 @@ import java.time.LocalDateTime
         Index(value = ["is_active"])
     ]
 )
+@Serializable
 data class BudgetEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -24,15 +27,18 @@ data class BudgetEntity(
     val name: String,
 
     @ColumnInfo(name = "limit_amount")
+    @Contextual
     val limitAmount: BigDecimal,
 
     @ColumnInfo(name = "period_type")
     val periodType: BudgetPeriodType,
 
     @ColumnInfo(name = "start_date")
+    @Contextual
     val startDate: LocalDate,
 
     @ColumnInfo(name = "end_date")
+    @Contextual
     val endDate: LocalDate,
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
@@ -54,18 +60,22 @@ data class BudgetEntity(
     val displayOrder: Int = 0,
 
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
 
+@Serializable
 enum class BudgetPeriodType {
     WEEKLY,
     MONTHLY,
     CUSTOM
 }
 
+@Serializable
 enum class BudgetGroupType {
     LIMIT,
     TARGET,

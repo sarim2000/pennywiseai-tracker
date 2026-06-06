@@ -110,6 +110,7 @@ fun TransactionDetailScreen(
     transactionId: Long,
     onNavigateBack: () -> Unit,
     onNavigateToLoanDetail: (Long) -> Unit = {},
+    onDuplicateTransaction: (Long) -> Unit = {},
     viewModel: TransactionDetailViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
@@ -221,7 +222,22 @@ fun TransactionDetailScreen(
                             contentDescription = "Manage Group"
                         )
                     }
-                    
+
+                    // Duplicate FAB - opens the add form pre-filled as a new draft
+                    transaction?.let { txn ->
+                        SmallFloatingActionButton(
+                            onClick = { onDuplicateTransaction(txn.id) },
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Duplicate Transaction"
+                            )
+                        }
+                    }
+
+
                     // Report Issue FAB
                     FloatingActionButton(
                         onClick = {
@@ -548,6 +564,7 @@ private fun TransactionReceipt(
                 }
                 BrandIcon(
                     merchantName = transaction.merchantName,
+                    category = transaction.category,
                     modifier = heroIconModifier,
                     size = 56.dp,
                     showBackground = true
@@ -1077,6 +1094,7 @@ private fun EditableTransactionHeader(
                 leadingIcon = {
                     BrandIcon(
                         merchantName = transaction.merchantName,
+                        category = transaction.category,
                         size = 24.dp,
                         showBackground = false
                     )

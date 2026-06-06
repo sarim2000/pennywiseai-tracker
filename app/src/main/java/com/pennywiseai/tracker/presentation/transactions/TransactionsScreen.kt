@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.BasicTextField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -53,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -106,6 +108,15 @@ fun TransactionsScreen(
     val selectedProfileId by viewModel.selectedProfileId.collectAsState()
     val profiles by viewModel.profiles.collectAsState()
     val profileAccountKeys by viewModel.profileAccountKeys.collectAsState()
+
+    // Bulk-edit selection (#369)
+    val selectedIds by viewModel.selectedIds.collectAsState()
+    val bulkSnack by viewModel.bulkSnack.collectAsState()
+    val selectionMode = selectedIds.isNotEmpty()
+    var showBulkCategorySheet by remember { mutableStateOf(false) }
+
+    // Self-transfer suggestions (#385): map of txn-id → partner-id.
+    val transferPartnerOf by viewModel.suggestedTransferPartnerOf.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -245,21 +256,55 @@ fun TransactionsScreen(
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Transactions",
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                hazeState = hazeState
-            )
+            if (selectionMode) {
+                // Contextual top bar for bulk-edit (#369): close left, count as title,
+                // Change Category + Delete on the right.
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = "${selectedIds.size} selected",
+                    hasBackButton = true,
+                    hasActionButton = true,
+                    navigationContent = {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Exit selection")
+                        }
+                    },
+                    actionContent = {
+                        // Wrap explicitly in a Row so both action IconButtons render
+                        // even when the top-bar's actions slot is constrained.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { showBulkCategorySheet = true }) {
+                                Icon(Icons.Default.Category, contentDescription = "Change category")
+                            }
+                            IconButton(onClick = { viewModel.bulkDelete() }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete selected",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
+                    hazeState = hazeState
+                )
+            } else {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = "Transactions",
+                    hasBackButton = true,
+                    navigationContent = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    hazeState = hazeState
+                )
+            }
         },
         floatingActionButton = {
             Column(
@@ -421,7 +466,10 @@ fun TransactionsScreen(
                 ) {
                     stickyHeader {
                         Surface(
-                            color = MaterialTheme.colorScheme.surface,
+                            // Match the Scaffold's `background` so AMOLED-style
+                            // themes (true-black bg + tinted surface) don't paint
+                            // a visible slab behind the sticky totals card.
+                            color = MaterialTheme.colorScheme.background,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             TransactionTotalsCard(
@@ -488,10 +536,25 @@ fun TransactionsScreen(
                                 items = transactions,
                                 key = { _, transaction -> transaction.id }
                             ) { index, transaction ->
-                                SwipeToEditCategory(
-                                    transaction = transaction,
-                                    onRequestEdit = { pendingCategoryEditId = it.id }
-                                ) {
+                                val isSelected = transaction.id in selectedIds
+                                // Selected highlight via the Card's container colour — the prior
+                                // Modifier.background on a wrapping Box was painted *under* the
+                                // Card and was completely covered by the Card's own surface, so
+                                // selection had no visible effect.
+                                val rowContainerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else null
+
+                                // Long-press now lives on TransactionItem's own
+                                // gesture surface (Material combinedClickable),
+                                // which cooperates with the parent SwipeToDismissBox
+                                // — fixes bulk-edit not firing in nested gesture
+                                // contexts.
+                                val longPressToggle = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.toggleSelection(transaction.id)
+                                }
+                                if (selectionMode) {
                                     com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                         transaction = transaction,
                                         showDate = dateGroup == DateGroup.EARLIER,
@@ -499,8 +562,47 @@ fun TransactionsScreen(
                                         convertedAmount = convertedAmounts[transaction.id],
                                         displayCurrency = if (isUnifiedMode) selectedCurrency else null,
                                         profileAccountKeys = profileAccountKeys,
-                                        onClick = { onTransactionClick(transaction.id) }
+                                        onClick = { viewModel.toggleSelection(transaction.id) },
+                                        onLongClick = longPressToggle,
+                                        containerColor = rowContainerColor
                                     )
+                                } else {
+                                    Column {
+                                        SwipeToEditCategory(
+                                            transaction = transaction,
+                                            onRequestEdit = { pendingCategoryEditId = it.id }
+                                        ) {
+                                            com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                                transaction = transaction,
+                                                showDate = dateGroup == DateGroup.EARLIER,
+                                                listItemPosition = ListItemPosition.from(index, transactions.size),
+                                                convertedAmount = convertedAmounts[transaction.id],
+                                                displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                                                profileAccountKeys = profileAccountKeys,
+                                                onClick = { onTransactionClick(transaction.id) },
+                                                onLongClick = longPressToggle
+                                            )
+                                        }
+                                        // Self-transfer suggestion (#385): show the affordance on
+                                        // the EXPENSE row only so each pair surfaces once.
+                                        val partnerId = transferPartnerOf[transaction.id]
+                                        if (partnerId != null &&
+                                            transaction.transactionType == TransactionType.EXPENSE
+                                        ) {
+                                            AssistChip(
+                                                onClick = { viewModel.markPairAsTransfer(transaction.id, partnerId) },
+                                                label = { Text("Mark as transfer") },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.SwapHoriz,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                },
+                                                modifier = Modifier.padding(start = Spacing.sm, top = 4.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -548,6 +650,41 @@ fun TransactionsScreen(
                 onDismiss = { pendingCategoryEditId = null }
             )
         }
+    }
+
+    // Bulk category picker (#369). If every selected row already shares a
+    // category, mark it; otherwise pass a "(multiple)" sentinel so nothing is
+    // pre-checked.
+    if (showBulkCategorySheet && selectedIds.isNotEmpty()) {
+        val selectedTxns = uiState.transactions.filter { it.id in selectedIds }
+        val commonCategory = selectedTxns.map { it.category }.distinct().singleOrNull()
+        QuickCategoryPickerSheet(
+            currentCategory = commonCategory ?: "(multiple)",
+            categories = categoriesMap.values.toList(),
+            onCategorySelected = { name ->
+                viewModel.bulkUpdateCategory(name)
+                showBulkCategorySheet = false
+            },
+            onDismiss = { showBulkCategorySheet = false }
+        )
+    }
+
+    // Bulk action snackbar with Undo (#369).
+    LaunchedEffect(bulkSnack) {
+        bulkSnack?.let { snack ->
+            val result = snackbarHostState.showSnackbar(
+                message = snack.message,
+                actionLabel = snack.undo?.let { "Undo" },
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) snack.undo?.invoke()
+            viewModel.consumeBulkSnack()
+        }
+    }
+
+    // Hardware back exits selection mode instead of leaving the screen.
+    BackHandler(enabled = selectionMode) {
+        viewModel.clearSelection()
     }
 }
 
@@ -609,74 +746,17 @@ private fun SwipeToEditCategory(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QuickCategoryPickerSheet(
-    transaction: TransactionEntity,
-    categories: List<CategoryEntity>,
-    onCategorySelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Text(
-            text = "Change category",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                bottom = Spacing.sm
-            )
-        )
-        // LazyColumn so long category lists stay reachable when the sheet is
-        // fully expanded — a plain Column would render items past the screen
-        // bottom unscrollable.
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Spacing.md)
-        ) {
-            items(categories, key = { it.id }) { category ->
-                val selected = transaction.category == category.name
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(category.name) }
-                        .padding(
-                            horizontal = Dimensions.Padding.content,
-                            vertical = Spacing.sm
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    CategoryChip(category = category, showText = false)
-                    Text(
-                        text = category.name,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                    if (selected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun TransactionDateHeader(
     title: String,
     modifier: Modifier = Modifier
 ) {
+    // Fade the sticky date header into a transparent base so scrolling content
+    // looks like it's passing under the label. Use `background` (the Scaffold
+    // surface) instead of `surface`, otherwise an AMOLED-style theme — where
+    // `background` is true-black but `surface` is tinted — paints a visible
+    // dark slab behind every date header.
+    val pageBg = MaterialTheme.colorScheme.background
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -685,10 +765,10 @@ private fun TransactionDateHeader(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                        pageBg,
+                        pageBg,
+                        pageBg.copy(alpha = 0.92f),
+                        pageBg.copy(alpha = 0f)
                     )
                 )
             )

@@ -9,7 +9,21 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+
+/**
+ * Qualifier for an application-lifetime [CoroutineScope] — use this for
+ * fire-and-forget work that must outlive the calling Activity/ViewModel
+ * (e.g. a DB write started from a transient activity that finishes
+ * immediately after).
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 /**
  * Hilt module that provides application-level dependencies.
@@ -37,6 +51,17 @@ object ApplicationModule {
      * @param userPreferencesRepository User preferences for base currency
      * @return CurrencyConversionService for currency conversion operations
      */
+    /**
+     * Application-lifetime [CoroutineScope] for fire-and-forget work that
+     * must outlive its launching component. SupervisorJob so a single failed
+     * child doesn't take the scope down.
+     */
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     @Provides
     @Singleton
     fun provideCurrencyConversionService(

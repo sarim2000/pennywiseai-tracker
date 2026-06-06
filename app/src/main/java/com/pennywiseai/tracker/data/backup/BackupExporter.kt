@@ -2,13 +2,14 @@ package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
 import android.os.Build
-import com.google.gson.GsonBuilder
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.encodeToString
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -24,14 +25,6 @@ class BackupExporter @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
     
-    private val gson = GsonBuilder()
-        .setPrettyPrinting()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
-        .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(java.math.BigDecimal::class.java, BigDecimalTypeAdapter())
-        .create()
-    
     /**
      * Export complete app data to a backup file
      */
@@ -41,13 +34,13 @@ class BackupExporter @Inject constructor(
         return try {
             // Collect all data
             val backup = createBackup(privacy)
-            
+
             // Create backup file
             val file = createBackupFile()
-            
-            // Write JSON to file
-            file.writeText(gson.toJson(backup))
-            
+
+            // Write JSON to file (see BackupSerializers for the format contract)
+            file.writeText(backupJson.encodeToString(backup))
+
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
@@ -136,7 +129,7 @@ class BackupExporter @Inject constructor(
             metadata = BackupMetadata(
                 exportId = UUID.randomUUID().toString(),
                 appVersion = BuildConfig.VERSION_NAME,
-                databaseVersion = 20, // Current database version
+                databaseVersion = SCHEMA_VERSION,
                 device = "${Build.MANUFACTURER} ${Build.MODEL}",
                 androidVersion = Build.VERSION.SDK_INT,
                 statistics = BackupStatistics(

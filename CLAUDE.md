@@ -8,6 +8,7 @@ Please reference these documents when working on this project:
 - **Architecture**: `/docs/architecture.md` - MVVM + Clean Architecture patterns, layer responsibilities
 - **Design System**: `/docs/design.md` - Material 3 theming, colors, typography, components
 - **PRD**: `/prd.md` - Product requirements, features, timeline
+- **Backup & Restore**: `/docs/backup-format.md` - Backup JSON format + the forward/backward compatibility contract. **Read this before changing anything a backup serializes** (entities, `data/backup/`).
 
 ## Key Technical Decisions
 1. **UI Framework**: Jetpack Compose with Material 3
@@ -144,6 +145,21 @@ Bank parsers are now in the `parser-core` module for reusability across platform
 
 When implementing any feature, please ensure it aligns with the architecture patterns and design system defined in the documentation.
 
+
+## Backup & Restore
+Backups serialize Room entities directly to JSON via **kotlinx.serialization**
+(`data/backup/`). The format is forward- and backward-compatible by design.
+
+**The one rule:** every backup-serialized field (entity columns + the wrapper
+models in `BackupModels.kt`) **must have a Kotlin default value**. Missing keys
+in an older backup fall back to defaults; unknown keys from a newer backup are
+ignored. Dropping a default re-introduces the "can't restore old backup" bug
+(#414). `BackupSchemaGuardTest` enforces this in CI.
+
+- When adding an entity column: give it a Kotlin default; `@Contextual` if it's
+  `BigDecimal`/`LocalDate`/`LocalDateTime`; `@Serializable` if it's an enum.
+- When in doubt, use the **backup-maintainer** subagent / **backup-format**
+  skill, and read `/docs/backup-format.md`.
 
 # Important
 Never use pii in comments, code anywhere

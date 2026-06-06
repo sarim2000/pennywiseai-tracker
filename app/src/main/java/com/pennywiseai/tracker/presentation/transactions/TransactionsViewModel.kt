@@ -179,7 +179,12 @@ class TransactionsViewModel @Inject constructor(
                 }
                 count += totals.transactionCount
             }
-            val netBalance = income - expenses - credit - transfer - investment
+            // Net = true cash flow (income − expenses). Credit-card spend,
+            // transfers, and investments are *not* in the visible Expenses tile,
+            // so subtracting them here produced a Net that didn't reconcile with
+            // the user-visible math. Those channels live on the home Cash-Flow
+            // card as deliberately separate categories.
+            val netBalance = income - expenses
             FilteredTotals(income, expenses, credit, transfer, investment, netBalance, count)
         } else {
             val currencyTotals = groupedTotals.getTotalsForCurrency(currency)
@@ -201,6 +206,221 @@ class TransactionsViewModel @Inject constructor(
     
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()
+
+    // ─── Bulk-edit selection (#369) ──────────────────────────────────────────
+    //
+    // Selection mode is implicit in [selectedIds.isNotEmpty()] — no separate flag.
+    // Long-press in the list enters this mode and tap-toggles add/remove rows.
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+    /** One-shot snackbar payload for a bulk action; cleared by the UI after showing. */
+    data class BulkSnack(val message: String, val undo: (() -> Unit)? = null)
+    private val _bulkSnack = MutableStateFlow<BulkSnack?>(null)
+    val bulkSnack: StateFlow<BulkSnack?> = _bulkSnack.asStateFlow()
+    fun consumeBulkSnack() { _bulkSnack.value = null }
+
+    fun toggleSelection(id: Long) {
+        _selectedIds.update { current ->
+            if (current.contains(id)) current - id else current + id
+        }
+    }
+
+    fun clearSelection() { _selectedIds.value = emptySet() }
+
+    init {
+        // Prune selected ids that fall out of the visible list (filter change,
+        // search, delete from elsewhere). Otherwise a bulk op would silently
+        // skip rows the user thinks they had selected.
+        viewModelScope.launch {
+            _uiState
+                .map { it.transactions.mapTo(HashSet()) { tx -> tx.id } }
+                .distinctUntilChanged()
+                .collect { visible ->
+                    _selectedIds.update { it intersect visible }
+                }
+        }
+    }
+
+    /**
+     * Apply [newCategory] to every currently-selected transaction. Captures the
+     * (id → previous-category) pairs first so the snackbar's Undo can restore
+     * them; if a row had its category changed elsewhere in between, the undo
+     * will overwrite that change too — acceptable for an explicit user action.
+     */
+    fun bulkUpdateCategory(newCategory: String) {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val previous = _uiState.value.transactions
+                .filter { it.id in ids }
+                .associate { it.id to it.category }
+            previous.keys.forEach { id ->
+                transactionRepository.updateCategory(id, newCategory)
+            }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${previous.size} updated to \"$newCategory\"",
+                undo = {
+                    viewModelScope.launch {
+                        previous.forEach { (id, oldCategory) ->
+                            transactionRepository.updateCategory(id, oldCategory)
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    // ─── Self-transfer suggestions (#385) ───────────────────────────────────
+    //
+    // Cheap heuristic on the *visible* (filtered) transactions: pair each
+    // EXPENSE with an INCOME row of the same currency + amount that landed on
+    // a different account within ±10 minutes. No silent merge — the UI just
+    // surfaces a "↔ Mark as transfer" chip on the expense row, and the user
+    // confirms with one tap. Confirming flips both rows' transactionType to
+    // TRANSFER (which already excludes them from Net), with Undo restoring
+    // the originals.
+    val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
+        .map { state -> findSelfTransferPairs(state.transactions) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
+
+    private fun findSelfTransferPairs(txns: List<TransactionEntity>): Map<Long, Long> {
+        if (txns.size < 2) return emptyMap()
+        val matchWindowMinutes = 10L
+        val acctOf: (TransactionEntity) -> String =
+            { "${it.bankName.orEmpty()}|${it.accountNumber.orEmpty()}" }
+
+        // Bucket INCOME rows by (currency, amount) for O(1) lookup per EXPENSE.
+        val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
+        for (tx in txns) {
+            if (tx.transactionType == TransactionType.INCOME) {
+                incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+            }
+        }
+        if (incomesByKey.isEmpty()) return emptyMap()
+
+        val pair = HashMap<Long, Long>(txns.size / 8)
+        val claimedIncome = HashSet<Long>()
+        for (expense in txns) {
+            if (expense.transactionType != TransactionType.EXPENSE) continue
+            val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+            // Closest in time within the window, on a *different* account, not
+            // already claimed by another expense.
+            val expenseAcct = acctOf(expense)
+            val match = candidates
+                .asSequence()
+                .filter { it.id !in claimedIncome }
+                .filter { acctOf(it) != expenseAcct }
+                .filter {
+                    java.time.Duration.between(expense.dateTime, it.dateTime)
+                        .toMinutes().let { d -> kotlin.math.abs(d) <= matchWindowMinutes }
+                }
+                .minByOrNull {
+                    kotlin.math.abs(
+                        java.time.Duration.between(expense.dateTime, it.dateTime).toMinutes()
+                    )
+                }
+                ?: continue
+            pair[expense.id] = match.id
+            pair[match.id] = expense.id
+            claimedIncome.add(match.id)
+        }
+        return pair
+    }
+
+    /**
+     * User-confirmed self-transfer: flip both rows to TRANSFER and populate
+     * their `fromAccount` / `toAccount` so the detail screen can render the
+     * "From → To" account flow (it falls back to `accountNumber` otherwise).
+     * Undo restores the original `transactionType` + `fromAccount` /
+     * `toAccount` for each row. No structural link is created between the
+     * rows — TRANSFER already excludes them from Net cash flow.
+     */
+    fun markPairAsTransfer(aId: Long, bId: Long) {
+        viewModelScope.launch {
+            val all = _uiState.value.transactions
+            val a = all.firstOrNull { it.id == aId } ?: return@launch
+            val b = all.firstOrNull { it.id == bId } ?: return@launch
+
+            // Source of the money = the EXPENSE row's account.
+            // Destination = the INCOME row's account.
+            val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
+            val fromAcct = expense.accountNumber
+            val toAcct = income.accountNumber
+
+            // Snapshot for Undo: type + the two account fields per row.
+            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?)
+            val originals = listOf(a, b).associate {
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount)
+            }
+
+            val now = java.time.LocalDateTime.now()
+            transactionRepository.updateTransaction(
+                a.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = fromAcct,
+                    toAccount = toAcct,
+                    updatedAt = now
+                )
+            )
+            transactionRepository.updateTransaction(
+                b.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = fromAcct,
+                    toAccount = toAcct,
+                    updatedAt = now
+                )
+            )
+            _bulkSnack.value = BulkSnack(
+                message = "Marked as transfer",
+                undo = {
+                    viewModelScope.launch {
+                        val current = _uiState.value.transactions
+                        val nowUndo = java.time.LocalDateTime.now()
+                        originals.forEach { (id, snapshot) ->
+                            current.firstOrNull { it.id == id }?.let { row ->
+                                transactionRepository.updateTransaction(
+                                    row.copy(
+                                        transactionType = snapshot.type,
+                                        fromAccount = snapshot.fromAccount,
+                                        toAccount = snapshot.toAccount,
+                                        updatedAt = nowUndo
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Soft-delete every currently-selected transaction. Undo restores them all
+     * via the same per-row undoDelete path the single-row flow uses.
+     */
+    fun bulkDelete() {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val snapshot = _uiState.value.transactions.filter { it.id in ids }
+            snapshot.forEach { transactionRepository.deleteTransaction(it) }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${snapshot.size} deleted",
+                undo = {
+                    viewModelScope.launch {
+                        snapshot.forEach { transactionRepository.undoDeleteTransaction(it) }
+                    }
+                }
+            )
+        }
+    }
     
     // Track if initial filters have been applied to prevent resetting on back navigation
     private var hasAppliedInitialFilters = false

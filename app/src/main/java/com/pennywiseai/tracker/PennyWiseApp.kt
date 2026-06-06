@@ -111,7 +111,7 @@ fun PennyWiseApp(
     // Navigate directly to Add Transaction when requested (e.g., from widget shortcut)
     LaunchedEffect(openAddTransaction) {
         if (openAddTransaction) {
-            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction) {
+            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction()) {
                 launchSingleTop = true
             }
             onAddTransactionShortcutHandled?.invoke()

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
@@ -49,8 +50,12 @@ class SettingsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
-    private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver
+    private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
+    entitlementGate: EntitlementGate,
 ) : ViewModel() {
+
+    /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     
@@ -572,7 +577,8 @@ class SettingsViewModel @Inject constructor(
                 val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
                 when (result) {
                     is ImportResult.Success -> {
-                        _importExportMessage.value = "Import successful! Imported ${result.importedTransactions} transactions, ${result.importedCategories} categories. Skipped ${result.skippedDuplicates} duplicates."
+                        val skipped = if (result.skippedRows > 0) " ${result.skippedRows} rows could not be imported." else ""
+                        _importExportMessage.value = "Import successful! Imported ${result.importedTransactions} transactions, ${result.importedCategories} categories. Skipped ${result.skippedDuplicates} duplicates.$skipped"
                     }
                     is ImportResult.Error -> {
                         _importExportMessage.value = "Import failed: ${result.message}"

@@ -29,13 +29,18 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.yellow_dark
 import coil.compose.AsyncImage
 import java.time.LocalDate
 import java.time.LocalTime
@@ -51,7 +56,9 @@ fun GreetingCard(
     onMenuClick: () -> Unit = {},
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
-    onProfileSelected: (Long?) -> Unit = {}
+    onProfileSelected: (Long?) -> Unit = {},
+    isProEntitled: Boolean = false,
+    onUpgradeClick: () -> Unit = {}
 ) {
     val today = LocalDate.now()
     val subtitle = remember(today) {
@@ -88,13 +95,36 @@ fun GreetingCard(
             .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Profile Avatar
+        // Profile Avatar wrapped in a "membership ring" — the only Pro signal,
+        // no pill, no label. Solid gold = Pro member; dashed gold = free user
+        // (reads as "not yet filled / tap to unlock"). For free users tapping
+        // opens the upgrade sheet; Pro members tap through to settings.
+        val ringColor = yellow_dark
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                // Clip to a circle before clickable so the tap ripple stays
+                // within the ring instead of rendering as a square.
+                .clip(CircleShape)
+                .drawBehind {
+                    val stroke = 2.dp.toPx()
+                    val dash = if (!isProEntitled) {
+                        PathEffect.dashPathEffect(floatArrayOf(stroke * 2.5f, stroke * 2f), 0f)
+                    } else null
+                    drawCircle(
+                        color = ringColor,
+                        radius = (size.minDimension - stroke) / 2f,
+                        style = Stroke(width = stroke, pathEffect = dash)
+                    )
+                }
+                .clickable(onClick = if (isProEntitled) onAvatarClick else onUpgradeClick),
+            contentAlignment = Alignment.Center
+        ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(avatarBackground)
-                .clickable(onClick = onAvatarClick),
+                .background(avatarBackground),
             contentAlignment = Alignment.Center
         ) {
             val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
@@ -130,6 +160,7 @@ fun GreetingCard(
                 )
             }
         }
+        }
 
         Spacer(modifier = Modifier.width(Spacing.sm))
 
@@ -143,7 +174,9 @@ fun GreetingCard(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = subtitle,
@@ -189,3 +222,4 @@ fun GreetingCard(
         }
     }
 }
+

@@ -538,6 +538,7 @@ private fun AccountTransactionItem(
             ) {
                 BrandIcon(
                     merchantName = transaction.merchantName,
+                    category = transaction.category,
                     size = 48.dp,
                     showBackground = true
                 )

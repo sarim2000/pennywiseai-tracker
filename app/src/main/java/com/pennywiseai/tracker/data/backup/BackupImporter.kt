@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.data.backup
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.google.gson.GsonBuilder
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
@@ -12,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.decodeFromString
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.LocalDate
@@ -25,13 +25,6 @@ class BackupImporter @Inject constructor(
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
-    
-    private val gson = GsonBuilder()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeTypeAdapter())
-        .registerTypeAdapter(LocalDate::class.java, LocalDateTypeAdapter())
-        .registerTypeAdapter(java.math.BigDecimal::class.java, BigDecimalTypeAdapter())
-        .create()
     
     /**
      * Import backup from a file URI
@@ -69,55 +62,43 @@ class BackupImporter @Inject constructor(
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val content = reader.readText()
-                val parsed = gson.fromJson(content, PennyWiseBackup::class.java)
-                parsed.copy(database = parsed.database.normalized())
+                // backupJson tolerates missing keys (older backups → Kotlin
+                // defaults) and unknown keys (newer backups → ignored). The
+                // old Gson `normalized()` net is no longer needed because the
+                // `= emptyList()` / field defaults on the models now actually
+                // apply. See BackupSerializers + docs/backup-format.md.
+                backupJson.decodeFromString<PennyWiseBackup>(content)
             } ?: throw Exception("Failed to read backup file")
         }
     }
 
     /**
-     * Gson sets every collection field via reflection, bypassing the Kotlin
-     * `= emptyList()` default initialisers on [DatabaseSnapshot]. Older
-     * backups that don't carry a given list key end up with `null` stored
-     * under a property whose declared type is non-null `List<T>` — any
-     * .forEach / .map / .isNotEmpty() call on it then NPEs at runtime even
-     * though the code looks safe.
-     *
-     * Run every collection field through an elvis to empty-list once, right
-     * after parsing, so the rest of the importer can keep its non-null
-     * assumptions. USELESS_ELVIS warnings are suppressed because they are
-     * deliberately load-bearing here.
-     */
-    @Suppress("USELESS_ELVIS")
-    private fun DatabaseSnapshot.normalized(): DatabaseSnapshot = copy(
-        transactions = transactions ?: emptyList(),
-        categories = categories ?: emptyList(),
-        cards = cards ?: emptyList(),
-        accountBalances = accountBalances ?: emptyList(),
-        subscriptions = subscriptions ?: emptyList(),
-        merchantMappings = merchantMappings ?: emptyList(),
-        unrecognizedSms = unrecognizedSms ?: emptyList(),
-        chatMessages = chatMessages ?: emptyList(),
-        rules = rules ?: emptyList(),
-        ruleApplications = ruleApplications ?: emptyList(),
-        exchangeRates = exchangeRates ?: emptyList(),
-        budgets = budgets ?: emptyList(),
-        budgetCategories = budgetCategories ?: emptyList(),
-        transactionSplits = transactionSplits ?: emptyList(),
-        bankNotifications = bankNotifications ?: emptyList(),
-        loans = loans ?: emptyList(),
-        transactionGroups = transactionGroups ?: emptyList(),
-        profiles = profiles ?: emptyList(),
-        budgetMonthSnapshots = budgetMonthSnapshots ?: emptyList(),
-        budgetCategoryMonthSnapshots = budgetCategoryMonthSnapshots ?: emptyList()
-    )
-    
-    /**
-     * Check if backup version is compatible
+     * Check if backup version is compatible. Accepts any `v1.x` backup; real
+     * cross-version tolerance is handled by [backupJson], not by this gate.
      */
     private fun isCompatibleVersion(backup: PennyWiseBackup): Boolean {
-        // For now, accept all v1.x backups
-        return backup.format.startsWith("PennyWise Backup v1")
+        return backup.format.startsWith(PennyWiseBackup.COMPATIBLE_PREFIX)
+    }
+
+    /**
+     * Insert each item, skipping (and counting via [onSkip]) any single row
+     * that fails so one bad/corrupt record can't abort the entire restore.
+     * Schema-drift safety (older backups missing newer columns) is already
+     * handled upstream by [backupJson] defaults — this guards the rarer case
+     * of a genuinely malformed row or a constraint violation.
+     */
+    private inline fun <T> List<T>.insertEachCounting(
+        onSkip: () -> Unit,
+        action: (T) -> Unit
+    ) {
+        for (item in this) {
+            try {
+                action(item)
+            } catch (e: Exception) {
+                Log.w("BackupImporter", "Skipped a row during import: ${e.message}")
+                onSkip()
+            }
+        }
     }
     
     /**
@@ -126,6 +107,7 @@ class BackupImporter @Inject constructor(
     private suspend fun replaceAllData(backup: PennyWiseBackup): ImportResult {
         var importedTransactions = 0
         var importedCategories = 0
+        var skippedRows = 0
 
         return database.withTransaction {
             try {
@@ -161,10 +143,10 @@ class BackupImporter @Inject constructor(
                 // already exist — importProfilesAndBuildMap dedups by name and
                 // returns a backup-id → final-local-id map so callers can
                 // remap each entity's profileId field.
-                backup.database.loans.forEach { loan ->
+                backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     database.loanDao().insertLoan(loan)
                 }
-                backup.database.transactionGroups.forEach { group ->
+                backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     database.transactionGroupDao().insertGroup(group)
                 }
                 val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)
@@ -196,21 +178,21 @@ class BackupImporter @Inject constructor(
                 )
 
                 // Import all data
-                backup.database.categories.forEach { category ->
+                backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
                     database.categoryDao().insertCategory(category)
                     importedCategories++
                 }
 
-                backup.database.transactions.forEach { transaction ->
+                backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     database.transactionDao().insertTransaction(cleanTransaction(transaction))
                     importedTransactions++
                 }
 
-                backup.database.cards.forEach { card ->
+                backup.database.cards.insertEachCounting({ skippedRows++ }) { card ->
                     database.cardDao().insertCard(card)
                 }
 
-                backup.database.accountBalances.forEach { balance ->
+                backup.database.accountBalances.insertEachCounting({ skippedRows++ }) { balance ->
                     // Remap profile_id the same way as transactions; fall back
                     // to PERSONAL when the source profile didn't survive (the
                     // column is non-null with a default of 1).
@@ -221,50 +203,60 @@ class BackupImporter @Inject constructor(
                     )
                 }
                 
-                backup.database.subscriptions.forEach { subscription ->
+                backup.database.subscriptions.insertEachCounting({ skippedRows++ }) { subscription ->
                     database.subscriptionDao().insertSubscription(subscription)
                 }
-                
-                backup.database.merchantMappings.forEach { mapping ->
+
+                backup.database.merchantMappings.insertEachCounting({ skippedRows++ }) { mapping ->
                     database.merchantMappingDao().insertMapping(mapping)
                 }
-                
-                backup.database.unrecognizedSms.forEach { sms ->
+
+                backup.database.unrecognizedSms.insertEachCounting({ skippedRows++ }) { sms ->
                     database.unrecognizedSmsDao().insert(sms)
                 }
-                
-                backup.database.chatMessages.forEach { message ->
+
+                backup.database.chatMessages.insertEachCounting({ skippedRows++ }) { message ->
                     database.chatDao().insertMessage(message)
                 }
-                
+
                 // Import new entities
-                backup.database.rules.forEach { rule ->
+                backup.database.rules.insertEachCounting({ skippedRows++ }) { rule ->
                     database.ruleDao().insertRule(rule)
                 }
-                backup.database.ruleApplications.forEach { application ->
+                backup.database.ruleApplications.insertEachCounting({ skippedRows++ }) { application ->
                     database.ruleApplicationDao().insertApplication(application)
                 }
-                backup.database.exchangeRates.forEach { rate ->
+                backup.database.exchangeRates.insertEachCounting({ skippedRows++ }) { rate ->
                     database.exchangeRateDao().insertExchangeRate(rate)
                 }
-                backup.database.budgets.forEach { budget ->
+                backup.database.budgets.insertEachCounting({ skippedRows++ }) { budget ->
                     database.budgetDao().insertBudget(budget)
                 }
-                backup.database.budgetCategories.forEach { category ->
+                backup.database.budgetCategories.insertEachCounting({ skippedRows++ }) { category ->
                     database.budgetDao().insertBudgetCategory(category)
                 }
-                backup.database.transactionSplits.forEach { split ->
+                backup.database.transactionSplits.insertEachCounting({ skippedRows++ }) { split ->
                     database.transactionSplitDao().insertSplit(split)
                 }
-                backup.database.bankNotifications.forEach { notification ->
+                backup.database.bankNotifications.insertEachCounting({ skippedRows++ }) { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
 
                 // Profiles were already imported earlier (before transactions /
                 // account balances) so foreign-key remapping could happen.
 
-                database.budgetSnapshotDao().insertGroupSnapshots(backup.database.budgetMonthSnapshots)
-                database.budgetSnapshotDao().insertCategorySnapshots(backup.database.budgetCategoryMonthSnapshots)
+                try {
+                    database.budgetSnapshotDao().insertGroupSnapshots(backup.database.budgetMonthSnapshots)
+                } catch (e: Exception) {
+                    Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
+                    skippedRows += backup.database.budgetMonthSnapshots.size
+                }
+                try {
+                    database.budgetSnapshotDao().insertCategorySnapshots(backup.database.budgetCategoryMonthSnapshots)
+                } catch (e: Exception) {
+                    Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
+                    skippedRows += backup.database.budgetCategoryMonthSnapshots.size
+                }
 
                 // Import preferences
                 importPreferences(backup.preferences)
@@ -272,7 +264,8 @@ class BackupImporter @Inject constructor(
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
-                    skippedDuplicates = 0
+                    skippedDuplicates = 0,
+                    skippedRows = skippedRows
                 )
             } catch (e: Exception) {
                 throw e
@@ -287,6 +280,7 @@ class BackupImporter @Inject constructor(
         var importedTransactions = 0
         var importedCategories = 0
         var skippedDuplicates = 0
+        var skippedRows = 0
 
         return database.withTransaction {
             try {
@@ -302,7 +296,7 @@ class BackupImporter @Inject constructor(
                     .toSet()
 
                 // Import categories (merge by name)
-                backup.database.categories.forEach { category ->
+                backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
                     if (!existingCategories.contains(category.name)) {
                         // Generate new ID for imported category
                         val newCategory = category.copy(id = 0)
@@ -330,7 +324,7 @@ class BackupImporter @Inject constructor(
                     Triple(it.personName, it.direction, it.createdAt) to it.id
                 }
                 val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
-                backup.database.loans.forEach { loan ->
+                backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     val key = Triple(loan.personName, loan.direction, loan.createdAt)
                     val existingId = existingLoanKeyToId[key]
                     val newId = existingId
@@ -343,7 +337,7 @@ class BackupImporter @Inject constructor(
                     (it.name to it.createdAt) to it.id
                 }
                 val oldToNewGroupIdMap = mutableMapOf<Long, Long>()
-                backup.database.transactionGroups.forEach { group ->
+                backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     val key = group.name to group.createdAt
                     val existingId = existingGroupKeyToId[key]
                     val newId = existingId
@@ -369,7 +363,7 @@ class BackupImporter @Inject constructor(
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
 
-                backup.database.transactions.forEach { transaction ->
+                backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
                         val oldId = transaction.id
                         val newTransaction = transaction.copy(
@@ -395,19 +389,19 @@ class BackupImporter @Inject constructor(
                 }
                 
                 // Import other entities with duplicate checking
-                importCardsWithMerge(backup.database.cards)
-                importAccountBalancesWithMerge(backup.database.accountBalances) { resolveProfileId(it) }
-                importSubscriptionsWithMerge(backup.database.subscriptions)
-                importMerchantMappingsWithMerge(backup.database.merchantMappings)
-                
+                importCardsWithMerge(backup.database.cards) { skippedRows++ }
+                importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
+                importSubscriptionsWithMerge(backup.database.subscriptions) { skippedRows++ }
+                importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
+
                 // Import new entities with correct ID mapping for splits and applications
                 // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
-                importRulesWithMerge(backup.database.rules)
+                importRulesWithMerge(backup.database.rules) { skippedRows++ }
                 
                 // Get existing rule application IDs to avoid duplicates on repeat MERGE
                 val existingRuleAppIds = database.ruleApplicationDao().getAllApplications().first()
                     .map { it.id }.toSet()
-                backup.database.ruleApplications.forEach { application ->
+                backup.database.ruleApplications.insertEachCounting({ skippedRows++ }) { application ->
                     // Skip if application already exists locally (preserves local rule applications)
                     if (!existingRuleAppIds.contains(application.id)) {
                         val mappedTransactionId = application.transactionId.toLongOrNull()?.let { oldId ->
@@ -419,7 +413,7 @@ class BackupImporter @Inject constructor(
                 }
                 // Get existing rates once to avoid N+1 queries
                 val existingRates = database.exchangeRateDao().getAllRatesFlow().first()
-                backup.database.exchangeRates.forEach { rate ->
+                backup.database.exchangeRates.insertEachCounting({ skippedRows++ }) { rate ->
                     // Skip if currency pair already exists locally to preserve custom rates
                     val existingPair = existingRates.find { 
                         it.fromCurrency == rate.fromCurrency && it.toCurrency == rate.toCurrency 
@@ -428,13 +422,13 @@ class BackupImporter @Inject constructor(
                         database.exchangeRateDao().insertExchangeRate(rate)
                     }
                 }
-                importBudgetsWithMerge(backup.database.budgets, backup.database.budgetCategories)
+                importBudgetsWithMerge(backup.database.budgets, backup.database.budgetCategories) { skippedRows++ }
                 
                 // Get existing split keys to avoid duplicates on repeat MERGE
                 // A split is unique by (transaction_id, category, amount)
                 val existingSplits = database.transactionSplitDao().getAllSplits().first()
                 val existingSplitKeys = existingSplits.map { "${it.transactionId}|${it.category}|${it.amount}" }.toSet()
-                backup.database.transactionSplits.forEach { split ->
+                backup.database.transactionSplits.insertEachCounting({ skippedRows++ }) { split ->
                     // Map transaction ID to new ID if available
                     val mappedTransactionId = oldToNewTransactionIdMap[split.transactionId] ?: split.transactionId
                     // Skip if split already exists locally (preserves local splits)
@@ -444,7 +438,7 @@ class BackupImporter @Inject constructor(
                         database.transactionSplitDao().insertSplit(updatedSplit)
                     }
                 }
-                backup.database.bankNotifications.forEach { notification ->
+                backup.database.bankNotifications.insertEachCounting({ skippedRows++ }) { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
                 }
 
@@ -463,14 +457,21 @@ class BackupImporter @Inject constructor(
                         .groupBy { it.year to it.month }
                     val allMonths = (groupByMonth.keys + catByMonth.keys)
                     allMonths.forEach { (year, month) ->
-                        database.budgetSnapshotDao().replaceMonthSnapshots(
-                            year = year,
-                            month = month,
-                            groupSnapshots = (groupByMonth[year to month] ?: emptyList())
-                                .map { it.copy(id = 0) },
-                            categorySnapshots = (catByMonth[year to month] ?: emptyList())
-                                .map { it.copy(id = 0) }
-                        )
+                        val groupSnapshots = (groupByMonth[year to month] ?: emptyList())
+                            .map { it.copy(id = 0) }
+                        val categorySnapshots = (catByMonth[year to month] ?: emptyList())
+                            .map { it.copy(id = 0) }
+                        try {
+                            database.budgetSnapshotDao().replaceMonthSnapshots(
+                                year = year,
+                                month = month,
+                                groupSnapshots = groupSnapshots,
+                                categorySnapshots = categorySnapshots
+                            )
+                        } catch (e: Exception) {
+                            Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
+                            skippedRows += groupSnapshots.size + categorySnapshots.size
+                        }
                     }
                 }
 
@@ -480,7 +481,8 @@ class BackupImporter @Inject constructor(
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
-                    skippedDuplicates = skippedDuplicates
+                    skippedDuplicates = skippedDuplicates,
+                    skippedRows = skippedRows
                 )
             } catch (e: Exception) {
                 throw e
@@ -491,11 +493,11 @@ class BackupImporter @Inject constructor(
     /**
      * Import cards with duplicate checking
      */
-    private suspend fun importCardsWithMerge(cards: List<CardEntity>) {
+    private suspend fun importCardsWithMerge(cards: List<CardEntity>, onSkip: () -> Unit) {
         val existingCards = database.cardDao().getAllCards().first()
         val existingCardKeys = existingCards.map { "${it.bankName}_${it.cardLast4}" }.toSet()
-        
-        cards.forEach { card ->
+
+        cards.insertEachCounting(onSkip) { card ->
             val key = "${card.bankName}_${card.cardLast4}"
             if (!existingCardKeys.contains(key)) {
                 val newCard = card.copy(id = 0)
@@ -512,10 +514,11 @@ class BackupImporter @Inject constructor(
      */
     private suspend fun importAccountBalancesWithMerge(
         balances: List<AccountBalanceEntity>,
-        resolveProfileId: (Long?) -> Long?
+        resolveProfileId: (Long?) -> Long?,
+        onSkip: () -> Unit
     ) {
         // For balances, we'll import all as they represent historical data
-        balances.forEach { balance ->
+        balances.insertEachCounting(onSkip) { balance ->
             val mappedProfileId = resolveProfileId(balance.profileId)
                 ?: ProfileEntity.PERSONAL_ID
             val newBalance = balance.copy(id = 0, profileId = mappedProfileId)
@@ -526,11 +529,11 @@ class BackupImporter @Inject constructor(
     /**
      * Import subscriptions with duplicate checking
      */
-    private suspend fun importSubscriptionsWithMerge(subscriptions: List<SubscriptionEntity>) {
+    private suspend fun importSubscriptionsWithMerge(subscriptions: List<SubscriptionEntity>, onSkip: () -> Unit) {
         val existingSubscriptions = database.subscriptionDao().getAllSubscriptions().first()
         val existingKeys = existingSubscriptions.map { "${it.merchantName}_${it.amount}" }.toSet()
-        
-        subscriptions.forEach { subscription ->
+
+        subscriptions.insertEachCounting(onSkip) { subscription ->
             val key = "${subscription.merchantName}_${subscription.amount}"
             if (!existingKeys.contains(key)) {
                 val newSubscription = subscription.copy(id = 0)
@@ -542,8 +545,8 @@ class BackupImporter @Inject constructor(
     /**
      * Import merchant mappings with merge
      */
-    private suspend fun importMerchantMappingsWithMerge(mappings: List<MerchantMappingEntity>) {
-        mappings.forEach { mapping ->
+    private suspend fun importMerchantMappingsWithMerge(mappings: List<MerchantMappingEntity>, onSkip: () -> Unit) {
+        mappings.insertEachCounting(onSkip) { mapping ->
             database.merchantMappingDao().insertMapping(mapping)
         }
     }
@@ -551,10 +554,10 @@ class BackupImporter @Inject constructor(
     /**
      * Import rules with merge semantics - skip if exists locally
      */
-    private suspend fun importRulesWithMerge(rules: List<RuleEntity>) {
+    private suspend fun importRulesWithMerge(rules: List<RuleEntity>, onSkip: () -> Unit) {
         val existingRuleIds = database.ruleDao().getAllRules().first().map { it.id }.toSet()
-        
-        rules.forEach { rule ->
+
+        rules.insertEachCounting(onSkip) { rule ->
             if (!existingRuleIds.contains(rule.id)) {
                 database.ruleDao().insertRule(rule)
             }
@@ -564,10 +567,10 @@ class BackupImporter @Inject constructor(
     /**
      * Import budgets and budget categories with merge semantics - skip if exists locally
      */
-    private suspend fun importBudgetsWithMerge(budgets: List<BudgetEntity>, budgetCategories: List<BudgetCategoryEntity>) {
+    private suspend fun importBudgetsWithMerge(budgets: List<BudgetEntity>, budgetCategories: List<BudgetCategoryEntity>, onSkip: () -> Unit) {
         val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
-        
-        budgets.forEach { budget ->
+
+        budgets.insertEachCounting(onSkip) { budget ->
             if (!existingBudgetNames.contains(budget.name)) {
                 // Use the return value from insertBudget to get the new ID directly
                 // instead of querying (which would miss inactive budgets)

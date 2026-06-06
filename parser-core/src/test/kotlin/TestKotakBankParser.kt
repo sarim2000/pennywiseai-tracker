@@ -152,6 +152,22 @@ class KotakBankParserTest {
                     accountLast4 = "1234"
                 )
             ),
+            // Issue #360: Kotak migrated "Sent" UPI alerts to RCS, which deliver a
+            // decoded display-name sender ("Kotak Mahindra Bank") rather than a DLT
+            // header. The parser must still handle and parse these correctly.
+            ParserTestCase(
+                name = "RCS Sent UPI with display-name sender",
+                message = "Sent Rs.205.00 from XXXXXX1234 to ANNAPOORNESWARI K M on 26/05/2026. UPI ref no. 651229267141. Not you? Tap https://kotk.in/KOTAKD/E7LzzX to report -Kotak",
+                sender = "Kotak Mahindra Bank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("205.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ANNAPOORNESWARI K M",
+                    reference = "651229267141",
+                    accountLast4 = "1234"
+                )
+            ),
             ParserTestCase(
                 name = "Issue #360 - Sent UPI with single-word payee (KOTAKD-S)",
                 message = "Sent Rs.90.00 from XXXXXX9886 to RAMESH on 25/05/2026. UPI ref no. 653114209367. Not you? Tap https://kotk.in/KOTAKD/S6ztop to report -Kotak",
@@ -183,11 +199,19 @@ class KotakBankParserTest {
         )
 
         val handleChecks = listOf(
+            // DLT senders still match
             "JD-KOTAKB-S" to true,
             "JD-KOTAKB-T" to true,
             "VM-KOTAKD-S" to true,
             "JD-KOTAKD-S" to true,
-            "VM-KOTAKB" to false,
+            // RCS display-name senders (issue #360) match via the contains("KOTAK") branch
+            "Kotak" to true,
+            "Kotak Mahindra Bank" to true,
+            "Kotak811" to true,
+            // Intentional superset: a bare DLT header without the -S/-T suffix also
+            // matches via contains("KOTAK"). Asserted so the behavior stays documented.
+            "VM-KOTAKB" to true,
+            // Non-Kotak senders are rejected
             "UNKNOWN" to false
         )
 

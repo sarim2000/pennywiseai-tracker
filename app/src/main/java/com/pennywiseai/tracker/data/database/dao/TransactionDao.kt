@@ -122,6 +122,18 @@ interface TransactionDao {
     
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
+
+    /**
+     * Deletes only transactions that don't carry user-curated annotations
+     * (no loan link, no group membership). Used by the full-rescan path so
+     * rebuilding the SMS-derived view doesn't blow away loans + their
+     * linked history or grouped transactions. Fixes #401.
+     *
+     * Re-parse uses `transaction_hash` UNIQUE + `OnConflictStrategy.IGNORE`,
+     * so the surviving rows are not duplicated when SMS is re-read.
+     */
+    @Query("DELETE FROM transactions WHERE loan_id IS NULL AND group_id IS NULL")
+    suspend fun deleteUncuratedTransactions()
     
     @Query("UPDATE transactions SET category = :newCategory WHERE merchant_name = :merchantName")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
@@ -131,6 +143,12 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
+    suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
+
+    @Query("UPDATE transactions SET profile_id = :profileId, updated_at = :updatedAt WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
+    suspend fun setProfileForAccountTransactions(bankName: String, accountLast4: String, profileId: Long, updatedAt: LocalDateTime): Int
 
     @Query("SELECT DISTINCT currency FROM transactions WHERE is_deleted = 0 ORDER BY currency")
     fun getAllCurrencies(): Flow<List<String>>
@@ -148,6 +166,41 @@ interface TransactionDao {
     // Method to check if transaction exists by hash (including deleted)
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
+
+    /**
+     * Find recent EXPENSE transactions whose merchant AND amount match —
+     * used to surface candidate auto-pay charges when the user opens the
+     * mark-as-paid sheet for a subscription (#412). Both filters matter:
+     * a one-off ₹789 Netflix purchase shouldn't show up as a candidate
+     * for a ₹499 monthly sub.
+     *
+     * Skips phantom rows we created ourselves (`subpay-...`, `autopay-...`
+     * transaction hashes) so the user only sees real bank-derived
+     * payments to link against.
+     *
+     * Amount comparison: `CAST(amount AS REAL)` handles the BigDecimal
+     * text representation drift ("499" vs "499.00"). Tiny epsilon
+     * (±₹0.01) absorbs any float-conversion rounding without matching
+     * meaningfully different amounts.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE LOWER(merchant_name) = LOWER(:merchant)
+          AND CAST(amount AS REAL) BETWEEN CAST(:amount AS REAL) - 0.01
+                                       AND CAST(:amount AS REAL) + 0.01
+          AND transaction_type = 'EXPENSE'
+          AND is_deleted = 0
+          AND date_time >= :since
+          AND (transaction_hash NOT LIKE 'subpay-%' AND transaction_hash NOT LIKE 'autopay-%')
+        ORDER BY date_time DESC
+        LIMIT :limit
+    """)
+    suspend fun findRecentExpensesByMerchantAndAmount(
+        merchant: String,
+        amount: java.math.BigDecimal,
+        since: LocalDateTime,
+        limit: Int = 5,
+    ): List<TransactionEntity>
     
     @Query("""
         SELECT * FROM transactions 
@@ -186,6 +239,65 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<TransactionEntity>>
+
+    /**
+     * Total transactions on an account, including soft-deleted ones. Used by
+     * the account-merge confirmation dialog (#368) — must match
+     * [mergeAccountTransactions]'s WHERE clause exactly, otherwise the dialog
+     * would under-report the actual number of rows about to be moved for an
+     * irreversible operation.
+     */
+    @Query("""
+        SELECT COUNT(*) FROM transactions
+        WHERE bank_name = :bankName
+          AND account_number = :accountLast4
+    """)
+    suspend fun countByAccount(bankName: String, accountLast4: String): Int
+
+    /**
+     * Bulk re-target every transaction on [sourceBankName]/[sourceAccountLast4]
+     * to [targetBankName]/[targetAccountLast4]. Used by the account-merge
+     * feature (#368). Returns the row count actually updated.
+     *
+     * Includes soft-deleted rows on purpose: if the source account is
+     * about to be removed, any trashed transactions on it would otherwise
+     * orphan-point at an account that no longer exists, breaking a
+     * future "restore from trash" flow.
+     */
+    @Query("""
+        UPDATE transactions
+        SET bank_name = :targetBankName,
+            account_number = :targetAccountLast4,
+            updated_at = :updatedAt
+        WHERE bank_name = :sourceBankName
+          AND account_number = :sourceAccountLast4
+    """)
+    suspend fun mergeAccountTransactions(
+        sourceBankName: String,
+        sourceAccountLast4: String,
+        targetBankName: String,
+        targetAccountLast4: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    /**
+     * Re-target any TRANSFER row that referenced [sourceAccountLast4] in its
+     * `from_account` / `to_account` columns so the detail screen's From → To
+     * flow keeps pointing at a live account after a merge (#368). Note:
+     * these columns don't carry a bank — match is by account last-4 only.
+     */
+    @Query("""
+        UPDATE transactions
+        SET from_account = CASE WHEN from_account = :sourceAccountLast4 THEN :targetAccountLast4 ELSE from_account END,
+            to_account   = CASE WHEN to_account   = :sourceAccountLast4 THEN :targetAccountLast4 ELSE to_account   END,
+            updated_at   = :updatedAt
+        WHERE from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4
+    """)
+    suspend fun retargetTransferLegRefs(
+        sourceAccountLast4: String,
+        targetAccountLast4: String,
+        updatedAt: LocalDateTime
+    ): Int
 
     @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
     suspend fun getTransactionByReference(reference: String): TransactionEntity?

@@ -1,5 +1,9 @@
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.IconProvider
+import com.pennywiseai.tracker.ui.icons.IconResource
 
 class CategoryMappingTest {
 
@@ -74,6 +78,80 @@ class CategoryMappingTest {
 
         // Test some should remain as Others (too generic)
         assertEquals("Others", getCategory("Twin Made"))
+    }
+
+    // ---------------------------------------------------------------------------
+    // IconProvider.getTransactionIcon
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun testGetTransactionIcon_noCategory_derivesFromMerchant() {
+        // null category → derive from merchant name (Food & Dining)
+        val result = IconProvider.getTransactionIcon("Piri Piri Flaming Grill", null)
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val foodInfo = CategoryMapping.categories["Food & Dining"]!!
+        assertEquals(foodInfo.icon, iconResult.icon)
+        assertEquals(foodInfo.color, iconResult.tint)
+    }
+
+    @Test
+    fun testGetTransactionIcon_withCategory_usesGivenCategory() {
+        // "7-11" derives as "Groceries", but override forces "Transportation"
+        val result = IconProvider.getTransactionIcon("7-11", "Transportation")
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val transportInfo = CategoryMapping.categories["Transportation"]!!
+        assertEquals(transportInfo.icon, iconResult.icon)
+        assertEquals(transportInfo.color, iconResult.tint)
+    }
+
+    @Test
+    fun testGetTransactionIcon_emptyCategory_fallsBackToDerived() {
+        // Empty string → derive from merchant name
+        val result = IconProvider.getTransactionIcon("Piri Piri Flaming Grill", "")
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val foodInfo = CategoryMapping.categories["Food & Dining"]!!
+        assertEquals(foodInfo.icon, iconResult.icon)
+    }
+
+    @Test
+    fun testGetTransactionIcon_uncategorized_fallsBackToDerived() {
+        // "Uncategorized" → derive from merchant name
+        val result = IconProvider.getTransactionIcon("Piri Piri Flaming Grill", "Uncategorized")
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val foodInfo = CategoryMapping.categories["Food & Dining"]!!
+        assertEquals(foodInfo.icon, iconResult.icon)
+    }
+
+    @Test
+    fun testGetTransactionIcon_brandIconTakesPriority() {
+        // "Starbucks" has a brand drawable → returns DrawableResource even with override
+        val result = IconProvider.getTransactionIcon("Starbucks", "Transportation")
+        assertTrue(result is IconResource.DrawableResource, "Expected DrawableResource for a known brand")
+    }
+
+    @Test
+    fun testGetTransactionIcon_nonExistentCategory_fallsBackToOthers() {
+        // Non-existent category name → fallback to "Others"
+        val result = IconProvider.getTransactionIcon("7-11", "NonExistentCategory")
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val othersInfo = CategoryMapping.categories["Others"]!!
+        assertEquals(othersInfo.icon, iconResult.icon)
+        assertEquals(othersInfo.color, iconResult.tint)
+    }
+
+    @Test
+    fun testGetTransactionIcon_overrideToOthers_usesOthers() {
+        val result = IconProvider.getTransactionIcon("Piri Piri Flaming Grill", "Others")
+        val iconResult: IconResource.VectorIcon = result as? IconResource.VectorIcon
+            ?: throw AssertionError("Expected VectorIcon but got $result")
+        val othersInfo = CategoryMapping.categories["Others"]!!
+        assertEquals(othersInfo.icon, iconResult.icon)
+        assertEquals(othersInfo.color, iconResult.tint)
     }
 }
 

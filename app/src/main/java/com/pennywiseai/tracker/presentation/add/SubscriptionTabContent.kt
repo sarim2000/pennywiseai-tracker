@@ -98,7 +98,36 @@ fun SubscriptionTabContent(
                 }
             }
 
-            // Info Card
+            // Income / Expense direction toggle (#371). Income subscriptions
+            // get phantom-created on schedule (for accounts that don't send
+            // SMS — wallets, allowances). Expense subscriptions match
+            // incoming bank-debit SMS like today.
+            val isIncome = uiState.direction ==
+                com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !isIncome,
+                    onClick = {
+                        viewModel.updateSubscriptionDirection(
+                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
+                        )
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    label = { Text("Expense") }
+                )
+                SegmentedButton(
+                    selected = isIncome,
+                    onClick = {
+                        viewModel.updateSubscriptionDirection(
+                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
+                        )
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    label = { Text("Income") }
+                )
+            }
+
+            // Info Card — copy adapts to the chosen direction.
             PennyWiseCardV2(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -114,7 +143,10 @@ fun SubscriptionTabContent(
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
-                        text = "Track recurring expenses. You'll need to add transactions manually each month.",
+                        text = if (isIncome)
+                            "Track recurring income (wallet top-ups, allowance). A transaction is auto-created on each scheduled date."
+                        else
+                            "Track recurring expenses. You'll need to add transactions manually each month.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )

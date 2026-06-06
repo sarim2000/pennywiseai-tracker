@@ -7,6 +7,7 @@ object BankParserFactory {
 
     private val parsers = listOf(
         HDFCMutualFundParser(),  // HDFC Mutual Fund (must be before HDFCBankParser to avoid interception by HDFC's broad DLT pattern)
+        NaviMutualFundParser(),  // Navi Mutual Fund (AMC SIP / unit-allotment SMS — NAVAMC sender)
         HDFCBankParser(),
         SBIBankParser(),
         SaraswatBankParser(),
@@ -60,6 +61,7 @@ object BankParserFactory {
         LaxmiBankParser(),  // Laxmi Sunrise Bank (Nepal)
         CBEBankParser(),  // Commercial Bank of Ethiopia
         AltanaFCUParser(),  // Altana Federal Credit Union (USA) — must precede EverestBank, which greedily claims numeric senders
+        StandardBankMozambiqueParser(),  // Standard Bank Mozambique — must precede EverestBank (shortcode 7832265 is a 7-digit numeric sender)
         EverestBankParser(),  // Everest Bank (Nepal)
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)

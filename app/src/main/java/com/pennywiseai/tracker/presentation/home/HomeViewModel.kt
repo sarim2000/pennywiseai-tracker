@@ -73,8 +73,15 @@ class HomeViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
+
+    /**
+     * Drives the subtle Pro chip in the home top bar — hidden when the
+     * user is already entitled so we never push to existing buyers.
+     */
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     private val _uiState = MutableStateFlow(HomeUiState())

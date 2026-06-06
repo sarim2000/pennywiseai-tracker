@@ -6,8 +6,11 @@ import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "subscriptions")
+@Serializable
 data class SubscriptionEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -17,9 +20,11 @@ data class SubscriptionEntity(
     val merchantName: String,
     
     @ColumnInfo(name = "amount")
+    @Contextual
     val amount: BigDecimal,
-    
+
     @ColumnInfo(name = "next_payment_date")
+    @Contextual
     val nextPaymentDate: LocalDate?,
     
     @ColumnInfo(name = "state")
@@ -38,17 +43,60 @@ data class SubscriptionEntity(
     val smsBody: String? = null,
     
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
-    val currency: String = "INR"
+    val currency: String = "INR",
+
+    /**
+     * Whether this recurring entry is money OUT (an EXPENSE — Netflix, EMI,
+     * mandate debit) or money IN (an INCOME — wallet top-up, allowance,
+     * salary). Income autopay (#371) gets phantom-created automatically when
+     * `nextPaymentDate` rolls past today; expense autopay continues to be
+     * matched against incoming bank-debit SMS.
+     */
+    @ColumnInfo(name = "direction", defaultValue = "EXPENSE")
+    val direction: SubscriptionDirection = SubscriptionDirection.EXPENSE,
+
+    /**
+     * User-chosen recurrence cadence as a display string ("Weekly",
+     * "Monthly", "Quarterly", "Semi-Annual", "Annual"). Drives
+     * [SubscriptionRepository.advanceNextPaymentDate]'s date arithmetic
+     * and the income-autopay phantom creator. Previously this was collected
+     * by the form but silently dropped — a latent bug that meant every
+     * subscription advanced by exactly +30 days regardless of cycle.
+     */
+    @ColumnInfo(name = "billing_cycle", defaultValue = "Monthly")
+    val billingCycle: String = "Monthly",
+
+    /**
+     * When the user (or auto-pay link) last confirmed this subscription's
+     * cycle was paid. Drives the "Paid" badge on the row so users don't
+     * accidentally re-tap mark-as-paid for the same cycle (#412). The
+     * mark-as-paid use case also reads this to refuse a re-tap in the
+     * same cycle window — without it, a re-tap would create a new
+     * phantom for the (now-future) next cycle and advance the schedule
+     * again. Null when the subscription has never been marked paid.
+     */
+    @ColumnInfo(name = "last_paid_at")
+    @Contextual
+    val lastPaidAt: LocalDate? = null,
 )
 
+@Serializable
 enum class SubscriptionState {
     ACTIVE,
     HIDDEN, // Soft delete - hidden from view but kept for reactivation detection
     ENDED   // User explicitly cancelled; never auto-reactivates on new mandate SMS
+}
+
+@Serializable
+enum class SubscriptionDirection {
+    EXPENSE,  // Recurring money out (Netflix, mandates, EMIs)
+    INCOME    // Recurring money in (wallet top-ups, allowance — phantom-created on schedule, #371)
 }

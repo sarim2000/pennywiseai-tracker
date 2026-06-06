@@ -6,6 +6,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "exchange_rates",
@@ -17,6 +19,7 @@ import java.time.LocalDateTime
         Index(value = ["expires_at_unix"])
     ]
 )
+@Serializable
 data class ExchangeRateEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -29,18 +32,21 @@ data class ExchangeRateEntity(
     val toCurrency: String,
 
     @ColumnInfo(name = "rate")
+    @Contextual
     val rate: BigDecimal,
 
     @ColumnInfo(name = "provider")
     val provider: String,
 
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime,
 
     @ColumnInfo(name = "updated_at_unix", defaultValue = "0")
     val updatedAtUnix: Long = 0,
 
     @ColumnInfo(name = "expires_at")
+    @Contextual
     val expiresAt: LocalDateTime,
 
     @ColumnInfo(name = "expires_at_unix", defaultValue = "0")

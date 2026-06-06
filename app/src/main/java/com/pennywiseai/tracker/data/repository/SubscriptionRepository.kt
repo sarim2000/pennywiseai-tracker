@@ -110,16 +110,48 @@ class SubscriptionRepository @Inject constructor(
     }
     
     /**
-     * Updates the next payment date after a subscription charge
+     * Updates the next payment date after a subscription charge fires.
+     * Advances by the subscription's persisted [SubscriptionEntity.billingCycle]
+     * (Weekly / Monthly / Quarterly / Semi-Annual / Annual). Previously this
+     * hard-coded `+30 days`, silently ignoring the user's chosen cycle (#371).
      */
     suspend fun updateNextPaymentDateAfterCharge(
         subscriptionId: Long,
         chargeDate: LocalDate = LocalDate.now()
     ) {
-        // Assume monthly subscription, add 30 days
-        val nextDate = chargeDate.plusDays(30)
-        subscriptionDao.updateNextPaymentDate(subscriptionId, nextDate)
+        val sub = subscriptionDao.getSubscriptionById(subscriptionId) ?: return
+        subscriptionDao.updateNextPaymentDate(subscriptionId, advance(chargeDate, sub.billingCycle))
     }
+
+    /**
+     * Cycle-aware date advance. Months/years use real calendar arithmetic
+     * (so "Monthly" lands on the same day-of-month next month, not strictly
+     * +30 days). Unknown cycles fall back to monthly so a stale or hand-
+     * inserted row never silently advances by 0 days.
+     */
+    fun advance(date: LocalDate, billingCycle: String, reverse: Boolean = false): LocalDate {
+        val sign = if (reverse) -1L else 1L
+        return when (billingCycle.uppercase()) {
+            "WEEKLY" -> date.plusWeeks(sign)
+            "MONTHLY" -> date.plusMonths(sign)
+            "QUARTERLY" -> date.plusMonths(3L * sign)
+            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * sign)
+            "ANNUAL", "YEARLY" -> date.plusYears(sign)
+            else -> date.plusMonths(sign)
+        }
+    }
+
+    /** Active INCOME subscriptions due on or before [date] (#371). */
+    suspend fun getDueIncomeSubscriptions(date: LocalDate = LocalDate.now()): List<SubscriptionEntity> =
+        subscriptionDao.getDueIncomeSubscriptions(date)
+
+    /** Direct DAO passthrough — used by the income-autopay phantom creator. */
+    suspend fun updateNextPaymentDate(subscriptionId: Long, nextPaymentDate: LocalDate) =
+        subscriptionDao.updateNextPaymentDate(subscriptionId, nextPaymentDate)
+
+    /** See [SubscriptionDao.markPaid]. */
+    suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) =
+        subscriptionDao.markPaid(subscriptionId, paidAt, nextPaymentDate)
     
     
     private fun areAmountsEqual(amount1: BigDecimal, amount2: BigDecimal): Boolean {

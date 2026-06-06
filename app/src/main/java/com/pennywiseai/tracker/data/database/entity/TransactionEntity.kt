@@ -6,17 +6,21 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "transactions",
     indices = [Index(value = ["transaction_hash"], unique = true)]
 )
+@Serializable
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
     
     @ColumnInfo(name = "amount")
+    @Contextual
     val amount: BigDecimal,
     
     @ColumnInfo(name = "merchant_name")
@@ -29,6 +33,7 @@ data class TransactionEntity(
     val transactionType: TransactionType,
     
     @ColumnInfo(name = "date_time")
+    @Contextual
     val dateTime: LocalDateTime,
     
     @ColumnInfo(name = "description")
@@ -47,6 +52,7 @@ data class TransactionEntity(
     val accountNumber: String? = null,
     
     @ColumnInfo(name = "balance_after")
+    @Contextual
     val balanceAfter: BigDecimal? = null,
     
     @ColumnInfo(name = "transaction_hash", defaultValue = "")
@@ -59,9 +65,11 @@ data class TransactionEntity(
     val isDeleted: Boolean = false,
     
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
@@ -84,6 +92,7 @@ data class TransactionEntity(
     // legacy behaviour. Set by the "Mark as loan" sheet when the user wants only
     // part of a payment to count toward the loan total.
     @ColumnInfo(name = "loan_contribution", defaultValue = "NULL")
+    @Contextual
     val loanContribution: BigDecimal? = null,
 
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
@@ -102,11 +111,13 @@ data class TransactionEntity(
     val profileId: Long? = null
 )
 
+@Serializable
 enum class BudgetImpactType {
     DEDUCT_SPENT,
     ADD_TO_LIMIT
 }
 
+@Serializable
 enum class TransactionType {
     INCOME,     // Money received
     EXPENSE,    // Money spent from accounts

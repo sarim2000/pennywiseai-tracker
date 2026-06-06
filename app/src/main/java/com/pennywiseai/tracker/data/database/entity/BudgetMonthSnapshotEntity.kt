@@ -4,8 +4,11 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "budget_month_snapshots")
+@Serializable
 data class BudgetMonthSnapshotEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -24,6 +27,7 @@ data class BudgetMonthSnapshotEntity(
     val budgetName: String,
 
     @ColumnInfo(name = "limit_amount")
+    @Contextual
     val limitAmount: BigDecimal,
 
     @ColumnInfo(name = "include_all_categories", defaultValue = "0")

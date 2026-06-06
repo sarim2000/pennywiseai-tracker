@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.add
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -12,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -36,8 +38,14 @@ class AddViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val receiptManager: ReceiptManager
+    private val transactionRepository: TransactionRepository,
+    private val receiptManager: ReceiptManager,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // When launched via "Duplicate", this holds the id of the source transaction
+    // whose values should pre-fill the form. Null for a fresh add.
+    private val sourceTransactionId: Long? = savedStateHandle.get<Long>("sourceTransactionId")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -58,6 +66,56 @@ class AddViewModel @Inject constructor(
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             _transactionUiState.update { it.copy(currency = baseCurrency) }
             _subscriptionUiState.update { it.copy(currency = baseCurrency) }
+
+            // If launched via "Duplicate", prefill the transaction form from the
+            // source. Done after the default currency so the source's currency wins.
+            sourceTransactionId?.let { prefillFromTransaction(it) }
+        }
+    }
+
+    /**
+     * Loads the given transaction and copies its editable values into the
+     * transaction form as a brand-new draft. The original is never modified;
+     * id/hash/receipt are intentionally not copied so saving creates a new
+     * transaction. The date defaults to now (template behaviour) while all
+     * other fields are copied verbatim.
+     */
+    private suspend fun prefillFromTransaction(transactionId: Long) {
+        val source = transactionRepository.getTransactionById(transactionId) ?: return
+
+        _transactionUiState.update { currentState ->
+            currentState.copy(
+                amount = source.amount.stripTrailingZeros().toPlainString(),
+                amountError = null,
+                transactionType = source.transactionType,
+                merchant = source.merchantName,
+                merchantError = null,
+                category = source.category,
+                categoryError = null,
+                date = LocalDateTime.now(),
+                notes = source.description ?: "",
+                isRecurring = source.isRecurring,
+                currency = source.currency,
+                budgetImpactType = source.budgetImpactType,
+                budgetCategory = source.budgetCategory
+            )
+        }
+
+        // Best-effort match of the source account to an existing account. `accounts`
+        // is a WhileSubscribed StateFlow whose value is still empty at init time, so
+        // we wait for the first non-empty emission instead of reading .value once
+        // (which always returned emptyList() and left the selector blank).
+        val last4 = source.accountNumber?.takeLast(4)
+        if (source.bankName != null || last4 != null) {
+            viewModelScope.launch {
+                val matched = accounts.first { it.isNotEmpty() }
+                    .firstOrNull { it.bankName == source.bankName && it.accountLast4 == last4 }
+                    ?: return@launch
+                // Don't override a selection the user may have already made.
+                _transactionUiState.update { state ->
+                    if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
+                }
+            }
         }
     }
 
@@ -283,6 +341,15 @@ class AddViewModel @Inject constructor(
             )
         }
     }
+
+    /** Toggle Income / Expense for the recurring entry (#371). */
+    fun updateSubscriptionDirection(
+        direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+    ) {
+        _subscriptionUiState.update { currentState ->
+            currentState.copy(direction = direction)
+        }
+    }
     
     fun updateSubscriptionNextPaymentDate(dateMillis: Long) {
         val instant = Instant.ofEpochMilli(dateMillis)
@@ -356,7 +423,8 @@ class AddViewModel @Inject constructor(
                     autoRenewal = false, // Not implemented yet
                     paymentReminder = false, // Not implemented yet
                     notes = state.notes.takeIf { it.isNotBlank() },
-                    currency = state.currency
+                    currency = state.currency,
+                    direction = state.direction
                 )
                 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -452,7 +520,14 @@ data class SubscriptionUiState(
     val notes: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currency: String = "INR"
+    val currency: String = "INR",
+    /**
+     * Income vs Expense (#371). Income subscriptions get phantom-created
+     * on schedule (wallet top-ups etc.); expense subscriptions match
+     * incoming bank-debit SMS as today.
+     */
+    val direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection =
+        com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
 ) {
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&

@@ -51,7 +51,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
+        <!-- Translucent picker launched from the "More categories…" txn-alert
+             notification action (#303). singleTask + excludeFromRecents so a
+             second tap doesn't stack instances and it never shows in Recents. -->
+        <activity
+            android:name=".receiver.QuickCategoryPickerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:theme="@style/Theme.PennyWise.Transparent" />
+
         <!-- Disable default WorkManager initialization -->
         <provider
             android:name="androidx.startup.InitializationProvider"

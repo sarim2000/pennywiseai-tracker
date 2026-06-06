@@ -6,6 +6,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 /**
  * Entity representing a debit or credit card.
@@ -21,6 +23,7 @@ import java.time.LocalDateTime
         Index(value = ["account_last4"])
     ]
 )
+@Serializable
 data class CardEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -46,24 +49,29 @@ data class CardEntity(
     
     // Balance tracking for card transactions
     @ColumnInfo(name = "last_balance")
+    @Contextual
     val lastBalance: BigDecimal? = null,
     
     @ColumnInfo(name = "last_balance_source")
     val lastBalanceSource: String? = null,  // SMS snippet for debugging
     
     @ColumnInfo(name = "last_balance_date")
+    @Contextual
     val lastBalanceDate: LocalDateTime? = null,
-    
+
     @ColumnInfo(name = "created_at")
+    @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ColumnInfo(name = "updated_at")
+    @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 
     @ColumnInfo(name = "currency", defaultValue = "INR")
     val currency: String = "INR"
 )
 
+@Serializable
 enum class CardType {
     DEBIT,   // Links to a bank account
     CREDIT   // Standalone credit account

@@ -34,7 +34,7 @@ object Chat
 data class TransactionDetail(val transactionId: Long)
 
 @Serializable
-object AddTransaction
+data class AddTransaction(val sourceTransactionId: Long? = null)
 
 @Serializable
 data class AccountDetail(val bankName: String, val accountLast4: String)
@@ -49,7 +49,7 @@ object Faq
 object Rules
 
 @Serializable
-data class CreateRule(val ruleId: String? = null)
+data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? = null)
 
 @Serializable
 object ExchangeRates

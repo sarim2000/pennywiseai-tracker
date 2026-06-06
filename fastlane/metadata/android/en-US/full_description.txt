@@ -6,7 +6,7 @@ Your bank already texts you every transaction. PennyWise reads those SMS locally
 • 100% on-device & private — AI runs locally, nothing leaves your phone
 • Zero setup — grant SMS permission and it works instantly, no sign-up
 • On-device AI assistant — ask "what did I spend on food?" (powered by Qwen 2.5)
-• 90+ banks across 18 countries, multi-currency
+• 90+ banks across 16 countries, multi-currency
 • Smart analytics — spending trends, category breakdowns, insights
 • Budgets — set limits per category and track progress
 • Subscription detection — automatically finds recurring payments

@@ -19,9 +19,9 @@
 #
 # Setup (one time):
 #   gem install fastlane
-#   Put your Play service-account JSON somewhere local and point to it:
+#   Play service-account JSON lives at secrets/play-store-key.json (git-ignored).
+#   Override the path if needed:
 #     export PLAY_JSON_KEY=/absolute/path/to/play-store-key.json
-#   (default looked-up path: ./play-store-key.json — git-ignored)
 #
 # Optional env overrides:
 #   PLAY_TRACK   (default: production)   PLAY_STATUS (default: draft)

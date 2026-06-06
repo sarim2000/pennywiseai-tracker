@@ -218,4 +218,7 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
+
+    @Query("UPDATE account_balances SET alias = :alias WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int
 }

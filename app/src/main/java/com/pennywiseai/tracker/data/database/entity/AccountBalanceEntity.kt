@@ -67,5 +67,8 @@ data class AccountBalanceEntity(
     val statementDay: Int? = null,
 
     @ColumnInfo(name = "profile_id", defaultValue = "1")
-    val profileId: Long = ProfileEntity.PERSONAL_ID
+    val profileId: Long = ProfileEntity.PERSONAL_ID,
+
+    @ColumnInfo(name = "alias")
+    val alias: String? = null
 )

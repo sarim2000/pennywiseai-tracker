@@ -30,10 +30,16 @@ set -e
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 
-MODE="${1:-release}"
+# Parse args in any order: mode (release|listing) and optional --dry-run.
+MODE="release"
 DRY=""
-[ "$2" = "--dry-run" ] || [ "$1" = "--dry-run" ] && DRY="--validate_only true"
-[ "$1" = "--dry-run" ] && MODE="release"
+for arg in "$@"; do
+  case "$arg" in
+    release|listing) MODE="$arg" ;;
+    --dry-run)       DRY="--validate_only true" ;;
+    *) echo "Unknown arg: $arg"; echo "Usage: $0 [release|listing] [--dry-run]"; exit 1 ;;
+  esac
+done
 
 PACKAGE="com.pennywiseai.tracker"
 JSON_KEY="${PLAY_JSON_KEY:-play-store-key.json}"

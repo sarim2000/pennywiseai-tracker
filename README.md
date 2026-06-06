@@ -46,11 +46,11 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 - **🔒 100% On-Device & Private** — All AI processing runs locally, no cloud, no servers, no tracking
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
-- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no hidden costs
+- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **PennyWise Pro** upgrade (unlimited rules, PDF statement imports, CSV export, account merge) supports the solo developer
 
 **Core Features**
 
-- **🤖 Smart SMS Parsing** — 85+ banks across 14 countries with real-time detection of incoming SMS
+- **🤖 Smart SMS Parsing** — 90+ banks across 16 countries with real-time detection of incoming SMS
 - **🌍 Multi-Currency** — Native support for INR, USD, AED, THB, NPR, ETB, and more with exchange rate management
 - **💬 On-Device AI Assistant** — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
 - **🏷️ Auto-Categorization & Smart Rules** — Pattern-based rules that auto-categorize transactions
@@ -116,7 +116,7 @@ Conditions can be combined with **AND** / **OR** logic, and multiple conditions 
 
 ## Supported Banks & Countries
 
-Supporting **90+ banks** across **18 countries** with **multi-currency** capabilities:
+Supporting **90+ banks** across **16 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (44 banks) - INR ₹
 - **HDFC Bank**, **HDFC Mutual Fund**, **State Bank of India (SBI)**, **ICICI Bank**

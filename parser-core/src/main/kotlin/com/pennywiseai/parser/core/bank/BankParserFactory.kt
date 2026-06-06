@@ -62,6 +62,8 @@ object BankParserFactory {
         CBEBankParser(),  // Commercial Bank of Ethiopia
         AltanaFCUParser(),  // Altana Federal Credit Union (USA) — must precede EverestBank, which greedily claims numeric senders
         StandardBankMozambiqueParser(),  // Standard Bank Mozambique — must precede EverestBank (shortcode 7832265 is a 7-digit numeric sender)
+        EMolaParser(),  // eMola (Mozambique)
+        MillenniumBimParser(),  // Millennium BIM (Mozambique)
         EverestBankParser(),  // Everest Bank (Nepal)
         BancolombiaParser(),  // Bancolombia (Colombia)
         MashreqBankParser(),  // Mashreq Bank (UAE)

@@ -56,7 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 49
+const val SCHEMA_VERSION = 50
 
 /**
  * The PennyWise Room database.
@@ -478,6 +478,18 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds a user-set friendly display name (`alias`) to account_balances
+         * so an account can show as "My Salary Account" instead of the raw
+         * bank/last-4. Nullable — existing rows fall back to the bank/last-4
+         * format until the user sets one.
+         */
+        val MIGRATION_49_50 = object : Migration(49, 50) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `alias` TEXT DEFAULT NULL")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -527,6 +539,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_46_47,
             MIGRATION_47_48,
             MIGRATION_48_49,
+            MIGRATION_49_50,
         )
     }
     

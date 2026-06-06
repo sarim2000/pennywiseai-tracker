@@ -179,6 +179,10 @@ class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.setAccountProfile(bankName, accountLast4, profileId)
     }
 
+    suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int {
+        return accountBalanceDao.setAccountAlias(bankName, accountLast4, alias)
+    }
+
     /**
      * Atomically revert the balance impact of the [original] TRANSFER (if it was
      * one) and apply the [updated] TRANSFER's impact (if it is one) — wrapped in

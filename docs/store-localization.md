@@ -69,3 +69,35 @@ crowdin download                # pull translations into fastlane folders
 
 > Tip: keep `title.txt` translations within 30 characters. Translators may keep
 > the "PennyWise AI" brand in Latin script and only localize "Expense Tracker".
+
+## Translation style guide (paste into the Crowdin project)
+
+Put this in **Crowdin → Settings → project description / translator instructions**
+so it shows to every translator and MT pass. It's the single biggest lever for
+not getting stiff, robotic translations.
+
+> **Voice:** write the way real people in this market *speak*, not formal/literary
+> language. For Hindi specifically, use everyday conversational Hindi in
+> Devanagari and **keep the English loanwords people actually say** — "SMS",
+> "bank", "app", "budget", "AI". Avoid Sanskritized/government-form Hindi.
+>
+> **Always keep in Latin / untranslated:** `PennyWise AI`, `PennyWise`, `Pro`,
+> `SMS`, `AI`, `AGPL`, `Qwen`, `UPI`, currency symbols (₹ $ AED …) and numbers.
+>
+> **Length:** the app **title** must stay ≤ 30 characters and the **short
+> description** ≤ 80. If a literal translation is too long, shorten the meaning —
+> don't exceed the limit.
+>
+> **Tone:** benefit-first and friendly, same as the English ("auto-reads your
+> bank SMS", "private, on-device"). Don't translate word-for-word; translate the
+> *promise*.
+
+### Glossary
+
+Import [`crowdin/glossary.csv`](../crowdin/glossary.csv) under **Crowdin →
+Glossaries → Upload**. It lists the do-not-translate terms above with notes, so
+they surface inline while translating and Crowdin's QA flags it if they get
+changed.
+
+> Note: this only governs the **store listing** copy. The in-app UI is still
+> English-only until its strings are extracted into resources.

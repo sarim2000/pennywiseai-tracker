@@ -1,6 +1,5 @@
 package com.pennywiseai.parser.core.bank
 
-import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 

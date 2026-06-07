@@ -98,7 +98,9 @@ fun buildProfileAccountKeys(accounts: List<AccountBalanceEntity>): Map<Long, Set
 /**
  * Filters transactions by the selected account.
  *
- * An account is identified by the key `"${bankName}_${accountNumber}"`.
+ * An account is identified by the key `"${bankName}_${accountNumber}"`. A
+ * transaction's `accountNumber` holds the same last-4 digits as an account's
+ * `accountLast4`, so this key matches [AccountOption.key] from [accountOptions].
  *
  * @param accountKey null/blank means "All accounts" (no filtering)
  */

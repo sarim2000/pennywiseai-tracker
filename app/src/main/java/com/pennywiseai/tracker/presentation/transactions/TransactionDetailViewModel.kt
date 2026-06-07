@@ -224,7 +224,11 @@ class TransactionDetailViewModel @Inject constructor(
                 calculateConvertedAmount(it)
                 loadSplits(transactionId)
                 loadReceiptUri(it)
-                it.loanId?.let { id -> loadLoan(id) }
+                // Clear stale loan state when the (re)loaded transaction has no
+                // loan — e.g. the loan was deleted elsewhere and we reload on
+                // resume (#444). Otherwise the loan chip would persist.
+                val loanId = it.loanId
+                if (loanId != null) loadLoan(loanId) else _loan.value = null
                 _budgetImpactType.value = it.budgetImpactType
                 _budgetCategory.value = it.budgetCategory
                 loadAccountProfileId(it)

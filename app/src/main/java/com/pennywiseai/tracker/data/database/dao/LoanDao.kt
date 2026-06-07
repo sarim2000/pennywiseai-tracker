@@ -47,6 +47,9 @@ interface LoanDao {
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC LIMIT 1")
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity?
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE loan_id = :loanId AND is_deleted = 0")
+    suspend fun countTransactionsForLoan(loanId: Long): Int
+
     @Query("""
         SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
         WHERE t.loan_id = :loanId AND t.is_deleted = 0

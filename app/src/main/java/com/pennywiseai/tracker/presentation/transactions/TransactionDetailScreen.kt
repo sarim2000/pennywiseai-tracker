@@ -51,6 +51,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -135,6 +137,7 @@ fun TransactionDetailScreen(
     // Loan state
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
+    var showUnmarkLoanConfirm by remember { mutableStateOf(false) }
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
 // Account profile state
     val accountProfileId by viewModel.accountProfileId.collectAsStateWithLifecycle()
@@ -171,7 +174,9 @@ fun TransactionDetailScreen(
         }
     }
     
-    LaunchedEffect(transactionId) {
+    // Reload on every resume so external changes — e.g. the linked loan being
+    // deleted from the Loan screen — are reflected when returning here (#444).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadTransaction(transactionId)
     }
     
@@ -327,6 +332,7 @@ fun TransactionDetailScreen(
                 hasSplits = hasSplits,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
+                onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
                 accountProfileId = accountProfileId,
                 hazeState = hazeState,
                 modifier = Modifier.padding(paddingValues)
@@ -397,6 +403,29 @@ fun TransactionDetailScreen(
         )
     }
 
+    // Unmark-as-loan confirmation (#444)
+    if (showUnmarkLoanConfirm) {
+        AlertDialog(
+            onDismissRequest = { showUnmarkLoanConfirm = false },
+            title = { Text("Unmark as loan?") },
+            text = {
+                Text(
+                    "This removes the loan link from this transaction. If no other " +
+                        "transactions are linked, the loan is deleted too."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showUnmarkLoanConfirm = false
+                    viewModel.unlinkLoan()
+                }) { Text("Unmark") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnmarkLoanConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     // Full-screen Receipt Dialog
     if (showFullScreenReceipt && receiptUri != null) {
         Dialog(
@@ -449,6 +478,7 @@ private fun TransactionDetailContent(
     hasSplits: Boolean,
     loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit,
+    onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long?,
     hazeState: HazeState,
     modifier: Modifier = Modifier
@@ -495,6 +525,7 @@ private fun TransactionDetailContent(
                 hasSplits = hasSplits,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
+                onUnmarkLoanClick = onUnmarkLoanClick,
                 accountProfileId = accountProfileId
             )
         }
@@ -513,6 +544,7 @@ private fun TransactionReceipt(
     hasSplits: Boolean,
     loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit,
+    onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long? = null
 ) {
     val isDark = isSystemInDarkTheme()
@@ -626,31 +658,46 @@ private fun TransactionReceipt(
                 val loanColor = if (isDarkTheme) loan_dark else loan_light
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 if (loan != null) {
-                    SuggestionChip(
-                        onClick = { onNavigateToLoanDetail(loan.id) },
-                        label = {
-                            Text(
-                                text = if (loan.direction == LoanDirection.LENT)
-                                    "Lent to ${loan.personName}" else "Borrowed from ${loan.personName}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        icon = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        SuggestionChip(
+                            onClick = { onNavigateToLoanDetail(loan.id) },
+                            label = {
+                                Text(
+                                    text = if (loan.direction == LoanDirection.LENT)
+                                        "Lent to ${loan.personName}" else "Borrowed from ${loan.personName}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            icon = {
+                                Icon(
+                                    Icons.Default.SwapHoriz,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = loanColor
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = loanColor.copy(alpha = 0.12f),
+                                labelColor = loanColor,
+                                iconContentColor = loanColor
+                            ),
+                            border = null
+                        )
+                        // Unmark-as-loan (#444): removes the loan link; deletes the
+                        // loan too if no other transactions are linked.
+                        IconButton(onClick = onUnmarkLoanClick) {
                             Icon(
-                                Icons.Default.SwapHoriz,
-                                contentDescription = null,
+                                Icons.Default.Close,
+                                contentDescription = "Unmark as loan",
                                 modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = loanColor
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = loanColor.copy(alpha = 0.12f),
-                            labelColor = loanColor,
-                            iconContentColor = loanColor
-                        ),
-                        border = null
-                    )
+                        }
+                    }
                 } else {
                     SuggestionChip(
                         onClick = { viewModel.showMarkAsLoanSheet() },

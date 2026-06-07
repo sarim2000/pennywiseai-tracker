@@ -174,7 +174,13 @@ class LoanRepository @Inject constructor(
 
     suspend fun unlinkTransaction(transactionId: Long, loanId: Long) {
         loanDao.unlinkTransaction(transactionId)
-        recalculateRemaining(loanId)
+        // If this was the last transaction on the loan, the loan is now empty —
+        // delete it so it doesn't linger with no entries (issue #444).
+        if (loanDao.countTransactionsForLoan(loanId) == 0) {
+            deleteLoan(loanId)
+        } else {
+            recalculateRemaining(loanId)
+        }
     }
 
     suspend fun updateOriginalAmount(loanId: Long, newAmount: BigDecimal) {

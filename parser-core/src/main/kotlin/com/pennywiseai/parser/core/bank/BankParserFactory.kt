@@ -96,6 +96,7 @@ object BankParserFactory {
         DashenBankParser(),  // Dashen Bank (Ethiopia)
         FaysalBankParser(),  // Faysal Bank (Pakistan)
         MelliBankParser(),  // Melli Bank (Iran)
+        MellatBankParser(), // Mellat Bank (Iran)
         ParsianBankParser(),  // Parsian Bank (Iran)
         BangkokBankParser(),  // Bangkok Bank (Thailand)
         KasikornBankParser(),  // Kasikorn Bank (Thailand)

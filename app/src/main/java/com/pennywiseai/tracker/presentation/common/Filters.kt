@@ -96,6 +96,52 @@ fun buildProfileAccountKeys(accounts: List<AccountBalanceEntity>): Map<Long, Set
 }
 
 /**
+ * Filters transactions by the selected account.
+ *
+ * An account is identified by the key `"${bankName}_${accountNumber}"`.
+ *
+ * @param accountKey null/blank means "All accounts" (no filtering)
+ */
+fun filterTransactionsByAccount(
+    transactions: List<TransactionEntity>,
+    accountKey: String?
+): List<TransactionEntity> {
+    if (accountKey.isNullOrBlank()) return transactions
+    return transactions.filter { tx ->
+        "${tx.bankName}_${tx.accountNumber}" == accountKey
+    }
+}
+
+/**
+ * A pickable account option for the account filter dropdown.
+ *
+ * @param key the account key `"${bankName}_${accountLast4}"`
+ * @param label the display label (alias if set, else "$bankName ••$accountLast4")
+ */
+data class AccountOption(
+    val key: String,
+    val label: String
+)
+
+/**
+ * Builds the list of [AccountOption]s for the account picker from account balances.
+ *
+ * The label prefers the account [AccountBalanceEntity.alias] when non-blank,
+ * otherwise falls back to "$bankName ••$accountLast4". Deduped by key.
+ */
+fun accountOptions(accounts: List<AccountBalanceEntity>): List<AccountOption> {
+    return accounts
+        .map { account ->
+            val key = "${account.bankName}_${account.accountLast4}"
+            val alias = account.alias?.takeIf { it.isNotBlank() }
+            val label = alias ?: "${account.bankName} ••${account.accountLast4}"
+            AccountOption(key = key, label = label)
+        }
+        .distinctBy { it.key }
+        .sortedBy { it.label.lowercase() }
+}
+
+/**
  * Filters account balances by profile.
  *
  * @param selectedProfileId null means "All profiles" (no filtering)

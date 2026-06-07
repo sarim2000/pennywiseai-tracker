@@ -179,6 +179,18 @@ class LoanRepository @Inject constructor(
         if (loanDao.countTransactionsForLoan(loanId) == 0) {
             deleteLoan(loanId)
         } else {
+            // Reduce the principal to match the remaining contributions, so
+            // unlinking a source transaction from a multi-entry loan doesn't
+            // leave an inflated originalAmount/remaining (#445). Contributions are
+            // the transactions in the loan's own direction (LENT->EXPENSE,
+            // BORROWED->INCOME); repayments are handled by recalculateRemaining.
+            loanDao.getLoanById(loanId)?.let { loan ->
+                val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
+                val newOriginal = loanDao.getTotalRepaidByType(loanId, contributionType)
+                if (loan.originalAmount.compareTo(newOriginal) != 0) {
+                    loanDao.updateLoan(loan.copy(originalAmount = newOriginal, updatedAt = LocalDateTime.now()))
+                }
+            }
             recalculateRemaining(loanId)
         }
     }

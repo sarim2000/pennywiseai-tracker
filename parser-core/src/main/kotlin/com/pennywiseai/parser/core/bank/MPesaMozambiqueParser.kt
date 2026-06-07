@@ -34,9 +34,7 @@ class MPesaMozambiqueParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // M-Pesa Mozambique uses the same sender ID; differentiation is by content.
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA") ||
-                normalizedSender == "MPESA" ||
-                normalizedSender == "M-PESA"
+                normalizedSender.contains("M-PESA")
     }
 
     /**

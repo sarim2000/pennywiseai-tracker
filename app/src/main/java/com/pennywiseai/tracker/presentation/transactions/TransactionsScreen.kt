@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -107,6 +108,8 @@ fun TransactionsScreen(
     val selectedProfileId by viewModel.selectedProfileId.collectAsState()
     val profiles by viewModel.profiles.collectAsState()
     val profileAccountKeys by viewModel.profileAccountKeys.collectAsState()
+    val accountFilter by viewModel.accountFilter.collectAsState()
+    val accountOptions by viewModel.accountOptions.collectAsState()
 
     // Bulk-edit selection (#369)
     val selectedIds by viewModel.selectedIds.collectAsState()
@@ -130,7 +133,8 @@ fun TransactionsScreen(
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showTypeMenu by remember { mutableStateOf(false) }
     var showMoreFiltersMenu by remember { mutableStateOf(false) }
-    
+    var showAccountMenu by remember { mutableStateOf(false) }
+
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -149,6 +153,7 @@ fun TransactionsScreen(
         categoriesFilter != null ||
         transactionTypeFilter != TransactionTypeFilter.ALL ||
         selectedProfileId != null ||
+        accountFilter != null ||
         hasCurrencyFilter ||
         customDateRange != null
 
@@ -359,12 +364,15 @@ fun TransactionsScreen(
             showPeriodMenu = showPeriodMenu,
             showTypeMenu = showTypeMenu,
             showMoreFiltersMenu = showMoreFiltersMenu,
-            collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu,
+            showAccountMenu = showAccountMenu,
+            collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu && !showAccountMenu,
             sortOption = sortOption,
             timePeriods = timePeriods,
             availableCategories = availableCategories,
             profiles = profiles,
             selectedProfileId = selectedProfileId,
+            accountOptions = accountOptions,
+            accountFilter = accountFilter,
             onSearchQueryChange = viewModel::updateSearchQuery,
             onSortClick = { showSortMenu = true },
             onSortDismiss = { showSortMenu = false },
@@ -403,6 +411,13 @@ fun TransactionsScreen(
                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 viewModel.setSelectedProfile(profileId)
                 showMoreFiltersMenu = false
+            },
+            onAccountClick = { showAccountMenu = true },
+            onAccountDismiss = { showAccountMenu = false },
+            onAccountSelected = { accountKey ->
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                viewModel.setAccountFilter(accountKey)
+                showAccountMenu = false
             },
             onResetFilters = viewModel::resetFilters,
             focusRequester = searchFocusRequester,
@@ -804,12 +819,15 @@ private fun TransactionFilterHeader(
     showPeriodMenu: Boolean,
     showTypeMenu: Boolean,
     showMoreFiltersMenu: Boolean,
+    showAccountMenu: Boolean,
     collapsed: Boolean,
     sortOption: SortOption,
     timePeriods: List<TimePeriod>,
     availableCategories: List<String>,
     profiles: List<ProfileEntity>,
     selectedProfileId: Long?,
+    accountOptions: List<com.pennywiseai.tracker.presentation.common.AccountOption>,
+    accountFilter: String?,
     onSearchQueryChange: (String) -> Unit,
     onSortClick: () -> Unit,
     onSortDismiss: () -> Unit,
@@ -824,6 +842,9 @@ private fun TransactionFilterHeader(
     onMoreFiltersDismiss: () -> Unit,
     onCategorySelected: (String?) -> Unit,
     onProfileSelected: (Long?) -> Unit,
+    onAccountClick: () -> Unit,
+    onAccountDismiss: () -> Unit,
+    onAccountSelected: (String?) -> Unit,
     onResetFilters: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
@@ -1057,6 +1078,51 @@ private fun TransactionFilterHeader(
                                     },
                                     onClick = { onProfileSelected(profile.id) }
                                 )
+                            }
+                        }
+                    }
+                }
+
+                if (accountOptions.isNotEmpty()) {
+                    item {
+                        Box {
+                            val selectedAccountLabel =
+                                accountOptions.firstOrNull { it.key == accountFilter }?.label
+                            ExpressiveFilterChip(
+                                selected = accountFilter != null,
+                                text = selectedAccountLabel ?: "Account",
+                                icon = Icons.Outlined.AccountBalanceWallet,
+                                onClick = onAccountClick
+                            )
+
+                            DropdownMenu(
+                                expanded = showAccountMenu,
+                                onDismissRequest = onAccountDismiss
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("All accounts") },
+                                    leadingIcon = {
+                                        if (accountFilter == null) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        } else {
+                                            Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
+                                        }
+                                    },
+                                    onClick = { onAccountSelected(null) }
+                                )
+                                accountOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                        leadingIcon = {
+                                            if (accountFilter == option.key) {
+                                                Icon(Icons.Default.Check, contentDescription = null)
+                                            } else {
+                                                Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
+                                            }
+                                        },
+                                        onClick = { onAccountSelected(option.key) }
+                                    )
+                                }
                             }
                         }
                     }

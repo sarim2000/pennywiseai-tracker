@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Local release script that replicates .github/workflows/release.yml
-# Usage: ./scripts/release.sh [patch|minor|major] [--dry-run]
+# Usage: ./scripts/release.sh [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--dry-run]
+#
+# One-shot headless release (build + Claude notes + tag + push + GitHub release
+# + Play Console draft upload):
+#   ./scripts/release.sh patch --yes --play
 
 set -e
 
@@ -35,13 +39,32 @@ cleanup_on_exit() {
 # Set trap for cleanup on exit
 trap cleanup_on_exit EXIT INT TERM
 
-# Parse arguments
-VERSION_BUMP=${1:-patch}
+# Parse arguments (order-independent): bump keyword + flags.
+#   -y, --yes     auto-confirm every prompt (non-interactive / CI)
+#   --play        after building the .aab, upload it to Play Console as a draft
+#                 via scripts/upload-play.sh (implies building the bundle)
+#   --no-claude   skip Claude release-note generation, use the commit-list format
+#   --web         also deploy pennywise-web to Cloudflare
+#   --dry-run     print the plan + release notes, change nothing
+VERSION_BUMP="patch"
 DRY_RUN=""
-if [ "$2" = "--dry-run" ]; then
-    DRY_RUN="true"
-    echo -e "${YELLOW}🔍 DRY RUN MODE${NC}"
-fi
+AUTO_YES=""
+DO_PLAY=""
+NO_CLAUDE=""
+DO_WEB=""
+for arg in "$@"; do
+    case "$arg" in
+        patch|minor|major) VERSION_BUMP="$arg" ;;
+        -y|--yes)          AUTO_YES="true" ;;
+        --play)            DO_PLAY="true" ;;
+        --no-claude)       NO_CLAUDE="true" ;;
+        --web)             DO_WEB="true" ;;
+        --dry-run)         DRY_RUN="true"; echo -e "${YELLOW}🔍 DRY RUN MODE${NC}" ;;
+        *) echo -e "${RED}Unknown argument: $arg${NC}"
+           echo "Usage: $0 [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--dry-run]"
+           exit 1 ;;
+    esac
+done
 
 echo -e "${GREEN}🚀 Starting release (${VERSION_BUMP} bump)${NC}"
 
@@ -78,14 +101,18 @@ fi
 # 4. Generate changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-# Check if claude CLI is available and user wants to use it
+# Generate release notes with Claude Code (headless) when available.
 USE_CLAUDE=false
-if command -v claude &> /dev/null; then
-    echo ""
-    read -p "Generate release notes with Claude AI? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+if command -v claude &> /dev/null && [ -z "$NO_CLAUDE" ]; then
+    if [ -n "$AUTO_YES" ]; then
         USE_CLAUDE=true
+    else
+        echo ""
+        read -p "Generate release notes with Claude AI? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            USE_CLAUDE=true
+        fi
     fi
 fi
 
@@ -122,7 +149,7 @@ Guidelines:
 Start with '# Release v$NEXT_VERSION' as the title."
 
     # Use claude CLI to generate release notes
-    if echo "$CLAUDE_PROMPT" | claude > RELEASE_NOTES_TEMP.md 2>/dev/null; then
+    if claude -p "$CLAUDE_PROMPT" --output-format text > RELEASE_NOTES_TEMP.md 2>/dev/null; then
         mv RELEASE_NOTES_TEMP.md RELEASE_NOTES.md
 
         # Append installation section
@@ -208,7 +235,7 @@ Rules:
 - Start with 'What's New in v$NEXT_VERSION'"
 
     # Use claude CLI to generate Play Store notes
-    if echo "$PLAYSTORE_PROMPT" | claude > "$CHANGELOG_FILE.tmp" 2>/dev/null; then
+    if claude -p "$PLAYSTORE_PROMPT" --output-format text > "$CHANGELOG_FILE.tmp" 2>/dev/null; then
         # Truncate to 500 characters if needed
         head -c 500 "$CHANGELOG_FILE.tmp" > "$CHANGELOG_FILE"
         rm -f "$CHANGELOG_FILE.tmp"
@@ -364,9 +391,13 @@ CHANGES_MADE=false  # Changes are now committed, no need to revert
 echo -e "${GREEN}✅ Commit and tag created${NC}"
 
 # 10. Push to GitHub
-echo ""
-read -p "Push to GitHub? (y/n) " -n 1 -r
-echo
+if [ -n "$AUTO_YES" ]; then
+    REPLY=y
+else
+    echo ""
+    read -p "Push to GitHub? (y/n) " -n 1 -r
+    echo
+fi
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     git push origin main
     git push origin "v$NEXT_VERSION"
@@ -393,10 +424,15 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     fi
 fi
 
-# 11. Build Play Store Bundle (optional)
-echo ""
-read -p "Build Play Store Bundle (.aab)? (y/n) " -n 1 -r
-echo
+# 11. Build Play Store Bundle (and optionally upload to Play Console)
+# --play implies building the bundle (we need the .aab to upload).
+if [ -n "$AUTO_YES" ] || [ -n "$DO_PLAY" ]; then
+    REPLY=y
+else
+    echo ""
+    read -p "Build Play Store Bundle (.aab)? (y/n) " -n 1 -r
+    echo
+fi
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}🔨 Building App Bundle for Play Store...${NC}"
     ./gradlew bundleStandardRelease
@@ -412,21 +448,41 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         SIZE=$(du -h "$AAB_PATH/PennyWise-v${NEXT_VERSION}.aab" | cut -f1)
         echo "Size: $SIZE"
         
-        echo ""
-        echo -e "${YELLOW}📱 Play Store Upload Instructions:${NC}"
-        echo "1. Go to https://play.google.com/console"
-        echo "2. Select PennyWise app"
-        echo "3. Go to Release > Production (or Testing)"
-        echo "4. Create new release"
-        echo "5. Upload: $AAB_PATH/PennyWise-v${NEXT_VERSION}.aab"
-        echo "6. Add release notes from RELEASE_NOTES.md"
+        if [ -n "$DO_PLAY" ]; then
+            # Direct upload to Play Console (draft) via the existing fastlane
+            # wrapper. It reads the same .aab + the fastlane changelog and uses
+            # secrets/play-store-key.json. Left as a DRAFT to roll out by hand.
+            echo ""
+            echo -e "${YELLOW}⬆️  Uploading .aab to Play Console (draft) via upload-play.sh...${NC}"
+            if "$ORIGINAL_DIR/scripts/upload-play.sh" release; then
+                echo -e "${GREEN}✅ Uploaded to Play Console as a DRAFT — review & roll out in Play Console.${NC}"
+            else
+                echo -e "${RED}❌ Play upload failed.${NC} Retry manually: ./scripts/upload-play.sh release"
+            fi
+        else
+            echo ""
+            echo -e "${YELLOW}📱 Play Store Upload Instructions:${NC}"
+            echo "1. Go to https://play.google.com/console"
+            echo "2. Select PennyWise app"
+            echo "3. Go to Release > Production (or Testing)"
+            echo "4. Create new release"
+            echo "5. Upload: $AAB_PATH/PennyWise-v${NEXT_VERSION}.aab"
+            echo "6. Add release notes from RELEASE_NOTES.md"
+        fi
     fi
 fi
 
-# 12. Deploy webapp (optional)
-echo ""
-read -p "Deploy webapp (pennywise-web) to Cloudflare? (y/n) " -n 1 -r
-echo
+# 12. Deploy webapp (optional). Only with explicit --web; plain --yes skips it
+# so a routine app release never redeploys the site by surprise.
+if [ -n "$DO_WEB" ]; then
+    REPLY=y
+elif [ -n "$AUTO_YES" ]; then
+    REPLY=n
+else
+    echo ""
+    read -p "Deploy webapp (pennywise-web) to Cloudflare? (y/n) " -n 1 -r
+    echo
+fi
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}🌐 Deploying webapp to Cloudflare...${NC}"
 

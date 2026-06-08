@@ -355,11 +355,11 @@ class BudgetGroupRepository @Inject constructor(
         fun buildGroupPace(
             categoryNames: Set<String>?,  // null = all categories
             groupBudget: BigDecimal
-        ): Pair<List<Double>, List<Double>> {
+        ): Pair<List<BigDecimal>, List<BigDecimal>> {
             val effectiveDays = daysElapsed.coerceAtMost(daysInMonth)
-            if (effectiveDays < 1) return emptyList<Double>() to emptyList()
+            if (effectiveDays < 1) return emptyList<BigDecimal>() to emptyList()
 
-            val dailyAmounts = DoubleArray(daysInMonth)
+            val dailyAmounts = Array(daysInMonth) { BigDecimal.ZERO }
             allTransactions.forEach { txWithSplits ->
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != TransactionType.INCOME &&
@@ -369,12 +369,12 @@ class BudgetGroupRepository @Inject constructor(
                 ) {
                     val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
                     if (categoryNames == null) {
-                        dailyAmounts[day - 1] += tx.amount.toDouble()
+                        dailyAmounts[day - 1] = dailyAmounts[day - 1] + tx.amount
                     } else {
                         txWithSplits.getAmountByCategory().forEach { (cat, amount) ->
                             val catName = cat.ifEmpty { "Others" }
                             if (catName in categoryNames) {
-                                dailyAmounts[day - 1] += amount.toDouble()
+                                dailyAmounts[day - 1] = dailyAmounts[day - 1] + amount
                             }
                         }
                     }
@@ -389,21 +389,21 @@ class BudgetGroupRepository @Inject constructor(
                 val category = tx.budgetCategory ?: return@forEach
                 if (categoryNames != null && category !in categoryNames) return@forEach
                 val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
-                dailyAmounts[day - 1] -= tx.amount.toDouble()
+                dailyAmounts[day - 1] = dailyAmounts[day - 1] - tx.amount
             }
             // Carry the running total forward unclamped so a refund dated before
             // the first expense still nets out against later expenses; only the
             // emitted value is clamped, so the chart endpoint matches the
             // per-category floor used in aggregateBudgetCategorySpending.
-            val cumulative = mutableListOf<Double>()
-            var runningNet = 0.0
+            val cumulative = mutableListOf<BigDecimal>()
+            var runningNet = BigDecimal.ZERO
             for (i in 0 until effectiveDays) {
-                runningNet += dailyAmounts[i]
-                cumulative.add(runningNet.coerceAtLeast(0.0))
+                runningNet = runningNet + dailyAmounts[i]
+                cumulative.add(runningNet.coerceAtLeast(BigDecimal.ZERO))
             }
             val pace = if (groupBudget > BigDecimal.ZERO) {
-                val dailyPace = groupBudget.toDouble() / daysInMonth
-                (1..effectiveDays).map { it * dailyPace }
+                val dailyPace = groupBudget.divide(BigDecimal(daysInMonth), 4, RoundingMode.HALF_UP)
+                (1..effectiveDays).map { BigDecimal(it).multiply(dailyPace) }
             } else emptyList()
             return cumulative to pace
         }

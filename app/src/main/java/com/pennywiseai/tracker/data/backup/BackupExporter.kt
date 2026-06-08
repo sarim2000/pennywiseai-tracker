@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
+import androidx.documentfile.provider.DocumentFile
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
@@ -29,6 +31,7 @@ class BackupExporter @Inject constructor(
      * Export complete app data to a backup file
      */
     suspend fun exportBackup(
+        password: CharArray,
         privacy: ExportPrivacy = ExportPrivacy.FULL
     ): ExportResult {
         return try {
@@ -38,8 +41,10 @@ class BackupExporter @Inject constructor(
             // Create backup file
             val file = createBackupFile()
 
-            // Write JSON to file (see BackupSerializers for the format contract)
-            file.writeText(backupJson.encodeToString(backup))
+            // Write encrypted JSON to file (see BackupSerializers for the format contract)
+            val jsonText = backupJson.encodeToString(backup)
+            val encryptedBytes = BackupEncryptor.encrypt(jsonText.toByteArray(Charsets.UTF_8), password)
+            file.writeBytes(encryptedBytes)
 
             ExportResult.Success(file)
         } catch (e: Exception) {
@@ -215,4 +220,52 @@ class BackupExporter @Inject constructor(
         
         return File(exportDir, fileName)
     }
+
+    /**
+     * Export complete app data to a custom SAF tree URI.
+     */
+    suspend fun exportToUri(
+        treeUri: String,
+        password: CharArray,
+        privacy: ExportPrivacy = ExportPrivacy.FULL
+    ): ExportUriResult {
+        if (treeUri.isBlank()) {
+            return ExportUriResult.Error("Selected directory tree URI is empty")
+        }
+        return try {
+            val treeUriParsed = Uri.parse(treeUri)
+            val directory = DocumentFile.fromTreeUri(context, treeUriParsed)
+                ?: return ExportUriResult.Error("Failed to access custom directory Uri")
+            
+            if (!directory.exists() || !directory.canWrite()) {
+                return ExportUriResult.Error("Selected directory does not exist or is not writable")
+            }
+
+            val timestamp = LocalDateTime.now().format(
+                DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
+            )
+            val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
+            
+            val docFile = directory.createFile("application/octet-stream", fileName)
+                ?: return ExportUriResult.Error("Failed to create backup file in selected directory")
+            
+            // Create backup data
+            val backup = createBackup(privacy)
+            val jsonText = backupJson.encodeToString(backup)
+            val encryptedBytes = BackupEncryptor.encrypt(jsonText.toByteArray(Charsets.UTF_8), password)
+            
+            context.contentResolver.openOutputStream(docFile.uri)?.use { outputStream ->
+                outputStream.write(encryptedBytes)
+            } ?: return ExportUriResult.Error("Failed to open output stream for backup file")
+            
+            ExportUriResult.Success(docFile.uri)
+        } catch (e: Exception) {
+            ExportUriResult.Error("Uri export failed: ${e.message}")
+        }
+    }
+}
+
+sealed class ExportUriResult {
+    data class Success(val uri: Uri) : ExportUriResult()
+    data class Error(val message: String) : ExportUriResult()
 }

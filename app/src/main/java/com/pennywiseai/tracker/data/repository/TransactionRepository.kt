@@ -104,8 +104,21 @@ class TransactionRepository @Inject constructor(
         endDate: LocalDateTime
     ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
     
-    suspend fun insertTransaction(transaction: TransactionEntity): Long = 
-        transactionDao.insertTransaction(transaction)
+    suspend fun insertTransaction(transaction: TransactionEntity): Long {
+        val windowStart = transaction.dateTime.minusSeconds(60)
+        val windowEnd = transaction.dateTime.plusSeconds(60)
+        
+        val duplicates = transactionDao.getTransactionByAmountAndDate(transaction.amount, windowStart, windowEnd)
+        val hasDuplicate = duplicates.any { existing ->
+            existing.transactionType == transaction.transactionType && existing.id != transaction.id
+        }
+        
+        if (hasDuplicate) {
+            return -1L
+        }
+        
+        return transactionDao.insertTransaction(transaction)
+    }
     
     suspend fun insertTransactions(transactions: List<TransactionEntity>) = 
         transactionDao.insertTransactions(transactions)

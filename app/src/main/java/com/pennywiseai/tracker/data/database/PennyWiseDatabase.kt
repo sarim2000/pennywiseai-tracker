@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.dao.CustomParserRuleDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
@@ -48,6 +49,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
 
 /**
  * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so it
@@ -56,7 +58,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 50
+const val SCHEMA_VERSION = 51
 
 /**
  * The PennyWise Room database.
@@ -69,7 +71,7 @@ const val SCHEMA_VERSION = 50
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, CustomParserRuleEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -137,6 +139,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionGroupDao(): TransactionGroupDao
     abstract fun budgetSnapshotDao(): BudgetSnapshotDao
     abstract fun profileDao(): ProfileDao
+    abstract fun customParserRuleDao(): CustomParserRuleDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -151,11 +154,17 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          */
         fun getInstance(context: android.content.Context): PennyWiseDatabase {
             return INSTANCE ?: synchronized(this) {
+                // Initialize SQLCipher native libraries
+                net.sqlcipher.database.SQLiteDatabase.loadLibs(context.applicationContext)
+                val passphrase = com.pennywiseai.tracker.utils.DatabaseKeyManager.getDatabasePassphrase(context.applicationContext)
+                val factory = net.sqlcipher.database.SupportFactory(passphrase)
+
                 val instance = androidx.room.Room.databaseBuilder(
                     context.applicationContext,
                     PennyWiseDatabase::class.java,
                     DATABASE_NAME
                 )
+                    .openHelperFactory(factory)
                     .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
@@ -490,6 +499,28 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Creates the custom_parser_rules table to store dynamic notification parser rules.
+         */
+        val MIGRATION_50_51 = object : Migration(50, 51) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `custom_parser_rules` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `package_or_sender` TEXT NOT NULL,
+                        `rule_name` TEXT NOT NULL,
+                        `regex_pattern` TEXT NOT NULL,
+                        `amount_group_index` INTEGER NOT NULL,
+                        `merchant_group_index` INTEGER NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `account_group_index` INTEGER NOT NULL,
+                        `is_active` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -540,6 +571,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_47_48,
             MIGRATION_48_49,
             MIGRATION_49_50,
+            MIGRATION_50_51,
         )
     }
     

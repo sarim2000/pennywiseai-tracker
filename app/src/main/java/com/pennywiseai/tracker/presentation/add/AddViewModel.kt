@@ -449,8 +449,8 @@ class AddViewModel @Inject constructor(
     private fun validateAmount(amount: String): String? {
         return when {
             amount.isBlank() -> "Amount is required"
-            amount.toDoubleOrNull() == null -> "Invalid amount"
-            amount.toDouble() <= 0 -> "Amount must be greater than 0"
+            amount.toBigDecimalOrNull() == null -> "Invalid amount"
+            (amount.toBigDecimalOrNull() ?: BigDecimal.ZERO) <= BigDecimal.ZERO -> "Amount must be greater than 0"
             else -> null
         }
     }
@@ -497,8 +497,8 @@ data class TransactionUiState(
 ) {
     val isValid: Boolean
         get() = amount.isNotBlank() &&
-                amount.toDoubleOrNull() != null &&
-                amount.toDouble() > 0 &&
+                amount.toBigDecimalOrNull() != null &&
+                (amount.toBigDecimalOrNull() ?: BigDecimal.ZERO) > BigDecimal.ZERO &&
                 merchant.isNotBlank() &&
                 category.isNotBlank() &&
                 amountError == null &&
@@ -532,8 +532,8 @@ data class SubscriptionUiState(
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&
                 amount.isNotBlank() &&
-                amount.toDoubleOrNull() != null &&
-                amount.toDouble() > 0 &&
+                amount.toBigDecimalOrNull() != null &&
+                (amount.toBigDecimalOrNull() ?: BigDecimal.ZERO) > BigDecimal.ZERO &&
                 billingCycle.isNotBlank() &&
                 category.isNotBlank() &&
                 serviceError == null &&

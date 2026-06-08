@@ -8,6 +8,7 @@ import com.pennywiseai.parser.core.ParsedTransaction
 object BankParserFactory {
 
     private val parsers = listOf(
+        GPayParser(),
         HDFCMutualFundParser(),  // HDFC Mutual Fund (must be before HDFCBankParser to avoid interception by HDFC's broad DLT pattern)
         NaviMutualFundParser(),  // Navi Mutual Fund (AMC SIP / unit-allotment SMS — NAVAMC sender)
         HDFCBankParser(),

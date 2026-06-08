@@ -5,6 +5,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.pennywiseai.tracker.data.repository.BankNotificationRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.worker.BankNotificationRetryWorker
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
@@ -33,6 +35,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         fun smsTransactionProcessor(): SmsTransactionProcessor
         fun bankNotificationRepository(): BankNotificationRepository
         fun transactionRepository(): TransactionRepository
+        fun userPreferencesRepository(): UserPreferencesRepository
     }
 
     companion object {
@@ -44,16 +47,20 @@ class BankNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val packageName = sbn.packageName ?: return
 
-        if (!BankNotificationConfig.isAllowed(packageName)) {
-            return
-        }
-
         // Skip group summaries to avoid duplicate processing
         if ((sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0) {
             return
         }
 
-        val body = BankNotificationConfig.extractMessage(sbn.notification)
+        val title = sbn.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+        val text = sbn.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+        val body = if (title.isNotEmpty() && text.isNotEmpty()) {
+            "$title $text".trim()
+        } else {
+            val extracted = BankNotificationConfig.extractMessage(sbn.notification)
+            extracted.ifBlank { title.ifBlank { text } }
+        }
+
         if (body.isBlank()) {
             return
         }
@@ -65,10 +72,23 @@ class BankNotificationListenerService : NotificationListenerService() {
         val processor = entryPoint.smsTransactionProcessor()
         val notificationRepository = entryPoint.bankNotificationRepository()
         val transactionRepository = entryPoint.transactionRepository()
+        val userPreferencesRepository = entryPoint.userPreferencesRepository()
         val senderAlias = BankNotificationConfig.senderAlias(packageName)
         val timestamp = sbn.postTime
 
         serviceScope.launch {
+            val monitoredPackages = userPreferencesRepository.monitoredBankPackages.first()
+            val isWhitelisted = if (monitoredPackages.isEmpty()) {
+                packageName.equals("com.google.android.apps.nbu.paisa.user", ignoreCase = true)
+            } else {
+                monitoredPackages.contains(packageName.lowercase())
+            }
+
+            if (!isWhitelisted) {
+                Log.d(TAG, "Notification skipped: package $packageName is not in whitelisted packages")
+                return@launch
+            }
+
             var notificationId: Long? = null
             try {
                 notificationId = notificationRepository.logNotification(

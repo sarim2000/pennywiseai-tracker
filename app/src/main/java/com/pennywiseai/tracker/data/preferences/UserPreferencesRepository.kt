@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -126,6 +127,10 @@ class UserPreferencesRepository @Inject constructor(
 
         // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
         val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
+        val BACKUP_PASSWORD = stringPreferencesKey("backup_password")
+        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        val MONITORED_BANK_PACKAGES = stringSetPreferencesKey("monitored_bank_packages")
+        val BACKUP_DIRECTORY_URI = stringPreferencesKey("backup_directory_uri")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -164,7 +169,18 @@ class UserPreferencesRepository @Inject constructor(
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
                 hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
-                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
+                mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY],
+                isAutoBackupEnabled = preferences[PreferencesKeys.AUTO_BACKUP_ENABLED] ?: true,
+                monitoredBankPackages = preferences[PreferencesKeys.MONITORED_BANK_PACKAGES] ?: setOf(
+                    "com.avanza.ambitwizfbl",
+                    "finansbank.enpara",
+                    "com.enparabank.retail",
+                    "com.google.android.apps.nbu.paisa.user",
+                    "com.sbi.yono",
+                    "com.sbi.yonolite",
+                    "com.sbi.upi"
+                ),
+                backupDirectoryUri = preferences[PreferencesKeys.BACKUP_DIRECTORY_URI]
             )
         }
 
@@ -686,6 +702,68 @@ class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_BACKUP_ENABLED] = enabled
+        }
+    }
+
+    suspend fun getBackupPassword(): String? {
+        val encrypted = context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.BACKUP_PASSWORD] }
+            .first() ?: return null
+        return try {
+            com.pennywiseai.tracker.utils.DatabaseKeyManager.decryptString(encrypted)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun setBackupPassword(password: String?) {
+        context.dataStore.edit { preferences ->
+            if (password == null) {
+                preferences.remove(PreferencesKeys.BACKUP_PASSWORD)
+            } else {
+                val encrypted = com.pennywiseai.tracker.utils.DatabaseKeyManager.encryptString(password)
+                preferences[PreferencesKeys.BACKUP_PASSWORD] = encrypted
+            }
+        }
+    }
+
+    val monitoredBankPackages: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.MONITORED_BANK_PACKAGES] ?: setOf(
+                "com.avanza.ambitwizfbl",
+                "finansbank.enpara",
+                "com.enparabank.retail",
+                "com.google.android.apps.nbu.paisa.user",
+                "com.sbi.yono",
+                "com.sbi.yonolite",
+                "com.sbi.upi"
+            )
+        }
+
+    suspend fun updateMonitoredBankPackages(packages: Set<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.MONITORED_BANK_PACKAGES] = packages
+        }
+    }
+
+    val backupDirectoryUri: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.BACKUP_DIRECTORY_URI]
+        }
+
+    suspend fun updateBackupDirectoryUri(uri: String?) {
+        context.dataStore.edit { preferences ->
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.BACKUP_DIRECTORY_URI)
+            } else {
+                preferences[PreferencesKeys.BACKUP_DIRECTORY_URI] = uri
+            }
+        }
+    }
 }
 
 data class UserPreferences(
@@ -711,5 +789,8 @@ data class UserPreferences(
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
     val mainAccountKey: String? = null,
-    val selectedProfileId: Long? = null
+    val selectedProfileId: Long? = null,
+    val isAutoBackupEnabled: Boolean = true,
+    val monitoredBankPackages: Set<String> = emptySet(),
+    val backupDirectoryUri: String? = null
 )

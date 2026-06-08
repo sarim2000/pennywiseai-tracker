@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.dao.CustomParserRuleDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -51,11 +52,17 @@ object DatabaseModule {
     fun providePennyWiseDatabase(
         @ApplicationContext context: Context
     ): PennyWiseDatabase {
+        // Initialize SQLCipher native libraries
+        net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+        val passphrase = com.pennywiseai.tracker.utils.DatabaseKeyManager.getDatabasePassphrase(context)
+        val factory = net.sqlcipher.database.SupportFactory(passphrase)
+
         val database = Room.databaseBuilder(
             context,
             PennyWiseDatabase::class.java,
             PennyWiseDatabase.DATABASE_NAME
         )
+            .openHelperFactory(factory)
             // Single source of truth lives in PennyWiseDatabase.ALL_MIGRATIONS
             // so the BroadcastReceiver fallback builder stays in sync.
             .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
@@ -156,6 +163,18 @@ object DatabaseModule {
     @Singleton
     fun provideUnrecognizedSmsDao(database: PennyWiseDatabase): UnrecognizedSmsDao {
         return database.unrecognizedSmsDao()
+    }
+
+    /**
+     * Provides the CustomParserRuleDao from the database.
+     * 
+     * @param database The PennyWiseDatabase instance
+     * @return CustomParserRuleDao for accessing user-defined parser rules
+     */
+    @Provides
+    @Singleton
+    fun provideCustomParserRuleDao(database: PennyWiseDatabase): CustomParserRuleDao {
+        return database.customParserRuleDao()
     }
     
     /**

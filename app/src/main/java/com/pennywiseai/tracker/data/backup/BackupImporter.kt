@@ -31,11 +31,12 @@ class BackupImporter @Inject constructor(
      */
     suspend fun importBackup(
         uri: Uri,
+        password: CharArray,
         strategy: ImportStrategy = ImportStrategy.MERGE
     ): ImportResult = withContext(Dispatchers.IO) {
         try {
             // Read and parse the backup file
-            val backup = readBackupFile(uri)
+            val backup = readBackupFile(uri, password)
             
             // Validate backup version
             if (!isCompatibleVersion(backup)) {
@@ -57,11 +58,12 @@ class BackupImporter @Inject constructor(
     /**
      * Read and parse backup file
      */
-    private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
+    private suspend fun readBackupFile(uri: Uri, password: CharArray): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val content = reader.readText()
+                val encryptedBytes = inputStream.readBytes()
+                val decryptedBytes = BackupEncryptor.decrypt(encryptedBytes, password)
+                val content = String(decryptedBytes, Charsets.UTF_8)
                 // backupJson tolerates missing keys (older backups → Kotlin
                 // defaults) and unknown keys (newer backups → ignored). The
                 // old Gson `normalized()` net is no longer needed because the

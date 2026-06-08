@@ -191,7 +191,7 @@ class LlmRepository @Inject constructor(
         val stats = context.quickStats
         val currency = userPreferencesRepository.baseCurrency.first()
 
-        val totalSubAmount = activeSubs.sumOf { it.amount.toDouble() }.toBigDecimal()
+        val totalSubAmount = activeSubs.fold(BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
         val upcomingPayments = activeSubs.filter { it.nextPaymentDays <= 7 }
 
         return """

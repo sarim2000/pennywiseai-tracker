@@ -163,7 +163,7 @@ fun UnifiedAccountsCard(
                                 formattedAmount = CurrencyFormatter.formatCurrency(card.creditLimit ?: BigDecimal.ZERO, selectedCurrency),
                                 subtitle = if (card.balance > BigDecimal.ZERO) {
                                     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
-                                        ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
+                                        (card.balance.multiply(BigDecimal(100)).divide(card.creditLimit, 0, java.math.RoundingMode.HALF_UP)).toInt()
                                     } else 0
                                     "Used: ${CurrencyFormatter.formatCurrency(card.balance, selectedCurrency)} ($utilization%)"
                                 } else "Available Limit",
@@ -171,7 +171,7 @@ fun UnifiedAccountsCard(
                                 onClick = { onAccountClick(card.bankName, card.accountLast4) },
                                 subtitleColor = if (card.balance > BigDecimal.ZERO) {
                                     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
-                                        ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
+                                        (card.balance.multiply(BigDecimal(100)).divide(card.creditLimit, 0, java.math.RoundingMode.HALF_UP)).toInt()
                                     } else 0
                                     when {
                                         utilization > 80 -> MaterialTheme.colorScheme.error

@@ -53,6 +53,7 @@ fun UnrecognizedSmsScreen(
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var messageForRuleCreation by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -225,6 +226,9 @@ fun UnrecognizedSmsScreen(
                     ) {
                         UnrecognizedSmsItem(
                             message = message,
+                            onCreateRule = {
+                                messageForRuleCreation = message
+                            },
                             onReport = {
                                 viewModel.reportMessage(message)
                             },
@@ -276,11 +280,24 @@ fun UnrecognizedSmsScreen(
             }
         )
     }
+
+    // Create Custom Rule Dialog
+    messageForRuleCreation?.let { message ->
+        CreateCustomRuleDialog(
+            unrecognizedSms = message,
+            onDismiss = { messageForRuleCreation = null },
+            onSaveRule = { rule ->
+                viewModel.saveCustomRule(rule, message.id)
+                messageForRuleCreation = null
+            }
+        )
+    }
 }
 
 @Composable
 private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
+    onCreateRule: () -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -353,7 +370,21 @@ private fun UnrecognizedSmsItem(
                         Text("Delete")
                     }
 
-                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+
+                    TextButton(
+                        onClick = onCreateRule
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Create Rule",
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Create Rule")
+                    }
+
+                    Spacer(modifier = Modifier.width(Spacing.xs))
 
                     FilledTonalButton(
                         onClick = onReport

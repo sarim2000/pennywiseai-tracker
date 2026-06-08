@@ -915,9 +915,13 @@ private fun TransactionReceipt(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                // Display-only: the Row's clickable above is the single toggle
+                // handler. A null onCheckedChange means tapping the Switch falls
+                // through to the row, so one tap can't fire the VM call twice
+                // (Greptile #454).
                 Switch(
                     checked = transaction.excludedFromAnalytics,
-                    onCheckedChange = { viewModel.setExcludedFromAnalytics(it) }
+                    onCheckedChange = null
                 )
             }
         }

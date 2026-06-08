@@ -13,6 +13,8 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.AccountOption
+import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
@@ -63,6 +65,16 @@ class AnalyticsViewModel @Inject constructor(
 
     private val _categoryFilter = MutableStateFlow<String?>(null)
     val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
+
+    // Account filter — null means "All accounts". Key is "bankName_accountLast4".
+    private val _accountFilter = MutableStateFlow<String?>(null)
+    val accountFilter: StateFlow<String?> = _accountFilter.asStateFlow()
+
+    // Pickable account options for the account filter dropdown (alias-preferred labels).
+    val accountOptions: StateFlow<List<AccountOption>> =
+        accountBalanceRepository.getAllLatestBalances()
+            .map { accountOptions(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
@@ -126,9 +138,20 @@ class AnalyticsViewModel @Inject constructor(
         customDateRange,
         _transactionTypeFilter,
         _selectedCurrency,
-        combine(_isUnifiedMode, _categoryFilter, selectedProfileId) { u, c, p -> Triple(u, c, p) }
-    ) { period, customRange, typeFilter, currency, (isUnified, catFilter, profileId) ->
-        FilterState(period, customRange, typeFilter, currency, isUnified, catFilter, profileId)
+        combine(_isUnifiedMode, _categoryFilter, selectedProfileId, _accountFilter) { u, c, p, a ->
+            UnifiedCatProfileAccount(u, c, p, a)
+        }
+    ) { period, customRange, typeFilter, currency, extra ->
+        FilterState(
+            period,
+            customRange,
+            typeFilter,
+            currency,
+            extra.isUnified,
+            extra.categoryFilter,
+            extra.profileId,
+            extra.accountFilter
+        )
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
     }.flatMapLatest { (filterState, balances) ->
@@ -195,9 +218,13 @@ class AnalyticsViewModel @Inject constructor(
                         filterState.profileId,
                         profileKeys
                     ).mapTo(HashSet()) { it.id }
+                    val accountKey = filterState.accountFilter
                     return txs.filter { tw ->
+                        val txAccountKey =
+                            "${tw.transaction.bankName}_${tw.transaction.accountNumber}"
                         tw.transaction.id in keptIds &&
-                            "${tw.transaction.bankName}_${tw.transaction.accountNumber}" !in hidden
+                            txAccountKey !in hidden &&
+                            (accountKey.isNullOrBlank() || txAccountKey == accountKey)
                     }
                 }
 
@@ -307,6 +334,37 @@ class AnalyticsViewModel @Inject constructor(
                     .sortedByDescending { it.amount }
                     .take(10)
 
+                // Group by account — convert if unified. Labels prefer the alias
+                // (via accountOptions) and fall back to "$bankName ••$last4".
+                val accountLabels = accountOptions(balances).associate { it.key to it.label }
+                val accountBreakdown = filteredTransactions
+                    .groupBy { "${it.bankName}_${it.accountNumber}" }
+                    .entries
+                    .map { (accountKey, txns) ->
+                        val accountAmount = if (isUnified) {
+                            var sum = BigDecimal.ZERO
+                            for (tx in txns) {
+                                sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                            }
+                            sum
+                        } else {
+                            txns.sumOf { it.amount.toDouble() }.toBigDecimal()
+                        }
+                        AccountBreakdownData(
+                            key = accountKey,
+                            label = accountLabels[accountKey] ?: run {
+                                val first = txns.first()
+                                "${first.bankName ?: "Unknown"} ••${first.accountNumber ?: "----"}"
+                            },
+                            amount = accountAmount,
+                            percentage = if (totalSpending > BigDecimal.ZERO) {
+                                (accountAmount.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                            } else 0f,
+                            transactionCount = txns.size
+                        )
+                    }
+                    .sortedByDescending { it.amount }
+
                 // Calculate average amount
                 val averageAmount = if (filteredTransactions.isNotEmpty()) {
                     totalSpending.divide(BigDecimal(filteredTransactions.size), 2, java.math.RoundingMode.HALF_UP)
@@ -328,7 +386,8 @@ class AnalyticsViewModel @Inject constructor(
                     currency = displayCurrency,
                     isLoading = false,
                     spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second),
-                    availableCategories = allCategoryNames
+                    availableCategories = allCategoryNames,
+                    accountBreakdown = accountBreakdown
                 )
             }
         }
@@ -356,6 +415,11 @@ class AnalyticsViewModel @Inject constructor(
 
     fun clearCategoryFilter() {
         _categoryFilter.value = null
+    }
+
+    /** Sets the account filter; null clears it ("All accounts"). */
+    fun setAccountFilter(accountKey: String?) {
+        _accountFilter.value = accountKey
     }
 
     fun setChartType(type: ChartType) {
@@ -464,7 +528,19 @@ private data class FilterState(
     val currency: String,
     val isUnifiedMode: Boolean = false,
     val categoryFilter: String? = null,
-    val profileId: Long? = null
+    val profileId: Long? = null,
+    val accountFilter: String? = null
+)
+
+/**
+ * Helper tuple for combining the unified-mode, category, profile, and account
+ * filter flows (Kotlin's [combine] caps at a small arity).
+ */
+private data class UnifiedCatProfileAccount(
+    val isUnified: Boolean,
+    val categoryFilter: String?,
+    val profileId: Long?,
+    val accountFilter: String?
 )
 
 data class AnalyticsUiState(
@@ -478,7 +554,16 @@ data class AnalyticsUiState(
     val currency: String = "",
     val isLoading: Boolean = true,
     val spendingTrend: List<BalancePoint> = emptyList(),
-    val availableCategories: List<String> = emptyList()
+    val availableCategories: List<String> = emptyList(),
+    val accountBreakdown: List<AccountBreakdownData> = emptyList()
+)
+
+data class AccountBreakdownData(
+    val key: String,
+    val label: String,
+    val amount: BigDecimal,
+    val percentage: Float,
+    val transactionCount: Int
 )
 
 data class CategoryData(

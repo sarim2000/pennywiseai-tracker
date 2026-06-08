@@ -174,7 +174,27 @@ class LoanRepository @Inject constructor(
 
     suspend fun unlinkTransaction(transactionId: Long, loanId: Long) {
         loanDao.unlinkTransaction(transactionId)
-        recalculateRemaining(loanId)
+        val loan = loanDao.getLoanById(loanId) ?: return
+        // Recompute the principal from the remaining CONTRIBUTION transactions
+        // (the loan's own direction: LENT->EXPENSE, BORROWED->INCOME). Repayments
+        // are the opposite type and don't count toward principal.
+        val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
+        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType)
+        if (remainingPrincipal.compareTo(BigDecimal.ZERO) == 0) {
+            // No principal left — the loan is meaningless. Delete it; deleteLoan's
+            // unlinkAllTransactions also detaches any leftover repayment rows so
+            // they aren't stranded on a zeroed-out, auto-settled loan
+            // (issue #444 / Greptile #445). Covers the sole-transaction case too.
+            deleteLoan(loanId)
+        } else {
+            // Multi-entry loan with contributions remaining: shrink the principal
+            // to match, so unlinking a source transaction doesn't leave an
+            // inflated originalAmount/remaining.
+            if (loan.originalAmount.compareTo(remainingPrincipal) != 0) {
+                loanDao.updateLoan(loan.copy(originalAmount = remainingPrincipal, updatedAt = LocalDateTime.now()))
+            }
+            recalculateRemaining(loanId)
+        }
     }
 
     suspend fun updateOriginalAmount(loanId: Long, newAmount: BigDecimal) {

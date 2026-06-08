@@ -19,9 +19,9 @@
 #
 # Setup (one time):
 #   gem install fastlane
-#   Put your Play service-account JSON somewhere local and point to it:
+#   Play service-account JSON lives at secrets/play-store-key.json (git-ignored).
+#   Override the path if needed:
 #     export PLAY_JSON_KEY=/absolute/path/to/play-store-key.json
-#   (default looked-up path: ./play-store-key.json — git-ignored)
 #
 # Optional env overrides:
 #   PLAY_TRACK   (default: production)   PLAY_STATUS (default: draft)
@@ -42,7 +42,7 @@ for arg in "$@"; do
 done
 
 PACKAGE="com.pennywiseai.tracker"
-JSON_KEY="${PLAY_JSON_KEY:-play-store-key.json}"
+JSON_KEY="${PLAY_JSON_KEY:-secrets/play-store-key.json}"
 TRACK="${PLAY_TRACK:-production}"
 STATUS="${PLAY_STATUS:-draft}"
 META_PATH="fastlane/metadata/android"
@@ -54,6 +54,18 @@ fi
 if [ ! -f "$JSON_KEY" ]; then
   echo -e "${RED}❌ Play service-account key not found at: $JSON_KEY${NC}"
   echo -e "${YELLOW}   Set PLAY_JSON_KEY=/path/to/play-store-key.json${NC}"; exit 1
+fi
+
+# Stage metadata: copy every repo locale, and mirror en-US -> en-GB if the repo
+# has no dedicated en-GB folder. Play's DEFAULT listing locale for this app is
+# en-GB, so without this only the (secondary) en-US listing would update and the
+# default would drift stale. Repo keeps just en-US (also what F-Droid reads).
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+cp -R "$META_PATH"/. "$STAGE"/
+if [ -d "$STAGE/en-US" ] && [ ! -d "$STAGE/en-GB" ]; then
+  cp -R "$STAGE/en-US" "$STAGE/en-GB"
+  echo -e "${YELLOW}↳ mirrored en-US → en-GB (Play default locale)${NC}"
 fi
 
 case "$MODE" in
@@ -72,6 +84,7 @@ case "$MODE" in
       --aab "$AAB" \
       --track "$TRACK" \
       --release_status "$STATUS" \
+      --metadata_path "$STAGE" \
       --skip_upload_metadata true \
       --skip_upload_images true \
       --skip_upload_screenshots true \
@@ -84,7 +97,7 @@ case "$MODE" in
       --package_name "$PACKAGE" \
       --json_key "$JSON_KEY" \
       --track "$TRACK" \
-      --metadata_path "$META_PATH" \
+      --metadata_path "$STAGE" \
       --skip_upload_aab true \
       --skip_upload_apk true \
       --skip_upload_changelogs true \

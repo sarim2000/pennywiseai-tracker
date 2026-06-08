@@ -240,6 +240,7 @@ class ManageAccountsViewModel @Inject constructor(
                     currency = latestBalance?.currency ?: "INR",
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = latestBalance?.alias,
                     sourceType = "MANUAL",
                     timestamp = LocalDateTime.now()
                 )
@@ -262,6 +263,7 @@ class ManageAccountsViewModel @Inject constructor(
                     currency = latestBalance?.currency ?: "INR",
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = latestBalance?.alias,
                     sourceType = "MANUAL"
                 )
             )
@@ -638,6 +640,22 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Sets (or clears) the friendly display name for an account. A blank
+     * alias is stored as NULL so the UI falls back to the bank/last-4 format.
+     */
+    fun setAccountAlias(bankName: String, accountLast4: String, alias: String?) {
+        viewModelScope.launch {
+            try {
+                val normalized = alias?.trim()?.takeIf { it.isNotEmpty() }
+                accountBalanceRepository.setAccountAlias(bankName, accountLast4, normalized)
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to set account alias", e)
+                _uiState.update { it.copy(errorMessage = "Failed to rename account: ${e.message}") }
+            }
+        }
+    }
+
     fun applyPendingProfileReassign() {
         val p = _pendingProfileReassign.value ?: return
         viewModelScope.launch {
@@ -699,6 +717,7 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = latestBalance?.currency ?: "INR",
                         accountType = latestBalance?.accountType,
                         profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                        alias = latestBalance?.alias,
                         sourceType = "MANUAL"
                     )
                 )

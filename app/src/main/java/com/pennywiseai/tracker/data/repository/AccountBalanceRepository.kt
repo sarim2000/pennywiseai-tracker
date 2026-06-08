@@ -96,7 +96,8 @@ class AccountBalanceRepository @Inject constructor(
                 transactionId = transactionId,
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
-                profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID
+                profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias = existing?.alias
             )
             insertBalance(balanceEntity)
         }
@@ -125,7 +126,8 @@ class AccountBalanceRepository @Inject constructor(
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
             currency = currency,
-            profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID
+            profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+            alias = existing?.alias
         )
         return insertBalance(balanceEntity)
     }
@@ -177,6 +179,10 @@ class AccountBalanceRepository @Inject constructor(
 
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int {
         return accountBalanceDao.setAccountProfile(bankName, accountLast4, profileId)
+    }
+
+    suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int {
+        return accountBalanceDao.setAccountAlias(bankName, accountLast4, alias)
     }
 
     /**

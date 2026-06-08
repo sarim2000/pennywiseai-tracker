@@ -14,7 +14,10 @@ import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
+import com.pennywiseai.tracker.presentation.common.AccountOption
+import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
@@ -69,6 +72,16 @@ class TransactionsViewModel @Inject constructor(
 
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
     val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
+
+    // Account filter — null means "All accounts". Key is "bankName_accountLast4".
+    private val _accountFilter = MutableStateFlow<String?>(null)
+    val accountFilter: StateFlow<String?> = _accountFilter.asStateFlow()
+
+    // Pickable account options for the account filter dropdown (alias-preferred labels).
+    val accountOptions: StateFlow<List<AccountOption>> =
+        accountBalanceRepository.getAllLatestBalances()
+            .map { accountOptions(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val profiles: StateFlow<List<ProfileEntity>> = profileRepository.observeAllProfiles()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -562,6 +575,7 @@ class TransactionsViewModel @Inject constructor(
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
+            _accountFilter.map { "accountFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -578,12 +592,16 @@ class TransactionsViewModel @Inject constructor(
                 val isUnified = _isUnifiedMode.value
 
                 val profileId = _selectedProfileId.value
+                val accountKey = _accountFilter.value
 
                 // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter)
                     .collect { allTransactions ->
-                        // Apply profile filter
-                        val transactions = filterByProfile(allTransactions, profileId)
+                        // Apply profile filter, then account filter
+                        val transactions = filterTransactionsByAccount(
+                            filterByProfile(allTransactions, profileId),
+                            accountKey
+                        )
                         if (isUnified) {
                             // Show all transactions regardless of currency
                             emit(sortTransactions(transactions, sort))
@@ -684,6 +702,11 @@ class TransactionsViewModel @Inject constructor(
     fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
         _transactionTypeFilter.value = filter
     }
+
+    /** Sets the account filter; null clears it ("All accounts"). */
+    fun setAccountFilter(accountKey: String?) {
+        _accountFilter.value = accountKey
+    }
     
     fun setSelectedProfile(profileId: Long?) {
         _selectedProfileId.value = profileId
@@ -765,6 +788,7 @@ class TransactionsViewModel @Inject constructor(
         clearCustomDateRange()
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
+        setAccountFilter(null)
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
         if (!_isUnifiedMode.value) {

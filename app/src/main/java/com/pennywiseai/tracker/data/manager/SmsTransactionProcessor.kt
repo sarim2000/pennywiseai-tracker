@@ -5,6 +5,7 @@ import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -67,14 +68,16 @@ class SmsTransactionProcessor @Inject constructor(
         timestamp: Long
     ): ProcessingResult {
         try {
-            // Get the appropriate parser for this sender
-            val parser = BankParserFactory.getParser(sender)
-            if (parser == null) {
+            // Some senders are shared by multiple parsers (e.g. M-Pesa
+            // Kenya/Tanzania/Mozambique all use "M-Pesa"), so try every parser
+            // that handles this sender and use the first whose content parses.
+            val parsers = BankParserFactory.getParsers(sender)
+            if (parsers.isEmpty()) {
                 return ProcessingResult(false, reason = "No parser found for sender: $sender")
             }
 
             // Parse the SMS
-            val parsedTransaction = parser.parse(body, sender, timestamp)
+            val parsedTransaction = parsers.firstNotNullOfOrNull { it.parse(body, sender, timestamp) }
             if (parsedTransaction == null) {
                 return ProcessingResult(false, reason = "Could not parse transaction from SMS")
             }
@@ -299,7 +302,9 @@ class SmsTransactionProcessor @Inject constructor(
                 isCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false),
                 smsSource = parsedTransaction.smsBody.take(500),
                 sourceType = "TRANSACTION",
-                currency = parsedTransaction.currency
+                currency = parsedTransaction.currency,
+                profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias = existingAccount?.alias
             )
 
             accountBalanceRepository.insertBalance(balanceEntity)

@@ -11,6 +11,7 @@ import androidx.work.*
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
@@ -130,10 +131,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private var thirtyDaysAgoMillis: Long = 0L
 
     /** O(1) sender-to-parser lookup. Factory is only called once per unique sender string. */
-    private class ParserHolder(val parser: BankParser?)
+    private class ParserHolder(val parsers: List<BankParser>)
     private val parserCache = java.util.concurrent.ConcurrentHashMap<String, ParserHolder>(256)
-    private fun cachedParser(sender: String): BankParser? =
-        parserCache.computeIfAbsent(sender) { ParserHolder(BankParserFactory.getParser(sender)) }.parser
+    private fun cachedParsers(sender: String): List<BankParser> =
+        parserCache.computeIfAbsent(sender) { ParserHolder(BankParserFactory.getParsers(sender)) }.parsers
 
     /**
      * Merchant-name to custom category, preloaded once at scan start.
@@ -516,7 +517,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         if (upper.endsWith("-P") || upper.endsWith("-G"))
             return ParseResult.Discard(sms)
 
-        val parser = cachedParser(sms.sender)
+        val parsers = cachedParsers(sms.sender)
+        val parser = parsers.firstOrNull()
             ?: return if (upper.endsWith("-T") || upper.endsWith("-S"))
                 ParseResult.StoreUnrecognized(sms)
             else
@@ -524,9 +526,12 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val isRecent = sms.timestamp > thirtyDaysAgoMillis
 
+        // Subscription/balance special-cases are bank-type specific; the primary
+        // parser is enough (shared-sender M-Pesa parsers aren't special-cased).
         checkSubscriptionOrBalance(parser, sms, isRecent)?.let { return it }
 
-        val parsed = parser.parse(sms.body, sms.sender, sms.timestamp)
+        // Shared senders (M-Pesa KE/TZ/MZ): first candidate whose content parses.
+        val parsed = parsers.firstNotNullOfOrNull { it.parse(sms.body, sms.sender, sms.timestamp) }
             ?: return ParseResult.Discard(sms)
 
         return ParseResult.Transaction(sms, parsed)
@@ -813,7 +818,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
-            currency      = parsed.currency
+            currency      = parsed.currency,
+            profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+            alias         = existing?.alias
         )
 
         accountBalanceRepository.insertBalance(balanceEntity)

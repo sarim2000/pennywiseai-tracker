@@ -78,6 +78,8 @@ fun AnalyticsScreen(
     val categoryFilter by viewModel.categoryFilter.collectAsStateWithLifecycle()
     val selectedProfileId by viewModel.selectedProfileId.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
+    val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var showChartTypeSelector by remember { mutableStateOf(false) }
@@ -86,6 +88,7 @@ fun AnalyticsScreen(
     var showCurrencyMenu by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showProfileMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -106,6 +109,7 @@ fun AnalyticsScreen(
             customDateRange != null ||
             transactionTypeFilter != TransactionTypeFilter.EXPENSE ||
             categoryFilter != null ||
+            accountFilter != null ||
             hasCurrencyFilter
 
     // Scroll behaviors for collapsible TopAppBar
@@ -154,11 +158,14 @@ fun AnalyticsScreen(
                 availableCategories = uiState.availableCategories,
                 profiles = profiles,
                 selectedProfileId = selectedProfileId,
+                accountOptions = accountOptions,
+                accountFilter = accountFilter,
                 showPeriodMenu = showPeriodMenu,
                 showTypeMenu = showTypeMenu,
                 showCurrencyMenu = showCurrencyMenu,
                 showCategoryMenu = showCategoryMenu,
                 showProfileMenu = showProfileMenu,
+                showAccountMenu = showAccountMenu,
                 hasActiveFilter = hasActiveAnalyticsFilter,
                 onPeriodClick = { showPeriodMenu = true },
                 onPeriodDismiss = { showPeriodMenu = false },
@@ -198,10 +205,17 @@ fun AnalyticsScreen(
                     viewModel.selectProfile(profileId)
                     showProfileMenu = false
                 },
+                onAccountClick = { showAccountMenu = true },
+                onAccountDismiss = { showAccountMenu = false },
+                onAccountSelected = { accountKey ->
+                    viewModel.setAccountFilter(accountKey)
+                    showAccountMenu = false
+                },
                 onResetFilters = {
                     viewModel.selectPeriod(TimePeriod.THIS_MONTH)
                     viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
                     viewModel.clearCategoryFilter()
+                    viewModel.setAccountFilter(null)
                     if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
                         viewModel.selectCurrency(primaryVisibleCurrency)
                     }
@@ -209,6 +223,7 @@ fun AnalyticsScreen(
                     showTypeMenu = false
                     showCurrencyMenu = false
                     showCategoryMenu = false
+                    showAccountMenu = false
                 }
             )
         }
@@ -443,6 +458,28 @@ fun AnalyticsScreen(
         }
 
 
+        // By Account Section
+        if (uiState.accountBreakdown.isNotEmpty()) {
+            item {
+                SectionHeaderV2(
+                    title = "By Account"
+                )
+            }
+
+            item {
+                ExpandableList(
+                    items = uiState.accountBreakdown,
+                    visibleItemCount = 3,
+                    modifier = Modifier.fillMaxWidth()
+                ) { account ->
+                    AccountBreakdownListItem(
+                        account = account,
+                        currency = selectedCurrency
+                    )
+                }
+            }
+        }
+
         // Empty state
         if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
             item {
@@ -478,11 +515,14 @@ private fun AnalyticsFilterBar(
     availableCategories: List<String>,
     profiles: List<ProfileEntity>,
     selectedProfileId: Long?,
+    accountOptions: List<com.pennywiseai.tracker.presentation.common.AccountOption>,
+    accountFilter: String?,
     showPeriodMenu: Boolean,
     showTypeMenu: Boolean,
     showCurrencyMenu: Boolean,
     showCategoryMenu: Boolean,
     showProfileMenu: Boolean,
+    showAccountMenu: Boolean,
     hasActiveFilter: Boolean,
     onPeriodClick: () -> Unit,
     onPeriodDismiss: () -> Unit,
@@ -499,6 +539,9 @@ private fun AnalyticsFilterBar(
     onProfileClick: () -> Unit,
     onProfileDismiss: () -> Unit,
     onProfileSelected: (Long?) -> Unit,
+    onAccountClick: () -> Unit,
+    onAccountDismiss: () -> Unit,
+    onAccountSelected: (String?) -> Unit,
     onResetFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -712,6 +755,60 @@ private fun AnalyticsFilterBar(
                 }
             }
         }
+
+        if (accountOptions.isNotEmpty()) {
+            item {
+                val selectedAccountLabel =
+                    accountOptions.firstOrNull { it.key == accountFilter }?.label
+                Box {
+                    ExpressiveFilterChip(
+                        colors = analyticsFilterChipColors(),
+                        border = analyticsFilterChipBorder(selected = accountFilter != null),
+                        selected = accountFilter != null,
+                        text = selectedAccountLabel ?: "Account",
+                        icon = Icons.Default.AccountBalanceWallet,
+                        onClick = onAccountClick
+                    )
+
+                    DropdownMenu(
+                        expanded = showAccountMenu,
+                        onDismissRequest = onAccountDismiss,
+                        shape = MaterialTheme.shapes.large
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("All accounts") },
+                            leadingIcon = {
+                                if (accountFilter == null) {
+                                    Icon(Icons.Default.Check, contentDescription = null)
+                                } else {
+                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                                }
+                            },
+                            onClick = { onAccountSelected(null) }
+                        )
+                        accountOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        option.label,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                leadingIcon = {
+                                    if (accountFilter == option.key) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    } else {
+                                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                                    }
+                                },
+                                onClick = { onAccountSelected(option.key) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -797,6 +894,42 @@ private fun MerchantListItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(merchant.amount, currency),
         onClick = onClick
+    )
+}
+
+@Composable
+private fun AccountBreakdownListItem(
+    account: AccountBreakdownData,
+    currency: String
+) {
+    ListItemCardV2(
+        leadingContent = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        title = account.label,
+        subtitle = "${account.transactionCount} " +
+            if (account.transactionCount == 1) "transaction" else "transactions",
+        amount = CurrencyFormatter.formatCurrency(account.amount, currency),
+        trailingContent = {
+            Text(
+                text = "${account.percentage.toInt()}%",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     )
 }
 

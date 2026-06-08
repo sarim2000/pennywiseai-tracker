@@ -250,6 +250,9 @@ fun ManageAccountsScreen(
                             },
                             onSetProfile = { profileId ->
                                 viewModel.setAccountProfile(account.bankName, account.accountLast4, profileId)
+                            },
+                            onSetAlias = { alias ->
+                                viewModel.setAccountAlias(account.bankName, account.accountLast4, alias)
                             }
                         )
                     }
@@ -396,6 +399,9 @@ fun ManageAccountsScreen(
                                 },
                                 onSetProfile = { profileId ->
                                     viewModel.setAccountProfile(account.bankName, account.accountLast4, profileId)
+                                },
+                                onSetAlias = { alias ->
+                                    viewModel.setAccountAlias(account.bankName, account.accountLast4, alias)
                                 }
                             )
                         }
@@ -941,9 +947,11 @@ private fun AccountItem(
     onUnlinkCard: (cardId: Long) -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onEditAccount: () -> Unit = {},
-    onSetProfile: (Long) -> Unit = {}
+    onSetProfile: (Long) -> Unit = {},
+    onSetAlias: (String?) -> Unit = {}
 ) {
     val isManualAccount = account.sourceType == "MANUAL"
+    var showAliasDialog by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -977,23 +985,26 @@ private fun AccountItem(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
+                    val alias = account.alias?.takeIf { it.isNotBlank() }
                     Column {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = account.bankName,
+                                text = alias ?: account.bankName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text(
-                                text = "••${account.accountLast4}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (alias == null) {
+                                Text(
+                                    text = "••${account.accountLast4}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             if (account.profileId == ProfileEntity.BUSINESS_ID) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -1015,6 +1026,17 @@ private fun AccountItem(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                        // When an alias is set, keep the underlying bank/last-4
+                        // visible as a subtitle so the account stays identifiable.
+                        if (alias != null) {
+                            Text(
+                                text = "${account.bankName} ••${account.accountLast4}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -1192,6 +1214,19 @@ private fun AccountItem(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text(if (account.alias.isNullOrBlank()) "Set alias" else "Rename") },
+                            onClick = {
+                                showMenu = false
+                                showAliasDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DriveFileRenameOutline,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {
                                 showMenu = false
@@ -1213,6 +1248,66 @@ private fun AccountItem(
             }
         }
     }
+
+    if (showAliasDialog) {
+        AccountAliasDialog(
+            currentAlias = account.alias,
+            accountLabel = "${account.bankName} ••${account.accountLast4}",
+            onDismiss = { showAliasDialog = false },
+            onConfirm = { newAlias ->
+                onSetAlias(newAlias)
+                showAliasDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AccountAliasDialog(
+    currentAlias: String?,
+    accountLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit
+) {
+    var aliasText by remember { mutableStateOf(currentAlias.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename account") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = accountLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = aliasText,
+                    onValueChange = { aliasText = it },
+                    label = { Text("Alias") },
+                    placeholder = { Text("e.g. Salary account") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Leave blank to clear the alias.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

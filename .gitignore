@@ -73,3 +73,11 @@ parser-core/bin/*
 # Local Play service-account key (used by scripts/upload-play.sh)
 play-store-key.json
 *play-store*.json
+
+# Local secrets / keys folder — manually backed up, NEVER committed
+secrets/
+
+# Local tooling (screenshot editor, agent skills) — not part of the app
+aso-screenshots/
+.agents/
+skills-lock.json

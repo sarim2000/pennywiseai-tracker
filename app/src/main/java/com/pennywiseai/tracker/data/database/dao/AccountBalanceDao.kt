@@ -57,7 +57,8 @@ interface AccountBalanceDao {
             ab1.sms_source,
             ab1.source_type,
             ab1.currency,
-            ab1.profile_id
+            ab1.profile_id,
+            ab1.alias
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -123,7 +124,8 @@ interface AccountBalanceDao {
             ab1.sms_source,
             ab1.source_type,
             ab1.currency,
-            ab1.profile_id
+            ab1.profile_id,
+            ab1.alias
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -218,4 +220,7 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
+
+    @Query("UPDATE account_balances SET alias = :alias WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int
 }

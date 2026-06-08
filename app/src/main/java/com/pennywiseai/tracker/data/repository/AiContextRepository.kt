@@ -182,7 +182,7 @@ class AiContextRepository @Inject constructor(
         val expenses = transactions.filter { it.transactionType == TransactionType.EXPENSE }
         
         // Calculate average daily spending
-        val totalExpense = expenses.sumOf { it.amount.toDouble() }.toBigDecimal()
+        val totalExpense = expenses.fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
         val daysElapsed = currentDate.dayOfMonth
         val avgDailySpending = if (daysElapsed > 0) {
             totalExpense.divide(BigDecimal(daysElapsed), 2, RoundingMode.HALF_UP)

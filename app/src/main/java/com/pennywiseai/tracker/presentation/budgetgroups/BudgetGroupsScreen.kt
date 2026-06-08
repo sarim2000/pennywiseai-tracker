@@ -746,14 +746,16 @@ private fun BudgetCard(
 
 @Composable
 private fun SpendingPaceChart(
-    cumulativeSpending: List<Double>,
-    budgetPace: List<Double>,
+    cumulativeSpending: List<BigDecimal>,
+    budgetPace: List<BigDecimal>,
     currency: String,
     modifier: Modifier = Modifier
 ) {
+    val doubleCumulative = remember(cumulativeSpending) { cumulativeSpending.map { it.toDouble() } }
+    val doublePace = remember(budgetPace) { budgetPace.map { it.toDouble() } }
     val themeColors = MaterialTheme.colorScheme
-    val isOverPace = cumulativeSpending.lastOrNull()?.let { actual ->
-        budgetPace.lastOrNull()?.let { pace -> actual > pace }
+    val isOverPace = doubleCumulative.lastOrNull()?.let { actual ->
+        doublePace.lastOrNull()?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
 
@@ -765,7 +767,7 @@ private fun SpendingPaceChart(
                 data = listOf(
                     Line(
                         label = "Actual",
-                        values = cumulativeSpending,
+                        values = doubleCumulative,
                         color = SolidColor(spendingColor),
                         firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
                         secondGradientFillColor = Color.Transparent,
@@ -779,7 +781,7 @@ private fun SpendingPaceChart(
                     ),
                     Line(
                         label = "Budget Pace",
-                        values = budgetPace,
+                        values = doublePace,
                         color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
                         drawStyle = DrawStyle.Stroke(width = 1.5.dp),
                         strokeAnimationSpec = tween(1200),

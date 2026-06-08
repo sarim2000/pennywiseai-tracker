@@ -1166,37 +1166,31 @@ class TransactionsViewModel @Inject constructor(
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
 
             val income = currencyTransactions
                 .filter {
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
 
             val rawExpenses = currencyTransactions
                 .filter { it.transactionType == TransactionType.EXPENSE }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
             val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
             val credit = currencyTransactions
                 .filter { it.transactionType == TransactionType.CREDIT }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
 
             val transfer = currencyTransactions
                 .filter { it.transactionType == TransactionType.TRANSFER }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
 
             val investment = currencyTransactions
                 .filter { it.transactionType == TransactionType.INVESTMENT }
-                .sumOf { it.amount.toDouble() }
-                .toBigDecimal()
+                .fold(BigDecimal.ZERO) { acc, txn -> acc + txn.amount }
 
             CurrencyTotals(
                 currency = currency,
@@ -1233,16 +1227,8 @@ class TransactionsViewModel @Inject constructor(
         val encodedMessage = java.net.URLEncoder.encode(smsBody, "UTF-8")
         val encodedSender = java.net.URLEncoder.encode(sender, "UTF-8")
         
-        // Encrypt device data for verification
-        val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-        val encodedDeviceData = if (encryptedDeviceData != null) {
-            java.net.URLEncoder.encode(encryptedDeviceData, "UTF-8")
-        } else {
-            ""
-        }
-        
         // Create the report URL using hash fragment for privacy
-        return "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+        return "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&autoparse=true"
     }
     
 }

@@ -762,16 +762,8 @@ class TransactionDetailViewModel @Inject constructor(
         val encodedMessage = java.net.URLEncoder.encode(smsBody, "UTF-8")
         val encodedSender = java.net.URLEncoder.encode(sender, "UTF-8")
         
-        // Encrypt device data for verification
-        val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-        val encodedDeviceData = if (encryptedDeviceData != null) {
-            java.net.URLEncoder.encode(encryptedDeviceData, "UTF-8")
-        } else {
-            ""
-        }
-        
         // Create the report URL using hash fragment for privacy
-        val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+        val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&autoparse=true"
         android.util.Log.d("TransactionDetailVM", "Report URL: ${url.take(200)}...")
         
         return url

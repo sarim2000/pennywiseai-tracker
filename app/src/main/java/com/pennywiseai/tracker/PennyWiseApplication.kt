@@ -57,6 +57,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
             }
         }
+
+        // Enqueue automated backups
+        applicationScope.launch {
+            try {
+                com.pennywiseai.tracker.worker.AutoBackupWorker.enqueue(applicationContext)
+            } catch (e: Exception) {
+                android.util.Log.e("PennyWiseApp", "Failed to enqueue AutoBackupWorker", e)
+            }
+        }
     }
 
     /**

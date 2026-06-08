@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.database.dao.CustomParserRuleDao
+import com.pennywiseai.tracker.data.database.entity.CustomParserRuleEntity
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class UnrecognizedSmsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val unrecognizedSmsRepository: UnrecognizedSmsRepository
+    private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val customParserRuleDao: CustomParserRuleDao
 ) : ViewModel() {
     
     private val _isLoading = MutableStateFlow(false)
@@ -56,20 +59,8 @@ class UnrecognizedSmsViewModel @Inject constructor(
                 val encodedMessage = URLEncoder.encode(message.smsBody, "UTF-8")
                 val encodedSender = URLEncoder.encode(message.sender, "UTF-8")
                 
-                // Encrypt device data for verification
-                val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-                Log.d("UnrecognizedSmsViewModel", "Encrypted device data: ${encryptedDeviceData?.take(50)}... (length: ${encryptedDeviceData?.length})")
-                
-                val encodedDeviceData = if (encryptedDeviceData != null) {
-                    URLEncoder.encode(encryptedDeviceData, "UTF-8")
-                } else {
-                    ""
-                }
-                Log.d("UnrecognizedSmsViewModel", "Encoded device data: ${encodedDeviceData.take(50)}... (length: ${encodedDeviceData.length})")
-                
                 // Create the report URL using hash fragment for privacy
-                val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
-                Log.d("UnrecognizedSmsViewModel", "Full URL length: ${url.length}")
+                val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&autoparse=true"
                 
                 // Open in browser
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
@@ -106,6 +97,24 @@ class UnrecognizedSmsViewModel @Inject constructor(
                 Log.d("UnrecognizedSmsViewModel", "Deleted all unrecognized messages")
             } catch (e: Exception) {
                 Log.e("UnrecognizedSmsViewModel", "Error deleting all messages", e)
+            }
+        }
+    }
+
+    /**
+     * Saves a user-defined custom parsing rule to the database and marks the source
+     * unrecognized message as reported/processed so it drops off the UI checklist.
+     */
+    fun saveCustomRule(rule: CustomParserRuleEntity, originalMessageId: Long) {
+        viewModelScope.launch {
+            try {
+                // Save custom rule
+                customParserRuleDao.insert(rule)
+                // Mark original message as reported (so it is processed / no longer listed as raw unrecognized)
+                unrecognizedSmsRepository.markAsReported(listOf(originalMessageId))
+                Log.d("UnrecognizedSmsViewModel", "Saved custom rule and marked unrecognized SMS $originalMessageId as reported.")
+            } catch (e: Exception) {
+                Log.e("UnrecognizedSmsViewModel", "Failed to save custom parser rule", e)
             }
         }
     }

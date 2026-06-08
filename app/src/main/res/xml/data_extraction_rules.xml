@@ -1,19 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Exclude encrypted local SQLite database from unencrypted backups -->
+        <exclude domain="database" path="pennywise_database"/>
+        <exclude domain="database" path="pennywise_database-wal"/>
+        <exclude domain="database" path="pennywise_database-shm"/>
+        <!-- Exclude secure database key shared preferences -->
+        <exclude domain="sharedpref" path="pennywise_secure_prefs.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Exclude database and key preferences during device-to-device transfers if unencrypted -->
+        <exclude domain="database" path="pennywise_database"/>
+        <exclude domain="database" path="pennywise_database-wal"/>
+        <exclude domain="database" path="pennywise_database-shm"/>
+        <exclude domain="sharedpref" path="pennywise_secure_prefs.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

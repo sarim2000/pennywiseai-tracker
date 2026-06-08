@@ -31,11 +31,12 @@ class BackupImporter @Inject constructor(
      */
     suspend fun importBackup(
         uri: Uri,
+        password: CharArray,
         strategy: ImportStrategy = ImportStrategy.MERGE
     ): ImportResult = withContext(Dispatchers.IO) {
         try {
             // Read and parse the backup file
-            val backup = readBackupFile(uri)
+            val backup = readBackupFile(uri, password)
             
             // Validate backup version
             if (!isCompatibleVersion(backup)) {
@@ -57,11 +58,23 @@ class BackupImporter @Inject constructor(
     /**
      * Read and parse backup file
      */
-    private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
+    private suspend fun readBackupFile(uri: Uri, password: CharArray): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val content = reader.readText()
+                val bytes = inputStream.readBytes()
+                val content = if (BackupEncryptor.hasMagicHeader(bytes)) {
+                    // New encrypted path
+                    val decryptedBytes = BackupEncryptor.decrypt(bytes, password)
+                    String(decryptedBytes, Charsets.UTF_8)
+                } else {
+                    // FALLBACK PATHWAY: Old plaintext JSON parser for backward compatibility
+                    val plainText = String(bytes, Charsets.UTF_8)
+                    if (plainText.trim().startsWith("{") || plainText.trim().startsWith("[")) {
+                        plainText
+                    } else {
+                        throw IllegalArgumentException("Unknown backup file format profile")
+                    }
+                }
                 // backupJson tolerates missing keys (older backups → Kotlin
                 // defaults) and unknown keys (newer backups → ignored). The
                 // old Gson `normalized()` net is no longer needed because the

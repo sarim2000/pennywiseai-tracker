@@ -15,10 +15,19 @@ object BankNotificationConfig {
         "com.avanza.ambitwizfbl" to "FaysalBank",
         // Enpara (Turkey) – alias must match EnparaBankParser.canHandle()
         "finansbank.enpara" to "Enpara",      // Enpara.com Cep Şubesi (personal, older brand)
-        "com.enparabank.retail" to "Enpara"   // Enpara Bank Cep Şube (personal, post-rebrand)
+        "com.enparabank.retail" to "Enpara",   // Enpara Bank Cep Şube (personal, post-rebrand)
+        // Google Pay (India / Tez)
+        "com.google.android.apps.nbu.paisa.user" to "GPay",
+        // State Bank of India (SBI) Apps
+        "com.sbi.yono" to "SBI",
+        "com.sbi.yonolite" to "SBI",
+        "com.sbi.upi" to "SBI"
     )
 
     fun isAllowed(packageName: String): Boolean =
+        allowedPackages.containsKey(packageName.lowercase())
+
+    fun isSupportedPackage(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())
 
     fun senderAlias(packageName: String): String =

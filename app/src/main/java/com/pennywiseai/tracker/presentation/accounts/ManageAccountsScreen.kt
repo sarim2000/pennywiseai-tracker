@@ -615,7 +615,7 @@ private fun CreditCardItem(
     val isManualAccount = card.sourceType == "MANUAL"
     val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
-        ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
+        (card.balance.multiply(BigDecimal(100)).divide(card.creditLimit, 0, java.math.RoundingMode.HALF_UP)).toInt()
     } else {
         0
     }
@@ -1472,7 +1472,7 @@ private fun UpdateCreditCardDialog(
                 val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 if (limit > BigDecimal.ZERO) {
                     val available = limit - outstanding
-                    val utilization = ((outstanding.toDouble() / limit.toDouble()) * 100).toInt()
+                    val utilization = (outstanding.multiply(BigDecimal(100)).divide(limit, 0, java.math.RoundingMode.HALF_UP)).toInt()
                     
                     Card(
                         colors = CardDefaults.cardColors(

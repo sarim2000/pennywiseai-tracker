@@ -148,7 +148,7 @@ private fun CreditCardItem(
             // Calculate available credit
             val available = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
             val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
-                ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
+                (card.balance.multiply(BigDecimal(100)).divide(card.creditLimit, 0, java.math.RoundingMode.HALF_UP)).toInt()
             } else {
                 0
             }

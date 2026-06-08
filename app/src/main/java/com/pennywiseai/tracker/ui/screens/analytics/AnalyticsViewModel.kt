@@ -249,7 +249,12 @@ class AnalyticsViewModel @Inject constructor(
                     allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
                 } else {
                     allTransactionsWithSplits
-                }).filter { it.transaction.loanId == null }
+                })
+                    .filter { it.transaction.loanId == null }
+                    // Drop transactions the user excluded from analytics (#451). They
+                    // stay in history and count toward balance — only these breakdowns,
+                    // totals, averages and the spending trend ignore them.
+                    .filter { !it.transaction.excludedFromAnalytics }
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits

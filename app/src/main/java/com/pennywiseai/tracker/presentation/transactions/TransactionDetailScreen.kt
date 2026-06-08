@@ -881,6 +881,47 @@ private fun TransactionReceipt(
             }
         }
 
+        // ── Exclude from analytics (#451) ──
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
+                    .padding(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Icon(
+                    Icons.Default.QueryStats,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.medium),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Exclude from analytics",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Kept in history and balance; ignored in spending trends, budgets and summaries",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = transaction.excludedFromAnalytics,
+                    onCheckedChange = { viewModel.setExcludedFromAnalytics(it) }
+                )
+            }
+        }
+
         // ── Receipt Section ──
         val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
         receiptUri?.let { uri ->

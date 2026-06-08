@@ -56,8 +56,8 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        )
-        
+        ).filter { !it.excludedFromAnalytics }  // exclude one-off purchases from AI summary (#451)
+
         var totalIncome = BigDecimal.ZERO
         var totalExpense = BigDecimal.ZERO
         val transactionCount = transactions.size
@@ -136,8 +136,8 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        )
-        
+        ).filter { !it.excludedFromAnalytics }  // exclude one-off purchases from AI summary (#451)
+
         // Group by category and calculate spending
         val categoryMap = mutableMapOf<String, MutableList<BigDecimal>>()
         var totalExpense = BigDecimal.ZERO
@@ -177,8 +177,8 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        )
-        
+        ).filter { !it.excludedFromAnalytics }  // exclude one-off purchases from AI summary (#451)
+
         val expenses = transactions.filter { it.transactionType == TransactionType.EXPENSE }
         
         // Calculate average daily spending

@@ -275,6 +275,8 @@ class TransactionRepository @Inject constructor(
         val startDate = now.withDayOfMonth(1).atStartOfDay()
         val endDate = now.atTime(23, 59, 59)
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+            // Monthly spending summary ignores analytics-excluded transactions (#451).
+            .map { txns -> txns.filter { !it.excludedFromAnalytics } }
     }
 
     private fun getTransactionsForComparableLastMonth(): Flow<List<TransactionEntity>> {
@@ -287,6 +289,8 @@ class TransactionRepository @Inject constructor(
         val lastMonthMaxDay = min(dayOfMonth, lastMonth.lengthOfMonth())
         val endDate = lastMonth.withDayOfMonth(lastMonthMaxDay).atTime(23, 59, 59)
         return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+            // Monthly spending summary ignores analytics-excluded transactions (#451).
+            .map { txns -> txns.filter { !it.excludedFromAnalytics } }
     }
 
     private fun List<TransactionEntity>.toMonthlyBreakdown(): MonthlyBreakdown {

@@ -56,7 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 50
+const val SCHEMA_VERSION = 51
 
 /**
  * The PennyWise Room database.
@@ -490,6 +490,13 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_50_51 = object : Migration(50, 51) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Per-transaction "exclude from analytics" flag (#451).
+                db.execSQL("ALTER TABLE `transactions` ADD COLUMN `excluded_from_analytics` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -540,6 +547,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_47_48,
             MIGRATION_48_49,
             MIGRATION_49_50,
+            MIGRATION_50_51,
         )
     }
     

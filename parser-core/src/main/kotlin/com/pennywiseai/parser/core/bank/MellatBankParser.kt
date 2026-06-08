@@ -10,11 +10,11 @@ import java.math.BigDecimal
 class MellatBankParser : BaseIranianBankParser() {
 
     private val pattern1 = Regex(
-        """^حساب\d+\s+(برداشت|واریز)([0-9,]+)\s+مانده([0-9,]+)\s+\d{2}/\d{2}/\d{2}-\d{2}:\d{2}""",
+        """^حساب\d+\s+(برداشت|واریز)\s*([0-9,]+)\s+مانده\s*([0-9,]+)\s+\d{2}/\d{2}/\d{2}-\d{2}:\d{2}""",
         RegexOption.MULTILINE
     )
     private val pattern2 = Regex(
-        """^واریز سود کوتاه مدت\s+حساب\d+\s+مبلغ([0-9,]+)\s+\d{2}/\d{2}/\d{2}""",
+        """^واریز سود کوتاه مدت\s+حساب\d+\s+مبلغ\s*([0-9,]+)\s+\d{2}/\d{2}/\d{2}""",
         RegexOption.MULTILINE
     )
     private val accountPattern = Regex("""حساب\s*(\d+)""")
@@ -62,11 +62,10 @@ class MellatBankParser : BaseIranianBankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val trimmed = message.trim()
         pattern1.find(trimmed)?.let { match ->
-            val typeStr = match.groupValues[1]
-            return if (typeStr == "برداشت") {
-                TransactionType.EXPENSE
-            } else {
-                TransactionType.INCOME
+            return when (match.groupValues[1]) {
+                "برداشت" -> TransactionType.EXPENSE
+                "واریز" -> TransactionType.INCOME
+                else -> null
             }
         }
         if (pattern2.containsMatchIn(trimmed)) {

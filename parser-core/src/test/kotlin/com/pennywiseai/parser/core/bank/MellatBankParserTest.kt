@@ -34,6 +34,23 @@ class MellatBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Mellat Bank withdrawal with spaced amounts",
+                message = """
+                    حساب1234567890
+                    برداشت 1,250,000
+                    مانده 18,750,000
+                    04/04/21-21:40
+                """.trimIndent(),
+                sender = "Bank Mellat",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1250000"),
+                    currency = "IRR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "7890",
+                    balance = BigDecimal("18750000")
+                )
+            ),
+            ParserTestCase(
                 name = "Mellat Bank deposit transaction",
                 message = """
                     حساب1234567890

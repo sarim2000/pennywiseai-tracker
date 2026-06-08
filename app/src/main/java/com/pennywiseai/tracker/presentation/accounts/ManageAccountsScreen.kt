@@ -1569,18 +1569,11 @@ private fun OrphanedCardItem(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Column(modifier = Modifier.padding(Dimensions.Padding.content)) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.CreditCard,
@@ -1623,10 +1616,14 @@ private fun OrphanedCardItem(
                 }
             }
             
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { showLinkDialog = true }
                     ) {
                         Icon(
@@ -1639,6 +1636,7 @@ private fun OrphanedCardItem(
                     }
 
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { showEditDialog = true }
                     ) {
                         Icon(
@@ -1651,6 +1649,7 @@ private fun OrphanedCardItem(
                     }
 
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { onDeleteCard(card.id) },
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
@@ -1665,7 +1664,6 @@ private fun OrphanedCardItem(
                         Text("Delete")
                     }
                 }
-            }
         }
     }
     

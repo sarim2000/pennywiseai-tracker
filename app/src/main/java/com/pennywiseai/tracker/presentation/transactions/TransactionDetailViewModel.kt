@@ -151,6 +151,23 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * One-tap toggle for "exclude from analytics" (#451). Persists immediately —
+     * the transaction stays in history and counts toward the account balance, but
+     * spending trends, averages, category/budget breakdowns and AI summaries
+     * ignore it.
+     */
+    fun setExcludedFromAnalytics(excluded: Boolean) {
+        viewModelScope.launch {
+            val txn = _transaction.value ?: return@launch
+            if (txn.excludedFromAnalytics == excluded) return@launch
+            transactionRepository.updateTransaction(
+                txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
+            )
+            _transaction.value = transactionRepository.getTransactionById(txn.id)
+        }
+    }
+
     // Split-related state
     private val _splits = MutableStateFlow<List<SplitItem>>(emptyList())
     val splits: StateFlow<List<SplitItem>> = _splits.asStateFlow()

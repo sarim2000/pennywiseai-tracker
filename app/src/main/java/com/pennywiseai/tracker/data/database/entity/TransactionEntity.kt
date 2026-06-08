@@ -63,7 +63,14 @@ data class TransactionEntity(
     
     @ColumnInfo(name = "is_deleted", defaultValue = "0")
     val isDeleted: Boolean = false,
-    
+
+    // Excluded from spending analytics (trends, averages, category/merchant
+    // breakdowns, budgets, AI summaries) when true, but still shown in history
+    // and counted toward the account balance — it's real money, only the stats
+    // ignore it. Set per-transaction from the detail screen (#451).
+    @ColumnInfo(name = "excluded_from_analytics", defaultValue = "0")
+    val excludedFromAnalytics: Boolean = false,
+
     @ColumnInfo(name = "created_at")
     @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),

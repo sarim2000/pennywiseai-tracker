@@ -1569,24 +1569,17 @@ private fun OrphanedCardItem(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column {
+        Column(modifier = Modifier.padding(Dimensions.Padding.content)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.content),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CreditCard,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                Icon(
+                    imageVector = Icons.Default.CreditCard,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "${card.bankName} ••${card.cardLast4}",
@@ -1622,48 +1615,53 @@ private fun OrphanedCardItem(
                     }
                 }
             }
-            
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = { showLinkDialog = true }
                 ) {
-                    OutlinedButton(
-                        onClick = { showLinkDialog = true }
-                    ) {
-                        Icon(
-                            Icons.Default.Link,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Link")
-                    }
+                    Icon(
+                        Icons.Default.Link,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Link")
+                }
 
-                    OutlinedButton(
-                        onClick = { showEditDialog = true }
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Edit")
-                    }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = { showEditDialog = true }
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Edit")
+                }
 
-                    OutlinedButton(
-                        onClick = { onDeleteCard(card.id) },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Delete")
-                    }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = { onDeleteCard(card.id) },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Delete")
                 }
             }
         }

@@ -178,6 +178,75 @@ class EmiratesIslamicParserTest {
         return ParserTestUtils.runTestSuite(parser, cases, handleChecks, "Emirates Islamic Bank Parser")
     }
 
+    /**
+     * International / foreign-currency transactions. UAE banks report the
+     * transaction in the spend currency (e.g. USD/EUR) while the account's
+     * Available Balance stays in AED. The parser should surface the spend
+     * currency + amount, and read the AED balance unchanged.
+     */
+    @TestFactory
+    fun `emirates islamic parser handles foreign currency`(): List<DynamicTest> {
+        val cases = listOf(
+            // International debit card purchase billed in USD.
+            ParserTestCase(
+                name = "Debit Card Purchase in USD",
+                message = """
+                    Debit Card Purchase
+                    Card Ending: 1111
+                    At: AMAZON.COM, USA
+                    Amount: USD 50.00
+                    Date: 21/12/2024 20:18
+                    Available Balance: AED 12,123.12
+                """.trimIndent(),
+                sender = "EI SMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.00"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "AMAZON.COM, USA",
+                    accountLast4 = "1111",
+                    balance = BigDecimal("12123.12")
+                )
+            ),
+            // International credit card purchase billed in EUR (uses "Available Limit").
+            ParserTestCase(
+                name = "Credit Card Purchase in EUR",
+                message = """
+                    Credit Card Purchase
+                    Card Ending: 1234
+                    At: ZARA, MADRID
+                    Amount: EUR 20.00
+                    Date: 21/12/2024, 20:12
+                    Available Limit: AED 5,000.00
+                """.trimIndent(),
+                sender = "EI SMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("20.00"),
+                    currency = "EUR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ZARA, MADRID",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("5000.00")
+                )
+            ),
+            // Inbound telegraphic transfer received in GBP.
+            ParserTestCase(
+                name = "Telegraphic Transfer Received in GBP",
+                message = "Telegraphic Transfer Received To Account: 123XXX12XXX12 Amount: GBP 100.00 Date: 21/12/2024 00:12 Available Balance: AED 123,123.12",
+                sender = "EI SMS",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100.00"),
+                    currency = "GBP",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1212",
+                    balance = BigDecimal("123123.12")
+                )
+            )
+        )
+
+        return ParserTestUtils.runTestSuite(parser, cases, emptyList(), "Emirates Islamic foreign-currency")
+    }
+
     @TestFactory
     fun `factory resolves emirates islamic`(): List<DynamicTest> {
         val cases = listOf(

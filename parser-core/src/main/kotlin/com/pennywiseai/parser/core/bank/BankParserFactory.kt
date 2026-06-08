@@ -56,6 +56,7 @@ object BankParserFactory {
         ADCBParser(),  // Abu Dhabi Commercial Bank (UAE)
         FABParser(),  // First Abu Dhabi Bank (UAE)
         EmiratesNBDParser(),  // Emirates NBD Bank (UAE)
+        EmiratesIslamicParser(),  // Emirates Islamic Bank (UAE)
         LivBankParser(),  // Liv Bank (UAE)
         CitiBankParser(),  // Citi Bank (USA)
         DiscoverCardParser(),  // Discover Card (USA)

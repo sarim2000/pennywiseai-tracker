@@ -47,21 +47,27 @@ class BankNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val packageName = sbn.packageName ?: return
 
-        // Skip group summaries to avoid duplicate processing
-        if ((sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0) {
-            return
-        }
+        // 1. FAST SYNCHRONOUS PRE-CHECK: Drop non-bank notifications instantly
+        // to save battery and prevent disk I/O spam
+        if (!BankNotificationConfig.isSupportedPackage(packageName) && packageName != "com.google.android.apps.nbu.paisa.user") return
 
-        val title = sbn.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
-        val text = sbn.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
-        val body = if (title.isNotEmpty() && text.isNotEmpty()) {
+        val extras = sbn.notification.extras ?: return
+        val title = extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+        val text = extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+        val bigText = extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+
+        // 2. ISOLATED GPAY HANDLING: Only merge Title + Text for GPay.
+        // Preserve EXTRA_BIG_TEXT for SBI and other traditional banks.
+        val messageBody = if (packageName == "com.google.android.apps.nbu.paisa.user") {
             "$title $text".trim()
         } else {
-            val extracted = BankNotificationConfig.extractMessage(sbn.notification)
-            extracted.ifBlank { title.ifBlank { text } }
+            bigText.ifBlank { text }
         }
 
-        if (body.isBlank()) {
+        if (messageBody.isBlank()) return
+
+        // Skip group summaries to avoid duplicate processing
+        if ((sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0) {
             return
         }
 
@@ -76,7 +82,9 @@ class BankNotificationListenerService : NotificationListenerService() {
         val senderAlias = BankNotificationConfig.senderAlias(packageName)
         val timestamp = sbn.postTime
 
+        // 3. Defer to background worker thread safely
         serviceScope.launch {
+            // Double-check user's custom runtime preferences whitelist
             val monitoredPackages = userPreferencesRepository.monitoredBankPackages.first()
             val isWhitelisted = if (monitoredPackages.isEmpty()) {
                 packageName.equals("com.google.android.apps.nbu.paisa.user", ignoreCase = true)
@@ -94,7 +102,7 @@ class BankNotificationListenerService : NotificationListenerService() {
                 notificationId = notificationRepository.logNotification(
                     packageName = packageName,
                     senderAlias = senderAlias,
-                    messageBody = body,
+                    messageBody = messageBody,
                     postedAtMillis = timestamp
                 ).takeIf { it > 0 }
             } catch (e: Exception) {
@@ -106,7 +114,7 @@ class BankNotificationListenerService : NotificationListenerService() {
                 // Parse first to get amount, then look for an existing transaction
                 // with the same amount within a ±2-minute window.
                 val parser = BankParserFactory.getParser(senderAlias)
-                val parsed = parser?.parse(body, senderAlias, timestamp)
+                val parsed = parser?.parse(messageBody, senderAlias, timestamp)
                 if (parsed != null) {
                     val eventTime = LocalDateTime.ofInstant(
                         Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()
@@ -127,7 +135,7 @@ class BankNotificationListenerService : NotificationListenerService() {
 
                 val result = processor.processAndSaveTransaction(
                     sender = senderAlias,
-                    body = body,
+                    body = messageBody,
                     timestamp = timestamp
                 )
                 if (!result.success) {

@@ -116,3 +116,18 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.apache.harmony.**
 -dontwarn javax.xml.stream.**
+
+# ============================================================================
+# SQLCipher & Native SQLite Driver Rules
+# ============================================================================
+
+# Keep the entire net.sqlcipher package completely untouched for native binding
+-keep class net.sqlcipher.** { *; }
+-dontwarn net.sqlcipher.**
+
+# Secure the native JNI database interaction bridge utilized by Room
+-keep class androidx.sqlite.db.** { *; }
+-keep class androidx.sqlite.db.framework.** { *; }
+
+# Keep the Dependency Injection database module from being stripped or modified
+-keep class com.pennywiseai.tracker.di.DatabaseModule { *; }

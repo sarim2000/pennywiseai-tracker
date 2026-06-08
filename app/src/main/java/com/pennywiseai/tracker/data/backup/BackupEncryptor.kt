@@ -9,7 +9,7 @@ import javax.crypto.spec.SecretKeySpec
 
 object BackupEncryptor {
     private val MAGIC_BYTES = byteArrayOf(0x50, 0x57, 0x42, 0x4B) // 'P' 'W' 'B' 'K'
-    private const val ITERATIONS = 10000
+    private const val ITERATIONS = 600_000
     private const val KEY_LENGTH = 256
     private const val SALT_LENGTH = 16
     private const val IV_LENGTH = 12
@@ -80,5 +80,13 @@ object BackupEncryptor {
         cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec)
         
         return cipher.doFinal(ciphertext)
+    }
+
+    fun hasMagicHeader(bytes: ByteArray): Boolean {
+        if (bytes.size < MAGIC_BYTES.size) return false
+        for (i in MAGIC_BYTES.indices) {
+            if (bytes[i] != MAGIC_BYTES[i]) return false
+        }
+        return true
     }
 }

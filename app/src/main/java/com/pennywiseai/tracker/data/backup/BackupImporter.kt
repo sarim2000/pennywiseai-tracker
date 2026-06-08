@@ -61,9 +61,20 @@ class BackupImporter @Inject constructor(
     private suspend fun readBackupFile(uri: Uri, password: CharArray): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val encryptedBytes = inputStream.readBytes()
-                val decryptedBytes = BackupEncryptor.decrypt(encryptedBytes, password)
-                val content = String(decryptedBytes, Charsets.UTF_8)
+                val bytes = inputStream.readBytes()
+                val content = if (BackupEncryptor.hasMagicHeader(bytes)) {
+                    // New encrypted path
+                    val decryptedBytes = BackupEncryptor.decrypt(bytes, password)
+                    String(decryptedBytes, Charsets.UTF_8)
+                } else {
+                    // FALLBACK PATHWAY: Old plaintext JSON parser for backward compatibility
+                    val plainText = String(bytes, Charsets.UTF_8)
+                    if (plainText.trim().startsWith("{") || plainText.trim().startsWith("[")) {
+                        plainText
+                    } else {
+                        throw IllegalArgumentException("Unknown backup file format profile")
+                    }
+                }
                 // backupJson tolerates missing keys (older backups → Kotlin
                 // defaults) and unknown keys (newer backups → ignored). The
                 // old Gson `normalized()` net is no longer needed because the

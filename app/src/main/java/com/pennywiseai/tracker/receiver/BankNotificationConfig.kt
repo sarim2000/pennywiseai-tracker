@@ -27,6 +27,9 @@ object BankNotificationConfig {
     fun isAllowed(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())
 
+    fun isSupportedPackage(packageName: String): Boolean =
+        allowedPackages.containsKey(packageName.lowercase())
+
     fun senderAlias(packageName: String): String =
         allowedPackages[packageName.lowercase()] ?: packageName
 

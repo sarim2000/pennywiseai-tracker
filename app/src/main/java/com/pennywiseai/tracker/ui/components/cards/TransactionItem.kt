@@ -101,6 +101,9 @@ fun TransactionItem(
             }
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")
+            // Mark rows the user excluded from analytics so it's visible in the
+            // list which ones are skipped by spending stats (#451).
+            if (transaction.excludedFromAnalytics) add("Excluded")
             transaction.balanceAfter?.let { balance ->
                 add("Bal ${CurrencyFormatter.formatCurrency(balance, transaction.currency)}")
             }

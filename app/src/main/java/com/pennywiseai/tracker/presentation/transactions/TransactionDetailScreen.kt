@@ -189,6 +189,7 @@ fun TransactionDetailScreen(
     }
     
     val context = LocalContext.current
+    var showActionsMenu by remember { mutableStateOf(false) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -198,75 +199,10 @@ fun TransactionDetailScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = {
-            // Show FABs only when not in edit mode and transaction exists
-            if (!isEditMode && transaction != null) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Delete FAB
-                    SmallFloatingActionButton(
-                        onClick = { viewModel.showDeleteDialog() },
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Transaction"
-                        )
-                    }
-
-                    // Group FAB
-                    SmallFloatingActionButton(
-                        onClick = { viewModel.showGroupSheet() },
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FolderOpen,
-                            contentDescription = "Manage Group"
-                        )
-                    }
-
-                    // Duplicate FAB - opens the add form pre-filled as a new draft
-                    transaction?.let { txn ->
-                        SmallFloatingActionButton(
-                            onClick = { onDuplicateTransaction(txn.id) },
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Duplicate Transaction"
-                            )
-                        }
-                    }
-
-
-                    // Report Issue FAB
-                    FloatingActionButton(
-                        onClick = {
-                            val reportUrl = viewModel.getReportUrl()
-                            android.util.Log.d("TransactionDetail", "Report FAB clicked, opening URL: ${reportUrl.take(200)}...")
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))
-                            try {
-                                context.startActivity(intent)
-                                android.util.Log.d("TransactionDetail", "Successfully launched browser intent")
-                            } catch (e: Exception) {
-                                android.util.Log.e("TransactionDetail", "Error launching browser", e)
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.BugReport,
-                            contentDescription = "Report Issue"
-                        )
-                    }
-                }
-            }
-        },
+        // Transaction actions (delete / group / duplicate / report) live in the
+        // top-bar overflow menu, not floating buttons — a stack of FABs overlapped
+        // the receipt content (#451 follow-up).
+        floatingActionButton = {},
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -295,6 +231,71 @@ fun TransactionDetailScreen(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit"
                             )
+                        }
+                        Box {
+                            IconButton(onClick = { showActionsMenu = true }) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "More actions"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showActionsMenu,
+                                onDismissRequest = { showActionsMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Add to group") },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.FolderOpen, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        viewModel.showGroupSheet()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Duplicate") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        transaction?.let { onDuplicateTransaction(it.id) }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Report issue") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.BugReport, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        val reportUrl = viewModel.getReportUrl()
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))
+                                            )
+                                        }
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        viewModel.showDeleteDialog()
+                                    }
+                                )
+                            }
                         }
                     } else if (isEditMode) {
                         TextButton(

@@ -43,14 +43,13 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
+    onNavigateToBalanceHistory: (bankName: String, accountLast4: String) -> Unit,
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showUpdateDialog by remember { mutableStateOf(false) }
     var selectedAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAccountEntity by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
-    var showHistoryDialog by remember { mutableStateOf(false) }
-    var historyAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var accountToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showHiddenAccounts by remember { mutableStateOf(false) }
@@ -233,9 +232,7 @@ fun ManageAccountsScreen(
                                 showUpdateDialog = true
                             },
                             onViewHistory = {
-                                historyAccount = account.bankName to account.accountLast4
-                                viewModel.loadBalanceHistory(account.bankName, account.accountLast4)
-                                showHistoryDialog = true
+                                onNavigateToBalanceHistory(account.bankName, account.accountLast4)
                             },
                             onUnlinkCard = { cardId ->
                                 viewModel.unlinkCard(cardId)
@@ -302,9 +299,7 @@ fun ManageAccountsScreen(
                                 showUpdateDialog = true
                             },
                             onViewHistory = {
-                                historyAccount = card.bankName to card.accountLast4
-                                viewModel.loadBalanceHistory(card.bankName, card.accountLast4)
-                                showHistoryDialog = true
+                                onNavigateToBalanceHistory(card.bankName, card.accountLast4)
                             },
                             onDeleteAccount = {
                                 accountToDelete = card.bankName to card.accountLast4
@@ -382,9 +377,7 @@ fun ManageAccountsScreen(
                                     showUpdateDialog = true
                                 },
                                 onViewHistory = {
-                                    historyAccount = account.bankName to account.accountLast4
-                                    viewModel.loadBalanceHistory(account.bankName, account.accountLast4)
-                                    showHistoryDialog = true
+                                    onNavigateToBalanceHistory(account.bankName, account.accountLast4)
                                 },
                                 onUnlinkCard = { cardId ->
                                     viewModel.unlinkCard(cardId)
@@ -420,9 +413,7 @@ fun ManageAccountsScreen(
                                     showUpdateDialog = true
                                 },
                                 onViewHistory = {
-                                    historyAccount = card.bankName to card.accountLast4
-                                    viewModel.loadBalanceHistory(card.bankName, card.accountLast4)
-                                    showHistoryDialog = true
+                                    onNavigateToBalanceHistory(card.bankName, card.accountLast4)
                                 },
                                 onDeleteAccount = {
                                     accountToDelete = card.bankName to card.accountLast4
@@ -493,26 +484,6 @@ fun ManageAccountsScreen(
         }
     }
     
-    // Balance History Dialog
-    if (showHistoryDialog && historyAccount != null) {
-        BalanceHistoryDialog(
-            bankName = historyAccount!!.first,
-            accountLast4 = historyAccount!!.second,
-            balanceHistory = uiState.balanceHistory,
-            onDismiss = {
-                showHistoryDialog = false
-                historyAccount = null
-                viewModel.clearBalanceHistory()
-            },
-            onDeleteBalance = { id ->
-                viewModel.deleteBalanceRecord(id, historyAccount!!.first, historyAccount!!.second)
-            },
-            onUpdateBalance = { id, newBalance ->
-                viewModel.updateBalanceRecord(id, newBalance, historyAccount!!.first, historyAccount!!.second)
-            }
-        )
-    }
-
     // Delete Account Confirmation Dialog
     if (showDeleteConfirmDialog && accountToDelete != null) {
         DeleteAccountConfirmDialog(

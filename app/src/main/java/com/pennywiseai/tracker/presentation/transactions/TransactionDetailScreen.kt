@@ -746,6 +746,50 @@ private fun TransactionReceipt(
             }
         }
 
+        // ── Exclude from analytics (#451) ── placed above the detail rows so its
+        // Switch never sits under the bottom-right floating action buttons.
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
+                    .padding(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Icon(
+                    Icons.Default.QueryStats,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.medium),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Exclude from analytics",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Kept in history & balance, ignored in spending stats",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                // Display-only — the Row's clickable is the single toggle handler
+                // so a tap can't fire the VM call twice (Greptile #454).
+                Switch(
+                    checked = transaction.excludedFromAnalytics,
+                    onCheckedChange = null
+                )
+            }
+        }
+
         // ── Details Section ──
         Column(modifier = Modifier.fillMaxWidth()) {
             // Date & Time
@@ -877,51 +921,6 @@ private fun TransactionReceipt(
                     icon = Icons.Default.Tag,
                     label = "Reference",
                     value = it
-                )
-            }
-        }
-
-        // ── Exclude from analytics (#451) ──
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
-                    .padding(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Icon(
-                    Icons.Default.QueryStats,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.medium),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Exclude from analytics",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Kept in history and balance; ignored in spending trends, budgets and summaries",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                // Display-only: the Row's clickable above is the single toggle
-                // handler. A null onCheckedChange means tapping the Switch falls
-                // through to the row, so one tap can't fire the VM call twice
-                // (Greptile #454).
-                Switch(
-                    checked = transaction.excludedFromAnalytics,
-                    onCheckedChange = null
                 )
             }
         }

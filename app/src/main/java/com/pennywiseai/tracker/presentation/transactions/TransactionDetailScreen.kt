@@ -696,13 +696,7 @@ private fun TransactionReceipt(
                                 modifier = Modifier.size(Dimensions.Icon.small),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = loanColor.copy(alpha = 0.12f),
-                            labelColor = loanColor,
-                            iconContentColor = loanColor
-                        ),
-                        border = null
+                        }
                     )
                 } else {
                     SuggestionChip(

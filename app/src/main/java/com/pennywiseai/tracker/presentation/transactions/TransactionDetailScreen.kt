@@ -697,7 +697,7 @@ private fun TransactionReceipt(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    )
+                    }
                 } else {
                     SuggestionChip(
                         onClick = { viewModel.showMarkAsLoanSheet() },

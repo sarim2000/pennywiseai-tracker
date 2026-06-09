@@ -204,7 +204,12 @@ private fun LargerTopAppBar(
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
-                actionContent()
+                // Lay multiple actions (e.g. Edit + overflow) out horizontally. The
+                // visibility wrapper renders into a Box, not a RowScope, so without
+                // this Row the icons stack on top of each other in the expanded bar.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    actionContent()
+                }
             }
         },
         collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,

@@ -831,6 +831,13 @@ object SharedCategoryMapping {
             }
         }
 
+        // An investment-typed transaction is, by definition, an investment — pin it
+        // to the "Investments" category regardless of merchant so it lands in an
+        // investment budget rather than leaking into a spending category.
+        if (transactionType == "INVESTMENT") {
+            return "Investments"
+        }
+
         return getCategory(merchantName)
     }
 }

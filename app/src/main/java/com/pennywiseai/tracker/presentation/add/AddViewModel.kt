@@ -173,7 +173,7 @@ class AddViewModel @Inject constructor(
                 category = when (type) {
                     TransactionType.INCOME -> "Income"
                     TransactionType.EXPENSE -> "Others"
-                    TransactionType.INVESTMENT -> "Investment"
+                    TransactionType.INVESTMENT -> "Investments"
                     TransactionType.CREDIT -> "Shopping"
                     else -> currentState.category
                 },

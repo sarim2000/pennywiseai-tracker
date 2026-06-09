@@ -150,10 +150,14 @@ class BudgetRepository @Inject constructor(
             endDate = budget.endDate.atTime(23, 59, 59),
             currency = budget.currency
         ).map { allTransactions ->
-            // Filter to only include EXPENSE transactions, excluding loan repayments
-            // and transactions the user excluded from analytics (#451).
+            // Count money that leaves the account: EXPENSE and INVESTMENT (e.g. SIPs
+            // categorised as "Investments"). Both are outflows the user budgets for.
+            // INCOME / TRANSFER are excluded by virtue of not matching. Loan
+            // repayments are excluded (tracked separately), as are transactions the
+            // user excluded from analytics (#451).
             allTransactions.filter {
-                it.transaction.transactionType == TransactionType.EXPENSE &&
+                (it.transaction.transactionType == TransactionType.EXPENSE ||
+                    it.transaction.transactionType == TransactionType.INVESTMENT) &&
                     it.transaction.loanId == null &&
                     !it.transaction.excludedFromAnalytics
             }

@@ -369,7 +369,6 @@ class BudgetGroupRepository @Inject constructor(
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != TransactionType.INCOME &&
                     tx.transactionType != TransactionType.TRANSFER &&
-                    tx.transactionType != TransactionType.INVESTMENT &&
                     tx.loanId == null
                 ) {
                     val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
@@ -632,8 +631,9 @@ class BudgetGroupRepository @Inject constructor(
         /**
          * Single source of truth for the per-category aggregation used on the
          * Budgets screen. Walks `transactions` and:
-         *  - sums non-INCOME / non-TRANSFER / non-INVESTMENT split amounts into
-         *    `categoryAmounts` (key=category name, "Others" when blank);
+         *  - sums non-INCOME / non-TRANSFER split amounts into `categoryAmounts`
+         *    (key=category name, "Others" when blank). INVESTMENT counts here so a
+         *    budget targeting an investment category (e.g. SIPs) tracks correctly;
          *  - for INCOME txns with a `budgetCategory`, subtracts DEDUCT_SPENT
          *    (Refund) amounts from `categoryAmounts` (floored at zero) and
          *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
@@ -653,8 +653,7 @@ class BudgetGroupRepository @Inject constructor(
             for (txWithSplits in transactions) {
                 val type = txWithSplits.transaction.transactionType
                 if (type == TransactionType.INCOME ||
-                    type == TransactionType.TRANSFER ||
-                    type == TransactionType.INVESTMENT
+                    type == TransactionType.TRANSFER
                 ) continue
                 val fromCurrency = txWithSplits.transaction.currency
                 for ((category, amount) in txWithSplits.getAmountByCategory()) {

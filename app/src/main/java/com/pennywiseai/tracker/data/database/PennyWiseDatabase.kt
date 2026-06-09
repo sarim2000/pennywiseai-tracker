@@ -57,7 +57,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 51
+const val SCHEMA_VERSION = 52
 
 /**
  * The PennyWise Room database.
@@ -498,6 +498,22 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_51_52 = object : Migration(51, 52) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Backfill: investment-typed transactions used to auto-default into
+                // "Others" (or the old "Investment" singular). They now belong to the
+                // "Investments" category so they land in investment budgets, matching
+                // how new investment transactions are categorised going forward. Only
+                // the auto-defaulted categories are touched — a deliberately-chosen
+                // category (e.g. "Banking") is left as-is.
+                db.execSQL(
+                    "UPDATE `transactions` SET `category` = 'Investments' " +
+                        "WHERE `transaction_type` = 'INVESTMENT' " +
+                        "AND `category` IN ('Others', 'Investment')"
+                )
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -549,6 +565,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_48_49,
             MIGRATION_49_50,
             MIGRATION_50_51,
+            MIGRATION_51_52,
         )
     }
     

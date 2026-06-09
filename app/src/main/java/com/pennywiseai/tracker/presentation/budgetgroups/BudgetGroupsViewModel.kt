@@ -154,7 +154,6 @@ class BudgetGroupsViewModel @Inject constructor(
             val tx = txWithSplits.transaction
             if (tx.transactionType == TransactionType.INCOME ||
                 tx.transactionType == TransactionType.TRANSFER ||
-                tx.transactionType == TransactionType.INVESTMENT ||
                 tx.loanId != null
             ) return@mapNotNull null
             val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)

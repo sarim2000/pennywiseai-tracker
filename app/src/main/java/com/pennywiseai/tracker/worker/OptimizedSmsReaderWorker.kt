@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -28,6 +29,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.toJavaLocalDateTime
 import java.math.BigDecimal
@@ -89,8 +91,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private const val NOTIFICATION_ID           = 9001
         private const val PARSE_CHANNEL_CAPACITY    = 512
         private const val RESULT_CHANNEL_CAPACITY   = 512
-        private const val PROGRESS_REPORT_INTERVAL  = 10
-        private const val PROGRESS_MONITOR_INTERVAL = 50L
         private const val UNRECOGNIZED_BATCH_SIZE   = 50
         private const val ETA_WINDOW_MS             = 2000L
 
@@ -128,7 +128,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val systemZone: ZoneId = ZoneId.systemDefault()
 
     /** Set once at the start of doWork to avoid calling LocalDateTime.now() per SMS. */
-    private lateinit var thirtyDaysAgo: LocalDateTime
+    private var thirtyDaysAgoMillis: Long = 0L
 
     /** O(1) sender-to-parser lookup. Factory is only called once per unique sender string. */
     private class ParserHolder(val parsers: List<BankParser>)
@@ -222,39 +222,37 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val blocked   = AtomicInteger(0)
         val startTime = System.currentTimeMillis()
 
-        // Must be a power of 2 (for bitmask) and large enough that the ring never
-        // wraps within ETA_WINDOW_MS at peak throughput. 8192 / 3 ≈ 2730 msg/s max.
         private val RING_SIZE          = 8192
         private val MIN_SAMPLES        = 10
-        private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)   // zeros = epoch 1970, never in window
+        private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)
         private val head               = AtomicInteger(0)
+        private val writtenCount       = AtomicInteger(0)
 
         fun recordCompletion() {
-            // Bitmask modulo: (RING_SIZE - 1) works because RING_SIZE is power of 2
             val pos = head.getAndIncrement() and (RING_SIZE - 1)
             ring.lazySet(pos, System.currentTimeMillis())
+            if (writtenCount.get() < RING_SIZE) writtenCount.incrementAndGet()
         }
 
         fun elapsedMs() = System.currentTimeMillis() - startTime
 
-        /**
-         * Instantaneous msg/s over the last [ETA_WINDOW_MS].
-         * Falls back to overall average during warmup so ETA is always meaningful.
-         */
         fun msgPerSec(): Float {
             val now      = System.currentTimeMillis()
             val cutoff   = now - ETA_WINDOW_MS
             var count    = 0
-            for (i in 0 until RING_SIZE) {
-                val ts = ring.get(i)
-                if (ts in (cutoff + 1)..now) count++   // bounds-check: exclude zeros AND future timestamps
+            val mask     = RING_SIZE - 1
+            val limit    = writtenCount.get()
+            val currentHead = head.get()
+            for (i in 0 until limit) {
+                val pos = (currentHead - 1 - i) and mask
+                val ts  = ring.get(pos)
+                if (ts in (cutoff + 1)..now) count++
             }
             return when {
                 count >= MIN_SAMPLES ->
-                    count / (ETA_WINDOW_MS / 1000f)     // accurate window rate
+                    count / (ETA_WINDOW_MS / 1000f)
 
                 else -> {
-                    // Warmup or very slow: fall back to overall elapsed average
                     val elapsedSec = elapsedMs() / 1000f
                     val done       = processed.get()
                     if (elapsedSec > 0.1f && done > 0) done / elapsedSec else 0f
@@ -276,6 +274,12 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         SKIPPED
     }
 
+    private data class DeferredBalanceUpdate(
+        val parsed: ParsedTransaction,
+        val entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
+        val transactionId: Long
+    )
+
     // ─── Expedited work ───────────────────────────────────────────────────────
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
@@ -285,7 +289,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
-        thirtyDaysAgo = LocalDateTime.now(systemZone).minusDays(30)
+        thirtyDaysAgoMillis = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
 
         Trace.beginSection("SmsWorker.doWork")
         try {
@@ -293,7 +297,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.i(TAG, "Starting SMS worker (forceResync=$forceResync)")
 
             if (forceResync) {
-                // try/finally ensures endSection even if the suspend calls throw
                 Trace.beginSection("clearDatabase")
                 try {
                     // Preserve user-curated rows (loan-linked + grouped) so
@@ -317,12 +320,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.i(TAG, "Force resync: uncurated rows cleared (loans + groups preserved)")
             }
 
-            Trace.beginSection("readSmsMessages")
-            val messages = try {
-                readSmsMessages(forceResync)
-            } finally {
-                Trace.endSection()
-            }
+            val (scanStartTime, needsFullScan) = computeScanParams(forceResync)
+            val now = System.currentTimeMillis()
 
             Trace.beginSection("preloadCaches")
             try {
@@ -333,15 +332,21 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             } finally {
                 Trace.endSection()
             }
-            Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.sumOf { it.size }} rules")
+            Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.map { it.size }.sum()} rules")
 
+            // Fast COUNT queries — avoids loading all messages before the pipeline
+            val smsCount = countSmsMessages(scanStartTime)
+            val rcsCount = countRcsMessages(scanStartTime / 1000)
+            val total = smsCount + rcsCount
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
-            Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | ${messages.size} messages")
+            Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
 
-            val stats = ProcessingStats(total = messages.size)
+            val stats = ProcessingStats(total = total)
             reportProgress(stats)
 
-            val totalTime = measureTimeMillis { runPipeline(messages, stats, parserConcurrency) }
+            val totalTime = measureTimeMillis {
+                streamPipeline(scanStartTime, needsFullScan, now, stats, parserConcurrency)
+            }
 
             Log.i(TAG, buildSummary(stats, totalTime))
             cleanUpAndFinalize(stats)
@@ -367,19 +372,24 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
 
-    private suspend fun runPipeline(
-        messages: List<SmsMessage>,
+    private suspend fun streamPipeline(
+        scanStartTime: Long,
+        needsFullScan: Boolean,
+        now: Long,
         stats: ProcessingStats,
         parserConcurrency: Int
     ) = coroutineScope {
-        // Explicit local vals — captured by the launch lambdas below
         val feed    = Channel<SmsMessage>(PARSE_CHANNEL_CAPACITY)
         val results = Channel<ParseResult>(RESULT_CHANNEL_CAPACITY)
 
-        // Stage 1 – Feed
+        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel)
         launch(Dispatchers.IO) {
-            try { messages.forEach { sms -> feed.send(sms) } }
-            finally { feed.close() }
+            try {
+                streamSmsToChannel(feed, scanStartTime)
+                streamRcsToChannel(feed, scanStartTime / 1000)
+            } finally {
+                feed.close()
+            }
         }
 
         // Stage 2 – Parse (all available CPU cores)
@@ -392,6 +402,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         try {
                             results.send(parseSms(sms))
                         } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             Log.e(TAG, "Error parsing SMS from ${sms.sender}: ${e.message}")
                             results.send(ParseResult.Discard(sms))
                         }
@@ -409,10 +420,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
 
         // Stage 3 – Save (single sequential coroutine — no balance race conditions)
+        // Balance updates run concurrently via a dedicated consumer so they never block the saver.
+        val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
+        val balanceUpdater = launch(Dispatchers.IO) {
+            for (update in balanceUpdates) {
+                try { processBalanceUpdate(update.parsed, update.entity, update.transactionId) }
+                catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.e(TAG, "Balance update failed: ${e.message}")
+                }
+            }
+        }
+
         val saver = launch(Dispatchers.IO) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
             val unrecognizedBatch = ArrayList<SmsMessage>(UNRECOGNIZED_BATCH_SIZE)
             var widgetNeedsUpdate = false
+            var lastReportTime = 0L
 
             Trace.beginSection("save")
             try {
@@ -435,7 +459,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             stats.parsed.incrementAndGet()
                             Trace.beginSection("saveTransaction")
                             try {
-                                when (saveTransaction(result.parsed, result.sms, stats)) {
+                                when (saveTransaction(result.parsed, result.sms, stats, balanceUpdates)) {
                                     SaveOutcome.SAVED -> {
                                         stats.saved.incrementAndGet()
                                         widgetNeedsUpdate = true
@@ -454,7 +478,12 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             }
                         }
                     }
-                    if (p % PROGRESS_REPORT_INTERVAL == 0 || p == stats.total) reportProgress(stats)
+
+                    val nowMs = System.currentTimeMillis()
+                    if (nowMs - lastReportTime >= 250L || p == 1 || p == stats.total) {
+                        reportProgress(stats)
+                        lastReportTime = nowMs
+                    }
                 }
             } finally {
                 Trace.endSection()
@@ -465,17 +494,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(applicationContext)
         }
 
-        // Real-time UI refresh every 50ms
-        val progressMonitor = launch(Dispatchers.IO) {
-            while (stats.processed.get() < stats.total) {
-                delay(PROGRESS_MONITOR_INTERVAL)
-                reportProgress(stats)
-            }
+        saver.join()
+        balanceUpdates.close()
+        balanceUpdater.join()
+
+        // Persist scan state after all stages (including saving) finish successfully
+        userPreferencesRepository.setLastScanTimestamp(now)
+        if (needsFullScan) {
+            val scanMonths = userPreferencesRepository.getSmsScanMonths()
+            val scanAllTime = userPreferencesRepository.getSmsScanAllTime()
+            userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
         }
 
-        saver.join()
         reportProgress(stats)
-        progressMonitor.cancel()
     }
 
     // ─── Stage 2: Parse (plain fun — no suspend overhead on the hot path) ─────
@@ -493,7 +524,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             else
                 ParseResult.Discard(sms)
 
-        val isRecent = sms.timestamp.toLocalDateTime().isAfter(thirtyDaysAgo)
+        val isRecent = sms.timestamp > thirtyDaysAgoMillis
 
         // Subscription/balance special-cases are bank-type specific; the primary
         // parser is enough (shared-sender M-Pesa parsers aren't special-cased).
@@ -627,21 +658,27 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Stage 3b: Regular transactions ──────────────────────────────────────
 
-    private suspend fun saveTransaction(parsed: ParsedTransaction, sms: SmsMessage, stats: ProcessingStats): SaveOutcome {
-        return try {
+    private suspend fun saveTransaction(
+        parsed: ParsedTransaction,
+        sms: SmsMessage,
+        stats: ProcessingStats,
+        balanceUpdates: SendChannel<DeferredBalanceUpdate>
+    ): SaveOutcome = try {
+        coroutineScope {
             val entity = parsed.toEntity()
-
-            // getTransactionByHash returns rows where is_deleted=1 too, so
-            // soft-deleted transactions are never re-imported.
-            if (transactionRepository.getTransactionByHash(entity.transactionHash) != null) return SaveOutcome.SKIPPED
+            val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
 
             val customCategory = merchantMappingCache[entity.merchantName]
             val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
 
             val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
-            if (ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null) {
+            val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
+
+            if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+
+            if (isBlocked) {
                 stats.blocked.incrementAndGet()
-                return SaveOutcome.SKIPPED
+                return@coroutineScope SaveOutcome.SKIPPED
             }
 
             val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
@@ -668,23 +705,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     transactionRepository.updateTransaction(replacement)
                     accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
                     replaceRuleApplications(duplicate.id, ruleApps)
-                    processBalanceUpdate(parsed, replacement, duplicate.id)
-                    return SaveOutcome.UPDATED_DUPLICATE
+                    balanceUpdates.send(DeferredBalanceUpdate(parsed, replacement, duplicate.id))
+                    return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
                 }
-                return SaveOutcome.SKIPPED_DUPLICATE
+                return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
             }
 
             val rowId = transactionRepository.insertTransaction(finalEntity)
-            if (rowId == -1L) return SaveOutcome.SKIPPED
+            if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
             saveRuleApplications(rowId, ruleApps)
-            processBalanceUpdate(parsed, finalEntity, rowId)
+            balanceUpdates.send(DeferredBalanceUpdate(parsed, finalEntity, rowId))
             SaveOutcome.SAVED
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving transaction: ${e.message}")
-            SaveOutcome.SKIPPED
         }
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        Log.e(TAG, "Error saving transaction: ${e.message}")
+        SaveOutcome.SKIPPED
     }
 
     private suspend fun replaceRuleApplications(
@@ -799,20 +836,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────
 
     private suspend fun flushUnrecognizedBatch(batch: ArrayList<SmsMessage>) {
-        for (sms in batch) {
-            try {
-                if (!unrecognizedSmsRepository.exists(sms.sender, sms.body)) {
-                    unrecognizedSmsRepository.insert(
-                        UnrecognizedSmsEntity(
-                            sender     = sms.sender,
-                            smsBody    = sms.body,
-                            receivedAt = sms.timestamp.toLocalDateTime()
-                        )
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error storing unrecognized SMS: ${e.message}")
-            }
+        val entities = batch.map { sms ->
+            UnrecognizedSmsEntity(
+                sender     = sms.sender,
+                smsBody    = sms.body,
+                receivedAt = sms.timestamp.toLocalDateTime()
+            )
+        }
+        try {
+            unrecognizedSmsRepository.insertAll(entities)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")
         }
         batch.clear()
     }
@@ -821,18 +856,25 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private suspend fun cleanUpAndFinalize(stats: ProcessingStats) {
         try { unrecognizedSmsRepository.cleanupOldEntries() }
-        catch (e: Exception) { Log.e(TAG, "Cleanup error: ${e.message}") }
+        catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Cleanup error: ${e.message}")
+        }
         try {
             val deletedDuplicates = cleanupExistingGPayDuplicates()
             if (deletedDuplicates > 0) {
                 Log.i(TAG, "Cleaned up $deletedDuplicates existing GPay duplicate transactions")
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e(TAG, "GPay duplicate cleanup error: ${e.message}")
         }
         if (stats.saved.get() > 0) {
             try { llmRepository.updateSystemPrompt() }
-            catch (e: Exception) { Log.e(TAG, "Prompt update error: ${e.message}") }
+            catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.e(TAG, "Prompt update error: ${e.message}")
+            }
         }
     }
 
@@ -860,7 +902,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 PROGRESS_SAVED                    to stats.saved.get(),
                 PROGRESS_BLOCKED                  to stats.blocked.get(),
                 PROGRESS_TIME_ELAPSED             to stats.elapsedMs(),
-                PROGRESS_ESTIMATED_TIME_REMAINING to (eta * 1000L),
+                PROGRESS_ESTIMATED_TIME_REMAINING to (eta * TimeConstants.MILLIS_PER_SECOND),
                 PROGRESS_ETA_SECONDS              to eta,
                 PROGRESS_MSG_PER_SEC              to mps,
                 PROGRESS_CURRENT_BATCH            to p,
@@ -869,45 +911,110 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         } catch (_: Exception) {}
     }
 
-    // ─── SMS / RCS reading ────────────────────────────────────────────────────
+    // ─── SMS / RCS reading (streaming) ─────────────────────────────────────────
 
-    private suspend fun readSmsMessages(forceResync: Boolean = false): List<SmsMessage> {
-        val messages = mutableListOf<SmsMessage>()
+    /** Computes scan params without reading any message bodies. */
+    private suspend fun computeScanParams(forceResync: Boolean): Pair<Long, Boolean> {
+        val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first() ?: 0L
+        val scanMonths        = userPreferencesRepository.getSmsScanMonths()
+        val scanAllTime       = userPreferencesRepository.getSmsScanAllTime()
+        val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
+        val now               = System.currentTimeMillis()
+
+        val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
+        val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
+        val needsFullScan = forceResync || lastScanTimestamp == 0L ||
+            (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) ||
+            scanAllTimeToggled || scanAllTimeToggledOff
+
+        val scanStartTime = if (needsFullScan) {
+            if (scanAllTime) 0L
+            else java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.MONTH, -scanMonths)
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else {
+            val threeDaysAgo = now - TimeConstants.MILLIS_PER_3_DAYS
+            val periodLimit  = java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.MONTH, -scanMonths)
+            }.timeInMillis
+            maxOf(minOf(lastScanTimestamp, threeDaysAgo), periodLimit)
+        }
+        return scanStartTime to needsFullScan
+    }
+
+    /** Fast COUNT-only query — reads zero message bodies. */
+    private suspend fun countSmsMessages(scanStartTime: Long): Int {
+        var count = 0
         try {
-            val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first() ?: 0L
-            val scanMonths        = userPreferencesRepository.getSmsScanMonths()
-            val scanAllTime       = userPreferencesRepository.getSmsScanAllTime()
-            val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
-            val now               = System.currentTimeMillis()
-
-            // First run, resync, period change, or scanAllTime toggled: full scan.
-            // scanAllTime=false→true detected via lastScanPeriod != -1 sentinel.
-            // scanAllTime=true→false detected via lastScanPeriod == -1 with scanAllTime=false.
-            val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
-            val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
-            val needsFullScan = forceResync || lastScanTimestamp == 0L || (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) || scanAllTimeToggled || scanAllTimeToggledOff
-
-            val scanStartTime = if (needsFullScan) {
-                if (scanAllTime) {
-                    // "All Time" must mean truly all SMS the Telephony provider still
-                    // has, not the last 10 years. Anything older simply isn't on the
-                    // device any more, so a 0L lower bound is safe.
-                    0L
-                } else {
-                    java.util.Calendar.getInstance().apply {
-                        add(java.util.Calendar.MONTH, -scanMonths)
-                        set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
-                    }.timeInMillis
-                }
-            } else {
-                val threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000L
-                val periodLimit  = java.util.Calendar.getInstance().apply {
-                    add(java.util.Calendar.MONTH, -scanMonths)
-                }.timeInMillis
-                maxOf(minOf(lastScanTimestamp, threeDaysAgo), periodLimit)
+            applicationContext.contentResolver.query(
+                Telephony.Sms.CONTENT_URI,
+                arrayOf("COUNT(*)"),
+                "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
+                arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) count = c.getInt(0)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error counting SMS", e)
+        }
+        return count
+    }
 
+    /** Robust query for RCS messages. */
+    private suspend fun countRcsMessages(scanStartSeconds: Long): Int {
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("COUNT(*)"),
+                "date >= ? AND tr_id LIKE 'proto:%'",
+                arrayOf(scanStartSeconds.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) {
+                    return c.getInt(0)
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.w(TAG, "Fast RCS count failed, falling back to cursor iteration: ${e.message}")
+        }
+
+        var count = 0
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("tr_id"),
+                "date >= ?",
+                arrayOf(scanStartSeconds.toString()),
+                null
+            )?.use { c ->
+                val trIdIdx = c.getColumnIndex("tr_id")
+                if (trIdIdx >= 0) {
+                    while (c.moveToNext()) {
+                        val trId = c.getString(trIdIdx)
+                        if (trId != null && trId.startsWith("proto:")) {
+                            count++
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error counting RCS via fallback scan", e)
+        }
+        return count
+    }
+
+    /** Streams SMS cursor rows directly into the feed channel — no intermediate list. */
+    private suspend fun streamSmsToChannel(
+        feed: SendChannel<SmsMessage>,
+        scanStartTime: Long
+    ) {
+        var count = 0
+        try {
             applicationContext.contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
                 SMS_PROJECTION,
@@ -921,53 +1028,57 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 val bodyIdx    = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
                 val typeIdx    = c.getColumnIndexOrThrow(Telephony.Sms.TYPE)
                 while (c.moveToNext()) {
-                    messages.add(SmsMessage(
+                    feed.send(SmsMessage(
                         id        = c.getLong(idIdx),
                         sender    = c.getString(addressIdx) ?: "",
                         timestamp = c.getLong(dateIdx),
                         body      = c.getString(bodyIdx) ?: "",
                         type      = c.getInt(typeIdx)
                     ))
+                    count++
                 }
             }
-
-            userPreferencesRepository.setLastScanTimestamp(now)
-            if (needsFullScan) userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
-
-            try { messages.addAll(readRcsMessages(scanStartTime / 1000)) }
-            catch (e: Exception) { Log.e(TAG, "RCS read error: ${e.message}") }
-
         } catch (e: Exception) {
-            Log.e(TAG, "Error reading SMS", e)
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error streaming SMS", e)
         }
-        Log.i(TAG, "Loaded ${messages.size} messages (SMS + RCS)")
-        return messages
+        Log.i(TAG, "Streamed $count SMS messages to pipeline")
     }
 
-    private fun readRcsMessages(scanStartSeconds: Long): List<SmsMessage> {
-        val result = mutableListOf<SmsMessage>()
-        applicationContext.contentResolver.query(
-            "content://mms".toUri(),
-            arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
-            "date >= ?",
-            arrayOf(scanStartSeconds.toString()),
-            "date DESC"
-        )?.use { c ->
-            while (c.moveToNext()) {
-                val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))
-                val date      = c.getLong(c.getColumnIndexOrThrow("date"))
-                val trId      = c.getColumnIndex("tr_id").takeIf { it >= 0 }
-                    ?.let { c.getString(it) } ?: continue
-                if (!trId.startsWith("proto:")) continue
+    /** Streams RCS messages into the feed channel. */
+    private suspend fun streamRcsToChannel(
+        feed: SendChannel<SmsMessage>,
+        scanStartSeconds: Long
+    ) {
+        var count = 0
+        try {
+            applicationContext.contentResolver.query(
+                "content://mms".toUri(),
+                arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
+                "date >= ?",
+                arrayOf(scanStartSeconds.toString()),
+                "date DESC"
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))
+                    val date      = c.getLong(c.getColumnIndexOrThrow("date"))
+                    val trId      = c.getColumnIndex("tr_id").takeIf { it >= 0 }
+                        ?.let { c.getString(it) } ?: continue
+                    if (!trId.startsWith("proto:")) continue
 
-                val sender = extractRcsSender(trId) ?: continue
-                var text = getRcsMessageText(messageId) ?: continue
-                if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
+                    val sender = extractRcsSender(trId) ?: continue
+                    var text = getRcsMessageText(messageId) ?: continue
+                    if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
 
-                result.add(SmsMessage(messageId, sender, date * 1000, text, Telephony.Sms.MESSAGE_TYPE_INBOX))
+                    feed.send(SmsMessage(messageId, sender, date * 1000, text, Telephony.Sms.MESSAGE_TYPE_INBOX))
+                    count++
+                }
             }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error streaming RCS", e)
         }
-        return result
+        Log.i(TAG, "Streamed $count RCS messages to pipeline")
     }
 
     // ─── RCS helpers ──────────────────────────────────────────────────────────
@@ -976,7 +1087,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val decoded = String(android.util.Base64.decode(trId.removePrefix("proto:"), android.util.Base64.DEFAULT))
         Regex("""([a-z_]+)_[a-z0-9]+_agent@rbm\.goog""").find(decoded)?.let { m ->
             return m.groupValues[1].split("_")
-                .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                .joinToString(" ") { if (it.isNotEmpty()) it.substring(0, 1).uppercase() + it.substring(1) else it }
         }
         Regex("""[\x12\x1a][\x00-\x20]([A-Za-z][A-Za-z\s]+)""").find(decoded)?.let { m ->
             val name = m.groupValues[1].trim()

@@ -21,6 +21,6 @@ sealed class HomeRecentItem {
         val convertedAmounts: Map<Long, BigDecimal> = emptyMap()
     ) : HomeRecentItem() {
         override val sortTime: LocalDateTime
-            get() = transactions.maxOfOrNull { it.dateTime } ?: group.updatedAt
+            get() = transactions.map { it.dateTime }.maxOrNull() ?: group.updatedAt
     }
 }

@@ -68,7 +68,7 @@ fun SpendingBarChart(
     }
 
     val maxValue = remember(chartData) {
-        (chartData.maxOfOrNull { it.value } ?: 0.0) * 1.2
+        (chartData.map { it.value }.maxOrNull() ?: 0.0) * 1.2
     }
 
     val animationProgress = remember { Animatable(0f) }

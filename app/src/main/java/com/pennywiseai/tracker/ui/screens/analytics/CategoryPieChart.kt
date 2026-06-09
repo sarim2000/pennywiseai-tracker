@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import java.math.BigDecimal
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -39,7 +40,7 @@ fun CategoryPieChart(
 ) {
     if (categories.isEmpty()) return
 
-    val total = categories.sumOf { it.amount }.toDouble()
+    val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
     if (total == 0.0) return
 
     val pieData = remember(categories) {

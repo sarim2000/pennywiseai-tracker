@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -27,9 +28,9 @@ fun CategoryBreakdownCard(
     modifier: Modifier = Modifier,
     onCategoryClick: (CategoryData) -> Unit = {}
 ) {
-    val maxAmount = categories.maxOfOrNull { it.amount } ?: java.math.BigDecimal.ZERO
+    val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
 
-    PennyWiseCard(
+    PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(

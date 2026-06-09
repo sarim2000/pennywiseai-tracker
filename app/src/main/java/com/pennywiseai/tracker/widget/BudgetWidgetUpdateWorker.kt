@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -177,7 +178,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val limitCategoryNames = raw.budgetsWithCategories
                     .filter { it.budget.groupType == BudgetGroupType.LIMIT }
-                    .flatMap { it.categories }
+                    .map { it.categories }
+                    .flatten()
                     .map { it.categoryName }
                     .toSet()
 

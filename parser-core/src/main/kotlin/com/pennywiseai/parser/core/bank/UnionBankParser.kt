@@ -218,8 +218,8 @@ class UnionBankParser : BaseIndianBankParser() {
             // Default - clean up the VPA name
             else -> {
                 val parts = cleanVPA.split(".", "-", "_")
-                parts.firstOrNull { it.length > 3 && !it.all { char -> char.isDigit() } }
-                    ?.replaceFirstChar { it.uppercase() } ?: "Merchant"
+                val matched = parts.firstOrNull { it.length > 3 && !it.all { char -> char.isDigit() } } ?: "merchant"
+                if (matched.isEmpty()) matched else matched.substring(0, 1).uppercase() + matched.substring(1)
             }
         }
     }

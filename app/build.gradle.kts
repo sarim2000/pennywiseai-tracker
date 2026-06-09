@@ -2,16 +2,15 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "com.pennywiseai.tracker"
-    compileSdk = 36
+    compileSdk = 37
     
     buildFeatures {
         buildConfig = true
@@ -181,7 +180,7 @@ tasks.register<Copy>("copyChangelog") {
     rename { "whats_new.txt" }
 }
 
-android.sourceSets["main"].assets.srcDir(generatedAssetsDir)
+android.sourceSets["main"].assets.directories.add(generatedAssetsDir.get().asFile.path)
 
 tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.configureEach {
     dependsOn("copyChangelog")

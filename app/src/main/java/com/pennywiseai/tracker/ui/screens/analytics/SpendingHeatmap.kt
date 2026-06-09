@@ -28,7 +28,7 @@ fun SpendingHeatmap(
 ) {
     if (data.isEmpty()) return
 
-    val maxAmount = remember(data) { data.maxOfOrNull { it.balance.toDouble() } ?: 1.0 }
+    val maxAmount = remember(data) { data.map { it.balance.toDouble() }.maxOrNull() ?: 1.0 }
     val groupedData = remember(data) {
         data.associate { it.timestamp.toLocalDate() to it.balance.toDouble() }
     }

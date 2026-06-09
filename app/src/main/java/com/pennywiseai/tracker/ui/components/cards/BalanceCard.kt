@@ -79,6 +79,7 @@ fun BalanceCard(
     lastMonthSpending: BigDecimal = BigDecimal.ZERO,
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean = false,
+    isApproximate: Boolean = false,
     onCurrencyClick: () -> Unit,
     onShowBreakdown: () -> Unit,
     isBalanceHidden: Boolean = false,
@@ -184,7 +185,11 @@ fun BalanceCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (isBalanceHidden) "Balance: ••••••" else "Balance: ${CurrencyFormatter.formatCurrency(totalBalance, currency)}",
+                                    text = if (isBalanceHidden) {
+                                        "Balance: ••••••"
+                                    } else {
+                                        "Balance: ${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     fontWeight = FontWeight.Medium
@@ -422,10 +427,23 @@ fun BalanceCard(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(totalBalance, currency),
+                                    text = if (isBalanceHidden) {
+                                        "••••••"
+                                    } else {
+                                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                                    },
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            if (isApproximate) {
+                                Spacer(modifier = Modifier.height(Spacing.xs))
+                                Text(
+                                    text = "* Some balances could not be converted and are shown in original currency (total sum is approximate).",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }

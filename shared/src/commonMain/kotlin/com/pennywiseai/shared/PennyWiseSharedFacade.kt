@@ -4,6 +4,7 @@ import com.pennywiseai.shared.data.SharedDataGraph
 import com.pennywiseai.shared.data.local.entity.SharedBudgetCategoryEntity
 import com.pennywiseai.shared.data.local.entity.SharedBudgetEntity
 import com.pennywiseai.shared.data.local.entity.SharedSubscriptionEntity
+import com.pennywiseai.shared.data.model.SharedTransaction
 import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.util.currentTimeMillis
@@ -398,9 +399,9 @@ class PennyWiseSharedFacade {
                             txn.transactionType != SharedTransactionType.INCOME &&
                             (categoryNames.isEmpty() || txn.category in categoryNames)
                     }
-                    val totalSpent = periodTxns.sumOf { it.amountMinor }
+                    val totalSpent = periodTxns.fold(0L) { acc, txn -> acc + txn.amountMinor }
                     val breakdowns = categories.map { cat ->
-                        val catSpent = periodTxns.filter { it.category == cat.categoryName }.sumOf { it.amountMinor }
+                        val catSpent = periodTxns.filter { it.category == cat.categoryName }.fold(0L) { acc, txn -> acc + txn.amountMinor }
                         SharedBudgetCategoryBreakdown(cat.categoryName, cat.budgetAmountMinor, catSpent)
                     }
                     SharedBudgetItem(
@@ -912,10 +913,10 @@ class PennyWiseSharedFacade {
         println("[HomeSnapshot] monthStart=$monthStart, thisMonthTxnCount=${thisMonthTxns.size}, totalTxns=${transactions.size}")
         val monthlyIncome = thisMonthTxns
             .filter { it.transactionType == SharedTransactionType.INCOME }
-            .sumOf { it.amountMinor }
+            .fold(0L) { acc, txn -> acc + txn.amountMinor }
         val monthlyExpense = thisMonthTxns
             .filter { it.transactionType != SharedTransactionType.INCOME }
-            .sumOf { it.amountMinor }
+            .fold(0L) { acc, txn -> acc + txn.amountMinor }
 
         return SharedHomeSnapshot(
             categories = categories,

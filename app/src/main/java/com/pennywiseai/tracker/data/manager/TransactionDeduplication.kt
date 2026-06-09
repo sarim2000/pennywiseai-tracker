@@ -53,7 +53,8 @@ object TransactionDeduplication {
                 )
             }
             .values
-            .flatMap { group -> duplicateIdsFromGroup(group) }
+            .map { group -> duplicateIdsFromGroup(group) }
+            .flatten()
     }
 
     private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Long> {
@@ -72,13 +73,13 @@ object TransactionDeduplication {
                 }
             }
 
-        return duplicateClusters.flatMap { cluster ->
-            val keeper = cluster.minWith(transactionQualityComparator)
+        return duplicateClusters.map { cluster ->
+            val keeper = cluster.minWith(transactionQualityComparator) ?: return@map emptyList()
             cluster
                 .filter { it.id != keeper.id }
                 .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
                 .map { it.id }
-        }
+        }.flatten()
     }
 
     private val transactionQualityComparator = compareBy<TransactionEntity>(

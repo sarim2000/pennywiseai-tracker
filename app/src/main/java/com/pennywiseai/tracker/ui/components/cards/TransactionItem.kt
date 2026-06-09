@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -32,6 +33,7 @@ fun TransactionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
+    showTypeLabel: Boolean = true,
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
@@ -87,17 +89,18 @@ fun TransactionItem(
             ) {
                 add(transaction.category)
             }
-            when (transaction.transactionType) {
-                TransactionType.CREDIT -> add("Credit")
-                TransactionType.TRANSFER -> {
-                    // When the row has a usable Transfer title (computed below)
-                    // the title carries the "Transfer" + leg labels — don't
-                    // restate them here. Only annotate the subtitle for legacy
-                    // TRANSFER rows that lack from/to data.
-                    if (transferTitleOverride(transaction) == null) add("Transfer")
+
+            if (showTypeLabel) {
+                when (transaction.transactionType) {
+                    TransactionType.CREDIT -> add("Credit")
+                    TransactionType.TRANSFER -> {
+                        if (transferTitleOverride(transaction) == null) {
+                            add("Transfer")
+                        }
+                    }
+                    TransactionType.INVESTMENT -> add("Investment")
+                    else -> {}
                 }
-                TransactionType.INVESTMENT -> add("Investment")
-                else -> {}
             }
             if (transaction.isRecurring) add("Recurring")
             if (isEffectivelyBusiness) add("Business")
@@ -148,10 +151,8 @@ fun TransactionItem(
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                 with(sharedTransitionScope) {
-                    Modifier.sharedElement(
-                        sharedTransitionScope.rememberSharedContentState(
-                            key = "brand_icon_${transaction.id}"
-                        ),
+                    sharedElementIcon(
+                        key = "brand_icon_${transaction.id}",
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 }

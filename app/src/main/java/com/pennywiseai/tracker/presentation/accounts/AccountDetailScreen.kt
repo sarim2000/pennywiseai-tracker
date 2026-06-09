@@ -30,10 +30,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.theme.*
@@ -158,7 +159,7 @@ fun AccountDetailScreen(
                     items = uiState.transactions,
                     key = { it.id }
                 ) { transaction ->
-                    TransactionItem(
+                    AccountTransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
                         onClick = { onTransactionClick(transaction.id) }
@@ -190,7 +191,7 @@ private fun ExpandableBalanceChart(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     
-    PennyWiseCard(
+    PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded }
@@ -270,7 +271,7 @@ private fun CurrentBalanceCard(
 ) {
     val isCreditCard = creditLimit != null
     
-    PennyWiseCard(
+    PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -383,7 +384,7 @@ private fun SummaryStatistics(
     primaryCurrency: String,
     hasMultipleCurrencies: Boolean = false
 ) {
-    PennyWiseCard(
+    PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -502,7 +503,7 @@ private fun DateRangeFilter(
 }
 
 @Composable
-private fun TransactionItem(
+private fun AccountTransactionItem(
     transaction: TransactionEntity,
     primaryCurrency: String,
     onClick: () -> Unit

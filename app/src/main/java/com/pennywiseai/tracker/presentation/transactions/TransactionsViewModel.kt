@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -797,6 +798,12 @@ class TransactionsViewModel @Inject constructor(
         }
     }
     
+    private fun decodeUrlParam(value: String): String {
+        return if (value.contains("+") || value.contains("%")) {
+            java.net.URLDecoder.decode(value, "UTF-8")
+        } else value
+    }
+
     fun applyInitialFilters(
         category: String?,
         merchant: String?,
@@ -812,16 +819,12 @@ class TransactionsViewModel @Inject constructor(
             setSortOption(SortOption.DATE_NEWEST)
 
             category?.let {
-                val decoded = if (it.contains("+") || it.contains("%")) {
-                    java.net.URLDecoder.decode(it, "UTF-8")
-                } else it
+                val decoded = decodeUrlParam(it)
                 setCategoryFilter(decoded)
             }
 
             merchant?.let {
-                val decoded = if (it.contains("+") || it.contains("%")) {
-                    java.net.URLDecoder.decode(it, "UTF-8")
-                } else it
+                val decoded = decodeUrlParam(it)
                 updateSearchQuery(decoded)
             }
 
@@ -871,16 +874,12 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
 
         category?.let {
-            val decoded = if (it.contains("+") || it.contains("%")) {
-                java.net.URLDecoder.decode(it, "UTF-8")
-            } else it
+            val decoded = decodeUrlParam(it)
             setCategoryFilter(decoded)
         }
 
         merchant?.let {
-            val decoded = if (it.contains("+") || it.contains("%")) {
-                java.net.URLDecoder.decode(it, "UTF-8")
-            } else it
+            val decoded = decodeUrlParam(it)
             updateSearchQuery(decoded)
         }
 
@@ -951,11 +950,7 @@ class TransactionsViewModel @Inject constructor(
         // Set multiple categories filter
         categories?.let { cats ->
             val categoryList = cats.split(",").map { cat ->
-                if (cat.contains("+") || cat.contains("%")) {
-                    java.net.URLDecoder.decode(cat, "UTF-8")
-                } else {
-                    cat
-                }
+                decodeUrlParam(cat)
             }.filter { it.isNotBlank() }
 
             if (categoryList.isNotEmpty()) {
@@ -1166,7 +1161,7 @@ class TransactionsViewModel @Inject constructor(
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val income = currencyTransactions
@@ -1174,28 +1169,28 @@ class TransactionsViewModel @Inject constructor(
                     it.transactionType == TransactionType.INCOME &&
                         it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
                 }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val rawExpenses = currencyTransactions
                 .filter { it.transactionType == TransactionType.EXPENSE }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
             val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
             val credit = currencyTransactions
                 .filter { it.transactionType == TransactionType.CREDIT }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val transfer = currencyTransactions
                 .filter { it.transactionType == TransactionType.TRANSFER }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             val investment = currencyTransactions
                 .filter { it.transactionType == TransactionType.INVESTMENT }
-                .sumOf { it.amount.toDouble() }
+                .map { it.amount.toDouble() }.sum()
                 .toBigDecimal()
 
             CurrencyTotals(
@@ -1224,25 +1219,7 @@ class TransactionsViewModel @Inject constructor(
     }
     
     fun getReportUrl(transaction: TransactionEntity): String {
-        // If we have the original SMS body, create report URL
-        val smsBody = transaction.smsBody ?: ""
-        // Use the original SMS sender if available
-        val sender = transaction.smsSender ?: ""
-        
-        // URL encode the parameters
-        val encodedMessage = java.net.URLEncoder.encode(smsBody, "UTF-8")
-        val encodedSender = java.net.URLEncoder.encode(sender, "UTF-8")
-        
-        // Encrypt device data for verification
-        val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-        val encodedDeviceData = if (encryptedDeviceData != null) {
-            java.net.URLEncoder.encode(encryptedDeviceData, "UTF-8")
-        } else {
-            ""
-        }
-        
-        // Create the report URL using hash fragment for privacy
-        return "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+        return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
     
 }

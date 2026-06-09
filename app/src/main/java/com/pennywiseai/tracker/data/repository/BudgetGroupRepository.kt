@@ -161,7 +161,7 @@ class BudgetGroupRepository @Inject constructor(
 
     private suspend fun recomputeGroupTotal(budgetId: Long) {
         val categories = budgetDao.getCategoriesForBudgetList(budgetId)
-        val total = categories.sumOf { it.budgetAmount }
+        val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.budgetAmount }
         budgetDao.updateBudgetLimitAmount(budgetId, total)
     }
 
@@ -183,7 +183,7 @@ class BudgetGroupRepository @Inject constructor(
                 displayOrder = bwc.budget.displayOrder
             )
         }
-        val categorySnapshots = budgets.flatMap { bwc ->
+        val categorySnapshots = budgets.map { bwc ->
             bwc.categories.map { cat ->
                 BudgetCategoryMonthSnapshotEntity(
                     budgetId = bwc.budget.id,
@@ -193,7 +193,7 @@ class BudgetGroupRepository @Inject constructor(
                     budgetAmount = cat.budgetAmount
                 )
             }
-        }
+        }.flatten()
         snapshotDao.replaceMonthSnapshots(year, month, groupSnapshots, categorySnapshots)
     }
 
@@ -235,6 +235,11 @@ class BudgetGroupRepository @Inject constructor(
                 categories = cats
             )
         }
+    }
+
+    private fun percentOf(part: BigDecimal, total: BigDecimal, coerceMinZero: Boolean = true): Float {
+        val pct = part.toFloat() / total.toFloat() * 100f
+        return if (coerceMinZero) pct.coerceAtLeast(0f) else pct
     }
 
     fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
@@ -417,7 +422,7 @@ class BudgetGroupRepository @Inject constructor(
                 val totalActual = totalAllExpenses
                 val remaining = totalBudget - totalActual
                 val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                    (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
+                    percentOf(totalActual, totalBudget)
                 } else 0f
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
@@ -444,7 +449,7 @@ class BudgetGroupRepository @Inject constructor(
                     val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                     val effectiveBudget = cat.budgetAmount + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
                     val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
-                        (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
+                        percentOf(actual, effectiveBudget)
                     } else 0f
                     val dailySpend = if (daysElapsed > 0 && actual > BigDecimal.ZERO) {
                         actual.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
@@ -468,7 +473,7 @@ class BudgetGroupRepository @Inject constructor(
                 val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
                 val remaining = totalBudget - totalActual
                 val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                    (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
+                    percentOf(totalActual, totalBudget)
                 } else 0f
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
@@ -506,7 +511,7 @@ class BudgetGroupRepository @Inject constructor(
 
         val netSavings = totalIncome - totalLimitSpent
         val savingsRate = if (totalIncome > BigDecimal.ZERO) {
-            (netSavings.toFloat() / totalIncome.toFloat() * 100f)
+            percentOf(netSavings, totalIncome, coerceMinZero = false)
         } else 0f
 
         val limitRemaining = totalLimitBudget - totalLimitSpent

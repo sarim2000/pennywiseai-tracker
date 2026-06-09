@@ -65,7 +65,8 @@ fun GreetingCard(
         val now = today
         val lastDay = now.withDayOfMonth(now.lengthOfMonth())
         val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
-        val monthName = now.month.name.lowercase().replaceFirstChar { it.uppercase() }
+        val rawMonth = now.month.name.lowercase()
+        val monthName = if (rawMonth.isEmpty()) rawMonth else rawMonth.substring(0, 1).uppercase() + rawMonth.substring(1)
 
         when {
             daysLeft == 0L -> "Last day of $monthName"

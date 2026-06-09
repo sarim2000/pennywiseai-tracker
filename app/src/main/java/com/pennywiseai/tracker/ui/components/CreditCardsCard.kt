@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -44,7 +45,7 @@ fun CreditCardsCard(
         creditCards.take(4)
     }
 
-    PennyWiseCard(
+    PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
     ) {
         Column {

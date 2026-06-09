@@ -13,6 +13,6 @@ data class BudgetWithCategories(
         get() {
             val overallAmount = budget.limitAmount
             return if (overallAmount > BigDecimal.ZERO) overallAmount
-            else categories.sumOf { it.budgetAmount }
+            else categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.budgetAmount }
         }
 }

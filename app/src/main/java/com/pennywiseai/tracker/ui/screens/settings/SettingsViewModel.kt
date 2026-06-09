@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.core.Constants
@@ -477,23 +478,7 @@ class SettingsViewModel @Inject constructor(
                 val firstUnreported = unrecognizedSmsRepository.getFirstUnreported()
                 
                 if (firstUnreported != null) {
-                    // URL encode the parameters
-                    val encodedMessage = URLEncoder.encode(firstUnreported.smsBody, "UTF-8")
-                    val encodedSender = URLEncoder.encode(firstUnreported.sender, "UTF-8")
-                    
-                    // Encrypt device data for verification
-                    val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-                    Log.d("SettingsViewModel", "Encrypted device data: ${encryptedDeviceData?.take(50)}... (length: ${encryptedDeviceData?.length})")
-                    
-                    val encodedDeviceData = if (encryptedDeviceData != null) {
-                        URLEncoder.encode(encryptedDeviceData, "UTF-8")
-                    } else {
-                        ""
-                    }
-                    Log.d("SettingsViewModel", "Encoded device data: ${encodedDeviceData.take(50)}... (length: ${encodedDeviceData.length})")
-                    
-                    // Create the report URL using hash fragment for privacy
-                    val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+                    val url = SmsReportUrlBuilder.buildUrl(context, firstUnreported.smsBody, firstUnreported.sender)
                     Log.d("SettingsViewModel", "Full URL length: ${url.length}")
                     
                     // Open in browser

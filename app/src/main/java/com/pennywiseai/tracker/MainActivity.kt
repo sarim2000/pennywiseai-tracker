@@ -37,12 +37,15 @@ class MainActivity : FragmentActivity() {
         // Handle intent if activity is launched from notification
         handleEditIntent(intent)
 
+        val editCompleteCallback = { editTransactionId = null }
+        val addShortcutCallback = { openAddTransaction = false }
+
         setContent {
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
-                onEditComplete = { editTransactionId = null },
-                onAddTransactionShortcutHandled = { openAddTransaction = false }
+                onEditComplete = editCompleteCallback,
+                onAddTransactionShortcutHandled = addShortcutCallback
             )
         }
     }

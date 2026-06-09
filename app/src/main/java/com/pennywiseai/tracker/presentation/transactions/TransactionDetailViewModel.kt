@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -102,7 +103,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     val activeBudgetCategories: StateFlow<List<String>> = budgetGroupRepository.getActiveGroups()
         .map { groups ->
-            groups.flatMap { it.categories.map { cat -> cat.categoryName } }.distinct().sorted()
+            groups.map { it.categories.map { cat -> cat.categoryName } }.flatten().distinct().sorted()
         }
         .stateIn(
             scope = viewModelScope,
@@ -520,7 +521,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         // Splits must sum to transaction total (within 0.01 tolerance)
-        val splitsTotal = currentSplits.sumOf { it.amount }
+        val splitsTotal = currentSplits.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
         val difference = (transaction.amount - splitsTotal).abs()
         val tolerance = BigDecimal("0.01")
 
@@ -739,7 +740,7 @@ class TransactionDetailViewModel @Inject constructor(
         // If it's all uppercase, convert to proper case
         return if (trimmed == trimmed.uppercase()) {
             trimmed.lowercase().split(" ").joinToString(" ") { word ->
-                word.replaceFirstChar { it.uppercase() }
+                if (word.isEmpty()) word else word.substring(0, 1).uppercase() + word.substring(1)
             }
         } else {
             // Already has mixed case, keep as is
@@ -749,31 +750,10 @@ class TransactionDetailViewModel @Inject constructor(
     
     fun getReportUrl(): String {
         val txn = _transaction.value ?: return ""
-        
-        // Use the original SMS body if available
         val smsBody = txn.smsBody ?: "Transaction: ${txn.merchantName} - ${txn.amount}"
-        
-        // Use the original SMS sender if available
-        val sender = txn.smsSender ?: ""
-        
         android.util.Log.d("TransactionDetailVM", "Generating report URL for transaction")
-        
-        // URL encode the parameters
-        val encodedMessage = java.net.URLEncoder.encode(smsBody, "UTF-8")
-        val encodedSender = java.net.URLEncoder.encode(sender, "UTF-8")
-        
-        // Encrypt device data for verification
-        val encryptedDeviceData = com.pennywiseai.tracker.utils.DeviceEncryption.encryptDeviceData(context)
-        val encodedDeviceData = if (encryptedDeviceData != null) {
-            java.net.URLEncoder.encode(encryptedDeviceData, "UTF-8")
-        } else {
-            ""
-        }
-        
-        // Create the report URL using hash fragment for privacy
-        val url = "${Constants.Links.WEB_PARSER_URL}/#message=$encodedMessage&sender=$encodedSender&device=$encodedDeviceData&autoparse=true"
+        val url = SmsReportUrlBuilder.buildUrl(context, smsBody, txn.smsSender)
         android.util.Log.d("TransactionDetailVM", "Report URL: ${url.take(200)}...")
-        
         return url
     }
     

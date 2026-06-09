@@ -60,7 +60,7 @@ class SubscriptionsViewModel @Inject constructor(
                     }
                     total
                 } else {
-                    subscriptions.sumOf { it.amount }
+                    subscriptions.fold(BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
                 }
 
                 val convertedAmounts = if (isUnified) {

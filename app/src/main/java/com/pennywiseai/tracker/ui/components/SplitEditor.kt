@@ -42,7 +42,7 @@ fun SplitEditor(
     onRemoveSplits: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val splitsTotal = splits.sumOf { it.amount }
+    val splitsTotal = splits.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
     val remaining = totalAmount - splitsTotal
     val isBalanced = remaining.abs() <= BigDecimal("0.01")
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -50,7 +51,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -540,9 +541,10 @@ fun TransactionsScreen(
                     ).forEach { dateGroup ->
                         uiState.groupedTransactions[dateGroup]?.let { transactions ->
                             // Date group header
-                            stickyHeader {
+                            val headerContent: @Composable LazyItemScope.(Int) -> Unit = { _ ->
                                 TransactionDateHeader(title = dateGroup.label)
                             }
+                            stickyHeader(content = headerContent)
                             
                             // Transactions in this group
                             itemsIndexed(

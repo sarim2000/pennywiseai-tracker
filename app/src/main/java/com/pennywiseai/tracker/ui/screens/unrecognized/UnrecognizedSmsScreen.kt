@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -20,19 +19,18 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.shimmer
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -391,73 +389,5 @@ private fun UnrecognizedSmsItem(
 private fun UnrecognizedSmsItemSkeleton(
     modifier: Modifier = Modifier
 ) {
-    val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHighest
-
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            // Sender placeholder
-            Box(
-                modifier = Modifier
-                    .width(140.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-            // Date placeholder
-            Box(
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            // Message body placeholders (3 lines)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.small))
-                    .background(placeholderColor)
-                    .shimmer()
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            // Button placeholder
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(80.dp)
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
-                        .background(placeholderColor)
-                        .shimmer()
-                )
-            }
-        }
-    }
+    TransactionItemSkeleton(modifier = modifier)
 }

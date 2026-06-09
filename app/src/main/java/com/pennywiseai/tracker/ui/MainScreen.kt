@@ -511,6 +511,28 @@ fun MainScreen(
                                 navController.navigate("add_account") {
                                     launchSingleTop = true
                                 }
+                            },
+                            onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                                navController.navigate(
+                                    "balance_history/${android.net.Uri.encode(bankName)}/${android.net.Uri.encode(accountLast4)}"
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
+                    }
+                )
+
+                composable(
+                    route = "balance_history/{bankName}/{accountLast4}",
+                    arguments = listOf(
+                        androidx.navigation.navArgument("bankName") { type = androidx.navigation.NavType.StringType },
+                        androidx.navigation.navArgument("accountLast4") { type = androidx.navigation.NavType.StringType }
+                    ),
+                    content = { _: NavBackStackEntry ->
+                        com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
                             }
                         )
                     }

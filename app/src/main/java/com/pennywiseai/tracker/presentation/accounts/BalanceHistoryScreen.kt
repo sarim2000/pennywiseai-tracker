@@ -19,7 +19,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import androidx.compose.foundation.text.KeyboardOptions
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
@@ -29,16 +34,17 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("DEPRECATION")
 @Composable
-fun BalanceHistoryDialog(
-    bankName: String,
-    accountLast4: String,
-    balanceHistory: List<AccountBalanceEntity>,
-    onDismiss: () -> Unit,
-    onDeleteBalance: (Long) -> Unit,
-    onUpdateBalance: (Long, BigDecimal) -> Unit
+fun BalanceHistoryScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: BalanceHistoryViewModel = hiltViewModel()
 ) {
+    val balanceHistory by viewModel.history.collectAsStateWithLifecycle()
+    val bankName = viewModel.bankName
+    val accountLast4 = viewModel.accountLast4
+
     // Get the primary currency for this account
     val accountPrimaryCurrency = remember(bankName) {
         CurrencyFormatter.getBankBaseCurrency(bankName)
@@ -48,39 +54,39 @@ fun BalanceHistoryDialog(
     var showDeleteConfirmation by remember { mutableStateOf<Long?>(null) }
     var expandedSources by remember { mutableStateOf<Set<Long>>(emptySet()) }
     val clipboard = LocalClipboardManager.current
+
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     
-    Dialog(onDismissRequest = onDismiss) {
-        PennyWiseCardV2(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.8f),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            contentPadding = Dimensions.Padding.content
-        ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Balance History",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "$bankName ••$accountLast4",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        topBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = "Balance History",
+                hasBackButton = true,
+                hasActionButton = false,
+                navigationContent = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = Dimensions.Padding.content)
+        ) {
+                Text(
+                    text = "$bankName ••$accountLast4",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 
                 Spacer(modifier = Modifier.height(Spacing.md))
                 
@@ -124,7 +130,7 @@ fun BalanceHistoryDialog(
                                 },
                                 onSaveEdit = {
                                     editingValue.toBigDecimalOrNull()?.let { newBalance ->
-                                        onUpdateBalance(balance.id, newBalance)
+                                        viewModel.updateBalance(balance.id, newBalance)
                                         editingId = null
                                         editingValue = ""
                                     }
@@ -165,7 +171,7 @@ fun BalanceHistoryDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onDeleteBalance(balanceId)
+                        viewModel.deleteBalance(balanceId)
                         showDeleteConfirmation = null
                     }
                 ) {

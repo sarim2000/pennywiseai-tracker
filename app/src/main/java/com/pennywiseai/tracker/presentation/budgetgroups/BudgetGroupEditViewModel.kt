@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.BudgetBucketInput
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +27,15 @@ import javax.inject.Inject
 data class CategoryBudgetItem(
     val categoryName: String,
     val amount: BigDecimal,
-    val currentSpending: BigDecimal = BigDecimal.ZERO
+    val currentSpending: BigDecimal = BigDecimal.ZERO,
+    /** Non-null → this row is a transaction-type bucket (e.g. "INVESTMENT"). */
+    val matchType: String? = null
+)
+
+/** A trackable transaction-type bucket offered in the add-bucket menu. */
+data class TypeBucketOption(
+    val typeName: String,
+    val displayName: String
 )
 
 data class BudgetGroupEditUiState(
@@ -35,6 +44,7 @@ data class BudgetGroupEditUiState(
     val overallAmount: String = "",
     val categories: List<CategoryBudgetItem> = emptyList(),
     val availableCategories: List<String> = emptyList(),
+    val availableTypeBuckets: List<TypeBucketOption> = emptyList(),
     val categorySpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
@@ -94,7 +104,8 @@ class BudgetGroupEditViewModel @Inject constructor(
                         CategoryBudgetItem(
                             categoryName = it.categoryName,
                             amount = it.budgetAmount,
-                            currentSpending = categorySpending[it.categoryName] ?: BigDecimal.ZERO
+                            currentSpending = categorySpending[it.categoryName] ?: BigDecimal.ZERO,
+                            matchType = it.matchType
                         )
                     }
                     _uiState.value = BudgetGroupEditUiState(
@@ -125,13 +136,39 @@ class BudgetGroupEditViewModel @Inject constructor(
     private fun loadAvailableCategories() {
         viewModelScope.launch {
             categoryRepository.getExpenseCategories().collect { expenseCategories ->
-                val currentCategoryNames = _uiState.value.categories.map { it.categoryName }
+                val current = _uiState.value.categories
+                val currentNames = current.map { it.categoryName }
+                // A type bucket's display label (e.g. "Investments") is offered as a
+                // type bucket, not a category — so hide those category names to avoid
+                // the (budget_id, category_name) unique-index collision.
+                val typeLabels = ALL_TYPE_BUCKETS.map { it.displayName }
                 val available = expenseCategories
                     .map { it.name }
-                    .filter { it !in currentCategoryNames }
-                _uiState.value = _uiState.value.copy(availableCategories = available)
+                    .filter { it !in currentNames && it !in typeLabels }
+                _uiState.value = _uiState.value.copy(
+                    availableCategories = available,
+                    availableTypeBuckets = ALL_TYPE_BUCKETS.filter { opt ->
+                        current.none { it.matchType == opt.typeName }
+                    }
+                )
             }
         }
+    }
+
+    fun addTypeBucket(option: TypeBucketOption) {
+        val current = _uiState.value.categories.toMutableList()
+        current.add(
+            CategoryBudgetItem(
+                categoryName = option.displayName,
+                amount = BigDecimal.ZERO,
+                currentSpending = BigDecimal.ZERO,
+                matchType = option.typeName
+            )
+        )
+        _uiState.value = _uiState.value.copy(
+            categories = current,
+            availableTypeBuckets = _uiState.value.availableTypeBuckets - option
+        )
     }
 
     fun updateName(name: String) {
@@ -160,10 +197,19 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     fun removeCategory(categoryName: String) {
         val current = _uiState.value.categories.toMutableList()
+        val removed = current.firstOrNull { it.categoryName == categoryName }
         current.removeAll { it.categoryName == categoryName }
+        val restoredType = removed?.matchType?.let { mt -> ALL_TYPE_BUCKETS.firstOrNull { it.typeName == mt } }
         _uiState.value = _uiState.value.copy(
             categories = current,
-            availableCategories = _uiState.value.availableCategories + categoryName
+            // Restore a removed category to the picker; a removed type bucket goes
+            // back to the type-bucket options instead.
+            availableCategories = if (removed?.matchType == null) {
+                _uiState.value.availableCategories + categoryName
+            } else _uiState.value.availableCategories,
+            availableTypeBuckets = if (restoredType != null) {
+                _uiState.value.availableTypeBuckets + restoredType
+            } else _uiState.value.availableTypeBuckets
         )
     }
 
@@ -183,7 +229,9 @@ class BudgetGroupEditViewModel @Inject constructor(
         _uiState.value = state.copy(isSaving = true)
 
         viewModelScope.launch {
-            val categories = state.categories.map { it.categoryName to it.amount }
+            val buckets = state.categories.map {
+                BudgetBucketInput(name = it.categoryName, amount = it.amount, matchType = it.matchType)
+            }
             val defaultColor = "#1565C0"
 
             if (state.groupId != null && state.groupId > 0) {
@@ -192,7 +240,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                     name = state.name,
                     groupType = BudgetGroupType.LIMIT,
                     color = defaultColor,
-                    categories = categories,
+                    buckets = buckets,
                     currency = state.currency,
                     limitAmount = overallAmount
                 )
@@ -201,8 +249,8 @@ class BudgetGroupEditViewModel @Inject constructor(
                     name = state.name,
                     groupType = BudgetGroupType.LIMIT,
                     color = defaultColor,
+                    buckets = buckets,
                     currency = state.currency,
-                    categories = categories,
                     limitAmount = overallAmount
                 )
             }
@@ -219,5 +267,12 @@ class BudgetGroupEditViewModel @Inject constructor(
             com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
             _uiState.value = _uiState.value.copy(saveComplete = true)
         }
+    }
+
+    companion object {
+        /** Transaction-type buckets a budget can track (display order). */
+        private val ALL_TYPE_BUCKETS = listOf(
+            TypeBucketOption(TransactionType.INVESTMENT.name, "Investments")
+        )
     }
 }

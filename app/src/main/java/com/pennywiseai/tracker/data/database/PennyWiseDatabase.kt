@@ -57,7 +57,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 51
+const val SCHEMA_VERSION = 52
 
 /**
  * The PennyWise Room database.
@@ -498,6 +498,20 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_51_52 = object : Migration(51, 52) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Type-aware budgets: a budget bucket can now track a transaction
+                // TYPE (match_type set) instead of a category name.
+                db.execSQL("ALTER TABLE `budget_categories` ADD COLUMN `match_type` TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE `budget_category_month_snapshots` ADD COLUMN `match_type` TEXT DEFAULT NULL")
+                // Auto-upgrade existing "Investments" category buckets to track the
+                // INVESTMENT type directly, so investments count regardless of how
+                // each transaction was categorised (and stop leaking into Spending).
+                db.execSQL("UPDATE `budget_categories` SET `match_type` = 'INVESTMENT' WHERE `category_name` = 'Investments'")
+                db.execSQL("UPDATE `budget_category_month_snapshots` SET `match_type` = 'INVESTMENT' WHERE `category_name` = 'Investments'")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -549,6 +563,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_48_49,
             MIGRATION_49_50,
             MIGRATION_50_51,
+            MIGRATION_51_52,
         )
     }
     

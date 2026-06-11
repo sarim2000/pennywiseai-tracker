@@ -50,12 +50,12 @@ class BudgetGroupRepository @Inject constructor(
         groupType: BudgetGroupType,
         color: String,
         currency: String,
-        categories: List<Pair<String, BigDecimal>> = emptyList(),
+        buckets: List<BudgetBucketInput> = emptyList(),
         displayOrder: Int = -1,
         limitAmount: BigDecimal? = null
     ): Long {
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
-        val totalAmount = limitAmount ?: categories.fold(BigDecimal.ZERO) { acc, (_, amount) -> acc + amount }
+        val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val now = LocalDate.now()
         val yearMonth = YearMonth.from(now)
 
@@ -67,7 +67,7 @@ class BudgetGroupRepository @Inject constructor(
             endDate = yearMonth.atEndOfMonth(),
             currency = currency,
             isActive = true,
-            includeAllCategories = categories.isEmpty(),
+            includeAllCategories = buckets.isEmpty(),
             color = color,
             groupType = groupType,
             displayOrder = resolvedDisplayOrder,
@@ -77,12 +77,13 @@ class BudgetGroupRepository @Inject constructor(
 
         val budgetId = budgetDao.insertBudget(budget)
 
-        if (categories.isNotEmpty()) {
-            val categoryEntities = categories.map { (categoryName, amount) ->
+        if (buckets.isNotEmpty()) {
+            val categoryEntities = buckets.map { b ->
                 BudgetCategoryEntity(
                     budgetId = budgetId,
-                    categoryName = categoryName,
-                    budgetAmount = amount
+                    categoryName = b.name,
+                    budgetAmount = b.amount,
+                    matchType = b.matchType
                 )
             }
             budgetDao.insertBudgetCategories(categoryEntities)
@@ -97,12 +98,12 @@ class BudgetGroupRepository @Inject constructor(
         name: String,
         groupType: BudgetGroupType,
         color: String,
-        categories: List<Pair<String, BigDecimal>>,
+        buckets: List<BudgetBucketInput>,
         currency: String? = null,
         limitAmount: BigDecimal? = null
     ) {
         val existing = budgetDao.getBudgetById(budgetId) ?: return
-        val totalAmount = limitAmount ?: categories.fold(BigDecimal.ZERO) { acc, (_, amount) -> acc + amount }
+        val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
 
         budgetDao.updateBudget(
             existing.copy(
@@ -111,18 +112,19 @@ class BudgetGroupRepository @Inject constructor(
                 color = color,
                 currency = currency ?: existing.currency,
                 limitAmount = totalAmount,
-                includeAllCategories = categories.isEmpty(),
+                includeAllCategories = buckets.isEmpty(),
                 updatedAt = LocalDateTime.now()
             )
         )
 
         budgetDao.deleteCategoriesForBudget(budgetId)
-        if (categories.isNotEmpty()) {
-            val categoryEntities = categories.map { (categoryName, amount) ->
+        if (buckets.isNotEmpty()) {
+            val categoryEntities = buckets.map { b ->
                 BudgetCategoryEntity(
                     budgetId = budgetId,
-                    categoryName = categoryName,
-                    budgetAmount = amount
+                    categoryName = b.name,
+                    budgetAmount = b.amount,
+                    matchType = b.matchType
                 )
             }
             budgetDao.insertBudgetCategories(categoryEntities)
@@ -190,7 +192,8 @@ class BudgetGroupRepository @Inject constructor(
                     year = year,
                     month = month,
                     categoryName = cat.categoryName,
-                    budgetAmount = cat.budgetAmount
+                    budgetAmount = cat.budgetAmount,
+                    matchType = cat.matchType
                 )
             }
         }.flatten()
@@ -215,7 +218,8 @@ class BudgetGroupRepository @Inject constructor(
                     BudgetCategoryEntity(
                         budgetId = gs.budgetId,
                         categoryName = cs.categoryName,
-                        budgetAmount = cs.budgetAmount
+                        budgetAmount = cs.budgetAmount,
+                        matchType = cs.matchType
                     )
                 }
             BudgetWithCategories(
@@ -347,7 +351,7 @@ class BudgetGroupRepository @Inject constructor(
         // Single-currency: amounts are already in the requested currency, so the
         // converter lambdas are identities. The unified-currency caller in
         // BudgetGroupsViewModel injects real conversion via the same helper.
-        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             transactions = allTransactions,
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
@@ -359,6 +363,7 @@ class BudgetGroupRepository @Inject constructor(
         // Helper: build per-group daily cumulative spending from transactions matching category names
         fun buildGroupPace(
             categoryNames: Set<String>?,  // null = all categories
+            matchTypes: Set<String>,      // transaction-type buckets in this group
             groupBudget: BigDecimal
         ): Pair<List<Double>, List<Double>> {
             val effectiveDays = daysElapsed.coerceAtMost(daysInMonth)
@@ -367,12 +372,17 @@ class BudgetGroupRepository @Inject constructor(
             val dailyAmounts = DoubleArray(daysInMonth)
             allTransactions.forEach { txWithSplits ->
                 val tx = txWithSplits.transaction
-                if (tx.transactionType != TransactionType.INCOME &&
-                    tx.transactionType != TransactionType.TRANSFER &&
-                    tx.transactionType != TransactionType.INVESTMENT &&
-                    tx.loanId == null
-                ) {
-                    val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+                if (tx.transactionType == TransactionType.INCOME ||
+                    tx.transactionType == TransactionType.TRANSFER ||
+                    tx.loanId != null
+                ) return@forEach
+                val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+                if (tx.transactionType.name in matchTypes) {
+                    // Claimed by a type bucket in this group (e.g. INVESTMENT).
+                    dailyAmounts[day - 1] += tx.amount.toDouble()
+                } else if (tx.transactionType !in BUDGET_TYPE_BUCKETS) {
+                    // Category routing for expenses/credit. Type-bucket-eligible
+                    // transactions (investments) never fall through to categories.
                     if (categoryNames == null) {
                         dailyAmounts[day - 1] += tx.amount.toDouble()
                     } else {
@@ -427,7 +437,7 @@ class BudgetGroupRepository @Inject constructor(
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
-                val (cumSpending, budgetPace) = buildGroupPace(null, totalBudget)
+                val (cumSpending, budgetPace) = buildGroupPace(null, emptySet(), totalBudget)
 
                 BudgetGroupSpending(
                     group = group,
@@ -446,8 +456,16 @@ class BudgetGroupRepository @Inject constructor(
             } else {
                 // Normal case: track specific categories
                 val catSpending = group.categories.map { cat ->
-                    val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                    val effectiveBudget = cat.budgetAmount + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                    // Type buckets read per-type spend; category buckets read
+                    // per-category spend (with any Extra-budget income boost).
+                    val actual = if (cat.matchType != null) {
+                        typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                    } else {
+                        categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                    }
+                    val boost = if (cat.matchType != null) BigDecimal.ZERO
+                        else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                    val effectiveBudget = cat.budgetAmount + boost
                     val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                         percentOf(actual, effectiveBudget)
                     } else 0f
@@ -478,8 +496,10 @@ class BudgetGroupRepository @Inject constructor(
                 val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                     remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
-                val catNames = group.categories.map { it.categoryName }.toSet()
-                val (cumSpending, budgetPace) = buildGroupPace(catNames, totalBudget)
+                val catNames = group.categories.filter { it.matchType == null }
+                    .map { it.categoryName }.toSet()
+                val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+                val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, totalBudget)
 
                 BudgetGroupSpending(
                     group = group,
@@ -553,15 +573,15 @@ class BudgetGroupRepository @Inject constructor(
             groupType = BudgetGroupType.LIMIT,
             color = "#1565C0",
             currency = baseCurrency,
-            categories = listOf(
-                "Food & Dining" to amount(5000),
-                "Groceries" to amount(8000),
-                "Shopping" to amount(3000),
-                "Entertainment" to amount(2000),
-                "Personal Care" to amount(1000),
-                "Transportation" to amount(3000),
-                "Travel" to amount(5000),
-                "Others" to amount(3000)
+            buckets = listOf(
+                BudgetBucketInput("Food & Dining", amount(5000)),
+                BudgetBucketInput("Groceries", amount(8000)),
+                BudgetBucketInput("Shopping", amount(3000)),
+                BudgetBucketInput("Entertainment", amount(2000)),
+                BudgetBucketInput("Personal Care", amount(1000)),
+                BudgetBucketInput("Transportation", amount(3000)),
+                BudgetBucketInput("Travel", amount(5000)),
+                BudgetBucketInput("Others", amount(3000))
             ),
             displayOrder = 0
         )
@@ -572,24 +592,29 @@ class BudgetGroupRepository @Inject constructor(
             groupType = BudgetGroupType.EXPECTED,
             color = "#4CAF50",
             currency = baseCurrency,
-            categories = listOf(
-                "Bills & Utilities" to amount(5000),
-                "Mobile" to amount(500),
-                "Insurance" to amount(2000),
-                "Education" to amount(3000)
+            buckets = listOf(
+                BudgetBucketInput("Bills & Utilities", amount(5000)),
+                BudgetBucketInput("Mobile", amount(500)),
+                BudgetBucketInput("Insurance", amount(2000)),
+                BudgetBucketInput("Education", amount(3000))
             ),
             displayOrder = 1
         )
 
-        // Group 3: Investments (TARGET) - savings goals
+        // Group 3: Investments (TARGET) — tracks the INVESTMENT transaction type
+        // directly, so every investment counts regardless of its category and
+        // nothing leaks into Spending.
         createGroup(
             name = "Investments",
             groupType = BudgetGroupType.TARGET,
             color = "#00D09C",
             currency = baseCurrency,
-            categories = listOf(
-                "Investments" to amount(10000),
-                "Banking" to amount(5000)
+            buckets = listOf(
+                BudgetBucketInput(
+                    name = "Investments",
+                    amount = amount(15000),
+                    matchType = TransactionType.INVESTMENT.name
+                )
             ),
             displayOrder = 2
         )
@@ -626,14 +651,25 @@ class BudgetGroupRepository @Inject constructor(
          */
         data class CategoryAggregation(
             val categoryAmounts: Map<String, BigDecimal>,
-            val categoryLimitBoosts: Map<String, BigDecimal>
+            val categoryLimitBoosts: Map<String, BigDecimal>,
+            // Spend per transaction TYPE (key = TransactionType.name, e.g.
+            // "INVESTMENT"), for budget buckets that track a type instead of a
+            // category. INVESTMENT outflows route here, never into categoryAmounts,
+            // so they only count toward a type bucket and never leak into a
+            // category/Spending budget. Third field → existing 2-arg destructuring
+            // still compiles.
+            val typeAmounts: Map<String, BigDecimal> = emptyMap()
         )
+
+        /** Transaction types that can back a budget "type bucket". */
+        val BUDGET_TYPE_BUCKETS = setOf(TransactionType.INVESTMENT)
 
         /**
          * Single source of truth for the per-category aggregation used on the
          * Budgets screen. Walks `transactions` and:
-         *  - sums non-INCOME / non-TRANSFER / non-INVESTMENT split amounts into
-         *    `categoryAmounts` (key=category name, "Others" when blank);
+         *  - sums non-INCOME / non-TRANSFER split amounts into `categoryAmounts`
+         *    (key=category name, "Others" when blank), EXCEPT type-bucket-eligible
+         *    types (INVESTMENT) which go to `typeAmounts` keyed by type name;
          *  - for INCOME txns with a `budgetCategory`, subtracts DEDUCT_SPENT
          *    (Refund) amounts from `categoryAmounts` (floored at zero) and
          *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
@@ -650,13 +686,19 @@ class BudgetGroupRepository @Inject constructor(
             convertIncome: suspend (TransactionEntity) -> BigDecimal
         ): CategoryAggregation {
             val categoryAmounts = mutableMapOf<String, BigDecimal>()
+            val typeAmounts = mutableMapOf<String, BigDecimal>()
             for (txWithSplits in transactions) {
                 val type = txWithSplits.transaction.transactionType
-                if (type == TransactionType.INCOME ||
-                    type == TransactionType.TRANSFER ||
-                    type == TransactionType.INVESTMENT
-                ) continue
+                if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) continue
                 val fromCurrency = txWithSplits.transaction.currency
+                if (type in BUDGET_TYPE_BUCKETS) {
+                    // Route the whole amount to its type bucket, ignoring category —
+                    // so it counts only toward a type-tracking budget and never
+                    // contributes to a category (Spending) budget.
+                    val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount)
+                    typeAmounts[type.name] = (typeAmounts[type.name] ?: BigDecimal.ZERO) + converted
+                    continue
+                }
                 for ((category, amount) in txWithSplits.getAmountByCategory()) {
                     val categoryName = category.ifEmpty { "Others" }
                     val converted = convertSplit(fromCurrency, amount)
@@ -684,7 +726,7 @@ class BudgetGroupRepository @Inject constructor(
                 }
             }
 
-            return CategoryAggregation(categoryAmounts, categoryLimitBoosts)
+            return CategoryAggregation(categoryAmounts, categoryLimitBoosts, typeAmounts)
         }
     }
 }

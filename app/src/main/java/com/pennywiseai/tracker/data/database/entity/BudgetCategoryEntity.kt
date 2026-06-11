@@ -38,5 +38,15 @@ data class BudgetCategoryEntity(
 
     @ColumnInfo(name = "budget_amount", defaultValue = "0")
     @Contextual
-    val budgetAmount: BigDecimal = BigDecimal.ZERO
+    val budgetAmount: BigDecimal = BigDecimal.ZERO,
+
+    /**
+     * When null, this bucket tracks transactions whose `category` equals
+     * [categoryName] (the original, category-driven behaviour). When set to a
+     * [TransactionType] name (e.g. "INVESTMENT"), it instead tracks every
+     * transaction of that type regardless of category, and [categoryName] is
+     * just the display label. This is what makes a budget "type-aware".
+     */
+    @ColumnInfo(name = "match_type", defaultValue = "NULL")
+    val matchType: String? = null
 )

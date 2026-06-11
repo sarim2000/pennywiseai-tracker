@@ -161,8 +161,8 @@ Supporting **90+ banks** across **16 countries** with **multi-currency** capabil
 ### 🇵🇰 Pakistan (2 banks) - PKR ₨
 - **Standard Chartered Bank**, **Faysal Bank**
 
-### 🇮🇷 Iran (2 banks) - IRR ﷼
-- **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)** - Persian SMS support
+### 🇮🇷 Iran (3 banks) - IRR ﷼
+- **Melli Bank (بانک ملی)**, **Parsian Bank (بانک پارسیان)**, **Mellat Bank (بانک ملت)** - Persian SMS support
 
 ### 🇸🇦 Saudi Arabia (2 banks) - SAR ﷼
 - **Al Rajhi Bank (مصرف الراجحي)**, **Alinma Bank (بنك الإنماء)** - Arabic SMS support

@@ -407,11 +407,16 @@ class TransactionDetailViewModel @Inject constructor(
             }
         } else {
             _editableTransaction.update { current ->
-                current?.copy(transactionType = type)
+                current?.copy(
+                    transactionType = type,
+                    // Same auto-pin undo as above: INVESTMENT -> INCOME shouldn't
+                    // leave the income transaction in the "Investments" category.
+                    category = if (current.category == "Investments") "Income" else current.category
+                )
             }
         }
     }
-    
+
     fun updateCategory(category: String) {
         _editableTransaction.update { current ->
             current?.copy(category = category.ifEmpty { "Others" })

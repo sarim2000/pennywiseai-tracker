@@ -46,6 +46,7 @@ data class BudgetGroupEditUiState(
     val availableCategories: List<String> = emptyList(),
     val availableTypeBuckets: List<TypeBucketOption> = emptyList(),
     val categorySpending: Map<String, BigDecimal> = emptyMap(),
+    val typeSpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
     val isLoading: Boolean = true,
@@ -86,9 +87,19 @@ class BudgetGroupEditViewModel @Inject constructor(
             val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
 
             val transactions = transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            // Mirror the main budget screen's routing: type-bucket-eligible
+            // outflows (INVESTMENT) are summed per type, everything else per
+            // category. Keeps the edit screen's "current spending" hint accurate
+            // for a type bucket whose transactions aren't all tagged "Investments".
             val categorySpending = mutableMapOf<String, BigDecimal>()
+            val typeSpending = mutableMapOf<String, BigDecimal>()
             transactions.forEach { txWithSplits ->
-                if (txWithSplits.transaction.transactionType != TransactionType.INCOME) {
+                val type = txWithSplits.transaction.transactionType
+                if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) return@forEach
+                if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
+                    typeSpending[type.name] = (typeSpending[type.name] ?: BigDecimal.ZERO) +
+                        txWithSplits.transaction.amount
+                } else {
                     txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                         val categoryName = category.ifEmpty { "Others" }
                         categorySpending[categoryName] = (categorySpending[categoryName] ?: BigDecimal.ZERO) + amount
@@ -104,7 +115,11 @@ class BudgetGroupEditViewModel @Inject constructor(
                         CategoryBudgetItem(
                             categoryName = it.categoryName,
                             amount = it.budgetAmount,
-                            currentSpending = categorySpending[it.categoryName] ?: BigDecimal.ZERO,
+                            currentSpending = if (it.matchType != null) {
+                                typeSpending[it.matchType] ?: BigDecimal.ZERO
+                            } else {
+                                categorySpending[it.categoryName] ?: BigDecimal.ZERO
+                            },
                             matchType = it.matchType
                         )
                     }
@@ -114,6 +129,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                         overallAmount = if (group.budget.limitAmount.compareTo(BigDecimal.ZERO) == 0) "" else group.budget.limitAmount.toPlainString(),
                         categories = assignedCategories,
                         categorySpending = categorySpending,
+                        typeSpending = typeSpending,
                         currency = group.budget.currency,
                         availableCurrencies = currencies,
                         isLoading = false
@@ -124,6 +140,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                     name = "Monthly Budget",
                     currency = currency,
                     categorySpending = categorySpending,
+                    typeSpending = typeSpending,
                     availableCurrencies = currencies,
                     isLoading = false
                 )
@@ -161,7 +178,7 @@ class BudgetGroupEditViewModel @Inject constructor(
             CategoryBudgetItem(
                 categoryName = option.displayName,
                 amount = BigDecimal.ZERO,
-                currentSpending = BigDecimal.ZERO,
+                currentSpending = _uiState.value.typeSpending[option.typeName] ?: BigDecimal.ZERO,
                 matchType = option.typeName
             )
         )

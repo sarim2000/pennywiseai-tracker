@@ -101,68 +101,66 @@ fi
 # 4. Generate changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-# Generate release notes with Claude Code (headless) when available.
+# Generate release notes via the Claude Agent SDK with schema-enforced
+# structured output. Runs on the local Claude subscription (same auth as the
+# `claude` CLI — no API key). One call returns {summary, highlights[]}; both the
+# GitHub notes and the F-Droid/Play changelog are formatted from it below, so
+# there is never any stray preamble or markdown fence to strip. Needs node + jq;
+# falls back to the commit-list format otherwise (or with --no-claude).
+NOTES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/release-notes"
+NOTES_JSON=""
 USE_CLAUDE=false
-if command -v claude &> /dev/null && [ -z "$NO_CLAUDE" ]; then
-    if [ -n "$AUTO_YES" ]; then
-        USE_CLAUDE=true
-    else
+
+if [ -z "$NO_CLAUDE" ] && [ -n "$LAST_TAG" ] && command -v node &> /dev/null && command -v jq &> /dev/null; then
+    PROCEED_AI=true
+    if [ -z "$AUTO_YES" ]; then
         echo ""
-        read -p "Generate release notes with Claude AI? (y/n) " -n 1 -r
+        read -p "Generate release notes with Claude? (y/n) " -n 1 -r
         echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        [[ $REPLY =~ ^[Yy]$ ]] || PROCEED_AI=false
+    fi
+
+    if [ "$PROCEED_AI" = true ]; then
+        echo -e "${YELLOW}🤖 Generating release notes with the Claude Agent SDK...${NC}"
+
+        # Install the generator's dependency on first use.
+        if [ ! -d "$NOTES_DIR/node_modules" ]; then
+            (cd "$NOTES_DIR" && npm install --silent) || echo -e "${YELLOW}⚠️  npm install failed${NC}"
+        fi
+
+        COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
+        NOTES_JSON=$(printf '%s' "$COMMITS" \
+            | RELEASE_VERSION="$NEXT_VERSION" \
+              RELEASE_NOTES_MODEL="${RELEASE_NOTES_MODEL:-claude-sonnet-4-6}" \
+              node "$NOTES_DIR/index.mjs" 2>/dev/null)
+
+        if [ -n "$NOTES_JSON" ] && printf '%s' "$NOTES_JSON" | jq -e . >/dev/null 2>&1; then
             USE_CLAUDE=true
+        else
+            echo -e "${YELLOW}⚠️  AI generation failed, falling back to standard format${NC}"
+            NOTES_JSON=""
         fi
     fi
 fi
 
-if [ "$USE_CLAUDE" = true ] && [ -n "$LAST_TAG" ]; then
-    echo -e "${YELLOW}🤖 Generating release notes with Claude...${NC}"
-
-    # Get commit messages
-    COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)")
-
-    # Create prompt for Claude
-    CLAUDE_PROMPT="Generate concise, user-friendly release notes for version $NEXT_VERSION of PennyWise (an Android expense tracker app that parses bank SMS messages).
-
-    Just return the release notes, don't include any other text. We will directly copy the release notes to the RELEASE_NOTES.md file.
-
-Based on these git commits since $LAST_TAG:
-$COMMITS
-
-Create release notes with these sections:
-1. A brief summary (1-2 sentences)
-2. New Features (if any)
-3. Improvements (if any)
-4. Bug Fixes (if any)
-
-Guidelines:
-- Use clear, non-technical language
-- Group related changes together
-- Highlight the most important changes first
-- Keep it concise (max 500 words)
-- Format in Markdown
-- Don't include commit hashes
-- Focus on user impact, not technical details
-- If commits mention specific banks, mention them by name
-
-Start with '# Release v$NEXT_VERSION' as the title."
-
-    # Use claude CLI to generate release notes
-    if claude -p "$CLAUDE_PROMPT" --output-format text > RELEASE_NOTES_TEMP.md 2>/dev/null; then
-        mv RELEASE_NOTES_TEMP.md RELEASE_NOTES.md
-
-        # Append installation section
-        echo "" >> RELEASE_NOTES.md
-        echo "---" >> RELEASE_NOTES.md
-        echo "### Installation" >> RELEASE_NOTES.md
-        echo "Download the APK below and install it on your Android device." >> RELEASE_NOTES.md
-
-        echo -e "${GREEN}✅ AI-powered release notes generated${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Claude generation failed, falling back to standard format${NC}"
-        USE_CLAUDE=false
-    fi
+# Build the GitHub RELEASE_NOTES.md from the structured notes.
+if [ "$USE_CLAUDE" = true ]; then
+    SUMMARY=$(printf '%s' "$NOTES_JSON" | jq -r '.summary // ""')
+    {
+        echo "# Release v$NEXT_VERSION"
+        echo ""
+        if [ -n "$SUMMARY" ]; then
+            echo "$SUMMARY"
+            echo ""
+        fi
+        echo "## What's New"
+        printf '%s' "$NOTES_JSON" | jq -r '.highlights[]? | "- \(.)"'
+        echo ""
+        echo "---"
+        echo "### Installation"
+        echo "Download the APK below and install it on your Android device."
+    } > RELEASE_NOTES.md
+    echo -e "${GREEN}✅ AI-powered release notes generated${NC}"
 fi
 
 # Fallback to standard changelog if Claude not used or failed
@@ -216,32 +214,20 @@ echo -e "${GREEN}✅ Version updated: $NEXT_VERSION (code: $NEXT_CODE)${NC}"
 # 5a. Update fastlane changelog
 CHANGELOG_FILE="$CHANGELOG_DIR/${NEXT_CODE}.txt"
 
-# Try to use Claude for Play Store changelog if available and already used for main release notes
-if [ "$USE_CLAUDE" = true ]; then
-    echo -e "${YELLOW}🤖 Generating Play Store changelog with Claude...${NC}"
-
-    # Create prompt for Play Store release notes (more concise)
-    PLAYSTORE_PROMPT="Generate very concise Play Store release notes for PennyWise version $NEXT_VERSION (max 500 characters).
-
-Based on these changes:
-$COMMITS
-
-Rules:
-- Maximum 500 characters total
-- Use bullet points (•)
-- Focus only on most important user-facing changes
-- Mention specific banks if added
-- No technical jargon
-- Start with 'What's New in v$NEXT_VERSION'"
-
-    # Use claude CLI to generate Play Store notes
-    if claude -p "$PLAYSTORE_PROMPT" --output-format text > "$CHANGELOG_FILE.tmp" 2>/dev/null; then
-        # Truncate to 500 characters if needed
-        head -c 500 "$CHANGELOG_FILE.tmp" > "$CHANGELOG_FILE"
-        rm -f "$CHANGELOG_FILE.tmp"
-        echo -e "${GREEN}✅ Play Store changelog generated with Claude${NC}"
+# Build the F-Droid / Play changelog from the same structured notes.
+if [ "$USE_CLAUDE" = true ] && [ -n "$NOTES_JSON" ]; then
+    echo -e "${YELLOW}🤖 Writing store changelog...${NC}"
+    # Bullets only — no header (F-Droid and Play prepend their own "New in
+    # version X"), no preamble, no fences. Keep whole bullet lines up to 500
+    # characters (the Play Store changelog limit).
+    printf '%s' "$NOTES_JSON" \
+        | jq -r '.highlights[]? | "• \(.)"' \
+        | awk 'BEGIN{n=0} { add=length($0)+1; if (n+add>500) exit; print; n+=add }' \
+        > "$CHANGELOG_FILE"
+    if [ -s "$CHANGELOG_FILE" ]; then
+        echo -e "${GREEN}✅ Store changelog generated${NC}"
     else
-        echo -e "${YELLOW}⚠️  Claude generation failed for Play Store, using standard format${NC}"
+        echo -e "${YELLOW}⚠️  Empty changelog, using standard format${NC}"
         USE_CLAUDE=false
     fi
 fi

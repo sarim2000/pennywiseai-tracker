@@ -134,7 +134,7 @@ class BudgetGroupsViewModel @Inject constructor(
         // single-currency path so Refund (DEDUCT_SPENT) and Extra budget
         // (ADD_TO_LIMIT) take effect here too. The converters project each
         // amount into the display currency before aggregation.
-        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             transactions = raw.allTransactions,
             convertSplit = { fromCurrency, amount ->
                 currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
@@ -164,6 +164,20 @@ class BudgetGroupsViewModel @Inject constructor(
             ConvertedTxDay(day, catAmounts)
         }
 
+        // Type-bucket transactions (e.g. INVESTMENT) for the pace chart, keyed by
+        // transaction type. Routed separately from categories so a type bucket's
+        // "Actual" line reflects its type, not any category.
+        data class ConvertedTypeDay(val day: Int, val typeName: String, val amount: Double)
+        val convertedTypeDays = raw.allTransactions.mapNotNull { txWithSplits ->
+            val tx = txWithSplits.transaction
+            if (tx.transactionType !in BudgetGroupRepository.BUDGET_TYPE_BUCKETS || tx.loanId != null) {
+                return@mapNotNull null
+            }
+            val day = tx.dateTime.dayOfMonth.coerceIn(1, daysInMonth)
+            val amt = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+            ConvertedTypeDay(day, tx.transactionType.name, amt)
+        }
+
         // Pre-convert Refund (DEDUCT_SPENT) income amounts on the day they occurred
         // so the pace chart subtracts them in lockstep with the displayed "actual".
         data class ConvertedRefundDay(val day: Int, val category: String, val amount: Double)
@@ -179,6 +193,7 @@ class BudgetGroupsViewModel @Inject constructor(
 
         fun buildGroupPaceUnified(
             categoryNames: Set<String>?,
+            matchTypes: Set<String>,
             groupBudget: BigDecimal
         ): Pair<List<Double>, List<Double>> {
             if (effectiveDays < 1) return emptyList<Double>() to emptyList()
@@ -191,6 +206,9 @@ class BudgetGroupsViewModel @Inject constructor(
                         if (cat in categoryNames) dailyAmounts[txDay.day - 1] += amount
                     }
                 }
+            }
+            convertedTypeDays.forEach { typeDay ->
+                if (typeDay.typeName in matchTypes) dailyAmounts[typeDay.day - 1] += typeDay.amount
             }
             convertedRefundDays.forEach { refundDay ->
                 if (categoryNames == null || refundDay.category in categoryNames) {
@@ -216,9 +234,15 @@ class BudgetGroupsViewModel @Inject constructor(
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val isTrackingAll = group.categories.isEmpty()
             val catSpending = group.categories.map { cat ->
-                val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                val actual = if (cat.matchType != null) {
+                    typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                } else {
+                    categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                }
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                val effectiveBudget = convertedBudget + (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                val boost = if (cat.matchType != null) BigDecimal.ZERO
+                    else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                val effectiveBudget = convertedBudget + boost
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                     (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
@@ -258,8 +282,10 @@ class BudgetGroupsViewModel @Inject constructor(
                 remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
 
-            val catNames = if (isTrackingAll) null else group.categories.map { it.categoryName }.toSet()
-            val (cumSpending, budgetPace) = buildGroupPaceUnified(catNames, totalBudget)
+            val catNames = if (isTrackingAll) null
+                else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+            val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+            val (cumSpending, budgetPace) = buildGroupPaceUnified(catNames, matchTypes, totalBudget)
 
             BudgetGroupSpending(
                 group = group,

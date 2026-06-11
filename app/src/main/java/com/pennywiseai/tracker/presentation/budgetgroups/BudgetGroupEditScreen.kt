@@ -276,7 +276,8 @@ fun BudgetGroupEditScreen(
                             FilledTonalButton(
                                 onClick = { showAddCategoryDropdown = true },
                                 modifier = Modifier.fillMaxWidth(),
-                                enabled = uiState.availableCategories.isNotEmpty(),
+                                enabled = uiState.availableCategories.isNotEmpty() ||
+                                    uiState.availableTypeBuckets.isNotEmpty(),
                                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
                             ) {
                                 Icon(
@@ -315,6 +316,35 @@ fun BudgetGroupEditScreen(
                                         },
                                         onClick = {
                                             viewModel.addCategory(categoryName)
+                                            showAddCategoryDropdown = false
+                                        }
+                                    )
+                                }
+                                // Transaction-type buckets (e.g. Investments) —
+                                // track a whole transaction type, not a category.
+                                uiState.availableTypeBuckets.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                val catInfo = CategoryMapping.categories[option.displayName]
+                                                    ?: CategoryMapping.categories["Others"]!!
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(catInfo.color.copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CategoryIcon(category = option.displayName, size = 18.dp)
+                                                }
+                                                Text("${option.displayName} (all)")
+                                            }
+                                        },
+                                        onClick = {
+                                            viewModel.addTypeBucket(option)
                                             showAddCategoryDropdown = false
                                         }
                                     )

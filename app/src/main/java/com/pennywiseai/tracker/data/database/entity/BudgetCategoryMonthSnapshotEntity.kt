@@ -28,5 +28,9 @@ data class BudgetCategoryMonthSnapshotEntity(
 
     @ColumnInfo(name = "budget_amount")
     @Contextual
-    val budgetAmount: BigDecimal
+    val budgetAmount: BigDecimal,
+
+    /** Mirror of [BudgetCategoryEntity.matchType] captured at snapshot time. */
+    @ColumnInfo(name = "match_type", defaultValue = "NULL")
+    val matchType: String? = null
 )

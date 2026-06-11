@@ -86,7 +86,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     { fromCurrency, amount ->
                         currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
                     }
-                val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
+                val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
                     transactions = raw.allTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
@@ -114,11 +114,15 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val isTrackingAll = group.categories.isEmpty()
                     val catSpending = group.categories.map { cat ->
-                        val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                        val actual = if (cat.matchType != null) {
+                            typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                        } else {
+                            categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                        }
                         val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                        val effectiveBudget = convertedBudget +
-                            (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
-                        BudgetCategorySpending(cat.categoryName, effectiveBudget, actual, 0f, BigDecimal.ZERO)
+                        val boost = if (cat.matchType != null) BigDecimal.ZERO
+                            else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                        BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
                     }
                     val convertedGroupLimit = currencyConversionService.convertAmount(
                         group.budget.limitAmount, baseCurrency, displayCurrency

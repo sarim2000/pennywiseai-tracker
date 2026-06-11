@@ -128,18 +128,23 @@ if [ -z "$NO_CLAUDE" ] && [ -n "$LAST_TAG" ] && command -v node &> /dev/null && 
             (cd "$NOTES_DIR" && npm install --silent) || echo -e "${YELLOW}⚠️  npm install failed${NC}"
         fi
 
+        # Capture the generator's stderr so a real failure (bad install, SDK
+        # API change, auth) is surfaced on fallback instead of silently lost.
+        NOTES_ERR=$(mktemp)
         COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
         NOTES_JSON=$(printf '%s' "$COMMITS" \
             | RELEASE_VERSION="$NEXT_VERSION" \
               RELEASE_NOTES_MODEL="${RELEASE_NOTES_MODEL:-claude-sonnet-4-6}" \
-              node "$NOTES_DIR/index.mjs" 2>/dev/null)
+              node "$NOTES_DIR/index.mjs" 2>"$NOTES_ERR")
 
         if [ -n "$NOTES_JSON" ] && printf '%s' "$NOTES_JSON" | jq -e . >/dev/null 2>&1; then
             USE_CLAUDE=true
         else
             echo -e "${YELLOW}⚠️  AI generation failed, falling back to standard format${NC}"
+            [ -s "$NOTES_ERR" ] && sed 's/^/    /' "$NOTES_ERR"
             NOTES_JSON=""
         fi
+        rm -f "$NOTES_ERR"
     fi
 fi
 

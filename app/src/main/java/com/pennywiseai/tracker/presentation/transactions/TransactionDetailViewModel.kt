@@ -391,9 +391,16 @@ class TransactionDetailViewModel @Inject constructor(
             _editableTransaction.update { current ->
                 current?.copy(
                     transactionType = type,
-                    // Marking a transaction as an investment pins it to the
-                    // "Investments" category so it lands in an investment budget.
-                    category = if (type == TransactionType.INVESTMENT) "Investments" else current.category,
+                    category = when {
+                        // Marking a transaction as an investment pins it to the
+                        // "Investments" category so it lands in an investment budget.
+                        type == TransactionType.INVESTMENT -> "Investments"
+                        // Undo that auto-pin when switching away from INVESTMENT, so a
+                        // mistaken INVESTMENT -> EXPENSE round-trip doesn't strand the
+                        // transaction in the "Investments" category (and budget).
+                        current.category == "Investments" -> "Others"
+                        else -> current.category
+                    },
                     budgetImpactType = null,
                     budgetCategory = null
                 )

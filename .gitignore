@@ -81,3 +81,7 @@ secrets/
 aso-screenshots/
 .agents/
 skills-lock.json
+
+# Release-notes generator (Claude Agent SDK) deps
+scripts/release-notes/node_modules/
+scripts/release-notes/package-lock.json

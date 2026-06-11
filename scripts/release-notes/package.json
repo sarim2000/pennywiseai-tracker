@@ -1,0 +1,10 @@
+{
+  "name": "pennywise-release-notes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates structured release notes for PennyWise from git commits via the Claude Agent SDK. Runs on the local Claude subscription (same auth as the `claude` CLI) — no API key required.",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest"
+  }
+}

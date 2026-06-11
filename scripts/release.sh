@@ -123,19 +123,30 @@ if [ -z "$NO_CLAUDE" ] && [ -n "$LAST_TAG" ] && command -v node &> /dev/null && 
     if [ "$PROCEED_AI" = true ]; then
         echo -e "${YELLOW}🤖 Generating release notes with the Claude Agent SDK...${NC}"
 
-        # Install the generator's dependency on first use.
+        # Install the generator's dependency on first use. `npm ci` installs
+        # exactly what the committed lockfile pins (reproducible; errors if it
+        # has drifted from package.json).
         if [ ! -d "$NOTES_DIR/node_modules" ]; then
-            (cd "$NOTES_DIR" && npm install --silent) || echo -e "${YELLOW}⚠️  npm install failed${NC}"
+            (cd "$NOTES_DIR" && npm ci --silent) || echo -e "${YELLOW}⚠️  npm ci failed${NC}"
+        fi
+
+        # Guard against an indefinitely-hanging API call so a release never
+        # blocks on note generation. Use timeout/gtimeout when available.
+        NOTES_RUN=(node "$NOTES_DIR/index.mjs")
+        if command -v timeout &> /dev/null; then
+            NOTES_RUN=(timeout "${RELEASE_NOTES_TIMEOUT:-120}" "${NOTES_RUN[@]}")
+        elif command -v gtimeout &> /dev/null; then
+            NOTES_RUN=(gtimeout "${RELEASE_NOTES_TIMEOUT:-120}" "${NOTES_RUN[@]}")
         fi
 
         # Capture the generator's stderr so a real failure (bad install, SDK
-        # API change, auth) is surfaced on fallback instead of silently lost.
+        # API change, auth, timeout) is surfaced on fallback instead of lost.
         NOTES_ERR=$(mktemp)
         COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
         NOTES_JSON=$(printf '%s' "$COMMITS" \
             | RELEASE_VERSION="$NEXT_VERSION" \
               RELEASE_NOTES_MODEL="${RELEASE_NOTES_MODEL:-claude-sonnet-4-6}" \
-              node "$NOTES_DIR/index.mjs" 2>"$NOTES_ERR")
+              "${NOTES_RUN[@]}" 2>"$NOTES_ERR")
 
         if [ -n "$NOTES_JSON" ] && printf '%s' "$NOTES_JSON" | jq -e . >/dev/null 2>&1; then
             USE_CLAUDE=true

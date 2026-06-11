@@ -172,7 +172,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 // Previous month savings for delta — same aggregator, same currency
                 // converters, so the delta isn't skewed by stale logic on either side.
-                val (prevCategoryAmounts, _) = aggregateBudgetCategorySpending(
+                val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
                     transactions = raw.prevTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
@@ -180,15 +180,20 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     }
                 )
 
-                val limitCategoryNames = raw.budgetsWithCategories
+                // Split LIMIT-group buckets into category vs type buckets so the
+                // previous-month spend picks up type-bucket amounts too (they live
+                // in prevTypeAmounts, not prevCategoryAmounts).
+                val limitBuckets = raw.budgetsWithCategories
                     .filter { it.budget.groupType == BudgetGroupType.LIMIT }
-                    .map { it.categories }
-                    .flatten()
-                    .map { it.categoryName }
-                    .toSet()
+                    .flatMap { it.categories }
+                val limitCategoryNames = limitBuckets.filter { it.matchType == null }
+                    .map { it.categoryName }.toSet()
+                val limitMatchTypes = limitBuckets.mapNotNull { it.matchType }.toSet()
 
                 val prevLimitSpent = limitCategoryNames.fold(BigDecimal.ZERO) { acc, catName ->
                     acc + (prevCategoryAmounts[catName] ?: BigDecimal.ZERO)
+                } + limitMatchTypes.fold(BigDecimal.ZERO) { acc, t ->
+                    acc + (prevTypeAmounts[t] ?: BigDecimal.ZERO)
                 }
 
                 var prevIncome = BigDecimal.ZERO

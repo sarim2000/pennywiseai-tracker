@@ -251,8 +251,16 @@ class AccountDetailViewModel @Inject constructor(
         return billed to unbilled
     }
 
-    private fun getPrimaryCurrencyForAccount(bankName: String): String {
-        return CurrencyFormatter.getBankBaseCurrency(bankName)
+    private suspend fun getPrimaryCurrencyForAccount(bankName: String): String {
+        val latest = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
+        // Manual accounts store the currency the user chose — trust it. SMS-tracked
+        // accounts fall back to the bank parser's currency (their stored currency may
+        // be the INR default even for a non-INR bank).
+        return if (latest?.sourceType == "MANUAL") {
+            latest.currency
+        } else {
+            CurrencyFormatter.getBankBaseCurrency(bankName)
+        }
     }
 }
 

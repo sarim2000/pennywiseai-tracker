@@ -509,14 +509,15 @@ fun ManageAccountsScreen(
                 showEditDialog = false
                 accountToEdit = null
             },
-            onConfirm = { newBankName, newBalance, newCreditLimit ->
+            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency ->
                 viewModel.editAccount(
                     oldBankName = accountToEdit!!.bankName,
                     accountLast4 = accountToEdit!!.accountLast4,
                     newBankName = newBankName,
                     newBalance = newBalance,
                     newCreditLimit = newCreditLimit,
-                    isCreditCard = accountToEdit!!.isCreditCard
+                    isCreditCard = accountToEdit!!.isCreditCard,
+                    newCurrency = newCurrency
                 )
                 showEditDialog = false
                 accountToEdit = null
@@ -1932,11 +1933,13 @@ private fun DeleteAccountConfirmDialog(
 private fun EditAccountDialog(
     account: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity,
     onDismiss: () -> Unit,
-    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?) -> Unit
+    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String) -> Unit
 ) {
     var bankNameText by remember { mutableStateOf(account.bankName) }
     var balanceText by remember { mutableStateOf(account.balance.toString()) }
     var creditLimitText by remember { mutableStateOf(account.creditLimit?.toString() ?: "") }
+    var currencyText by remember { mutableStateOf(account.currency) }
+    var showCurrencyMenu by remember { mutableStateOf(false) }
     var isValid by remember { mutableStateOf(false) }
 
     LaunchedEffect(bankNameText, balanceText, creditLimitText) {
@@ -2000,6 +2003,51 @@ private fun EditAccountDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // Currency (editable — lets an existing account switch currency)
+                Column {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showCurrencyMenu = true },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Currency",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "$currencyText   ${CurrencyFormatter.getCurrencySymbol(currencyText)}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showCurrencyMenu,
+                        onDismissRequest = { showCurrencyMenu = false }
+                    ) {
+                        CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
+                            DropdownMenuItem(
+                                text = { Text("$code   ${CurrencyFormatter.getCurrencySymbol(code)}") },
+                                onClick = {
+                                    currencyText = code
+                                    showCurrencyMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 if (account.isCreditCard) {
                     // Outstanding Balance (Credit Card)
@@ -2121,7 +2169,7 @@ private fun EditAccountDialog(
                     val creditLimit = if (account.isCreditCard) {
                         creditLimitText.toBigDecimalOrNull()
                     } else null
-                    onConfirm(bankNameText, balance, creditLimit)
+                    onConfirm(bankNameText, balance, creditLimit, currencyText)
                 },
                 enabled = isValid
             ) {

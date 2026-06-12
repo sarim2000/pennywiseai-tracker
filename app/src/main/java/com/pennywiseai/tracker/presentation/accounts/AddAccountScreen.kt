@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -38,6 +39,7 @@ fun AddAccountScreen(
 ) {
     val formState by viewModel.formState.collectAsState()
     var showTypeDropdown by remember { mutableStateOf(false) }
+    var showCurrencyDropdown by remember { mutableStateOf(false) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -200,6 +202,41 @@ fun AddAccountScreen(
                                     },
                                     contentDescription = null
                                 )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Currency
+            ExposedDropdownMenuBox(
+                expanded = showCurrencyDropdown,
+                onExpandedChange = { showCurrencyDropdown = it }
+            ) {
+                TextField(
+                    value = "${formState.currency}  ${CurrencyFormatter.getCurrencySymbol(formState.currency)}",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Currency", fontWeight = FontWeight.SemiBold) },
+                    trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                    shape = acctFullShape,
+                    colors = acctColors
+                )
+
+                ExposedDropdownMenu(
+                    expanded = showCurrencyDropdown,
+                    onDismissRequest = { showCurrencyDropdown = false }
+                ) {
+                    CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
+                        DropdownMenuItem(
+                            text = { Text("$code   ${CurrencyFormatter.getCurrencySymbol(code)}") },
+                            onClick = {
+                                viewModel.updateCurrency(code)
+                                showCurrencyDropdown = false
                             }
                         )
                     }

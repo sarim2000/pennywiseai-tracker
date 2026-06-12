@@ -35,7 +35,8 @@ object CurrencyFormatter {
         "THB" to "฿",
         "MYR" to "RM",
         "KWD" to "KD",
-        "KRW" to "₩"
+        "KRW" to "₩",
+        "NGN" to "₦"
     )
 
     /**
@@ -60,7 +61,8 @@ object CurrencyFormatter {
         "THB" to Locale.Builder().setLanguage("th").setRegion("TH").build(),
         "MYR" to Locale.Builder().setLanguage("ms").setRegion("MY").build(),
         "KWD" to Locale.Builder().setLanguage("en").setRegion("KW").build(),
-        "KRW" to Locale.KOREA
+        "KRW" to Locale.KOREA,
+        "NGN" to Locale.Builder().setLanguage("en").setRegion("NG").build()
     )
 
     /**

@@ -38,6 +38,7 @@ data class AccountFormState(
     val balance: String = "",
     val creditLimit: String = "",
     val accountType: AccountType = AccountType.SAVINGS,
+    val currency: String = "INR",
     val isValid: Boolean = false,
     val errorMessage: String? = null
 )
@@ -63,6 +64,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val cardRepository: CardRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
+    private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
 
@@ -84,10 +86,22 @@ class ManageAccountsViewModel @Inject constructor(
     private val _pendingProfileReassign = MutableStateFlow<PendingProfileReassign?>(null)
     val pendingProfileReassign: StateFlow<PendingProfileReassign?> = _pendingProfileReassign.asStateFlow()
     
+    /** User's base currency — the default for a new manual account. */
+    private var baseCurrency: String = "INR"
+
     init {
         loadAccounts()
         loadHiddenAccounts()
         loadCards()
+        viewModelScope.launch {
+            baseCurrency = userPreferencesRepository.baseCurrency.first()
+            // Seed the (still-empty) add form with the base currency.
+            _formState.update { if (it.bankName.isBlank()) it.copy(currency = baseCurrency) else it }
+        }
+    }
+
+    fun updateCurrency(currency: String) {
+        _formState.update { it.copy(currency = currency) }
     }
     
     private fun loadAccounts() {
@@ -216,12 +230,13 @@ class ManageAccountsViewModel @Inject constructor(
                     timestamp = LocalDateTime.now(),
                     isCreditCard = (state.accountType == AccountType.CREDIT),
                     accountType = state.accountType.toDatabaseString(),
+                    currency = state.currency,
                     sourceType = "MANUAL"
                 )
             )
-            
-            // Clear form
-            _formState.value = AccountFormState()
+
+            // Clear form (keep the base currency as the next default)
+            _formState.value = AccountFormState(currency = baseCurrency)
         }
     }
     
@@ -682,7 +697,8 @@ class ManageAccountsViewModel @Inject constructor(
         newBankName: String,
         newBalance: BigDecimal,
         newCreditLimit: BigDecimal?,
-        isCreditCard: Boolean
+        isCreditCard: Boolean,
+        newCurrency: String? = null
     ) {
         viewModelScope.launch {
             try {
@@ -714,7 +730,7 @@ class ManageAccountsViewModel @Inject constructor(
                         creditLimit = newCreditLimit,
                         timestamp = LocalDateTime.now(),
                         isCreditCard = isCreditCard,
-                        currency = latestBalance?.currency ?: "INR",
+                        currency = newCurrency ?: latestBalance?.currency ?: "INR",
                         accountType = latestBalance?.accountType,
                         profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                         alias = latestBalance?.alias,

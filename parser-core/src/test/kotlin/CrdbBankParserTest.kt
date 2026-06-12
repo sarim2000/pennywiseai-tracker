@@ -74,6 +74,20 @@ class CrdbBankParserTest {
                     type = TransactionType.INCOME,
                     balance = BigDecimal("200000.00")
                 )
+            ),
+            ParserTestCase(
+                // Tiering: a first-person send ("umetuma") must stay EXPENSE even when the
+                // message also mentions the recipient having "received" the funds. The
+                // strong sender verb outranks the weak income hint.
+                name = "Outgoing send mentioning recipient received (EXPENSE)",
+                message = "Umetuma TZS 30000.00 kwenda JANE DOE. JANE DOE has received the funds. Bal:TZS 50000.00",
+                sender = "CRDB BANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("30000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    balance = BigDecimal("50000.00")
+                )
             )
         )
 

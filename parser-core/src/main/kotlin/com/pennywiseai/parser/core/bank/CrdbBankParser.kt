@@ -105,25 +105,31 @@ class CrdbBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lower = message.lowercase()
 
+        // Keywords are tiered by signal strength so weaker directional words ("kwenda",
+        // "received") can't override an unambiguous first-person verb. A deposit SMS may
+        // also contain "kwenda" ("to"), and a send confirmation may mention the recipient
+        // having "received" — the tiering resolves both correctly.
         return when {
-            // Incoming money (Swahili + English) — checked FIRST. A deposit/credit SMS
-            // commonly also contains outgoing words like "kwenda" ("to"), so the
-            // unambiguous income keywords must win over the weaker outgoing markers.
-            lower.contains("umepokea") -> TransactionType.INCOME           // you received
+            // Tier 1 — first-person, unambiguous direction.
+            lower.contains("umepokea") -> TransactionType.INCOME            // you received
+            lower.contains("umefanikiwa kutuma") -> TransactionType.EXPENSE // you sent
+            lower.contains("umetuma") -> TransactionType.EXPENSE            // you sent
+
+            // Tier 2 — strong action verbs.
+            lower.contains("withdrawn") -> TransactionType.EXPENSE          // ATM withdrawal
+            lower.contains("paid:") -> TransactionType.EXPENSE              // card payment
+            lower.contains("malipo yamekamilika") -> TransactionType.EXPENSE // payment completed
+            lower.contains("imelipwa") -> TransactionType.EXPENSE           // has been paid
+
+            // Tier 3 — weaker income hints.
             lower.contains("received") -> TransactionType.INCOME
             lower.contains("deposited") -> TransactionType.INCOME
 
-            // Outgoing money (Swahili + English).
-            lower.contains("withdrawn") -> TransactionType.EXPENSE          // ATM withdrawal
-            lower.contains("paid:") -> TransactionType.EXPENSE              // card payment
-            lower.contains("umefanikiwa kutuma") -> TransactionType.EXPENSE // send money
-            lower.contains("umetuma") -> TransactionType.EXPENSE            // sent
+            // Tier 4 — weak directional marker (only reached when nothing stronger matched).
             lower.contains("kwenda") -> TransactionType.EXPENSE             // "to" (transfer)
-            lower.contains("malipo yamekamilika") -> TransactionType.EXPENSE // payment completed
-            lower.contains("imelipwa") -> TransactionType.EXPENSE          // has been paid
 
-            // "Muamala umefanikiwa" alone (generic "transaction successful") defaults to expense,
-            // matching all provided send/payment samples.
+            // Fallback — generic "transaction successful", defaults to expense to match
+            // all provided send/payment samples.
             lower.contains("muamala umefanikiwa") -> TransactionType.EXPENSE
 
             else -> null

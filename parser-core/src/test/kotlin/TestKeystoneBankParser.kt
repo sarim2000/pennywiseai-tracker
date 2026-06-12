@@ -72,4 +72,24 @@ class KeystoneBankParserTest {
             suiteName = "Keystone Bank Parser Suite"
         )
     }
+
+    @Test
+    fun `empty Desc field yields a null merchant, not the next line`() {
+        val parser = KeystoneBankParser()
+        val message = """
+            Debit!
+            Acct:602****370
+            Amt:NGN-57,000.00
+            Desc:
+            Date:26-05-2026 0:0
+            Bal:NGN1,929.24
+        """.trimIndent()
+
+        val parsed = parser.parse(message, "KEYSTONE", 0L)
+        Assertions.assertNotNull(parsed, "Message should still parse")
+        Assertions.assertNull(
+            parsed!!.merchant,
+            "An empty Desc: must not capture the following Date:/Bal: line"
+        )
+    }
 }

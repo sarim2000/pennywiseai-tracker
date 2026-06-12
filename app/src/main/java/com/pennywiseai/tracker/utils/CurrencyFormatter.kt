@@ -162,6 +162,25 @@ object CurrencyFormatter {
     }
 
     /**
+     * Resolves the effective currency for an account. Manual accounts store the
+     * currency the user chose — trust it. SMS-tracked accounts fall back to the bank
+     * parser's currency (their stored value may be the INR default even for a non-INR
+     * bank). Shared by Account Detail, onboarding, and Settings so the rule stays
+     * consistent everywhere.
+     */
+    fun resolveAccountCurrency(
+        sourceType: String?,
+        storedCurrency: String,
+        bankName: String?
+    ): String {
+        return if (sourceType == "MANUAL") {
+            storedCurrency
+        } else {
+            getBankBaseCurrency(bankName)
+        }
+    }
+
+    /**
      * Gets the base currency for a bank using the BankParserFactory
      * Returns INR as default for unknown banks
      */

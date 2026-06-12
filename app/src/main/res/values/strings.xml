@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Pennywise AI Tracker</string>
+    <string name="app_name">PennyWise AI - Expense Tracker</string>
     <string name="widget_name_budget">Budget Overview</string>
     <string name="widget_description_budget">Shows your monthly budget progress, savings, and daily allowance at a glance.</string>
     <string name="widget_loading">Loading widget…</string>

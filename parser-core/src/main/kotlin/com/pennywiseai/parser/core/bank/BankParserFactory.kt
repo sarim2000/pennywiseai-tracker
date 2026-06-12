@@ -122,7 +122,10 @@ object BankParserFactory {
         BankMuscatParser(),  // Bank Muscat (Oman)
         GreaterBankParser(),  // Greater Bank (India)
         BPCEParser(),  // BPCE (France)
-        SampathBankParser()  // Sampath Bank (Sri Lanka)
+        SampathBankParser(),  // Sampath Bank (Sri Lanka)
+        AccessBankParser(),  // Access Bank (Nigeria)
+        ZenithBankParser(),  // Zenith Bank (Nigeria)
+        KeystoneBankParser()  // Keystone Bank (Nigeria)
         // Add more bank parsers here as we implement them
     )
 

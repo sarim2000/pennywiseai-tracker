@@ -61,6 +61,19 @@ class CrdbBankParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "TOTAL"
                 )
+            ),
+            ParserTestCase(
+                // Regression: a deposit ("umepokea") that also contains the outgoing word
+                // "kwenda" must classify as INCOME — income keywords are matched first.
+                name = "Incoming transfer with both umepokea and kwenda (INCOME)",
+                message = "Umepokea TZS 75000.00 kutoka JOHN DOE kwenda akaunti yako Balance is TZS 200000.00",
+                sender = "CRDB BANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("75000.00"),
+                    currency = "TZS",
+                    type = TransactionType.INCOME,
+                    balance = BigDecimal("200000.00")
+                )
             )
         )
 

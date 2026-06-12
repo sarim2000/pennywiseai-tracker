@@ -106,6 +106,13 @@ class CrdbBankParser : BankParser() {
         val lower = message.lowercase()
 
         return when {
+            // Incoming money (Swahili + English) — checked FIRST. A deposit/credit SMS
+            // commonly also contains outgoing words like "kwenda" ("to"), so the
+            // unambiguous income keywords must win over the weaker outgoing markers.
+            lower.contains("umepokea") -> TransactionType.INCOME           // you received
+            lower.contains("received") -> TransactionType.INCOME
+            lower.contains("deposited") -> TransactionType.INCOME
+
             // Outgoing money (Swahili + English).
             lower.contains("withdrawn") -> TransactionType.EXPENSE          // ATM withdrawal
             lower.contains("paid:") -> TransactionType.EXPENSE              // card payment
@@ -114,11 +121,6 @@ class CrdbBankParser : BankParser() {
             lower.contains("kwenda") -> TransactionType.EXPENSE             // "to" (transfer)
             lower.contains("malipo yamekamilika") -> TransactionType.EXPENSE // payment completed
             lower.contains("imelipwa") -> TransactionType.EXPENSE          // has been paid
-
-            // Incoming money (Swahili + English) — only on clear keywords.
-            lower.contains("umepokea") -> TransactionType.INCOME           // you received
-            lower.contains("received") -> TransactionType.INCOME
-            lower.contains("deposited") -> TransactionType.INCOME
 
             // "Muamala umefanikiwa" alone (generic "transaction successful") defaults to expense,
             // matching all provided send/payment samples.

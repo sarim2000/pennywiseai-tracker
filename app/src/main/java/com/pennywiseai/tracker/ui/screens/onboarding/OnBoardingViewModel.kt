@@ -283,12 +283,13 @@ class OnBoardingViewModel @Inject constructor(
                     "${it.bankName}_${it.accountLast4}" == state.selectedAccountKey
                 }
                 if (mainAccount != null) {
-                    val currency = if (mainAccount.sourceType == "MANUAL") {
-                        mainAccount.currency
-                    } else {
-                        CurrencyFormatter.getBankBaseCurrency(mainAccount.bankName)
-                    }
-                    userPreferencesRepository.updateBaseCurrency(currency)
+                    val currency = CurrencyFormatter.resolveAccountCurrency(
+                        sourceType = mainAccount.sourceType,
+                        storedCurrency = mainAccount.currency,
+                        bankName = mainAccount.bankName
+                    )
+                    // Won't override a currency the user explicitly picked in Settings.
+                    userPreferencesRepository.applyMainAccountCurrency(currency)
                 }
             }
             userPreferencesRepository.updateHasCompletedOnboarding(true)

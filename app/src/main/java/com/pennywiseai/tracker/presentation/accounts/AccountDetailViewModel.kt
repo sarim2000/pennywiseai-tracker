@@ -255,17 +255,14 @@ class AccountDetailViewModel @Inject constructor(
         return billed to unbilled
     }
 
-    // Derives the account's display currency from its latest balance row. Manual
-    // accounts store the currency the user chose — trust it. SMS-tracked accounts fall
-    // back to the bank parser's currency (their stored currency may be the INR default
-    // even for a non-INR bank). Pure function of the flowed balance so the caller stays
-    // reactive to currency edits.
+    // Derives the account's display currency from its latest balance row. Pure function
+    // of the flowed balance so the caller stays reactive to currency edits.
     private fun primaryCurrencyForAccount(latestBalance: AccountBalanceEntity?): String {
-        return if (latestBalance?.sourceType == "MANUAL") {
-            latestBalance.currency
-        } else {
-            CurrencyFormatter.getBankBaseCurrency(bankName)
-        }
+        return CurrencyFormatter.resolveAccountCurrency(
+            sourceType = latestBalance?.sourceType,
+            storedCurrency = latestBalance?.currency ?: "INR",
+            bankName = bankName
+        )
     }
 }
 

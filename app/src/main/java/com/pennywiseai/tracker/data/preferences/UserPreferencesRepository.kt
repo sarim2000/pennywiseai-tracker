@@ -123,6 +123,9 @@ class UserPreferencesRepository @Inject constructor(
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
+        // True once the user explicitly picks a currency in the Settings selector.
+        // While true, the main-account-derived currency must not override their choice.
+        val BASE_CURRENCY_USER_SET = booleanPreferencesKey("base_currency_user_set")
 
         // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
         val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
@@ -567,9 +570,27 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Explicit base-currency choice from the Settings currency selector. Marks the
+     * currency as user-set so the main account can no longer override it.
+     */
     suspend fun updateBaseCurrency(currency: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
+            preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] = true
+        }
+    }
+
+    /**
+     * Sets the base currency derived from the user's main account, but only if the
+     * user hasn't explicitly chosen one via the Settings currency selector. The
+     * explicit selector always wins.
+     */
+    suspend fun applyMainAccountCurrency(currency: String) {
+        context.dataStore.edit { preferences ->
+            if (preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] != true) {
+                preferences[PreferencesKeys.BASE_CURRENCY] = currency
+            }
         }
     }
 

@@ -106,6 +106,8 @@ fun SettingsScreen(
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
+    val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
+    val mainAccountKey by settingsViewModel.mainAccountKey.collectAsStateWithLifecycle()
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
@@ -122,6 +124,7 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
+    var showMainAccountDropdown by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val context = LocalContext.current
@@ -261,7 +264,7 @@ fun SettingsScreen(
                     currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
-                    position = ItemPosition.BOTTOM
+                    position = if (accounts.isNotEmpty()) ItemPosition.MIDDLE else ItemPosition.BOTTOM
                 ) {
                     availableCurrencies.forEach { currency ->
                         DropdownMenuItem(
@@ -282,6 +285,51 @@ fun SettingsScreen(
                                 }
                             } else null
                         )
+                    }
+                }
+
+                // Main account → sets the default currency (unless explicitly chosen above).
+                if (accounts.isNotEmpty()) {
+                    val mainAccount = accounts.firstOrNull {
+                        "${it.bankName}_${it.accountLast4}" == mainAccountKey
+                    }
+                    SettingsDropdownItem(
+                        icon = Icons.Default.AccountBalanceWallet,
+                        iconBgColor = purple_light,
+                        iconTint = purple_dark,
+                        title = "Main Account",
+                        subtitle = "Sets your default currency",
+                        currentValue = mainAccount?.let { acc ->
+                            val name = acc.alias?.takeIf { it.isNotBlank() } ?: acc.bankName
+                            if (acc.accountLast4.isNotBlank()) "$name ••${acc.accountLast4}" else name
+                        } ?: "Not set",
+                        expanded = showMainAccountDropdown,
+                        onExpandedChange = { showMainAccountDropdown = it },
+                        position = ItemPosition.BOTTOM
+                    ) {
+                        accounts.forEach { account ->
+                            val name = account.alias?.takeIf { it.isNotBlank() } ?: account.bankName
+                            val label = if (account.accountLast4.isNotBlank()) {
+                                "$name ••${account.accountLast4}"
+                            } else name
+                            val key = "${account.bankName}_${account.accountLast4}"
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    settingsViewModel.setMainAccount(account)
+                                    showMainAccountDropdown = false
+                                },
+                                leadingIcon = if (key == mainAccountKey) {
+                                    {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else null
+                            )
+                        }
                     }
                 }
             }

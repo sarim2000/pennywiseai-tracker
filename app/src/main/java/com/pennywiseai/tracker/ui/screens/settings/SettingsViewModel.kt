@@ -26,7 +26,10 @@ import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import android.content.Intent
@@ -48,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
@@ -109,6 +113,23 @@ class SettingsViewModel @Inject constructor(
     
     // Base currency state
     val baseCurrency = userPreferencesRepository.baseCurrency
+
+    // Main account selection (drives the default currency unless overridden above).
+    val accounts: StateFlow<List<AccountBalanceEntity>> =
+        accountBalanceRepository.getAllLatestBalances()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    val mainAccountKey: StateFlow<String?> = userPreferencesRepository.userPreferences
+        .map { it.mainAccountKey }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
     
     // Unrecognized SMS state
     val unreportedSmsCount = unrecognizedSmsRepository.getUnreportedCount()
@@ -599,6 +620,24 @@ class SettingsViewModel @Inject constructor(
     fun updateBaseCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateBaseCurrency(currency)
+        }
+    }
+
+    /**
+     * Sets the main account and derives the default currency from it — unless the user
+     * has already picked a currency explicitly, in which case that choice is kept.
+     */
+    fun setMainAccount(account: AccountBalanceEntity) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateMainAccountKey(
+                "${account.bankName}_${account.accountLast4}"
+            )
+            val currency = CurrencyFormatter.resolveAccountCurrency(
+                sourceType = account.sourceType,
+                storedCurrency = account.currency,
+                bankName = account.bankName
+            )
+            userPreferencesRepository.applyMainAccountCurrency(currency)
         }
     }
 }

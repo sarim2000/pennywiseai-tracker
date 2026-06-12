@@ -68,7 +68,9 @@ class KeystoneBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        val match = Regex("""(?i)Desc:\s*(.+)""").find(message) ?: return null
+        // Use [ \t]* (not \s*) so an empty "Desc:" line can't let the capture cross the
+        // newline and grab the following Date:/Bal: line as the merchant.
+        val match = Regex("""(?i)Desc:[ \t]*(.+)""").find(message) ?: return null
         val desc = match.groupValues[1].trim()
         return desc.ifBlank { null }
     }

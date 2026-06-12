@@ -61,8 +61,12 @@ class AccountDetailViewModel @Inject constructor(
                 selectedDateRange,
                 transactionRepository.getTransactionsByAccount(bankName, accountLast4),
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { dateRange, allTransactions, isUnified, displayCurrency ->
+                userPreferencesRepository.displayCurrency,
+                // Include the balance flow so editing the account's currency (which writes
+                // a new balance row, not a transaction) re-emits and updates the displayed
+                // currency live, even while this screen is already open.
+                accountBalanceRepository.getLatestBalanceFlow(bankName, accountLast4)
+            ) { dateRange, allTransactions, isUnified, displayCurrency, latestBalance ->
                 val (startDate, endDate) = getDateRangeValues(dateRange)
 
                 val filteredTransactions = if (dateRange == DateRange.ALL_TIME) {
@@ -75,7 +79,7 @@ class AccountDetailViewModel @Inject constructor(
                 }
 
                 // Use display currency when unified, otherwise account's primary currency
-                val targetCurrency = if (isUnified) displayCurrency else getPrimaryCurrencyForAccount(bankName)
+                val targetCurrency = if (isUnified) displayCurrency else primaryCurrencyForAccount(latestBalance)
                 val hasMultipleCurrencies = filteredTransactions
                     .map { it.currency }
                     .distinct()
@@ -251,13 +255,14 @@ class AccountDetailViewModel @Inject constructor(
         return billed to unbilled
     }
 
-    private suspend fun getPrimaryCurrencyForAccount(bankName: String): String {
-        val latest = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
-        // Manual accounts store the currency the user chose — trust it. SMS-tracked
-        // accounts fall back to the bank parser's currency (their stored currency may
-        // be the INR default even for a non-INR bank).
-        return if (latest?.sourceType == "MANUAL") {
-            latest.currency
+    // Derives the account's display currency from its latest balance row. Manual
+    // accounts store the currency the user chose — trust it. SMS-tracked accounts fall
+    // back to the bank parser's currency (their stored currency may be the INR default
+    // even for a non-INR bank). Pure function of the flowed balance so the caller stays
+    // reactive to currency edits.
+    private fun primaryCurrencyForAccount(latestBalance: AccountBalanceEntity?): String {
+        return if (latestBalance?.sourceType == "MANUAL") {
+            latestBalance.currency
         } else {
             CurrencyFormatter.getBankBaseCurrency(bankName)
         }

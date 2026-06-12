@@ -252,7 +252,16 @@ class ManageAccountsViewModel @Inject constructor(
                     balance = newBalance,
                     creditLimit = latestBalance?.creditLimit,
                     isCreditCard = latestBalance?.isCreditCard ?: false,
-                    currency = latestBalance?.currency ?: "INR",
+                    // Reinserted rows are stamped MANUAL (so a rescan won't purge a
+                    // user-edited balance), but that makes resolveAccountCurrency trust
+                    // the stored value. Resolve it first so an SMS-tracked non-INR
+                    // account keeps its parser currency instead of flipping to the
+                    // stored INR default. See [CurrencyFormatter.resolveAccountCurrency].
+                    currency = CurrencyFormatter.resolveAccountCurrency(
+                        sourceType = latestBalance?.sourceType,
+                        storedCurrency = latestBalance?.currency ?: "INR",
+                        bankName = bankName
+                    ),
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                     alias = latestBalance?.alias,
@@ -275,7 +284,13 @@ class ManageAccountsViewModel @Inject constructor(
                     creditLimit = newLimit,
                     timestamp = LocalDateTime.now(),
                     isCreditCard = true,
-                    currency = latestBalance?.currency ?: "INR",
+                    // Keep the resolved currency (see updateAccountBalance) so stamping
+                    // MANUAL doesn't flip an SMS-tracked non-INR card to stored INR.
+                    currency = CurrencyFormatter.resolveAccountCurrency(
+                        sourceType = latestBalance?.sourceType,
+                        storedCurrency = latestBalance?.currency ?: "INR",
+                        bankName = bankName
+                    ),
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                     alias = latestBalance?.alias,
@@ -730,7 +745,13 @@ class ManageAccountsViewModel @Inject constructor(
                         creditLimit = newCreditLimit,
                         timestamp = LocalDateTime.now(),
                         isCreditCard = isCreditCard,
-                        currency = newCurrency ?: latestBalance?.currency ?: "INR",
+                        // Honor an explicit currency edit; otherwise resolve so stamping
+                        // MANUAL doesn't flip an SMS-tracked non-INR account to stored INR.
+                        currency = newCurrency ?: CurrencyFormatter.resolveAccountCurrency(
+                            sourceType = latestBalance?.sourceType,
+                            storedCurrency = latestBalance?.currency ?: "INR",
+                            bankName = newBankName
+                        ),
                         accountType = latestBalance?.accountType,
                         profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                         alias = latestBalance?.alias,

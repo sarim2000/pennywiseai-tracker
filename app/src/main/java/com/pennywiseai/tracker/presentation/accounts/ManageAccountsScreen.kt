@@ -1018,7 +1018,16 @@ private fun AccountItem(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                        text = CurrencyFormatter.formatCurrency(
+                            account.balance,
+                            // Resolve so the list matches Account Detail — SMS-tracked
+                            // non-INR accounts show their parser currency, not stored INR.
+                            CurrencyFormatter.resolveAccountCurrency(
+                                sourceType = account.sourceType,
+                                storedCurrency = account.currency,
+                                bankName = account.bankName
+                            )
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -1938,7 +1947,19 @@ private fun EditAccountDialog(
     var bankNameText by remember { mutableStateOf(account.bankName) }
     var balanceText by remember { mutableStateOf(account.balance.toString()) }
     var creditLimitText by remember { mutableStateOf(account.creditLimit?.toString() ?: "") }
-    var currencyText by remember { mutableStateOf(account.currency) }
+    // Pre-fill with the *resolved* currency (what the account actually displays), not
+    // the raw stored value — an SMS-tracked non-INR account stores the INR default but
+    // shows the parser currency. Seeding from the raw value would let an unrelated edit
+    // silently lock the account to INR.
+    var currencyText by remember {
+        mutableStateOf(
+            CurrencyFormatter.resolveAccountCurrency(
+                sourceType = account.sourceType,
+                storedCurrency = account.currency,
+                bankName = account.bankName
+            )
+        )
+    }
     var showCurrencyMenu by remember { mutableStateOf(false) }
     var isValid by remember { mutableStateOf(false) }
 

@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -274,6 +275,21 @@ class OnBoardingViewModel @Inject constructor(
             }
             if (state.selectedAccountKey != null) {
                 userPreferencesRepository.updateMainAccountKey(state.selectedAccountKey)
+                // The main account defines the user's default currency. Manual accounts
+                // store the currency the user chose; SMS-tracked accounts fall back to the
+                // bank parser's currency (their stored value may be the INR default even
+                // for a non-INR bank).
+                val mainAccount = state.accounts.firstOrNull {
+                    "${it.bankName}_${it.accountLast4}" == state.selectedAccountKey
+                }
+                if (mainAccount != null) {
+                    val currency = if (mainAccount.sourceType == "MANUAL") {
+                        mainAccount.currency
+                    } else {
+                        CurrencyFormatter.getBankBaseCurrency(mainAccount.bankName)
+                    }
+                    userPreferencesRepository.updateBaseCurrency(currency)
+                }
             }
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }

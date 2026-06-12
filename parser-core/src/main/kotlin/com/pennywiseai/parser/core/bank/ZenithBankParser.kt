@@ -65,14 +65,15 @@ class ZenithBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Narration sits on the line between the DT: timestamp and the amount line.
-        // When a message has no narration line, this regex would otherwise capture the
-        // amount/balance/promo line — guard against persisting those as the merchant.
-        val match = Regex("""(?im)^DT:.*\n(.+)""").find(message) ?: return null
+        // Narration is the line directly above the amount line. Anchor on the amount
+        // line (always present) and take the preceding line — when a message has no
+        // narration, that line is the DT:/Acct: header, which we treat as "no merchant"
+        // instead of persisting a header/amount line.
+        val match = Regex("""(?im)^(.+)\r?\n\s*(?:DR|CR)\s*Amt:""").find(message) ?: return null
         val desc = match.groupValues[1].trim()
         if (desc.isBlank()) return null
-        val isNonNarration = Regex("""(?i)^((DR|CR)\s*Amt:|Bal:|Dial\b)""").containsMatchIn(desc)
-        return if (isNonNarration) null else desc
+        if (Regex("""(?i)^(DT:|Acct:)""").containsMatchIn(desc)) return null
+        return desc
     }
 
     override fun extractAccountLast4(message: String): String? {

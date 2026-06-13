@@ -1151,9 +1151,8 @@ class TransactionsViewModel @Inject constructor(
         // Loan disbursements/repayments still appear in the list (it's the full ledger)
         // but must not count toward the period's Income/Expense/etc. totals — they're
         // tracked in the Loans feature. Matches the Home/Analytics convention.
-        val transactionsByCurrency = transactions
-            .filter { it.loanId == null }
-            .groupBy { it.currency }
+        val nonLoanTransactions = transactions.filter { it.loanId == null }
+        val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
             // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
@@ -1218,7 +1217,7 @@ class TransactionsViewModel @Inject constructor(
         return CurrencyGroupedTotals(
             totalsByCurrency = totalsByCurrency,
             availableCurrencies = filteredAvailableCurrencies,
-            transactionCount = transactions.size
+            transactionCount = nonLoanTransactions.size
         )
     }
     

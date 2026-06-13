@@ -1148,8 +1148,12 @@ class TransactionsViewModel @Inject constructor(
     }
     
     private fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
-        // Group transactions by currency
-        val transactionsByCurrency = transactions.groupBy { it.currency }
+        // Loan disbursements/repayments still appear in the list (it's the full ledger)
+        // but must not count toward the period's Income/Expense/etc. totals — they're
+        // tracked in the Loans feature. Matches the Home/Analytics convention.
+        val transactionsByCurrency = transactions
+            .filter { it.loanId == null }
+            .groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
             // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous

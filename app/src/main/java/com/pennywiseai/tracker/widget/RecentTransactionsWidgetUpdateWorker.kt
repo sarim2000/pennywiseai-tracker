@@ -80,6 +80,9 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 .first()
 
             val totalSpent = allTransactions
+                // Loan disbursements/repayments are tracked in the Loans feature, not
+                // spending — exclude them, matching Home/Analytics.
+                .filter { it.loanId == null }
                 .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
                 .fold(BigDecimal.ZERO) { acc, tx ->
                     val amount = if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {

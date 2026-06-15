@@ -175,7 +175,10 @@ interface AccountBalanceDao {
     """)
     fun getAccountCount(): Flow<Int>
     
-    @Query("DELETE FROM account_balances WHERE timestamp < :beforeDate")
+    // Never prune OPENING anchors — they carry an intentionally early timestamp (so
+    // they never win "latest"), which would otherwise make them the prime target of a
+    // timestamp-cutoff delete and silently break the derived manual-balance model.
+    @Query("DELETE FROM account_balances WHERE timestamp < :beforeDate AND (source_type IS NULL OR source_type != 'OPENING')")
     suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int
     
     @Update

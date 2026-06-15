@@ -272,7 +272,12 @@ class AccountBalanceRepository @Inject constructor(
         // increases it), which the income-positive recompute would get backwards.
         accountBalanceDao.getOpeningRow(bankName, accountLast4)?.let { return !it.isCreditCard }
         val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return false
-        return latest.sourceType == SOURCE_MANUAL && !latest.isCreditCard
+        if (latest.sourceType != SOURCE_MANUAL || latest.isCreditCard) return false
+        // Legacy bridge for accounts created before the OPENING model: only treat them
+        // as manual if they have no SMS-sourced history. Without this, an SMS-tracked
+        // account that merely had a one-off "Update balance" override (latest row MANUAL)
+        // would be permanently reclassified as manual on its first write. (Greptile #487)
+        return accountBalanceDao.countSmsSourcedBalances(bankName, accountLast4) == 0
     }
 
     /** Σ of an account's transactions, signed the same way balances move: INCOME +, everything else −. */

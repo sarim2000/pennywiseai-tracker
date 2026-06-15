@@ -350,6 +350,23 @@ class AccountBalanceRepository @Inject constructor(
         }
     }
 
+    /**
+     * Atomically applies the account-edit dialog's currency + balance changes for a
+     * manual account, so a failure can't leave the currency updated but the opening
+     * un-back-solved (a stale balance until the next mutation). (Greptile #487)
+     */
+    suspend fun updateManualBalanceAndCurrency(
+        bankName: String,
+        accountLast4: String,
+        currency: String,
+        targetBalance: BigDecimal
+    ) {
+        database.withTransaction {
+            accountBalanceDao.updateAccountCurrency(bankName, accountLast4, currency)
+            setManualCurrentBalance(bankName, accountLast4, targetBalance)
+        }
+    }
+
     /** Upserts the single MANUAL "current" row at `now` so it wins as the latest. */
     private suspend fun writeManualCurrentRow(
         bankName: String,

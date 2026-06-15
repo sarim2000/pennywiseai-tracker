@@ -757,12 +757,16 @@ class ManageAccountsViewModel @Inject constructor(
                 )
 
                 if (!isCreditCard && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
-                    // Manual/cash account: balance is derived. Update the currency on its
-                    // anchor rows and back-solve the opening from the typed balance
-                    // (option b) instead of inserting a snapshot the next recompute would
-                    // overwrite.
-                    accountBalanceRepository.updateAccountCurrency(newBankName, accountLast4, resolvedCurrency)
-                    accountBalanceRepository.setManualCurrentBalance(newBankName, accountLast4, newBalance)
+                    // Manual/cash account: balance is derived. Atomically update the
+                    // currency on its anchor rows and back-solve the opening from the
+                    // typed balance (option b) instead of inserting a snapshot the next
+                    // recompute would overwrite.
+                    accountBalanceRepository.updateManualBalanceAndCurrency(
+                        bankName = newBankName,
+                        accountLast4 = accountLast4,
+                        currency = resolvedCurrency,
+                        targetBalance = newBalance
+                    )
                 } else {
                     // Insert new balance record with updated values
                     accountBalanceRepository.insertBalance(

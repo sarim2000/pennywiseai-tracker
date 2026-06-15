@@ -611,6 +611,19 @@ class TransactionDetailViewModel @Inject constructor(
                     receiptPath = newReceiptPath
                 )
 
+                // Pin opening anchors from the PRE-update snapshot for the affected
+                // manual accounts, so the recompute after the edit reflects the change
+                // (amount/date/account). No-op for SMS accounts.
+                _transaction.value?.let { pre ->
+                    val pb = pre.bankName; val pa = pre.accountNumber
+                    if (pb != null && pa != null) accountBalanceRepository.ensureManualOpening(pb, pa)
+                }
+                normalizedTransaction.bankName?.let { nb ->
+                    normalizedTransaction.accountNumber?.let { na ->
+                        accountBalanceRepository.ensureManualOpening(nb, na)
+                    }
+                }
+
                 transactionRepository.updateTransaction(normalizedTransaction)
 
                 // Update account balance if account was changed or added
@@ -670,6 +683,17 @@ class TransactionDetailViewModel @Inject constructor(
                             )
                         )
                     }
+                }
+
+                // Manual/cash accounts derive their balance from their transactions, so
+                // recompute the affected account(s) — this also covers amount/date edits
+                // that don't change the account (the incremental paths above only fire on
+                // an account change). No-op for SMS accounts.
+                if (newBank != null && newAccount != null) {
+                    accountBalanceRepository.recomputeManualBalance(newBank, newAccount)
+                }
+                if (accountChanged && oldBank != null && oldAccount != null) {
+                    accountBalanceRepository.recomputeManualBalance(oldBank, oldAccount)
                 }
 
                 // Save or remove splits
@@ -790,7 +814,18 @@ class TransactionDetailViewModel @Inject constructor(
 
                 try {
                     txn.receiptPath?.let { receiptManager.deleteReceipt(it) }
+                    // Manual/cash accounts derive their balance from their transactions, so
+                    // deleting one must update the balance. Pin the opening from the
+                    // pre-delete snapshot, then recompute after. No-op for SMS accounts. (#470)
+                    val bank = txn.bankName
+                    val acct = txn.accountNumber
+                    if (bank != null && acct != null) {
+                        accountBalanceRepository.ensureManualOpening(bank, acct)
+                    }
                     transactionRepository.deleteTransaction(txn)
+                    if (bank != null && acct != null) {
+                        accountBalanceRepository.recomputeManualBalance(bank, acct)
+                    }
                     _deleteSuccess.value = true
                 } catch (e: Exception) {
                     _errorMessage.value = "Failed to delete transaction"

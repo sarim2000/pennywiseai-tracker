@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -16,8 +17,13 @@ import javax.inject.Singleton
 @Singleton
 class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
+    private val transactionDao: TransactionDao,
     private val database: PennyWiseDatabase
 ) {
+    companion object {
+        const val SOURCE_OPENING = "OPENING"
+        const val SOURCE_MANUAL = "MANUAL"
+    }
     
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)
@@ -185,6 +191,10 @@ class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.setAccountAlias(bankName, accountLast4, alias)
     }
 
+    suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {
+        return accountBalanceDao.updateAccountCurrency(bankName, accountLast4, currency)
+    }
+
     /**
      * Atomically revert the balance impact of the [original] TRANSFER (if it was
      * one) and apply the [updated] TRANSFER's impact (if it is one) — wrapped in
@@ -235,6 +245,128 @@ class AccountBalanceRepository @Inject constructor(
                 timestamp = timestamp,
                 transactionId = transactionId,
                 sourceType = "TRANSACTION",
+                smsSource = null
+            )
+        )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Manual / cash account balance = opening + Σ(its transactions).
+    //
+    // SMS-tracked accounts get their balance from the bank (each SMS reports the
+    // real figure), so these helpers only ever touch accounts the app recognises
+    // as manual. A manual account stores a stable OPENING row (at an early
+    // timestamp, so it never wins "latest by timestamp") plus a single MANUAL row
+    // that [recomputeManualBalance] keeps equal to opening + Σ(transactions).
+    // Because the balance is *derived*, retroactive changes — back-dated adds,
+    // deletes, edits — are handled by simply recomputing. (#469 / #470)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * An account is "manual" if it has an OPENING anchor, or (for accounts created
+     * before this model existed) its latest balance row is user-entered (MANUAL).
+     * SMS-tracked accounts never match.
+     */
+    suspend fun isManualAccount(bankName: String, accountLast4: String): Boolean {
+        // Credit cards are excluded — their balance is outstanding owed (spending
+        // increases it), which the income-positive recompute would get backwards.
+        accountBalanceDao.getOpeningRow(bankName, accountLast4)?.let { return !it.isCreditCard }
+        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return false
+        return latest.sourceType == SOURCE_MANUAL && !latest.isCreditCard
+    }
+
+    /** Σ of an account's transactions, signed the same way balances move: INCOME +, everything else −. */
+    private suspend fun signedTransactionSum(bankName: String, accountLast4: String): BigDecimal {
+        return transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
+            .fold(BigDecimal.ZERO) { acc, tx ->
+                if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
+            }
+    }
+
+    /**
+     * Ensures a manual account has an OPENING anchor, deriving it once so the
+     * currently-displayed balance is preserved: opening = currentBalance − Σtxns.
+     * No-op if an anchor already exists or the account has no balance row yet.
+     */
+    suspend fun ensureManualOpening(bankName: String, accountLast4: String) {
+        if (accountBalanceDao.getOpeningRow(bankName, accountLast4) != null) return
+        if (!isManualAccount(bankName, accountLast4)) return
+        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return
+        val sum = signedTransactionSum(bankName, accountLast4)
+        val earliest = accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
+            ?: latest.timestamp
+        accountBalanceDao.insertBalance(
+            latest.copy(
+                id = 0,
+                balance = latest.balance - sum,
+                timestamp = earliest.minusNanos(1),  // strictly before all history → never "latest"
+                transactionId = null,
+                sourceType = SOURCE_OPENING,
+                smsSource = null
+            )
+        )
+    }
+
+    /**
+     * Recomputes a manual account's displayed balance as opening + Σ(transactions)
+     * and writes it to the single MANUAL row (refreshed to "now" so it wins as the
+     * latest). Safe to call after any add / edit / delete of the account's
+     * transactions. No-op for non-manual accounts.
+     */
+    suspend fun recomputeManualBalance(bankName: String, accountLast4: String) {
+        if (!isManualAccount(bankName, accountLast4)) return
+        ensureManualOpening(bankName, accountLast4)
+        val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return
+        val current = opening.balance + signedTransactionSum(bankName, accountLast4)
+        val now = LocalDateTime.now()
+        val existing = accountBalanceDao.getManualCurrentRow(bankName, accountLast4)
+        if (existing != null) {
+            accountBalanceDao.updateBalanceAndTimestampById(existing.id, current, now)
+        } else {
+            accountBalanceDao.insertBalance(
+                opening.copy(id = 0, balance = current, timestamp = now, sourceType = SOURCE_MANUAL)
+            )
+        }
+    }
+
+    /**
+     * "Update balance" for a manual account (option-b semantics): the user types
+     * their *current* balance and we back-solve the opening (opening = target −
+     * Σtxns) so future transactions still adjust from there. Returns the resolved
+     * current balance.
+     */
+    suspend fun setManualCurrentBalance(bankName: String, accountLast4: String, target: BigDecimal) {
+        ensureManualOpening(bankName, accountLast4)
+        val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return
+        val newOpening = target - signedTransactionSum(bankName, accountLast4)
+        accountBalanceDao.updateBalanceById(opening.id, newOpening)
+        recomputeManualBalance(bankName, accountLast4)
+    }
+
+    /**
+     * Seeds a brand-new manual account: an OPENING anchor (at an early timestamp)
+     * plus its current MANUAL row, both equal to [openingBalance] since there are
+     * no transactions yet. [template] carries currency / accountType / alias / etc.
+     */
+    suspend fun seedManualAccount(template: AccountBalanceEntity, openingBalance: BigDecimal) {
+        val now = LocalDateTime.now()
+        accountBalanceDao.insertBalance(
+            template.copy(
+                id = 0,
+                balance = openingBalance,
+                timestamp = now.minusSeconds(1),
+                transactionId = null,
+                sourceType = SOURCE_OPENING,
+                smsSource = null
+            )
+        )
+        accountBalanceDao.insertBalance(
+            template.copy(
+                id = 0,
+                balance = openingBalance,
+                timestamp = now,
+                transactionId = null,
+                sourceType = SOURCE_MANUAL,
                 smsSource = null
             )
         )

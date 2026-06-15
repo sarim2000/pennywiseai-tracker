@@ -64,6 +64,14 @@ class AddTransactionUseCase @Inject constructor(
             budgetImpactType = budgetImpactType
         )
 
+        // For manual/cash accounts, pin the opening anchor from the PRE-insert snapshot
+        // (balance − Σtxns) so the post-insert recompute reflects this new transaction.
+        // Establishing it after the insert would fold the new txn into the opening and
+        // the add would silently not move the balance. No-op for SMS accounts.
+        if (bankName != null && accountLast4 != null) {
+            accountBalanceRepository.ensureManualOpening(bankName, accountLast4)
+        }
+
         // Insert the transaction
         val transactionId = transactionRepository.insertTransaction(transaction)
 
@@ -107,6 +115,16 @@ class AddTransactionUseCase @Inject constructor(
         date: LocalDateTime,
         transactionId: Long
     ) {
+        // Manual/cash accounts derive their balance from their transactions, so a
+        // back-dated (or later edited) transaction must be reflected — recompute rather
+        // than writing a per-transaction delta snapshot stamped at the txn date (which a
+        // back-dated row hides from "latest"). The transaction is already persisted here,
+        // so the recompute sum includes it. (#469)
+        if (accountBalanceRepository.isManualAccount(bankName, accountLast4)) {
+            accountBalanceRepository.recomputeManualBalance(bankName, accountLast4)
+            return
+        }
+
         // Get current account balance
         val currentAccount = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
 

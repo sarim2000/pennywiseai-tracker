@@ -221,19 +221,26 @@ class ManageAccountsViewModel @Inject constructor(
                 BigDecimal(state.creditLimit)
             } else null
             
-            accountBalanceRepository.insertBalance(
-                AccountBalanceEntity(
-                    bankName = state.bankName,
-                    accountLast4 = state.accountLast4,
-                    balance = BigDecimal(state.balance),
-                    creditLimit = creditLimit,
-                    timestamp = LocalDateTime.now(),
-                    isCreditCard = (state.accountType == AccountType.CREDIT),
-                    accountType = state.accountType.toDatabaseString(),
-                    currency = state.currency,
-                    sourceType = "MANUAL"
-                )
+            val isCredit = state.accountType == AccountType.CREDIT
+            val template = AccountBalanceEntity(
+                bankName = state.bankName,
+                accountLast4 = state.accountLast4,
+                balance = BigDecimal(state.balance),
+                creditLimit = creditLimit,
+                timestamp = LocalDateTime.now(),
+                isCreditCard = isCredit,
+                accountType = state.accountType.toDatabaseString(),
+                currency = state.currency,
+                sourceType = "MANUAL"
             )
+            if (isCredit) {
+                // Credit cards aren't recompute-managed — single snapshot as before.
+                accountBalanceRepository.insertBalance(template)
+            } else {
+                // Cash/regular manual account: seed an OPENING anchor + current row so
+                // its balance derives from opening + Σ(transactions) going forward.
+                accountBalanceRepository.seedManualAccount(template, BigDecimal(state.balance))
+            }
 
             // Clear form (keep the base currency as the next default)
             _formState.value = AccountFormState(currency = baseCurrency)
@@ -242,6 +249,14 @@ class ManageAccountsViewModel @Inject constructor(
     
     fun updateAccountBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
         viewModelScope.launch {
+            // For a manual/cash account the balance is derived (opening + Σtxns). The
+            // user types their *current* balance, so back-solve the opening (option b)
+            // — future transactions still adjust from there.
+            if (accountBalanceRepository.isManualAccount(bankName, accountLast4)) {
+                accountBalanceRepository.setManualCurrentBalance(bankName, accountLast4, newBalance)
+                return@launch
+            }
+
             // Get the latest balance to preserve existing account properties
             val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
 
@@ -735,29 +750,39 @@ class ManageAccountsViewModel @Inject constructor(
 
                 // Get existing balance to preserve profileId and other properties
                 val latestBalance = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
-
-                // Insert new balance record with updated values
-                accountBalanceRepository.insertBalance(
-                    AccountBalanceEntity(
-                        bankName = newBankName,
-                        accountLast4 = accountLast4,
-                        balance = newBalance,
-                        creditLimit = newCreditLimit,
-                        timestamp = LocalDateTime.now(),
-                        isCreditCard = isCreditCard,
-                        // Honor an explicit currency edit; otherwise resolve so stamping
-                        // MANUAL doesn't flip an SMS-tracked non-INR account to stored INR.
-                        currency = newCurrency ?: CurrencyFormatter.resolveAccountCurrency(
-                            sourceType = latestBalance?.sourceType,
-                            storedCurrency = latestBalance?.currency ?: "INR",
-                            bankName = newBankName
-                        ),
-                        accountType = latestBalance?.accountType,
-                        profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
-                        alias = latestBalance?.alias,
-                        sourceType = "MANUAL"
-                    )
+                val resolvedCurrency = newCurrency ?: CurrencyFormatter.resolveAccountCurrency(
+                    sourceType = latestBalance?.sourceType,
+                    storedCurrency = latestBalance?.currency ?: "INR",
+                    bankName = newBankName
                 )
+
+                if (!isCreditCard && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
+                    // Manual/cash account: balance is derived. Update the currency on its
+                    // anchor rows and back-solve the opening from the typed balance
+                    // (option b) instead of inserting a snapshot the next recompute would
+                    // overwrite.
+                    accountBalanceRepository.updateAccountCurrency(newBankName, accountLast4, resolvedCurrency)
+                    accountBalanceRepository.setManualCurrentBalance(newBankName, accountLast4, newBalance)
+                } else {
+                    // Insert new balance record with updated values
+                    accountBalanceRepository.insertBalance(
+                        AccountBalanceEntity(
+                            bankName = newBankName,
+                            accountLast4 = accountLast4,
+                            balance = newBalance,
+                            creditLimit = newCreditLimit,
+                            timestamp = LocalDateTime.now(),
+                            isCreditCard = isCreditCard,
+                            // Honor an explicit currency edit; otherwise resolve so stamping
+                            // MANUAL doesn't flip an SMS-tracked non-INR account to stored INR.
+                            currency = resolvedCurrency,
+                            accountType = latestBalance?.accountType,
+                            profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                            alias = latestBalance?.alias,
+                            sourceType = "MANUAL"
+                        )
+                    )
+                }
 
                 _uiState.update {
                     it.copy(successMessage = "Account updated successfully")

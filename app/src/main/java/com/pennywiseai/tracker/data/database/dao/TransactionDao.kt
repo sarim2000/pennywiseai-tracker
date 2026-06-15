@@ -224,6 +224,23 @@ interface TransactionDao {
         bankName: String,
         accountLast4: String
     ): Flow<List<TransactionEntity>>
+
+    /**
+     * One-shot, strict-match transactions for an account — only rows explicitly
+     * assigned to (bankName, accountLast4), excluding the `account_number IS NULL`
+     * "any account at this bank" rows. Used to recompute a manual/cash account's
+     * balance as opening + Σ(transactions).
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND bank_name = :bankName
+        AND account_number = :accountLast4
+    """)
+    suspend fun getTransactionsForAccountStrict(
+        bankName: String,
+        accountLast4: String
+    ): List<TransactionEntity>
     
     @Query("""
         SELECT * FROM transactions

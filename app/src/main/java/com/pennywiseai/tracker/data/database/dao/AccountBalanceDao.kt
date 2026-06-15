@@ -223,4 +223,43 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET alias = :alias WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Manual/cash account balance recompute support.
+    //
+    // A manual account's displayed balance = opening + Σ(its transactions). The
+    // opening is stored in a single OPENING row at an early timestamp (so it never
+    // wins "latest by timestamp"); the displayed value lives in a single MANUAL row
+    // that recompute refreshes. See AccountBalanceRepository.recomputeManualBalance.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+        AND source_type = 'OPENING'
+        ORDER BY timestamp ASC
+        LIMIT 1
+    """)
+    suspend fun getOpeningRow(bankName: String, accountLast4: String): AccountBalanceEntity?
+
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+        AND source_type = 'MANUAL'
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+    suspend fun getManualCurrentRow(bankName: String, accountLast4: String): AccountBalanceEntity?
+
+    @Query("""
+        SELECT MIN(timestamp) FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+    """)
+    suspend fun getEarliestBalanceTimestamp(bankName: String, accountLast4: String): LocalDateTime?
+
+    @Query("UPDATE account_balances SET balance = :balance, timestamp = :timestamp WHERE id = :id")
+    suspend fun updateBalanceAndTimestampById(id: Long, balance: BigDecimal, timestamp: LocalDateTime)
+
+    @Query("UPDATE account_balances SET currency = :currency WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int
 }

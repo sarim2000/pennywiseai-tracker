@@ -265,4 +265,17 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET currency = :currency WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int
+
+    /**
+     * Count of SMS-sourced balance rows for an account. Real bank SMS balances always
+     * carry a non-null `sms_source`, so a positive count means the account is
+     * SMS-tracked — used to keep the manual-balance recompute away from SMS accounts
+     * that merely had a one-off "Update balance" override.
+     */
+    @Query("""
+        SELECT COUNT(*) FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+        AND sms_source IS NOT NULL
+    """)
+    suspend fun countSmsSourcedBalances(bankName: String, accountLast4: String): Int
 }

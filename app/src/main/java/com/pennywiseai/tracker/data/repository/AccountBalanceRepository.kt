@@ -291,20 +291,24 @@ class AccountBalanceRepository @Inject constructor(
     suspend fun ensureManualOpening(bankName: String, accountLast4: String) {
         if (accountBalanceDao.getOpeningRow(bankName, accountLast4) != null) return
         if (!isManualAccount(bankName, accountLast4)) return
-        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return
-        val sum = signedTransactionSum(bankName, accountLast4)
-        val earliest = accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
-            ?: latest.timestamp
-        accountBalanceDao.insertBalance(
-            latest.copy(
-                id = 0,
-                balance = latest.balance - sum,
-                timestamp = earliest.minusNanos(1),  // strictly before all history → never "latest"
-                transactionId = null,
-                sourceType = SOURCE_OPENING,
-                smsSource = null
+        database.withTransaction {
+            // Re-check inside the transaction in case a concurrent call just created it.
+            if (accountBalanceDao.getOpeningRow(bankName, accountLast4) != null) return@withTransaction
+            val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return@withTransaction
+            val sum = signedTransactionSum(bankName, accountLast4)
+            val earliest = accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
+                ?: latest.timestamp
+            accountBalanceDao.insertBalance(
+                latest.copy(
+                    id = 0,
+                    balance = latest.balance - sum,
+                    timestamp = earliest.minusNanos(1),  // strictly before all history → never "latest"
+                    transactionId = null,
+                    sourceType = SOURCE_OPENING,
+                    smsSource = null
+                )
             )
-        )
+        }
     }
 
     /**
@@ -315,9 +319,39 @@ class AccountBalanceRepository @Inject constructor(
      */
     suspend fun recomputeManualBalance(bankName: String, accountLast4: String) {
         if (!isManualAccount(bankName, accountLast4)) return
-        ensureManualOpening(bankName, accountLast4)
-        val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return
-        val current = opening.balance + signedTransactionSum(bankName, accountLast4)
+        database.withTransaction {
+            ensureManualOpening(bankName, accountLast4)
+            val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
+            val current = opening.balance + signedTransactionSum(bankName, accountLast4)
+            writeManualCurrentRow(bankName, accountLast4, opening, current)
+        }
+    }
+
+    /**
+     * "Update balance" for a manual account (option-b semantics): the user types
+     * their *current* balance and we back-solve the opening (opening = target −
+     * Σtxns) so future transactions still adjust from there.
+     */
+    suspend fun setManualCurrentBalance(bankName: String, accountLast4: String, target: BigDecimal) {
+        if (!isManualAccount(bankName, accountLast4)) return
+        database.withTransaction {
+            ensureManualOpening(bankName, accountLast4)
+            val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
+            val sum = signedTransactionSum(bankName, accountLast4)
+            accountBalanceDao.updateBalanceById(opening.id, target - sum)
+            // current = (target − sum) + sum = target — write it directly instead of
+            // re-summing via recomputeManualBalance.
+            writeManualCurrentRow(bankName, accountLast4, opening, target)
+        }
+    }
+
+    /** Upserts the single MANUAL "current" row at `now` so it wins as the latest. */
+    private suspend fun writeManualCurrentRow(
+        bankName: String,
+        accountLast4: String,
+        opening: AccountBalanceEntity,
+        current: BigDecimal
+    ) {
         val now = LocalDateTime.now()
         val existing = accountBalanceDao.getManualCurrentRow(bankName, accountLast4)
         if (existing != null) {
@@ -330,45 +364,33 @@ class AccountBalanceRepository @Inject constructor(
     }
 
     /**
-     * "Update balance" for a manual account (option-b semantics): the user types
-     * their *current* balance and we back-solve the opening (opening = target −
-     * Σtxns) so future transactions still adjust from there. Returns the resolved
-     * current balance.
-     */
-    suspend fun setManualCurrentBalance(bankName: String, accountLast4: String, target: BigDecimal) {
-        ensureManualOpening(bankName, accountLast4)
-        val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return
-        val newOpening = target - signedTransactionSum(bankName, accountLast4)
-        accountBalanceDao.updateBalanceById(opening.id, newOpening)
-        recomputeManualBalance(bankName, accountLast4)
-    }
-
-    /**
      * Seeds a brand-new manual account: an OPENING anchor (at an early timestamp)
      * plus its current MANUAL row, both equal to [openingBalance] since there are
      * no transactions yet. [template] carries currency / accountType / alias / etc.
      */
     suspend fun seedManualAccount(template: AccountBalanceEntity, openingBalance: BigDecimal) {
         val now = LocalDateTime.now()
-        accountBalanceDao.insertBalance(
-            template.copy(
-                id = 0,
-                balance = openingBalance,
-                timestamp = now.minusSeconds(1),
-                transactionId = null,
-                sourceType = SOURCE_OPENING,
-                smsSource = null
+        database.withTransaction {
+            accountBalanceDao.insertBalance(
+                template.copy(
+                    id = 0,
+                    balance = openingBalance,
+                    timestamp = now.minusSeconds(1),
+                    transactionId = null,
+                    sourceType = SOURCE_OPENING,
+                    smsSource = null
+                )
             )
-        )
-        accountBalanceDao.insertBalance(
-            template.copy(
-                id = 0,
-                balance = openingBalance,
-                timestamp = now,
-                transactionId = null,
-                sourceType = SOURCE_MANUAL,
-                smsSource = null
+            accountBalanceDao.insertBalance(
+                template.copy(
+                    id = 0,
+                    balance = openingBalance,
+                    timestamp = now,
+                    transactionId = null,
+                    sourceType = SOURCE_MANUAL,
+                    smsSource = null
+                )
             )
-        )
+        }
     }
 }

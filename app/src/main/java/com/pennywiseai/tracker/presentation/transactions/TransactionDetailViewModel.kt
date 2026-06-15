@@ -663,8 +663,10 @@ class TransactionDetailViewModel @Inject constructor(
                 val shouldRunSingleAccount = !isTransfer && newBank != null && newAccount != null &&
                     (accountChanged || convertedFromTransfer)
 
-                if (shouldRunSingleAccount) {
-                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank!!, newAccount!!)
+                // Skip the incremental snapshot for manual accounts — the recompute
+                // below derives their balance, so this row would be redundant clutter.
+                if (shouldRunSingleAccount && !accountBalanceRepository.isManualAccount(newBank!!, newAccount!!)) {
+                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
                     if (currentBalance != null) {
                         val balanceChange = when (normalizedTransaction.transactionType) {
                             TransactionType.INCOME -> normalizedTransaction.amount

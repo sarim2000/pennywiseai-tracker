@@ -37,7 +37,8 @@ object CurrencyFormatter {
         "KWD" to "KD",
         "KRW" to "₩",
         "NGN" to "₦",
-        "TZS" to "TSh"
+        "TZS" to "TSh",
+        "BRL" to "R$"
     )
 
     /**
@@ -64,7 +65,8 @@ object CurrencyFormatter {
         "KWD" to Locale.Builder().setLanguage("en").setRegion("KW").build(),
         "KRW" to Locale.KOREA,
         "NGN" to Locale.Builder().setLanguage("en").setRegion("NG").build(),
-        "TZS" to Locale.Builder().setLanguage("en").setRegion("TZ").build()
+        "TZS" to Locale.Builder().setLanguage("en").setRegion("TZ").build(),
+        "BRL" to Locale.Builder().setLanguage("pt").setRegion("BR").build()
     )
 
     /**

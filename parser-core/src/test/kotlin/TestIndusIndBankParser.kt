@@ -193,6 +193,9 @@ class IndusIndBankParserTest {
                     amount = BigDecimal("1250.00"),
                     currency = "INR",
                     type = TransactionType.CREDIT,
+                    merchant = "INSTAMART",
+                    accountLast4 = "1234",
+                    isFromCard = true,
                     // Parser returns the SMS *available* limit; the app back-calcs total.
                     creditLimit = BigDecimal("48750.00")
                 )

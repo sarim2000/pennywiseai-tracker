@@ -100,6 +100,8 @@ object BankParserFactory {
         MelliBankParser(),  // Melli Bank (Iran)
         MellatBankParser(), // Mellat Bank (Iran)
         ParsianBankParser(),  // Parsian Bank (Iran)
+        BankinoBankParser(),  // Bankino / Middle East Bank (Iran)
+        BluBankParser(),  // blu Bank (Iran)
         BangkokBankParser(),  // Bangkok Bank (Thailand)
         KasikornBankParser(),  // Kasikorn Bank (Thailand)
         SiamCommercialBankParser(),  // Siam Commercial Bank (Thailand)

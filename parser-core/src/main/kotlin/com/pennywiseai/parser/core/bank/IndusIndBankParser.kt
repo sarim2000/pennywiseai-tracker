@@ -199,8 +199,9 @@ class IndusIndBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Card/POS: at <merchant>
-        val atPattern = Regex("""at\s+([^\n]+?)(?:\s+Ref|\s+on|$)""", RegexOption.IGNORE_CASE)
+        // Card/POS: at <merchant>. Stop at " Ref", " on", a sentence-boundary period
+        // (e.g. "at INSTAMART. Avl Lmt: ..." on credit-card spends), or end of line.
+        val atPattern = Regex("""at\s+([^\n]+?)(?:\s+Ref|\s+on|\.\s|$)""", RegexOption.IGNORE_CASE)
         atPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
             if (merchant.isNotEmpty()) return cleanMerchantName(merchant)

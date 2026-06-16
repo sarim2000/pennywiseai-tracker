@@ -53,8 +53,12 @@ class OpayBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        val match = Regex("""(?i)has\s+been\s+(?:debited|credited)\s+for\s+(.+?)\s+on\s""").find(message)
-            ?: return null
+        // Anchor the trailing " on " to the actual date (DD-Mon-YYYY) so a purpose that
+        // itself contains " on " (e.g. "Payment on Account") isn't truncated — the lazy
+        // capture backtracks past any earlier " on " that isn't followed by a date.
+        val match = Regex(
+            """(?i)has\s+been\s+(?:debited|credited)\s+for\s+(.+?)\s+on\s+\d{1,2}-[A-Za-z]{3}-\d{2,4}"""
+        ).find(message) ?: return null
         val desc = match.groupValues[1].trim()
         return desc.ifBlank { null }
     }

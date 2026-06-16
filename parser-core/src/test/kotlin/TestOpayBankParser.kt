@@ -67,6 +67,18 @@ class OpayBankParserTest {
     }
 
     @Test
+    fun `merchant containing " on " is not truncated at the first occurrence`() {
+        val parser = OpayBankParser()
+        // The purpose itself contains " on " — the date-anchored regex must capture the
+        // whole purpose, not stop at "Payment".
+        val message = "Dear OPay user, N500.00 has been debited for Payment on Account via POS on 14-May-2026 19:28."
+
+        val parsed = parser.parse(message, "Opay", 0L)
+        Assertions.assertNotNull(parsed)
+        Assertions.assertEquals("Payment on Account via POS", parsed!!.merchant)
+    }
+
+    @Test
     fun `OTP message is rejected`() {
         val parser = OpayBankParser()
         val message = "Dear OPay user, your OTP is 123456. Do not share it with anyone."

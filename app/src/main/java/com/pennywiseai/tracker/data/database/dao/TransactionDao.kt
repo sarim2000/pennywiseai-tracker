@@ -241,6 +241,20 @@ interface TransactionDao {
         bankName: String,
         accountLast4: String
     ): List<TransactionEntity>
+
+    /**
+     * TRANSFER transactions touching an account on either side. Transfers are stored
+     * once with `from_account` / `to_account` (last-4 only, matching how the transfer
+     * balance shift resolves accounts), so a manual account's recompute must pull them
+     * by those columns — they don't carry the account in `account_number`.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND transaction_type = 'TRANSFER'
+        AND (from_account = :accountLast4 OR to_account = :accountLast4)
+    """)
+    suspend fun getTransfersForAccount(accountLast4: String): List<TransactionEntity>
     
     @Query("""
         SELECT * FROM transactions

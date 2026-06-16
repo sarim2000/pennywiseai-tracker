@@ -2023,6 +2023,11 @@ private fun MarkAsLoanBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Scroll so the loan-amount/note fields and the Confirm button stay
+                // reachable when several existing people are listed — otherwise they're
+                // pushed below the sheet and the user can only proceed via "New person".
+                // (#489)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimensions.Padding.content)
                 .padding(bottom = Spacing.xl)
                 .navigationBarsPadding(),

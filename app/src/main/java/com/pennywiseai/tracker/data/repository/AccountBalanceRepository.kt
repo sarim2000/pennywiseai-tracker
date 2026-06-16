@@ -280,12 +280,24 @@ class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.countSmsSourcedBalances(bankName, accountLast4) == 0
     }
 
-    /** Σ of an account's transactions, signed the same way balances move: INCOME +, everything else −. */
+    /**
+     * Σ of an account's transactions, signed the way balances move. Direct transactions
+     * (assigned via `account_number`): INCOME +, everything else −. TRANSFERs are handled
+     * separately by their `from_account`/`to_account` (money in when this account is the
+     * destination, out when it's the source) and excluded from the direct sum so they're
+     * never double-counted — a transfer *into* a manual account would otherwise be dropped.
+     */
     private suspend fun signedTransactionSum(bankName: String, accountLast4: String): BigDecimal {
-        return transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
+        var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
+            .filter { it.transactionType != TransactionType.TRANSFER }
             .fold(BigDecimal.ZERO) { acc, tx ->
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
+        for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
+            if (tx.toAccount == accountLast4) sum += tx.amount
+            if (tx.fromAccount == accountLast4) sum -= tx.amount
+        }
+        return sum
     }
 
     /**

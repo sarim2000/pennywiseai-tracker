@@ -186,13 +186,15 @@ class IndusIndBankParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Credit-card spend types as CREDIT (Avl Lmt present)",
+                name = "Credit-card spend types as CREDIT and extracts INR Avl Lmt",
                 message = "INR 1,250.00 spent on IndusInd Card XX1234 on 14-06-2026 04:21:45 pm at INSTAMART. Avl Lmt: INR 48,750.00. To dispute, call 18602677777/SMS BLOCK 1234 to 5676757",
                 sender = "AD-INDUSIND-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1250.00"),
                     currency = "INR",
-                    type = TransactionType.CREDIT
+                    type = TransactionType.CREDIT,
+                    // Parser returns the SMS *available* limit; the app back-calcs total.
+                    creditLimit = BigDecimal("48750.00")
                 )
             ),
             ParserTestCase(

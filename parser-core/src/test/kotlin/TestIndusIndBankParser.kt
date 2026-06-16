@@ -184,6 +184,26 @@ class IndusIndBankParserTest {
                     accountLast4 = "1234",
                     reference = "123456789"
                 )
+            ),
+            ParserTestCase(
+                name = "Credit-card spend types as CREDIT (Avl Lmt present)",
+                message = "INR 1,250.00 spent on IndusInd Card XX1234 on 14-06-2026 04:21:45 pm at INSTAMART. Avl Lmt: INR 48,750.00. To dispute, call 18602677777/SMS BLOCK 1234 to 5676757",
+                sender = "AD-INDUSIND-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1250.00"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT
+                )
+            ),
+            ParserTestCase(
+                name = "Credit-card refund types as INCOME (no Avl Lmt)",
+                message = "Dear Customer, refund of INR 250 from Swiggy Limited Banga has been credited to your IndusInd Bank Credit Card XX1234 on 11-Jun-26 and the refund amount has been adjusted against the outstanding on your card account - IndusInd Bank",
+                sender = "AD-INDUSIND-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250"),
+                    currency = "INR",
+                    type = TransactionType.INCOME
+                )
             )
         )
 

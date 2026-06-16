@@ -38,6 +38,12 @@ class IndusIndBankParser : BaseIndianBankParser() {
         // IndusInd typically uses standard verbs; fall back to base for most, but
         // explicitly treat "spent" and "purchase" as expenses to avoid ambiguity.
         return when {
+            // A credit-card purchase ("spent on IndusInd Card ... Avl Lmt: INR ...") must
+            // type as CREDIT — not EXPENSE — so it counts as card spend and the base
+            // parser's available-limit extraction (gated on CREDIT) runs. Refund SMS say
+            // "credited to your ... Card" but carry no "Avl Lmt", so they fall through to
+            // INCOME via super. (#486)
+            lower.contains("card") && lower.contains("avl lmt") -> TransactionType.CREDIT
             lower.contains("spent") -> TransactionType.EXPENSE
             lower.contains("debited") -> TransactionType.EXPENSE
             lower.contains("purchase") -> TransactionType.EXPENSE

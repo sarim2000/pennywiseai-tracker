@@ -808,13 +808,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
         }
 
+        // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
+        // available = creditLimit − balance, so store total = available + outstanding
+        // (the post-transaction balance). Falls back to the existing stored limit when
+        // the SMS carries no limit. (#486)
+        val resolvedCreditLimit = if (isCreditCard && parsed.creditLimit != null) {
+            parsed.creditLimit!! + newBalance
+        } else {
+            existing?.creditLimit
+        }
+
         val balanceEntity = AccountBalanceEntity(
             bankName      = parsed.bankName,
             accountLast4  = targetAccount,
             balance       = newBalance,
             timestamp     = entity.dateTime,
             transactionId = if (rowId != -1L) rowId else null,
-            creditLimit   = existing?.creditLimit,
+            creditLimit   = resolvedCreditLimit,
             isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",

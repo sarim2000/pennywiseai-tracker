@@ -385,26 +385,23 @@ abstract class BankParser {
      */
     protected open fun extractAvailableLimit(message: String): BigDecimal? {
 
-        // Common patterns for credit limit across banks
+        // Currency token: most banks print "Rs"/"₹", but some (e.g. IndusInd) use
+        // "Avl Lmt: INR ..." — accept all three. Only ever evaluated for CREDIT
+        // messages (extractAvailableLimit is gated on type == CREDIT in parse()).
+        val cur = """(?:Rs\.?|INR|₹)"""
         val creditLimitPatterns = listOf(
-            // "Available limit Rs.111,111.89" - Federal Bank format (no space after Rs.)
-            Regex("""Available\s+limit\s+Rs\.([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            // "Available limit Rs. 111,111.89" or "Available limit: Rs 111,111.89"
-            Regex(
-                """Available\s+limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-            // "Avl Lmt Rs.111,111.89" or "Avl Lmt: Rs 111,111.89" (ICICI and others)
-            Regex("""Avl\s+Lmt:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Available limit Rs.111,111.89" / "Available limit INR 111,111.89"
+            Regex("""Available\s+limit\s+$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Available limit: Rs 111,111.89"
+            Regex("""Available\s+limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Lmt: Rs 111,111.89" / "Avl Lmt: INR 111,111.89" (ICICI, IndusInd, others)
+            Regex("""Avl\s+Lmt:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Avail Limit Rs.111,111.89"
-            Regex("""Avail\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Avail\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Available Credit Limit: Rs.111,111.89"
-            Regex(
-                """Available\s+Credit\s+Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
+            Regex("""Available\s+Credit\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
-            Regex("""(?:^|\s)Limit:?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            Regex("""(?:^|\s)Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
         )
 
         for ((index, pattern) in creditLimitPatterns.withIndex()) {

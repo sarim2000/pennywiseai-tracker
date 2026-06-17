@@ -22,11 +22,9 @@ import java.math.BigDecimal
  *   "-" => EXPENSE, "+" => INCOME.
  * - Currency is Iranian Rial (IRR).
  */
-class BankinoBankParser : BankParser() {
+class BankinoBankParser : BaseIranianBankParser() {
 
     override fun getBankName() = "Bankino"
-
-    override fun getCurrency() = "IRR"
 
     // "بانک خاورمیانه" = Middle East Bank (Bankino).
     private val bankNameMarker = "بانک خاورمیانه"

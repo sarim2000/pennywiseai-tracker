@@ -23,7 +23,8 @@ class BankinoBankParserTest {
                     currency = "IRR",
                     type = TransactionType.EXPENSE,
                     balance = BigDecimal("14412600"),
-                    accountLast4 = "7284"
+                    accountLast4 = "7284",
+                    isFromCard = true
                 )
             ),
             ParserTestCase(
@@ -35,7 +36,8 @@ class BankinoBankParserTest {
                     currency = "IRR",
                     type = TransactionType.EXPENSE,
                     balance = BigDecimal("17712600"),
-                    accountLast4 = "7284"
+                    accountLast4 = "7284",
+                    isFromCard = true
                 )
             ),
             ParserTestCase(
@@ -47,7 +49,8 @@ class BankinoBankParserTest {
                     currency = "IRR",
                     type = TransactionType.INCOME,
                     balance = BigDecimal("19021600"),
-                    accountLast4 = "9286"
+                    accountLast4 = "9286",
+                    isFromCard = true
                 )
             )
         )

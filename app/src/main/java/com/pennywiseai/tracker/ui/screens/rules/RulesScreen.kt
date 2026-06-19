@@ -154,8 +154,12 @@ fun RulesScreen(
             ) {
                 // Info Card
                 item {
+                    // Use a primaryContainer background so the onPrimaryContainer icon/text
+                    // are legible. On the default surface card they're near-invisible in
+                    // dark mode (low-contrast primary tone on a dark surface).
                     PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Row(
                             modifier = Modifier

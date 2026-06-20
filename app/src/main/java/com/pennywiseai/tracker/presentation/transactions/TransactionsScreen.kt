@@ -111,6 +111,8 @@ fun TransactionsScreen(
     val profileAccountKeys by viewModel.profileAccountKeys.collectAsState()
     val accountFilter by viewModel.accountFilter.collectAsState()
     val accountOptions by viewModel.accountOptions.collectAsState()
+    val tagFilter by viewModel.tagFilter.collectAsState()
+    val availableTags by viewModel.availableTags.collectAsState()
 
     // Bulk-edit selection (#369)
     val selectedIds by viewModel.selectedIds.collectAsState()
@@ -135,6 +137,7 @@ fun TransactionsScreen(
     var showTypeMenu by remember { mutableStateOf(false) }
     var showMoreFiltersMenu by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    var showTagMenu by remember { mutableStateOf(false) }
 
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -155,6 +158,7 @@ fun TransactionsScreen(
         transactionTypeFilter != TransactionTypeFilter.ALL ||
         selectedProfileId != null ||
         accountFilter != null ||
+        tagFilter != null ||
         hasCurrencyFilter ||
         customDateRange != null
 
@@ -366,7 +370,8 @@ fun TransactionsScreen(
             showTypeMenu = showTypeMenu,
             showMoreFiltersMenu = showMoreFiltersMenu,
             showAccountMenu = showAccountMenu,
-            collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu && !showAccountMenu,
+            showTagMenu = showTagMenu,
+            collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu && !showAccountMenu && !showTagMenu,
             sortOption = sortOption,
             timePeriods = timePeriods,
             availableCategories = availableCategories,
@@ -374,6 +379,8 @@ fun TransactionsScreen(
             selectedProfileId = selectedProfileId,
             accountOptions = accountOptions,
             accountFilter = accountFilter,
+            availableTags = availableTags,
+            tagFilter = tagFilter,
             onSearchQueryChange = viewModel::updateSearchQuery,
             onSortClick = { showSortMenu = true },
             onSortDismiss = { showSortMenu = false },
@@ -419,6 +426,13 @@ fun TransactionsScreen(
                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 viewModel.setAccountFilter(accountKey)
                 showAccountMenu = false
+            },
+            onTagClick = { showTagMenu = true },
+            onTagDismiss = { showTagMenu = false },
+            onTagSelected = { tag ->
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                viewModel.setTagFilter(tag)
+                showTagMenu = false
             },
             onResetFilters = viewModel::resetFilters,
             focusRequester = searchFocusRequester,
@@ -822,6 +836,7 @@ private fun TransactionFilterHeader(
     showTypeMenu: Boolean,
     showMoreFiltersMenu: Boolean,
     showAccountMenu: Boolean,
+    showTagMenu: Boolean,
     collapsed: Boolean,
     sortOption: SortOption,
     timePeriods: List<TimePeriod>,
@@ -830,6 +845,8 @@ private fun TransactionFilterHeader(
     selectedProfileId: Long?,
     accountOptions: List<com.pennywiseai.tracker.presentation.common.AccountOption>,
     accountFilter: String?,
+    availableTags: List<String>,
+    tagFilter: String?,
     onSearchQueryChange: (String) -> Unit,
     onSortClick: () -> Unit,
     onSortDismiss: () -> Unit,
@@ -847,6 +864,9 @@ private fun TransactionFilterHeader(
     onAccountClick: () -> Unit,
     onAccountDismiss: () -> Unit,
     onAccountSelected: (String?) -> Unit,
+    onTagClick: () -> Unit,
+    onTagDismiss: () -> Unit,
+    onTagSelected: (String?) -> Unit,
     onResetFilters: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
@@ -1080,6 +1100,49 @@ private fun TransactionFilterHeader(
                                     },
                                     onClick = { onProfileSelected(profile.id) }
                                 )
+                            }
+                        }
+                    }
+                }
+
+                if (availableTags.isNotEmpty() || tagFilter != null) {
+                    item {
+                        Box {
+                            ExpressiveFilterChip(
+                                selected = tagFilter != null,
+                                text = tagFilter ?: "Tag",
+                                icon = Icons.Default.Sell,
+                                onClick = onTagClick
+                            )
+
+                            DropdownMenu(
+                                expanded = showTagMenu,
+                                onDismissRequest = onTagDismiss
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("All tags") },
+                                    leadingIcon = {
+                                        if (tagFilter == null) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        } else {
+                                            Icon(Icons.Default.Sell, contentDescription = null)
+                                        }
+                                    },
+                                    onClick = { onTagSelected(null) }
+                                )
+                                availableTags.forEach { tag ->
+                                    DropdownMenuItem(
+                                        text = { Text(tag, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                        leadingIcon = {
+                                            if (tagFilter?.equals(tag, ignoreCase = true) == true) {
+                                                Icon(Icons.Default.Check, contentDescription = null)
+                                            } else {
+                                                Icon(Icons.Default.Sell, contentDescription = null)
+                                            }
+                                        },
+                                        onClick = { onTagSelected(tag) }
+                                    )
+                                }
                             }
                         }
                     }

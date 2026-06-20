@@ -215,6 +215,12 @@ class SliceParserTest {
                 message = "UPI AutoPay for OpenAI from slice a/c XX2743 for Rs. 1,999 is revoked. UMN - 019e5ebb3a1679b6aee8a0000ff88d19@slc - slice",
                 sender = "slice",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Slice SFB UPI collect request must NOT be booked as income",
+                message = "You have received a collect request of Rs. 500 from someone@slc on slice. Approve or decline in the app. - slice",
+                sender = "slice",
+                shouldParse = false
             )
         )
 

@@ -89,6 +89,7 @@ object BankParserFactory {
         CrdbBankParser(),  // CRDB Bank (Tanzania) — bilingual Swahili/English, multi-currency cards
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
+        ArabBankParser(),  // Arab Bank (Egypt) — multi-currency card, English + Arabic SMS
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)

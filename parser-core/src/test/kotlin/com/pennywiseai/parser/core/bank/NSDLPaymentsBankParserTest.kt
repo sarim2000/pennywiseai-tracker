@@ -39,12 +39,26 @@ class NSDLPaymentsBankParserTest {
                     reference = "617109835321",
                     accountLast4 = "1234"
                 )
+            ),
+            ParserTestCase(
+                name = "UPI debit with dotted VPA handle (not truncated at the dot)",
+                message = "A/c XX1234 debited Rs 50.00 on 20-Jun-26 for linked business.name@oksbi. UPI Ref 122345526540 - NSDLPB",
+                sender = "VM-NSDLPB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "business.name",
+                    reference = "122345526540",
+                    accountLast4 = "1234"
+                )
             )
         )
 
         val handleChecks = listOf(
             "NSDLPB" to true,
             "AD-NSDLPB-S" to true,
+            "VM-NSDLPB-S" to true,
             "JIOPBS" to false,
             "HDFC" to false,
             "UNKNOWN" to false

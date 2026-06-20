@@ -339,6 +339,17 @@ class BankOfBarodaParser : BaseIndianBankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
+        // Credit-card bill-payment confirmation, e.g.
+        // "Payment of Rs X received for your BOBCARD ending NNNN ...".
+        // This only acknowledges that a payment landed on the card; it is not a
+        // spend or income. The actual debit is tracked on the funding bank
+        // account, so skip this notice to avoid a spurious transaction. (#498)
+        if (lowerMessage.contains("payment of") &&
+            lowerMessage.contains("received for your bobcard")
+        ) {
+            return false
+        }
+
         // Check for BOB-specific transaction keywords
         if (lowerMessage.contains("dr. from") ||
             lowerMessage.contains("cr. to") ||

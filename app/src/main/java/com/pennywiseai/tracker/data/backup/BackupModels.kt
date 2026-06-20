@@ -215,7 +215,13 @@ data class DatabaseSnapshot(
     val budgetMonthSnapshots: List<BudgetMonthSnapshotEntity> = emptyList(),
 
     @SerialName("budget_category_month_snapshots")
-    val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList()
+    val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList(),
+
+    @SerialName("tags")
+    val tags: List<TagEntity> = emptyList(),
+
+    @SerialName("transaction_tag_cross_refs")
+    val transactionTagCrossRefs: List<TransactionTagCrossRef> = emptyList()
 )
 
 /**

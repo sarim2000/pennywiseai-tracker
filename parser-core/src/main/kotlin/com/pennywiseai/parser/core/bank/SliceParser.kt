@@ -60,13 +60,28 @@ class SliceParser : BankParser() {
             return false
         }
 
-        // Slice SFB banking: "received in slice A/c ..." is an inbound credit.
-        if (lowerMessage.contains("received")) {
+        // UPI collect / payment requests are not completed money movements,
+        // even though the text can contain "received" (e.g. a "payment request
+        // received" / "is requesting" prompt). Reject before the credit shortcut
+        // below so a collect-request can't be booked as income.
+        if (lowerMessage.contains("request")) {
+            return false
+        }
+
+        // Slice SFB inbound credit: "Rs. X received in slice A/c ... via UPI".
+        // Narrowed to the account-credit shape so a bare "received" elsewhere
+        // doesn't slip a non-transaction through as income.
+        if (lowerMessage.contains("received in") && lowerMessage.contains("a/c")) {
             return true
         }
 
-        // Slice uses "sent" for UPI transfers (always success?)
-        if (lowerMessage.contains("sent")) {
+        // Slice SFB outbound UPI: "Rs. X sent from a/c ... to <payee>".
+        if (lowerMessage.contains("sent from") && lowerMessage.contains("a/c")) {
+            return true
+        }
+
+        // Slice SFB UPI AutoPay debit: "Successfully paid Rs.X from slice a/c ...".
+        if (lowerMessage.contains("successfully paid")) {
             return true
         }
 

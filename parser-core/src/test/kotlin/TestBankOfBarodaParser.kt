@@ -188,6 +188,15 @@ class BankOfBarodaParserTest {
                     balance = BigDecimal("12345.67"),
                     isFromCard = false
                 )
+            ),
+
+            // Credit-card bill-payment confirmation must be ignored, not booked
+            // as a spend/income. (#498)
+            ParserTestCase(
+                name = "BOBCARD payment confirmation is ignored",
+                message = "Payment of Rs 1317.80 received for your BOBCARD ending 2844 on 2026-06-17. Visit bobcard app: bobcard.io/App or online card account at https://www.bobcard.co.in/ for details.",
+                sender = "VM-BOBCRD-S",
+                shouldParse = false
             )
         )
 

@@ -489,38 +489,60 @@ class TransactionsViewModel @Inject constructor(
             initialValue = false
         )
 
+    private val smsScanUseCustomDate: StateFlow<Boolean> = userPreferencesRepository.smsScanUseCustomDate
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    private val smsScanCustomDate: StateFlow<Long?> = userPreferencesRepository.smsScanCustomDate
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     fun isShowingLimitedData(): Boolean {
         if (smsScanAllTime.value) return false
 
         val currentPeriod = _selectedPeriod.value
-        val scanMonthsValue = smsScanMonths.value
+        val scanStartDate = getSmsScanStartDate() ?: return false
 
         return when (currentPeriod) {
             TimePeriod.ALL -> true
             TimePeriod.CURRENT_FY -> {
-                // Check if FY start is before scan period
                 val dateRange = getDateRangeForPeriod(TimePeriod.CURRENT_FY)
                 if (dateRange != null) {
                     val (fyStart, _) = dateRange
-                    val scanStart = LocalDate.now().minusMonths(scanMonthsValue.toLong())
-                    fyStart.isBefore(scanStart)
+                    fyStart.isBefore(scanStartDate)
                 } else {
                     false
                 }
             }
             TimePeriod.CUSTOM -> {
-                // Check if custom range start is before scan period
                 val customRange = customDateRange.value
                 if (customRange != null) {
                     val (startDate, _) = customRange
-                    val scanStart = LocalDate.now().minusMonths(scanMonthsValue.toLong())
-                    startDate.isBefore(scanStart)
+                    startDate.isBefore(scanStartDate)
                 } else {
                     false
                 }
             }
             else -> false
         }
+    }
+
+    private fun getSmsScanStartDate(): LocalDate? {
+        if (smsScanUseCustomDate.value) {
+            return smsScanCustomDate.value?.let { millis ->
+                java.time.Instant.ofEpochMilli(millis)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+            }
+        }
+
+        return LocalDate.now().minusMonths(smsScanMonths.value.toLong())
     }
     
     init {

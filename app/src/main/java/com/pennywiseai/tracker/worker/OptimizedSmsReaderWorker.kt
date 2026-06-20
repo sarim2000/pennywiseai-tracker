@@ -19,6 +19,8 @@ import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.core.TimeConstants
+import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
+import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -503,7 +505,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         if (needsFullScan) {
             val scanMonths = userPreferencesRepository.getSmsScanMonths()
             val scanAllTime = userPreferencesRepository.getSmsScanAllTime()
-            userPreferencesRepository.setLastScanPeriod(if (scanAllTime) -1 else scanMonths)
+            val scanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
+            userPreferencesRepository.setLastScanPeriod(
+                SmsScanParamsCalculator.resolveLastScanPeriod(
+                    scanAllTime = scanAllTime,
+                    scanUseCustomDate = scanUseCustomDate,
+                    scanMonths = scanMonths,
+                )
+            )
         }
 
         reportProgress(stats)
@@ -925,33 +934,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     /** Computes scan params without reading any message bodies. */
     private suspend fun computeScanParams(forceResync: Boolean): Pair<Long, Boolean> {
-        val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first() ?: 0L
-        val scanMonths        = userPreferencesRepository.getSmsScanMonths()
-        val scanAllTime       = userPreferencesRepository.getSmsScanAllTime()
-        val lastScanPeriod    = userPreferencesRepository.getLastScanPeriod().first() ?: 0
-        val now               = System.currentTimeMillis()
-
-        val scanAllTimeToggled = scanAllTime && lastScanPeriod != -1
-        val scanAllTimeToggledOff = !scanAllTime && lastScanPeriod == -1
-        val needsFullScan = forceResync || lastScanTimestamp == 0L ||
-            (lastScanPeriod >= 0 && scanMonths > lastScanPeriod) ||
-            scanAllTimeToggled || scanAllTimeToggledOff
-
-        val scanStartTime = if (needsFullScan) {
-            if (scanAllTime) 0L
-            else java.util.Calendar.getInstance().apply {
-                add(java.util.Calendar.MONTH, -scanMonths)
-                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0);      set(java.util.Calendar.MILLISECOND, 0)
-            }.timeInMillis
-        } else {
-            val threeDaysAgo = now - TimeConstants.MILLIS_PER_3_DAYS
-            val periodLimit  = java.util.Calendar.getInstance().apply {
-                add(java.util.Calendar.MONTH, -scanMonths)
-            }.timeInMillis
-            maxOf(minOf(lastScanTimestamp, threeDaysAgo), periodLimit)
-        }
-        return scanStartTime to needsFullScan
+        val params = SmsScanParamsCalculator.compute(
+            SmsScanParamsInput(
+                forceResync = forceResync,
+                lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first(),
+                scanMonths = userPreferencesRepository.getSmsScanMonths(),
+                scanAllTime = userPreferencesRepository.getSmsScanAllTime(),
+                scanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate(),
+                scanCustomDateMillis = userPreferencesRepository.getSmsScanCustomDate(),
+                lastScanPeriod = userPreferencesRepository.getLastScanPeriod().first(),
+                nowMillis = System.currentTimeMillis(),
+            )
+        )
+        return params.scanStartTime to params.needsFullScan
     }
 
     /** Fast COUNT-only query — reads zero message bodies. */

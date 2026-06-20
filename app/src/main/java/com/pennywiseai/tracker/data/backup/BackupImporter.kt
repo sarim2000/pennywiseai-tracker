@@ -696,6 +696,10 @@ class BackupImporter @Inject constructor(
         // SMS preferences
         userPreferencesRepository.updateHasSkippedSmsPermission(preferences.sms.hasSkippedSmsPermission)
         userPreferencesRepository.updateSmsScanMonths(preferences.sms.smsScanMonths)
+        userPreferencesRepository.updateSmsScanUseCustomDate(preferences.sms.smsScanUseCustomDate)
+        preferences.sms.smsScanCustomDate?.let {
+            userPreferencesRepository.updateSmsScanCustomDate(it)
+        }
         preferences.sms.lastScanTimestamp?.let {
             userPreferencesRepository.updateLastScanTimestamp(it)
         }

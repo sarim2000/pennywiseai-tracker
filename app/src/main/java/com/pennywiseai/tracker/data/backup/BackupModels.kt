@@ -264,7 +264,13 @@ data class SmsPreferences(
     val lastScanTimestamp: Long? = null,
 
     @SerialName("last_scan_period")
-    val lastScanPeriod: Int? = null
+    val lastScanPeriod: Int? = null,
+
+    @SerialName("sms_scan_use_custom_date")
+    val smsScanUseCustomDate: Boolean = false,
+
+    @SerialName("sms_scan_custom_date")
+    val smsScanCustomDate: Long? = null
 )
 
 @Serializable

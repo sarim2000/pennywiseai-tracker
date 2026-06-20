@@ -68,7 +68,7 @@ object CurrencyFormatter {
         "NGN" to Locale.Builder().setLanguage("en").setRegion("NG").build(),
         "TZS" to Locale.Builder().setLanguage("en").setRegion("TZ").build(),
         "BRL" to Locale.Builder().setLanguage("pt").setRegion("BR").build(),
-        "EGP" to Locale.Builder().setLanguage("ar").setRegion("EG").build()
+        "EGP" to Locale.Builder().setLanguage("en").setRegion("EG").build()
     )
 
     /**

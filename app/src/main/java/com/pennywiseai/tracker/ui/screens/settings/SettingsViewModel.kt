@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
@@ -91,6 +92,8 @@ class SettingsViewModel @Inject constructor(
     // SMS scan period state
     val smsScanMonths = userPreferencesRepository.smsScanMonths
     val smsScanAllTime = userPreferencesRepository.smsScanAllTime
+    val smsScanUseCustomDate = userPreferencesRepository.smsScanUseCustomDate
+    val smsScanCustomDate = userPreferencesRepository.smsScanCustomDate
 
     // Unified Currency Mode
     val unifiedCurrencyMode = userPreferencesRepository.unifiedCurrencyMode
@@ -477,6 +480,7 @@ class SettingsViewModel @Inject constructor(
                 Log.d("SettingsViewModel", "Scan period increased from $currentMonths to $months months - will perform full scan")
             }
 
+            userPreferencesRepository.updateSmsScanUseCustomDate(false)
             userPreferencesRepository.updateSmsScanMonths(months)
         }
     }
@@ -489,7 +493,25 @@ class SettingsViewModel @Inject constructor(
                 Log.d("SettingsViewModel", "All time scanning enabled - will perform full scan")
             }
 
+            userPreferencesRepository.updateSmsScanUseCustomDate(false)
             userPreferencesRepository.updateSmsScanAllTime(allTime)
+        }
+    }
+
+    fun updateSmsScanCustomDate(selectedDateMillis: Long) {
+        viewModelScope.launch {
+            val normalizedDate = SmsScanParamsCalculator.normalizePickerDateToLocalStartOfDay(selectedDateMillis)
+            val currentDate = userPreferencesRepository.getSmsScanCustomDate()
+            val wasUsingCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
+
+            if (!wasUsingCustomDate || currentDate == null || normalizedDate < currentDate) {
+                userPreferencesRepository.setLastScanTimestamp(0L)
+                Log.d("SettingsViewModel", "Custom SMS scan date updated - will perform full scan")
+            }
+
+            userPreferencesRepository.updateSmsScanAllTime(false)
+            userPreferencesRepository.updateSmsScanUseCustomDate(true)
+            userPreferencesRepository.updateSmsScanCustomDate(normalizedDate)
         }
     }
     

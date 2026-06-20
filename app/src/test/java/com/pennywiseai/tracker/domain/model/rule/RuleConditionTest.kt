@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.model.rule
 
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -138,5 +139,49 @@ class RuleConditionTest {
             value = "32"
         )
         assertFalse(condition.validate())
+    }
+
+    @Test
+    fun `TYPE with EXPENSE value returns true`() {
+        val condition = RuleCondition(
+            field = TransactionField.TYPE,
+            operator = ConditionOperator.EQUALS,
+            value = "EXPENSE"
+        )
+        assertTrue(condition.validate())
+    }
+
+    @Test
+    fun `TYPE with invalid value returns false`() {
+        val condition = RuleCondition(
+            field = TransactionField.TYPE,
+            operator = ConditionOperator.EQUALS,
+            value = "Outgoing"
+        )
+        assertFalse(condition.validate())
+    }
+
+    @Test
+    fun `isRuleApplicableToTransactionType matches EXPENSE condition for expense transactions`() {
+        val rule = TransactionRule(
+            name = "Expense rule",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.TYPE,
+                    operator = ConditionOperator.EQUALS,
+                    value = "EXPENSE"
+                )
+            ),
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.SET,
+                    value = "Food"
+                )
+            )
+        )
+
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.EXPENSE))
+        assertFalse(isRuleApplicableToTransactionType(rule, TransactionType.INCOME))
     }
 }

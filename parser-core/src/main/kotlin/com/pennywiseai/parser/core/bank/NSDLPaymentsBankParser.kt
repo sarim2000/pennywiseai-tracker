@@ -51,14 +51,17 @@ class NSDLPaymentsBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Debit: "for linked myupihandle@oksbi. UPI Ref ..." — keep the handle before "@".
+        // Debit: "for linked myupihandle@oksbi. UPI Ref ..." — capture the whole VPA up to
+        // the sentence boundary (". " / end), then keep the handle before "@". Capturing
+        // up to the first dot would truncate dotted handles like business.name@oksbi.
         val linkedPattern = Regex(
-            """for\s+linked\s+([^\s.]+)""",
+            """for\s+linked\s+(.+?)(?:\.\s|$)""",
             RegexOption.IGNORE_CASE
         )
         linkedPattern.find(message)?.let { match ->
-            val raw = match.groupValues[1].trim()
-            val name = if (raw.contains("@")) raw.substringBefore("@") else raw
+            var name = match.groupValues[1].trim()
+            if (name.contains("@")) name = name.substringBefore("@")
+            name = name.trimEnd('.', ',', ';')
             val merchant = cleanMerchantName(name)
             if (isValidMerchantName(merchant)) {
                 return merchant

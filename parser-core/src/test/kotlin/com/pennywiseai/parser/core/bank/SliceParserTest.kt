@@ -146,6 +146,75 @@ class SliceParserTest {
                     accountLast4 = null,
                     reference = null
                 )
+            ),
+
+            // --- Slice SFB (banking) formats ---
+            ParserTestCase(
+                name = "Slice SFB UPI debit (money sent) is EXPENSE",
+                message = "Rs. 100 sent from a/c xx2743 on 17-Jun-26 to Hussain Shaikh (UPI Ref: 616851070000). Not you? Call 08048329999 - slice",
+                sender = "slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Hussain Shaikh",
+                    accountLast4 = "2743",
+                    reference = "616851070000"
+                )
+            ),
+            ParserTestCase(
+                name = "Slice SFB UPI AutoPay paid is EXPENSE",
+                message = "Successfully paid Rs.1 from slice a/c XX2743 to OpenAI LLC on 25-May-26 via UPI AutoPay. UMN - 019e5exxxa1679b6aee8ae4f0ff88d19@slc - slice",
+                sender = "slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "OpenAI LLC",
+                    accountLast4 = "2743",
+                    reference = null
+                )
+            ),
+            ParserTestCase(
+                name = "Slice SFB UPI credit (money received) is INCOME with balance",
+                message = "Rs. 2,000 received in slice A/c xx2743 on 15-Jun-26 from NASIMUDDIN NAJAMUDDIN SHAIKH via UPI (Ref ID: 212756500000). Avl. Bal. Rs. 2,203.56 - slice",
+                sender = "slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "NASIMUDDIN NAJAMUDDIN SHAIKH",
+                    accountLast4 = "2743",
+                    balance = BigDecimal("2203.56"),
+                    reference = "212756500000"
+                )
+            ),
+            ParserTestCase(
+                name = "Slice SFB card transaction success is EXPENSE from card",
+                message = "Your transaction of Rs. 2.07 at FamAppbyTriO from a/c xx2743 is successful. If not you, call 080-4832-9999 - slice",
+                sender = "slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2.07"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "FamAppbyTriO",
+                    accountLast4 = "2743",
+                    isFromCard = true
+                )
+            ),
+
+            // --- Slice SFB rejections ---
+            ParserTestCase(
+                name = "Slice SFB card OTP must NOT be parsed",
+                message = "5738xx is your OTP for txn of Rs. INR 2.07 at FamApp by TriO on slice card ending with 2887. Do not share OTP for security reasons. - slice",
+                sender = "slice",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Slice SFB UPI AutoPay revoked must NOT be parsed",
+                message = "UPI AutoPay for OpenAI from slice a/c XX2743 for Rs. 1,999 is revoked. UMN - 019e5ebb3a1679b6aee8a0000ff88d19@slc - slice",
+                sender = "slice",
+                shouldParse = false
             )
         )
 
@@ -155,6 +224,7 @@ class SliceParserTest {
             "JK-SLICEIT" to true,
             "SLICEIT" to true,
             "SLCEIT" to true,
+            "slice" to true,
             "HDFCBK" to false,
             "VK-JTEDGE-S" to false
         )

@@ -282,14 +282,16 @@ class TanzaniaParserTest {
                 ),
                 shouldHandle = true
             ),
-            // Mixx by Yas (Tigo Pesa rebranding)
+            // Mixx by Yas (current Yas wallet branding). The MIXXBYYAS sender is
+            // shared with the legacy Tigo Pesa parser, but getParser resolves to the
+            // dedicated MixxByYasParser, which owns the newer Mixx-specific formats.
             SimpleTestCase(
-                bankName = "Tigo Pesa",
+                bankName = "Mixx by Yas",
                 sender = "MIXX BY YAS",
                 currency = "TZS",
-                message = "Transfer Successful. New balance is TSh 97,000. You have received TSh 97,000 from TIPS.Selcom_MFB.2.Tigo, with TxnId: 25693126312543.",
+                message = "Transfer Successful. New balance is TSh 15,000. You have received TSh 15,000 from CRDB; JOHN DOE with TxnId: 26452334860211.",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("97000"),
+                    amount = BigDecimal("15000"),
                     currency = "TZS",
                     type = TransactionType.INCOME
                 ),

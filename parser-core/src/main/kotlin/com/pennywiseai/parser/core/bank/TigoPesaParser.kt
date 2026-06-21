@@ -254,6 +254,16 @@ class TigoPesaParser : BankParser() {
             return false
         }
 
+        // Reject the SECONDARY twin of a Mixx by Yas outbound transfer:
+        // "You have sent TSh ... Please wait for confirmation". Its PRIMARY
+        // ("Money sent successfully ... Amount TSh ...") is booked by
+        // MixxByYasParser, so parsing this ack would double-count the same TxnID.
+        if (lowerMessage.contains("you have sent") &&
+            lowerMessage.contains("please wait for confirmation")
+        ) {
+            return false
+        }
+
         // Must contain transaction keywords or status indicators
         val transactionKeywords = listOf(
             "cash-in",

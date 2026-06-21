@@ -171,10 +171,120 @@ class TanzaniaParserTest {
                     balance = BigDecimal("104500.00"),
                     reference = "SGR1122334"
                 )
+            ),
+            // ---- Real-world "Tsh"/"Tshs" notation (issue #522) ----
+            ParserTestCase(
+                name = "Tsh - Sent to business (bundles)",
+                message = "DFJ9B1FPQ8 Confirmed. Tsh5,000.00 sent to business VODACOM-BUNDLES 2 on 19/6/26 at 10:56 pm. New M-Pesa balance is Tsh0.36.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "VODACOM-BUNDLES 2",
+                    balance = BigDecimal("0.36"),
+                    reference = "DFJ9B1FPQ8"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - Overdraft loan repayment",
+                message = "DFJ9B1FU69 Confirmed. Tsh4,000.00 has been deducted from your M-Pesa account on 19/6/26 at 10:38 pm as a repayment of M-Pesa Overdraft service. New M-Pesa balance is Tsh0.36.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "M-Pesa Overdraft",
+                    balance = BigDecimal("0.36"),
+                    reference = "DFJ9B1FU69"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - English TIPS inbound (canonical, has balance)",
+                message = "DFJ9B1FX2B confirmed. You have received a payment of Tsh4,000.00 from 922756 - TIPS-SELCOM MF on 19/6/26 at 10:38 pm. New M-Pesa balance is Tsh4,000.36",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4000.00"),
+                    currency = "TZS",
+                    type = TransactionType.INCOME,
+                    merchant = "TIPS-SELCOM MF",
+                    balance = BigDecimal("4000.36"),
+                    reference = "DFJ9B1FX2B"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - Agent withdrawal (generic merchant, ignore fees)",
+                message = "DFF9B1DPIJ Confirmed. On 15/6/26 at 8:08 pm Withdraw Tsh100,000.00 from 431836 - AGENT NAME OUTLET Total fee Tsh4,357.00 (M-Pesa fee Tsh3,650.00 + Government levy Tsh707.00). Balance is Tsh0.36. Your Songesha limit is Tsh4836",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Agent Withdrawal",
+                    balance = BigDecimal("0.36"),
+                    reference = "DFF9B1DPIJ"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - Sent to M-KOBA for account (ignore fees)",
+                message = "DFF9B1DSI4 Confirmed. Tsh5,000.00 sent to M-KOBA for account i2ZCoANa3yFQGHNN on 15/6/26 at 7:53 pm Total fee Tsh0.00 (M-Pesa fee Tsh0.00 + Government Levy Tsh0.00). Balance is Tsh493.36.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "M-KOBA",
+                    balance = BigDecimal("493.36"),
+                    reference = "DFF9B1DSI4"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - Sent to TIPS-SELCOM MF for account (ignore fees)",
+                message = "DFE9B1D5UM Confirmed. Tsh40,000.00 sent to TIPS-SELCOM MF for account 06XXXXXXXX on 14/6/26 at 7:20 pm Total fee Tsh2,000.00 (M-Pesa fee Tsh2,000.00 + Government Levy Tsh0.00). Balance is Tsh1,151.36.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("40000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "TIPS-SELCOM MF",
+                    balance = BigDecimal("1151.36"),
+                    reference = "DFE9B1D5UM"
+                )
+            ),
+            ParserTestCase(
+                name = "Tsh - Paid to pharmacy (ignore charge)",
+                message = "DES9B14S4R Confirmed. Tsh7,000.00 paid to LIPA KIBUGUMO PHARMACY on 28/5/26 at 4:48 pm and charged Tsh500.00.New M-Pesa balance is Tsh9,583.36.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("7000.00"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "LIPA KIBUGUMO PHARMACY",
+                    balance = BigDecimal("9583.36"),
+                    reference = "DES9B14S4R"
+                )
             )
         )
 
-        return ParserTestUtils.runTestSuite(parser, cases)
+        // Reject cases: twin/duplicate shapes that would cause double-counting.
+        val rejectCases = listOf(
+            // Swahili TIPS twin of the English inbound (#4) — same reference, no balance kept here.
+            ParserTestCase(
+                name = "Reject - Swahili TIPS twin (dedup against English)",
+                message = "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
+                sender = "M-Pesa",
+                shouldParse = false
+            ),
+            // Thin outbound receipt-match duplicate of the #7 transfer — person name, no balance.
+            ParserTestCase(
+                name = "Reject - thin receipt duplicate (has received, no balance)",
+                message = "DFE9B1D5UM Confirmed. VALENTINA MAUMBA has received Tsh 40000 on 2026-06-14 19:20:55.",
+                sender = "M-Pesa",
+                shouldParse = false
+            )
+        )
+
+        return ParserTestUtils.runTestSuite(parser, cases + rejectCases)
     }
 
     // ==========================================

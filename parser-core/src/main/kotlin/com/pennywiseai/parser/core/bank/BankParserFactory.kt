@@ -88,6 +88,7 @@ object BankParserFactory {
         SelcomPesaParser(),  // Selcom Pesa (Tanzania)
         CrdbBankParser(),  // CRDB Bank (Tanzania) — bilingual Swahili/English, multi-currency cards
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
+        DiamondTrustBankParser(),  // Diamond Trust Bank (DTB) Tanzania
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         ArabBankParser(),  // Arab Bank (Egypt) — multi-currency card, English + Arabic SMS
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)

@@ -88,7 +88,11 @@ class MixxByYasParser : BankParser() {
             lower.contains("amt tsh") -> TransactionType.EXPENSE          // GePG
             lower.contains("cash out of") -> TransactionType.EXPENSE      // agent cash-out
             lower.contains("bustisha balance by") -> TransactionType.EXPENSE  // loan repayment
-            lower.contains("payment successful") -> TransactionType.EXPENSE   // LUKU token
+            // LUKU electricity token: keyed on the receipt markers, not just the
+            // "Payment Successful" prefix.
+            lower.contains("payment successful") ||
+                lower.contains("kwh") ||
+                lower.contains("ewura") -> TransactionType.EXPENSE
             else -> null
         }
     }
@@ -111,8 +115,10 @@ class MixxByYasParser : BankParser() {
             return "Bustisha"
         }
 
-        // #7 LUKU electricity token.
-        if (lower.contains("payment successful") && lower.contains("kwh")) {
+        // #7 LUKU electricity token. Keyed on the electricity-receipt markers
+        // ("kwh" units or the "EWURA" regulator line) rather than a single
+        // keyword, so a LUKU receipt that omits one still resolves.
+        if (lower.contains("kwh") || lower.contains("ewura")) {
             return "LUKU"
         }
 

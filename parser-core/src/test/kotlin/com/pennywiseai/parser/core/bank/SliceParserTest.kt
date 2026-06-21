@@ -163,6 +163,19 @@ class SliceParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Payee name containing 'request' still parses (not dropped as a UPI request)",
+                message = "Rs. 250 sent from a/c xx2743 on 17-Jun-26 to Request Foods (UPI Ref: 616851070099). Not you? Call 08048329999 - slice",
+                sender = "slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Request Foods",
+                    accountLast4 = "2743",
+                    reference = "616851070099"
+                )
+            ),
+            ParserTestCase(
                 name = "Slice SFB UPI AutoPay paid is EXPENSE",
                 message = "Successfully paid Rs.1 from slice a/c XX2743 to OpenAI LLC on 25-May-26 via UPI AutoPay. UMN - 019e5exxxa1679b6aee8ae4f0ff88d19@slc - slice",
                 sender = "slice",

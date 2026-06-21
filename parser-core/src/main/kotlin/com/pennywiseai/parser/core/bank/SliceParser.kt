@@ -60,28 +60,12 @@ class SliceParser : BankParser() {
             return false
         }
 
-        // UPI collect / payment requests are not completed money movements,
-        // even though the text can contain "received" (e.g. a "payment request
-        // received" / "is requesting" prompt). Reject before the credit shortcut
-        // below so a collect-request can't be booked as income.
-        if (lowerMessage.contains("request")) {
-            return false
-        }
-
-        // Slice SFB inbound credit: "Rs. X received in slice A/c ... via UPI".
-        // Narrowed to the account-credit shape so a bare "received" elsewhere
-        // doesn't slip a non-transaction through as income.
-        if (lowerMessage.contains("received in") && lowerMessage.contains("a/c")) {
-            return true
-        }
-
-        // Slice SFB outbound UPI: "Rs. X sent from a/c ... to <payee>".
-        if (lowerMessage.contains("sent from") && lowerMessage.contains("a/c")) {
-            return true
-        }
-
-        // Slice SFB UPI AutoPay debit: "Successfully paid Rs.X from slice a/c ...".
-        if (lowerMessage.contains("successfully paid")) {
+        // Slice uses "sent" for UPI transfers, and the base class transaction
+        // keyword list does not include "sent" — so accept it explicitly.
+        // Collect/payment requests do not use "sent" wording and are filtered
+        // by the base class below (it rejects "collect request" / "payment
+        // request" / "has requested" / "have received payment" etc.).
+        if (lowerMessage.contains("sent")) {
             return true
         }
 
@@ -90,6 +74,12 @@ class SliceParser : BankParser() {
             return isSuccessMessage(message) && !isFailureMessage(message)
         }
 
+        // Everything else — including the SFB "received in slice A/c" credit and
+        // the AutoPay "Successfully paid" debit — is handled by the base class,
+        // whose keyword set ("received"/"paid"/...) accepts genuine transactions
+        // while its guards reject collect/payment requests, OTPs and reminders.
+        // A UPI collect-request from the slice sender therefore can no longer be
+        // booked as income.
         return super.isTransactionMessage(message)
     }
 

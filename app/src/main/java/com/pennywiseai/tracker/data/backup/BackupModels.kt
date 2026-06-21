@@ -215,7 +215,13 @@ data class DatabaseSnapshot(
     val budgetMonthSnapshots: List<BudgetMonthSnapshotEntity> = emptyList(),
 
     @SerialName("budget_category_month_snapshots")
-    val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList()
+    val budgetCategoryMonthSnapshots: List<BudgetCategoryMonthSnapshotEntity> = emptyList(),
+
+    @SerialName("tags")
+    val tags: List<TagEntity> = emptyList(),
+
+    @SerialName("transaction_tag_cross_refs")
+    val transactionTagCrossRefs: List<TransactionTagCrossRef> = emptyList()
 )
 
 /**
@@ -258,7 +264,13 @@ data class SmsPreferences(
     val lastScanTimestamp: Long? = null,
 
     @SerialName("last_scan_period")
-    val lastScanPeriod: Int? = null
+    val lastScanPeriod: Int? = null,
+
+    @SerialName("sms_scan_use_custom_date")
+    val smsScanUseCustomDate: Boolean = false,
+
+    @SerialName("sms_scan_custom_date")
+    val smsScanCustomDate: Long? = null
 )
 
 @Serializable
@@ -307,6 +319,14 @@ sealed class ExportResult {
     data class Success(val file: java.io.File) : ExportResult()
     data class Error(val message: String) : ExportResult()
     data class Progress(val current: Int, val total: Int) : ExportResult()
+}
+
+/**
+ * In-memory export result for scheduled and manual folder backups.
+ */
+sealed class ExportBytesResult {
+    data class Success(val bytes: ByteArray) : ExportBytesResult()
+    data class Error(val message: String) : ExportBytesResult()
 }
 
 /**

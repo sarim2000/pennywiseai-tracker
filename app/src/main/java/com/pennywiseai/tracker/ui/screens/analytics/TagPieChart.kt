@@ -1,11 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
-import java.math.BigDecimal
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,40 +14,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.ui.components.CategoryIcon
-import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
-import com.pennywiseai.tracker.ui.icons.categoryColorFor
+import com.pennywiseai.tracker.ui.components.tagColor
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.Pie
+import java.math.BigDecimal
 
 @Composable
-fun CategoryPieChart(
-    categories: List<CategoryData>,
+fun TagPieChart(
+    tags: List<TagData>,
     currency: String,
     modifier: Modifier = Modifier,
-    categoriesByName: Map<String, CategoryEntity> = emptyMap(),
-    onCategoryClick: (CategoryData) -> Unit = {}
+    onTagClick: (TagData) -> Unit = {}
 ) {
-    if (categories.isEmpty()) return
+    if (tags.isEmpty()) return
 
-    val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
+    val total = tags.fold(BigDecimal.ZERO) { acc, tag -> acc + tag.amount }.toDouble()
     if (total == 0.0) return
 
-    val pieData = remember(categories, categoriesByName) {
-        categories.map { category ->
-            val color = categoryColorFor(category.name, categoriesByName)
+    val pieData = remember(tags) {
+        tags.map { tag ->
             Pie(
-                label = category.name,
-                data = category.amount.toDouble(),
-                color = color,
-                selectedColor = color.copy(alpha = 0.8f),
+                label = tag.name,
+                data = tag.amount.toDouble(),
+                color = tagColor(tag.name),
+                selectedColor = tagColor(tag.name).copy(alpha = 0.8f),
                 selected = false,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500)
@@ -84,35 +74,14 @@ fun CategoryPieChart(
                     chartData = chartData.mapIndexed { index, pie ->
                         pie.copy(selected = index == pieIndex)
                     }
-                    val categoryName = clickedPie.label ?: return@PieChart
-                    categories.find { it.name == categoryName }?.let(onCategoryClick)
+                    val tagName = clickedPie.label ?: return@PieChart
+                    tags.find { it.name == tagName }?.let(onTagClick)
                 },
                 selectedScale = 1.1f,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500),
                 style = Pie.Style.Stroke(width = 12.dp)
             )
-
-            val selectedPie = chartData.find { it.selected }
-            BlurredAnimatedVisibility(
-                visible = selectedPie != null,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut(),
-                modifier = Modifier.align(Alignment.Center)
-            ) {
-                if (selectedPie != null && selectedPie.label != null) {
-                    CategoryIcon(
-                        category = selectedPie.label!!,
-                        size = 32.dp,
-                        tint = selectedPie.color,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(selectedPie.color.copy(alpha = 0.2f))
-                            .padding(12.dp)
-                    )
-                }
-            }
         }
 
         LazyColumn(
@@ -122,7 +91,7 @@ fun CategoryPieChart(
                 .padding(start = Spacing.md)
         ) {
             items(chartData.sortedByDescending { it.data }) { pie ->
-                PieLegendItem(
+                TagLegendItem(
                     label = pie.label ?: "Unknown",
                     value = pie.data,
                     color = pie.color,
@@ -134,8 +103,8 @@ fun CategoryPieChart(
                         chartData = chartData.mapIndexed { index, p ->
                             p.copy(selected = index == pieIndex)
                         }
-                        val categoryName = pie.label ?: return@PieLegendItem
-                        categories.find { it.name == categoryName }?.let(onCategoryClick)
+                        val tagName = pie.label ?: return@TagLegendItem
+                        tags.find { it.name == tagName }?.let(onTagClick)
                     }
                 )
             }
@@ -144,10 +113,10 @@ fun CategoryPieChart(
 }
 
 @Composable
-private fun PieLegendItem(
+private fun TagLegendItem(
     label: String,
     value: Double,
-    color: Color,
+    color: androidx.compose.ui.graphics.Color,
     currency: String,
     isSelected: Boolean,
     totalAmount: Double,
@@ -163,7 +132,7 @@ private fun PieLegendItem(
             .clip(RoundedCornerShape(8.dp))
             .background(
                 if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                else Color.Transparent
+                else androidx.compose.ui.graphics.Color.Transparent
             )
             .padding(6.dp)
             .clickable(onClick = onClick),

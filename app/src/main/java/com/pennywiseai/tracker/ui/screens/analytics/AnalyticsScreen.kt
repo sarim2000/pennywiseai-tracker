@@ -80,8 +80,10 @@ fun AnalyticsScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
+    val categoriesByName by viewModel.categoriesByName.collectAsStateWithLifecycle()
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
+    var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var showChartTypeSelector by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showTypeMenu by remember { mutableStateOf(false) }
@@ -414,6 +416,7 @@ fun AnalyticsScreen(
                             CategoryViewType.CHART -> CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
+                                categoriesByName = categoriesByName,
                                 onCategoryClick = { category ->
                                     onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
                                 }
@@ -421,8 +424,70 @@ fun AnalyticsScreen(
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
+                                categoriesByName = categoriesByName,
                                 onCategoryClick = { category ->
                                     onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tag Breakdown Section with Pie/List toggle
+        if (uiState.tagBreakdown.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    SectionHeaderV2(
+                        title = "Top Tags",
+                        action = {
+                            IconButton(onClick = {
+                                tagViewType = if (tagViewType == CategoryViewType.CHART) {
+                                    CategoryViewType.LIST
+                                } else {
+                                    CategoryViewType.CHART
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (tagViewType == CategoryViewType.CHART)
+                                        Icons.AutoMirrored.Filled.List
+                                    else Icons.Default.PieChart,
+                                    contentDescription = "Toggle View",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    )
+
+                    AnimatedContent(
+                        targetState = tagViewType,
+                        transitionSpec = {
+                            if (targetState == CategoryViewType.CHART) {
+                                (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                    (slideOutHorizontally { it } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                            } else {
+                                (slideInHorizontally { it } + fadeIn()) togetherWith
+                                    (slideOutHorizontally { -it } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                            }
+                        },
+                        label = "tag_view_transition"
+                    ) { viewType ->
+                        when (viewType) {
+                            CategoryViewType.CHART -> TagPieChart(
+                                tags = uiState.tagBreakdown,
+                                currency = selectedCurrency,
+                                onTagClick = { tag ->
+                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency)
+                                }
+                            )
+                            CategoryViewType.LIST -> TagBreakdownCard(
+                                tags = uiState.tagBreakdown,
+                                currency = selectedCurrency,
+                                onTagClick = { tag ->
+                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency)
                                 }
                             )
                         }

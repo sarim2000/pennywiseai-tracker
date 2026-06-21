@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -12,25 +13,50 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.icons.categoryColorFor
-import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
+import com.pennywiseai.tracker.ui.screens.analytics.TagData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
+import kotlin.math.absoluteValue
+
+/**
+ * Stable palette for tag visualisations. Tags are free-text and have no
+ * predefined colors (unlike categories), so we deterministically pick a color
+ * from this palette based on the tag name. The same tag therefore always gets
+ * the same color across the chart and list.
+ */
+private val TagPalette = listOf(
+    Color(0xFF4285F4),
+    Color(0xFFEA4335),
+    Color(0xFFFBBC05),
+    Color(0xFF34A853),
+    Color(0xFFAB47BC),
+    Color(0xFF00ACC1),
+    Color(0xFFFF7043),
+    Color(0xFF9E9D24),
+    Color(0xFF5C6BC0),
+    Color(0xFFEC407A)
+)
+
+fun tagColor(name: String): Color {
+    if (TagPalette.isEmpty()) return Color.Gray
+    val index = name.hashCode().absoluteValue % TagPalette.size
+    return TagPalette[index]
+}
 
 @Composable
-fun CategoryBreakdownCard(
-    categories: List<CategoryData>,
+fun TagBreakdownCard(
+    tags: List<TagData>,
     currency: String,
     modifier: Modifier = Modifier,
-    categoriesByName: Map<String, CategoryEntity> = emptyMap(),
-    onCategoryClick: (CategoryData) -> Unit = {}
+    onTagClick: (TagData) -> Unit = {}
 ) {
-    val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
+    val maxAmount = tags.map { it.amount }.maxOrNull() ?: BigDecimal.ZERO
 
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
@@ -39,21 +65,20 @@ fun CategoryBreakdownCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Text(
-                text = "Spending by Category",
+                text = "Spending by Tag",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
 
             ExpandableList(
-                items = categories,
+                items = tags,
                 visibleItemCount = 5
-            ) { category ->
-                CategoryBar(
-                    category = category,
+            ) { tag ->
+                TagBar(
+                    tag = tag,
                     maxAmount = maxAmount,
                     currency = currency,
-                    categoriesByName = categoriesByName,
-                    onClick = { onCategoryClick(category) }
+                    onClick = { onTagClick(tag) }
                 )
             }
         }
@@ -61,28 +86,26 @@ fun CategoryBreakdownCard(
 }
 
 @Composable
-private fun CategoryBar(
-    category: CategoryData,
-    maxAmount: java.math.BigDecimal,
+private fun TagBar(
+    tag: TagData,
+    maxAmount: BigDecimal,
     currency: String,
-    categoriesByName: Map<String, CategoryEntity>,
     onClick: () -> Unit = {}
 ) {
-    val targetFraction = if (maxAmount > java.math.BigDecimal.ZERO) {
-        (category.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
+    val targetFraction = if (maxAmount > BigDecimal.ZERO) {
+        (tag.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
     } else 0f
 
-    // Animated progress bar fill
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
     val animatedFraction by animateFloatAsState(
         targetValue = if (visible) targetFraction else 0f,
         animationSpec = tween(800),
-        label = "category_bar_${category.name}"
+        label = "tag_bar_${tag.name}"
     )
 
-    val categoryColor = categoryColorFor(category.name, categoriesByName)
+    val barColor = tagColor(tag.name)
 
     Column(
         modifier = Modifier
@@ -97,31 +120,41 @@ private fun CategoryBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = category.name,
-                style = MaterialTheme.typography.bodyMedium,
+            Row(
                 modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(barColor)
+                )
+                Text(
+                    text = tag.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${category.percentage.toInt()}%",
+                    text = "${tag.percentage.toInt()}%",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = CurrencyFormatter.formatCurrency(category.amount, currency),
+                    text = CurrencyFormatter.formatCurrency(tag.amount, currency),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
             }
         }
 
-        // Animated progress bar with rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,7 +167,7 @@ private fun CategoryBar(
                     .fillMaxWidth(animatedFraction)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(4.dp))
-                    .background(categoryColor)
+                    .background(barColor)
             )
         }
     }

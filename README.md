@@ -116,7 +116,7 @@ Conditions can be combined with **AND** / **OR** logic, and multiple conditions 
 
 ## Supported Banks & Countries
 
-Supporting **90+ banks** across **16 countries** with **multi-currency** capabilities:
+Supporting **90+ banks** across **17 countries** with **multi-currency** capabilities:
 
 ### 🇮🇳 India (44 banks) - INR ₹
 - **HDFC Bank**, **HDFC Mutual Fund**, **State Bank of India (SBI)**, **ICICI Bank**
@@ -166,6 +166,9 @@ Supporting **90+ banks** across **16 countries** with **multi-currency** capabil
 
 ### 🇸🇦 Saudi Arabia (2 banks) - SAR ﷼
 - **Al Rajhi Bank (مصرف الراجحي)**, **Alinma Bank (بنك الإنماء)** - Arabic SMS support
+
+### 🇯🇴 Jordan (1 bank) - JOD د.ا
+- **Arab Bank** - JOD/USD with card and account transfer support
 
 ### 🇷🇺 Russia (1 bank) - RUB ₽
 - **T-Bank (Tinkoff)** - Russian SMS support

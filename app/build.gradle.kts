@@ -235,6 +235,7 @@ dependencies {
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.documentfile)
 
     // Biometric Authentication
     implementation(libs.androidx.biometric)

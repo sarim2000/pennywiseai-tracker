@@ -7,8 +7,11 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
@@ -40,8 +43,18 @@ class AnalyticsViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val profileRepository: ProfileRepository,
+    private val tagRepository: TagRepository,
+    private val categoryRepository: CategoryRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
+
+    val categoriesByName: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
+        .map { categories -> categories.associateBy { it.name } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
 
     // Profile filter — reuses the global Home profile selection so the two stay in sync.
     val selectedProfileId: StateFlow<Long?> = userPreferencesRepository.selectedProfileId
@@ -154,7 +167,9 @@ class AnalyticsViewModel @Inject constructor(
         )
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
-    }.flatMapLatest { (filterState, balances) ->
+    }.combine(tagRepository.observeTransactionTagNames()) { (fs, balances), tagMap ->
+        Triple(fs, balances, tagMap)
+    }.flatMapLatest { (filterState, balances, tagMap) ->
         // Determine date range based on selected period
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
             val customRange = filterState.customRange
@@ -315,6 +330,38 @@ class AnalyticsViewModel @Inject constructor(
                     )
                 }.sortedByDescending { it.amount }
 
+                // Build tag breakdown from the many-to-many tag map. A
+                // transaction can carry several tags, and its full amount
+                // counts toward each of them (tags overlap, unlike categories),
+                // so tag percentages can sum to more than 100%. Untagged
+                // transactions are skipped.
+                val tagAmounts = mutableMapOf<String, BigDecimal>()
+                val tagTransactionCounts = mutableMapOf<String, Int>()
+
+                for (tx in filteredTransactions) {
+                    val tagNames = tagMap[tx.id]?.takeIf { it.isNotEmpty() } ?: continue
+                    val converted = if (isUnified) {
+                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                    } else {
+                        tx.amount
+                    }
+                    for (tagName in tagNames) {
+                        tagAmounts[tagName] = (tagAmounts[tagName] ?: BigDecimal.ZERO) + converted
+                        tagTransactionCounts[tagName] = (tagTransactionCounts[tagName] ?: 0) + 1
+                    }
+                }
+
+                val tagBreakdown = tagAmounts.map { (tagName, tagTotal) ->
+                    TagData(
+                        name = tagName,
+                        amount = tagTotal,
+                        percentage = if (totalSpending > BigDecimal.ZERO) {
+                            (tagTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                        } else 0f,
+                        transactionCount = tagTransactionCounts[tagName] ?: 0
+                    )
+                }.sortedByDescending { it.amount }
+
                 // Group by merchant — convert if unified
                 val merchantBreakdown = filteredTransactions
                     .groupBy { it.merchantName }
@@ -392,7 +439,8 @@ class AnalyticsViewModel @Inject constructor(
                     isLoading = false,
                     spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second),
                     availableCategories = allCategoryNames,
-                    accountBreakdown = accountBreakdown
+                    accountBreakdown = accountBreakdown,
+                    tagBreakdown = tagBreakdown
                 )
             }
         }
@@ -560,7 +608,8 @@ data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val spendingTrend: List<BalancePoint> = emptyList(),
     val availableCategories: List<String> = emptyList(),
-    val accountBreakdown: List<AccountBreakdownData> = emptyList()
+    val accountBreakdown: List<AccountBreakdownData> = emptyList(),
+    val tagBreakdown: List<TagData> = emptyList()
 )
 
 data class AccountBreakdownData(
@@ -572,6 +621,13 @@ data class AccountBreakdownData(
 )
 
 data class CategoryData(
+    val name: String,
+    val amount: BigDecimal,
+    val percentage: Float,
+    val transactionCount: Int
+)
+
+data class TagData(
     val name: String,
     val amount: BigDecimal,
     val percentage: Float,

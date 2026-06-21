@@ -129,6 +129,10 @@ class BackupImporter @Inject constructor(
                 database.transactionGroupDao().deleteAllGroups()
                 database.budgetSnapshotDao().deleteAllGroupSnapshots()
                 database.budgetSnapshotDao().deleteAllCategorySnapshots()
+                // Cross-refs are cascade-deleted when transactions are cleared,
+                // but tags live in their own table — clear both explicitly.
+                database.tagDao().deleteAllCrossRefs()
+                database.tagDao().deleteAllTags()
                 // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
@@ -240,6 +244,16 @@ class BackupImporter @Inject constructor(
                 }
                 backup.database.bankNotifications.insertEachCounting({ skippedRows++ }) { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
+                }
+
+                // Tags + cross-refs: ids are preserved in REPLACE_ALL (so are
+                // transaction ids), so insert tags first then the links. Insert
+                // tags before cross-refs to satisfy the foreign keys.
+                backup.database.tags.insertEachCounting({ skippedRows++ }) { tag ->
+                    database.tagDao().insertTag(tag)
+                }
+                backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
+                    database.tagDao().insertCrossRef(ref)
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -440,6 +454,34 @@ class BackupImporter @Inject constructor(
                 }
                 backup.database.bankNotifications.insertEachCounting({ skippedRows++ }) { notification ->
                     database.bankNotificationDao().insertOrReplace(notification)
+                }
+
+                // Tags: dedup by name (case-insensitive) like categories, then
+                // remap the cross-refs' tag_id and transaction_id to their new
+                // local ids. A ref is skipped if its transaction wasn't imported
+                // (missing from the id map). insertCrossRef IGNOREs duplicates,
+                // so a repeat MERGE is idempotent.
+                val existingTagIdByName = database.tagDao().getAllTagsSync()
+                    .associate { it.name.lowercase() to it.id }
+                    .toMutableMap()
+                val oldToNewTagIdMap = mutableMapOf<Long, Long>()
+                backup.database.tags.insertEachCounting({ skippedRows++ }) { tag ->
+                    val key = tag.name.trim().lowercase()
+                    if (key.isNotEmpty()) {
+                        val newId = existingTagIdByName[key]
+                            ?: database.tagDao().insertTag(tag.copy(id = 0))
+                                .also { id -> if (id > 0L) existingTagIdByName[key] = id }
+                        if (newId > 0L && tag.id != 0L) oldToNewTagIdMap[tag.id] = newId
+                    }
+                }
+                backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
+                    val mappedTransactionId = oldToNewTransactionIdMap[ref.transactionId]
+                    val mappedTagId = oldToNewTagIdMap[ref.tagId]
+                    if (mappedTransactionId != null && mappedTagId != null) {
+                        database.tagDao().insertCrossRef(
+                            ref.copy(transactionId = mappedTransactionId, tagId = mappedTagId)
+                        )
+                    }
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -654,6 +696,10 @@ class BackupImporter @Inject constructor(
         // SMS preferences
         userPreferencesRepository.updateHasSkippedSmsPermission(preferences.sms.hasSkippedSmsPermission)
         userPreferencesRepository.updateSmsScanMonths(preferences.sms.smsScanMonths)
+        userPreferencesRepository.updateSmsScanUseCustomDate(preferences.sms.smsScanUseCustomDate)
+        preferences.sms.smsScanCustomDate?.let {
+            userPreferencesRepository.updateSmsScanCustomDate(it)
+        }
         preferences.sms.lastScanTimestamp?.let {
             userPreferencesRepository.updateLastScanTimestamp(it)
         }

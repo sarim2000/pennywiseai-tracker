@@ -32,19 +32,27 @@ class BackupExporter @Inject constructor(
         privacy: ExportPrivacy = ExportPrivacy.FULL
     ): ExportResult {
         return try {
-            // Collect all data
-            val backup = createBackup(privacy)
-
-            // Create backup file
             val file = createBackupFile()
-
-            // Write JSON to file (see BackupSerializers for the format contract)
-            file.writeText(backupJson.encodeToString(backup))
-
+            file.writeText(encodeBackup(privacy))
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
         }
+    }
+
+    suspend fun exportBackupBytes(
+        privacy: ExportPrivacy = ExportPrivacy.FULL
+    ): ExportBytesResult {
+        return try {
+            ExportBytesResult.Success(encodeBackup(privacy).toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            ExportBytesResult.Error("Export failed: ${e.message}")
+        }
+    }
+
+    private suspend fun encodeBackup(privacy: ExportPrivacy): String {
+        val backup = createBackup(privacy)
+        return backupJson.encodeToString(backup)
     }
     
     /**
@@ -72,6 +80,8 @@ class BackupExporter @Inject constructor(
         val profiles = database.profileDao().getAllProfiles()
         val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
+        val tags = database.tagDao().getAllTagsSync()
+        val transactionTagCrossRefs = database.tagDao().getAllCrossRefs()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -81,6 +91,8 @@ class BackupExporter @Inject constructor(
         val lastReviewPromptTime = userPreferencesRepository.getLastReviewPromptTime().first()
         val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first()
         val lastScanPeriod = userPreferencesRepository.getLastScanPeriod().first()
+        val smsScanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
+        val smsScanCustomDate = userPreferencesRepository.getSmsScanCustomDate()
         
         // Calculate statistics
         val dateRange = if (transactions.isNotEmpty()) {
@@ -124,6 +136,11 @@ class BackupExporter @Inject constructor(
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
+        // Tags carry no PII (user-defined labels) but in MASKED/ANONYMOUS the
+        // transaction references are stripped, so the cross-refs are only useful
+        // on a FULL export. Tag names themselves are kept across all modes.
+        val exportedTags = tags
+        val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) transactionTagCrossRefs else emptyList()
         
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -172,7 +189,9 @@ class BackupExporter @Inject constructor(
                 transactionGroups = exportedTransactionGroups,
                 profiles = exportedProfiles,
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
-                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots
+                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
+                tags = exportedTags,
+                transactionTagCrossRefs = exportedTransactionTagCrossRefs
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(
@@ -183,7 +202,9 @@ class BackupExporter @Inject constructor(
                     hasSkippedSmsPermission = prefs.hasSkippedSmsPermission,
                     smsScanMonths = prefs.smsScanMonths,
                     lastScanTimestamp = lastScanTimestamp,
-                    lastScanPeriod = lastScanPeriod
+                    lastScanPeriod = lastScanPeriod,
+                    smsScanUseCustomDate = smsScanUseCustomDate,
+                    smsScanCustomDate = smsScanCustomDate
                 ),
                 developer = DeveloperPreferences(
                     isDeveloperModeEnabled = prefs.isDeveloperModeEnabled,

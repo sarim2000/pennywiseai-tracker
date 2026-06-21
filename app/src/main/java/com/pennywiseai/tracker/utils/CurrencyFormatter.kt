@@ -14,6 +14,12 @@ object CurrencyFormatter {
     private val INDIAN_LOCALE = Locale.Builder().setLanguage("en").setRegion("IN").build()
 
     /**
+     * Currencies that use three decimal places (ISO 4217 minor units = 3),
+     * e.g. Jordanian Dinar, Kuwaiti Dinar.
+     */
+    private val THREE_DECIMAL_CURRENCIES = setOf("JOD", "KWD", "BHD", "OMR")
+
+    /**
      * Currency symbol mapping for display
      */
     private val CURRENCY_SYMBOLS = mapOf(
@@ -23,6 +29,7 @@ object CurrencyFormatter {
         "EUR" to "€",
         "GBP" to "£",
         "AED" to "AED",
+        "JOD" to "JD",
         "SGD" to "S$",
         "CAD" to "C$",
         "MXN" to "MX$",
@@ -51,6 +58,7 @@ object CurrencyFormatter {
         "EUR" to Locale.GERMANY,
         "GBP" to Locale.UK,
         "AED" to Locale.Builder().setLanguage("en").setRegion("AE").build(),
+        "JOD" to Locale.Builder().setLanguage("en").setRegion("JO").build(),
         "SGD" to Locale.Builder().setLanguage("en").setRegion("SG").build(),
         "CAD" to Locale.CANADA,
         "MXN" to Locale.Builder().setLanguage("es").setRegion("MX").build(),
@@ -93,7 +101,7 @@ object CurrencyFormatter {
 
             // Show decimals only if they exist
             formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
+            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
             formatter.format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount

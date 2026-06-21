@@ -121,6 +121,7 @@ object BankParserFactory {
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
+        ArabBankJordanParser(),  // Arab Bank (Jordan) — JOD/USD, card & account transfers
         MBankCZParser(),  // mBank CZ (Czech Republic)
         SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)
         EnparaBankParser(),  // Enpara (Turkey) — push notifications

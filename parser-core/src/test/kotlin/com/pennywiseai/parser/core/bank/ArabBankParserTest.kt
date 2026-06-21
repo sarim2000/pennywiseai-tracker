@@ -58,6 +58,51 @@ class ArabBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Jordan card spend, JOD transaction (EXPENSE, 3 decimals)",
+                message = "A Trx using Card XXXX9915 from ADANI CORNER for JOD 2.750 " +
+                    "on 20-Jun-2026 at 14:21 GMT+3. Available balance is JOD 1649.832.",
+                sender = "ArabBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2.750"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ADANI CORNER",
+                    accountLast4 = "9915",
+                    balance = BigDecimal("1649.832"),
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Jordan CliQ transfer debit (EXPENSE, suffix balance, not a card)",
+                message = "JOD50.000 has been debited from 0156*500 to John Smith " +
+                    "as CliQ transfer Balance 37.920JOD",
+                sender = "ArabBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "John Smith",
+                    accountLast4 = "6500",
+                    balance = BigDecimal("37.920"),
+                    isFromCard = false
+                )
+            ),
+            ParserTestCase(
+                name = "Jordan CliQ transfer credit (INCOME, no-space to/from, not a card)",
+                message = "JOD172.000 has been credited to 0156*500from Jane Doe " +
+                    "as CliQ transfer Balance 959.370JOD",
+                sender = "ArabBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("172.000"),
+                    currency = "JOD",
+                    type = TransactionType.INCOME,
+                    merchant = "Jane Doe",
+                    accountLast4 = "6500",
+                    balance = BigDecimal("959.370"),
+                    isFromCard = false
+                )
+            ),
+            ParserTestCase(
                 name = "OTP message is rejected",
                 message = "Your OTP for Arab Bank is 123456. Do not share it with anyone.",
                 sender = "ArabBank",
@@ -76,6 +121,7 @@ class ArabBankParserTest {
             "ArabBank" to true,
             "ARABBANK" to true,
             "AD-ARABBANK" to true,
+            "AB-ARABBK-S" to true,
             "HDFC" to false,
             "" to false
         )

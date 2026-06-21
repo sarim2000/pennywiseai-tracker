@@ -46,11 +46,10 @@ class ArabBankParser : BankParser() {
      */
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val transaction = super.parse(smsBody, sender, timestamp) ?: return null
+        // super.parse already sets isFromCard via detectIsCard (always true here);
+        // only the per-transaction currency (EGP or USD) needs overriding.
         val currency = extractCurrency(smsBody) ?: getCurrency()
-        return transaction.copy(
-            currency = currency,
-            isFromCard = true
-        )
+        return transaction.copy(currency = currency)
     }
 
     override fun isTransactionMessage(message: String): Boolean {

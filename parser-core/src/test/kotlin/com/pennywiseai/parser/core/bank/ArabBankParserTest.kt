@@ -62,6 +62,13 @@ class ArabBankParserTest {
                 message = "Your OTP for Arab Bank is 123456. Do not share it with anyone.",
                 sender = "ArabBank",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Arabic OTP message is rejected",
+                // "Your verification code for Arab Bank is 123456" — رمز التحقق = verification code.
+                message = "رمز التحقق الخاص بك في Arab Bank هو 123456",
+                sender = "ArabBank",
+                shouldParse = false
             )
         )
 

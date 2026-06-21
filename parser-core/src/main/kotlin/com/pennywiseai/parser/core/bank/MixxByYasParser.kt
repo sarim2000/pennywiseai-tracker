@@ -168,6 +168,17 @@ class MixxByYasParser : BankParser() {
             return false
         }
 
+        // Reject OTP / verification noise that the broad "tsh" gate would
+        // otherwise admit (this method accepts Mixx-specific shapes directly,
+        // so the base-class promotional/OTP filter is never reached).
+        if (lower.contains("otp") ||
+            lower.contains("one time password") ||
+            lower.contains("verification code") ||
+            lower.contains("do not share")
+        ) {
+            return false
+        }
+
         // ----- Reject the SECONDARY twin messages (dedup) -----
 
         // Twin of an outbound transfer: "You have sent TSh ... Please wait for confirmation".

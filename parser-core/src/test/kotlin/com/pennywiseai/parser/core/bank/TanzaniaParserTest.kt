@@ -285,6 +285,11 @@ class TanzaniaParserTest {
             // Mixx by Yas (current Yas wallet branding). The MIXXBYYAS sender is
             // shared with the legacy Tigo Pesa parser, but getParser resolves to the
             // dedicated MixxByYasParser, which owns the newer Mixx-specific formats.
+            // NOTE: runFactoryTestSuite uses getParser() (first canHandle match), so a
+            // MIXXBYYAS case here MUST use a Mixx-format message. A legacy TIPS message
+            // would route to TigoPesa only via the content-aware parse() path and would
+            // fail here (MixxByYas returns null for it). TIPS fall-through is covered in
+            // MixxByYasParserTest via BankParserFactory.parse().
             SimpleTestCase(
                 bankName = "Mixx by Yas",
                 sender = "MIXX BY YAS",

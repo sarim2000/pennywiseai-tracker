@@ -60,13 +60,20 @@ class ArabBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
 
-        // Reject OTP / verification / declined / failed noise.
+        // Reject OTP / verification / failed-transaction noise.
+        // The failure check uses specific status phrases rather than a bare
+        // "failed", so a successful SMS that merely references a prior failed
+        // attempt is not dropped.
         if (lower.contains("otp") ||
             lower.contains("one time password") ||
             lower.contains("verification code") ||
             lower.contains("passcode") ||
             lower.contains("declined") ||
-            lower.contains("failed") ||
+            lower.contains("transaction failed") ||
+            lower.contains("trx failed") ||
+            lower.contains("has failed") ||
+            lower.contains("was unsuccessful") ||
+            lower.contains("not successful") ||
             message.contains("رمز التحقق") ||      // Arabic: "verification code"
             message.contains("كلمة المرور")        // Arabic: "password"
         ) {

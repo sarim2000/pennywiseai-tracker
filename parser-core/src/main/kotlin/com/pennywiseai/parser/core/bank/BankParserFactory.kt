@@ -78,6 +78,7 @@ object BankParserFactory {
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NabilBankParser(),  // Nabil Bank (Nepal) — must be before NMBBankParser (NMB handles NABIL senders broadly)
+        NMBTanzaniaParser(),  // NMB Bank Plc (Tanzania) — shares NMB sender with Nepal NMB; must precede it so content-aware dispatch tries TZS/Swahili first
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         ManjushreeFinanceParser(), // Manjushree Finance (Nepal)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)

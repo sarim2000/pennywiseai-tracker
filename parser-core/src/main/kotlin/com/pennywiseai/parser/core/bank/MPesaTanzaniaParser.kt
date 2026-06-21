@@ -28,10 +28,11 @@ import java.math.BigDecimal
  *
  * Twin-dedup decision:
  * The TIPS inbound credit arrives as an English + Swahili twin (same reference, e.g. DFJ9B1FX2B).
- * We keep the ENGLISH variant (it carries the balance) and REJECT the Swahili
- * "imethibitishwa. Umepokea ... kutoka ... Akaunti ****..." variant to avoid double-counting.
- * Likewise the thin outbound receipt-match ("<NAME> has received Tsh ... on <date>", no balance,
- * duplicate reference of the real transfer) is rejected.
+ * Both are parsed, but each is tagged with a reference-based transactionHash ("mpesa-tz:<ref>")
+ * so the app deduplicates them when both arrive — while still recording the credit if only one
+ * twin is delivered (the default body-based hash can't dedup them, as the bodies differ). The
+ * thin outbound receipt-match ("<NAME> has received Tsh ... on <date>", no balance, duplicate
+ * reference of the real transfer) is rejected outright, since it is a spurious INCOME echo.
  */
 class MPesaTanzaniaParser : BankParser() {
 
@@ -62,30 +63,31 @@ class MPesaTanzaniaParser : BankParser() {
             return null
         }
 
-        // Reject the Swahili TIPS twin ("imethibitishwa. Umepokea ... kutoka ... Akaunti") in favour
-        // of the English variant which carries the balance (see class doc).
-        if (isSwahiliTipsTwin(smsBody)) {
-            return null
-        }
-
         // Reject thin outbound receipt-match duplicate: "<NAME> has received Tsh ... on <date>".
+        // This is a spurious echo of an outbound transfer (no balance, would mis-type as INCOME);
+        // the real transfer is recorded from its own primary SMS.
         if (isThinReceiptDuplicate(smsBody)) {
             return null
         }
 
-        return super.parse(smsBody, sender, timestamp)
+        val parsed = super.parse(smsBody, sender, timestamp) ?: return null
+
+        // Dedup the TIPS inbound twin (Swahili "imethibitishwa. Umepokea ..." + English
+        // "confirmed. You have received ...") by their shared leading reference code, instead
+        // of rejecting one outright. Both notifications carry the same M-Pesa transaction id,
+        // so a reference-based hash makes the app drop the duplicate when both arrive — while a
+        // lone delivery (e.g. the English twin lost in transit) is still recorded, rather than
+        // silently dropped. The default body-based hash can't dedup the twins (different bodies).
+        val reference = parsed.reference
+        return if (!reference.isNullOrBlank()) {
+            parsed.copy(transactionHash = "mpesa-tz:$reference")
+        } else {
+            parsed
+        }
     }
 
     private fun hasTanzanianCurrency(message: String): Boolean {
         return Regex(currencyToken, RegexOption.IGNORE_CASE).containsMatchIn(message)
-    }
-
-    private fun isSwahiliTipsTwin(message: String): Boolean {
-        val lower = message.lowercase()
-        return lower.contains("imethibitishwa") &&
-                lower.contains("umepokea") &&
-                lower.contains("kutoka") &&
-                lower.contains("akaunti")
     }
 
     private fun isThinReceiptDuplicate(message: String): Boolean {
@@ -166,7 +168,7 @@ class MPesaTanzaniaParser : BankParser() {
         }
 
         // "sent to business VODACOM-BUNDLES 2 on ..." (the "business" qualifier precedes the name).
-        Regex("""sent to business\s+(.+?)(?:\s+on\s|\s+for\s+account|\s+Total\s+fee|$)""", RegexOption.IGNORE_CASE)
+        Regex("""sent to business\s+(.+?)(?:\s+on\s+\d|\s+for\s+account|\s+Total\s+fee|$)""", RegexOption.IGNORE_CASE)
             .find(message)?.let { match ->
                 val merchant = cleanTzMerchant(match.groupValues[1])
                 if (isValidMerchantName(merchant)) {
@@ -183,7 +185,7 @@ class MPesaTanzaniaParser : BankParser() {
         }
 
         // "sent to NAME (phone)" / "sent to NAME on ..."
-        Regex("""sent to\s+(.+?)(?:\s*\(|\s+on\s|\s+Total\s+fee|$)""", RegexOption.IGNORE_CASE)
+        Regex("""sent to\s+(.+?)(?:\s*\(|\s+on\s+\d|\s+Total\s+fee|$)""", RegexOption.IGNORE_CASE)
             .find(message)?.let { match ->
                 val merchant = cleanTzMerchant(match.groupValues[1])
                 if (isValidMerchantName(merchant)) {
@@ -192,7 +194,7 @@ class MPesaTanzaniaParser : BankParser() {
             }
 
         // "paid to LIPA KIBUGUMO PHARMACY on ..." / "paid to LUKU for account ..."
-        Regex("""paid to\s+(.+?)(?:\s+for\s+account|\s+on\s|\s*\(Merchant|\s+and\s+charged|$)""", RegexOption.IGNORE_CASE)
+        Regex("""paid to\s+(.+?)(?:\s+for\s+account|\s+on\s+\d|\s*\(Merchant|\s+and\s+charged|$)""", RegexOption.IGNORE_CASE)
             .find(message)?.let { match ->
                 val merchant = cleanTzMerchant(match.groupValues[1])
                 if (isValidMerchantName(merchant)) {
@@ -202,7 +204,7 @@ class MPesaTanzaniaParser : BankParser() {
 
         // English inbound: "received a payment of Tsh X from 922756 - TIPS-SELCOM MF on ..."
         // Drop the leading numeric short-code, keep the named institution. Never emit a bare number.
-        Regex("""received\s+a\s+payment\s+of\s+$currencyToken\s*[0-9,]+(?:\.[0-9]{1,2})?\s+from\s+(.+?)(?:\s+on\s|$)""", RegexOption.IGNORE_CASE)
+        Regex("""received\s+a\s+payment\s+of\s+$currencyToken\s*[0-9,]+(?:\.[0-9]{1,2})?\s+from\s+(.+?)(?:\s+on\s+\d|$)""", RegexOption.IGNORE_CASE)
             .find(message)?.let { match ->
                 var merchant = match.groupValues[1].trim()
                 merchant = merchant.replace(Regex("""^\d+\s*-\s*"""), "").trim()
@@ -223,7 +225,7 @@ class MPesaTanzaniaParser : BankParser() {
             }
 
         // Generic English inbound: "received TZS X from NAME (phone)"
-        Regex("""received\s+$currencyToken\s*[0-9,]+(?:\.[0-9]{1,2})?\s+from\s+(.+?)(?:\s*\(|\s+on\s|$)""", RegexOption.IGNORE_CASE)
+        Regex("""received\s+$currencyToken\s*[0-9,]+(?:\.[0-9]{1,2})?\s+from\s+(.+?)(?:\s*\(|\s+on\s+\d|$)""", RegexOption.IGNORE_CASE)
             .find(message)?.let { match ->
                 val merchant = cleanTzMerchant(match.groupValues[1])
                 if (isValidMerchantName(merchant)) {

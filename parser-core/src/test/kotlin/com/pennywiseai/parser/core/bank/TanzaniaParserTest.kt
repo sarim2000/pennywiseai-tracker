@@ -268,13 +268,6 @@ class TanzaniaParserTest {
 
         // Reject cases: twin/duplicate shapes that would cause double-counting.
         val rejectCases = listOf(
-            // Swahili TIPS twin of the English inbound (#4) — same reference, no balance kept here.
-            ParserTestCase(
-                name = "Reject - Swahili TIPS twin (dedup against English)",
-                message = "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
-                sender = "M-Pesa",
-                shouldParse = false
-            ),
             // Thin outbound receipt-match duplicate of the #7 transfer — person name, no balance.
             ParserTestCase(
                 name = "Reject - thin receipt duplicate (has received, no balance)",
@@ -284,7 +277,43 @@ class TanzaniaParserTest {
             )
         )
 
-        return ParserTestUtils.runTestSuite(parser, cases + rejectCases)
+        // Swahili TIPS twin of the English inbound (#4) — same reference. It now PARSES (rather
+        // than being dropped); the shared reference-based hash dedups it against the English twin
+        // at the app layer, so a lone Swahili delivery is still recorded.
+        val swahiliTwin = listOf(
+            ParserTestCase(
+                name = "Swahili TIPS twin parses (dedup via shared reference hash)",
+                message = "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
+                sender = "M-Pesa",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4000.00"),
+                    currency = "TZS",
+                    type = TransactionType.INCOME,
+                    merchant = "SELCOM MF",
+                    reference = "DFJ9B1FX2B"
+                )
+            )
+        )
+
+        return ParserTestUtils.runTestSuite(parser, cases + swahiliTwin + rejectCases)
+    }
+
+    @org.junit.jupiter.api.Test
+    fun `mpesa tanzania TIPS twins share a dedup hash`() {
+        val parser = MPesaTanzaniaParser()
+        val english = parser.parse(
+            "DFJ9B1FX2B confirmed. You have received a payment of Tsh4,000.00 from 922756 - TIPS-SELCOM MF on 19/6/26 at 10:38 pm. New M-Pesa balance is Tsh4,000.36",
+            "M-Pesa", 0L
+        )
+        val swahili = parser.parse(
+            "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
+            "M-Pesa", 0L
+        )
+        org.junit.jupiter.api.Assertions.assertNotNull(english)
+        org.junit.jupiter.api.Assertions.assertNotNull(swahili)
+        // Both twins carry the same reference-based hash, so the app dedups them.
+        org.junit.jupiter.api.Assertions.assertEquals("mpesa-tz:DFJ9B1FX2B", english!!.transactionHash)
+        org.junit.jupiter.api.Assertions.assertEquals(english.transactionHash, swahili!!.transactionHash)
     }
 
     // ==========================================

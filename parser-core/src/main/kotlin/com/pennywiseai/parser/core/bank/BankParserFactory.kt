@@ -87,6 +87,7 @@ object BankParserFactory {
         MPESAParser(),  // M-PESA (Kenya)
         SelcomPesaParser(),  // Selcom Pesa (Tanzania)
         CrdbBankParser(),  // CRDB Bank (Tanzania) — bilingual Swahili/English, multi-currency cards
+        MixxByYasParser(),  // Mixx by Yas (Tanzania) — must precede TigoPesaParser (shares MIXXBYYAS sender; claims newer Mixx-specific formats)
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         DiamondTrustBankParser(),  // Diamond Trust Bank (DTB) Tanzania
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)

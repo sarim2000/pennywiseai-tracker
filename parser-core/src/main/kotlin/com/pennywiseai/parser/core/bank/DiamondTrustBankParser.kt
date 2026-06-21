@@ -35,7 +35,7 @@ class DiamondTrustBankParser : BankParser() {
         val normalized = sender.uppercase()
         // Plain "DTB" sender, or DLT-style "AB-DTB-S" where DTB is its own token.
         if (normalized == "DTB") return true
-        return Regex("""(^|[-.])DTB($|[-.])""").containsMatchIn(normalized)
+        return SENDER_PATTERN.containsMatchIn(normalized)
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -165,6 +165,9 @@ class DiamondTrustBankParser : BankParser() {
     }
 
     private companion object {
+        // DLT-style sender where DTB is its own dash/dot-delimited token (e.g. AB-DTB-S).
+        val SENDER_PATTERN = Regex("""(^|[-.])DTB($|[-.])""")
+
         // "has been debited with TZS 49900 for POS TRANSACTION on 22/06/2026"
         // Groups: 1=direction, 2=amount, 3=purpose.
         val ALERT_PATTERN = Regex(

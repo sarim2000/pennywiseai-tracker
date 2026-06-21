@@ -95,10 +95,12 @@ class NMBTanzaniaParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // P2P transfer out: "... kwenda <NAME> <phone>". Stop before a trailing
-        // phone number (07XXXXXXXX or masked) and before any trailing date/period.
+        // P2P transfer out: "... kwenda <NAME> <phone>". A lookahead terminates the
+        // name before a trailing phone/masked number (07XXXXXXXX), a date keyword,
+        // a period, or end of message — so the phone can never leak into the name
+        // even when the message ends without a period or "Tarehe".
         val kwendaPattern = Regex(
-            """kwenda\s+(.+?)(?:\s+0?[0-9X]{6,})?(?:\.|\s+Tarehe|$)""",
+            """kwenda\s+(.+?)(?=\s+0?[0-9X]{4,}|\s+Tarehe\b|\.|$)""",
             RegexOption.IGNORE_CASE
         )
         kwendaPattern.find(message)?.let { match ->
@@ -176,19 +178,22 @@ class NMBTanzaniaParser : BankParser() {
         // Tight Tanzania gating: require both a Tanzania signal AND a transaction verb.
         // This ensures Nepal-format NMB messages (English "fund transfer", NPR, etc.)
         // fall through to the Nepal parser.
+        // The currency signal matches an actual TZS/TSH *amount* token (e.g. "TSH8,000",
+        // "TZS 263"), not a bare "tsh" substring — so a Nepal message whose reference
+        // happens to contain those letters cannot be mis-claimed (Nepal uses NPR).
+        val hasTanzanianCurrency =
+            Regex("""\b(?:TZS|TShs?)\s*[0-9]""", RegexOption.IGNORE_CASE).containsMatchIn(message)
         val tanzaniaSignals = listOf(
             "mshiko fasta",
             "nmb pesa",
             "nmb karibu yako",
-            "tzs",
-            "tsh",
             "kiasi cha",
             "umepokea",
             "kimetumwa",
             "kimetolewa",
             "kwenda"
         )
-        if (tanzaniaSignals.none { lower.contains(it) }) return false
+        if (!hasTanzanianCurrency && tanzaniaSignals.none { lower.contains(it) }) return false
 
         val transactionVerbs = listOf(
             "umepokea",       // received

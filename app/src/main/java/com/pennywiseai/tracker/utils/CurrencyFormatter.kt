@@ -14,6 +14,13 @@ object CurrencyFormatter {
     private val INDIAN_LOCALE = Locale.Builder().setLanguage("en").setRegion("IN").build()
 
     /**
+     * Currencies whose ISO 4217 minor unit is 3 (three decimal places),
+     * e.g. Jordanian Dinar, Kuwaiti Dinar. Used so amounts aren't truncated
+     * to 2 decimals on the symbol/fallback display paths.
+     */
+    private val THREE_DECIMAL_CURRENCIES = setOf("JOD", "KWD", "BHD", "OMR")
+
+    /**
      * Currency symbol mapping for display
      */
     private val CURRENCY_SYMBOLS = mapOf(
@@ -39,7 +46,8 @@ object CurrencyFormatter {
         "NGN" to "₦",
         "TZS" to "TSh",
         "BRL" to "R$",
-        "EGP" to "E£"
+        "EGP" to "E£",
+        "JOD" to "JD"
     )
 
     /**
@@ -68,7 +76,8 @@ object CurrencyFormatter {
         "NGN" to Locale.Builder().setLanguage("en").setRegion("NG").build(),
         "TZS" to Locale.Builder().setLanguage("en").setRegion("TZ").build(),
         "BRL" to Locale.Builder().setLanguage("pt").setRegion("BR").build(),
-        "EGP" to Locale.Builder().setLanguage("en").setRegion("EG").build()
+        "EGP" to Locale.Builder().setLanguage("en").setRegion("EG").build(),
+        "JOD" to Locale.Builder().setLanguage("en").setRegion("JO").build()
     )
 
     /**
@@ -88,17 +97,17 @@ object CurrencyFormatter {
             } catch (e: Exception) {
                 // If currency not supported, use symbol mapping
                 val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-                return "$symbol${formatAmount(amount)}"
+                return "$symbol${formatAmount(amount, currencyCode)}"
             }
 
             // Show decimals only if they exist
             formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
+            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
             formatter.format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount
             val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-            "$symbol${formatAmount(amount)}"
+            "$symbol${formatAmount(amount, currencyCode)}"
         }
     }
 
@@ -126,10 +135,10 @@ object CurrencyFormatter {
     /**
      * Formats just the numeric amount without currency symbol
      */
-    private fun formatAmount(amount: BigDecimal): String {
+    private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
         val formatter = NumberFormat.getNumberInstance(INDIAN_LOCALE)
         formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
+        formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
         return formatter.format(amount)
     }
 

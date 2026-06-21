@@ -5,25 +5,31 @@ import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
- * Parser for Arab Bank (Egypt) SMS messages.
+ * Parser for Arab Bank SMS messages.
  *
- * Arab Bank sends both English and Arabic SMS for a multi-currency card account.
- * Default / base currency is the Egyptian Pound (EGP). The TRANSACTION can be in
- * EGP or USD, but the account's available balance is always reported in EGP.
- * The transaction amount/currency reflect the spent currency (EGP or USD) while
- * the balance currency stays EGP (the parser's base currency). See [parse].
+ * Arab Bank is a single bank operating in multiple countries. The SMS currency
+ * token (EGP / JOD / USD) is the differentiator between markets — there is ONE
+ * parser for all of them. The base/default currency stays EGP (Egypt), while
+ * per-message currency detection picks EGP, JOD or USD.
  *
  * Supported formats:
- * - English card spend (EXPENSE):
+ * - English card spend (EXPENSE), Egypt + Jordan (isFromCard = true):
  *   "A Trx using Card XXXX2020 from <MERCHANT> for <CCY> <amount> on <date> at <time>.
- *    Available balance is EGP <balance>."
- *   - merchant: text between "from " and " for "
- *   - amount currency: the CCY token after "for " (EGP or USD)
- * - Arabic credit to the card (INCOME):
+ *    Available balance is <CCY> <balance>."
+ *   - merchant: text between "from " and " for <CCY>"
+ *   - amount currency: the CCY token after "for " (EGP, USD or JOD)
+ *   - JOD uses 3 fractional digits.
+ * - Arabic credit to the card (INCOME), Egypt (isFromCard = true):
  *   "تم قيد مبلغ <amount> جنيه لبطاقتك الائتمانية رقم #<last4>"
  *   - amount in EGP ("جنيه"), no merchant, no balance
+ * - Jordan account transfer (CliQ), NOT a card (isFromCard = false):
+ *   - DEBIT (EXPENSE):
+ *     "<CCY><amount> has been debited from <acct> to <name> as CliQ transfer Balance <bal><CCY>"
+ *   - CREDIT (INCOME):
+ *     "<CCY><amount> has been credited to <acct>from <name> as CliQ transfer Balance <bal><CCY>"
+ *   - currency token may be a PREFIX ("JOD50.000") or SUFFIX on balance ("37.920JOD").
  *
- * Sender: ArabBank (token ARABBANK, case-insensitive).
+ * Sender: ArabBank (token ARABBANK) or DLT-style "AB-ARABBK-S".
  */
 class ArabBankParser : BankParser() {
 
@@ -33,21 +39,20 @@ class ArabBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
-        return normalized.contains("ARABBANK")
+        if (normalized.contains("ARABBANK")) return true
+        // DLT-style "AB-ARABBK-S": strip spaces/dashes/underscores then match.
+        val stripped = normalized.replace(Regex("""[\s\-_]"""), "")
+        return stripped.contains("ARABBANK") ||
+            stripped.matches(Regex("""^[A-Z]{2}ARABBK[A-Z]?$"""))
     }
 
     /**
-     * Override parse to surface the per-transaction currency.
-     *
-     * English transactions carry their own currency token after "for " (EGP or USD).
-     * Arabic credits are always EGP. The balance figure stays EGP regardless of the
-     * transaction currency — that is handled by [extractBalance] returning the EGP
-     * "Available balance" amount.
+     * Override parse to surface the per-transaction currency (EGP, JOD or USD).
+     * isFromCard is decided by detectIsCard (card spends + Arabic credit = true,
+     * account transfers = false).
      */
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val transaction = super.parse(smsBody, sender, timestamp) ?: return null
-        // super.parse already sets isFromCard via detectIsCard (always true here);
-        // only the per-transaction currency (EGP or USD) needs overriding.
         val currency = extractCurrency(smsBody) ?: getCurrency()
         return transaction.copy(currency = currency)
     }
@@ -55,11 +60,13 @@ class ArabBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
 
-        // Reject OTP / verification noise.
+        // Reject OTP / verification / declined / failed noise.
         if (lower.contains("otp") ||
             lower.contains("one time password") ||
             lower.contains("verification code") ||
             lower.contains("passcode") ||
+            lower.contains("declined") ||
+            lower.contains("failed") ||
             message.contains("رمز التحقق") ||      // Arabic: "verification code"
             message.contains("كلمة المرور")        // Arabic: "password"
         ) {
@@ -68,6 +75,11 @@ class ArabBankParser : BankParser() {
 
         // English card spend marker.
         if (Regex("""using\s+Card""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
+            return true
+        }
+
+        // Jordan account transfer markers.
+        if (lower.contains("has been debited") || lower.contains("has been credited")) {
             return true
         }
 
@@ -80,6 +92,8 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
+        val lower = message.lowercase()
+
         // Arabic credit to the card.
         if (message.contains("تم قيد")) {
             return TransactionType.INCOME
@@ -90,16 +104,33 @@ class ArabBankParser : BankParser() {
             return TransactionType.EXPENSE
         }
 
+        // Jordan account transfers.
+        if (lower.contains("has been debited")) {
+            return TransactionType.EXPENSE
+        }
+        if (lower.contains("has been credited")) {
+            return TransactionType.INCOME
+        }
+
         return null
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // English: "for <CCY> <amount>" e.g. "for EGP 123.45" / "for USD 9.84".
-        val englishPattern = Regex(
+        // English card spend: "for <CCY> <amount>" e.g. "for EGP 123.45" / "for JOD 2.750".
+        val cardPattern = Regex(
             """for\s+[A-Z]{3}\s+([0-9,]+(?:\.\d+)?)""",
             RegexOption.IGNORE_CASE
         )
-        englishPattern.find(message)?.let { match ->
+        cardPattern.find(message)?.let { match ->
+            parseAmount(match.groupValues[1])?.let { return it }
+        }
+
+        // Jordan transfer: leading "<CCY><amount>" e.g. "JOD50.000" / "USD 50.000".
+        val transferPattern = Regex(
+            """^(?:JOD|USD|EGP)\s*([0-9,]+(?:\.\d+)?)""",
+            RegexOption.IGNORE_CASE
+        )
+        transferPattern.find(message.trim())?.let { match ->
             parseAmount(match.groupValues[1])?.let { return it }
         }
 
@@ -113,12 +144,21 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractCurrency(message: String): String? {
-        // English: the CCY token after "for " (EGP or USD).
-        val englishPattern = Regex(
+        // English card spend: the CCY token after "for " (EGP, USD or JOD).
+        val cardPattern = Regex(
             """for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d+)?""",
             RegexOption.IGNORE_CASE
         )
-        englishPattern.find(message)?.let { match ->
+        cardPattern.find(message)?.let { match ->
+            return match.groupValues[1].uppercase()
+        }
+
+        // Jordan transfer: leading "<CCY><amount>".
+        val transferPattern = Regex(
+            """^(JOD|USD|EGP)\s*[0-9,]+(?:\.\d+)?""",
+            RegexOption.IGNORE_CASE
+        )
+        transferPattern.find(message.trim())?.let { match ->
             return match.groupValues[1].uppercase()
         }
 
@@ -131,15 +171,46 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // English only: merchant is the text between "from " and " for ".
-        val merchantPattern = Regex(
+        // English card spend: merchant is the text between "from " and " for <CCY>".
+        val cardPattern = Regex(
             """from\s+(.+?)\s+for\s+[A-Z]{3}\s""",
             RegexOption.IGNORE_CASE
         )
-        merchantPattern.find(message)?.let { match ->
+        cardPattern.find(message)?.let { match ->
             val merchant = cleanMerchantName(match.groupValues[1].trim())
             if (isValidMerchantName(merchant)) {
                 return merchant
+            }
+        }
+
+        val lower = message.lowercase()
+
+        // Jordan transfer DEBIT: name after "to " up to " as " / " Balance" / end.
+        if (lower.contains("has been debited")) {
+            val debitPattern = Regex(
+                """\bto\s+(.+?)(?:\s+as\b|\s+Balance\b|$)""",
+                RegexOption.IGNORE_CASE
+            )
+            debitPattern.find(message)?.let { match ->
+                val merchant = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(merchant)) {
+                    return merchant
+                }
+            }
+        }
+
+        // Jordan transfer CREDIT: name after "from " up to " as " / " Balance" / end.
+        // Handle the no-space "0156*500from Jane Doe" case.
+        if (lower.contains("has been credited")) {
+            val creditPattern = Regex(
+                """from\s*(.+?)(?:\s+as\b|\s+Balance\b|$)""",
+                RegexOption.IGNORE_CASE
+            )
+            creditPattern.find(message)?.let { match ->
+                val merchant = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(merchant)) {
+                    return merchant
+                }
             }
         }
 
@@ -148,7 +219,7 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // English: "Card XXXX2020" -> 2020.
+        // English card spend: "Card XXXX2020" -> 2020.
         val englishCard = Regex(
             """Card\s+[X*]*(\d{4})""",
             RegexOption.IGNORE_CASE
@@ -163,16 +234,58 @@ class ArabBankParser : BankParser() {
             return match.groupValues[1]
         }
 
+        val lower = message.lowercase()
+
+        // Jordan transfer DEBIT: "debited from <acct>" e.g. "from 0156*500".
+        if (lower.contains("has been debited")) {
+            val debitAcct = Regex(
+                """debited\s+from\s+([0-9*]+)""",
+                RegexOption.IGNORE_CASE
+            )
+            debitAcct.find(message)?.let { match ->
+                extractLast4Digits(match.groupValues[1])?.let { return it }
+            }
+        }
+
+        // Jordan transfer CREDIT: "credited to <acct>" e.g. "to 0156*500from".
+        if (lower.contains("has been credited")) {
+            val creditAcct = Regex(
+                """credited\s+to\s+([0-9*]+)""",
+                RegexOption.IGNORE_CASE
+            )
+            creditAcct.find(message)?.let { match ->
+                extractLast4Digits(match.groupValues[1])?.let { return it }
+            }
+        }
+
         return null
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // English: "Available balance is EGP <amount>" — always EGP.
-        val balancePattern = Regex(
-            """Available\s+balance\s+is\s+EGP\s+([0-9,]+(?:\.\d+)?)""",
+        // Card spend (Egypt + Jordan): "Available balance is <CCY> <amount>".
+        val cardBalance = Regex(
+            """Available\s+balance\s+is\s+[A-Z]{3}\s+([0-9,]+(?:\.\d+)?)""",
             RegexOption.IGNORE_CASE
         )
-        balancePattern.find(message)?.let { match ->
+        cardBalance.find(message)?.let { match ->
+            parseAmount(match.groupValues[1])?.let { return it }
+        }
+
+        // Jordan transfer suffix form: "Balance <amount><CCY>" e.g. "Balance 37.920JOD".
+        val suffixBalance = Regex(
+            """Balance\s+([0-9,]+(?:\.\d+)?)\s*(?:JOD|USD|EGP)""",
+            RegexOption.IGNORE_CASE
+        )
+        suffixBalance.find(message)?.let { match ->
+            parseAmount(match.groupValues[1])?.let { return it }
+        }
+
+        // Jordan transfer prefix form: "Balance <CCY> <amount>".
+        val prefixBalance = Regex(
+            """Balance\s+(?:JOD|USD|EGP)\s+([0-9,]+(?:\.\d+)?)""",
+            RegexOption.IGNORE_CASE
+        )
+        prefixBalance.find(message)?.let { match ->
             parseAmount(match.groupValues[1])?.let { return it }
         }
 
@@ -181,8 +294,28 @@ class ArabBankParser : BankParser() {
     }
 
     override fun detectIsCard(message: String): Boolean {
-        // This is a card account; every supported message is a card transaction.
-        return true
+        val lower = message.lowercase()
+
+        // Account transfers are NOT card transactions.
+        if (lower.contains("has been debited") ||
+            lower.contains("has been credited") ||
+            lower.contains("debited from") ||
+            lower.contains("credited to")
+        ) {
+            return false
+        }
+
+        // English card spend.
+        if (lower.contains("trx using card")) {
+            return true
+        }
+
+        // Arabic card credit ("لبطاقتك" = "to your card").
+        if (message.contains("تم قيد") || message.contains("لبطاقتك")) {
+            return true
+        }
+
+        return false
     }
 
     private fun parseAmount(raw: String): BigDecimal? {

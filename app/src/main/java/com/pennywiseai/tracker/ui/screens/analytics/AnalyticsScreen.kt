@@ -80,6 +80,7 @@ fun AnalyticsScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
+    val categoriesByName by viewModel.categoriesByName.collectAsStateWithLifecycle()
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
@@ -415,6 +416,7 @@ fun AnalyticsScreen(
                             CategoryViewType.CHART -> CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
+                                categoriesByName = categoriesByName,
                                 onCategoryClick = { category ->
                                     onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
                                 }
@@ -422,6 +424,7 @@ fun AnalyticsScreen(
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
+                                categoriesByName = categoriesByName,
                                 onCategoryClick = { category ->
                                     onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
                                 }

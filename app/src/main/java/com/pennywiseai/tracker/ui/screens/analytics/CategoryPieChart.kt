@@ -23,9 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
-import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryColorFor
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import ir.ehsannarmani.compose_charts.PieChart
@@ -36,6 +37,7 @@ fun CategoryPieChart(
     categories: List<CategoryData>,
     currency: String,
     modifier: Modifier = Modifier,
+    categoriesByName: Map<String, CategoryEntity> = emptyMap(),
     onCategoryClick: (CategoryData) -> Unit = {}
 ) {
     if (categories.isEmpty()) return
@@ -43,14 +45,14 @@ fun CategoryPieChart(
     val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
     if (total == 0.0) return
 
-    val pieData = remember(categories) {
+    val pieData = remember(categories, categoriesByName) {
         categories.map { category ->
+            val color = categoryColorFor(category.name, categoriesByName)
             Pie(
                 label = category.name,
                 data = category.amount.toDouble(),
-                color = CategoryMapping.categories[category.name]?.color ?: Color.Gray,
-                selectedColor = (CategoryMapping.categories[category.name]?.color
-                    ?: Color.Gray).copy(alpha = 0.8f),
+                color = color,
+                selectedColor = color.copy(alpha = 0.8f),
                 selected = false,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500)
@@ -102,6 +104,7 @@ fun CategoryPieChart(
                     CategoryIcon(
                         category = selectedPie.label!!,
                         size = 32.dp,
+                        tint = selectedPie.color,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)

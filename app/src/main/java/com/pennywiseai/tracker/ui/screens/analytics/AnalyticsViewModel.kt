@@ -7,7 +7,9 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -42,8 +44,17 @@ class AnalyticsViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val profileRepository: ProfileRepository,
     private val tagRepository: TagRepository,
+    private val categoryRepository: CategoryRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
+
+    val categoriesByName: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
+        .map { categories -> categories.associateBy { it.name } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
 
     // Profile filter — reuses the global Home profile selection so the two stay in sync.
     val selectedProfileId: StateFlow<Long?> = userPreferencesRepository.selectedProfileId

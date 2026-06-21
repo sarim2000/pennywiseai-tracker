@@ -15,8 +15,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryColorFor
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -26,6 +27,7 @@ fun CategoryBreakdownCard(
     categories: List<CategoryData>,
     currency: String,
     modifier: Modifier = Modifier,
+    categoriesByName: Map<String, CategoryEntity> = emptyMap(),
     onCategoryClick: (CategoryData) -> Unit = {}
 ) {
     val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
@@ -50,6 +52,7 @@ fun CategoryBreakdownCard(
                     category = category,
                     maxAmount = maxAmount,
                     currency = currency,
+                    categoriesByName = categoriesByName,
                     onClick = { onCategoryClick(category) }
                 )
             }
@@ -62,6 +65,7 @@ private fun CategoryBar(
     category: CategoryData,
     maxAmount: java.math.BigDecimal,
     currency: String,
+    categoriesByName: Map<String, CategoryEntity>,
     onClick: () -> Unit = {}
 ) {
     val targetFraction = if (maxAmount > java.math.BigDecimal.ZERO) {
@@ -78,10 +82,7 @@ private fun CategoryBar(
         label = "category_bar_${category.name}"
     )
 
-    // Get category-specific color
-    val categoryInfo = CategoryMapping.categories[category.name]
-        ?: CategoryMapping.categories["Others"]!!
-    val categoryColor = categoryInfo.color
+    val categoryColor = categoryColorFor(category.name, categoriesByName)
 
     Column(
         modifier = Modifier

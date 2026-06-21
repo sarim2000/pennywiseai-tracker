@@ -168,6 +168,12 @@ class CrdbBankParser : BankParser() {
         //   - a phone/account number or masked number (digits / "X" runs),
         //   - a structural label ("AC", "Risiti", "REF", "Balance"),
         // so we never leak phone numbers, account numbers or trailing metadata.
+        // The terminator intentionally breaks on the FIRST digit (`\d`, not the
+        // earlier `\d{6,}`): in CRDB transfers the recipient name is always
+        // followed by a phone/account/till number, and CRDB recipient names do
+        // not contain digits — so the single-digit break reliably drops the
+        // trailing number. Do NOT widen this back to a multi-digit run, or the
+        // leading digits of a short till/phone number would leak into the name.
         // "kwenda LIPA <merchant>" is a till/merchant payment — the "LIPA" prefix
         // is dropped and the merchant name kept.
         val kwendaPattern = Regex(

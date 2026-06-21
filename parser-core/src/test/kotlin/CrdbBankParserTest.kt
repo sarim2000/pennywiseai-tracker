@@ -170,6 +170,20 @@ class CrdbBankParserTest {
                     isFromCard = true,
                     accountLast4 = "4232"
                 )
+            ),
+            ParserTestCase(
+                // SimBanking transfer with NO receipt id — reference must fall back
+                // to the leading "KUMB:<id>" transaction id.
+                name = "SimBanking transfer, KUMB-only reference (no Risiti)",
+                message = "KUMB:19ec7af09b2d4ce1 Muamala umefanikiwa TZS12000 AIRTEL kwenda JOHN DOE 07XXXXXXXX 2026-06-15 09:10:21  CRDB SIMBANKING APP",
+                sender = "CRDB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12000"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "JOHN DOE",
+                    reference = "19ec7af09b2d4ce1"
+                )
             )
         )
 

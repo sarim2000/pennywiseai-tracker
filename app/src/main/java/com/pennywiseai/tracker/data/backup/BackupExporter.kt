@@ -32,19 +32,27 @@ class BackupExporter @Inject constructor(
         privacy: ExportPrivacy = ExportPrivacy.FULL
     ): ExportResult {
         return try {
-            // Collect all data
-            val backup = createBackup(privacy)
-
-            // Create backup file
             val file = createBackupFile()
-
-            // Write JSON to file (see BackupSerializers for the format contract)
-            file.writeText(backupJson.encodeToString(backup))
-
+            file.writeText(encodeBackup(privacy))
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
         }
+    }
+
+    suspend fun exportBackupBytes(
+        privacy: ExportPrivacy = ExportPrivacy.FULL
+    ): ExportBytesResult {
+        return try {
+            ExportBytesResult.Success(encodeBackup(privacy).toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            ExportBytesResult.Error("Export failed: ${e.message}")
+        }
+    }
+
+    private suspend fun encodeBackup(privacy: ExportPrivacy): String {
+        val backup = createBackup(privacy)
+        return backupJson.encodeToString(backup)
     }
     
     /**

@@ -131,6 +131,11 @@ class UserPreferencesRepository @Inject constructor(
 
         // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
         val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
+
+        // Scheduled folder backup (SAF tree URI; shared by standard and F-Droid).
+        val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
+        val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
+        val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
     }
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
@@ -739,6 +744,55 @@ class UserPreferencesRepository @Inject constructor(
             } else {
                 preferences[PreferencesKeys.MAIN_ACCOUNT_KEY] = accountKey
             }
+        }
+    }
+
+    val scheduledFolderBackupEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED] ?: false
+        }
+
+    val scheduledFolderBackupTreeUri: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI]
+        }
+
+    val scheduledFolderBackupLastTimestamp: Flow<Long?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP]
+        }
+
+    suspend fun isScheduledFolderBackupEnabled(): Boolean {
+        return scheduledFolderBackupEnabled.first()
+    }
+
+    suspend fun getScheduledFolderBackupTreeUri(): String? {
+        return scheduledFolderBackupTreeUri.first()
+    }
+
+    suspend fun setScheduledFolderBackupEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setScheduledFolderBackupTreeUri(treeUri: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI] = treeUri
+        }
+    }
+
+    suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun clearScheduledFolderBackupState() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED)
+            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI)
+            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP)
         }
     }
 }

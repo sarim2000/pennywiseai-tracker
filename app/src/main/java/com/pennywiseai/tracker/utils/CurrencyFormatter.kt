@@ -47,7 +47,9 @@ object CurrencyFormatter {
         "TZS" to "TSh",
         "BRL" to "R$",
         "EGP" to "E£",
-        "JOD" to "JD"
+        "JOD" to "JD",
+        "BHD" to "BD",
+        "OMR" to "RO"
     )
 
     /**
@@ -77,7 +79,9 @@ object CurrencyFormatter {
         "TZS" to Locale.Builder().setLanguage("en").setRegion("TZ").build(),
         "BRL" to Locale.Builder().setLanguage("pt").setRegion("BR").build(),
         "EGP" to Locale.Builder().setLanguage("en").setRegion("EG").build(),
-        "JOD" to Locale.Builder().setLanguage("en").setRegion("JO").build()
+        "JOD" to Locale.Builder().setLanguage("en").setRegion("JO").build(),
+        "BHD" to Locale.Builder().setLanguage("en").setRegion("BH").build(),
+        "OMR" to Locale.Builder().setLanguage("en").setRegion("OM").build()
     )
 
     /**

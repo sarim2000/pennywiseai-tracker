@@ -641,12 +641,8 @@ private fun CreditCardItem(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "••${card.accountLast4}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                             if (isHidden) {
                                 Icon(
@@ -657,6 +653,14 @@ private fun CreditCardItem(
                                 )
                             }
                         }
+                        // Masked card number on its own line below the name (#465).
+                        Text(
+                            text = "••${card.accountLast4}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -968,15 +972,11 @@ private fun AccountItem(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                // Ellipsize a long name instead of pushing the badges
+                                // (and the masked number below) off-screen.
+                                modifier = Modifier.weight(1f, fill = false)
                             )
-                            if (alias == null) {
-                                Text(
-                                    text = "••${account.accountLast4}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                             if (account.profileId == ProfileEntity.BUSINESS_ID) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -999,17 +999,20 @@ private fun AccountItem(
                                 )
                             }
                         }
-                        // When an alias is set, keep the underlying bank/last-4
-                        // visible as a subtitle so the account stays identifiable.
-                        if (alias != null) {
-                            Text(
-                                text = "${account.bankName} ••${account.accountLast4}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        // Masked account number on its own line below the name. Inlining it
+                        // next to a long bank name squeezed it into a per-character vertical
+                        // stack; this keeps it as a clean second line. (#465)
+                        Text(
+                            text = if (alias != null) {
+                                "${account.bankName} ••${account.accountLast4}"
+                            } else {
+                                "••${account.accountLast4}"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
@@ -1030,7 +1033,8 @@ private fun AccountItem(
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
                     )
                     Text(
                         text = "Balance",
@@ -1039,7 +1043,7 @@ private fun AccountItem(
                     )
                 }
             }
-            
+
             // Linked Cards Section
             if (linkedCards.isNotEmpty()) {
                 Column(

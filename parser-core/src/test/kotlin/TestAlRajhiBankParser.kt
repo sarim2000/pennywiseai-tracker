@@ -102,6 +102,32 @@ class AlRajhiBankParserTest {
                     currency = "SAR",
                     type = TransactionType.EXPENSE
                 )
+            ),
+            ParserTestCase(
+                name = "English PoS purchase (alpha merchant)",
+                message = "PoS Purchase\nBy:4196;mada(Google Pay)\nAmount:SR 2\nAt:FAST WAY\n26/6/19 23:54",
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "FAST WAY",
+                    accountLast4 = "4196",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "English PoS purchase (terminal id + city)",
+                message = "PoS Purchase\nBy:4196;mada(Google Pay)\nAmount:SR 4\nAt:170658 riyadh\n26/6/18 11:48",
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "riyadh",
+                    accountLast4 = "4196",
+                    isFromCard = true
+                )
             )
         )
 

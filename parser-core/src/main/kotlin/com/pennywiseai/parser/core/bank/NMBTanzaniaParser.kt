@@ -34,10 +34,12 @@ class NMBTanzaniaParser : BankParser() {
         return sender.uppercase().contains("NMB")
     }
 
-    // Currency token allowing the doubled "TZS TZS" form: "TZS", "TSH", "Tsh"
-    // optionally followed by a second currency token, then the amount.
+    // Currency token allowing the doubled "TZS TZS" form: "TZS", "TSH", "Tsh",
+    // "TShs" optionally followed by a second currency token, then the amount.
+    // Kept in sync with the currency signal in isTransactionMessage (TZS|TShs?)
+    // so a message that passes the gate can always have its amount extracted.
     private val amountRegex = Regex(
-        """(?:TZS|TSH)\s*(?:(?:TZS|TSH)\s*)?([0-9][0-9,]*(?:\.\d+)?)""",
+        """(?:TZS|TSHS?)\s*(?:(?:TZS|TSHS?)\s*)?([0-9][0-9,]*(?:\.\d+)?)""",
         RegexOption.IGNORE_CASE
     )
 

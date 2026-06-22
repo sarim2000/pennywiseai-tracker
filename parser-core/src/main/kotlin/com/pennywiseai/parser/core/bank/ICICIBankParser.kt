@@ -276,6 +276,31 @@ class ICICIBankParser : BaseIndianBankParser() {
             return "Cash Withdrawal"
         }
 
+        // Pattern 2a: ATM cash withdrawal marker - "CAM*<code>*"
+        // ICICI uses a "CAM*<terminal/ref code>*" token to mark cash withdrawals.
+        // Emit a clean label instead of the raw marker code.
+        val camWithdrawalPattern = Regex(
+            """\bCAM\*[^*]+\*""",
+            RegexOption.IGNORE_CASE
+        )
+        if (camWithdrawalPattern.find(message) != null) {
+            return "ATM Withdrawal"
+        }
+
+        // Pattern 2b: Bill-pay biller - "InfoBIL*<biller name>"
+        // ICICI's generic bill-pay format. The biller name runs until the
+        // sentence boundary ("." before "Avl/Avb Bal") or end of segment.
+        val infoBilPattern = Regex(
+            """InfoBIL\*([^.]+)""",
+            RegexOption.IGNORE_CASE
+        )
+        infoBilPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 3: Card transactions - "on DD-Mon-YY at MERCHANT NAME. Avl" or "on DD-Mon-YY on MERCHANT NAME"
         val cardMerchantPattern = Regex(
             """on\s+\d{1,2}-\w{3}-\d{2}\s+(?:at|on)\s+([^.]+?)(?:\.|\s+Avl|$)""",

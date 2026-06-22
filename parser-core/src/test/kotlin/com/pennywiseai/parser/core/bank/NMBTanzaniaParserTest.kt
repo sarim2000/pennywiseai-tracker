@@ -85,6 +85,20 @@ class NMBTanzaniaParserTest {
                     merchant = "Mshiko Fasta",
                     reference = "201NDGL261500637"
                 )
+            ),
+            // 6) Plural "TShs" currency notation — the gate accepts it, so the amount
+            // regex must too (kept in sync).
+            ParserTestCase(
+                name = "P2P transfer out (TShs plural notation)",
+                message = "Kumb: GWX102237382946 Imethibitishwa. Kiasi cha TShs 8,000 kimetumwa kutoka katika akaunti inayoishia na XXXX kwenda JANE DOE 07XXXXXXXX. Tarehe:05-06-2026 19:46:00.",
+                sender = "NMB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("8000"),
+                    currency = "TZS",
+                    type = TransactionType.EXPENSE,
+                    merchant = "JANE DOE",
+                    reference = "GWX102237382946"
+                )
             )
         )
 

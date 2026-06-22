@@ -33,7 +33,15 @@ class AlRajhiBankParser : BankParser() {
      */
     private fun isEnglishPosFormat(message: String): Boolean {
         return message.contains("PoS Purchase", ignoreCase = true) &&
-                Regex("""Amount:\s*SR\s""", RegexOption.IGNORE_CASE).containsMatchIn(message)
+                POS_DETECT.containsMatchIn(message)
+    }
+
+    private companion object {
+        // English PoS format patterns, compiled once.
+        val POS_DETECT = Regex("""Amount:\s*SR\s""", RegexOption.IGNORE_CASE)
+        val POS_AMOUNT = Regex("""Amount:\s*SR\s+([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+        val POS_CARD = Regex("""By:\s*(\d+)\s*;""")
+        val POS_MERCHANT = Regex("""At:\s*([^\n]+)""")
     }
 
     override fun canHandle(sender: String): Boolean {
@@ -44,13 +52,13 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // English PoS: "Amount:SR 2" or "Amount: SR 4.50"
-        val srPattern = Regex(
-            """Amount:\s*SR\s+([0-9,]+(?:\.\d{1,2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        srPattern.find(message)?.let { match ->
-            return parseSarAmount(match.groupValues[1])
+        // English PoS: "Amount:SR 2" / "Amount: SR 4.50" — gated to the PoS format
+        // (like the other English overrides) so it can't match a future Arabic
+        // SMS that happens to contain the same substring.
+        if (isEnglishPosFormat(message)) {
+            POS_AMOUNT.find(message)?.let { match ->
+                return parseSarAmount(match.groupValues[1])
+            }
         }
 
         // Pattern 1: "بـSAR 5.75" or "بـSAR 140"
@@ -116,8 +124,7 @@ class AlRajhiBankParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         // English PoS: merchant is the value after "At:" up to end of line
         if (isEnglishPosFormat(message)) {
-            val atPattern = Regex("""At:\s*([^\n]+)""")
-            atPattern.find(message)?.let { match ->
+            POS_MERCHANT.find(message)?.let { match ->
                 var raw = match.groupValues[1].trim()
                 // Strip a leading purely-numeric terminal id (e.g. "170658 riyadh" -> "riyadh")
                 val stripped = raw.replaceFirst(Regex("""^\d+\s+"""), "").trim()
@@ -213,11 +220,11 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // English PoS: "By:<digits>;<method>" — the digits identify the card
+        // English PoS: "By:<digits>;<method>" — the digits identify the card;
+        // keep only the last 4 (the leading digits may be a longer card number).
         if (isEnglishPosFormat(message)) {
-            val byPattern = Regex("""By:\s*(\d+)\s*;""")
-            byPattern.find(message)?.let { match ->
-                return match.groupValues[1]
+            POS_CARD.find(message)?.let { match ->
+                extractLast4Digits(match.groupValues[1])?.let { return it }
             }
         }
         return super.extractAccountLast4(message)

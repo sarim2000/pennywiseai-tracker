@@ -86,4 +86,22 @@ class CurrencyFormatterTest {
             CurrencyFormatter.formatAbbreviated(10_000_000.0, "TZS").endsWith("Cr")
         )
     }
+
+    @Test
+    fun `AUTO abbreviation is currency-driven (the shipped default)`() {
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+        // INR/NPR/PKR keep Indian L/Cr; everything else uses western K/M.
+        assertTrue(
+            "INR under AUTO abbreviates with Cr",
+            CurrencyFormatter.formatAbbreviated(10_000_000.0, "INR").endsWith("Cr")
+        )
+        assertTrue(
+            "NPR under AUTO abbreviates with Cr",
+            CurrencyFormatter.formatAbbreviated(10_000_000.0, "NPR").endsWith("Cr")
+        )
+        assertTrue(
+            "TZS under AUTO abbreviates with M, not Cr",
+            CurrencyFormatter.formatAbbreviated(10_000_000.0, "TZS").endsWith("M")
+        )
+    }
 }

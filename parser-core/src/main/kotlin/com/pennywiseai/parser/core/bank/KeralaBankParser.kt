@@ -59,9 +59,11 @@ class KeralaBankParser : BaseIndianBankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // "by Loan Recovery From : 139451061" -> "Loan Recovery"
-        // Also handle "by <SOURCE>." with no "From" — stop at "From"/"."/end.
+        // Stop at the "From :" clause, a ".", the trailing " - Kerala Bank"
+        // signature, or end — so a message lacking both "From :" and a period
+        // doesn't over-capture the bank-name suffix into the merchant.
         val byPattern = Regex(
-            """\bby\s+(.+?)(?:\s+From\s*:|\.|$)""",
+            """\bby\s+(.+?)(?:\s+From\s*:|\s*-\s*Kerala\s+Bank|\.|$)""",
             RegexOption.IGNORE_CASE
         )
         byPattern.find(message)?.let { match ->

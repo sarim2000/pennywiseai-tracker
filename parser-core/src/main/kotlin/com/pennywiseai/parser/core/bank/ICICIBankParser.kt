@@ -279,8 +279,9 @@ class ICICIBankParser : BaseIndianBankParser() {
         // Pattern 2a: ATM cash withdrawal marker - "CAM*<code>*"
         // ICICI uses a "CAM*<terminal/ref code>*" token to mark cash withdrawals.
         // Emit a clean label instead of the raw marker code.
+        // Closing "*" is optional — some variants omit it.
         val camWithdrawalPattern = Regex(
-            """\bCAM\*[^*]+\*""",
+            """\bCAM\*[A-Za-z0-9]+\*?""",
             RegexOption.IGNORE_CASE
         )
         if (camWithdrawalPattern.find(message) != null) {
@@ -289,9 +290,10 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         // Pattern 2b: Bill-pay biller - "InfoBIL*<biller name>"
         // ICICI's generic bill-pay format. The biller name runs until the
-        // sentence boundary ("." before "Avl/Avb Bal") or end of segment.
+        // sentence boundary: a ".", the "Avl/Avb Bal" balance clause, or end of
+        // segment — so the capture doesn't absorb the tail when the "." is absent.
         val infoBilPattern = Regex(
-            """InfoBIL\*([^.]+)""",
+            """InfoBIL\*(.+?)(?=\.|\s*Av[bl]\s*Bal|$)""",
             RegexOption.IGNORE_CASE
         )
         infoBilPattern.find(message)?.let { match ->

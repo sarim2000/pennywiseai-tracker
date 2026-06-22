@@ -62,6 +62,8 @@ class UserPreferencesRepository @Inject constructor(
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
         val SMS_SCAN_MONTHS = intPreferencesKey("sms_scan_months")
         val SMS_SCAN_ALL_TIME = booleanPreferencesKey("sms_scan_all_time")
+        val SMS_SCAN_USE_CUSTOM_DATE = booleanPreferencesKey("sms_scan_use_custom_date")
+        val SMS_SCAN_CUSTOM_DATE = longPreferencesKey("sms_scan_custom_date")
         val LAST_SCAN_TIMESTAMP = longPreferencesKey("last_scan_timestamp")
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
@@ -310,6 +312,38 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun getSmsScanAllTime(): Boolean {
         return context.dataStore.data
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true }
+            .first()
+    }
+
+    val smsScanUseCustomDate: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] ?: false
+        }
+
+    suspend fun updateSmsScanUseCustomDate(useCustomDate: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] = useCustomDate
+        }
+    }
+
+    suspend fun getSmsScanUseCustomDate(): Boolean {
+        return context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] ?: false }
+            .first()
+    }
+
+    val smsScanCustomDate: Flow<Long?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] }
+
+    suspend fun updateSmsScanCustomDate(dateMillis: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] = dateMillis
+        }
+    }
+
+    suspend fun getSmsScanCustomDate(): Long? {
+        return context.dataStore.data
+            .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] }
             .first()
     }
     

@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -534,6 +535,8 @@ class BackupModelsTest {
 
         assertEquals(false, backup.preferences.developer.isDeveloperModeEnabled)
         assertEquals(6, backup.preferences.sms.smsScanMonths)
+        assertFalse(backup.preferences.sms.smsScanUseCustomDate)
+        assertNull(backup.preferences.sms.smsScanCustomDate)
         assertNull(backup.preferences.theme.isDarkThemeEnabled)
         assertEquals("", backup.metadata.exportId)
         assertTrue(backup.database.transactions.isEmpty())
@@ -566,5 +569,71 @@ class BackupModelsTest {
             .database.subscriptions.single()
         assertEquals("Monthly", sub.billingCycle)
         assertEquals(SubscriptionDirection.EXPENSE, sub.direction)
+    }
+
+    @Test
+    fun customSmsScanPreferences_roundTrip() {
+        val customDateMillis = 1_705_276_800_000L
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(
+                exportId = "custom-sms-scan",
+                appVersion = "test",
+                databaseVersion = SCHEMA_VERSION,
+                device = "Test",
+                androidVersion = 30,
+                statistics = BackupStatistics(
+                    totalTransactions = 0,
+                    totalCategories = 0,
+                    totalCards = 0,
+                    totalSubscriptions = 0,
+                    dateRange = null
+                )
+            ),
+            database = DatabaseSnapshot(),
+            preferences = PreferencesSnapshot(
+                theme = ThemePreferences(isDarkThemeEnabled = null, isDynamicColorEnabled = false),
+                sms = SmsPreferences(
+                    hasSkippedSmsPermission = false,
+                    smsScanMonths = 3,
+                    lastScanTimestamp = null,
+                    lastScanPeriod = -2,
+                    smsScanUseCustomDate = true,
+                    smsScanCustomDate = customDateMillis,
+                ),
+                developer = DeveloperPreferences(isDeveloperModeEnabled = false, systemPrompt = null),
+                app = AppPreferences(
+                    hasShownScanTutorial = false,
+                    firstLaunchTime = null,
+                    hasShownReviewPrompt = false,
+                    lastReviewPromptTime = null
+                )
+            )
+        )
+
+        val deserialized = backupJson.decodeFromString<PennyWiseBackup>(backupJson.encodeToString(backup))
+
+        assertTrue(deserialized.preferences.sms.smsScanUseCustomDate)
+        assertEquals(customDateMillis, deserialized.preferences.sms.smsScanCustomDate)
+        assertEquals(-2, deserialized.preferences.sms.lastScanPeriod)
+    }
+
+    @Test
+    fun oldBackupMissingCustomSmsScanFields_fallsBackToDefaults() {
+        val json = """
+        {
+          "preferences": {
+            "sms": {
+              "sms_scan_months": 6,
+              "last_scan_period": 6
+            }
+          }
+        }
+        """.trimIndent()
+
+        val sms = backupJson.decodeFromString<PennyWiseBackup>(json).preferences.sms
+
+        assertEquals(6, sms.smsScanMonths)
+        assertFalse(sms.smsScanUseCustomDate)
+        assertNull(sms.smsScanCustomDate)
     }
 }

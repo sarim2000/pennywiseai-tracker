@@ -111,6 +111,9 @@ class UserPreferencesRepository @Inject constructor(
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
 
+        // Number Format Style (digit grouping: Auto / Indian / International)
+        val NUMBER_FORMAT_STYLE = stringPreferencesKey("number_format_style")
+
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
 
@@ -190,6 +193,17 @@ class UserPreferencesRepository @Inject constructor(
     val isDeveloperModeEnabled: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false
+        }
+
+    val numberFormatStyle: Flow<NumberFormatStyle> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.NUMBER_FORMAT_STYLE]?.let {
+                try {
+                    NumberFormatStyle.valueOf(it)
+                } catch (_: Exception) {
+                    NumberFormatStyle.AUTO
+                }
+            } ?: NumberFormatStyle.AUTO
         }
 
     suspend fun updateDarkThemeEnabled(enabled: Boolean?) {
@@ -578,6 +592,12 @@ class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
             preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] = true
+        }
+    }
+
+    suspend fun updateNumberFormatStyle(style: NumberFormatStyle) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.NUMBER_FORMAT_STYLE] = style.name
         }
     }
 

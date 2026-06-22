@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.utils
 
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Currency
@@ -12,6 +13,43 @@ import java.util.Locale
 object CurrencyFormatter {
 
     private val INDIAN_LOCALE = Locale.Builder().setLanguage("en").setRegion("IN").build()
+
+    /** Western/international digit grouping (1,000,000). */
+    private val INTERNATIONAL_LOCALE = Locale.US
+
+    /** Currencies that use Indian lakh/crore grouping under [NumberFormatStyle.AUTO]. */
+    private val INDIAN_NOTATION_CURRENCIES = setOf("INR", "NPR", "PKR")
+
+    /**
+     * The user's chosen number-format style. A stateless object can't read DataStore,
+     * so this @Volatile field is pushed from [com.pennywiseai.tracker.PennyWiseApplication]
+     * which collects the preference Flow at startup. Defaults to AUTO (currency-driven).
+     */
+    @Volatile
+    var numberFormatStyle: NumberFormatStyle = NumberFormatStyle.AUTO
+
+    /**
+     * The locale that drives digit grouping for [currencyCode], honouring the
+     * user's [numberFormatStyle]. AUTO keeps each currency's native grouping
+     * (Indian for INR/NPR/PKR, international elsewhere).
+     */
+    private fun groupingLocale(currencyCode: String?): Locale = when (numberFormatStyle) {
+        NumberFormatStyle.INDIAN -> INDIAN_LOCALE
+        NumberFormatStyle.INTERNATIONAL -> INTERNATIONAL_LOCALE
+        NumberFormatStyle.AUTO ->
+            if (currencyCode != null && currencyCode in INDIAN_NOTATION_CURRENCIES) {
+                INDIAN_LOCALE
+            } else {
+                CURRENCY_LOCALES[currencyCode] ?: INTERNATIONAL_LOCALE
+            }
+    }
+
+    /** Whether to abbreviate large values with Indian L/Cr (vs western K/M). */
+    private fun useIndianAbbreviation(currencyCode: String): Boolean = when (numberFormatStyle) {
+        NumberFormatStyle.INDIAN -> true
+        NumberFormatStyle.INTERNATIONAL -> false
+        NumberFormatStyle.AUTO -> currencyCode in INDIAN_NOTATION_CURRENCIES
+    }
 
     /**
      * Currencies whose ISO 4217 minor unit is 3 (three decimal places),
@@ -89,10 +127,10 @@ object CurrencyFormatter {
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
         if (currencyCode == "PKR") {
-            return "${CURRENCY_SYMBOLS["PKR"]}${formatAmount(amount)}"
+            return "${CURRENCY_SYMBOLS["PKR"]}${formatAmount(amount, "PKR")}"
         }
         return try {
-            val locale = CURRENCY_LOCALES[currencyCode] ?: INDIAN_LOCALE
+            val locale = groupingLocale(currencyCode)
             val formatter = NumberFormat.getCurrencyInstance(locale)
 
             // Set the currency if supported
@@ -140,7 +178,7 @@ object CurrencyFormatter {
      * Formats just the numeric amount without currency symbol
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
-        val formatter = NumberFormat.getNumberInstance(INDIAN_LOCALE)
+        val formatter = NumberFormat.getNumberInstance(groupingLocale(currencyCode))
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
         return formatter.format(amount)
@@ -160,12 +198,13 @@ object CurrencyFormatter {
 
     /**
      * Formats large currency values in abbreviated form for chart axes.
-     * Uses Indian notation (L/Cr) for INR/NPR/PKR, Western notation (K/M) for others.
+     * Uses Indian notation (L/Cr) or Western notation (K/M) per the user's
+     * [numberFormatStyle] (AUTO = L/Cr for INR/NPR/PKR, K/M otherwise).
      */
     fun formatAbbreviated(value: Double, currencyCode: String): String {
         val symbol = getCurrencySymbol(currencyCode)
         val absValue = kotlin.math.abs(value)
-        val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
+        val useIndianNotation = useIndianAbbreviation(currencyCode)
         return when {
             useIndianNotation && absValue >= 1_00_00_000 ->
                 "${symbol}${String.format("%.1f", absValue / 1_00_00_000)}Cr"

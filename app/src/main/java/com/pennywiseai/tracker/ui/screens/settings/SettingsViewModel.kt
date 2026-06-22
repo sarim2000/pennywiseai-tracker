@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
@@ -113,6 +114,9 @@ class SettingsViewModel @Inject constructor(
     
     // Base currency state
     val baseCurrency = userPreferencesRepository.baseCurrency
+
+    // Number format style (digit grouping: Auto / Indian / International)
+    val numberFormatStyle = userPreferencesRepository.numberFormatStyle
 
     // Main account selection (drives the default currency unless overridden above).
     val accounts: StateFlow<List<AccountBalanceEntity>> =
@@ -620,6 +624,12 @@ class SettingsViewModel @Inject constructor(
     fun updateBaseCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateBaseCurrency(currency)
+        }
+    }
+
+    fun updateNumberFormatStyle(style: NumberFormatStyle) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateNumberFormatStyle(style)
         }
     }
 

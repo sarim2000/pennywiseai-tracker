@@ -25,6 +25,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var purchaseGateway: com.pennywiseai.tracker.billing.PurchaseGateway
 
+    @Inject
+    lateinit var userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+
+    @Inject
+    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -55,6 +61,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 purchaseGateway.refresh()
             } catch (e: Exception) {
                 android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
+
+        applicationScope.launch {
+            if (userPreferencesRepository.isScheduledFolderBackupEnabled()) {
+                scheduledFolderBackupScheduler.schedule()
             }
         }
     }

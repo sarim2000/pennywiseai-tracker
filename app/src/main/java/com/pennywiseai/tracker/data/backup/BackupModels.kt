@@ -310,6 +310,14 @@ sealed class ExportResult {
 }
 
 /**
+ * In-memory export result for scheduled and manual folder backups.
+ */
+sealed class ExportBytesResult {
+    data class Success(val bytes: ByteArray) : ExportBytesResult()
+    data class Error(val message: String) : ExportBytesResult()
+}
+
+/**
  * Import strategy options.
  */
 enum class ImportStrategy {

@@ -67,6 +67,7 @@ import com.pennywiseai.tracker.ui.theme.grey_dark
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 
@@ -101,6 +102,7 @@ fun SettingsScreen(
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
+    val numberFormatStyle by settingsViewModel.numberFormatStyle.collectAsStateWithLifecycle(initialValue = NumberFormatStyle.AUTO)
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
@@ -123,6 +125,7 @@ fun SettingsScreen(
     var showExportOptionsDialog by remember { mutableStateOf(false) }
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
+    var showNumberFormatDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     var showMainAccountDropdown by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
@@ -264,7 +267,7 @@ fun SettingsScreen(
                     currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
-                    position = if (accounts.isNotEmpty()) ItemPosition.MIDDLE else ItemPosition.BOTTOM
+                    position = ItemPosition.MIDDLE
                 ) {
                     availableCurrencies.forEach { currency ->
                         DropdownMenuItem(
@@ -305,7 +308,7 @@ fun SettingsScreen(
                         } ?: "Not set",
                         expanded = showMainAccountDropdown,
                         onExpandedChange = { showMainAccountDropdown = it },
-                        position = ItemPosition.BOTTOM
+                        position = ItemPosition.MIDDLE
                     ) {
                         accounts.forEach { account ->
                             val name = account.alias?.takeIf { it.isNotBlank() } ?: account.bankName
@@ -332,6 +335,17 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                SettingsNavItem(
+                    icon = Icons.Default.Numbers,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Number Format",
+                    subtitle = "How large amounts are grouped",
+                    onClick = { showNumberFormatDialog = true },
+                    position = ItemPosition.BOTTOM,
+                    trailingText = numberFormatStyleLabel(numberFormatStyle)
+                )
             }
 
             // ── Contacts ──
@@ -632,6 +646,58 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Number Format Dialog
+    if (showNumberFormatDialog) {
+        AlertDialog(
+            onDismissRequest = { showNumberFormatDialog = false },
+            title = { Text("Number Format") },
+            text = {
+                Column {
+                    NumberFormatStyle.entries.forEach { style ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = style == numberFormatStyle,
+                                    onClick = {
+                                        settingsViewModel.updateNumberFormatStyle(style)
+                                        showNumberFormatDialog = false
+                                    }
+                                )
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = style == numberFormatStyle,
+                                onClick = {
+                                    settingsViewModel.updateNumberFormatStyle(style)
+                                    showNumberFormatDialog = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Column {
+                                Text(
+                                    text = numberFormatStyleLabel(style),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = numberFormatStyleExample(style),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNumberFormatDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -1268,4 +1334,16 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             )
         }
     }
+}
+
+private fun numberFormatStyleLabel(style: NumberFormatStyle): String = when (style) {
+    NumberFormatStyle.AUTO -> "Auto"
+    NumberFormatStyle.INDIAN -> "Indian"
+    NumberFormatStyle.INTERNATIONAL -> "International"
+}
+
+private fun numberFormatStyleExample(style: NumberFormatStyle): String = when (style) {
+    NumberFormatStyle.AUTO -> "Matches each currency (₹1,50,000 · $150,000)"
+    NumberFormatStyle.INDIAN -> "1,50,000 (lakh / crore)"
+    NumberFormatStyle.INTERNATIONAL -> "150,000 (thousand / million)"
 }

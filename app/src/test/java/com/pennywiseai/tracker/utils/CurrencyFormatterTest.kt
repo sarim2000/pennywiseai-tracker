@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -56,6 +59,31 @@ class CurrencyFormatterTest {
                 storedCurrency = "INR",
                 bankName = "Totally Unknown Bank"
             )
+        )
+    }
+
+    // numberFormatStyle is a process-wide @Volatile field; reset after each test.
+    @After
+    fun resetNumberFormatStyle() {
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+    }
+
+    // Note: grouping *values* (1,50,000 vs 150,000) can't be asserted here — the plain
+    // JVM test runtime uses COMPAT locale data (western grouping for en-IN), whereas
+    // Android uses CLDR (Indian grouping). The style→branch selection is instead covered
+    // by the abbreviation test below, which shares the same when(style) logic and uses
+    // our own locale-independent L/Cr-vs-K/M strings.
+    @Test
+    fun `abbreviation follows the style`() {
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.INTERNATIONAL
+        assertTrue(
+            "INR under INTERNATIONAL abbreviates with M, not Cr",
+            CurrencyFormatter.formatAbbreviated(10_000_000.0, "INR").endsWith("M")
+        )
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.INDIAN
+        assertTrue(
+            "TZS under INDIAN abbreviates with Cr",
+            CurrencyFormatter.formatAbbreviated(10_000_000.0, "TZS").endsWith("Cr")
         )
     }
 }

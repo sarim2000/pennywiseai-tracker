@@ -5,11 +5,14 @@ import android.app.Application
 import android.os.Bundle
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +27,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var purchaseGateway: com.pennywiseai.tracker.billing.PurchaseGateway
+
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
@@ -55,6 +61,16 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 purchaseGateway.refresh()
             } catch (e: Exception) {
                 android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
+
+        // Keep CurrencyFormatter's number-format style in sync with the user's
+        // preference. CurrencyFormatter is a stateless object used from non-Compose
+        // contexts (widgets, workers) too, so we push the value into its @Volatile
+        // field rather than relying on a Compose-collected state.
+        applicationScope.launch {
+            userPreferencesRepository.numberFormatStyle.collectLatest { style ->
+                CurrencyFormatter.numberFormatStyle = style
             }
         }
     }

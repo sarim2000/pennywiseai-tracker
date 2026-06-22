@@ -17,6 +17,9 @@ import java.math.BigDecimal
  * - Loan installment: "خصم: قسط تمويل ... القسط: 2304.58 SAR"
  * - Bill payment: "سداد فاتورة"
  *
+ * Supported formats (English, multi-line PoS):
+ * - "PoS Purchase\nBy:<digits>;<method>\nAmount:SR <number>\nAt:<merchant>\n<date>"
+ *
  * Sender: AlRajhiBank
  */
 class AlRajhiBankParser : BankParser() {
@@ -24,6 +27,14 @@ class AlRajhiBankParser : BankParser() {
     override fun getBankName() = "Al Rajhi Bank"
 
     override fun getCurrency() = "SAR"
+
+    /**
+     * Detects the English multi-line PoS purchase format.
+     */
+    private fun isEnglishPosFormat(message: String): Boolean {
+        return message.contains("PoS Purchase", ignoreCase = true) &&
+                Regex("""Amount:\s*SR\s""", RegexOption.IGNORE_CASE).containsMatchIn(message)
+    }
 
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
@@ -33,6 +44,15 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
+        // English PoS: "Amount:SR 2" or "Amount: SR 4.50"
+        val srPattern = Regex(
+            """Amount:\s*SR\s+([0-9,]+(?:\.\d{1,2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        srPattern.find(message)?.let { match ->
+            return parseSarAmount(match.groupValues[1])
+        }
+
         // Pattern 1: "بـSAR 5.75" or "بـSAR 140"
         val bPattern = Regex(
             """بـSAR\s+([0-9,]+(?:\.\d{1,2})?)""",
@@ -73,6 +93,11 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
+        // English PoS purchase is always an expense
+        if (isEnglishPosFormat(message)) {
+            return TransactionType.EXPENSE
+        }
+
         return when {
             // Incoming (واردة = incoming)
             message.contains("واردة") -> TransactionType.INCOME
@@ -89,6 +114,24 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // English PoS: merchant is the value after "At:" up to end of line
+        if (isEnglishPosFormat(message)) {
+            val atPattern = Regex("""At:\s*([^\n]+)""")
+            atPattern.find(message)?.let { match ->
+                var raw = match.groupValues[1].trim()
+                // Strip a leading purely-numeric terminal id (e.g. "170658 riyadh" -> "riyadh")
+                val stripped = raw.replaceFirst(Regex("""^\d+\s+"""), "").trim()
+                if (stripped.isNotBlank() && stripped.any { it.isLetter() }) {
+                    raw = stripped
+                }
+                val merchant = cleanMerchantName(raw)
+                if (isValidMerchantName(merchant)) {
+                    return merchant
+                }
+            }
+            return null
+        }
+
         // Pattern 1: "لـMERCHANT" (to/for merchant) — stop at newline or date pattern
         val toPattern = Regex(
             """لـ([^\n*]+?)(?:\n|\d{2}/\d|$)"""
@@ -169,6 +212,17 @@ class AlRajhiBankParser : BankParser() {
         return null
     }
 
+    override fun extractAccountLast4(message: String): String? {
+        // English PoS: "By:<digits>;<method>" — the digits identify the card
+        if (isEnglishPosFormat(message)) {
+            val byPattern = Regex("""By:\s*(\d+)\s*;""")
+            byPattern.find(message)?.let { match ->
+                return match.groupValues[1]
+            }
+        }
+        return super.extractAccountLast4(message)
+    }
+
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: "المبلغ المتبقي: SAR 13827.48" (remaining amount)
         val remainingPattern = Regex(
@@ -183,6 +237,10 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun detectIsCard(message: String): Boolean {
+        // English PoS purchase is a card transaction
+        if (isEnglishPosFormat(message)) {
+            return true
+        }
         // مدى = Mada (Saudi debit card network)
         // بطاقة = card
         if (message.contains("مدى") || message.contains("بطاقة")) {
@@ -192,11 +250,17 @@ class AlRajhiBankParser : BankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
-        // Skip OTP / verification
+        // Skip OTP / verification (Arabic + English)
         if (message.contains("رمز") || message.contains("OTP", ignoreCase = true) ||
-            message.contains("كلمة المرور")
+            message.contains("كلمة المرور") ||
+            message.contains("verification code", ignoreCase = true)
         ) {
             return false
+        }
+
+        // Accept the English multi-line PoS purchase format
+        if (isEnglishPosFormat(message)) {
+            return true
         }
 
         val keywords = listOf(

@@ -830,7 +830,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             sourceType    = "TRANSACTION",
             currency      = parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-            alias         = existing?.alias
+            alias         = existing?.alias,
+            lowBalanceThreshold = existing?.lowBalanceThreshold
         )
 
         accountBalanceRepository.insertBalance(balanceEntity)

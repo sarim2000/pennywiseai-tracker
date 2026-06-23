@@ -58,7 +58,8 @@ interface AccountBalanceDao {
             ab1.source_type,
             ab1.currency,
             ab1.profile_id,
-            ab1.alias
+            ab1.alias,
+            ab1.lowBalanceThreshold
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -125,7 +126,8 @@ interface AccountBalanceDao {
             ab1.source_type,
             ab1.currency,
             ab1.profile_id,
-            ab1.alias
+            ab1.alias,
+            ab1.lowBalanceThreshold
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -226,6 +228,13 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET alias = :alias WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int
+
+    /**
+     * Sets the per-account low-balance alert threshold across ALL rows of an
+     * account (it is an account-level field). null clears the alert. (#509)
+     */
+    @Query("UPDATE account_balances SET lowBalanceThreshold = :threshold WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun setLowBalanceThreshold(bankName: String, accountLast4: String, threshold: BigDecimal?): Int
 
     // ─────────────────────────────────────────────────────────────────────────
     // Manual/cash account balance recompute support.

@@ -57,7 +57,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 52
+const val SCHEMA_VERSION = 53
 
 /**
  * The PennyWise Room database.
@@ -512,6 +512,17 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Per-account low-balance alert threshold (#509). Nullable — existing
+         * rows have no alert set (null = off). Stored as TEXT to match how
+         * BigDecimal columns (balance, credit_limit) are persisted in this DB.
+         */
+        val MIGRATION_52_53 = object : Migration(52, 53) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `lowBalanceThreshold` TEXT DEFAULT NULL")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -564,6 +575,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_49_50,
             MIGRATION_50_51,
             MIGRATION_51_52,
+            MIGRATION_52_53,
         )
     }
     

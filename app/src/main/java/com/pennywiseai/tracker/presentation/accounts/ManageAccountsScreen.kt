@@ -250,6 +250,9 @@ fun ManageAccountsScreen(
                             },
                             onSetAlias = { alias ->
                                 viewModel.setAccountAlias(account.bankName, account.accountLast4, alias)
+                            },
+                            onSetLowBalanceThreshold = { threshold ->
+                                viewModel.setLowBalanceThreshold(account.bankName, account.accountLast4, threshold)
                             }
                         )
                     }
@@ -395,6 +398,9 @@ fun ManageAccountsScreen(
                                 },
                                 onSetAlias = { alias ->
                                     viewModel.setAccountAlias(account.bankName, account.accountLast4, alias)
+                                },
+                                onSetLowBalanceThreshold = { threshold ->
+                                    viewModel.setLowBalanceThreshold(account.bankName, account.accountLast4, threshold)
                                 }
                             )
                         }
@@ -924,17 +930,27 @@ private fun AccountItem(
     onDeleteAccount: () -> Unit = {},
     onEditAccount: () -> Unit = {},
     onSetProfile: (Long) -> Unit = {},
-    onSetAlias: (String?) -> Unit = {}
+    onSetAlias: (String?) -> Unit = {},
+    onSetLowBalanceThreshold: (BigDecimal?) -> Unit = {}
 ) {
     val isManualAccount = account.sourceType == "MANUAL"
     var showAliasDialog by remember { mutableStateOf(false) }
+    var showThresholdDialog by remember { mutableStateOf(false) }
+    // Low-balance alert: only for non-credit accounts with a threshold set, when the
+    // current balance has fallen at or below it. (Credit cards invert this — their
+    // "low" concept is available limit, not balance — so they're excluded.)
+    val isLowBalance = !account.isCreditCard &&
+        account.lowBalanceThreshold != null &&
+        account.balance <= account.lowBalanceThreshold
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isHidden) {
-                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = when {
+                isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
+                    alpha = if (isHidden) 0.4f else 0.7f
+                )
+                isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+                else -> MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -1038,9 +1054,14 @@ private fun AccountItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Balance",
+                        text = if (isLowBalance) "Low balance" else "Balance",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = if (isLowBalance) FontWeight.Medium else null,
+                        color = if (isLowBalance) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
             }
@@ -1213,6 +1234,19 @@ private fun AccountItem(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text(if (account.lowBalanceThreshold == null) "Low-balance alert" else "Edit low-balance alert") },
+                            onClick = {
+                                showMenu = false
+                                showThresholdDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.NotificationsActive,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {
                                 showMenu = false
@@ -1246,6 +1280,78 @@ private fun AccountItem(
             }
         )
     }
+
+    if (showThresholdDialog) {
+        LowBalanceThresholdDialog(
+            currentThreshold = account.lowBalanceThreshold,
+            accountLabel = "${account.bankName} ••${account.accountLast4}",
+            currency = CurrencyFormatter.resolveAccountCurrency(
+                account.sourceType, account.currency, account.bankName
+            ),
+            currentBalance = account.balance,
+            onDismiss = { showThresholdDialog = false },
+            onConfirm = { threshold ->
+                onSetLowBalanceThreshold(threshold)
+                showThresholdDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LowBalanceThresholdDialog(
+    currentThreshold: BigDecimal?,
+    accountLabel: String,
+    currency: String,
+    currentBalance: BigDecimal,
+    onDismiss: () -> Unit,
+    onConfirm: (BigDecimal?) -> Unit
+) {
+    var text by remember { mutableStateOf(currentThreshold?.toPlainString().orEmpty()) }
+    val parsed = text.trim().toBigDecimalOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Low-balance alert") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = accountLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Flag this account when its balance is at or below this amount. " +
+                        "Current balance: ${CurrencyFormatter.formatCurrency(currentBalance, currency)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Threshold ($currency)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(parsed) },
+                enabled = parsed != null && parsed >= BigDecimal.ZERO
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                if (currentThreshold != null) {
+                    TextButton(onClick = { onConfirm(null) }) { Text("Clear") }
+                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

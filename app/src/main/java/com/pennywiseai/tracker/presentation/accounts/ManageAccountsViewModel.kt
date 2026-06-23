@@ -701,6 +701,18 @@ class ManageAccountsViewModel @Inject constructor(
         }
     }
 
+    /** Sets (or clears, with null) the per-account low-balance alert threshold. */
+    fun setLowBalanceThreshold(bankName: String, accountLast4: String, threshold: java.math.BigDecimal?) {
+        viewModelScope.launch {
+            try {
+                accountBalanceRepository.setLowBalanceThreshold(bankName, accountLast4, threshold)
+            } catch (e: Exception) {
+                android.util.Log.e("ManageAccountsViewModel", "Failed to set low-balance threshold", e)
+                _uiState.update { it.copy(errorMessage = "Failed to set alert: ${e.message}") }
+            }
+        }
+    }
+
     fun applyPendingProfileReassign() {
         val p = _pendingProfileReassign.value ?: return
         viewModelScope.launch {

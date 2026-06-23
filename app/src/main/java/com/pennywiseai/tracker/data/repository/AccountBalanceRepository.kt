@@ -103,7 +103,8 @@ class AccountBalanceRepository @Inject constructor(
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-                alias = existing?.alias
+                alias = existing?.alias,
+                lowBalanceThreshold = existing?.lowBalanceThreshold
             )
             insertBalance(balanceEntity)
         }
@@ -133,7 +134,8 @@ class AccountBalanceRepository @Inject constructor(
             sourceType = sourceType,
             currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-            alias = existing?.alias
+            alias = existing?.alias,
+            lowBalanceThreshold = existing?.lowBalanceThreshold
         )
         return insertBalance(balanceEntity)
     }
@@ -189,6 +191,14 @@ class AccountBalanceRepository @Inject constructor(
 
     suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int {
         return accountBalanceDao.setAccountAlias(bankName, accountLast4, alias)
+    }
+
+    /**
+     * Sets (or clears, with null) the per-account low-balance alert threshold
+     * across all of the account's balance rows. (#509)
+     */
+    suspend fun setLowBalanceThreshold(bankName: String, accountLast4: String, threshold: BigDecimal?): Int {
+        return accountBalanceDao.setLowBalanceThreshold(bankName, accountLast4, threshold)
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {

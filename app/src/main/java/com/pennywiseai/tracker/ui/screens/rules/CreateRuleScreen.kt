@@ -68,6 +68,9 @@ fun CreateRuleScreen(
         )
     }
 
+    // Holds a pending switch-to-BLOCK while we confirm discarding the other actions.
+    var pendingBlockAction by remember { mutableStateOf<RuleAction?>(null) }
+
     // Common presets for quick setup
     val commonPresets = listOf(
         "Block OTPs" to {
@@ -495,12 +498,14 @@ fun CreateRuleScreen(
                                 ActionEditor(
                                     action = action,
                                     onActionChange = { updated ->
-                                        // BLOCK is terminal — selecting it collapses the rule to
-                                        // that single action so a no-op SET can't sit beside it.
-                                        actions = if (updated.actionType == ActionType.BLOCK) {
-                                            listOf(updated)
+                                        // BLOCK is terminal — it drops the transaction, so the other
+                                        // actions can't run. If the user switches to BLOCK while other
+                                        // actions exist, confirm before discarding them (no silent
+                                        // data loss); otherwise apply the change directly.
+                                        if (updated.actionType == ActionType.BLOCK && actions.size > 1) {
+                                            pendingBlockAction = updated
                                         } else {
-                                            actions.toMutableList().apply { set(index, updated) }
+                                            actions = actions.toMutableList().apply { set(index, updated) }
                                         }
                                     }
                                 )
@@ -630,6 +635,30 @@ fun CreateRuleScreen(
                 }
             }
         }
+    }
+
+    // Confirm before BLOCK discards the other (possibly filled-in) actions.
+    if (pendingBlockAction != null) {
+        AlertDialog(
+            onDismissRequest = { pendingBlockAction = null },
+            title = { Text("Block transaction?") },
+            text = {
+                Text(
+                    "Blocking stops a matching transaction from being saved, so this " +
+                        "rule's other actions won't run. Remove the other actions and keep " +
+                        "only Block?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    actions = listOf(pendingBlockAction!!)
+                    pendingBlockAction = null
+                }) { Text("Block & remove") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingBlockAction = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 

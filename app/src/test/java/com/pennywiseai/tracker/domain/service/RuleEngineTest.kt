@@ -326,8 +326,71 @@ class RuleEngineTest {
 
         val (_, applications) = engine.evaluateRules(txn, null, listOf(rule))
 
-        assertFalse("Expected combined AND conditions to NOT match when amount is too low",
-            applications.isNotEmpty())
+        assertFalse(
+            "Expected combined AND conditions to NOT match when amount is too low",
+            applications.isNotEmpty()
+        )
+    }
+
+    @Test
+    fun `SET TYPE action can set transaction type to EXPENSE`() {
+        val txn = transaction(
+            merchantName = "Amazon",
+            transactionType = TransactionType.CREDIT
+        )
+        val rule = TransactionRule(
+            name = "Mark card spend as expense",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.MERCHANT,
+                    operator = ConditionOperator.CONTAINS,
+                    value = "Amazon"
+                )
+            ),
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.TYPE,
+                    actionType = ActionType.SET,
+                    value = "EXPENSE"
+                )
+            )
+        )
+
+        val (result, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertEquals(TransactionType.EXPENSE, result.transactionType)
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `TYPE EXPENSE condition matches expense transactions`() {
+        val txn = transaction(transactionType = TransactionType.EXPENSE)
+        val rule = TransactionRule(
+            name = "Expense-only rule",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.TYPE,
+                    operator = ConditionOperator.EQUALS,
+                    value = "EXPENSE"
+                )
+            ),
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.SET,
+                    value = "General"
+                )
+            )
+        )
+
+        val (_, applications) = engine.evaluateRulesForType(
+            txn,
+            smsText = null,
+            rules = listOf(rule),
+            type = TransactionType.EXPENSE
+        )
+
+        assertTrue(applications.isNotEmpty())
     }
 
     @Test

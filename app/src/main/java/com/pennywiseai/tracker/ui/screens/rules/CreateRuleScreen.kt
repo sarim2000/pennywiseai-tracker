@@ -432,18 +432,22 @@ fun CreateRuleScreen(
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        TextButton(
-                            onClick = {
-                                actions = actions + RuleAction(
-                                    field = TransactionField.CATEGORY,
-                                    actionType = ActionType.SET,
-                                    value = ""
-                                )
+                        // BLOCK drops the transaction, so it's terminal — no further
+                        // actions can run alongside it. Hide "Add Action" while one exists.
+                        if (actions.none { it.actionType == ActionType.BLOCK }) {
+                            TextButton(
+                                onClick = {
+                                    actions = actions + RuleAction(
+                                        field = TransactionField.CATEGORY,
+                                        actionType = ActionType.SET,
+                                        value = ""
+                                    )
+                                }
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Add Action")
                             }
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Add Action")
                         }
                     }
 
@@ -466,7 +470,7 @@ fun CreateRuleScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Action",
+                                        text = if (actions.size > 1) "Action ${index + 1}" else "Action",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -491,7 +495,13 @@ fun CreateRuleScreen(
                                 ActionEditor(
                                     action = action,
                                     onActionChange = { updated ->
-                                        actions = actions.toMutableList().apply { set(index, updated) }
+                                        // BLOCK is terminal — selecting it collapses the rule to
+                                        // that single action so a no-op SET can't sit beside it.
+                                        actions = if (updated.actionType == ActionType.BLOCK) {
+                                            listOf(updated)
+                                        } else {
+                                            actions.toMutableList().apply { set(index, updated) }
+                                        }
                                     }
                                 )
                             }

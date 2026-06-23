@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
@@ -17,7 +18,8 @@ import javax.inject.Inject
 class AddTransactionUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val subscriptionRepository: SubscriptionRepository,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val tagRepository: TagRepository
 ) {
     suspend fun execute(
         amount: BigDecimal,
@@ -26,6 +28,7 @@ class AddTransactionUseCase @Inject constructor(
         type: TransactionType,
         date: LocalDateTime,
         notes: String? = null,
+        tags: List<String> = emptyList(),
         isRecurring: Boolean = false,
         bankName: String? = null,
         accountLast4: String? = null,
@@ -74,6 +77,11 @@ class AddTransactionUseCase @Inject constructor(
 
         // Insert the transaction
         val transactionId = transactionRepository.insertTransaction(transaction)
+
+        // Link tags (create-or-select handled in the repository)
+        if (transactionId != -1L && tags.isNotEmpty()) {
+            tagRepository.setTagsForTransaction(transactionId, tags)
+        }
 
         // Update account balance if account was selected
         if (transactionId != -1L && bankName != null && accountLast4 != null) {

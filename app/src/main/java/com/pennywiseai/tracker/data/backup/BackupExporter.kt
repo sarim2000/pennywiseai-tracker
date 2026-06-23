@@ -72,6 +72,8 @@ class BackupExporter @Inject constructor(
         val profiles = database.profileDao().getAllProfiles()
         val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
+        val tags = database.tagDao().getAllTagsSync()
+        val transactionTagCrossRefs = database.tagDao().getAllCrossRefs()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -124,6 +126,11 @@ class BackupExporter @Inject constructor(
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
+        // Tags carry no PII (user-defined labels) but in MASKED/ANONYMOUS the
+        // transaction references are stripped, so the cross-refs are only useful
+        // on a FULL export. Tag names themselves are kept across all modes.
+        val exportedTags = tags
+        val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) transactionTagCrossRefs else emptyList()
         
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -172,7 +179,9 @@ class BackupExporter @Inject constructor(
                 transactionGroups = exportedTransactionGroups,
                 profiles = exportedProfiles,
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
-                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots
+                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
+                tags = exportedTags,
+                transactionTagCrossRefs = exportedTransactionTagCrossRefs
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

@@ -8,6 +8,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# --rerun-tasks is required: without it Gradle treats the test as UP-TO-DATE on
+# repeat runs and skips it, so the generated files would not be rewritten. Only
+# this on-demand regen uses it; the CI staleness guard runs the test normally.
 UPDATE_SUPPORTED_BANKS=true ./gradlew :parser-core:jvmTest \
   --tests "com.pennywiseai.parser.core.SupportedBanksDocTest" \
   --rerun-tasks

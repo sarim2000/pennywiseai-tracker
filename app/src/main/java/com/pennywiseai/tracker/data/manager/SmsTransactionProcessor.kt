@@ -314,7 +314,8 @@ class SmsTransactionProcessor @Inject constructor(
                 sourceType = "TRANSACTION",
                 currency = parsedTransaction.currency,
                 profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
-                alias = existingAccount?.alias
+                alias = existingAccount?.alias,
+                lowBalanceThreshold = existingAccount?.lowBalanceThreshold
             )
 
             accountBalanceRepository.insertBalance(balanceEntity)

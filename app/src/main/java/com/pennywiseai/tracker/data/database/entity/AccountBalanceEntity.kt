@@ -43,7 +43,7 @@ data class AccountBalanceEntity(
     @ColumnInfo(name = "credit_limit")
     @Contextual
     val creditLimit: BigDecimal? = null,
-    
+
     @ColumnInfo(name = "is_credit_card", defaultValue = "0")
     val isCreditCard: Boolean = false,
     
@@ -70,5 +70,13 @@ data class AccountBalanceEntity(
     val profileId: Long = ProfileEntity.PERSONAL_ID,
 
     @ColumnInfo(name = "alias")
-    val alias: String? = null
+    val alias: String? = null,
+
+    // Per-account low-balance alert threshold (#509). null = no alert set (off).
+    // Account-level (same value on every balance row for a bank_name/account_last4),
+    // like alias/profileId. @Contextual so the backup serializer emits the
+    // BigDecimal as a plain string and old backups without the key default to null.
+    @ColumnInfo(name = "lowBalanceThreshold")
+    @Contextual
+    val lowBalanceThreshold: BigDecimal? = null
 )

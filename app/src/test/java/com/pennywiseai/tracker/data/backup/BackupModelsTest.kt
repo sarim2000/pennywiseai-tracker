@@ -490,6 +490,53 @@ class BackupModelsTest {
     }
 
     /**
+     * #509 regression. An older backup's account_balances row predates the
+     * per-account `lowBalanceThreshold` column, so the key is simply absent.
+     * It must default to null (alert off), not crash the restore. A second row
+     * that *does* carry the key must round-trip its BigDecimal value.
+     */
+    @Test
+    fun oldBackupMissingLowBalanceThreshold_defaultsToNull() {
+        val json = """
+        {
+          "database": {
+            "account_balances": [
+              {
+                "id": 1,
+                "bankName": "Test Bank",
+                "accountLast4": "1234",
+                "balance": "1500.00",
+                "timestamp": "2024-01-01T10:00:00"
+              },
+              {
+                "id": 2,
+                "bankName": "Test Bank",
+                "accountLast4": "5678",
+                "balance": "200.00",
+                "timestamp": "2024-01-01T10:00:00",
+                "lowBalanceThreshold": "500.00"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val balances = backupJson.decodeFromString<PennyWiseBackup>(json)
+            .database.accountBalances
+
+        // Older row without the key → default (no alert set).
+        val legacy = balances.first { it.id == 1L }
+        assertNull(legacy.lowBalanceThreshold)
+        // Other defaulted fields still default too.
+        assertNull(legacy.creditLimit)
+        assertNull(legacy.alias)
+
+        // Newer row carrying the key round-trips its BigDecimal value.
+        val withThreshold = balances.first { it.id == 2L }
+        assertEquals(BigDecimal("500.00"), withThreshold.lowBalanceThreshold)
+    }
+
+    /**
      * Forward compatibility (#415). A backup from a *newer* app carries keys
      * this version has never heard of — both unknown object keys and a whole
      * unknown table. They must be ignored, not rejected.

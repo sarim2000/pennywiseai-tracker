@@ -78,8 +78,16 @@ class SupportedBanksDocTest {
             .sortedWith(compareByDescending<CountryGroup> { it.banks.size }.thenBy { it.meta.country })
     }
 
+    /** Headline count used both in the JSON and the README marketing bullet. */
+    private fun summaryText(groups: List<CountryGroup>): String {
+        val totalBanks = groups.sumOf { it.banks.size }
+        return "$totalBanks banks across ${groups.size} countries"
+    }
+
     private fun renderJson(groups: List<CountryGroup>): String {
-        fun esc(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"")
+        fun esc(s: String) = s
+            .replace("\\", "\\\\").replace("\"", "\\\"")
+            .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
         val totalBanks = groups.sumOf { it.banks.size }
         val sb = StringBuilder()
         sb.append("{\n")
@@ -137,11 +145,30 @@ class SupportedBanksDocTest {
         return readme.substring(0, startIdx) + block + readme.substring(endIdx + endMarker.length)
     }
 
+    private val summaryStart = "<!-- BANKS_SUMMARY -->"
+    private val summaryEnd = "<!-- /BANKS_SUMMARY -->"
+
+    /** Rewrites the inline headline count in the marketing bullet (keeps the markers). */
+    private fun replaceSummary(readme: String, summary: String): String {
+        val s = readme.indexOf(summaryStart)
+        val e = readme.indexOf(summaryEnd)
+        require(s >= 0 && e > s) { "README.md is missing the BANKS_SUMMARY markers." }
+        return readme.substring(0, s + summaryStart.length) + summary + readme.substring(e)
+    }
+
+    private fun currentSummary(readme: String): String? {
+        val s = readme.indexOf(summaryStart)
+        val e = readme.indexOf(summaryEnd)
+        if (s < 0 || e <= s) return null
+        return readme.substring(s + summaryStart.length, e)
+    }
+
     @Test
     fun `supported-banks catalogue is in sync`() {
         val groups = buildGroups()
         val json = renderJson(groups)
         val block = renderReadmeBlock(groups)
+        val summary = summaryText(groups)
 
         val root = repoRoot()
         val jsonFile = File(root, "docs/supported-banks.json")
@@ -150,7 +177,8 @@ class SupportedBanksDocTest {
         if (System.getenv("UPDATE_SUPPORTED_BANKS") == "true") {
             jsonFile.parentFile.mkdirs()
             jsonFile.writeText(json)
-            readmeFile.writeText(replaceMarkers(readmeFile.readText(), block))
+            val updated = replaceSummary(replaceMarkers(readmeFile.readText(), block), summary)
+            readmeFile.writeText(updated)
             return
         }
 
@@ -167,6 +195,11 @@ class SupportedBanksDocTest {
             block,
             current,
             "README supported-banks block is stale — run scripts/update-supported-banks.sh"
+        )
+        assertEquals(
+            summary,
+            currentSummary(readme),
+            "README banks-summary bullet is stale — run scripts/update-supported-banks.sh"
         )
     }
 }

@@ -145,6 +145,18 @@ class SupportedBanksDocTest {
         return readme.substring(0, startIdx) + block + readme.substring(endIdx + endMarker.length)
     }
 
+    /** The current SUPPORTED_BANKS block (markers inclusive), or a clear error if absent. */
+    private fun extractBlock(readme: String): String {
+        val start = "<!-- SUPPORTED_BANKS:START"
+        val endMarker = "<!-- SUPPORTED_BANKS:END -->"
+        val startIdx = readme.indexOf(start)
+        val endIdx = readme.indexOf(endMarker)
+        require(startIdx >= 0 && endIdx > startIdx) {
+            "README.md is missing the SUPPORTED_BANKS markers — run scripts/update-supported-banks.sh"
+        }
+        return readme.substring(startIdx, endIdx + endMarker.length)
+    }
+
     private val summaryStart = "<!-- BANKS_SUMMARY -->"
     private val summaryEnd = "<!-- /BANKS_SUMMARY -->"
 
@@ -188,12 +200,9 @@ class SupportedBanksDocTest {
             "docs/supported-banks.json is stale — run scripts/update-supported-banks.sh"
         )
         val readme = readmeFile.readText()
-        val current = readme.substringAfter("<!-- SUPPORTED_BANKS:START", "")
-            .let { "<!-- SUPPORTED_BANKS:START$it" }
-            .substringBefore("<!-- SUPPORTED_BANKS:END -->", "") + "<!-- SUPPORTED_BANKS:END -->"
         assertEquals(
             block,
-            current,
+            extractBlock(readme),
             "README supported-banks block is stale — run scripts/update-supported-banks.sh"
         )
         assertEquals(

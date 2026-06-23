@@ -54,17 +54,18 @@ fun CreateRuleScreen(
         ))
     }
 
-    // Initialize action state from existing rule or use defaults
-    var actionType by remember(existingRule) {
-        mutableStateOf(existingRule?.actions?.firstOrNull()?.actionType ?: ActionType.SET)
-    }
-    var actionField by remember(existingRule) {
-        mutableStateOf(existingRule?.actions?.firstOrNull()?.field ?: TransactionField.CATEGORY)
-    }
-    var actionFieldDropdownExpanded by remember { mutableStateOf(false) }
-    var actionTypeDropdownExpanded by remember { mutableStateOf(false) }
-    var actionValue by remember(existingRule) {
-        mutableStateOf(existingRule?.actions?.firstOrNull()?.value ?: "")
+    // Initialize actions list from existing rule or use a single default action
+    var actions by remember(existingRule) {
+        mutableStateOf(
+            existingRule?.actions?.takeIf { it.isNotEmpty() }
+                ?: listOf(
+                    RuleAction(
+                        field = TransactionField.CATEGORY,
+                        actionType = ActionType.SET,
+                        value = ""
+                    )
+                )
+        )
     }
 
     // Common presets for quick setup
@@ -78,9 +79,13 @@ fun CreateRuleScreen(
                     value = "OTP"
                 )
             )
-            actionType = ActionType.BLOCK
-            actionField = TransactionField.CATEGORY
-            actionValue = ""
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.BLOCK,
+                    value = ""
+                )
+            )
         },
         "Block Small Amounts" to {
             ruleName = "Block Small Transactions"
@@ -91,9 +96,13 @@ fun CreateRuleScreen(
                     value = "10"
                 )
             )
-            actionType = ActionType.BLOCK
-            actionField = TransactionField.CATEGORY
-            actionValue = ""
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.BLOCK,
+                    value = ""
+                )
+            )
         },
         "Small amounts → Food" to {
             ruleName = "Small Food Payments"
@@ -104,9 +113,13 @@ fun CreateRuleScreen(
                     value = "200"
                 )
             )
-            actionType = ActionType.SET
-            actionField = TransactionField.CATEGORY
-            actionValue = "Food & Dining"
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.SET,
+                    value = "Food & Dining"
+                )
+            )
         },
         "Standardize Merchant" to {
             ruleName = "Standardize Merchant Name"
@@ -117,9 +130,13 @@ fun CreateRuleScreen(
                     value = "AMZN"
                 )
             )
-            actionType = ActionType.SET
-            actionField = TransactionField.MERCHANT
-            actionValue = "Amazon"
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.MERCHANT,
+                    actionType = ActionType.SET,
+                    value = "Amazon"
+                )
+            )
         },
         "Mark as Income" to {
             ruleName = "Mark Credits as Income"
@@ -130,9 +147,13 @@ fun CreateRuleScreen(
                     value = "credited"
                 )
             )
-            actionType = ActionType.SET
-            actionField = TransactionField.TYPE
-            actionValue = "income"
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.TYPE,
+                    actionType = ActionType.SET,
+                    value = "income"
+                )
+            )
         },
         "Daily Investment" to {
             ruleName = "Daily Investment"
@@ -148,9 +169,13 @@ fun CreateRuleScreen(
                     value = "09:30"
                 )
             )
-            actionType = ActionType.SET
-            actionField = TransactionField.CATEGORY
-            actionValue = "Investments"
+            actions = listOf(
+                RuleAction(
+                    field = TransactionField.CATEGORY,
+                    actionType = ActionType.SET,
+                    value = "Investments"
+                )
+            )
         }
     )
 
@@ -176,10 +201,10 @@ fun CreateRuleScreen(
                 actionContent = {
                     TextButton(
                         onClick = {
-                            // Validate: rule name + all conditions have values + action is valid
+                            // Validate: rule name + all conditions have values + all actions are valid
                             val areConditionsValid = conditions.isNotEmpty() &&
                                 conditions.all { it.validate() }
-                            val isActionValid = actionType == ActionType.BLOCK || actionValue.isNotBlank()
+                            val isActionValid = actions.isNotEmpty() && actions.all { it.validate() }
                             val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
 
                             if (isValid) {
@@ -189,13 +214,7 @@ fun CreateRuleScreen(
                                     description = description.takeIf { it.isNotBlank() },
                                     priority = existingRule?.priority ?: 100,
                                     conditions = conditions.toList(),
-                                    actions = listOf(
-                                        RuleAction(
-                                            field = actionField,
-                                            actionType = actionType,
-                                            value = if (actionType == ActionType.BLOCK) "" else actionValue
-                                        )
-                                    ),
+                                    actions = actions,
                                     isActive = existingRule?.isActive ?: true,
                                     isSystemTemplate = existingRule?.isSystemTemplate ?: false,
                                     createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
@@ -207,7 +226,8 @@ fun CreateRuleScreen(
                         enabled = ruleName.isNotBlank() &&
                                  conditions.isNotEmpty() &&
                                  conditions.all { it.validate() } &&
-                                 (actionType == ActionType.BLOCK || actionValue.isNotBlank())
+                                 actions.isNotEmpty() &&
+                                 actions.all { it.validate() }
                     ) {
                         Text("Save")
                     }
@@ -386,280 +406,97 @@ fun CreateRuleScreen(
                 }
             }
 
-            // Action section
+            // Action section (supports multiple)
             Card {
                 Column(
                     modifier = Modifier.padding(Dimensions.Padding.content),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Then",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Action type selector
-                    ExposedDropdownMenuBox(
-                        expanded = actionTypeDropdownExpanded,
-                        onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
-                    ) {
-                        TextField(
-                            value = when(actionType) {
-                                ActionType.BLOCK -> "Block Transaction"
-                                ActionType.SET -> "Set Field"
-                                ActionType.APPEND -> "Append to Field"
-                                ActionType.PREPEND -> "Prepend to Field"
-                                ActionType.CLEAR -> "Clear Field"
-                                ActionType.ADD_TAG -> "Add Tag"
-                                ActionType.REMOVE_TAG -> "Remove Tag"
-                            },
-                            onValueChange = { },
-                            readOnly = true,
-                            label = { Text("Action Type") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = actionTypeDropdownExpanded,
-                            onDismissRequest = { actionTypeDropdownExpanded = false }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            listOf(
-                                ActionType.BLOCK to "Block Transaction",
-                                ActionType.SET to "Set Field",
-                                ActionType.CLEAR to "Clear Field"
-                            ).forEach { (type, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        actionType = type
-                                        actionTypeDropdownExpanded = false
-                                        if (type == ActionType.BLOCK) {
-                                            actionValue = "" // Clear value for BLOCK action
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Show message for BLOCK action or field selector for others
-                    if (actionType == ActionType.BLOCK) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = Spacing.xs),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(Spacing.md),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                Icon(
-                                    Icons.Default.Block,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Text(
-                                    text = "Transactions matching this rule will be blocked and not saved",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-                    } else {
-                        // Action field selector for non-BLOCK actions
-                        ExposedDropdownMenuBox(
-                        expanded = actionFieldDropdownExpanded,
-                        onExpandedChange = { actionFieldDropdownExpanded = !actionFieldDropdownExpanded }
-                    ) {
-                        TextField(
-                            value = when(actionField) {
-                                TransactionField.CATEGORY -> "Set Category"
-                                TransactionField.MERCHANT -> "Set Merchant Name"
-                                TransactionField.TYPE -> "Set Transaction Type"
-                                TransactionField.NARRATION -> "Set Description"
-                                TransactionField.BANK_NAME -> "Set Account"
-                                else -> "Set Field"
-                            },
-                            onValueChange = { },
-                            readOnly = true,
-                            label = { Text("Action") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = actionFieldDropdownExpanded,
-                            onDismissRequest = { actionFieldDropdownExpanded = false }
-                        ) {
-                            listOf(
-                                TransactionField.CATEGORY to "Set Category",
-                                TransactionField.MERCHANT to "Set Merchant Name",
-                                TransactionField.TYPE to "Set Transaction Type",
-                                TransactionField.NARRATION to "Set Description",
-                                TransactionField.BANK_NAME to "Set Account"
-                            ).forEach { (field, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        actionField = field
-                                        actionFieldDropdownExpanded = false
-                                        actionValue = "" // Reset value when changing field
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Dynamic value input based on selected action field
-                    when (actionField) {
-                        TransactionField.CATEGORY -> {
-                            // Category chips and input
-                            val commonCategories = listOf(
-                                "Food & Dining", "Transportation", "Shopping",
-                                "Bills & Utilities", "Entertainment", "Healthcare",
-                                "Investments", "Others"
-                            )
-
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                commonCategories.forEach { category ->
-                                    FilterChip(
-                                        selected = actionValue == category,
-                                        onClick = { actionValue = category },
-                                        label = { Text(category, style = MaterialTheme.typography.bodySmall) }
-                                    )
-                                }
-                            }
-
-                            TextField(
-                                value = actionValue,
-                                onValueChange = { actionValue = it },
-                                label = { Text("Category Name") },
-                                placeholder = { Text("e.g., Rent") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                        }
-
-                        TransactionField.TYPE -> {
-                            // Transaction type chips with user-friendly labels
                             Text(
-                                text = "Select transaction type:",
-                                style = MaterialTheme.typography.bodySmall
+                                text = "Then",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
                             )
+                        }
+                        TextButton(
+                            onClick = {
+                                actions = actions + RuleAction(
+                                    field = TransactionField.CATEGORY,
+                                    actionType = ActionType.SET,
+                                    value = ""
+                                )
+                            }
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Add Action")
+                        }
+                    }
 
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                modifier = Modifier.fillMaxWidth()
+                    // Display all actions
+                    actions.forEachIndexed { index, action ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(Spacing.md),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
-                                listOf(
-                                    "INCOME" to "Incoming",
-                                    "EXPENSE" to "Outgoing",
-                                    "CREDIT" to "Credit Card",
-                                    "TRANSFER" to "Transfer",
-                                    "INVESTMENT" to "Investment"
-                                ).forEach { (type, displayLabel) ->
-                                    FilterChip(
-                                        selected = actionValue == type,
-                                        onClick = { actionValue = type },
-                                        label = {
-                                            Text(
-                                                displayLabel,
-                                                style = MaterialTheme.typography.bodySmall
+                                // Header with delete button
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Action",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    if (actions.size > 1) {
+                                        IconButton(
+                                            onClick = {
+                                                actions = actions.toMutableList().apply { removeAt(index) }
+                                            },
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Remove action",
+                                                modifier = Modifier.size(Dimensions.Icon.small),
+                                                tint = MaterialTheme.colorScheme.error
                                             )
                                         }
-                                    )
+                                    }
                                 }
-                            }
-                        }
 
-                        TransactionField.MERCHANT -> {
-                            // Merchant name input with common suggestions
-                            val commonMerchants = listOf(
-                                "Amazon", "Swiggy", "Zomato", "Uber",
-                                "Netflix", "Google", "Flipkart"
-                            )
-
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                commonMerchants.forEach { merchant ->
-                                ElevatedAssistChip(
-                                    onClick = { actionValue = merchant },
-                                    label = { Text(merchant, style = MaterialTheme.typography.bodySmall) }
+                                // Per-action editor
+                                ActionEditor(
+                                    action = action,
+                                    onActionChange = { updated ->
+                                        actions = actions.toMutableList().apply { set(index, updated) }
+                                    }
                                 )
-                                }
                             }
-
-                            TextField(
-                                value = actionValue,
-                                onValueChange = { actionValue = it },
-                                label = { Text("Merchant Name") },
-                                placeholder = { Text("e.g., Amazon") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                        }
-
-                        TransactionField.NARRATION -> {
-                            // Description/Narration input
-                            TextField(
-                                value = actionValue,
-                                onValueChange = { actionValue = it },
-                                label = { Text("Description") },
-                                placeholder = { Text("e.g., Monthly subscription payment") },
-                                modifier = Modifier.fillMaxWidth(),
-                                minLines = 2,
-                                maxLines = 3
-                            )
-                        }
-
-                        TransactionField.BANK_NAME -> {
-                            // Account / bank the transaction belongs to.
-                            TextField(
-                                value = actionValue,
-                                onValueChange = { actionValue = it },
-                                label = { Text("Account / Bank Name") },
-                                placeholder = { Text("e.g., HDFC Bank") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                        }
-
-                        else -> {
-                            // Generic text input for other fields
-                            TextField(
-                                value = actionValue,
-                                onValueChange = { actionValue = it },
-                                label = { Text("Value") },
-                                placeholder = { Text("Enter value") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
                         }
                     }
-                    } // End of if-else for BLOCK action
                 }
             }
 
@@ -667,7 +504,8 @@ fun CreateRuleScreen(
             val showPreview = ruleName.isNotBlank() &&
                              conditions.isNotEmpty() &&
                              conditions.all { it.validate() } &&
-                             (actionType == ActionType.BLOCK || actionValue.isNotBlank())
+                             actions.isNotEmpty() &&
+                             actions.all { it.validate() }
             if (showPreview) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -747,28 +585,31 @@ fun CreateRuleScreen(
                                     }
                                 }
                                 append(", ")
-                                if (actionType == ActionType.BLOCK) {
-                                    append("block transaction")
-                                } else {
-                                    append(when(actionField) {
-                                        TransactionField.CATEGORY -> "set category to "
-                                        TransactionField.MERCHANT -> "set merchant to "
-                                        TransactionField.TYPE -> "set type to "
-                                        TransactionField.NARRATION -> "set description to "
-                                        else -> "set field to "
-                                    })
-                                    // Show user-friendly labels for transaction types in actions too
-                                    if (actionField == TransactionField.TYPE) {
-                                        append(when(actionValue) {
-                                            "INCOME" -> "Incoming"
-                                            "EXPENSE" -> "Outgoing"
-                                            "CREDIT" -> "Credit Card"
-                                            "TRANSFER" -> "Transfer"
-                                            "INVESTMENT" -> "Investment"
-                                            else -> actionValue
-                                        })
+                                actions.forEachIndexed { actionIndex, action ->
+                                    if (actionIndex > 0) append(", and ")
+                                    if (action.actionType == ActionType.BLOCK) {
+                                        append("block transaction")
                                     } else {
-                                        append(actionValue)
+                                        append(when(action.field) {
+                                            TransactionField.CATEGORY -> "set category to "
+                                            TransactionField.MERCHANT -> "set merchant to "
+                                            TransactionField.TYPE -> "set type to "
+                                            TransactionField.NARRATION -> "set description to "
+                                            else -> "set field to "
+                                        })
+                                        // Show user-friendly labels for transaction types in actions too
+                                        if (action.field == TransactionField.TYPE) {
+                                            append(when(action.value) {
+                                                "INCOME" -> "Incoming"
+                                                "EXPENSE" -> "Outgoing"
+                                                "CREDIT" -> "Credit Card"
+                                                "TRANSFER" -> "Transfer"
+                                                "INVESTMENT" -> "Investment"
+                                                else -> action.value
+                                            })
+                                        } else {
+                                            append(action.value)
+                                        }
                                     }
                                 }
                             },
@@ -1170,6 +1011,274 @@ private fun LogicalOperatorToggle(
                     )
                 }
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ActionEditor(
+    action: RuleAction,
+    onActionChange: (RuleAction) -> Unit
+) {
+    var actionTypeDropdownExpanded by remember { mutableStateOf(false) }
+    var actionFieldDropdownExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        // Action type selector
+        ExposedDropdownMenuBox(
+            expanded = actionTypeDropdownExpanded,
+            onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
+        ) {
+            TextField(
+                value = when(action.actionType) {
+                    ActionType.BLOCK -> "Block Transaction"
+                    ActionType.SET -> "Set Field"
+                    ActionType.APPEND -> "Append to Field"
+                    ActionType.PREPEND -> "Prepend to Field"
+                    ActionType.CLEAR -> "Clear Field"
+                    ActionType.ADD_TAG -> "Add Tag"
+                    ActionType.REMOVE_TAG -> "Remove Tag"
+                },
+                onValueChange = { },
+                readOnly = true,
+                label = { Text("Action Type") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(
+                expanded = actionTypeDropdownExpanded,
+                onDismissRequest = { actionTypeDropdownExpanded = false }
+            ) {
+                listOf(
+                    ActionType.BLOCK to "Block Transaction",
+                    ActionType.SET to "Set Field",
+                    ActionType.CLEAR to "Clear Field"
+                ).forEach { (type, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            onActionChange(
+                                action.copy(
+                                    actionType = type,
+                                    value = if (type == ActionType.BLOCK) "" else action.value
+                                )
+                            )
+                            actionTypeDropdownExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // Show message for BLOCK action or field selector for others
+        if (action.actionType == ActionType.BLOCK) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.xs),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Default.Block,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "Transactions matching this rule will be blocked and not saved",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        } else {
+            // Action field selector for non-BLOCK actions
+            ExposedDropdownMenuBox(
+                expanded = actionFieldDropdownExpanded,
+                onExpandedChange = { actionFieldDropdownExpanded = !actionFieldDropdownExpanded }
+            ) {
+                TextField(
+                    value = when(action.field) {
+                        TransactionField.CATEGORY -> "Set Category"
+                        TransactionField.MERCHANT -> "Set Merchant Name"
+                        TransactionField.TYPE -> "Set Transaction Type"
+                        TransactionField.NARRATION -> "Set Description"
+                        TransactionField.BANK_NAME -> "Set Account"
+                        else -> "Set Field"
+                    },
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Action") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                )
+                ExposedDropdownMenu(
+                    expanded = actionFieldDropdownExpanded,
+                    onDismissRequest = { actionFieldDropdownExpanded = false }
+                ) {
+                    listOf(
+                        TransactionField.CATEGORY to "Set Category",
+                        TransactionField.MERCHANT to "Set Merchant Name",
+                        TransactionField.TYPE to "Set Transaction Type",
+                        TransactionField.NARRATION to "Set Description",
+                        TransactionField.BANK_NAME to "Set Account"
+                    ).forEach { (field, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                onActionChange(action.copy(field = field, value = ""))
+                                actionFieldDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Dynamic value input based on selected action field
+            when (action.field) {
+                TransactionField.CATEGORY -> {
+                    // Category chips and input
+                    val commonCategories = listOf(
+                        "Food & Dining", "Transportation", "Shopping",
+                        "Bills & Utilities", "Entertainment", "Healthcare",
+                        "Investments", "Others"
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        commonCategories.forEach { category ->
+                            FilterChip(
+                                selected = action.value == category,
+                                onClick = { onActionChange(action.copy(value = category)) },
+                                label = { Text(category, style = MaterialTheme.typography.bodySmall) }
+                            )
+                        }
+                    }
+
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Category Name") },
+                        placeholder = { Text("e.g., Rent") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                TransactionField.TYPE -> {
+                    // Transaction type chips with user-friendly labels
+                    Text(
+                        text = "Select transaction type:",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf(
+                            "INCOME" to "Incoming",
+                            "EXPENSE" to "Outgoing",
+                            "CREDIT" to "Credit Card",
+                            "TRANSFER" to "Transfer",
+                            "INVESTMENT" to "Investment"
+                        ).forEach { (type, displayLabel) ->
+                            FilterChip(
+                                selected = action.value == type,
+                                onClick = { onActionChange(action.copy(value = type)) },
+                                label = {
+                                    Text(
+                                        displayLabel,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                TransactionField.MERCHANT -> {
+                    // Merchant name input with common suggestions
+                    val commonMerchants = listOf(
+                        "Amazon", "Swiggy", "Zomato", "Uber",
+                        "Netflix", "Google", "Flipkart"
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        commonMerchants.forEach { merchant ->
+                            ElevatedAssistChip(
+                                onClick = { onActionChange(action.copy(value = merchant)) },
+                                label = { Text(merchant, style = MaterialTheme.typography.bodySmall) }
+                            )
+                        }
+                    }
+
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Merchant Name") },
+                        placeholder = { Text("e.g., Amazon") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                TransactionField.NARRATION -> {
+                    // Description/Narration input
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Description") },
+                        placeholder = { Text("e.g., Monthly subscription payment") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 3
+                    )
+                }
+
+                TransactionField.BANK_NAME -> {
+                    // Account / bank the transaction belongs to.
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Account / Bank Name") },
+                        placeholder = { Text("e.g., HDFC Bank") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                else -> {
+                    // Generic text input for other fields
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Value") },
+                        placeholder = { Text("Enter value") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            }
         }
     }
 }

@@ -50,7 +50,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 **Core Features**
 
-- **🤖 Smart SMS Parsing** — 120+ banks across 20+ countries with real-time detection of incoming SMS
+- **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->129 banks across 22 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS
 - **🌍 Multi-Currency** — Native support for INR, USD, AED, THB, NPR, ETB, and more with exchange rate management
 - **💬 On-Device AI Assistant** — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
 - **🏷️ Auto-Categorization & Smart Rules** — Pattern-based rules that auto-categorize transactions

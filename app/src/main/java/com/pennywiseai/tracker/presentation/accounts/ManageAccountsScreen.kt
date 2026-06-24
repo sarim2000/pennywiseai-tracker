@@ -1233,19 +1233,24 @@ private fun AccountItem(
                                 )
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text(if (account.lowBalanceThreshold == null) "Low-balance alert" else "Edit low-balance alert") },
-                            onClick = {
-                                showMenu = false
-                                showThresholdDialog = true
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.NotificationsActive,
-                                    contentDescription = null
-                                )
-                            }
-                        )
+                        // Only non-credit accounts — credit cards' "low" concept is
+                        // available limit, not balance, so the alert (and this entry)
+                        // don't apply (matches the isLowBalance exclusion above).
+                        if (!account.isCreditCard) {
+                            DropdownMenuItem(
+                                text = { Text(if (account.lowBalanceThreshold == null) "Low-balance alert" else "Edit low-balance alert") },
+                                onClick = {
+                                    showMenu = false
+                                    showThresholdDialog = true
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.NotificationsActive,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {

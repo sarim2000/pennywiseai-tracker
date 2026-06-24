@@ -109,9 +109,18 @@ private fun AccountCarouselCard(
     hazeState: HazeState? = null
 ) {
     var isAmountHidden by remember { mutableStateOf(true) }
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.surfaceContainerLow
+    // Low-balance alert: tint the home card red when a non-credit account's balance
+    // is at or below its user-set threshold (matches Manage Accounts). #509
+    val isLowBalance = !isCreditCard &&
+        account.lowBalanceThreshold != null &&
+        account.balance <= account.lowBalanceThreshold
+    val containerColor = when {
+        isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
+            alpha = if (blurEffects) 0.5f else 0.7f
+        )
+        blurEffects -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
 
     val cardShape = RoundedCornerShape(16.dp)
 
@@ -192,9 +201,18 @@ private fun AccountCarouselCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isCreditCard) "Outstanding" else "Balance",
+                text = when {
+                    isLowBalance -> "Low balance"
+                    isCreditCard -> "Outstanding"
+                    else -> "Balance"
+                },
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                fontWeight = if (isLowBalance) FontWeight.Medium else null,
+                color = if (isLowBalance) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                }
             )
 
             Row(

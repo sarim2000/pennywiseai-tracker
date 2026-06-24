@@ -280,13 +280,14 @@ class ManageAccountsViewModel @Inject constructor(
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                     alias = latestBalance?.alias,
+                    lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                     sourceType = "MANUAL",
                     timestamp = LocalDateTime.now()
                 )
             )
         }
     }
-    
+
     fun updateCreditCard(bankName: String, accountLast4: String, newBalance: BigDecimal, newLimit: BigDecimal) {
         viewModelScope.launch {
             val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
@@ -309,6 +310,7 @@ class ManageAccountsViewModel @Inject constructor(
                     accountType = latestBalance?.accountType,
                     profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                     alias = latestBalance?.alias,
+                    lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                     sourceType = "MANUAL"
                 )
             )
@@ -795,6 +797,7 @@ class ManageAccountsViewModel @Inject constructor(
                             accountType = latestBalance?.accountType,
                             profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
                             alias = latestBalance?.alias,
+                            lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                             sourceType = "MANUAL"
                         )
                     )

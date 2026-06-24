@@ -26,12 +26,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +58,7 @@ import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -117,6 +120,8 @@ fun TransactionsScreen(
     val bulkSnack by viewModel.bulkSnack.collectAsState()
     val selectionMode = selectedIds.isNotEmpty()
     var showBulkCategorySheet by remember { mutableStateOf(false) }
+    var showBulkGroupSheet by remember { mutableStateOf(false) }
+    val groups by viewModel.groups.collectAsState()
 
     // Self-transfer suggestions (#385): map of txn-id → partner-id.
     val transferPartnerOf by viewModel.suggestedTransferPartnerOf.collectAsState()
@@ -281,6 +286,12 @@ fun TransactionsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { showBulkCategorySheet = true }) {
                                 Icon(Icons.Default.Category, contentDescription = "Change category")
+                            }
+                            IconButton(onClick = { showBulkGroupSheet = true }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.PlaylistAdd,
+                                    contentDescription = "Add to group"
+                                )
                             }
                             IconButton(onClick = { viewModel.bulkDelete() }) {
                                 Icon(
@@ -684,6 +695,24 @@ fun TransactionsScreen(
         )
     }
 
+    // Bulk add-to-group picker (#506): add every selected row to an existing
+    // group or a brand-new one in a single action.
+    if (showBulkGroupSheet && selectedIds.isNotEmpty()) {
+        BulkGroupPickerSheet(
+            selectedCount = selectedIds.size,
+            groups = groups,
+            onGroupSelected = { group ->
+                viewModel.bulkAddToGroup(group.id, group.name)
+                showBulkGroupSheet = false
+            },
+            onCreateGroup = { name ->
+                viewModel.bulkCreateGroupAndAdd(name)
+                showBulkGroupSheet = false
+            },
+            onDismiss = { showBulkGroupSheet = false }
+        )
+    }
+
     // Bulk action snackbar with Undo (#369).
     LaunchedEffect(bulkSnack) {
         bulkSnack?.let { snack ->
@@ -700,6 +729,102 @@ fun TransactionsScreen(
     // Hardware back exits selection mode instead of leaving the screen.
     BackHandler(enabled = selectionMode) {
         viewModel.clearSelection()
+    }
+}
+
+/**
+ * Bulk "Add to group" picker (#506). Lists existing groups (tap to add all
+ * selected transactions) and a "Create new group" affordance. Unlike the
+ * single-transaction [GroupBottomSheet], there is no "current group" — the
+ * selection can span rows in different groups, so adding simply moves them all
+ * to the chosen group.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BulkGroupPickerSheet(
+    selectedCount: Int,
+    groups: List<TransactionGroupEntity>,
+    onGroupSelected: (TransactionGroupEntity) -> Unit,
+    onCreateGroup: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showCreateField by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Dimensions.Padding.content)
+        ) {
+            Text(
+                text = "Add $selectedCount to group",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = Spacing.md)
+            )
+
+            if (groups.isNotEmpty()) {
+                groups.forEach { group ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onGroupSelected(group) }
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FolderOpen,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(Spacing.sm))
+            }
+
+            if (showCreateField) {
+                OutlinedTextField(
+                    value = newGroupName,
+                    onValueChange = { newGroupName = it },
+                    label = { Text("Group name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                if (newGroupName.isNotBlank()) {
+                                    onCreateGroup(newGroupName.trim())
+                                }
+                            },
+                            enabled = newGroupName.isNotBlank()
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = "Create")
+                        }
+                    }
+                )
+            } else {
+                TextButton(
+                    onClick = { showCreateField = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Create new group")
+                }
+            }
+        }
     }
 }
 

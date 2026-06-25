@@ -60,7 +60,12 @@ class SubscriptionsViewModel @Inject constructor(
                     }
                     total
                 } else {
-                    subscriptions.fold(BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
+                    // Native mode: the total is labelled with baseCurrency, so it
+                    // must only sum subs in that currency — otherwise a ₹ + $ mix
+                    // would add into one nonsense figure. Mirrors LoansViewModel.
+                    subscriptions
+                        .filter { it.currency.equals(baseCurrency, ignoreCase = true) }
+                        .fold(BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
                 }
 
                 val convertedAmounts = if (isUnified) {

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,10 +62,10 @@ class TransactionGroupDetailViewModel @Inject constructor(
             repository.getTransactionsForGroup(groupId).collect { txns ->
                 val expense = txns
                     .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-                    .sumByCurrency()
+                    .sumByCurrency({ it.currency }, { it.amount })
                 val income = txns
                     .filter { it.transactionType == TransactionType.INCOME }
-                    .sumByCurrency()
+                    .sumByCurrency({ it.currency }, { it.amount })
                 _uiState.value = _uiState.value.copy(
                     linkedTransactions = txns,
                     expenseByCurrency = expense,
@@ -73,10 +74,6 @@ class TransactionGroupDetailViewModel @Inject constructor(
             }
         }
     }
-
-    private fun List<TransactionEntity>.sumByCurrency(): Map<String, BigDecimal> =
-        groupBy { it.currency }
-            .mapValues { (_, txns) -> txns.fold(BigDecimal.ZERO) { acc, t -> acc + t.amount } }
 
     fun showAddSheet() {
         addSheetJob?.cancel()

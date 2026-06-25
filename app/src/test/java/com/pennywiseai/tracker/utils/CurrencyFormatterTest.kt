@@ -3,8 +3,10 @@ package com.pennywiseai.tracker.utils
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
 
 /**
  * Guards [CurrencyFormatter.resolveAccountCurrency], the rule that decides whether an
@@ -66,6 +68,55 @@ class CurrencyFormatterTest {
     @After
     fun resetNumberFormatStyle() {
         CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+    }
+
+    // ─── formatByCurrency / sumByCurrency: the multi-currency total guardrail ───
+    //
+    // These assert on currency symbols and the " · " separator (locale-independent
+    // — they come from the symbol map, not NumberFormat grouping), so they're
+    // stable on the plain JVM test runtime.
+
+    @Test
+    fun `formatByCurrency renders a single currency as one figure`() {
+        val out = CurrencyFormatter.formatByCurrency(mapOf("USD" to BigDecimal(600)))
+        assertTrue("expected a \$ figure, got: $out", out.contains("$"))
+        assertFalse("single currency must not use the separator: $out", out.contains(" · "))
+    }
+
+    @Test
+    fun `formatByCurrency joins mixed currencies and never sums across them`() {
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to BigDecimal(600), "INR" to BigDecimal(1250)),
+            signPrefix = "-"
+        )
+        assertTrue("expected both symbols, got: $out", out.contains("$") && out.contains("₹"))
+        assertTrue("expected the ' · ' separator, got: $out", out.contains(" · "))
+        // The sign prefix is applied to each currency, not just the first.
+        assertEquals("each figure should be signed", 2, out.split("-").size - 1)
+    }
+
+    @Test
+    fun `formatByCurrency falls back to a single zero when empty`() {
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to BigDecimal.ZERO),
+            fallbackCurrency = "USD"
+        )
+        assertFalse(out.contains(" · "))
+        assertTrue("zero should still render in the fallback currency: $out", out.contains("$"))
+    }
+
+    @Test
+    fun `sumByCurrency buckets per currency instead of folding into one`() {
+        data class Row(val amount: BigDecimal, val currency: String)
+        val rows = listOf(
+            Row(BigDecimal(100), "USD"),
+            Row(BigDecimal(500), "USD"),
+            Row(BigDecimal(1250), "INR")
+        )
+        val totals = rows.sumByCurrency({ it.currency }, { it.amount })
+        assertEquals(BigDecimal(600), totals["USD"])
+        assertEquals(BigDecimal(1250), totals["INR"])
+        assertEquals("a mixed list must stay split by currency", 2, totals.size)
     }
 
     // Note: grouping *values* (1,50,000 vs 150,000) can't be asserted here — the plain

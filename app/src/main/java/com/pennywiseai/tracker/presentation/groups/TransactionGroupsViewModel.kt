@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,16 +73,12 @@ class TransactionGroupsViewModel @Inject constructor(
     private fun buildSummary(group: TransactionGroupEntity, transactions: List<TransactionEntity>): GroupSummary {
         val expense = transactions
             .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .sumByCurrency()
+            .sumByCurrency({ it.currency }, { it.amount })
         val income = transactions
             .filter { it.transactionType == TransactionType.INCOME }
-            .sumByCurrency()
+            .sumByCurrency({ it.currency }, { it.amount })
         return GroupSummary(group, transactions.size, expense, income)
     }
-
-    private fun List<TransactionEntity>.sumByCurrency(): Map<String, BigDecimal> =
-        groupBy { it.currency }
-            .mapValues { (_, txns) -> txns.fold(BigDecimal.ZERO) { acc, t -> acc + t.amount } }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }
     fun hideCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = false) }

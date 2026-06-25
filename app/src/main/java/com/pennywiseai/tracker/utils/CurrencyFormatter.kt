@@ -161,15 +161,31 @@ object CurrencyFormatter {
     }
 
     /**
-     * Legacy method for backward compatibility - defaults to INR
+     * Defaults the currency to INR, which silently mislabels every non-INR
+     * amount (the "₹600 for a $600 group" bug). Always pass the amount's own
+     * currency. For a total over a possibly-mixed list, bucket with
+     * [com.pennywiseai.tracker.utils.sumByCurrency] and render with
+     * [formatByCurrency] instead of summing into one figure.
      */
+    @Deprecated(
+        message = "Money must carry its currency — pass formatCurrency(amount, currencyCode). " +
+            "For totals over mixed currencies, use sumByCurrency(...) + formatByCurrency(...).",
+        replaceWith = ReplaceWith("formatCurrency(amount, currencyCode)"),
+        level = DeprecationLevel.ERROR
+    )
     fun formatCurrency(amount: BigDecimal): String {
         return formatCurrency(amount, "INR")
     }
 
     /**
-     * Legacy method for backward compatibility - defaults to INR
+     * Defaults the currency to INR — see the [BigDecimal] overload above. Always
+     * pass the amount's own currency.
      */
+    @Deprecated(
+        message = "Money must carry its currency — pass formatCurrency(amount, currencyCode).",
+        replaceWith = ReplaceWith("formatCurrency(amount, currencyCode)"),
+        level = DeprecationLevel.ERROR
+    )
     fun formatCurrency(amount: Double): String {
         return formatCurrency(amount.toBigDecimal(), "INR")
     }

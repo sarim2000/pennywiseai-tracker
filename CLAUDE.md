@@ -161,6 +161,30 @@ ignored. Dropping a default re-introduces the "can't restore old backup" bug
 - When in doubt, use the **backup-maintainer** subagent / **backup-format**
   skill, and read `/docs/backup-format.md`.
 
+# Money & Currency Formatting
+Every amount in this app carries a currency (transactions, balances, loans,
+subscriptions can each be in a different one). Two rules keep totals honest:
+
+1. **Always format money with its currency.** Call
+   `CurrencyFormatter.formatCurrency(amount, currencyCode)` — never the
+   currency-less overload (it defaults to INR/₹ and is `@Deprecated(ERROR)`, so
+   it won't compile). For an account/entity, prefer the `formatBalance()` /
+   `formatAmount()` extensions, which already pass the row's currency.
+
+2. **Never sum amounts across currencies.** "₹500 + $10" is not "510" of
+   anything. To total a list that can hold more than one currency, use
+   `Iterable<T>.sumByCurrency({ it.currency }, { it.amount })` (in
+   `utils/MoneyTotals.kt`) → `Map<currency, Money>`, and render it with
+   `CurrencyFormatter.formatByCurrency(...)` (single figure for a uniform set,
+   `₹1,250 · $600` for a mixed one). The `Money` type's `+` throws on a currency
+   mismatch, so a blind fold blows up loudly instead of silently mislabeling.
+   The only safe single-figure total is one **filtered/converted to one
+   currency first** (see `LoansViewModel` / unified-mode conversion).
+
+`CurrencyFormatterTest` guards these. When a screen shows a wrong currency
+symbol or a nonsensical mixed total, it's almost always a violation of one of
+the two rules above.
+
 # Important
 Never use pii in comments, code anywhere
 

@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
+import com.pennywiseai.tracker.utils.Money
 import javax.inject.Inject
 
 data class GroupSummary(
@@ -24,11 +24,11 @@ data class GroupSummary(
     val transactionCount: Int,
     // Totals are kept per-currency because a group can mix currencies and summing
     // across them is meaningless. Keyed by currency code.
-    val expenseByCurrency: Map<String, BigDecimal>,
-    val incomeByCurrency: Map<String, BigDecimal>
+    val expenseByCurrency: Map<String, Money>,
+    val incomeByCurrency: Map<String, Money>
 ) {
-    val hasExpense: Boolean get() = expenseByCurrency.values.any { it.signum() > 0 }
-    val hasIncome: Boolean get() = incomeByCurrency.values.any { it.signum() > 0 }
+    val hasExpense: Boolean get() = expenseByCurrency.values.any { it.isPositive }
+    val hasIncome: Boolean get() = incomeByCurrency.values.any { it.isPositive }
 }
 
 data class TransactionGroupsUiState(

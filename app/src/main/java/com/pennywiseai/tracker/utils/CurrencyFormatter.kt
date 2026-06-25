@@ -199,19 +199,17 @@ object CurrencyFormatter {
      * figure.
      */
     fun formatByCurrency(
-        totalsByCurrency: Map<String, BigDecimal>,
+        totalsByCurrency: Map<String, Money>,
         signPrefix: String = "",
         fallbackCurrency: String = "INR"
     ): String {
-        val nonZero = totalsByCurrency.filterValues { it.signum() != 0 }
+        val nonZero = totalsByCurrency.values.filter { it.amount.signum() != 0 }
         if (nonZero.isEmpty()) {
-            return "$signPrefix${formatCurrency(BigDecimal.ZERO, fallbackCurrency)}"
+            return Money.zero(fallbackCurrency).format(signPrefix)
         }
-        return nonZero.entries
-            .sortedByDescending { it.value.abs() }
-            .joinToString(" · ") { (currency, total) ->
-                "$signPrefix${formatCurrency(total, currency)}"
-            }
+        return nonZero
+            .sortedByDescending { it.amount.abs() }
+            .joinToString(" · ") { it.format(signPrefix) }
     }
 
     /**

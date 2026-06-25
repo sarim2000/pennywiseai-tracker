@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.utils.sumByCurrency
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import javax.inject.Inject
 
 data class TransactionGroupDetailUiState(
@@ -24,8 +24,8 @@ data class TransactionGroupDetailUiState(
     val linkedTransactions: List<TransactionEntity> = emptyList(),
     // Per-currency totals — a group can mix currencies, which can't be summed
     // into one figure. Keyed by currency code.
-    val expenseByCurrency: Map<String, BigDecimal> = emptyMap(),
-    val incomeByCurrency: Map<String, BigDecimal> = emptyMap(),
+    val expenseByCurrency: Map<String, Money> = emptyMap(),
+    val incomeByCurrency: Map<String, Money> = emptyMap(),
     val isLoading: Boolean = true,
     val showAddSheet: Boolean = false,
     val showDeleteDialog: Boolean = false,

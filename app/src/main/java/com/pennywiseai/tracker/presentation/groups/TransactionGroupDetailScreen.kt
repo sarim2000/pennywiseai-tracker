@@ -175,7 +175,7 @@ fun TransactionGroupDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                            if (uiState.expenseByCurrency.values.any { it.signum() > 0 }) {
+                            if (uiState.expenseByCurrency.values.any { it.isPositive }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "Expenses",
@@ -190,7 +190,7 @@ fun TransactionGroupDetailScreen(
                                     )
                                 }
                             }
-                            if (uiState.incomeByCurrency.values.any { it.signum() > 0 }) {
+                            if (uiState.incomeByCurrency.values.any { it.isPositive }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "Income",

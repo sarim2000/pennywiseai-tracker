@@ -78,7 +78,7 @@ class CurrencyFormatterTest {
 
     @Test
     fun `formatByCurrency renders a single currency as one figure`() {
-        val out = CurrencyFormatter.formatByCurrency(mapOf("USD" to BigDecimal(600)))
+        val out = CurrencyFormatter.formatByCurrency(mapOf("USD" to Money(BigDecimal(600), "USD")))
         assertTrue("expected a \$ figure, got: $out", out.contains("$"))
         assertFalse("single currency must not use the separator: $out", out.contains(" · "))
     }
@@ -86,7 +86,7 @@ class CurrencyFormatterTest {
     @Test
     fun `formatByCurrency joins mixed currencies and never sums across them`() {
         val out = CurrencyFormatter.formatByCurrency(
-            mapOf("USD" to BigDecimal(600), "INR" to BigDecimal(1250)),
+            mapOf("USD" to Money(BigDecimal(600), "USD"), "INR" to Money(BigDecimal(1250), "INR")),
             signPrefix = "-"
         )
         assertTrue("expected both symbols, got: $out", out.contains("$") && out.contains("₹"))
@@ -98,7 +98,7 @@ class CurrencyFormatterTest {
     @Test
     fun `formatByCurrency falls back to a single zero when empty`() {
         val out = CurrencyFormatter.formatByCurrency(
-            mapOf("USD" to BigDecimal.ZERO),
+            mapOf("USD" to Money(BigDecimal.ZERO, "USD")),
             fallbackCurrency = "USD"
         )
         assertFalse(out.contains(" · "))
@@ -114,9 +114,27 @@ class CurrencyFormatterTest {
             Row(BigDecimal(1250), "INR")
         )
         val totals = rows.sumByCurrency({ it.currency }, { it.amount })
-        assertEquals(BigDecimal(600), totals["USD"])
-        assertEquals(BigDecimal(1250), totals["INR"])
+        assertEquals(BigDecimal(600), totals["USD"]?.amount)
+        assertEquals(BigDecimal(1250), totals["INR"]?.amount)
         assertEquals("a mixed list must stay split by currency", 2, totals.size)
+    }
+
+    @Test
+    fun `Money refuses to add two different currencies`() {
+        try {
+            Money(BigDecimal(500), "INR") + Money(BigDecimal(10), "USD")
+            org.junit.Assert.fail("adding INR + USD should throw, not silently total")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("INR") && e.message!!.contains("USD"))
+        }
+    }
+
+    @Test
+    fun `Money adds within the same currency`() {
+        assertEquals(
+            Money(BigDecimal(600), "USD"),
+            Money(BigDecimal(100), "USD") + Money(BigDecimal(500), "USD")
+        )
     }
 
     // Note: grouping *values* (1,50,000 vs 150,000) can't be asserted here — the plain

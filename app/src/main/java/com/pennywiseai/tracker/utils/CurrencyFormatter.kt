@@ -175,6 +175,30 @@ object CurrencyFormatter {
     }
 
     /**
+     * Formats a set of per-currency totals. We never sum across currencies (that
+     * would be meaningless), so a single-currency total renders as one figure
+     * (e.g. "$600") while a mixed set renders each currency's total joined by
+     * " · " (e.g. "$600 · ₹500"). Zero/empty totals fall back to a single zero
+     * in [fallbackCurrency]. [signPrefix] (e.g. "-" or "+") is applied to each
+     * figure.
+     */
+    fun formatByCurrency(
+        totalsByCurrency: Map<String, BigDecimal>,
+        signPrefix: String = "",
+        fallbackCurrency: String = "INR"
+    ): String {
+        val nonZero = totalsByCurrency.filterValues { it.signum() != 0 }
+        if (nonZero.isEmpty()) {
+            return "$signPrefix${formatCurrency(BigDecimal.ZERO, fallbackCurrency)}"
+        }
+        return nonZero.entries
+            .sortedByDescending { it.value.abs() }
+            .joinToString(" · ") { (currency, total) ->
+                "$signPrefix${formatCurrency(total, currency)}"
+            }
+    }
+
+    /**
      * Formats just the numeric amount without currency symbol
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {

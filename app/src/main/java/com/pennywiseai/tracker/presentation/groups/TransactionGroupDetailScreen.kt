@@ -175,7 +175,7 @@ fun TransactionGroupDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                            if (uiState.totalExpense > java.math.BigDecimal.ZERO) {
+                            if (uiState.expenseByCurrency.values.any { it.signum() > 0 }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "Expenses",
@@ -183,14 +183,14 @@ fun TransactionGroupDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        CurrencyFormatter.formatCurrency(uiState.totalExpense),
+                                        CurrencyFormatter.formatByCurrency(uiState.expenseByCurrency),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = expenseColor
                                     )
                                 }
                             }
-                            if (uiState.totalIncome > java.math.BigDecimal.ZERO) {
+                            if (uiState.incomeByCurrency.values.any { it.signum() > 0 }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "Income",
@@ -198,7 +198,7 @@ fun TransactionGroupDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        CurrencyFormatter.formatCurrency(uiState.totalIncome),
+                                        CurrencyFormatter.formatByCurrency(uiState.incomeByCurrency),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = accentColor

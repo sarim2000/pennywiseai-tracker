@@ -21,8 +21,10 @@ import javax.inject.Inject
 data class TransactionGroupDetailUiState(
     val group: TransactionGroupEntity? = null,
     val linkedTransactions: List<TransactionEntity> = emptyList(),
-    val totalExpense: BigDecimal = BigDecimal.ZERO,
-    val totalIncome: BigDecimal = BigDecimal.ZERO,
+    // Per-currency totals — a group can mix currencies, which can't be summed
+    // into one figure. Keyed by currency code.
+    val expenseByCurrency: Map<String, BigDecimal> = emptyMap(),
+    val incomeByCurrency: Map<String, BigDecimal> = emptyMap(),
     val isLoading: Boolean = true,
     val showAddSheet: Boolean = false,
     val showDeleteDialog: Boolean = false,
@@ -59,18 +61,22 @@ class TransactionGroupDetailViewModel @Inject constructor(
             repository.getTransactionsForGroup(groupId).collect { txns ->
                 val expense = txns
                     .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-                    .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+                    .sumByCurrency()
                 val income = txns
                     .filter { it.transactionType == TransactionType.INCOME }
-                    .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+                    .sumByCurrency()
                 _uiState.value = _uiState.value.copy(
                     linkedTransactions = txns,
-                    totalExpense = expense,
-                    totalIncome = income
+                    expenseByCurrency = expense,
+                    incomeByCurrency = income
                 )
             }
         }
     }
+
+    private fun List<TransactionEntity>.sumByCurrency(): Map<String, BigDecimal> =
+        groupBy { it.currency }
+            .mapValues { (_, txns) -> txns.fold(BigDecimal.ZERO) { acc, t -> acc + t.amount } }
 
     fun showAddSheet() {
         addSheetJob?.cancel()

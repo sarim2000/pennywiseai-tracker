@@ -21,10 +21,13 @@ import javax.inject.Inject
 data class GroupSummary(
     val group: TransactionGroupEntity,
     val transactionCount: Int,
-    val totalExpense: BigDecimal,
-    val totalIncome: BigDecimal
+    // Totals are kept per-currency because a group can mix currencies and summing
+    // across them is meaningless. Keyed by currency code.
+    val expenseByCurrency: Map<String, BigDecimal>,
+    val incomeByCurrency: Map<String, BigDecimal>
 ) {
-    val net: BigDecimal get() = totalIncome - totalExpense
+    val hasExpense: Boolean get() = expenseByCurrency.values.any { it.signum() > 0 }
+    val hasIncome: Boolean get() = incomeByCurrency.values.any { it.signum() > 0 }
 }
 
 data class TransactionGroupsUiState(
@@ -69,12 +72,16 @@ class TransactionGroupsViewModel @Inject constructor(
     private fun buildSummary(group: TransactionGroupEntity, transactions: List<TransactionEntity>): GroupSummary {
         val expense = transactions
             .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+            .sumByCurrency()
         val income = transactions
             .filter { it.transactionType == TransactionType.INCOME }
-            .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+            .sumByCurrency()
         return GroupSummary(group, transactions.size, expense, income)
     }
+
+    private fun List<TransactionEntity>.sumByCurrency(): Map<String, BigDecimal> =
+        groupBy { it.currency }
+            .mapValues { (_, txns) -> txns.fold(BigDecimal.ZERO) { acc, t -> acc + t.amount } }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }
     fun hideCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = false) }

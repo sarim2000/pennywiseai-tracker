@@ -10,6 +10,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Spacer
@@ -60,8 +62,10 @@ import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.formatBalance
 import java.math.BigDecimal
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BalanceCard(
     userName: String = "User",
@@ -297,10 +301,15 @@ fun BalanceCard(
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Summary row: Income | Expenses | Saved — with colored accent bars
-                        Row(
+                        // Summary row: Income | Expenses | Lent | Saved — with colored
+                        // accent bars. FlowRow so long amounts (e.g. a 3-char "MZN"
+                        // prefix + big numbers across all four items) wrap onto a second
+                        // line instead of crushing the last column into vertical,
+                        // one-character-per-line text.
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             val incomeColor = if (isDark) income_dark else income_light
                             val expenseColor = if (isDark) expense_dark else expense_light
@@ -365,7 +374,11 @@ fun BalanceCard(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(account.balance, currency),
+                                        // Use the account's own (pre-converted) currency
+                                        // so an un-convertible balance shows honestly as
+                                        // "$400" rather than a raw amount mislabelled with
+                                        // the display currency ("MZN400").
+                                        text = if (isBalanceHidden) "••••••" else account.formatBalance(),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -610,6 +623,10 @@ private fun SummaryItem(
                 style = MaterialTheme.typography.titleSmall,
                 color = accentColor,
                 fontWeight = FontWeight.Bold,
+                // Keep the amount on one line — never break a "MZN52,245.26" into
+                // one-character-per-line text when the column gets narrow.
+                maxLines = 1,
+                softWrap = false,
             )
             Text(
                 text = label,

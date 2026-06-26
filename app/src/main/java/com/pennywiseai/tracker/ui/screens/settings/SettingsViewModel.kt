@@ -37,6 +37,7 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.core.Constants
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
@@ -100,12 +101,19 @@ class SettingsViewModel @Inject constructor(
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 
-    val availableCurrencies: StateFlow<List<String>> = transactionRepository.getAllCurrencies()
-        .map { transactionCurrencies ->
-            val supportedCurrencies = CurrencyUtils.getAllSupportedCurrencies()
-            val allCurrencies = (transactionCurrencies + supportedCurrencies).distinct()
-            CurrencyUtils.sortCurrencies(allCurrencies)
-        }
+    // Derive the selectable set from the user's ACTUAL data (transaction + account
+    // currencies) on top of the common seed list. This way any currency the user
+    // really holds — e.g. MZN held only in an account — is always selectable, instead
+    // of silently missing because it wasn't in the hand-maintained supported list.
+    val availableCurrencies: StateFlow<List<String>> = combine(
+        transactionRepository.getAllCurrencies(),
+        accountBalanceRepository.getAllLatestBalances()
+    ) { transactionCurrencies, accounts ->
+        val accountCurrencies = accounts.map { it.currency }
+        val supportedCurrencies = CurrencyUtils.getAllSupportedCurrencies()
+        val allCurrencies = (transactionCurrencies + accountCurrencies + supportedCurrencies).distinct()
+        CurrencyUtils.sortCurrencies(allCurrencies)
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

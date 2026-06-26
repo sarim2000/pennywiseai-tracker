@@ -223,8 +223,11 @@ private fun AccountCarouselCard(
                     // The label above is "Outstanding" for credit cards; that is the
                     // amount owed (account.balance), NOT the total creditLimit. Mirrors
                     // CreditCardsCard / AccountDetailScreen, which already do this.
+                    // The entity is already pre-converted in unified mode (its currency
+                    // is the display currency when a rate was found), so format with the
+                    // account's own currency. This keeps an un-convertible balance honest
+                    // (shows "$400", not "MZN400") instead of forcing the display label.
                     text = if (isAmountHidden) "••••••"
-                           else if (isUnifiedMode) CurrencyFormatter.formatCurrency(account.balance, selectedCurrency)
                            else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,

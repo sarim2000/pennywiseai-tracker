@@ -1263,9 +1263,12 @@ class HomeViewModel @Inject constructor(
                 // native currency so the row shows an honest "$400", not "MZN400".
                 val rate = currencyConversionService.getExchangeRate(account.currency, targetCurrency)
                 if (rate != null) {
+                    // Keep full precision here and let display formatting round. Rounding
+                    // balance and creditLimit separately would make "available = limit -
+                    // balance" round twice and drift a cent on foreign credit cards.
                     account.copy(
-                        balance = account.balance.multiply(rate).setScale(2, RoundingMode.HALF_UP),
-                        creditLimit = account.creditLimit?.multiply(rate)?.setScale(2, RoundingMode.HALF_UP),
+                        balance = account.balance.multiply(rate),
+                        creditLimit = account.creditLimit?.multiply(rate),
                         currency = targetCurrency
                     )
                 } else {

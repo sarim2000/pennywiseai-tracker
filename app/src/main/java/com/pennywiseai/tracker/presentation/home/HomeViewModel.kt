@@ -37,6 +37,8 @@ import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -757,6 +759,9 @@ class HomeViewModel @Inject constructor(
             ) { subscriptions, isUnified, displayCurrency ->
                 Triple(subscriptions, isUnified, displayCurrency)
             }.collect { (subscriptions, isUnified, displayCurrency) ->
+                // Unified mode collapses to one converted figure. Native mode keeps
+                // currencies apart — summing ₹ + $ into one figure mislabels it — so
+                // we expose a per-currency map the card renders as "₹499 · $10".
                 val totalAmount = if (isUnified) {
                     var total = java.math.BigDecimal.ZERO
                     for (sub in subscriptions) {
@@ -766,11 +771,17 @@ class HomeViewModel @Inject constructor(
                     }
                     total
                 } else {
-                    subscriptions.fold(java.math.BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
+                    java.math.BigDecimal.ZERO
+                }
+                val totalByCurrency: Map<String, Money> = if (isUnified) {
+                    emptyMap()
+                } else {
+                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
-                    upcomingSubscriptionsTotal = totalAmount
+                    upcomingSubscriptionsTotal = totalAmount,
+                    upcomingSubscriptionsByCurrency = totalByCurrency
                 )
             }
         }
@@ -1491,7 +1502,10 @@ data class HomeUiState(
     val monthlyChangePercent: Int = 0,
     val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
+    /** Unified-mode total, converted to the display currency. */
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
+    /** Native-mode totals, kept per-currency so a ₹ + $ mix isn't summed. */
+    val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),

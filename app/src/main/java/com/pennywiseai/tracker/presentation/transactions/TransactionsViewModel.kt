@@ -24,6 +24,8 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +49,7 @@ class TransactionsViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val profileRepository: ProfileRepository,
+    private val transactionGroupRepository: TransactionGroupRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -434,7 +437,79 @@ class TransactionsViewModel @Inject constructor(
             )
         }
     }
-    
+
+    // ─── Bulk add-to-group (#506) ────────────────────────────────────────────
+    //
+    // All existing groups, for the bulk "Add to group" picker. A transaction
+    // belongs to at most one group, so adding to a new group moves it off any
+    // group it was already in — the undo below restores the prior membership.
+    val groups: StateFlow<List<TransactionGroupEntity>> =
+        transactionGroupRepository.getAllGroups()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Add every currently-selected transaction to the group [groupId]. Captures
+     * each row's previous groupId first so Undo can restore the original
+     * membership (re-linking to the old group, or unlinking if it had none).
+     */
+    fun bulkAddToGroup(groupId: Long, groupName: String) {
+        val ids = _selectedIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val previous = _uiState.value.transactions
+                .filter { it.id in ids }
+                .associate { it.id to it.groupId }
+            previous.keys.forEach { id ->
+                transactionGroupRepository.addTransactionToGroup(id, groupId)
+            }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${previous.size} added to \"$groupName\"",
+                undo = { restoreGroupMembership(previous) }
+            )
+        }
+    }
+
+    /**
+     * Create a new group named [name] and add every currently-selected
+     * transaction to it. Undo restores the prior membership and deletes the
+     * now-empty group that was just created.
+     */
+    fun bulkCreateGroupAndAdd(name: String, note: String? = null) {
+        val ids = _selectedIds.value
+        if (ids.isEmpty() || name.isBlank()) return
+        viewModelScope.launch {
+            val previous = _uiState.value.transactions
+                .filter { it.id in ids }
+                .associate { it.id to it.groupId }
+            val groupId = transactionGroupRepository.createGroup(name, note)
+            previous.keys.forEach { id ->
+                transactionGroupRepository.addTransactionToGroup(id, groupId)
+            }
+            clearSelection()
+            _bulkSnack.value = BulkSnack(
+                message = "${previous.size} added to \"${name.trim()}\"",
+                undo = {
+                    viewModelScope.launch {
+                        restoreGroupMembership(previous).join()
+                        transactionGroupRepository.deleteGroup(groupId)
+                    }
+                }
+            )
+        }
+    }
+
+    private fun restoreGroupMembership(previous: Map<Long, Long?>) =
+        viewModelScope.launch {
+            previous.forEach { (id, oldGroupId) ->
+                if (oldGroupId != null) {
+                    transactionGroupRepository.addTransactionToGroup(id, oldGroupId)
+                } else {
+                    transactionGroupRepository.removeTransactionFromGroup(id)
+                }
+            }
+        }
+
     // Track if initial filters have been applied to prevent resetting on back navigation
     private var hasAppliedInitialFilters = false
 

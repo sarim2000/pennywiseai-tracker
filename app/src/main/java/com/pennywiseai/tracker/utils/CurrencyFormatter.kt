@@ -161,17 +161,61 @@ object CurrencyFormatter {
     }
 
     /**
-     * Legacy method for backward compatibility - defaults to INR
+     * Defaults the currency to INR, which silently mislabels every non-INR
+     * amount (the "₹600 for a $600 group" bug). Always pass the amount's own
+     * currency. For a total over a possibly-mixed list, bucket with
+     * [com.pennywiseai.tracker.utils.sumByCurrency] and render with
+     * [formatByCurrency] instead of summing into one figure.
      */
+    @Deprecated(
+        message = "Money must carry its currency — pass formatCurrency(amount, currencyCode). " +
+            "For totals over mixed currencies, use sumByCurrency(...) + formatByCurrency(...).",
+        replaceWith = ReplaceWith("formatCurrency(amount, currencyCode)"),
+        level = DeprecationLevel.ERROR
+    )
     fun formatCurrency(amount: BigDecimal): String {
         return formatCurrency(amount, "INR")
     }
 
     /**
-     * Legacy method for backward compatibility - defaults to INR
+     * Defaults the currency to INR — see the [BigDecimal] overload above. Always
+     * pass the amount's own currency.
      */
+    @Deprecated(
+        message = "Money must carry its currency — pass formatCurrency(amount, currencyCode).",
+        replaceWith = ReplaceWith("formatCurrency(amount, currencyCode)"),
+        level = DeprecationLevel.ERROR
+    )
     fun formatCurrency(amount: Double): String {
         return formatCurrency(amount.toBigDecimal(), "INR")
+    }
+
+    /**
+     * Formats a set of per-currency totals. We never sum across currencies (that
+     * would be meaningless), so a single-currency total renders as one figure
+     * (e.g. "$600") while a mixed set renders each currency's total joined by
+     * " · " (e.g. "$600 · ₹500"). Zero/empty totals fall back to a single zero
+     * in the input's own currency when known, else [fallbackCurrency].
+     *
+     * [signPrefix] (e.g. "-" or "+") expresses the sign for the whole figure, so
+     * the magnitude is rendered absolute — a net-negative sub-total (refunds >
+     * charges in one currency) renders "-€200", never "--€200".
+     */
+    fun formatByCurrency(
+        totalsByCurrency: Map<String, Money>,
+        signPrefix: String = "",
+        fallbackCurrency: String = "INR"
+    ): String {
+        val nonZero = totalsByCurrency.values.filter { it.amount.signum() != 0 }
+        if (nonZero.isEmpty()) {
+            // Keep the symbol right for an all-cancelling single-currency set
+            // (e.g. a $300 charge + $300 refund) instead of defaulting to ₹0.
+            val currency = totalsByCurrency.keys.firstOrNull() ?: fallbackCurrency
+            return Money.zero(currency).format(signPrefix)
+        }
+        return nonZero
+            .sortedByDescending { it.amount.abs() }
+            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix) }
     }
 
     /**

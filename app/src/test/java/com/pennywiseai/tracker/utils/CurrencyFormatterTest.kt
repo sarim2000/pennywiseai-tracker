@@ -3,8 +3,10 @@ package com.pennywiseai.tracker.utils
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
 
 /**
  * Guards [CurrencyFormatter.resolveAccountCurrency], the rule that decides whether an
@@ -66,6 +68,97 @@ class CurrencyFormatterTest {
     @After
     fun resetNumberFormatStyle() {
         CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+    }
+
+    // ─── formatByCurrency / sumByCurrency: the multi-currency total guardrail ───
+    //
+    // These assert on currency symbols and the " · " separator (locale-independent
+    // — they come from the symbol map, not NumberFormat grouping), so they're
+    // stable on the plain JVM test runtime.
+
+    @Test
+    fun `formatByCurrency renders a single currency as one figure`() {
+        val out = CurrencyFormatter.formatByCurrency(mapOf("USD" to Money(BigDecimal(600), "USD")))
+        assertTrue("expected a \$ figure, got: $out", out.contains("$"))
+        assertFalse("single currency must not use the separator: $out", out.contains(" · "))
+    }
+
+    @Test
+    fun `formatByCurrency joins mixed currencies and never sums across them`() {
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal(600), "USD"), "INR" to Money(BigDecimal(1250), "INR")),
+            signPrefix = "-"
+        )
+        assertTrue("expected both symbols, got: $out", out.contains("$") && out.contains("₹"))
+        assertTrue("expected the ' · ' separator, got: $out", out.contains(" · "))
+        // The sign prefix is applied to each currency, not just the first.
+        assertEquals("each figure should be signed", 2, out.split("-").size - 1)
+    }
+
+    @Test
+    fun `formatByCurrency does not double the sign prefix on a net-negative total`() {
+        // A currency whose net is negative (refunds > charges) must render as
+        // "-<symbol>200", never "--<symbol>200".
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal(-200), "USD")),
+            signPrefix = "-"
+        )
+        assertFalse("sign prefix must not double: $out", out.contains("--"))
+        assertEquals("exactly one sign prefix expected", 1, out.split("-").size - 1)
+    }
+
+    @Test
+    fun `formatByCurrency keeps the input currency when a single-currency total cancels to zero`() {
+        // A USD-only group whose amounts cancel ($300 charge + $300 refund) must
+        // still show "$0", not the INR fallback.
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal.ZERO, "USD"))
+            // fallbackCurrency left at its INR default on purpose
+        )
+        assertTrue("zero should keep the USD symbol, got: $out", out.contains("$"))
+        assertFalse("must not fall back to ₹: $out", out.contains("₹"))
+    }
+
+    @Test
+    fun `formatByCurrency falls back to a single zero when empty`() {
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal.ZERO, "USD")),
+            fallbackCurrency = "USD"
+        )
+        assertFalse(out.contains(" · "))
+        assertTrue("zero should still render in the fallback currency: $out", out.contains("$"))
+    }
+
+    @Test
+    fun `sumByCurrency buckets per currency instead of folding into one`() {
+        data class Row(val amount: BigDecimal, val currency: String)
+        val rows = listOf(
+            Row(BigDecimal(100), "USD"),
+            Row(BigDecimal(500), "USD"),
+            Row(BigDecimal(1250), "INR")
+        )
+        val totals = rows.sumByCurrency({ it.currency }, { it.amount })
+        assertEquals(BigDecimal(600), totals["USD"]?.amount)
+        assertEquals(BigDecimal(1250), totals["INR"]?.amount)
+        assertEquals("a mixed list must stay split by currency", 2, totals.size)
+    }
+
+    @Test
+    fun `Money refuses to add two different currencies`() {
+        try {
+            Money(BigDecimal(500), "INR") + Money(BigDecimal(10), "USD")
+            org.junit.Assert.fail("adding INR + USD should throw, not silently total")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("INR") && e.message!!.contains("USD"))
+        }
+    }
+
+    @Test
+    fun `Money adds within the same currency`() {
+        assertEquals(
+            Money(BigDecimal(600), "USD"),
+            Money(BigDecimal(100), "USD") + Money(BigDecimal(500), "USD")
+        )
     }
 
     // Note: grouping *values* (1,50,000 vs 150,000) can't be asserted here — the plain

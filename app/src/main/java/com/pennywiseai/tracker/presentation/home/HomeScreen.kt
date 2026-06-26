@@ -777,6 +777,8 @@ fun HomeScreen(
                                 UpcomingSubscriptionsCard(
                                     subscriptions = uiState.upcomingSubscriptions,
                                     totalAmount = uiState.upcomingSubscriptionsTotal,
+                                    totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                    isUnified = uiState.isUnifiedMode,
                                     currency = uiState.selectedCurrency,
                                     onClick = onNavigateToSubscriptions,
                                     blurEffects = blurEffects,
@@ -1244,6 +1246,8 @@ private fun BreakdownRow(
 private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
+    totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
+    isUnified: Boolean = false,
     currency: String = "INR",
     onClick: () -> Unit = {},
     blurEffects: Boolean = false,
@@ -1359,7 +1363,16 @@ private fun UpcomingSubscriptionsCard(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        text = "Monthly total: ${CurrencyFormatter.formatCurrency(totalAmount, currency)}",
+                        // Unified mode: one converted figure. Native mode: per-currency
+                        // ("₹499 · $10") so a mixed set isn't summed into a mislabel.
+                        text = "Monthly total: " + if (isUnified) {
+                            CurrencyFormatter.formatCurrency(totalAmount, currency)
+                        } else {
+                            CurrencyFormatter.formatByCurrency(
+                                totalByCurrency,
+                                fallbackCurrency = currency
+                            )
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
                     )

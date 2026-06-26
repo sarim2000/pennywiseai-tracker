@@ -8,6 +8,8 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
+import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +53,10 @@ class SubscriptionsViewModel @Inject constructor(
                 val isUnified = values[2] as Boolean
                 val displayCurrency = values[3] as String
                 val baseCurrency = values[4] as String
+                // Unified mode collapses everything into displayCurrency, so a
+                // single figure is honest. Native mode keeps each currency apart —
+                // a ₹ + $ mix can't be one figure — so we expose a per-currency map
+                // the header renders as "₹399 · $30" (no sub silently dropped).
                 val totalMonthlyAmount = if (isUnified) {
                     var total = BigDecimal.ZERO
                     for (sub in subscriptions) {
@@ -60,7 +66,12 @@ class SubscriptionsViewModel @Inject constructor(
                     }
                     total
                 } else {
-                    subscriptions.fold(BigDecimal.ZERO) { acc, sub -> acc + sub.amount }
+                    BigDecimal.ZERO
+                }
+                val totalByCurrency: Map<String, Money> = if (isUnified) {
+                    emptyMap()
+                } else {
+                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
                 }
 
                 val convertedAmounts = if (isUnified) {
@@ -106,6 +117,7 @@ class SubscriptionsViewModel @Inject constructor(
                     paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
+                    totalByCurrency = totalByCurrency,
                     convertedAmounts = convertedAmounts,
                     displayCurrency = if (isUnified) displayCurrency else baseCurrency,
                     isUnifiedMode = isUnified,
@@ -267,7 +279,10 @@ data class SubscriptionsUiState(
     /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
     val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
+    /** Unified-mode header total, already converted to [displayCurrency]. */
     val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,
+    /** Native-mode header totals, kept per-currency so no sub is dropped. */
+    val totalByCurrency: Map<String, Money> = emptyMap(),
     val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val displayCurrency: String? = null,
     val isUnifiedMode: Boolean = false,

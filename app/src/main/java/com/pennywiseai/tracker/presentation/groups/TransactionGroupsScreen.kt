@@ -202,18 +202,18 @@ private fun GroupListItem(
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                if (summary.totalExpense > BigDecimal.ZERO) {
+                if (summary.hasExpense) {
                     val expenseColor = if (isDark) expense_dark else expense_light
                     Text(
-                        "-${CurrencyFormatter.formatCurrency(summary.totalExpense)}",
+                        CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = expenseColor
                     )
                 }
-                if (summary.totalIncome > BigDecimal.ZERO) {
+                if (summary.hasIncome) {
                     Text(
-                        "+${CurrencyFormatter.formatCurrency(summary.totalIncome)}",
+                        CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
                         style = MaterialTheme.typography.bodySmall,
                         color = accentColor
                     )

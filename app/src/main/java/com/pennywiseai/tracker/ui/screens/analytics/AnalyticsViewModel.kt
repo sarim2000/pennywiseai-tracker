@@ -390,7 +390,9 @@ class AnalyticsViewModel @Inject constructor(
                     topCategoryPercentage = topCategory?.percentage ?: 0f,
                     currency = displayCurrency,
                     isLoading = false,
-                    spendingTrend = calculateSpendingTrend(filteredTransactions, dateRange.first, dateRange.second),
+                    spendingTrend = calculateSpendingTrend(
+                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency
+                    ),
                     availableCategories = allCategoryNames,
                     accountBreakdown = accountBreakdown
                 )
@@ -463,14 +465,39 @@ class AnalyticsViewModel @Inject constructor(
         }
     }
 
-    private fun calculateSpendingTrend(
+    private suspend fun calculateSpendingTrend(
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>,
         startDate: LocalDate,
-        endDate: LocalDate
+        endDate: LocalDate,
+        isUnified: Boolean,
+        displayCurrency: String
     ): List<BalancePoint> {
         val selectedPeriod = _selectedPeriod.value
         val trend = mutableListOf<BalancePoint>()
-        val currency = transactions.firstOrNull()?.currency ?: _selectedCurrency.value
+        // In unified mode the list is multi-currency, so the points are denominated
+        // in displayCurrency (each amount converted below). In native mode the list
+        // is already single-currency.
+        val currency = if (isUnified) {
+            displayCurrency
+        } else {
+            transactions.firstOrNull()?.currency ?: _selectedCurrency.value
+        }
+        // Pre-convert once (convertAmount is suspend, so it can't run inside the
+        // non-suspend map{} below). In unified mode each amount is converted to
+        // displayCurrency; in native mode the list is already single-currency.
+        val convertedById: Map<Long, Double> = if (isUnified) {
+            val byId = HashMap<Long, Double>(transactions.size)
+            for (tx in transactions) {
+                byId[tx.id] = currencyConversionService
+                    .convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+            }
+            byId
+        } else {
+            emptyMap()
+        }
+        val amountIn: (com.pennywiseai.tracker.data.database.entity.TransactionEntity) -> Double = { tx ->
+            if (isUnified) convertedById[tx.id] ?: tx.amount.toDouble() else tx.amount.toDouble()
+        }
 
         when {
             selectedPeriod == TimePeriod.ALL || selectedPeriod == TimePeriod.CURRENT_FY -> {
@@ -491,7 +518,7 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfYear = currentYear.withDayOfYear(currentYear.lengthOfYear())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
-                        }.map { it.amount.toDouble() }.sum().toBigDecimal()
+                        }.map(amountIn).sum().toBigDecimal()
                         trend.add(BalancePoint(timestamp = currentYear.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentYear = currentYear.plusYears(1)
                     }
@@ -502,7 +529,7 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
-                        }.map { it.amount.toDouble() }.sum().toBigDecimal()
+                        }.map(amountIn).sum().toBigDecimal()
                         trend.add(BalancePoint(timestamp = currentMonth.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentMonth = currentMonth.plusMonths(1)
                     }
@@ -512,7 +539,7 @@ class AnalyticsViewModel @Inject constructor(
                 val transactionsByDate = transactions.groupBy { it.dateTime.toLocalDate() }
                 var currentDate = startDate
                 while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
-                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).map { it.amount.toDouble() }.sum().toBigDecimal()
+                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).map(amountIn).sum().toBigDecimal()
                     trend.add(BalancePoint(timestamp = currentDate.atStartOfDay(), balance = totalAmount, currency = currency))
                     currentDate = currentDate.plusDays(1)
                 }

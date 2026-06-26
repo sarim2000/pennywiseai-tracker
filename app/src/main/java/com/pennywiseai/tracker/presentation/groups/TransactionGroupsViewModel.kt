@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,16 +16,19 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
+import com.pennywiseai.tracker.utils.Money
 import javax.inject.Inject
 
 data class GroupSummary(
     val group: TransactionGroupEntity,
     val transactionCount: Int,
-    val totalExpense: BigDecimal,
-    val totalIncome: BigDecimal
+    // Totals are kept per-currency because a group can mix currencies and summing
+    // across them is meaningless. Keyed by currency code.
+    val expenseByCurrency: Map<String, Money>,
+    val incomeByCurrency: Map<String, Money>
 ) {
-    val net: BigDecimal get() = totalIncome - totalExpense
+    val hasExpense: Boolean get() = expenseByCurrency.values.any { it.isPositive }
+    val hasIncome: Boolean get() = incomeByCurrency.values.any { it.isPositive }
 }
 
 data class TransactionGroupsUiState(
@@ -69,10 +73,10 @@ class TransactionGroupsViewModel @Inject constructor(
     private fun buildSummary(group: TransactionGroupEntity, transactions: List<TransactionEntity>): GroupSummary {
         val expense = transactions
             .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+            .sumByCurrency({ it.currency }, { it.amount })
         val income = transactions
             .filter { it.transactionType == TransactionType.INCOME }
-            .fold(BigDecimal.ZERO) { acc, t -> acc + t.amount }
+            .sumByCurrency({ it.currency }, { it.amount })
         return GroupSummary(group, transactions.size, expense, income)
     }
 

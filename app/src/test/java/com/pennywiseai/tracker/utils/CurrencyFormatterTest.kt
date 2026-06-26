@@ -96,6 +96,30 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `formatByCurrency does not double the sign prefix on a net-negative total`() {
+        // A currency whose net is negative (refunds > charges) must render as
+        // "-<symbol>200", never "--<symbol>200".
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal(-200), "USD")),
+            signPrefix = "-"
+        )
+        assertFalse("sign prefix must not double: $out", out.contains("--"))
+        assertEquals("exactly one sign prefix expected", 1, out.split("-").size - 1)
+    }
+
+    @Test
+    fun `formatByCurrency keeps the input currency when a single-currency total cancels to zero`() {
+        // A USD-only group whose amounts cancel ($300 charge + $300 refund) must
+        // still show "$0", not the INR fallback.
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal.ZERO, "USD"))
+            // fallbackCurrency left at its INR default on purpose
+        )
+        assertTrue("zero should keep the USD symbol, got: $out", out.contains("$"))
+        assertFalse("must not fall back to ₹: $out", out.contains("₹"))
+    }
+
+    @Test
     fun `formatByCurrency falls back to a single zero when empty`() {
         val out = CurrencyFormatter.formatByCurrency(
             mapOf("USD" to Money(BigDecimal.ZERO, "USD")),

@@ -195,8 +195,11 @@ object CurrencyFormatter {
      * would be meaningless), so a single-currency total renders as one figure
      * (e.g. "$600") while a mixed set renders each currency's total joined by
      * " · " (e.g. "$600 · ₹500"). Zero/empty totals fall back to a single zero
-     * in [fallbackCurrency]. [signPrefix] (e.g. "-" or "+") is applied to each
-     * figure.
+     * in the input's own currency when known, else [fallbackCurrency].
+     *
+     * [signPrefix] (e.g. "-" or "+") expresses the sign for the whole figure, so
+     * the magnitude is rendered absolute — a net-negative sub-total (refunds >
+     * charges in one currency) renders "-€200", never "--€200".
      */
     fun formatByCurrency(
         totalsByCurrency: Map<String, Money>,
@@ -205,11 +208,14 @@ object CurrencyFormatter {
     ): String {
         val nonZero = totalsByCurrency.values.filter { it.amount.signum() != 0 }
         if (nonZero.isEmpty()) {
-            return Money.zero(fallbackCurrency).format(signPrefix)
+            // Keep the symbol right for an all-cancelling single-currency set
+            // (e.g. a $300 charge + $300 refund) instead of defaulting to ₹0.
+            val currency = totalsByCurrency.keys.firstOrNull() ?: fallbackCurrency
+            return Money.zero(currency).format(signPrefix)
         }
         return nonZero
             .sortedByDescending { it.amount.abs() }
-            .joinToString(" · ") { it.format(signPrefix) }
+            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix) }
     }
 
     /**

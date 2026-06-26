@@ -190,6 +190,8 @@ fun SubscriptionsScreen(
                 ) {
                     TotalSubscriptionsSummary(
                         totalAmount = uiState.totalMonthlyAmount,
+                        totalByCurrency = uiState.totalByCurrency,
+                        isUnified = uiState.isUnifiedMode,
                         activeCount = uiState.activeSubscriptions.size,
                         paidThisCycleCount = uiState.paidThisCycleCount,
                         currency = uiState.displayCurrency
@@ -408,6 +410,8 @@ private fun EndedSubscriptionItem(
 @Composable
 private fun TotalSubscriptionsSummary(
     totalAmount: BigDecimal,
+    totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
+    isUnified: Boolean = false,
     activeCount: Int,
     paidThisCycleCount: Int = 0,
     currency: String? = null
@@ -428,10 +432,15 @@ private fun TotalSubscriptionsSummary(
 
     SummaryCardV2(
         title = "Monthly Subscriptions",
-        amount = if (currency != null) {
-            CurrencyFormatter.formatCurrency(totalAmount, currency)
-        } else {
-            totalAmount.toPlainString()
+        // Unified mode: one converted figure. Native mode: per-currency so a
+        // ₹ + $ mix shows "₹399 · $30" rather than dropping non-base subs.
+        amount = when {
+            !isUnified -> CurrencyFormatter.formatByCurrency(
+                totalByCurrency,
+                fallbackCurrency = currency ?: "INR"
+            )
+            currency != null -> CurrencyFormatter.formatCurrency(totalAmount, currency)
+            else -> totalAmount.toPlainString()
         },
         subtitle = subtitle,
         amountColor = amountColor,

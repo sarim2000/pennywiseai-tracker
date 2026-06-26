@@ -338,8 +338,12 @@ class HomeViewModel @Inject constructor(
             combine(
                 accountBalanceRepository.getAllLatestBalances(),
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { allBalances, isUnified, displayCurrency ->
+                userPreferencesRepository.displayCurrency,
+                // Re-run conversion whenever exchange rates change, so a balance that
+                // first rendered raw (rates not fetched yet, or device was offline)
+                // self-heals the moment the rate lands instead of staying mislabelled.
+                currencyConversionService.getAllRatesFlow()
+            ) { allBalances, isUnified, displayCurrency, _ ->
                 Triple(allBalances, isUnified, displayCurrency)
             }.collect { (allBalances, isUnified, displayCurrency) ->
                 // Cache the raw (unfiltered) balances for refreshAccountBalances/refreshHiddenAccounts
@@ -369,43 +373,22 @@ class HomeViewModel @Inject constructor(
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-                // Calculate totals from (possibly converted) entities.
-                // convertAmount returns the original amount when no rate is available,
-                // so we skip the hasValidRate check to avoid silently dropping accounts.
+                // regularAccounts/creditCards are already pre-converted by
+                // convertAccountEntities (currency == selectedCurrency for everything it
+                // could convert). So just sum their balances; anything still in a foreign
+                // currency is one we couldn't get a rate for — add its raw amount as a
+                // best-effort fallback and flag the total as approximate.
                 var totalBalanceInSelectedCurrency = BigDecimal.ZERO
                 var hasApproximateBalance = false
                 for (account in regularAccounts) {
-                    if (account.currency == selectedCurrency) {
-                        totalBalanceInSelectedCurrency += account.balance
-                    } else {
-                        val hasRate = currencyConversionService.hasValidRate(account.currency, selectedCurrency)
-                        if (!hasRate) {
-                            hasApproximateBalance = true
-                        }
-                        totalBalanceInSelectedCurrency += currencyConversionService.convertAmount(
-                            amount = account.balance,
-                            fromCurrency = account.currency,
-                            toCurrency = selectedCurrency
-                        )
-                    }
+                    totalBalanceInSelectedCurrency += account.balance
+                    if (account.currency != selectedCurrency) hasApproximateBalance = true
                 }
 
                 var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
                 for (card in creditCards) {
-                    val availableInCardCurrency = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                    if (card.currency == selectedCurrency) {
-                        totalAvailableCreditInSelectedCurrency += availableInCardCurrency
-                    } else {
-                        val hasRate = currencyConversionService.hasValidRate(card.currency, selectedCurrency)
-                        if (!hasRate) {
-                            hasApproximateBalance = true
-                        }
-                        totalAvailableCreditInSelectedCurrency += currencyConversionService.convertAmount(
-                            amount = availableInCardCurrency,
-                            fromCurrency = card.currency,
-                            toCurrency = selectedCurrency
-                        )
-                    }
+                    totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
+                    if (card.currency != selectedCurrency) hasApproximateBalance = true
                 }
 
                 // Update available currencies to include account currencies
@@ -846,39 +829,18 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
+            // Entities are pre-converted by convertAccountEntities, so just sum;
+            // anything still foreign is one we couldn't get a rate for (raw fallback).
             var totalBalance = BigDecimal.ZERO
             var hasApproximateBalance = false
             for (account in regularAccounts) {
-                if (account.currency == selectedCurrency) {
-                    totalBalance += account.balance
-                } else {
-                    val hasRate = currencyConversionService.hasValidRate(account.currency, selectedCurrency)
-                    if (!hasRate) {
-                        hasApproximateBalance = true
-                    }
-                    totalBalance += currencyConversionService.convertAmount(
-                        amount = account.balance,
-                        fromCurrency = account.currency,
-                        toCurrency = selectedCurrency
-                    )
-                }
+                totalBalance += account.balance
+                if (account.currency != selectedCurrency) hasApproximateBalance = true
             }
             var totalAvailableCredit = BigDecimal.ZERO
             for (card in creditCards) {
-                val availableInCardCurrency = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency == selectedCurrency) {
-                    totalAvailableCredit += availableInCardCurrency
-                } else {
-                    val hasRate = currencyConversionService.hasValidRate(card.currency, selectedCurrency)
-                    if (!hasRate) {
-                        hasApproximateBalance = true
-                    }
-                    totalAvailableCredit += currencyConversionService.convertAmount(
-                        amount = availableInCardCurrency,
-                        fromCurrency = card.currency,
-                        toCurrency = selectedCurrency
-                    )
-                }
+                totalAvailableCredit += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
+                if (card.currency != selectedCurrency) hasApproximateBalance = true
             }
 
             _uiState.value = _uiState.value.copy(
@@ -982,40 +944,19 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
+            // Entities are pre-converted by convertAccountEntities, so just sum;
+            // anything still foreign is one we couldn't get a rate for (raw fallback).
             var totalBalanceInSelectedCurrency = BigDecimal.ZERO
             var hasApproximateBalance = false
             for (account in regularAccounts) {
-                if (account.currency == selectedCurrency) {
-                    totalBalanceInSelectedCurrency += account.balance
-                } else {
-                    val hasRate = currencyConversionService.hasValidRate(account.currency, selectedCurrency)
-                    if (!hasRate) {
-                        hasApproximateBalance = true
-                    }
-                    totalBalanceInSelectedCurrency += currencyConversionService.convertAmount(
-                        amount = account.balance,
-                        fromCurrency = account.currency,
-                        toCurrency = selectedCurrency
-                    )
-                }
+                totalBalanceInSelectedCurrency += account.balance
+                if (account.currency != selectedCurrency) hasApproximateBalance = true
             }
 
             var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
             for (card in creditCards) {
-                val availableInCardCurrency = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency == selectedCurrency) {
-                    totalAvailableCreditInSelectedCurrency += availableInCardCurrency
-                } else {
-                    val hasRate = currencyConversionService.hasValidRate(card.currency, selectedCurrency)
-                    if (!hasRate) {
-                        hasApproximateBalance = true
-                    }
-                    totalAvailableCreditInSelectedCurrency += currencyConversionService.convertAmount(
-                        amount = availableInCardCurrency,
-                        fromCurrency = card.currency,
-                        toCurrency = selectedCurrency
-                    )
-                }
+                totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
+                if (card.currency != selectedCurrency) hasApproximateBalance = true
             }
 
             _uiState.value = _uiState.value.copy(
@@ -1325,25 +1266,20 @@ class HomeViewModel @Inject constructor(
             if (account.currency == targetCurrency) {
                 account
             } else {
-                val hasRate = currencyConversionService.hasValidRate(account.currency, targetCurrency)
-                if (hasRate) {
-                    val convertedBalance = currencyConversionService.convertAmount(
-                        amount = account.balance,
-                        fromCurrency = account.currency,
-                        toCurrency = targetCurrency
-                    )
-                    val convertedCreditLimit = if (account.isCreditCard && account.creditLimit != null) {
-                        currencyConversionService.convertAmount(
-                            amount = account.creditLimit,
-                            fromCurrency = account.currency,
-                            toCurrency = targetCurrency
-                        )
-                    } else {
-                        account.creditLimit
-                    }
+                // Fetch-on-miss: getExchangeRate lazily fetches the rate when it isn't
+                // cached yet, so the very first render converts instead of showing the
+                // raw native amount mislabelled with the display currency (the #545/MZN
+                // bug: a $400 account drawn as "MZN400"). Only relabel to the target
+                // currency when a rate actually exists — otherwise keep the account's
+                // native currency so the row shows an honest "$400", not "MZN400".
+                val rate = currencyConversionService.getExchangeRate(account.currency, targetCurrency)
+                if (rate != null) {
+                    // Keep full precision here and let display formatting round. Rounding
+                    // balance and creditLimit separately would make "available = limit -
+                    // balance" round twice and drift a cent on foreign credit cards.
                     account.copy(
-                        balance = convertedBalance,
-                        creditLimit = convertedCreditLimit,
+                        balance = account.balance.multiply(rate),
+                        creditLimit = account.creditLimit?.multiply(rate),
                         currency = targetCurrency
                     )
                 } else {

@@ -9,6 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -30,6 +32,11 @@ class CurrencyConversionService @Inject constructor(
     // Cache rates for performance
     private val rateCache = mutableMapOf<String, BigDecimal>()
     private var lastCacheUpdate: LocalDateTime = LocalDateTime.MIN
+
+    // Serializes network fetches so the cold-start thundering herd (many collectors
+    // converting at once) collapses to one API call: the first caller fetches and
+    // stores, the rest re-check under the lock and find the rate already present.
+    private val fetchMutex = Mutex()
 
     // Cooldown to avoid hammering the API when it keeps failing
     private var lastFailedRefreshTime: Long = 0L
@@ -139,14 +146,31 @@ class CurrencyConversionService @Inject constructor(
      * Refresh exchange rates for specific currencies using USD as base
      */
     suspend fun refreshExchangeRates(currencies: List<String>) {
+        // Pair-aware freshness: refresh when ANY pair we'd store for this currency
+        // set is missing or expired — not just when USD globally has some fresh rate.
+        // The old global check skipped the whole refresh whenever any USD rate was
+        // fresh, so a newly-added currency (e.g. an MZN account when USD->INR was
+        // already cached) never got its pairs bulk-fetched, forcing N per-pair
+        // lazy fetches downstream.
+        if (hasAllRequiredPairsFresh(currencies)) {
+            println("All required currency pairs are fresh, skipping refresh")
+            return
+        }
+
+        // Serialize the actual fetch so a cold-start herd collapses to one call.
+        fetchMutex.withLock {
+            // Re-check under the lock: a concurrent refresh may have filled these
+            // pairs while we were queued, in which case there's nothing left to do.
+            if (hasAllRequiredPairsFresh(currencies)) {
+                return@withLock
+            }
+            fetchAndStoreRates(currencies)
+        }
+    }
+
+    private suspend fun fetchAndStoreRates(currencies: List<String>) {
         // Use USD as the base currency for the API since it's most commonly supported
         val apiBaseCurrency = "USD"
-
-        // Check if we need to refresh by looking at the newest rate in our database
-        if (!shouldRefreshRates(apiBaseCurrency)) {
-            println("Currency rates are fresh, skipping refresh")
-            return // Rates are still fresh, no need to refresh
-        }
 
         // Cooldown: if the last refresh failed recently, skip to avoid hammering the API
         val nowMs = System.currentTimeMillis()
@@ -230,9 +254,33 @@ class CurrencyConversionService @Inject constructor(
     }
 
     /**
+     * Non-fetching lookup: the rate from the in-memory cache (if valid) or a fresh
+     * (non-expired) DB row. Returns null without touching the network.
+     */
+    private suspend fun lookupFreshRate(fromCurrency: String, toCurrency: String): BigDecimal? {
+        val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
+        if (isCacheValid()) rateCache[cacheKey]?.let { return it }
+        return exchangeRateDao.getExchangeRate(fromCurrency, toCurrency, LocalDateTime.now())?.rate
+    }
+
+    /**
      * Fetch exchange rate from API and cache it
      */
     private suspend fun fetchAndCacheRate(fromCurrency: String, toCurrency: String): BigDecimal? {
+        // Coalesce concurrent fetchers: re-check under the lock first — a fetch that
+        // ran while we were queued may have already stored this pair, so we skip the
+        // network entirely instead of each caller re-fetching the same table.
+        return fetchMutex.withLock {
+            lookupFreshRate(fromCurrency, toCurrency)?.let {
+                updateCache("${fromCurrency.uppercase()}_${toCurrency.uppercase()}", it)
+                return@withLock it
+            }
+            fetchAndCacheRateLocked(fromCurrency, toCurrency)
+        }
+    }
+
+    private suspend fun fetchAndCacheRateLocked(fromCurrency: String, toCurrency: String): BigDecimal? {
+        println("Lazy per-pair rate fetch for $fromCurrency->$toCurrency (cache + DB miss)")
         try {
             // Use the metadata method to get proper expiry times even for individual rates
             // We'll use USD as base since that's what the API uses and then convert
@@ -298,6 +346,25 @@ class CurrencyConversionService @Inject constructor(
      * Check if we should refresh rates for the given base currency
      * Returns true if rates are stale or we don't have any rates
      */
+    /**
+     * True only when every cross pair we'd store for [currencies] already has a
+     * fresh (non-expired or cached) rate. Unlike [shouldRefreshRates]'s single
+     * global "are USD rates fresh?" check, this detects a newly-added currency
+     * whose pairs were never fetched, so adding e.g. an MZN account triggers one
+     * bulk refresh that fills all its pairs instead of N lazy per-pair fetches.
+     */
+    private suspend fun hasAllRequiredPairsFresh(currencies: List<String>): Boolean {
+        val distinct = currencies.distinct()
+        for (from in distinct) {
+            for (to in distinct) {
+                if (!from.equals(to, ignoreCase = true) && !hasValidRate(from, to)) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
     private suspend fun shouldRefreshRates(baseCurrency: String): Boolean {
         val currentTimeUnix = System.currentTimeMillis() / 1000
 

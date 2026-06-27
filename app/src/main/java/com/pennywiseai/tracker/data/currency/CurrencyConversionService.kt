@@ -42,7 +42,9 @@ class CurrencyConversionService @Inject constructor(
     // Their pairs can never be stored, so they're excluded from the freshness gate
     // to avoid re-triggering a full refresh forever. In-memory only — cleared on
     // process restart so a transient gap doesn't sideline a code permanently.
-    private val unsupportedCurrencies = mutableSetOf<String>()
+    // Thread-safe: read on the fast path outside fetchMutex, written under it.
+    private val unsupportedCurrencies: MutableSet<String> =
+        java.util.concurrent.ConcurrentHashMap.newKeySet()
 
     // Cooldown to avoid hammering the API when it keeps failing
     private var lastFailedRefreshTime: Long = 0L

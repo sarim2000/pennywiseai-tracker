@@ -38,6 +38,12 @@ class CurrencyConversionService @Inject constructor(
     // stores, the rest re-check under the lock and find the rate already present.
     private val fetchMutex = Mutex()
 
+    // Upper-cased currency codes the provider's latest response did not include.
+    // Their pairs can never be stored, so they're excluded from the freshness gate
+    // to avoid re-triggering a full refresh forever. In-memory only — cleared on
+    // process restart so a transient gap doesn't sideline a code permanently.
+    private val unsupportedCurrencies = mutableSetOf<String>()
+
     // Cooldown to avoid hammering the API when it keeps failing
     private var lastFailedRefreshTime: Long = 0L
     private val failedRefreshCooldownMs = TimeConstants.MILLIS_PER_5_MINUTES
@@ -188,6 +194,18 @@ class CurrencyConversionService @Inject constructor(
             val allRates = response.rates
             // Reset failed cooldown on success
             lastFailedRefreshTime = 0L
+
+            // Record any requested code the provider didn't return (USD is the base,
+            // always supported). Keeps the freshness gate from looping on a code
+            // whose pairs can never be stored; refreshing this set keeps a code that
+            // comes back later from staying excluded.
+            currencies.map { it.uppercase() }.distinct().forEach { code ->
+                if (code != apiBaseCurrency && !allRates.containsKey(code)) {
+                    unsupportedCurrencies.add(code)
+                } else {
+                    unsupportedCurrencies.remove(code)
+                }
+            }
             val nextUpdateTime = LocalDateTime.ofInstant(
                 Instant.ofEpochSecond(response.nextUpdateTimeUnix),
                 ZoneId.systemDefault()
@@ -352,12 +370,18 @@ class CurrencyConversionService @Inject constructor(
      * global "are USD rates fresh?" check, this detects a newly-added currency
      * whose pairs were never fetched, so adding e.g. an MZN account triggers one
      * bulk refresh that fills all its pairs instead of N lazy per-pair fetches.
+     *
+     * Codes are upper-cased (so "inr" matches a stored "INR" row instead of
+     * looking missing) and currencies the provider doesn't return are excluded —
+     * otherwise an unsupported/mis-cased code could never satisfy the gate and
+     * would re-trigger a full refresh on every call without making progress.
      */
     private suspend fun hasAllRequiredPairsFresh(currencies: List<String>): Boolean {
-        val distinct = currencies.distinct()
+        val distinct = currencies.map { it.uppercase() }.distinct()
+            .filter { it !in unsupportedCurrencies }
         for (from in distinct) {
             for (to in distinct) {
-                if (!from.equals(to, ignoreCase = true) && !hasValidRate(from, to)) {
+                if (from != to && !hasValidRate(from, to)) {
                     return false
                 }
             }

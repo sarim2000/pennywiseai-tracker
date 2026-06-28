@@ -8,6 +8,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -37,6 +38,14 @@ interface ExchangeRateProvider {
 class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
 
     private val client = HttpClient(Android) {
+        // Bound every request so a hung socket can't stall callers indefinitely —
+        // important because rate fetches are serialized on a shared mutex, so one
+        // stuck request would otherwise block all currency conversions.
+        install(HttpTimeout) {
+            requestTimeoutMillis = 20_000
+            connectTimeoutMillis = 10_000
+            socketTimeoutMillis = 20_000
+        }
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

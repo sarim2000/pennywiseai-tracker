@@ -50,7 +50,12 @@ echo "==> Checking existing Cloudflare secrets (these are preserved on redeploy)
 # empty list if the call fails (e.g. first-ever deploy before the Worker exists).
 existing="$(wrangler secret list --format json 2>/dev/null || echo '[]')"
 
-has_secret() { printf '%s' "$existing" | grep -q "\"$1\""; }
+# Match the secret's "name" field exactly, not the bare token anywhere in the
+# JSON — so a similarly-named secret (or another field) can't be mistaken for a
+# required one. wrangler emits {"name":"X","type":...}; allow optional spaces.
+has_secret() {
+  printf '%s' "$existing" | grep -Eq "\"name\"[[:space:]]*:[[:space:]]*\"$1\""
+}
 
 missing_required=()
 for name in "${REQUIRED_SECRETS[@]}"; do

@@ -65,6 +65,10 @@ release.properties
 # pennywise-web/scripts/deploy.sh are still tracked.)
 /deploy.sh
 
+# Generated Docker build context for the web container (staged copy of
+# parser-core created by pennywise-web/scripts/deploy.sh).
+/pennywise-web/.parser-core/
+
 # IDE folders
 .idea
 .vscode

@@ -94,6 +94,26 @@ if [ "${#missing_required[@]}" -gt 0 ]; then
   done
 fi
 
+# --- Stage parser-core into the Docker build context ----------------------
+# parser-core is a sibling module (../parser-core), so it lives outside this
+# Worker's Docker build context and the container Dockerfile can't COPY it
+# directly. The Dockerfile instead expects a staged copy at ./.parser-core,
+# built from parser-core's standalone-JVM gradle variants. Re-stage fresh on
+# every deploy so it can never go stale.
+PARSER_SRC="../parser-core"
+PARSER_STAGE=".parser-core"
+echo
+echo "==> Staging parser-core into the Docker build context ($PARSER_STAGE)"
+if [ ! -d "$PARSER_SRC" ]; then
+  echo "error: $PARSER_SRC not found (expected the parser-core module one level up)." >&2
+  exit 1
+fi
+rm -rf "$PARSER_STAGE"
+mkdir -p "$PARSER_STAGE"
+cp "$PARSER_SRC/build.docker.gradle.kts"    "$PARSER_STAGE/build.gradle.kts"
+cp "$PARSER_SRC/settings.docker.gradle.kts" "$PARSER_STAGE/settings.gradle.kts"
+cp -R "$PARSER_SRC/src"                      "$PARSER_STAGE/src"
+
 echo
 echo "==> Deploying Worker (secrets above are left untouched)"
 wrangler deploy "$@"

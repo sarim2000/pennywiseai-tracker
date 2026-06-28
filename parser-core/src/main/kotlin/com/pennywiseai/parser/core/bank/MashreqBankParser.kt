@@ -63,9 +63,9 @@ class MashreqBankParser : UAEBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
-        return upperSender == "MASHREQ" ||
-                upperSender.contains("MASHREQ") ||
-                upperSender == "MSHREQ" ||
+        // "SHREQ" is the common tail of every Mashreq header — MASHREQ, MSHREQ, and the
+        // bare "Shreq" alphanumeric header some users see — so one check covers them all.
+        return upperSender.contains("SHREQ") ||
                 // DLT patterns for UAE
                 upperSender.matches(Regex("^[A-Z]{2}-MASHREQ-[A-Z]$")) ||
                 upperSender.matches(Regex("^[A-Z]{2}-MSHREQ-[A-Z]$"))
@@ -75,8 +75,11 @@ class MashreqBankParser : UAEBankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Mashreq debit card purchase pattern: "at CARREFOUR on"
+        // Newer credit-card alerts say only "your card ending 1234" (no "debit/credit
+        // card" wording), so match on "card ending" too.
         if (message.contains("debit card", ignoreCase = true) ||
-            message.contains("credit card", ignoreCase = true)
+            message.contains("credit card", ignoreCase = true) ||
+            message.contains("card ending", ignoreCase = true)
         ) {
 
             // Pattern: "at MERCHANT on DATE"
@@ -164,6 +167,23 @@ class MashreqBankParser : UAEBankParser() {
         return super.extractBalance(message)
     }
 
+    override fun extractAvailableLimit(message: String): BigDecimal? {
+        // Mashreq credit-card alerts print the available limit in AED, e.g.
+        // "Avl.Limit: AED 1,000.00" — the base extractor only accepts Rs/INR/₹.
+        val pattern = Regex(
+            """Avl\.?\s*Limit:?\s*[A-Z]{3}\s*([0-9,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
+        pattern.find(message)?.let { match ->
+            return try {
+                BigDecimal(match.groupValues[1].replace(",", ""))
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+        return super.extractAvailableLimit(message)
+    }
+
     override fun extractReference(message: String): String? {
         // Mashreq date/time patterns
         val referencePatterns = listOf(
@@ -201,6 +221,14 @@ class MashreqBankParser : UAEBankParser() {
                     Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
                         message
                     ) -> TransactionType.CREDIT
+
+            // Newer credit-card purchase alert that omits the "credit card" wording:
+            // "Thank you for using your card ending 1234 for AED 50.00 at ... Avl.Limit: AED 1,000.00"
+            // An available *limit* (vs the debit-card alert's available *balance*) marks it a credit card.
+            lowerMessage.contains("card ending") &&
+                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(message) &&
+                    Regex("""Avl\.?\s*Limit|Available\s+Limit""", RegexOption.IGNORE_CASE).containsMatchIn(message)
+                    -> TransactionType.CREDIT
 
             // ATM withdrawals are expenses
             lowerMessage.contains("atm") && lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE

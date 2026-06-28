@@ -36,6 +36,7 @@ object BankParserFactory {
         BankOfIndiaParser(),
         JioPaymentsBankParser(),
         NSDLPaymentsBankParser(),  // NSDL Payments Bank (India) — legacy NSDLPB sender, rebranded to Jio Payments Bank
+        JanaSmallFinanceBankParser(),  // Jana Small Finance Bank (India) — JANABK sender
         KotakBankParser(),
         IDFCFirstBankParser(),
         UnionBankParser(),

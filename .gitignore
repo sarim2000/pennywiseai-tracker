@@ -60,7 +60,10 @@ release.properties
 
 *.pem
 
-deploy.sh
+# Root-level deploy script may hold credentials; keep it local.
+# (Scoped to root so committed helper scripts like
+# pennywise-web/scripts/deploy.sh are still tracked.)
+/deploy.sh
 
 # IDE folders
 .idea

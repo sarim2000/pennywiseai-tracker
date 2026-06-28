@@ -23,6 +23,7 @@ class JanaSmallFinanceBankParserTest {
                     amount = BigDecimal("8.00"),
                     currency = "INR",
                     type = TransactionType.INCOME,
+                    merchant = "NPCI BHIM",
                     reference = "103475395201",
                     accountLast4 = "005"
                 )
@@ -35,6 +36,7 @@ class JanaSmallFinanceBankParserTest {
                     amount = BigDecimal("250.00"),
                     currency = "INR",
                     type = TransactionType.EXPENSE,
+                    merchant = "merchant",
                     reference = "103475395202",
                     accountLast4 = "005"
                 )

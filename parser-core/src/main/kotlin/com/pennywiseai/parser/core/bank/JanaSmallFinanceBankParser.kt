@@ -20,4 +20,27 @@ class JanaSmallFinanceBankParser : BaseIndianBankParser() {
         return normalizedSender.contains("JANABK") ||
                 normalizedSender.contains("JANASFB")
     }
+
+    override fun extractMerchant(message: String, sender: String): String? {
+        // "...credited with INR 8.00 ... from NPCI BHIM. UPI Ref no ..." (payer) and
+        // "...debited with INR ... to name@okaxis. UPI Ref no ..." (payee). The base
+        // FROM/TO patterns require the name to butt up against " UPI", but here a
+        // period separates them ("BHIM. UPI"), so the payer/payee is dropped. Capture
+        // up to the sentence / "UPI" boundary instead, keeping the VPA handle before '@'.
+        val keyword = if (message.contains("credited", ignoreCase = true)) "from" else "to"
+        val pattern = Regex(
+            """\b$keyword\s+(.+?)(?:\.\s|\s+UPI\b|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        pattern.find(message)?.let { match ->
+            var name = match.groupValues[1].trim()
+            if (name.contains("@")) name = name.substringBefore("@")
+            name = name.trimEnd('.', ',', ';')
+            val merchant = cleanMerchantName(name)
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+        return super.extractMerchant(message, sender)
+    }
 }

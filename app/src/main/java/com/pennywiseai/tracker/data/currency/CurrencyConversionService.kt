@@ -160,7 +160,11 @@ class CurrencyConversionService @Inject constructor(
         // fresh, so a newly-added currency (e.g. an MZN account when USD->INR was
         // already cached) never got its pairs bulk-fetched, forcing N per-pair
         // lazy fetches downstream.
-        if (hasAllRequiredPairsFresh(currencies)) {
+        // Also honor the overall daily staleness so a code the provider *temporarily*
+        // omitted (parked in unsupportedCurrencies, hence filtered out of the
+        // pair-fresh check) gets re-evaluated each cycle instead of staying excluded
+        // for the whole process lifetime.
+        if (hasAllRequiredPairsFresh(currencies) && !areOverallRatesStale()) {
             println("All required currency pairs are fresh, skipping refresh")
             return
         }
@@ -169,7 +173,7 @@ class CurrencyConversionService @Inject constructor(
         fetchMutex.withLock {
             // Re-check under the lock: a concurrent refresh may have filled these
             // pairs while we were queued, in which case there's nothing left to do.
-            if (hasAllRequiredPairsFresh(currencies)) {
+            if (hasAllRequiredPairsFresh(currencies) && !areOverallRatesStale()) {
                 return@withLock
             }
             fetchAndStoreRates(currencies)
@@ -278,9 +282,13 @@ class CurrencyConversionService @Inject constructor(
      * (non-expired) DB row. Returns null without touching the network.
      */
     private suspend fun lookupFreshRate(fromCurrency: String, toCurrency: String): BigDecimal? {
-        val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
+        // Normalize casing so a lowercase pair hits both the (uppercased) cache key
+        // and the stored uppercase DB row, instead of missing and refetching.
+        val from = fromCurrency.uppercase()
+        val to = toCurrency.uppercase()
+        val cacheKey = "${from}_${to}"
         if (isCacheValid()) rateCache[cacheKey]?.let { return it }
-        return exchangeRateDao.getExchangeRate(fromCurrency, toCurrency, LocalDateTime.now())?.rate
+        return exchangeRateDao.getExchangeRate(from, to, LocalDateTime.now())?.rate
     }
 
     /**

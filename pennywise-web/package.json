@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
+    "redeploy": "bash scripts/deploy.sh",
     "dev": "wrangler dev",
     "cf-typegen": "wrangler types"
   },

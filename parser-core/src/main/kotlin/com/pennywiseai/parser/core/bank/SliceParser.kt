@@ -15,7 +15,8 @@ class SliceParser : BankParser() {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("SLICE") ||
                 normalizedSender.contains("SLICEIT") ||
-                normalizedSender.contains("SLCEIT")  // Matches JD-SLCEIT-S and similar
+                normalizedSender.contains("SLCEIT") ||  // Matches JD-SLCEIT-S and similar
+                normalizedSender.contains("SLCBNK")  // Slice SFB sender, e.g. VA-SLCBNK-S
     }
 
     private fun isSuccessMessage(message: String): Boolean {

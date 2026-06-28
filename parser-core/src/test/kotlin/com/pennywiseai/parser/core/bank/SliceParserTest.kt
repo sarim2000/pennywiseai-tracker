@@ -82,6 +82,21 @@ class SliceParserTest {
                 )
             ),
             ParserTestCase(
+                // Regression: VA-SLCBNK-S (Slice SFB sender) was unrecognized, so this
+                // "spent on your credit card" alert wasn't parsed at all.
+                name = "Slice SFB 'spent on credit card' from SLCBNK sender is CREDIT",
+                message = "Rs. 124 spent on your credit card xx7185 at Kishor rajgiri on 18-Jun-26 (UPI Ref: 616982957103). Not you? Call 080-4832-9999 - slice",
+                sender = "VA-SLCBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("124"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "Kishor rajgiri",
+                    accountLast4 = "7185",
+                    reference = "616982957103"
+                )
+            ),
+            ParserTestCase(
                 name = "Slice card 'spent' wording with card context stays CREDIT",
                 message = "Rs.350 spent on your slice credit card at MERCHANT. Available limit: Rs.10000.",
                 sender = "AD-SLCEIT-S",
@@ -243,6 +258,7 @@ class SliceParserTest {
             "JK-SLICEIT" to true,
             "SLICEIT" to true,
             "SLCEIT" to true,
+            "VA-SLCBNK-S" to true,
             "slice" to true,
             "HDFCBK" to false,
             "VK-JTEDGE-S" to false

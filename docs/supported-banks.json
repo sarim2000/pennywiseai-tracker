@@ -1,5 +1,5 @@
 {
-  "totalBanks": 129,
+  "totalBanks": 130,
   "totalCountries": 22,
   "countries": [
     {
@@ -7,8 +7,8 @@
       "flag": "🇮🇳",
       "currency": "INR",
       "symbol": "₹",
-      "bankCount": 52,
-      "banks": ["AU Small Finance Bank", "Airtel Payments Bank", "Amazon Pay", "American Express", "Axis Bank", "Bandhan Bank", "Bank of Baroda", "Bank of India", "CRED", "Canara Bank", "Cashfree", "Central Bank of India", "City Union Bank", "DBS Bank", "Department of Post", "Dhanlaxmi Bank", "Equitas Small Finance Bank", "Federal Bank", "Greater Bank", "HDFC Bank", "HDFC Mutual Fund", "HSBC Bank", "ICICI Bank", "IDBI Bank", "IDFC First Bank", "India Post Payments Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "JK Bank", "Jio Payments Bank", "JioPay", "Jupiter", "Karnataka Bank", "Kerala Bank", "Kerala Gramin Bank", "Kotak Bank", "LazyPay", "NSDL Payments Bank", "Navi Mutual Fund", "OneCard", "Punjab & Sind Bank", "Punjab National Bank", "Saraswat Co-operative Bank", "Slice", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "UCO Bank", "Union Bank of India", "Utkarsh Bank", "Yes Bank"]
+      "bankCount": 53,
+      "banks": ["AU Small Finance Bank", "Airtel Payments Bank", "Amazon Pay", "American Express", "Axis Bank", "Bandhan Bank", "Bank of Baroda", "Bank of India", "CRED", "Canara Bank", "Cashfree", "Central Bank of India", "City Union Bank", "DBS Bank", "Department of Post", "Dhanlaxmi Bank", "Equitas Small Finance Bank", "Federal Bank", "Greater Bank", "HDFC Bank", "HDFC Mutual Fund", "HSBC Bank", "ICICI Bank", "IDBI Bank", "IDFC First Bank", "India Post Payments Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "JK Bank", "Jana Small Finance Bank", "Jio Payments Bank", "JioPay", "Jupiter", "Karnataka Bank", "Kerala Bank", "Kerala Gramin Bank", "Kotak Bank", "LazyPay", "NSDL Payments Bank", "Navi Mutual Fund", "OneCard", "Punjab & Sind Bank", "Punjab National Bank", "Saraswat Co-operative Bank", "Slice", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "UCO Bank", "Union Bank of India", "Utkarsh Bank", "Yes Bank"]
     },
     {
       "country": "Thailand",

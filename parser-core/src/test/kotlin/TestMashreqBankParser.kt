@@ -114,6 +114,23 @@ class MashreqBankParserTest {
                 )
             ),
 
+            // Test case 7: Credit-card purchase alert that omits the "credit card"
+            // wording (just "your card ending 1234") and shows an available *limit*.
+            // Regression for "No transaction detected" — type previously resolved to null.
+            ParserTestCase(
+                name = "Credit Card Purchase with Avl.Limit (no 'credit card' wording)",
+                message = "Thank you for using your card ending 1234 for AED 50.00 at SAMPLE MERCHANT NAME on 01-JAN-2026 12:00 PM. Avl.Limit: AED 1,000.00",
+                sender = "Shreq",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50.00"),
+                    currency = "AED",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "SAMPLE MERCHANT NAME",
+                    accountLast4 = "1234",
+                    creditLimit = BigDecimal("1000.00")
+                )
+            ),
+
             // Negative test cases - should NOT parse
 
             ParserTestCase(
@@ -167,6 +184,7 @@ class MashreqBankParserTest {
 
         val handleCases: List<Pair<String, Boolean>> = listOf(
             "Mashreq" to true,
+            "Shreq" to true,        // bare alphanumeric header some users receive
             "MASHREQ" to true,
             "Mshreq" to true,
             "MSHREQ" to true,

@@ -65,6 +65,7 @@ fun BudgetGroupsScreen(
     viewModel: BudgetGroupsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
+    onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -130,6 +131,9 @@ fun BudgetGroupsScreen(
                 onDeleteGroup = { groupId -> viewModel.deleteGroup(groupId) },
                 onMoveGroupUp = { groupId -> viewModel.moveGroupUp(groupId) },
                 onMoveGroupDown = { groupId -> viewModel.moveGroupDown(groupId) },
+                onNavigateToHistory = { groupId ->
+                    onNavigateToHistory(groupId, uiState.selectedYear, uiState.selectedMonth)
+                },
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
@@ -211,6 +215,7 @@ private fun BudgetGroupsContent(
     onDeleteGroup: (Long) -> Unit,
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
+    onNavigateToHistory: (Long) -> Unit,
     onCategoryClick: (String) -> Unit
 ) {
     val summary = uiState.summary ?: return
@@ -294,6 +299,7 @@ private fun BudgetGroupsContent(
                     },
                     onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
                     onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
+                    onViewHistory = { onNavigateToHistory(groupSpending.group.budget.id) },
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.animateItem()
                 )
@@ -397,6 +403,7 @@ private fun BudgetCard(
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onViewHistory: () -> Unit,
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -510,6 +517,16 @@ private fun BudgetCard(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("View this period history") },
+                                onClick = {
+                                    showMenu = false
+                                    onViewHistory()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.History, contentDescription = null)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Move up") },
                                 onClick = {

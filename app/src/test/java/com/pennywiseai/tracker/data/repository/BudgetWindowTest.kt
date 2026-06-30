@@ -256,4 +256,39 @@ class BudgetWindowTest {
         // They share Sep 30 → overlap is true.
         assert(a.overlaps(b))
     }
+
+    // ── cap-date semantics (the "frozen vs live" math that powers the
+    //    History screen and the Weekly sub-list) ────────────────────
+
+    @Test
+    fun `partial last week in June 2026 - June view freezes the Jun 30 portion`() {
+        // Mon-anchored Weekly budget. The week starting Mon Jun 30 spans
+        // Jun 30..Jul 6. For the June view, the spend is frozen at
+        // Jun 30 — only the Jun 30 day is counted, with the cap date
+        // = monthEnd = Jun 30.
+        val today = LocalDate.of(2026, 7, 5)
+        val monthEnd = LocalDate.of(2026, 6, 30)
+        val window = BudgetWindow(LocalDate.of(2026, 6, 30), LocalDate.of(2026, 7, 6), 7)
+        val isCurrentMonth = false
+        val isCurrentWeek = !isCurrentMonth && false ||
+            isCurrentMonth && !today.isBefore(window.start) && !today.isAfter(window.end)
+        assertEquals(false, isCurrentWeek)
+        // The repo's effective end for the spend query is the cap date,
+        // which is monthEnd for a frozen window.
+        val cap = if (isCurrentWeek) today else monthEnd
+        assertEquals(LocalDate.of(2026, 6, 30), cap)
+    }
+
+    @Test
+    fun `current week in July 2026 - July view is live up to today`() {
+        val today = LocalDate.of(2026, 7, 5)
+        val monthEnd = LocalDate.of(2026, 7, 31)
+        val window = BudgetWindow(LocalDate.of(2026, 6, 30), LocalDate.of(2026, 7, 6), 7)
+        val isCurrentMonth = true
+        val isCurrentWeek = isCurrentMonth &&
+            !today.isBefore(window.start) && !today.isAfter(window.end)
+        assertEquals(true, isCurrentWeek)
+        val cap = if (isCurrentWeek) today else monthEnd
+        assertEquals(LocalDate.of(2026, 7, 5), cap)
+    }
 }

@@ -60,6 +60,18 @@ object BudgetGroups
 @Serializable
 data class BudgetGroupEdit(val groupId: Long = -1L)
 
+/**
+ * Per-budget history drill-down. The (year, month) selects the period;
+ * the screen renders the per-window list (Weekly sub-list or Monthly /
+ * One-time window) with each row labelled "Live" or "Frozen as of …".
+ */
+@Serializable
+data class BudgetHistory(
+    val groupId: Long,
+    val year: Int,
+    val month: Int
+)
+
 @Serializable
 object Loans
 

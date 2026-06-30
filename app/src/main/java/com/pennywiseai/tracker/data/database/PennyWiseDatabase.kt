@@ -51,13 +51,13 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 
 /**
- * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so it
- * is usable both in the `@Database(version = ...)` annotation below and in
+ * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so
+ * it is usable both in the `@Database(version = ...)` annotation below and in
  * non-Room code (e.g. [com.pennywiseai.tracker.data.backup.BackupExporter])
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 53
+const val SCHEMA_VERSION = 54
 
 /**
  * The PennyWise Room database.
@@ -523,6 +523,24 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Per-budget cadence anchors for the recurring / one-time split on
+         * the Budget Period card (Weekly / Monthly / One-time). Both columns
+         * are nullable so pre-existing rows keep working — the read-time
+         * resolver falls back to Monday (Weekly) or the global startDay
+         * preference (Monthly) when the anchor is null.
+         *
+         * No backfill: every existing row was created before this feature
+         * and is treated as Monthly anchored to the user's global startDay
+         * until the user opens the budget and explicitly picks a cadence.
+         */
+        val MIGRATION_53_54 = object : Migration(53, 54) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `budgets` ADD COLUMN `weekday_anchor` INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE `budgets` ADD COLUMN `month_anchor` INTEGER DEFAULT NULL")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -576,6 +594,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_50_51,
             MIGRATION_51_52,
             MIGRATION_52_53,
+            MIGRATION_53_54,
         )
     }
     

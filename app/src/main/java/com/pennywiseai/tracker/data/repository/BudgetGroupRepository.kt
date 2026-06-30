@@ -73,30 +73,44 @@ class BudgetGroupRepository @Inject constructor(
         buckets: List<BudgetBucketInput> = emptyList(),
         displayOrder: Int = -1,
         limitAmount: BigDecimal? = null,
-        // Per-budget start date. When non-null, the budget's [startDate, endDate]
-        // window is anchored to this date and the global cycle preference is
-        // ignored. When null, falls back to today's calendar month (legacy
-        // behaviour).
-        customStartDate: LocalDate? = null,
-        periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY
+        periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY,
+        // Cadence anchors. WEEKLY uses [weekStartDay] (1=Mon..7=Sun);
+        // MONTHLY uses [monthStartDay] (1..31); CUSTOM ignores both and
+        // uses the literal [startDate, endDate] the user picked.
+        weekStartDay: Int? = null,
+        monthStartDay: Int? = null,
+        // For CUSTOM: the literal start date the user picked.
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null
     ): Long {
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val now = LocalDate.now()
-        val yearMonth = YearMonth.from(now)
         val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
-        val (startDate, endDate) = BudgetRepository.calculatePeriodDates(
-            periodType = periodType,
-            customStartDate = customStartDate,
-            startDay = startDay
-        )
+        // Seed the [startDate, endDate] cache with the *current* window for
+        // the budget's period type so the row is valid before the read-time
+        // resolver re-runs. For CUSTOM the user-supplied literal dates win.
+        val (resolvedStart, resolvedEnd) = when (periodType) {
+            BudgetPeriodType.CUSTOM -> (startDate ?: now) to (endDate ?: now.plusMonths(1))
+            BudgetPeriodType.WEEKLY -> {
+                val dow = weekStartDay?.coerceIn(1, 7) ?: 1
+                val s = now.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.of(dow)))
+                s to s.plusDays(6)
+            }
+            BudgetPeriodType.MONTHLY -> {
+                val day = monthStartDay?.let { BudgetCycle.clampStartDay(it) } ?: startDay
+                BudgetCycle.currentCycle(now, day)
+            }
+        }
 
         val budget = BudgetEntity(
             name = name,
             limitAmount = totalAmount,
             periodType = periodType,
-            startDate = startDate,
-            endDate = endDate,
+            startDate = resolvedStart,
+            endDate = resolvedEnd,
+            weekStartDay = if (periodType == BudgetPeriodType.WEEKLY) weekStartDay?.coerceIn(1, 7) else null,
+            monthStartDay = if (periodType == BudgetPeriodType.MONTHLY) monthStartDay?.let { BudgetCycle.clampStartDay(it) } else null,
             currency = currency,
             isActive = true,
             includeAllCategories = buckets.isEmpty(),
@@ -133,24 +147,41 @@ class BudgetGroupRepository @Inject constructor(
         buckets: List<BudgetBucketInput>,
         currency: String? = null,
         limitAmount: BigDecimal? = null,
-        // Per-budget start date. When non-null, the [startDate, endDate] window
-        // is recomputed from this date and the budget's existing periodType.
-        // When null, the existing dates are left untouched.
-        customStartDate: LocalDate? = null,
-        periodType: BudgetPeriodType? = null
+        periodType: BudgetPeriodType? = null,
+        weekStartDay: Int? = null,
+        monthStartDay: Int? = null,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null
     ) {
         val existing = budgetDao.getBudgetById(budgetId) ?: return
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val effectivePeriod = periodType ?: existing.periodType
-        val (newStart, newEnd) = if (customStartDate != null) {
-            val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
-            BudgetRepository.calculatePeriodDates(
-                periodType = effectivePeriod,
-                customStartDate = customStartDate,
-                startDay = startDay
-            )
-        } else {
-            existing.startDate to existing.endDate
+        val now = LocalDate.now()
+        val globalStartDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+
+        // Resolve the new [startDate, endDate] cache. For CUSTOM the user
+        // supplied literal dates; for WEEKLY/MONTHLY we recompute the
+        // *current* window so the row is valid before the read-time resolver
+        // re-runs. Anchor fields are also updated so the resolver picks the
+        // right anchor next time.
+        val (newStart, newEnd, newWeek, newMonth) = when (effectivePeriod) {
+            BudgetPeriodType.CUSTOM -> {
+                val s = startDate ?: existing.startDate
+                val e = endDate ?: existing.endDate
+                Quadruple(s, e, null as Int?, null as Int?)
+            }
+            BudgetPeriodType.WEEKLY -> {
+                val dow = weekStartDay?.coerceIn(1, 7) ?: existing.weekStartDay ?: 1
+                val s = now.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.of(dow)))
+                Quadruple(s, s.plusDays(6), dow as Int?, null as Int?)
+            }
+            BudgetPeriodType.MONTHLY -> {
+                val day = monthStartDay?.let { BudgetCycle.clampStartDay(it) }
+                    ?: existing.monthStartDay
+                    ?: BudgetCycle.clampStartDay(globalStartDay)
+                val (s, e) = BudgetCycle.currentCycle(now, day)
+                Quadruple(s, e, null as Int?, day as Int?)
+            }
         }
 
         budgetDao.updateBudget(
@@ -163,6 +194,8 @@ class BudgetGroupRepository @Inject constructor(
                 periodType = effectivePeriod,
                 startDate = newStart,
                 endDate = newEnd,
+                weekStartDay = newWeek,
+                monthStartDay = newMonth,
                 includeAllCategories = buckets.isEmpty(),
                 updatedAt = LocalDateTime.now()
             )
@@ -791,3 +824,16 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 }
+
+/**
+ * Internal 4-tuple used by [BudgetGroupRepository.createGroup] / [updateGroup]
+ * to carry the (newStart, newEnd, newWeek, newMonth) tuple back from the
+ * period-type `when` expression. Kept local to this file because nothing
+ * outside the repo needs to see it.
+ */
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)

@@ -61,6 +61,13 @@ class BudgetGroupRepository @Inject constructor(
     suspend fun hasAnyGroups(): Boolean =
         budgetDao.getActiveGroupCount() > 0
 
+    /**
+     * Single-budget lookup by id, used by the Budget History drill-down
+     * screen. Returns null if the budget was deleted.
+     */
+    suspend fun getGroupById(budgetId: Long): BudgetEntity? =
+        budgetDao.getBudgetById(budgetId)
+
     suspend fun createGroup(
         name: String,
         groupType: BudgetGroupType,
@@ -365,67 +372,80 @@ class BudgetGroupRepository @Inject constructor(
         val isCurrentMonth = year == today.year && month == today.monthValue
 
         return budgetDao.getActiveBudgetsWithCategories().map { groups ->
-            // Plan: for each budget, decide the per-month windows (current
-            // = resolveBudgetWindow; historical = windowsForMonth), then
-            // query the spend in each window.
+            // Use windowsForMonth for both the current and historical
+            // month. For the current month, the *displayed* window is
+            // the one containing today (instead of resolveBudgetWindow
+            // which can be a *different* cycle from the windowsForMonth
+            // list — that mismatch was the "current month shows zero
+            // spend" bug). The historical month path picks the
+            // most-recent window in the list.
             val perBudgetWindows = groups.map { g ->
                 g to windowsForMonth(g.budget, year, month, startDay)
             }
-            // Page-level window is the first budget's displayed window
-            // (or the calendar month if the page is empty). Used for the
-            // "X days left" / daily-allowance summary at the top.
-            val pageWindow = perBudgetWindows.firstOrNull()?.let { (g, _) ->
-                if (isCurrentMonth) resolveBudgetWindow(g.budget, today, startDay)
-                else perBudgetWindows.first().second.lastOrNull()
-                    ?: BudgetWindow(monthStart, monthEnd, monthEnd.dayOfMonth)
+            val pageWindow = perBudgetWindows.firstOrNull()?.let { (_, windows) ->
+                windows.lastOrNull() ?: BudgetWindow(monthStart, monthEnd, monthEnd.dayOfMonth)
             } ?: BudgetWindow(monthStart, monthEnd, monthEnd.dayOfMonth)
 
-            // For each (budget, window) query the spend, then assemble
-            // per-budget [BudgetGroupSpending].
             val groupSpendings = perBudgetWindows.map { (group, windows) ->
                 val budget = group.budget
                 if (windows.isEmpty()) {
-                    // No window in this month — emit an empty
-                    // representation so the card still shows (the screen
-                    // decides whether to show it via the Overlap filter).
                     val empty = BudgetWindow(monthStart, monthStart, 0)
                     buildSummaryFromWindows(
                         group = group,
-                        displayWindow = if (isCurrentMonth) resolveBudgetWindow(budget, today, startDay) else empty,
+                        displayWindow = empty,
                         previousWindows = emptyList(),
                         transactionsByWindow = emptyMap(),
                         today = today,
                         isCurrentMonth = isCurrentMonth,
+                        monthStart = monthStart,
+                        monthEnd = monthEnd,
                         currency = currency
                     )
                 } else {
+                    // For each window, decide the cap date (when the
+                    // spend is "frozen"). The current week in the current
+                    // month is live (cap = today); every other week in
+                    // the current month is frozen at the month end. All
+                    // windows in a historical month are frozen at the
+                    // month end. The cap date is the *end of the query
+                    // range*, so a partial week that spans the month
+                    // boundary is queried only up to the month end.
                     val transactionsByWindow = windows.associateWith { w ->
+                        val capDate = if (isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)) {
+                            today
+                        } else {
+                            monthEnd
+                        }
+                        val effectiveEnd = if (capDate.isBefore(w.end)) capDate else w.end
                         transactionSplitDao.getTransactionsWithSplitsFiltered(
                             w.start.atStartOfDay(),
-                            w.end.atTime(23, 59, 59),
+                            effectiveEnd.atTime(23, 59, 59),
                             currency
                         ).first()
                     }
-                    // Displayed window: for the current month, use
-                    // resolveBudgetWindow (may not be in the windows list
-                    // if the month boundary landed in the middle of the
-                    // week). For a historical month, the most recent
-                    // window in the list.
+                    // Displayed window: the one containing today
+                    // (current) or the most-recent window (historical).
                     val displayWindow = if (isCurrentMonth) {
-                        resolveBudgetWindow(budget, today, startDay)
+                        windows.firstOrNull { isCurrentWeekInCurrentMonth(it, today, isCurrentMonth) }
+                            ?: windows.last()
                     } else {
                         windows.last()
                     }
-                    val previous = if (budget.periodType == BudgetPeriodType.WEEKLY && !isCurrentMonth) {
-                        // The displayed window is the last in the list;
-                        // every other window in the list is "older this
-                        // month" and goes into the sub-list.
-                        val older = windows.dropLast(1)
-                        older.map { w ->
-                            val txs = transactionsByWindow[w].orEmpty()
+                    val previous = if (budget.periodType == BudgetPeriodType.WEEKLY) {
+                        // Weekly only: every other window in the list
+                        // is "another week in the same month" and goes
+                        // into the per-week sub-list / history list.
+                        // The displayed window is the *last* one
+                        // (current month) or the *most-recent* (historical).
+                        val others = windows.filter { it != displayWindow }
+                        others.map { w ->
+                            val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
+                            val cap = if (isLive) today else monthEnd
                             PastWindowSpending(
                                 window = w,
-                                spent = sumExpensesForWindow(txs)
+                                spent = sumExpensesForWindow(transactionsByWindow[w].orEmpty()),
+                                capDate = cap,
+                                isLive = isLive
                             )
                         }
                     } else emptyList()
@@ -437,7 +457,11 @@ class BudgetGroupRepository @Inject constructor(
                         transactionsByWindow = transactionsByWindow,
                         today = today,
                         isCurrentMonth = isCurrentMonth,
-                        currency = currency
+                        monthStart = monthStart,
+                        monthEnd = monthEnd,
+                        currency = currency,
+                        displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
+                        displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)
                     )
                 }
             }
@@ -602,6 +626,62 @@ class BudgetGroupRepository @Inject constructor(
      * [displayWindow]; [previousWindows] is rendered as the per-week
      * sub-list on the historical card.
      */
+    /**
+     * True if [window] contains [today] AND the page is the current month.
+     * The current-week flag gates the live-vs-frozen cap in the
+     * per-window spend queries. Defensive: a weekly window that
+     * straddles the month boundary (e.g. Jun 30..Jul 6) is "current"
+     * only when the page is the current month; the June view freezes
+     * the Jun 30 portion, the July view counts Jun 30..today live.
+     */
+    private fun isCurrentWeekInCurrentMonth(
+        window: BudgetWindow,
+        today: LocalDate,
+        isCurrentMonth: Boolean
+    ): Boolean = isCurrentMonth &&
+        !today.isBefore(window.start) &&
+        !today.isAfter(window.end)
+
+    /**
+     * Per-window history for a single budget at the selected (year, month).
+     * Powers the Budget History screen — one entry per window, with
+     * the cap date so the screen can label each row as "Live" or
+     * "Frozen as of …".
+     *
+     * For the current month, the week containing today is live (cap =
+     * today); every other week is frozen at the month end. For a
+     * historical month, every week is frozen at the month end.
+     */
+    suspend fun getBudgetHistoryForMonth(
+        budget: BudgetEntity,
+        year: Int,
+        month: Int,
+        currency: String
+    ): List<PastWindowSpending> {
+        val today = LocalDate.now()
+        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+        val ym = YearMonth.of(year, month)
+        val monthEnd = ym.atEndOfMonth()
+        val isCurrentMonth = year == today.year && month == today.monthValue
+        val windows = windowsForMonth(budget, year, month, startDay)
+        return windows.map { w ->
+            val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
+            val cap = if (isLive) today else monthEnd
+            val effectiveEnd = if (cap.isBefore(w.end)) cap else w.end
+            val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
+                w.start.atStartOfDay(),
+                effectiveEnd.atTime(23, 59, 59),
+                currency
+            ).first()
+            PastWindowSpending(
+                window = w,
+                spent = sumExpensesForWindow(txs),
+                capDate = cap,
+                isLive = isLive
+            )
+        }
+    }
+
     private suspend fun buildSummaryFromWindows(
         group: BudgetWithCategories,
         displayWindow: BudgetWindow,
@@ -609,7 +689,11 @@ class BudgetGroupRepository @Inject constructor(
         transactionsByWindow: Map<BudgetWindow, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>>,
         today: LocalDate,
         isCurrentMonth: Boolean,
-        currency: String
+        monthStart: LocalDate = displayWindow.start,
+        monthEnd: LocalDate = displayWindow.end,
+        currency: String,
+        displayedCapDate: LocalDate = displayWindow.end,
+        displayedIsLive: Boolean = false
     ): BudgetGroupSpending {
         val budget = group.budget
         val displayTxs = transactionsByWindow[displayWindow].orEmpty()
@@ -732,7 +816,9 @@ class BudgetGroupRepository @Inject constructor(
                 windowEnd = displayWindow.end,
                 windowDays = displayWindow.days,
                 periodType = budget.periodType,
-                previousWindows = previousWindows
+                previousWindows = previousWindows,
+                displayedCapDate = displayedCapDate,
+                displayedIsLive = displayedIsLive
             )
         } else {
             val catSpending = group.categories.map { cat ->
@@ -791,7 +877,9 @@ class BudgetGroupRepository @Inject constructor(
                 windowEnd = displayWindow.end,
                 windowDays = displayWindow.days,
                 periodType = budget.periodType,
-                previousWindows = previousWindows
+                previousWindows = previousWindows,
+                displayedCapDate = displayedCapDate,
+                displayedIsLive = displayedIsLive
             )
         }
         return groupSpending

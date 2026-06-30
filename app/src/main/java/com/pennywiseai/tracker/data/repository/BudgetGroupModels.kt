@@ -29,15 +29,28 @@ data class BudgetCategorySpending(
 
 /**
  * A historical window within the selected month for a Weekly budget.
- * Drives the per-week sub-list inside the expanded BudgetCard.
+ * Drives the per-week sub-list inside the expanded BudgetCard, and the
+ * per-window list on the Budget History screen.
  *
- * The spend figures here are already in the *display* currency — the
- * repo / viewmodel convert per-window before producing the list, so the
+ * [capDate] is the "as of" date the spend was summed up to:
+ *  - For the current month: `today` if the window contains today (live),
+ *    or the page's `monthEnd` for older / future weeks in the same
+ *    month (frozen at month end).
+ *  - For a historical month: the page's `monthEnd` for every window.
+ *
+ * [isLive] is true when the cap date is `today` and the window still has
+ * days left to accumulate spend — the card uses it to show a "Live"
+ * badge instead of "Frozen at …".
+ *
+ * The spend figures are already in the *display* currency — the repo /
+ * viewmodel convert per-window before producing the list, so the
  * card can render the amounts as-is.
  */
 data class PastWindowSpending(
     val window: BudgetWindow,
-    val spent: BigDecimal
+    val spent: BigDecimal,
+    val capDate: LocalDate = window.end,
+    val isLive: Boolean = false
 )
 
 data class BudgetGroupSpending(
@@ -55,9 +68,9 @@ data class BudgetGroupSpending(
     val dailyBudgetPace: List<Double> = emptyList(),
     /**
      * The window the card is rendering for this budget. For the current
-     * month this is `resolveBudgetWindow(budget, today, globalStartDay)`.
-     * For a historical month this is the window in that month that
-     * contains the most recent date, intersected with the month bounds.
+     * month this is the [windowsForMonth] window that contains today.
+     * For a historical month this is the most-recent window in the
+     * list, intersected with the month bounds.
      */
     val windowStart: LocalDate = LocalDate.now(),
     val windowEnd: LocalDate = LocalDate.now(),
@@ -65,12 +78,25 @@ data class BudgetGroupSpending(
     val periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY,
     /**
      * Older windows in the selected month, with their spend. Populated
-     * for Weekly budgets on historical views (one entry per older week
-     * in the month) so the expanded card can show the "Last week" /
-     * per-week sub-list. Empty for the current month and for Monthly /
-     * Custom (which only have one window in any given month).
+     * for Weekly budgets (one entry per older week in the month) so the
+     * expanded card can show the per-week sub-list. Each entry carries a
+     * [PastWindowSpending.capDate] so the UI can label it "Live" or
+     * "Frozen at …".
      */
-    val previousWindows: List<PastWindowSpending> = emptyList()
+    val previousWindows: List<PastWindowSpending> = emptyList(),
+    /**
+     * "As of" date the displayed window's spend was summed up to.
+     * For the current month: `today` if the displayed window is the
+     * current week; the page's month end otherwise. For a historical
+     * month: the page's month end. Default matches the displayed
+     * window's end so older callers stay valid.
+     */
+    val displayedCapDate: LocalDate = LocalDate.now(),
+    /**
+     * True when the displayed window is the current week in the current
+     * month and its cap is `today` (live, still accumulating).
+     */
+    val displayedIsLive: Boolean = false
 )
 
 data class BudgetOverallSummary(

@@ -352,6 +352,10 @@ class BudgetGroupsViewModel @Inject constructor(
             windowStart = displayedWindow.start,
             windowEnd = displayedWindow.end,
             windowDays = displayedWindow.days,
+            // The unified path only renders the current month, so the
+            // displayed window is always live — cap is today.
+            displayedCapDate = today,
+            displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
             previousWindows = previous
         )

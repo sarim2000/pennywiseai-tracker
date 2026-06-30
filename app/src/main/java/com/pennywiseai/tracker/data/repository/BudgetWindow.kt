@@ -66,3 +66,107 @@ fun resolveBudgetWindow(
         BudgetWindow(start, end, ChronoUnit.DAYS.between(start, end).toInt() + 1)
     }
 }
+
+/**
+ * True when [other] has any day in common with `this`. The BudgetGroups
+ * screen uses this for the "Overlap" filter — a budget with a window
+ * (Weekly, Monthly, or One-time) that intersects the selected year-month
+ * is included in the list.
+ */
+fun BudgetWindow.overlaps(other: BudgetWindow): Boolean =
+    !this.start.isAfter(other.end) && !this.end.isBefore(other.start)
+
+/**
+ * The list of windows for [budget] that intersect the [year]/[month] calendar
+ * period. Drives the historical view on the Budgets page:
+ *
+ *  - **WEEKLY**: one [BudgetWindow] per ISO week that intersects the month
+ *    (so September 2026 with a Mon-anchored budget yields 4–5 windows,
+ *    each 7 days long). This is what powers the "Last week" / per-week
+ *    sub-list on the expanded card.
+ *  - **MONTHLY**: 0 or 1 window — the cycle that contains the most recent
+ *    day in the selected month, intersected with the month's bounds.
+ *  - **CUSTOM**: 0 or 1 window — the budget's literal range intersected
+ *    with the selected month. A One-time Nov 5–Dec 4 budget shows in
+ *    November and December (each call returns a 0-length clipped window
+ *    the caller can drop), but not September.
+ *
+ * For the **current** month, the screen calls [resolveBudgetWindow] with
+ * `reference = today` and shows the *single* current window — this helper
+ * is the historical equivalent.
+ */
+fun windowsForMonth(
+    budget: BudgetEntity,
+    year: Int,
+    month: Int,
+    globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY
+): List<BudgetWindow> {
+    val ym = java.time.YearMonth.of(year, month)
+    val monthStart = ym.atDay(1)
+    val monthEnd = ym.atEndOfMonth()
+    return when (budget.periodType) {
+        BudgetPeriodType.WEEKLY -> {
+            val dow = budget.weekStartDay?.let { DayOfWeek.of(it.coerceIn(1, 7)) }
+                ?: DayOfWeek.MONDAY
+            val results = mutableListOf<BudgetWindow>()
+            // Anchor the first week-start on or before the 1st of the month,
+            // then step forward by 7 days as long as the week still
+            // intersects the month. Includes a partial first week and a
+            // partial last week so the sub-list on the card shows the full
+            // month's coverage.
+            var weekStart = monthStart.with(TemporalAdjusters.previousOrSame(dow))
+            while (!weekStart.isAfter(monthEnd)) {
+                val weekEnd = weekStart.plusDays(6)
+                // Trim the window to the month so the spend query doesn't
+                // pull transactions from the adjacent month.
+                val clippedStart = if (weekStart.isBefore(monthStart)) monthStart else weekStart
+                val clippedEnd = if (weekEnd.isAfter(monthEnd)) monthEnd else weekEnd
+                if (!clippedStart.isAfter(clippedEnd)) {
+                    val days = ChronoUnit.DAYS.between(clippedStart, clippedEnd).toInt() + 1
+                    results.add(BudgetWindow(clippedStart, clippedEnd, days))
+                }
+                weekStart = weekStart.plusDays(7)
+            }
+            results
+        }
+        BudgetPeriodType.MONTHLY -> {
+            val day = budget.monthStartDay?.let { BudgetCycle.clampStartDay(it) }
+                ?: BudgetCycle.clampStartDay(globalStartDay)
+            val reference = monthStart
+            val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(reference, day)
+            // The cycle may straddle the month. We keep the full cycle
+            // here so the user sees the actual window (e.g. for an
+            // October view of a 25-anchored budget, the cycle is
+            // Sept 25..Oct 24 — the start is in September, but the
+            // October page is the right place to show it because the
+            // cycle's "end" falls in October). The spend query inside
+            // the repo is clipped to the page's month bounds when
+            // needed, but the *displayed* window is the full cycle.
+            if (cycleStart.isAfter(monthEnd) || cycleEnd.isBefore(monthStart)) {
+                emptyList()
+            } else listOf(
+                BudgetWindow(
+                    cycleStart,
+                    cycleEnd,
+                    ChronoUnit.DAYS.between(cycleStart, cycleEnd).toInt() + 1
+                )
+            )
+        }
+        BudgetPeriodType.CUSTOM -> {
+            val start = budget.startDate
+            val end = budget.endDate
+            if (start.isAfter(monthEnd) || end.isBefore(monthStart)) emptyList()
+            else {
+                val clippedStart = if (start.isBefore(monthStart)) monthStart else start
+                val clippedEnd = if (end.isAfter(monthEnd)) monthEnd else end
+                listOf(
+                    BudgetWindow(
+                        clippedStart,
+                        clippedEnd,
+                        ChronoUnit.DAYS.between(clippedStart, clippedEnd).toInt() + 1
+                    )
+                )
+            }
+        }
+    }
+}

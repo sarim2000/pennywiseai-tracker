@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
@@ -133,6 +134,11 @@ class TransactionsViewModel @Inject constructor(
             transactionRepository.getAllCurrencies()
         } else if (period == TimePeriod.CUSTOM && customRange != null) {
             val (startDate, endDate) = customRange
+            val startDateTime = startDate.atStartOfDay()
+            val endDateTime = endDate.atTime(23, 59, 59)
+            transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
+        } else if (period == TimePeriod.THIS_MONTH) {
+            val (startDate, endDate) = getThisCycleRange()
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
@@ -625,8 +631,17 @@ class TransactionsViewModel @Inject constructor(
             .transformLatest { _ ->
                 val period = selectedPeriod.value
                 val categories = categoriesFilter.value
+                // Always resolve a cycle range up-front; only THIS_MONTH consumes it
+                // today, but keeping a real Pair avoids nullable plumbing in the
+                // (non-suspend) filter helper.
+                val cycleRange = if (period == TimePeriod.THIS_MONTH) {
+                    getThisCycleRange()
+                } else {
+                    // Use a sentinel range — never read for non-THIS_MONTH branches.
+                    LocalDate.now() to LocalDate.now()
+                }
                 // Get all transactions without category filter applied
-                getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL)
+                getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL, cycleRange)
                     .collect { transactions ->
                         emit(transactions.map { it.category }.distinct().sorted())
                     }
@@ -669,8 +684,18 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
 
+                // Resolve the cycle window up-front so the inner (non-suspend)
+                // filter helper can reuse it for THIS_MONTH. Non-THIS_MONTH
+                // branches never read this — pass a sentinel pair to keep
+                // the helper signature non-nullable.
+                val cycleRange = if (period == TimePeriod.THIS_MONTH) {
+                    getThisCycleRange()
+                } else {
+                    LocalDate.now() to LocalDate.now()
+                }
+
                 // Get filtered transactions (without currency filter first)
-                getFilteredTransactions(query, period, category, categories, typeFilter)
+                getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
                     .collect { allTransactions ->
                         // Apply profile filter, then account filter
                         val transactions = filterTransactionsByAccount(
@@ -825,6 +850,17 @@ class TransactionsViewModel @Inject constructor(
         if (_selectedPeriod.value == TimePeriod.CUSTOM) {
             _selectedPeriod.value = TimePeriod.THIS_MONTH
         }
+    }
+
+    /**
+     * The "This Month" range for the Transactions tab. Honours the user's
+     * configured budget cycle start day (e.g. 25th → 24th) so the transactions
+     * list, totals, and analytics agree on the same window.
+     */
+    private suspend fun getThisCycleRange(): Pair<LocalDate, LocalDate> {
+        val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+        val (start, end) = BudgetCycle.currentCycle(LocalDate.now(), startDay)
+        return start to end
     }
 
     fun deleteTransaction(transaction: TransactionEntity) {
@@ -1053,7 +1089,11 @@ class TransactionsViewModel @Inject constructor(
         period: TimePeriod,
         category: String?,
         categories: List<String>?,
-        typeFilter: TransactionTypeFilter
+        typeFilter: TransactionTypeFilter,
+        // Resolved at the call site (which is in a coroutine) so the inner
+        // (non-suspend) Flow builder can branch on THIS_MONTH. For other
+        // periods this is ignored.
+        cycleRange: Pair<LocalDate, LocalDate>
     ): Flow<List<TransactionEntity>> {
         // Start with the base flow based on category filter
         val baseFlow = if (category != null) {
@@ -1111,7 +1151,7 @@ class TransactionsViewModel @Inject constructor(
                         "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
                     // Auto-correct the invalid state
                     _selectedPeriod.value = TimePeriod.THIS_MONTH
-                    val (startDate, endDate) = getDateRangeForPeriod(TimePeriod.THIS_MONTH)!!
+                    val (startDate, endDate) = cycleRange
                     val startDateTime = startDate.atStartOfDay()
                     val endDateTime = endDate.atTime(23, 59, 59)
                     categoriesFilteredFlow.map { transactions ->
@@ -1125,6 +1165,14 @@ class TransactionsViewModel @Inject constructor(
                     categoriesFilteredFlow.map { transactions ->
                         transactions.filter { it.dateTime in startDateTime..endDateTime }
                     }
+                }
+            }
+            TimePeriod.THIS_MONTH -> {
+                val (startDate, endDate) = cycleRange
+                val startDateTime = startDate.atStartOfDay()
+                val endDateTime = endDate.atTime(23, 59, 59)
+                categoriesFilteredFlow.map { transactions ->
+                    transactions.filter { it.dateTime in startDateTime..endDateTime }
                 }
             }
             else -> {

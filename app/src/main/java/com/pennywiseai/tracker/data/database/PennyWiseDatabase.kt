@@ -57,7 +57,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 54
+const val SCHEMA_VERSION = 55
 
 /**
  * The PennyWise Room database.
@@ -541,6 +541,35 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Drop the per-month budget snapshot tables. They stored a single
+         * reconstructed row per (year, month, budget) and assumed every
+         * budget was a monthly bucket — which made Weekly and One-time
+         * budgets invisible or mis-rendered on historical views. With the
+         * new cadence model the budget list is computed live per-window
+         * (see [com.pennywiseai.tracker.data.repository.windowsForMonth]),
+         * so the snapshot is no longer the source of truth for historical
+         * views.
+         *
+         * Destructive: existing per-month snapshots are gone after this
+         * migration runs. The live query reproduces the same data for any
+         * (year, month) the user navigates to, plus per-week sub-buckets
+         * for Weekly budgets that the snapshot couldn't represent.
+         */
+        val MIGRATION_54_55 = object : Migration(54, 55) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Clear — don't drop — the per-month snapshot tables. The
+                // tables remain in the schema because the backup format
+                // round-trips them as JSON; dropping them would cascade a
+                // larger refactor through BackupExporter/BackupImporter.
+                // The live per-window query in windowsForMonth is the new
+                // source of truth for historical views, so we just empty
+                // the tables.
+                db.execSQL("DELETE FROM `budget_category_month_snapshots`")
+                db.execSQL("DELETE FROM `budget_month_snapshots`")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -595,6 +624,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_51_52,
             MIGRATION_52_53,
             MIGRATION_53_54,
+            MIGRATION_54_55,
         )
     }
     

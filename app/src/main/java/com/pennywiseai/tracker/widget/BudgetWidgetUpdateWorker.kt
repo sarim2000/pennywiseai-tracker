@@ -18,7 +18,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import java.math.BigDecimal
@@ -180,7 +180,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 // Previous month savings for delta — same aggregator, same currency
                 // converters, so the delta isn't skewed by stale logic on either side.
                 val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
-                    transactions = raw.prevTransactions,
+                    transactions = raw.prevCycleTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
                         currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
@@ -204,7 +204,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 }
 
                 var prevIncome = BigDecimal.ZERO
-                for (txWithSplits in raw.prevTransactions) {
+                for (txWithSplits in raw.prevCycleTransactions) {
                     val tx = txWithSplits.transaction
                     if (tx.transactionType != TransactionType.INCOME) continue
                     if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&

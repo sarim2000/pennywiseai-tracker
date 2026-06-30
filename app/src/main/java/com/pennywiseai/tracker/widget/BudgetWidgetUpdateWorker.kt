@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import java.math.BigDecimal
 import java.math.RoundingMode
 import dagger.assisted.Assisted
@@ -71,10 +72,16 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             val currency = if (isUnifiedMode) displayCurrency else baseCurrency
 
             val today = java.time.LocalDate.now()
+            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+            val cycleStartYm = BudgetCycle.currentCycleStartYearMonth(today, startDay)
+            val prevCycle = BudgetCycle.previousCycle(
+                BudgetCycle.currentCycle(today, startDay), startDay
+            )
+            val prevCycleStartYm = java.time.YearMonth.from(prevCycle.first)
 
             val summary = if (isUnifiedMode) {
                 val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(
-                    today.year, today.monthValue
+                    cycleStartYm.year, cycleStartYm.monthValue
                 ).first()
 
                 // Reuse the same aggregator the Budgets screen uses so the widget
@@ -225,13 +232,12 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
-                    today.year, today.monthValue, currency
+                    cycleStartYm.year, cycleStartYm.monthValue, currency
                 ).first()
 
                 // Get previous month spending for delta calculation
-                val prevYearMonth = java.time.YearMonth.of(today.year, today.monthValue).minusMonths(1)
                 val prevSpending = budgetGroupRepository.getGroupSpending(
-                    prevYearMonth.year, prevYearMonth.monthValue, currency
+                    prevCycleStartYm.year, prevCycleStartYm.monthValue, currency
                 ).first()
 
                 val savingsDelta = spending.netSavings - prevSpending.netSavings

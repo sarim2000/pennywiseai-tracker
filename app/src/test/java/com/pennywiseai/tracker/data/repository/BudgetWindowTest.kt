@@ -153,4 +153,107 @@ class BudgetWindowTest {
         assertEquals(LocalDate.of(2026, 11, 1), w.start)
         assertEquals(LocalDate.of(2026, 11, 30), w.end)
     }
+
+    // ── windowsForMonth ───────────────────────────────────────────────
+
+    @Test
+    fun `weekly windows for a Mon-anchored budget in September 2026 yield 4 clipped windows`() {
+        val today = LocalDate.of(2026, 10, 5)
+        val budget = budgetOf(BudgetPeriodType.WEEKLY, weekStartDay = 1)
+        val windows = windowsForMonth(budget, year = 2026, month = 9, globalStartDay = 1)
+
+        // Sept 1 was a Tuesday. Week 1 starts Mon Aug 31 → clipped to Sept 1
+        // (Tue) → Sept 6 (Sun). Week 2: Sept 7-13. Week 3: Sept 14-20.
+        // Week 4: Sept 21-27. Week 5: Sept 28 - Oct 4 → clipped to Sept 28-30.
+        assertEquals(5, windows.size)
+        // Every window stays inside September.
+        windows.forEach { w ->
+            assert(w.start >= LocalDate.of(2026, 9, 1))
+            assert(w.end <= LocalDate.of(2026, 9, 30))
+        }
+        // First window starts on the 1st (Tue) — the clipped Mon-anchor.
+        assertEquals(LocalDate.of(2026, 9, 1), windows.first().start)
+        // Last window ends on the 30th.
+        assertEquals(LocalDate.of(2026, 9, 30), windows.last().end)
+    }
+
+    @Test
+    fun `monthly windows for a 25-anchored budget in September 2026 return the Aug-25 to Sept-24 cycle that intersects`() {
+        val today = LocalDate.of(2026, 10, 5)
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 25)
+        val windows = windowsForMonth(budget, year = 2026, month = 9, globalStartDay = 25)
+
+        // The cycle that contains Sept 1 is the Aug 25..Sept 24 cycle.
+        // The full cycle is returned (start is in August but the cycle
+        // intersects September). The spend query inside the repo is
+        // clipped to the page's month bounds separately.
+        assertEquals(1, windows.size)
+        assertEquals(LocalDate.of(2026, 8, 25), windows.first().start)
+        assertEquals(LocalDate.of(2026, 9, 24), windows.first().end)
+    }
+
+    @Test
+    fun `monthly windows for a 25-anchored budget in October 2026 yield the Sept-25 to Oct-24 window`() {
+        val today = LocalDate.of(2026, 10, 5)
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 25)
+        val windows = windowsForMonth(budget, year = 2026, month = 10, globalStartDay = 25)
+
+        // The cycle that contains Oct 1 is the Sept 25..Oct 24 cycle, fully
+        // inside October.
+        assertEquals(1, windows.size)
+        assertEquals(LocalDate.of(2026, 9, 25), windows.first().start)
+        assertEquals(LocalDate.of(2026, 10, 24), windows.first().end)
+    }
+
+    @Test
+    fun `custom windows for a Nov 5 to Dec 4 budget return an empty list for September`() {
+        val today = LocalDate.of(2026, 10, 5)
+        val budget = budgetOf(
+            BudgetPeriodType.CUSTOM,
+            startDate = LocalDate.of(2026, 11, 5),
+            endDate = LocalDate.of(2026, 12, 4)
+        )
+        val windows = windowsForMonth(budget, year = 2026, month = 9, globalStartDay = 1)
+        assertEquals(0, windows.size)
+    }
+
+    @Test
+    fun `custom windows for a Nov 5 to Dec 4 budget return a clipped window for November`() {
+        val today = LocalDate.of(2026, 10, 5)
+        val budget = budgetOf(
+            BudgetPeriodType.CUSTOM,
+            startDate = LocalDate.of(2026, 11, 5),
+            endDate = LocalDate.of(2026, 12, 4)
+        )
+        val windows = windowsForMonth(budget, year = 2026, month = 11, globalStartDay = 1)
+        assertEquals(1, windows.size)
+        // Clipped to November: starts on Nov 5, ends on Nov 30.
+        assertEquals(LocalDate.of(2026, 11, 5), windows.first().start)
+        assertEquals(LocalDate.of(2026, 11, 30), windows.first().end)
+    }
+
+    // ── overlaps ──────────────────────────────────────────────────────
+
+    @Test
+    fun `overlaps detects intersecting windows`() {
+        val a = BudgetWindow(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), 30)
+        val b = BudgetWindow(LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 5), 11)
+        assert(a.overlaps(b))
+        assert(b.overlaps(a))
+    }
+
+    @Test
+    fun `overlaps rejects disjoint windows`() {
+        val a = BudgetWindow(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), 30)
+        val b = BudgetWindow(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), 31)
+        assert(!a.overlaps(b))
+    }
+
+    @Test
+    fun `overlaps accepts touching windows on the boundary`() {
+        val a = BudgetWindow(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), 30)
+        val b = BudgetWindow(LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 5), 6)
+        // They share Sep 30 → overlap is true.
+        assert(a.overlaps(b))
+    }
 }

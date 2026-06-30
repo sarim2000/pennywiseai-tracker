@@ -6,11 +6,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetBucketInput
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +52,12 @@ data class BudgetGroupEditUiState(
     val typeSpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
+    /** The budget's start date. Editable via the date picker. */
+    val startDate: LocalDate = LocalDate.now(),
+    /** Read-only end date, auto-derived from [startDate] + [periodType]. */
+    val endDate: LocalDate = LocalDate.now(),
+    /** Weekly / Monthly / Custom. Drives how [endDate] is derived. */
+    val periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false
@@ -85,6 +94,14 @@ class BudgetGroupEditViewModel @Inject constructor(
             val yearMonth = YearMonth.from(today)
             val startDate = yearMonth.atDay(1).atStartOfDay()
             val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
+
+            // Default the new-budget start date to the user's current budget
+            // cycle start (e.g. Sep 25 if today is Oct 5 and startDay=25) so
+            // a fresh budget lands in the same window the home screen shows.
+            // Editing an existing budget overrides this below.
+            val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
+            val defaultStart = BudgetCycle.currentCycleStartYearMonth(today, cycleStartDay).atDay(1)
+            val defaultEnd = BudgetRepository.endDateFor(defaultStart, BudgetPeriodType.MONTHLY)
 
             val transactions = transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
             // Mirror the main budget screen's routing: type-bucket-eligible
@@ -132,6 +149,15 @@ class BudgetGroupEditViewModel @Inject constructor(
                         typeSpending = typeSpending,
                         currency = group.budget.currency,
                         availableCurrencies = currencies,
+                        // Editing: trust the budget's own persisted dates and
+                        // period type. The end date is just persisted metadata
+                        // — re-derive it from start + periodType so the
+                        // read-only label matches the live calc, even if an
+                        // older row's end_date is slightly off (e.g. a budget
+                        // created before this feature was added).
+                        startDate = group.budget.startDate,
+                        endDate = BudgetRepository.endDateFor(group.budget.startDate, group.budget.periodType),
+                        periodType = group.budget.periodType,
                         isLoading = false
                     )
                 }
@@ -142,6 +168,12 @@ class BudgetGroupEditViewModel @Inject constructor(
                     categorySpending = categorySpending,
                     typeSpending = typeSpending,
                     availableCurrencies = currencies,
+                    // Creating: seed the start to the current cycle start so
+                    // the budget lands in the same window the home screen
+                    // shows, with the end auto-derived.
+                    startDate = defaultStart,
+                    endDate = defaultEnd,
+                    periodType = BudgetPeriodType.MONTHLY,
                     isLoading = false
                 )
             }
@@ -237,6 +269,34 @@ class BudgetGroupEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(categories = current)
     }
 
+    /**
+     * Updates the budget's start date and re-derives the end date for the
+     * currently-selected period type. The end date is read-only, so this is
+     * the only place that mutates either — the screen just renders the
+     * recomputed value.
+     */
+    fun updateStartDate(date: LocalDate) {
+        val period = _uiState.value.periodType
+        _uiState.value = _uiState.value.copy(
+            startDate = date,
+            endDate = BudgetRepository.endDateFor(date, period)
+        )
+    }
+
+    /**
+     * Switches the period type (Weekly / Monthly / Custom) and re-derives the
+     * end date from the currently-set start date. Switching from a 1-month
+     * window to a 1-week window is intentional — the user explicitly chose
+     * the cadence and the start anchor they want.
+     */
+    fun updatePeriodType(period: BudgetPeriodType) {
+        val start = _uiState.value.startDate
+        _uiState.value = _uiState.value.copy(
+            periodType = period,
+            endDate = BudgetRepository.endDateFor(start, period)
+        )
+    }
+
     fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) return
@@ -259,7 +319,11 @@ class BudgetGroupEditViewModel @Inject constructor(
                     color = defaultColor,
                     buckets = buckets,
                     currency = state.currency,
-                    limitAmount = overallAmount
+                    limitAmount = overallAmount,
+                    // Pass the per-budget dates through; the repo recomputes
+                    // endDate from the budget's existing periodType.
+                    customStartDate = state.startDate,
+                    periodType = state.periodType
                 )
             } else {
                 budgetGroupRepository.createGroup(
@@ -268,7 +332,9 @@ class BudgetGroupEditViewModel @Inject constructor(
                     color = defaultColor,
                     buckets = buckets,
                     currency = state.currency,
-                    limitAmount = overallAmount
+                    limitAmount = overallAmount,
+                    customStartDate = state.startDate,
+                    periodType = state.periodType
                 )
             }
 

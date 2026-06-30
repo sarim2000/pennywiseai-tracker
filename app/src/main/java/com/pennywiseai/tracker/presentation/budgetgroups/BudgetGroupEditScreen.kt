@@ -230,9 +230,13 @@ fun BudgetGroupEditScreen(
                         val longDateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
 
                         // Cadence chip row — Weekly / Monthly / One-time.
-                        Row(
+                        // FlowRow wraps the "One-time" chip onto a new line
+                        // when the screen is too narrow to fit all three
+                        // horizontally, so the chips never get clipped.
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             listOf(
                                 BudgetPeriodType.WEEKLY to "Weekly (recurring)",

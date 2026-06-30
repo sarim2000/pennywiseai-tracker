@@ -11,7 +11,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetBucketInput
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.BudgetRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,12 +51,27 @@ data class BudgetGroupEditUiState(
     val typeSpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
-    /** The budget's start date. Editable via the date picker. */
-    val startDate: LocalDate = LocalDate.now(),
-    /** Read-only end date, auto-derived from [startDate] + [periodType]. */
-    val endDate: LocalDate = LocalDate.now(),
-    /** Weekly / Monthly / Custom. Drives how [endDate] is derived. */
+    /**
+     * The cadence this budget runs on.
+     *
+     *  - WEEKLY  — recurs every week starting on [weekStartDay] (1=Mon..7=Sun).
+     *              [startDate] / [endDate] are read-only and show the *current*
+     *              week window.
+     *  - MONTHLY — recurs every month starting on [monthStartDay] (1..31).
+     *              [startDate] / [endDate] are read-only and show the *current*
+     *              cycle window.
+     *  - CUSTOM  — one-time. [startDate] / [endDate] are user-picked literals
+     *              and don't roll.
+     */
     val periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY,
+    /** WEEKLY only. 1=Mon..7=Sun. */
+    val weekStartDay: Int = 1,
+    /** MONTHLY only. 1..31, clamped to the month's length at resolve time. */
+    val monthStartDay: Int = 1,
+    /** For CUSTOM: the literal start date. For other period types: read-only cache of the current window's start. */
+    val startDate: LocalDate = LocalDate.now(),
+    /** For CUSTOM: the literal end date. For other period types: read-only cache of the current window's end. */
+    val endDate: LocalDate = LocalDate.now(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false
@@ -95,14 +109,11 @@ class BudgetGroupEditViewModel @Inject constructor(
             val startDate = yearMonth.atDay(1).atStartOfDay()
             val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
 
-            // Default the new-budget start date to the user's current budget
-            // cycle start (e.g. Sep 25 if today is Oct 5 and startDay=25) so
-            // a fresh budget lands in the same window the home screen shows.
-            // Editing an existing budget overrides this below.
-            val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
-            val defaultStart = BudgetCycle.currentCycleStartYearMonth(today, cycleStartDay).atDay(1)
-            val defaultEnd = BudgetRepository.endDateFor(defaultStart, BudgetPeriodType.MONTHLY)
-
+            // The "spending hint" panel on the right of the budget amount
+            // ("Spent: $X") is computed from the calendar month regardless
+            // of cadence — it's a quick glance, not the authoritative spend
+            // figure. The authoritative spend figure is what the home card
+            // shows, which honours the budget's own period window.
             val transactions = transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
             // Mirror the main budget screen's routing: type-bucket-eligible
             // outflows (INVESTMENT) are summed per type, everything else per
@@ -140,40 +151,48 @@ class BudgetGroupEditViewModel @Inject constructor(
                             matchType = it.matchType
                         )
                     }
+                    val b = group.budget
                     _uiState.value = BudgetGroupEditUiState(
                         groupId = groupId,
-                        name = group.budget.name,
-                        overallAmount = if (group.budget.limitAmount.compareTo(BigDecimal.ZERO) == 0) "" else group.budget.limitAmount.toPlainString(),
+                        name = b.name,
+                        overallAmount = if (b.limitAmount.compareTo(BigDecimal.ZERO) == 0) "" else b.limitAmount.toPlainString(),
                         categories = assignedCategories,
                         categorySpending = categorySpending,
                         typeSpending = typeSpending,
-                        currency = group.budget.currency,
+                        currency = b.currency,
                         availableCurrencies = currencies,
-                        // Editing: trust the budget's own persisted dates and
-                        // period type. The end date is just persisted metadata
-                        // — re-derive it from start + periodType so the
-                        // read-only label matches the live calc, even if an
-                        // older row's end_date is slightly off (e.g. a budget
-                        // created before this feature was added).
-                        startDate = group.budget.startDate,
-                        endDate = BudgetRepository.endDateFor(group.budget.startDate, group.budget.periodType),
-                        periodType = group.budget.periodType,
+                        // Editing: trust the budget's own persisted period
+                        // type + anchor + dates. We re-derive the displayed
+                        // [startDate, endDate] window for WEEKLY / MONTHLY
+                        // from the anchor + today so the read-only label
+                        // always shows the *current* window — even for a
+                        // row created weeks/months ago.
+                        periodType = b.periodType,
+                        weekStartDay = b.weekStartDay?.coerceIn(1, 7) ?: 1,
+                        monthStartDay = b.monthStartDay ?: userPreferencesRepository.getBudgetCycleStartDay(),
+                        startDate = currentWindowStart(b, today, userPreferencesRepository.getBudgetCycleStartDay()),
+                        endDate = currentWindowEnd(b, today, userPreferencesRepository.getBudgetCycleStartDay()),
                         isLoading = false
                     )
                 }
             } else {
+                val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
+                val initialMonthStart = cycleStartDay
+                val (initialStart, initialEnd) = defaultMonthlyWindow(today, initialMonthStart)
                 _uiState.value = BudgetGroupEditUiState(
                     name = "Monthly Budget",
                     currency = currency,
                     categorySpending = categorySpending,
                     typeSpending = typeSpending,
                     availableCurrencies = currencies,
-                    // Creating: seed the start to the current cycle start so
-                    // the budget lands in the same window the home screen
-                    // shows, with the end auto-derived.
-                    startDate = defaultStart,
-                    endDate = defaultEnd,
+                    // Creating: default to Monthly anchored to the user's
+                    // global budget cycle start day. The user can flip the
+                    // chip to Weekly or One-time and the form rebuilds.
                     periodType = BudgetPeriodType.MONTHLY,
+                    weekStartDay = 1,
+                    monthStartDay = initialMonthStart,
+                    startDate = initialStart,
+                    endDate = initialEnd,
                     isLoading = false
                 )
             }
@@ -270,31 +289,78 @@ class BudgetGroupEditViewModel @Inject constructor(
     }
 
     /**
-     * Updates the budget's start date and re-derives the end date for the
-     * currently-selected period type. The end date is read-only, so this is
-     * the only place that mutates either — the screen just renders the
-     * recomputed value.
+     * Switches the period type. The form below the chip row rebuilds to
+     * match — Weekly shows a day-of-week dropdown, Monthly shows a
+     * day-of-month stepper, One-time shows two date pickers.
      */
-    fun updateStartDate(date: LocalDate) {
-        val period = _uiState.value.periodType
+    fun updatePeriodType(period: BudgetPeriodType) {
+        val today = LocalDate.now()
+        val current = _uiState.value
+        val (newStart, newEnd) = when (period) {
+            BudgetPeriodType.WEEKLY -> {
+                val s = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.of(current.weekStartDay)))
+                s to s.plusDays(6)
+            }
+            BudgetPeriodType.MONTHLY -> BudgetCycle.currentCycle(today, current.monthStartDay)
+            BudgetPeriodType.CUSTOM -> {
+                // Switching into One-time: keep the currently-displayed window
+                // as the user's starting point. They can edit both dates freely.
+                current.startDate to current.endDate
+            }
+        }
+        _uiState.value = current.copy(
+            periodType = period,
+            startDate = newStart,
+            endDate = newEnd
+        )
+    }
+
+    /** WEEKLY: which day-of-week the week starts on (1=Mon..7=Sun). */
+    fun updateWeekStartDay(day: Int) {
+        val safe = day.coerceIn(1, 7)
+        val today = LocalDate.now()
+        val start = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.of(safe)))
         _uiState.value = _uiState.value.copy(
-            startDate = date,
-            endDate = BudgetRepository.endDateFor(date, period)
+            weekStartDay = safe,
+            startDate = start,
+            endDate = start.plusDays(6)
+        )
+    }
+
+    /** MONTHLY: which day-of-month the cycle starts on (1..31). */
+    fun updateMonthStartDay(day: Int) {
+        val safe = BudgetCycle.clampStartDay(day)
+        val today = LocalDate.now()
+        val (s, e) = BudgetCycle.currentCycle(today, safe)
+        _uiState.value = _uiState.value.copy(
+            monthStartDay = safe,
+            startDate = s,
+            endDate = e
         )
     }
 
     /**
-     * Switches the period type (Weekly / Monthly / Custom) and re-derives the
-     * end date from the currently-set start date. Switching from a 1-month
-     * window to a 1-week window is intentional — the user explicitly chose
-     * the cadence and the start anchor they want.
+     * One-time only: update the literal start date. If the user picks a
+     * date on or after the current end, we push the end one day further
+     * so the window stays well-formed.
      */
-    fun updatePeriodType(period: BudgetPeriodType) {
-        val start = _uiState.value.startDate
-        _uiState.value = _uiState.value.copy(
-            periodType = period,
-            endDate = BudgetRepository.endDateFor(start, period)
-        )
+    fun updateStartDate(date: LocalDate) {
+        val current = _uiState.value
+        if (current.periodType != BudgetPeriodType.CUSTOM) return
+        val newEnd = if (!date.isBefore(current.endDate)) date.plusDays(1) else current.endDate
+        _uiState.value = current.copy(startDate = date, endDate = newEnd)
+    }
+
+    /**
+     * One-time only: update the literal end date. The end must be strictly
+     * after the start; if the user picks a date on or before the start we
+     * snap it to start+1 day.
+     */
+    fun updateEndDate(date: LocalDate) {
+        val current = _uiState.value
+        if (current.periodType != BudgetPeriodType.CUSTOM) return
+        val safe = if (!date.isAfter(current.startDate)) current.startDate.plusDays(1) else date
+        _uiState.value = current.copy(endDate = safe)
     }
 
     fun save() {
@@ -320,10 +386,11 @@ class BudgetGroupEditViewModel @Inject constructor(
                     buckets = buckets,
                     currency = state.currency,
                     limitAmount = overallAmount,
-                    // Pass the per-budget dates through; the repo recomputes
-                    // endDate from the budget's existing periodType.
-                    customStartDate = state.startDate,
-                    periodType = state.periodType
+                    periodType = state.periodType,
+                    weekStartDay = state.weekStartDay.takeIf { state.periodType == BudgetPeriodType.WEEKLY },
+                    monthStartDay = state.monthStartDay.takeIf { state.periodType == BudgetPeriodType.MONTHLY },
+                    startDate = state.startDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
+                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM }
                 )
             } else {
                 budgetGroupRepository.createGroup(
@@ -333,8 +400,11 @@ class BudgetGroupEditViewModel @Inject constructor(
                     buckets = buckets,
                     currency = state.currency,
                     limitAmount = overallAmount,
-                    customStartDate = state.startDate,
-                    periodType = state.periodType
+                    periodType = state.periodType,
+                    weekStartDay = state.weekStartDay.takeIf { state.periodType == BudgetPeriodType.WEEKLY },
+                    monthStartDay = state.monthStartDay.takeIf { state.periodType == BudgetPeriodType.MONTHLY },
+                    startDate = state.startDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
+                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM }
                 )
             }
 
@@ -357,5 +427,52 @@ class BudgetGroupEditViewModel @Inject constructor(
         private val ALL_TYPE_BUCKETS = listOf(
             TypeBucketOption(TransactionType.INVESTMENT.name, "Investments")
         )
+
+        /**
+         * Default Monthly window for a brand-new budget. Anchored to
+         * [monthStartDay] (the user's global budget cycle start day pref).
+         */
+        fun defaultMonthlyWindow(today: LocalDate, monthStartDay: Int): Pair<LocalDate, LocalDate> =
+            BudgetCycle.currentCycle(today, BudgetCycle.clampStartDay(monthStartDay))
+
+        /**
+         * Resolve the *current* window's start for an existing budget,
+         * honouring its period type and anchor. Used by the edit screen to
+         * keep the read-only "Ends on …" label accurate even for rows
+         * created weeks/months ago (whose persisted [startDate, endDate]
+         * cache is stale).
+         */
+        fun currentWindowStart(
+            budget: com.pennywiseai.tracker.data.database.entity.BudgetEntity,
+            today: LocalDate,
+            globalStartDay: Int
+        ): LocalDate = when (budget.periodType) {
+            BudgetPeriodType.WEEKLY -> today.with(
+                java.time.temporal.TemporalAdjusters.previousOrSame(
+                    java.time.DayOfWeek.of(budget.weekStartDay?.coerceIn(1, 7) ?: 1)
+                )
+            )
+            BudgetPeriodType.MONTHLY -> BudgetCycle.currentCycle(
+                today,
+                budget.monthStartDay?.let { BudgetCycle.clampStartDay(it) }
+                    ?: BudgetCycle.clampStartDay(globalStartDay)
+            ).first
+            BudgetPeriodType.CUSTOM -> budget.startDate
+        }
+
+        /** Mirror of [currentWindowStart] returning the end. */
+        fun currentWindowEnd(
+            budget: com.pennywiseai.tracker.data.database.entity.BudgetEntity,
+            today: LocalDate,
+            globalStartDay: Int
+        ): LocalDate = when (budget.periodType) {
+            BudgetPeriodType.WEEKLY -> currentWindowStart(budget, today, globalStartDay).plusDays(6)
+            BudgetPeriodType.MONTHLY -> BudgetCycle.currentCycle(
+                today,
+                budget.monthStartDay?.let { BudgetCycle.clampStartDay(it) }
+                    ?: BudgetCycle.clampStartDay(globalStartDay)
+            ).second
+            BudgetPeriodType.CUSTOM -> budget.endDate
+        }
     }
 }

@@ -99,10 +99,11 @@ class HomeViewModel @Inject constructor(
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
 
     /**
-     * The user's current budget cycle window (start, end). Recomputed when the
-     * start day pref changes; loaded once at init so callers can read a stable
-     * value for the lifetime of the screen. Used everywhere the home surface
-     * used to do `now.withDayOfMonth(1)..now.withDayOfMonth(lengthOfMonth())`.
+     * The user's current budget cycle window (start, end). Recomputed whenever
+     * the start day pref changes — used everywhere the home surface used to
+     * do `now.withDayOfMonth(1)..now.withDayOfMonth(lengthOfMonth())`. Exposed
+     * as a StateFlow so the greeting card / breakdown dialog can read the
+     * same window the data is bucketed against.
      */
     private val _currentCycleWindow = MutableStateFlow(
         BudgetCycle.currentCycle(LocalDate.now(), BudgetCycle.DEFAULT_START_DAY)
@@ -348,22 +349,30 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData() {
         viewModelScope.launch {
-            // Load current month breakdown by currency (filtered by business/personal).
+            // Load current cycle breakdown by currency (filtered by business/personal).
             // Loan-linked transactions are excluded — loan principal is shown separately
-            // as "Lent this month", and settlement losses are folded into expenses below.
-            val now = LocalDate.now()
-            val cycleStart = _currentCycleWindow.value.first
-            combine(
-                transactionRepository.getTransactionsBetweenDates(cycleStart, now),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { transactions, profileId, balances ->
-                val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                    .filter { it.loanId == null }
-                computeBreakdownByCurrency(nonLoan)
-            }.collect { breakdownByCurrency ->
-                updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
-            }
+            // as "Lent this cycle", and settlement losses are folded into expenses below.
+            //
+            // flatMapLatest on the cycle window so a start-day change (e.g. Settings
+            // → "25th" while the screen is open) cancels the in-flight query and
+            // re-fetches against the new window — without this, the captured
+            // cycleStart would go stale.
+            _currentCycleWindow
+                .flatMapLatest { (cycleStart, _) ->
+                    val now = LocalDate.now()
+                    transactionRepository.getTransactionsBetweenDates(cycleStart, now)
+                }
+                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
+                    transactions to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
+                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                        .filter { it.loanId == null }
+                    computeBreakdownByCurrency(nonLoan)
+                }
+                .collect { breakdownByCurrency ->
+                    updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
+                }
         }
         
         viewModelScope.launch {
@@ -453,180 +462,192 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load current month transactions by type (currency-filtered, business-filtered)
-            val (cycleStart, cycleEnd) = _currentCycleWindow.value
-
-            combine(
-                transactionRepository.getTransactionsBetweenDates(
-                    startDate = cycleStart,
-                    endDate = cycleEnd
-                ),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { transactions, profileId, balances ->
-                filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-            }.collect { transactions ->
-                updateTransactionTypeTotals(transactions)
-            }
+            // Load current cycle transactions by type (currency-filtered, business-filtered).
+            // Re-fires on cycle-window change via flatMapLatest.
+            _currentCycleWindow
+                .flatMapLatest { (cycleStart, cycleEnd) ->
+                    transactionRepository.getTransactionsBetweenDates(
+                        startDate = cycleStart,
+                        endDate = cycleEnd
+                    )
+                }
+                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
+                    transactions to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                }
+                .collect { transactions ->
+                    updateTransactionTypeTotals(transactions)
+                }
         }
 
         viewModelScope.launch {
-            // Track principal lent during the current month — surfaced separately from
-            // "Spent this month" so loan outflows don't masquerade as everyday spending.
+            // Track principal lent during the current cycle — surfaced separately from
+            // "Spent this cycle" so loan outflows don't masquerade as everyday spending.
             // Stored per-currency so updateUIStateForCurrency can resolve the right value
             // whenever the user switches currency tabs or unified mode toggles.
-            val (cycleStart, cycleEnd) = _currentCycleWindow.value
-            val startOfMonth = cycleStart.atStartOfDay()
-            val endOfMonth = cycleEnd.atTime(java.time.LocalTime.MAX)
-
-            combine(
-                loanRepository.getActiveLentTransactionsInPeriod(startOfMonth, endOfMonth),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { lentTxns, profileId, balances ->
-                val keys = buildProfileAccountKeys(balances)
-                filterTransactionsByProfile(lentTxns, profileId, keys)
-            }.collect { filtered ->
-                currentMonthLentByCurrency = filtered.groupBy { it.currency }.mapValues { (_, txs) ->
-                    // Honour partial-loan tagging: only the loan_contribution
-                    // portion of a transaction (when set) counts toward
-                    // "Lent this month"; falls back to the full amount for
-                    // legacy / full-amount transactions.
-                    txs.fold(BigDecimal.ZERO) { acc, tx -> acc + (tx.loanContribution ?: tx.amount) }
+            _currentCycleWindow
+                .flatMapLatest { (cycleStart, cycleEnd) ->
+                    val start = cycleStart.atStartOfDay()
+                    val end = cycleEnd.atTime(java.time.LocalTime.MAX)
+                    loanRepository.getActiveLentTransactionsInPeriod(start, end)
                 }
-                updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
-            }
+                .combine(userPreferencesRepository.selectedProfileId) { lentTxns, profileId ->
+                    lentTxns to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (lentTxns, profileId), balances ->
+                    val keys = buildProfileAccountKeys(balances)
+                    filterTransactionsByProfile(lentTxns, profileId, keys)
+                }
+                .collect { filtered ->
+                    currentMonthLentByCurrency = filtered.groupBy { it.currency }.mapValues { (_, txs) ->
+                        // Honour partial-loan tagging: only the loan_contribution
+                        // portion of a transaction (when set) counts toward
+                        // "Lent this cycle"; falls back to the full amount for
+                        // legacy / full-amount transactions.
+                        txs.fold(BigDecimal.ZERO) { acc, tx -> acc + (tx.loanContribution ?: tx.amount) }
+                    }
+                    updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+                }
         }
 
         viewModelScope.launch {
-            // Track losses on LENT loans settled this month. Each loss feeds back into the
-            // displayed "Spent this month" via updateUIStateForCurrency.
+            // Track losses on LENT loans settled this cycle. Each loss feeds back into the
+            // displayed "Spent this cycle" via updateUIStateForCurrency.
             //
             // LoanEntity has no profile column, so the profile filter is applied via the
             // source EXPENSE transaction (same bank+account → same profile).
-            val (cycleStart, cycleEnd) = _currentCycleWindow.value
-            val startOfMonth = cycleStart.atStartOfDay()
-            val endOfMonth = cycleEnd.atTime(java.time.LocalTime.MAX)
-
-            combine(
-                loanRepository.getLentLoansSettledInPeriod(startOfMonth, endOfMonth),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { settledLoans, profileId, balances ->
-                Triple(settledLoans, profileId, balances)
-            }.collect { (settledLoans, profileId, balances) ->
-                val keys = buildProfileAccountKeys(balances)
-                val byCurrency = mutableMapOf<String, BigDecimal>()
-                for (loan in settledLoans) {
-                    val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
-                    // Null sourceTx means the loan has no live linked transaction (all were
-                    // unlinked or deleted). Skip entirely — without a transaction we can't
-                    // attribute the loss to any profile, and treating null as "include
-                    // everywhere" would double-count it for users with multiple profiles.
-                    val belongsToProfile = sourceTx != null &&
-                        filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
-                    if (!belongsToProfile) continue
-
-                    val loss = loanRepository.getSettlementLoss(loan)
-                    if (loss > BigDecimal.ZERO) {
-                        byCurrency.merge(loan.currency, loss) { a, b -> a + b }
-                    }
+            _currentCycleWindow
+                .flatMapLatest { (cycleStart, cycleEnd) ->
+                    val start = cycleStart.atStartOfDay()
+                    val end = cycleEnd.atTime(java.time.LocalTime.MAX)
+                    loanRepository.getLentLoansSettledInPeriod(start, end)
                 }
-                currentMonthLoanLossByCurrency = byCurrency
-                updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
-            }
+                .combine(userPreferencesRepository.selectedProfileId) { settledLoans, profileId ->
+                    settledLoans to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (settledLoans, profileId), balances ->
+                    val keys = buildProfileAccountKeys(balances)
+                    val byCurrency = mutableMapOf<String, BigDecimal>()
+                    for (loan in settledLoans) {
+                        val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
+                        // Null sourceTx means the loan has no live linked transaction (all were
+                        // unlinked or deleted). Skip entirely — without a transaction we can't
+                        // attribute the loss to any profile, and treating null as "include
+                        // everywhere" would double-count it for users with multiple profiles.
+                        val belongsToProfile = sourceTx != null &&
+                            filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
+                        if (!belongsToProfile) continue
+
+                        val loss = loanRepository.getSettlementLoss(loan)
+                        if (loss > BigDecimal.ZERO) {
+                            byCurrency.merge(loan.currency, loss) { a, b -> a + b }
+                        }
+                    }
+                    currentMonthLoanLossByCurrency = byCurrency
+                    updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+                }
         }
 
         viewModelScope.launch {
-            // Load last month breakdown by currency (filtered by business/personal)
+            // Load previous-cycle breakdown by currency (filtered by business/personal)
             // "Last month" here means "previous cycle" so the comparison lines up with the
             // custom start day (a user on the 25th-of-month cycle sees 25th→24th vs
             // 25th→24th, not 1st→today vs 1st→today).
-            val current = _currentCycleWindow.value
-            val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-            val (lastMonthStart, lastMonthEnd) = BudgetCycle.previousCycle(current, startDay)
-            combine(
-                transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { transactions, profileId, balances ->
-                val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                    .filter { it.loanId == null }
-                computeBreakdownByCurrency(nonLoan)
-            }.collect { breakdownByCurrency ->
-                updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
-            }
+            _currentCycleWindow
+                .flatMapLatest { current ->
+                    val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+                    val (lastMonthStart, lastMonthEnd) = BudgetCycle.previousCycle(current, startDay)
+                    transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd)
+                }
+                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
+                    transactions to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
+                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                        .filter { it.loanId == null }
+                    computeBreakdownByCurrency(nonLoan)
+                }
+                .collect { breakdownByCurrency ->
+                    updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
+                }
         }
 
         viewModelScope.launch {
-            // Load cumulative spending sparkline for current month + last month comparison
+            // Load cumulative spending sparkline for current cycle + previous cycle comparison
             val now = LocalDate.now()
-            val (firstOfMonth, cycleEnd) = _currentCycleWindow.value
-            val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-            val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
-
-            combine(
-                transactionRepository.getTransactionsBetweenDates(
-                    startDate = lastMonthStart,
-                    endDate = now
-                ),
-                userPreferencesRepository.selectedProfileId,
-                _cachedAccountBalances.filterNotNull()
-            ) { allTransactions, profileId, balances ->
-                filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
-            }.collect { allTransactions ->
-                val selectedCurrency = _uiState.value.selectedCurrency
-                val isUnified = _uiState.value.isUnifiedMode
-
-                // Split into current month and last month
-                val currentMonthTxs = allTransactions.filter { it.dateTime.toLocalDate() >= firstOfMonth }
-                val lastMonthTxs = allTransactions.filter {
-                    val d = it.dateTime.toLocalDate()
-                    d >= lastMonthStart && d < firstOfMonth
+            _currentCycleWindow
+                .flatMapLatest { (firstOfMonth, cycleEnd) ->
+                    val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+                    val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
+                    transactionRepository.getTransactionsBetweenDates(
+                        startDate = lastMonthStart,
+                        endDate = now
+                    )
                 }
-
-                // Net daily expense (EXPENSE adds, Refund subtracts) for both
-                // months, then cumulative below clamps at zero so refunds pull the
-                // sparkline endpoint in lockstep with the displayed "Spent" stat.
-                val dailySums = buildDailyNetExpense(currentMonthTxs, isUnified, selectedCurrency)
-                val lastMonthDailySums = buildDailyNetExpense(lastMonthTxs, isUnified, selectedCurrency)
-
-                // Carry the running total forward unclamped (so a refund dated
-                // before the first expense still counts) and only clamp the value
-                // we display, so the chart endpoint matches the month-level floor
-                // applied to "Spent this month" in computeBreakdownByCurrency.
-                val cumulativeList = mutableListOf<BigDecimal>()
-                var runningNet = BigDecimal.ZERO
-                var day = firstOfMonth
-                while (!day.isAfter(now)) {
-                    runningNet += (dailySums[day] ?: BigDecimal.ZERO)
-                    cumulativeList.add(runningNet.coerceAtLeast(BigDecimal.ZERO))
-                    day = day.plusDays(1)
+                .combine(userPreferencesRepository.selectedProfileId) { allTransactions, profileId ->
+                    allTransactions to profileId
                 }
-
-                // Match the "same period" comparison the legacy code used: walk the
-                // previous cycle for as many days as today's day-of-cycle, so an
-                // Oct-5 vs Sep-25..Oct-4 chart isn't accidentally drawn over the
-                // full previous cycle.
-                val daysToInclude = ChronoUnit.DAYS.between(firstOfMonth, now).toInt() + 1
-                val lastMonthCumulative = mutableListOf<BigDecimal>()
-                var lastRunningNet = BigDecimal.ZERO
-                var lastDay = lastMonthStart
-                var dayCount = 0
-                while (dayCount < daysToInclude && lastDay < firstOfMonth) {
-                    lastRunningNet += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
-                    lastMonthCumulative.add(lastRunningNet.coerceAtLeast(BigDecimal.ZERO))
-                    lastDay = lastDay.plusDays(1)
-                    dayCount++
+                .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
+                    filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
                 }
+                .collect { allTransactions ->
+                    val (firstOfMonth, _) = _currentCycleWindow.value
+                    val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+                    val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to _currentCycleWindow.value.second, startDay)
+                    val selectedCurrency = _uiState.value.selectedCurrency
+                    val isUnified = _uiState.value.isUnifiedMode
 
-                _uiState.value = _uiState.value.copy(
-                    spendingHistory = cumulativeList,
-                    balanceHistory = cumulativeList,
-                    lastMonthSpendingHistory = lastMonthCumulative
-                )
-                calculateMonthlyChange()
-            }
+                    // Split into current cycle and previous cycle
+                    val currentMonthTxs = allTransactions.filter { it.dateTime.toLocalDate() >= firstOfMonth }
+                    val lastMonthTxs = allTransactions.filter {
+                        val d = it.dateTime.toLocalDate()
+                        d >= lastMonthStart && d < firstOfMonth
+                    }
+
+                    // Net daily expense (EXPENSE adds, Refund subtracts) for both
+                    // months, then cumulative below clamps at zero so refunds pull the
+                    // sparkline endpoint in lockstep with the displayed "Spent" stat.
+                    val dailySums = buildDailyNetExpense(currentMonthTxs, isUnified, selectedCurrency)
+                    val lastMonthDailySums = buildDailyNetExpense(lastMonthTxs, isUnified, selectedCurrency)
+
+                    // Carry the running total forward unclamped (so a refund dated
+                    // before the first expense still counts) and only clamp the value
+                    // we display, so the chart endpoint matches the month-level floor
+                    // applied to "Spent this cycle" in computeBreakdownByCurrency.
+                    val cumulativeList = mutableListOf<BigDecimal>()
+                    var runningNet = BigDecimal.ZERO
+                    var day = firstOfMonth
+                    while (!day.isAfter(now)) {
+                        runningNet += (dailySums[day] ?: BigDecimal.ZERO)
+                        cumulativeList.add(runningNet.coerceAtLeast(BigDecimal.ZERO))
+                        day = day.plusDays(1)
+                    }
+
+                    // Match the "same period" comparison the legacy code used: walk the
+                    // previous cycle for as many days as today's day-of-cycle, so an
+                    // Oct-5 vs Sep-25..Oct-4 chart isn't accidentally drawn over the
+                    // full previous cycle.
+                    val daysToInclude = ChronoUnit.DAYS.between(firstOfMonth, now).toInt() + 1
+                    val lastMonthCumulative = mutableListOf<BigDecimal>()
+                    var lastRunningNet = BigDecimal.ZERO
+                    var lastDay = lastMonthStart
+                    var dayCount = 0
+                    while (dayCount < daysToInclude && lastDay < firstOfMonth) {
+                        lastRunningNet += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
+                        lastMonthCumulative.add(lastRunningNet.coerceAtLeast(BigDecimal.ZERO))
+                        lastDay = lastDay.plusDays(1)
+                        dayCount++
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        spendingHistory = cumulativeList,
+                        balanceHistory = cumulativeList,
+                        lastMonthSpendingHistory = lastMonthCumulative
+                    )
+                    calculateMonthlyChange()
+                }
         }
 
         viewModelScope.launch {
@@ -810,18 +831,24 @@ class HomeViewModel @Inject constructor(
             combine(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
-                userPreferencesRepository.baseCurrency
-            ) { unifiedMode, displayCurrency, baseCurrency ->
-                Triple(unifiedMode, displayCurrency, baseCurrency)
-            }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency) ->
-                val today = LocalDate.now()
+                userPreferencesRepository.baseCurrency,
+                _currentCycleWindow
+            ) { unifiedMode, displayCurrency, baseCurrency, cycle ->
+                Quad(unifiedMode, displayCurrency, baseCurrency, cycle)
+            }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency, cycle) ->
+                // Pass the cycle-start (year, month) to the budget repo so a user
+                // on the 25th-of-month cycle navigates to the right bucket —
+                // October 5 with startDay=25 should land in the Sep 25..Oct 24
+                // window (startYearMonth = 2026-9), not October.
+                val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+                val cycleStartYm = BudgetCycle.currentCycleStartYearMonth(cycle.first, startDay)
                 if (unifiedMode) {
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(today.year, today.monthValue)
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(cycleStartYm.year, cycleStartYm.monthValue)
                         .map { raw ->
                             mapRawToConvertedSummary(raw, displayCurrency, baseCurrency)
                         }
                 } else {
-                    budgetGroupRepository.getGroupSpending(today.year, today.monthValue, baseCurrency)
+                    budgetGroupRepository.getGroupSpending(cycleStartYm.year, cycleStartYm.monthValue, baseCurrency)
                 }
             }.collect { summary ->
                 _uiState.value = _uiState.value.copy(
@@ -1507,4 +1534,11 @@ data class LoanSummary(
     val activeLoans: List<LoanEntity>,
     val totalLentRemaining: BigDecimal,
     val totalBorrowedRemaining: BigDecimal
+)
+
+private data class Quad<A, B, C, D>(
+    val a: A,
+    val b: B,
+    val c: C,
+    val d: D
 )

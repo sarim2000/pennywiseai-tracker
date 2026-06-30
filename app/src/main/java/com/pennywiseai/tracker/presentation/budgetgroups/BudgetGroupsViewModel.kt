@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
@@ -18,17 +19,21 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 data class BudgetGroupsUiState(
@@ -54,9 +59,35 @@ class BudgetGroupsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BudgetGroupsUiState())
     val uiState: StateFlow<BudgetGroupsUiState> = _uiState.asStateFlow()
 
-    private val _selectedYearMonth = MutableStateFlow(YearMonth.now())
+    // Defaults to the user's current budget-cycle start (e.g. Sep 2026 on
+    // Oct 5 with startDay=25) so opening the screen lands on the cycle that
+    // contains today, not the calendar month. Once the user navigates
+    // forwards/backwards via the month picker, we stop overriding.
+    private val _selectedYearMonth = MutableStateFlow<YearMonth?>(null)
+    private val selectedYearMonth: StateFlow<YearMonth> = _selectedYearMonth
+        .filterNotNull()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = YearMonth.now()
+        )
 
     init {
+        // Seed the default to the cycle's start month, then react to changes
+        // to the start day so the picker snaps back to the new current cycle
+        // when the user hasn't navigated yet.
+        viewModelScope.launch {
+            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+            _selectedYearMonth.value = BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.budgetCycleStartDay.collect { startDay ->
+                if (_selectedYearMonth.value == null) {
+                    _selectedYearMonth.value =
+                        BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
+                }
+            }
+        }
         loadBudgetData()
     }
 
@@ -66,7 +97,7 @@ class BudgetGroupsViewModel @Inject constructor(
                 userPreferencesRepository.baseCurrency,
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
-                _selectedYearMonth
+                selectedYearMonth
             ) { baseCurrency, unifiedMode, displayCurrency, yearMonth ->
                 data class Params(val baseCurrency: String, val unifiedMode: Boolean, val displayCurrency: String, val yearMonth: YearMonth)
                 Params(baseCurrency, unifiedMode, displayCurrency, yearMonth)
@@ -87,7 +118,7 @@ class BudgetGroupsViewModel @Inject constructor(
                 userPreferencesRepository.baseCurrency,
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
-                _selectedYearMonth
+                selectedYearMonth
             ) { baseCurrency, unifiedMode, displayCurrency, yearMonth ->
                 data class SpendingParams(val displayCurrency: String, val baseCurrency: String, val unifiedMode: Boolean, val yearMonth: YearMonth)
                 SpendingParams(if (unifiedMode) displayCurrency else baseCurrency, baseCurrency, unifiedMode, yearMonth)
@@ -144,10 +175,16 @@ class BudgetGroupsViewModel @Inject constructor(
             }
         )
 
-        // Pre-compute converted category amounts per transaction for pace chart
-        val yearMonth = _selectedYearMonth.value
-        val daysInMonth = yearMonth.lengthOfMonth()
-        val effectiveDays = raw.daysElapsed.coerceAtMost(daysInMonth)
+        // Pre-compute converted category amounts per transaction for pace chart.
+        // The pace chart is calibrated against the actual budget cycle (e.g.
+        // Sep 25..Oct 24 = 30 days) — not the calendar month — so the daily
+        // budget line reflects the cycle the user picked, not a 31-day October.
+        val yearMonth = selectedYearMonth.value
+        val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+        val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(yearMonth.atDay(1), startDay)
+        val daysInCycle = ChronoUnit.DAYS.between(cycleStart, cycleEnd).toInt() + 1
+        val daysInMonth = daysInCycle
+        val effectiveDays = raw.daysElapsed.coerceAtMost(daysInCycle)
 
         data class ConvertedTxDay(val day: Int, val categoryAmounts: Map<String, Double>)
         val convertedTxDays = raw.allTransactions.mapNotNull { txWithSplits ->
@@ -342,18 +379,24 @@ class BudgetGroupsViewModel @Inject constructor(
     }
 
     fun selectPreviousMonth() {
-        _selectedYearMonth.value = _selectedYearMonth.value.minusMonths(1)
+        _selectedYearMonth.value = selectedYearMonth.value.minusMonths(1)
     }
 
     fun selectNextMonth() {
-        val next = _selectedYearMonth.value.plusMonths(1)
+        val next = selectedYearMonth.value.plusMonths(1)
         if (!next.isAfter(YearMonth.now())) {
             _selectedYearMonth.value = next
         }
     }
 
     fun selectCurrentMonth() {
-        _selectedYearMonth.value = YearMonth.now()
+        // Jump to the user's current budget cycle, not the calendar month.
+        // For startDay=25 on Oct 5 this lands on the Sep 25..Oct 24 cycle.
+        viewModelScope.launch {
+            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+            _selectedYearMonth.value =
+                BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
+        }
     }
 
     fun deleteGroup(budgetId: Long) {

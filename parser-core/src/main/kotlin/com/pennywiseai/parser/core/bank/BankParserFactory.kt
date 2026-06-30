@@ -83,6 +83,12 @@ object BankParserFactory {
         NMBTanzaniaParser(),  // NMB Bank Plc (Tanzania) — shares NMB sender with Nepal NMB; must precede it so content-aware dispatch tries TZS/Swahili first
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         ManjushreeFinanceParser(), // Manjushree Finance (Nepal)
+        CitizensBankParser(),  // Citizens Bank International (Nepal) — CTZN_ALERT (must be before SiddharthaBankParser to avoid SBL match on NSBL)
+        MachchhapuchreBankParser(),  // Machchhapuchchhre Bank (Nepal) — MBL_ALERT
+        StandardCharteredNepalParser(),  // Standard Chartered Bank Nepal (Nepal) — SC_ALERT
+        LumbiniBikashBankParser(),  // Lumbini Bikash Bank (Nepal) — LBBL_SMART
+        NepalBankParser(),  // Nepal Bank Limited (Nepal) — NBL_Alert
+        NepalSBIBankParser(),  // Nepal SBI Bank (Nepal) — NSBL_ALERT (must be before SiddharthaBankParser to avoid SBL match on NSBL sender)
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
         PrimeCommercialBankParser(),  // Prime Commercial Bank (Nepal)
         MPesaMozambiqueParser(),  // M-Pesa Mozambique (must be before Tanzania & Kenya; gates on Portuguese "Confirmado" + "MT")

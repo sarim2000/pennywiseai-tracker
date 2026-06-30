@@ -24,7 +24,7 @@ class MachchhapuchreBankParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Debit - Withdrawal",
-                message = "Dear ARUN,NPR 3,190.00 Withdrawn from your A/C ###0018 on 29/03/2026 Remarks: medicine,K Available Bal: 20532.09. For app: http://bit.ly/3QZrCFj",
+                message = "Dear CUSTOMER,NPR 3,190.00 Withdrawn from your A/C ###0018 on 29/03/2026 Remarks: medicine,K Available Bal: 20532.09. For app: http://bit.ly/3QZrCFj",
                 sender = "MBL_ALERT",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3190.00"),
@@ -38,7 +38,7 @@ class MachchhapuchreBankParserTest {
             ),
             ParserTestCase(
                 name = "Credit - Deposit",
-                message = "Dear ARUN,NPR 50,000.00 Deposited in your A/C ###0018 on 26/02/2026 Remarks: Salary (Ma Available Bal: 55652.24. For app: http://bit.ly/3QZrCFj",
+                message = "Dear CUSTOMER,NPR 50,000.00 Deposited in your A/C ###0018 on 26/02/2026 Remarks: Salary (Ma Available Bal: 55652.24. For app: http://bit.ly/3QZrCFj",
                 sender = "MBL_ALERT",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("50000.00"),
@@ -71,7 +71,7 @@ class MachchhapuchreBankParserTest {
                 bankName = "Machchhapuchchhre Bank",
                 sender = "MBL_ALERT",
                 currency = "NPR",
-                message = "Dear ARUN,NPR 3,190.00 Withdrawn from your A/C ###0018 on 29/03/2026 Remarks: medicine,K Available Bal: 20532.09. For app: http://bit.ly/3QZrCFj",
+                message = "Dear CUSTOMER,NPR 3,190.00 Withdrawn from your A/C ###0018 on 29/03/2026 Remarks: medicine,K Available Bal: 20532.09. For app: http://bit.ly/3QZrCFj",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3190.00"),
                     currency = "NPR",

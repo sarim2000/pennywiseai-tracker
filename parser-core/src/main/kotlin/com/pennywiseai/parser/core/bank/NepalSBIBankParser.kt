@@ -11,7 +11,7 @@ class NepalSBIBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val s = sender.uppercase()
-        return s == "NSBL_ALERT"
+        return s == "NSBI_ALERT"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -41,7 +41,7 @@ class NepalSBIBankParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         val lower = message.lowercase()
         if (lower.contains("atm")) return "ATM Withdrawal"
-        val refPattern = Regex("""Ref:\s*([^.\n]+)""", RegexOption.IGNORE_CASE)
+        val refPattern = Regex("""Ref:\s*([^.,\n]+)""", RegexOption.IGNORE_CASE)
         refPattern.find(message)?.let { match ->
             val merchant = cleanMerchantName(match.groupValues[1].trim())
             if (isValidMerchantName(merchant)) return merchant

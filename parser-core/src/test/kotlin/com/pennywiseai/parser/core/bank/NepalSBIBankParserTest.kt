@@ -24,8 +24,8 @@ class NepalSBIBankParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Credit - deposit",
-                message = "Your A/c XX0673 Credited by NPR 20000.00 on 08-06-2026 16:35:06,Ref: 664406213/. -NSBL\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
-                sender = "NSBL_ALERT",
+                message = "Your A/c XX0673 Credited by NPR 20000.00 on 08-06-2026 16:35:06,Ref: 664406213/. -NSBI\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
+                sender = "NSBI_ALERT",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("20000.00"),
                     currency = "NPR",
@@ -36,21 +36,21 @@ class NepalSBIBankParserTest {
             ),
             ParserTestCase(
                 name = "Debit - expense",
-                message = "Your A/c XX0673 Debited by NPR 400000.00 on 08-06-2026 12:49:04,Ref: MEERA LUIT. -NSBL\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
-                sender = "NSBL_ALERT",
+                message = "Your A/c XX0673 Debited by NPR 400000.00 on 08-06-2026 12:49:04,Ref: MERCHANT NAME. -NSBI\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
+                sender = "NSBI_ALERT",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("400000.00"),
                     currency = "NPR",
                     type = TransactionType.EXPENSE,
                     accountLast4 = "0673",
-                    reference = "MEERA LUIT"
+                    reference = "MERCHANT NAME"
                 )
             )
         )
 
         val handleCases = listOf(
-            "NSBL_ALERT" to true,
-            "NSBL" to false
+            "NSBI_ALERT" to true,
+            "NSBI" to false
         )
 
         return ParserTestUtils.runTestSuite(
@@ -66,9 +66,9 @@ class NepalSBIBankParserTest {
         val cases = listOf(
             SimpleTestCase(
                 bankName = "Nepal SBI Bank",
-                sender = "NSBL_ALERT",
+                sender = "NSBI_ALERT",
                 currency = "NPR",
-                message = "Your A/c XX0673 Credited by NPR 20000.00 on 08-06-2026 16:35:06,Ref: 664406213/. -NSBL\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
+                message = "Your A/c XX0673 Credited by NPR 20000.00 on 08-06-2026 16:35:06,Ref: 664406213/. -NSBI\nDownload YONO Nepal SBI by clicking bit.ly/4e0NYk8 for A/c balance.",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("20000.00"),
                     currency = "NPR",

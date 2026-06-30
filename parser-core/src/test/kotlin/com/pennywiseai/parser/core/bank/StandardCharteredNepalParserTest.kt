@@ -43,6 +43,18 @@ class StandardCharteredNepalParserTest {
                     type = TransactionType.INCOME,
                     accountLast4 = "1234"
                 )
+            ),
+            ParserTestCase(
+                name = "Expense - ATM withdrawal",
+                message = "NPR 5,000.00 has been debited from your account 3301 at ATM.",
+                sender = "SC_ALERT",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "NPR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "3301",
+                    merchant = "ATM Withdrawal"
+                )
             )
         )
 

@@ -43,9 +43,8 @@ class CitizensBankParser : BankParser() {
         remarksPattern.find(message)?.let { match ->
             val raw = match.groupValues[1].trim()
             val upper = raw.uppercase()
-            if (upper.startsWith("ATM") || upper.contains("VISA")) {
-                return "ATM Withdrawal"
-            }
+            if (upper.startsWith("ATM")) return "ATM Withdrawal"
+            if (upper.contains("VISA")) return "VISA Transaction"
             val merchant = cleanMerchantName(
                 if (raw.contains("/")) raw.substringBefore("/") else raw
             )

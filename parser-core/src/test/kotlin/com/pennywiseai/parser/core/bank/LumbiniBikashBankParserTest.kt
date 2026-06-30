@@ -24,14 +24,14 @@ class LumbiniBikashBankParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Debit - withdrawal with eSewa",
-                message = "Dear Customer, NPR 1,199.00 has been withdrawn from your A/C 050######4545 on 28/04/2026 16:40. Remarks: 98412334556 Load eSewa;8234454",
+                message = "Dear Customer, NPR 1,199.00 has been withdrawn from your A/C 050######4545 on 28/04/2026 16:40. Remarks: 9841XXXXXXX Load eSewa;8234454",
                 sender = "LBBL_SMART",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1199.00"),
                     currency = "NPR",
                     type = TransactionType.EXPENSE,
                     accountLast4 = "4545",
-                    reference = "98412334556 Load eSewa"
+                    reference = "9841XXXXXXX Load eSewa"
                 )
             ),
             ParserTestCase(
@@ -68,7 +68,7 @@ class LumbiniBikashBankParserTest {
                 bankName = "Lumbini Bikash Bank",
                 sender = "LBBL_SMART",
                 currency = "NPR",
-                message = "Dear Customer, NPR 1,199.00 has been withdrawn from your A/C 050######4545 on 28/04/2026 16:40. Remarks: 98412334556 Load eSewa;8234454",
+                message = "Dear Customer, NPR 1,199.00 has been withdrawn from your A/C 050######4545 on 28/04/2026 16:40. Remarks: 9841XXXXXXX Load eSewa;8234454",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1199.00"),
                     currency = "NPR",

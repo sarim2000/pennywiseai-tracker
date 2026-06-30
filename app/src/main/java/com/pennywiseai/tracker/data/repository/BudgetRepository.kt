@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -271,7 +272,11 @@ class BudgetRepository @Inject constructor(
     /**
      * Calculate start and end dates based on period type.
      */
-    fun calculatePeriodDates(periodType: BudgetPeriodType, customStartDate: LocalDate? = null): Pair<LocalDate, LocalDate> {
+    fun calculatePeriodDates(
+        periodType: BudgetPeriodType,
+        customStartDate: LocalDate? = null,
+        startDay: Int = BudgetCycle.DEFAULT_START_DAY
+    ): Pair<LocalDate, LocalDate> {
         val today = LocalDate.now()
         return when (periodType) {
             BudgetPeriodType.WEEKLY -> {
@@ -280,9 +285,8 @@ class BudgetRepository @Inject constructor(
                 startOfWeek to endOfWeek
             }
             BudgetPeriodType.MONTHLY -> {
-                val startOfMonth = today.withDayOfMonth(1)
-                val endOfMonth = today.with(TemporalAdjusters.lastDayOfMonth())
-                startOfMonth to endOfMonth
+                val (start, end) = BudgetCycle.currentCycle(today, startDay)
+                start to end
             }
             BudgetPeriodType.CUSTOM -> {
                 val start = customStartDate ?: today
@@ -294,13 +298,15 @@ class BudgetRepository @Inject constructor(
     /**
      * Renew a budget for the next period (for recurring budgets).
      */
-    suspend fun renewBudget(budget: BudgetEntity) {
+    suspend fun renewBudget(budget: BudgetEntity, startDay: Int = BudgetCycle.DEFAULT_START_DAY) {
         val (newStartDate, newEndDate) = when (budget.periodType) {
             BudgetPeriodType.WEEKLY -> {
                 budget.endDate.plusDays(1) to budget.endDate.plusDays(7)
             }
             BudgetPeriodType.MONTHLY -> {
-                budget.endDate.plusDays(1) to budget.endDate.plusMonths(1)
+                val newStart = BudgetCycle.nextCycleStart(budget.endDate.plusDays(1), startDay)
+                val newEnd = BudgetCycle.nextCycleStart(newStart, startDay).minusDays(1)
+                newStart to newEnd
             }
             BudgetPeriodType.CUSTOM -> {
                 // Custom budgets don't auto-renew

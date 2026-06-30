@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
@@ -58,6 +59,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -95,6 +97,17 @@ class HomeViewModel @Inject constructor(
     // SMS scanning work progress tracking
     private val _smsScanWorkInfo = MutableStateFlow<WorkInfo?>(null)
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
+
+    /**
+     * The user's current budget cycle window (start, end). Recomputed when the
+     * start day pref changes; loaded once at init so callers can read a stable
+     * value for the lifetime of the screen. Used everywhere the home surface
+     * used to do `now.withDayOfMonth(1)..now.withDayOfMonth(lengthOfMonth())`.
+     */
+    private val _currentCycleWindow = MutableStateFlow(
+        BudgetCycle.currentCycle(LocalDate.now(), BudgetCycle.DEFAULT_START_DAY)
+    )
+    val currentCycleWindow: StateFlow<Pair<LocalDate, LocalDate>> = _currentCycleWindow.asStateFlow()
 
     // Store currency breakdown maps for quick access when switching currencies
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
@@ -138,6 +151,19 @@ class HomeViewModel @Inject constructor(
         loadBaseCurrency()
         observeSelectedProfile()
         observeProfiles()
+        observeBudgetCycle()
+    }
+
+    /**
+     * Recompute the current cycle window whenever the user's start day changes
+     * (or once on first emission). Cheap: just two `LocalDate` reads + arithmetic.
+     */
+    private fun observeBudgetCycle() {
+        userPreferencesRepository.budgetCycleStartDay
+            .onEach { startDay ->
+                _currentCycleWindow.value = BudgetCycle.currentCycle(LocalDate.now(), startDay)
+            }
+            .launchIn(viewModelScope)
     }
 
     fun toggleBalanceVisibility() {
@@ -326,9 +352,9 @@ class HomeViewModel @Inject constructor(
             // Loan-linked transactions are excluded — loan principal is shown separately
             // as "Lent this month", and settlement losses are folded into expenses below.
             val now = LocalDate.now()
-            val startOfMonth = now.withDayOfMonth(1)
+            val cycleStart = _currentCycleWindow.value.first
             combine(
-                transactionRepository.getTransactionsBetweenDates(startOfMonth, now),
+                transactionRepository.getTransactionsBetweenDates(cycleStart, now),
                 userPreferencesRepository.selectedProfileId,
                 _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
@@ -428,14 +454,12 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load current month transactions by type (currency-filtered, business-filtered)
-            val now = java.time.LocalDate.now()
-            val startOfMonth = now.withDayOfMonth(1)
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth())
+            val (cycleStart, cycleEnd) = _currentCycleWindow.value
 
             combine(
                 transactionRepository.getTransactionsBetweenDates(
-                    startDate = startOfMonth,
-                    endDate = endOfMonth
+                    startDate = cycleStart,
+                    endDate = cycleEnd
                 ),
                 userPreferencesRepository.selectedProfileId,
                 _cachedAccountBalances.filterNotNull()
@@ -451,9 +475,9 @@ class HomeViewModel @Inject constructor(
             // "Spent this month" so loan outflows don't masquerade as everyday spending.
             // Stored per-currency so updateUIStateForCurrency can resolve the right value
             // whenever the user switches currency tabs or unified mode toggles.
-            val now = LocalDate.now()
-            val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(java.time.LocalTime.MAX)
+            val (cycleStart, cycleEnd) = _currentCycleWindow.value
+            val startOfMonth = cycleStart.atStartOfDay()
+            val endOfMonth = cycleEnd.atTime(java.time.LocalTime.MAX)
 
             combine(
                 loanRepository.getActiveLentTransactionsInPeriod(startOfMonth, endOfMonth),
@@ -480,9 +504,9 @@ class HomeViewModel @Inject constructor(
             //
             // LoanEntity has no profile column, so the profile filter is applied via the
             // source EXPENSE transaction (same bank+account → same profile).
-            val now = LocalDate.now()
-            val startOfMonth = now.withDayOfMonth(1).atStartOfDay()
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth()).atTime(java.time.LocalTime.MAX)
+            val (cycleStart, cycleEnd) = _currentCycleWindow.value
+            val startOfMonth = cycleStart.atStartOfDay()
+            val endOfMonth = cycleEnd.atTime(java.time.LocalTime.MAX)
 
             combine(
                 loanRepository.getLentLoansSettledInPeriod(startOfMonth, endOfMonth),
@@ -515,12 +539,12 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load last month breakdown by currency (filtered by business/personal)
-            val now = LocalDate.now()
-            val dayOfMonth = now.dayOfMonth
-            val lastMonth = now.minusMonths(1)
-            val lastMonthStart = lastMonth.withDayOfMonth(1)
-            val lastMonthMaxDay = minOf(dayOfMonth, lastMonth.lengthOfMonth())
-            val lastMonthEnd = lastMonth.withDayOfMonth(lastMonthMaxDay)
+            // "Last month" here means "previous cycle" so the comparison lines up with the
+            // custom start day (a user on the 25th-of-month cycle sees 25th→24th vs
+            // 25th→24th, not 1st→today vs 1st→today).
+            val current = _currentCycleWindow.value
+            val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+            val (lastMonthStart, lastMonthEnd) = BudgetCycle.previousCycle(current, startDay)
             combine(
                 transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd),
                 userPreferencesRepository.selectedProfileId,
@@ -537,8 +561,9 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Load cumulative spending sparkline for current month + last month comparison
             val now = LocalDate.now()
-            val firstOfMonth = now.withDayOfMonth(1)
-            val lastMonthStart = firstOfMonth.minusMonths(1)
+            val (firstOfMonth, cycleEnd) = _currentCycleWindow.value
+            val startDay = userPreferencesRepository.budgetCycleStartDay.first()
+            val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
 
             combine(
                 transactionRepository.getTransactionsBetweenDates(
@@ -579,7 +604,11 @@ class HomeViewModel @Inject constructor(
                     day = day.plusDays(1)
                 }
 
-                val daysToInclude = now.dayOfMonth
+                // Match the "same period" comparison the legacy code used: walk the
+                // previous cycle for as many days as today's day-of-cycle, so an
+                // Oct-5 vs Sep-25..Oct-4 chart isn't accidentally drawn over the
+                // full previous cycle.
+                val daysToInclude = ChronoUnit.DAYS.between(firstOfMonth, now).toInt() + 1
                 val lastMonthCumulative = mutableListOf<BigDecimal>()
                 var lastRunningNet = BigDecimal.ZERO
                 var lastDay = lastMonthStart
@@ -1061,13 +1090,11 @@ class HomeViewModel @Inject constructor(
 
         // Also refresh transaction type totals for new currency
         viewModelScope.launch {
-            val now = java.time.LocalDate.now()
-            val startOfMonth = now.withDayOfMonth(1)
-            val endOfMonth = now.withDayOfMonth(now.lengthOfMonth())
+            val (cycleStart, cycleEnd) = _currentCycleWindow.value
 
             val allTransactions = transactionRepository.getTransactionsBetweenDates(
-                startDate = startOfMonth,
-                endDate = endOfMonth
+                startDate = cycleStart,
+                endDate = cycleEnd
             ).first()
             val transactions = filterTransactions(allTransactions)
             updateTransactionTypeTotals(transactions)

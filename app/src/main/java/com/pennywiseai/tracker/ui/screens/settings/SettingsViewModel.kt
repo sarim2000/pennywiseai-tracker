@@ -126,6 +126,10 @@ class SettingsViewModel @Inject constructor(
     // Number format style (digit grouping: Auto / Indian / International)
     val numberFormatStyle = userPreferencesRepository.numberFormatStyle
 
+    // Budget cycle start day (1..31). Drives Home/Budgets/Analytics so a user
+    // whose salary doesn't land on the 1st can define their own pay cycle.
+    val budgetCycleStartDay = userPreferencesRepository.budgetCycleStartDay
+
     // Main account selection (drives the default currency unless overridden above).
     val accounts: StateFlow<List<AccountBalanceEntity>> =
         accountBalanceRepository.getAllLatestBalances()
@@ -638,6 +642,12 @@ class SettingsViewModel @Inject constructor(
     fun updateNumberFormatStyle(style: NumberFormatStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateNumberFormatStyle(style)
+        }
+    }
+
+    fun updateBudgetCycleStartDay(day: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateBudgetCycleStartDay(day)
         }
     }
 

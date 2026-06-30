@@ -11,6 +11,7 @@ object BankParserFactory {
         HDFCMutualFundParser(),  // HDFC Mutual Fund (must be before HDFCBankParser to avoid interception by HDFC's broad DLT pattern)
         NaviMutualFundParser(),  // Navi Mutual Fund (AMC SIP / unit-allotment SMS — NAVAMC sender)
         HDFCBankParser(),
+        NepalSBIBankParser(),      // Nepal SBI Bank (Nepal) — NSBI_ALERT (must be before SBIBankParser to avoid SBI-match on NSBI sender)
         SBIBankParser(),
         SaraswatBankParser(),
         DBSBankParser(),
@@ -83,6 +84,11 @@ object BankParserFactory {
         NMBTanzaniaParser(),  // NMB Bank Plc (Tanzania) — shares NMB sender with Nepal NMB; must precede it so content-aware dispatch tries TZS/Swahili first
         NMBBankParser(),  // NMB Bank / Nabil Bank (Nepal)
         ManjushreeFinanceParser(), // Manjushree Finance (Nepal)
+        CitizensBankParser(),      // Citizens Bank International (Nepal) — CTZN_ALERT
+        MachchhapuchreBankParser(),  // Machchhapuchchhre Bank (Nepal) — MBL_ALERT
+        StandardCharteredNepalParser(),  // Standard Chartered Bank Nepal (Nepal) — SC_ALERT
+        LumbiniBikashBankParser(),  // Lumbini Bikash Bank (Nepal) — LBBL_SMART
+        NepalBankParser(),  // Nepal Bank Limited (Nepal) — NBL_Alert
         SiddharthaBankParser(),  // Siddhartha Bank Limited (Nepal)
         PrimeCommercialBankParser(),  // Prime Commercial Bank (Nepal)
         MPesaMozambiqueParser(),  // M-Pesa Mozambique (must be before Tanzania & Kenya; gates on Portuguese "Confirmado" + "MT")

@@ -72,19 +72,31 @@ class BudgetGroupRepository @Inject constructor(
         currency: String,
         buckets: List<BudgetBucketInput> = emptyList(),
         displayOrder: Int = -1,
-        limitAmount: BigDecimal? = null
+        limitAmount: BigDecimal? = null,
+        // Per-budget start date. When non-null, the budget's [startDate, endDate]
+        // window is anchored to this date and the global cycle preference is
+        // ignored. When null, falls back to today's calendar month (legacy
+        // behaviour).
+        customStartDate: LocalDate? = null,
+        periodType: BudgetPeriodType = BudgetPeriodType.MONTHLY
     ): Long {
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val now = LocalDate.now()
         val yearMonth = YearMonth.from(now)
+        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+        val (startDate, endDate) = BudgetRepository.calculatePeriodDates(
+            periodType = periodType,
+            customStartDate = customStartDate,
+            startDay = startDay
+        )
 
         val budget = BudgetEntity(
             name = name,
             limitAmount = totalAmount,
-            periodType = BudgetPeriodType.MONTHLY,
-            startDate = yearMonth.atDay(1),
-            endDate = yearMonth.atEndOfMonth(),
+            periodType = periodType,
+            startDate = startDate,
+            endDate = endDate,
             currency = currency,
             isActive = true,
             includeAllCategories = buckets.isEmpty(),
@@ -120,10 +132,26 @@ class BudgetGroupRepository @Inject constructor(
         color: String,
         buckets: List<BudgetBucketInput>,
         currency: String? = null,
-        limitAmount: BigDecimal? = null
+        limitAmount: BigDecimal? = null,
+        // Per-budget start date. When non-null, the [startDate, endDate] window
+        // is recomputed from this date and the budget's existing periodType.
+        // When null, the existing dates are left untouched.
+        customStartDate: LocalDate? = null,
+        periodType: BudgetPeriodType? = null
     ) {
         val existing = budgetDao.getBudgetById(budgetId) ?: return
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
+        val effectivePeriod = periodType ?: existing.periodType
+        val (newStart, newEnd) = if (customStartDate != null) {
+            val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+            BudgetRepository.calculatePeriodDates(
+                periodType = effectivePeriod,
+                customStartDate = customStartDate,
+                startDay = startDay
+            )
+        } else {
+            existing.startDate to existing.endDate
+        }
 
         budgetDao.updateBudget(
             existing.copy(
@@ -132,6 +160,9 @@ class BudgetGroupRepository @Inject constructor(
                 color = color,
                 currency = currency ?: existing.currency,
                 limitAmount = totalAmount,
+                periodType = effectivePeriod,
+                startDate = newStart,
+                endDate = newEnd,
                 includeAllCategories = buckets.isEmpty(),
                 updatedAt = LocalDateTime.now()
             )

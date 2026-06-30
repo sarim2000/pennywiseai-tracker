@@ -58,12 +58,19 @@ fun GreetingCard(
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
     isProEntitled: Boolean = false,
-    onUpgradeClick: () -> Unit = {}
+    onUpgradeClick: () -> Unit = {},
+    // The last day of the user's current budget cycle. When null, the
+    // subtitle falls back to the calendar month's end. The "X days left in
+    // <month>" line then tracks the cycle (e.g. "4 days left in October" on
+    // Oct 20 with startDay=25, where the cycle ends Oct 24).
+    cycleEnd: LocalDate? = null
 ) {
     val today = LocalDate.now()
-    val subtitle = remember(today) {
+    val subtitle = remember(today, cycleEnd) {
         val now = today
-        val lastDay = now.withDayOfMonth(now.lengthOfMonth())
+        // Prefer the cycle's end over the calendar month's end so the
+        // "X days left" hint lines up with the budget / spending windows.
+        val lastDay = cycleEnd ?: now.withDayOfMonth(now.lengthOfMonth())
         val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
         val rawMonth = now.month.name.lowercase()
         val monthName = if (rawMonth.isEmpty()) rawMonth else rawMonth.substring(0, 1).uppercase() + rawMonth.substring(1)

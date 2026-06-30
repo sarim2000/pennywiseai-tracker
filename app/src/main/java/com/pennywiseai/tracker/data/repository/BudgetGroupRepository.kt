@@ -15,9 +15,11 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -36,6 +38,24 @@ class BudgetGroupRepository @Inject constructor(
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
+    /**
+     * Resolves the actual [start, end] window for the budget cycle that begins
+     * in the calendar month `(year, month)`, given the user's configurable
+     * [startDay] (1..31). The end is the day before the next cycle's start,
+     * which keeps consecutive cycles non-overlapping and gap-free even when
+     * [startDay] exceeds the length of an intermediate month (e.g. Feb 30/31).
+     */
+    private fun cycleWindow(year: Int, month: Int, startDay: Int): Pair<LocalDate, LocalDate> {
+        val cycleStart = YearMonth.of(year, month).atDay(1).let { firstOfMonth ->
+            val safe = startDay.coerceIn(1, 31)
+            val max = firstOfMonth.lengthOfMonth()
+            firstOfMonth.withDayOfMonth(safe.coerceAtMost(max))
+        }
+        val cycleEnd = BudgetCycle.nextCycleStart(cycleStart, startDay).minusDays(1)
+        return cycleStart to cycleEnd
+    }
+
+
     fun getActiveGroups(): Flow<List<BudgetWithCategories>> =
         budgetDao.getActiveBudgetsWithCategories()
 
@@ -247,20 +267,25 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
-        val yearMonth = YearMonth.of(year, month)
-        val startDate = yearMonth.atDay(1).atStartOfDay()
-        val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
         val today = LocalDate.now()
-        val isCurrentMonth = yearMonth == YearMonth.from(today)
-        val daysElapsed = if (isCurrentMonth) today.dayOfMonth else yearMonth.lengthOfMonth()
-        val daysRemaining = if (isCurrentMonth) {
-            (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
+        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+        val (cycleStart, cycleEnd) = cycleWindow(year, month, startDay)
+        val startDate = cycleStart.atStartOfDay()
+        val endDate = cycleEnd.atTime(23, 59, 59)
+        val isCurrentCycle = cycleStart <= today && today <= cycleEnd
+        val daysElapsed = if (isCurrentCycle) {
+            (ChronoUnit.DAYS.between(cycleStart, today).toInt() + 1).coerceAtLeast(1)
+        } else {
+            (ChronoUnit.DAYS.between(cycleStart, cycleEnd).toInt() + 1)
+        }
+        val daysRemaining = if (isCurrentCycle) {
+            (ChronoUnit.DAYS.between(today, cycleEnd).toInt() + 1).coerceAtLeast(0)
         } else {
             0
         }
-        val daysInMonth = yearMonth.lengthOfMonth()
+        val daysInMonth = (ChronoUnit.DAYS.between(cycleStart, cycleEnd).toInt() + 1)
 
-        return if (isCurrentMonth) {
+        return if (isCurrentCycle) {
             combine(
                 budgetDao.getActiveBudgetsWithCategories(),
                 transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
@@ -269,7 +294,7 @@ class BudgetGroupRepository @Inject constructor(
             }
         } else {
             flow {
-                val groups = getGroupsForMonth(year, month)
+                val groups = getGroupsForMonth(cycleEnd.year, cycleEnd.monthValue)
                 transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency)
                     .collect { allTransactions ->
                         emit(buildSummary(groups, allTransactions, daysElapsed, daysRemaining, currency, daysInMonth))
@@ -279,22 +304,27 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     fun getGroupSpendingAllCurrencies(year: Int, month: Int): Flow<BudgetGroupSpendingRaw> {
-        val yearMonth = YearMonth.of(year, month)
-        val startDate = yearMonth.atDay(1).atStartOfDay()
-        val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
         val today = LocalDate.now()
-        val isCurrentMonth = yearMonth == YearMonth.from(today)
-        val daysElapsed = if (isCurrentMonth) today.dayOfMonth else yearMonth.lengthOfMonth()
-        val daysRemaining = if (isCurrentMonth) {
-            (ChronoUnit.DAYS.between(today, yearMonth.atEndOfMonth()).toInt() + 1).coerceAtLeast(0)
+        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+        val (cycleStart, cycleEnd) = cycleWindow(year, month, startDay)
+        val startDate = cycleStart.atStartOfDay()
+        val endDate = cycleEnd.atTime(23, 59, 59)
+        val isCurrentCycle = cycleStart <= today && today <= cycleEnd
+        val daysElapsed = if (isCurrentCycle) {
+            (ChronoUnit.DAYS.between(cycleStart, today).toInt() + 1).coerceAtLeast(1)
+        } else {
+            (ChronoUnit.DAYS.between(cycleStart, cycleEnd).toInt() + 1)
+        }
+        val daysRemaining = if (isCurrentCycle) {
+            (ChronoUnit.DAYS.between(today, cycleEnd).toInt() + 1).coerceAtLeast(0)
         } else {
             0
         }
-        val prevMonth = yearMonth.minusMonths(1)
-        val prevStartDate = prevMonth.atDay(1).atStartOfDay()
-        val prevEndDate = prevMonth.atEndOfMonth().atTime(23, 59, 59)
+        val (prevStart, prevEnd) = BudgetCycle.previousCycle(cycleStart to cycleEnd, startDay)
+        val prevStartDate = prevStart.atStartOfDay()
+        val prevEndDate = prevEnd.atTime(23, 59, 59)
 
-        return if (isCurrentMonth) {
+        return if (isCurrentCycle) {
             combine(
                 budgetDao.getActiveBudgetsWithCategories(),
                 transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
@@ -310,7 +340,7 @@ class BudgetGroupRepository @Inject constructor(
             }
         } else {
             flow {
-                val groups = getGroupsForMonth(year, month)
+                val groups = getGroupsForMonth(cycleEnd.year, cycleEnd.monthValue)
                 combine(
                     transactionSplitDao.getTransactionsWithSplitsAllCurrencies(startDate, endDate),
                     transactionSplitDao.getTransactionsWithSplitsAllCurrencies(prevStartDate, prevEndDate)

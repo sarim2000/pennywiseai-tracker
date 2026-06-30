@@ -271,6 +271,12 @@ class BudgetRepository @Inject constructor(
 
     /**
      * Calculate start and end dates based on period type.
+     *
+     * When [customStartDate] is provided, it becomes the budget's start — the
+     * global [startDay] preference is ignored and the window is anchored to the
+     * user's chosen date. This lets a budget run on a non-cycle cadence
+     * (e.g. a "vacation" budget that starts on Aug 15 regardless of the
+     * user's 25th-of-month cycle).
      */
     fun calculatePeriodDates(
         periodType: BudgetPeriodType,
@@ -278,6 +284,12 @@ class BudgetRepository @Inject constructor(
         startDay: Int = BudgetCycle.DEFAULT_START_DAY
     ): Pair<LocalDate, LocalDate> {
         val today = LocalDate.now()
+        // When the caller pins a start date, ignore the global cycle and
+        // anchor the window to that date. Used by the BudgetGroup edit screen
+        // so each budget can have its own start regardless of the cycle pref.
+        if (customStartDate != null) {
+            return customStartDate to endDateFor(customStartDate, periodType)
+        }
         return when (periodType) {
             BudgetPeriodType.WEEKLY -> {
                 val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -289,9 +301,60 @@ class BudgetRepository @Inject constructor(
                 start to end
             }
             BudgetPeriodType.CUSTOM -> {
-                val start = customStartDate ?: today
-                start to start.plusMonths(1)
+                // Legacy path: caller didn't pin a date, so fall back to today.
+                // The BudgetGroup edit screen always pins a date now, so this
+                // branch is only reached by the older BudgetRepository callers.
+                today to today.plusMonths(1)
             }
+        }
+    }
+
+    companion object {
+        /**
+         * Calculate start and end dates based on period type. Companion-object
+         * mirror of the instance method so the BudgetGroup repo can call it
+         * without an instance (and without dragging in a whole new dependency).
+         *
+         * [today] is a test seam — production callers should leave it default
+         * and the call reads `LocalDate.now()`; tests pin a fixed date to
+         * keep the assertions deterministic.
+         */
+        fun calculatePeriodDates(
+            periodType: BudgetPeriodType,
+            customStartDate: LocalDate? = null,
+            startDay: Int = BudgetCycle.DEFAULT_START_DAY,
+            today: LocalDate = LocalDate.now()
+        ): Pair<LocalDate, LocalDate> {
+            if (customStartDate != null) {
+                return customStartDate to endDateFor(customStartDate, periodType)
+            }
+            return when (periodType) {
+                BudgetPeriodType.WEEKLY -> {
+                    val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    val endOfWeek = startOfWeek.plusDays(6)
+                    startOfWeek to endOfWeek
+                }
+                BudgetPeriodType.MONTHLY -> {
+                    val (start, end) = BudgetCycle.currentCycle(today, startDay)
+                    start to end
+                }
+                BudgetPeriodType.CUSTOM -> {
+                    today to today.plusMonths(1)
+                }
+            }
+        }
+
+        /**
+         * Derive the [endDate] for a budget that starts on [start] and runs for
+         * one [periodType]. Kept small and side-effect-free so the edit screen
+         * can call it on every keystroke of the start-date picker to re-render
+         * the read-only "Ends on …" label. Lives on the companion object so
+         * [BudgetGroupRepository] can call it without an instance.
+         */
+        fun endDateFor(start: LocalDate, periodType: BudgetPeriodType): LocalDate = when (periodType) {
+            BudgetPeriodType.WEEKLY -> start.plusDays(6)
+            BudgetPeriodType.MONTHLY -> start.plusMonths(1).minusDays(1)
+            BudgetPeriodType.CUSTOM -> start.plusDays(29)
         }
     }
 

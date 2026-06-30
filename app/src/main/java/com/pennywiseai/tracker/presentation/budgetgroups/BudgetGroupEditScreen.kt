@@ -48,7 +48,10 @@ import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +64,7 @@ fun BudgetGroupEditScreen(
     var showAddCategoryDropdown by remember { mutableStateOf(false) }
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingAmount by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
@@ -204,6 +208,106 @@ fun BudgetGroupEditScreen(
                     onNameDone = { isEditingName = false },
                     onAmountDone = { isEditingAmount = false }
                 )
+            }
+
+            // Budget Period — custom start date + period-type chips. The end
+            // date is read-only and auto-derived by the viewmodel, so the
+            // user only ever picks the start anchor and the cadence.
+            item {
+                SectionHeaderV2(title = "Budget Period")
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
+                        // Start date row — tap to open the Material 3 date picker.
+                        // Shows the formatted date and a calendar icon so the
+                        // affordance is discoverable even when the user only
+                        // came to edit the amount.
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showStartDatePicker = true }
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Start date",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = uiState.startDate.format(dateFormatter),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = Dimensions.Alpha.divider
+                            )
+                        )
+
+                        // Read-only end date. Re-derives from the picked
+                        // start + period type on every state change so the
+                        // user sees the window they're about to save.
+                        val periodLabel = when (uiState.periodType) {
+                            BudgetPeriodType.WEEKLY -> "Weekly"
+                            BudgetPeriodType.MONTHLY -> "Monthly"
+                            BudgetPeriodType.CUSTOM -> "Custom"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EventAvailable,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Ends on",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${uiState.endDate.format(dateFormatter)} · $periodLabel",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+
+                        // Period-type chip row. The start-date anchor stays
+                        // fixed when the cadence changes; only the
+                        // derived end date moves.
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            listOf(
+                                BudgetPeriodType.WEEKLY to "Weekly",
+                                BudgetPeriodType.MONTHLY to "Monthly",
+                                BudgetPeriodType.CUSTOM to "Custom"
+                            ).forEach { (period, label) ->
+                                FilterChip(
+                                    selected = uiState.periodType == period,
+                                    onClick = { viewModel.updatePeriodType(period) },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Categories Section
@@ -357,6 +461,30 @@ fun BudgetGroupEditScreen(
         }
 
         // Delete confirmation dialog
+        if (showStartDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = uiState.startDate.toEpochDay() * 86_400_000
+            )
+            DatePickerDialog(
+                onDismissRequest = { showStartDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            viewModel.updateStartDate(LocalDate.ofEpochDay(millis / 86_400_000))
+                        }
+                        showStartDatePicker = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showStartDatePicker = false }) {
+                        Text("Cancel")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },

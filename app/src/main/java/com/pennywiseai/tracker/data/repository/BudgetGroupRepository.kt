@@ -706,6 +706,83 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 
+    /**
+     * Per-category breakdown for a single window of a budget. Powers the
+     * Budget History "View breakdown" bottom sheet — same shape as the
+     * Budget Groups page's per-card category list, but scoped to one
+     * window (one week for Weekly, one cycle for Monthly, the literal
+     * range for One-time).
+     */
+    suspend fun getBudgetWindowBreakdown(
+        budget: BudgetEntity,
+        window: BudgetWindow,
+        currency: String
+    ): WindowBreakdown {
+        val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
+            window.start.atStartOfDay(),
+            window.end.atTime(23, 59, 59),
+            currency
+        ).first()
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            transactions = txs,
+            convertSplit = { _, amount -> amount },
+            convertIncome = { tx -> tx.amount }
+        )
+        val groups = budgetDao.getActiveBudgetsWithCategories().first()
+        val group = groups.firstOrNull { it.budget.id == budget.id }
+        // daysElapsed for the per-row "dailySpend" is the window's day
+        // count. It's an integer for the per-row math only; the sheet
+        // doesn't care about the historical / current distinction.
+        val days = window.days.coerceAtLeast(1)
+        val categorySpending = if (group != null) {
+            group.categories.map { cat ->
+                val actual = if (cat.matchType != null) {
+                    typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                } else {
+                    categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                }
+                val boost = if (cat.matchType != null) BigDecimal.ZERO
+                    else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                val effectiveBudget = cat.budgetAmount + boost
+                val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+                val dailySpend = if (actual > BigDecimal.ZERO) {
+                    actual.divide(BigDecimal(days), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
+                BudgetCategorySpending(
+                    categoryName = cat.categoryName,
+                    budgetAmount = effectiveBudget,
+                    actualAmount = actual,
+                    percentageUsed = pctUsed,
+                    dailySpend = dailySpend
+                )
+            }
+        } else {
+            // "Tracking all expenses" budget (no per-cat allocations):
+            // show one synthetic row with the total. Match the main
+            // card's behaviour for isTrackingAllExpenses = true.
+            emptyList()
+        }
+        val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
+            if (gLimit > BigDecimal.ZERO) gLimit
+            else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+        }
+        val totalActual = if (categorySpending.isNotEmpty()) {
+            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+        } else {
+            // No per-cat breakdown → report the window total.
+            sumExpensesForWindow(txs)
+        }
+        return WindowBreakdown(
+            window = window,
+            categorySpending = categorySpending,
+            totalBudget = totalBudget,
+            totalActual = totalActual,
+            isTrackingAll = group?.categories?.isEmpty() == true
+        )
+    }
+
     private suspend fun buildSummaryFromWindows(
         group: BudgetWithCategories,
         displayWindow: BudgetWindow,

@@ -7,7 +7,9 @@ import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
+import com.pennywiseai.tracker.data.repository.WindowBreakdown
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
@@ -34,7 +36,13 @@ data class BudgetHistoryUiState(
     val totalSpent: BigDecimal = BigDecimal.ZERO,
     val currency: String = "INR",
     val baseCurrency: String = "INR",
-    val budgetAmount: BigDecimal = BigDecimal.ZERO
+    val budgetAmount: BigDecimal = BigDecimal.ZERO,
+    /**
+     * The per-window category breakdown currently shown in the bottom
+     * sheet. Null when the sheet is dismissed. Set by [loadBreakdown].
+     */
+    val breakdown: WindowBreakdown? = null,
+    val isLoadingBreakdown: Boolean = false
 )
 
 /**
@@ -121,5 +129,37 @@ class BudgetHistoryViewModel @Inject constructor(
                 budgetAmount = budget.limitAmount
             )
         }
+    }
+
+    /**
+     * Load the per-category breakdown for [window] and show it in the
+     * bottom sheet. Idempotent — calling it twice on the same window is
+     * a no-op. Calling it on a different window replaces the existing
+     * sheet content.
+     */
+    fun loadBreakdown(window: BudgetWindow) {
+        val budget = _uiState.value.budget ?: return
+        if (_uiState.value.breakdown?.window == window && !_uiState.value.isLoadingBreakdown) return
+        _uiState.value = _uiState.value.copy(
+            isLoadingBreakdown = true,
+            breakdown = _uiState.value.breakdown?.takeIf { it.window == window }
+        )
+        viewModelScope.launch {
+            val currency = _uiState.value.currency
+            val breakdown = budgetGroupRepository.getBudgetWindowBreakdown(
+                budget = budget,
+                window = window,
+                currency = currency
+            )
+            _uiState.value = _uiState.value.copy(
+                breakdown = breakdown,
+                isLoadingBreakdown = false
+            )
+        }
+    }
+
+    /** Dismiss the bottom sheet without changing the loaded breakdown. */
+    fun dismissBreakdown() {
+        _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
 }

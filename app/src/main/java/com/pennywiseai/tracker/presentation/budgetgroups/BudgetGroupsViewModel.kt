@@ -187,11 +187,19 @@ class BudgetGroupsViewModel @Inject constructor(
         //  - run the per-window transactions through the same aggregation
         //    used by the single-currency path, but with currency conversion.
         val groupSpendings = raw.budgetsWithCategories.map { group ->
+            // The per-budget current window. Falls back to a 1-day
+            // "today" window if the repo didn't supply one (defensive
+            // only — every active budget has a window from the repo).
+            val perBudgetWindow = raw.currentWindows[group.budget.id]
+                ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
+                    start = today, end = today, days = 1
+                )
             buildUnifiedGroupSpending(
                 group = group,
                 today = today,
                 isCurrentMonth = isCurrentMonth,
                 windowedSpend = windowSpendByBudget[group.budget.id].orEmpty(),
+                currentWindow = perBudgetWindow,
                 displayCurrency = displayCurrency,
                 baseCurrency = baseCurrency
             )
@@ -278,32 +286,77 @@ class BudgetGroupsViewModel @Inject constructor(
      * `totalActual` for the budget; the previousWindows list carries the
      * per-week breakdown.
      */
+    /**
+     * Fallback: when the repo's windowedSpend list doesn't contain a
+     * window that matches the displayed window's exact bounds (e.g. a
+     * Monthly budget with monthStartDay=25 — the displayed window is
+     * the full 30-day cycle but the repo clips to calendar months), sum
+     * the spend of every windowed entry whose [start, end] range
+     * overlaps the displayed window. Each per-month window's spend is
+     * already in the page's currency, so no further conversion needed.
+     */
+    private fun sumPrevCycleSpent(
+        budgetId: Long,
+        windowedSpend: List<WindowSpending>,
+        displayedWindow: com.pennywiseai.tracker.data.repository.BudgetWindow
+    ): BigDecimal? {
+        var total = BigDecimal.ZERO
+        var any = false
+        for (ws in windowedSpend) {
+            if (ws.budgetId != budgetId) continue
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            if (overlapStart.isAfter(overlapEnd)) continue
+            total = total.add(ws.spent)
+            any = true
+        }
+        return if (any) total else null
+    }
+
     private suspend fun buildUnifiedGroupSpending(
         group: BudgetWithCategories,
         today: LocalDate,
         isCurrentMonth: Boolean,
         windowedSpend: List<WindowSpending>,
+        // The per-budget current window resolved by the repo from
+        // resolveBudgetWindow (for current month) or windowsForMonth.last
+        // (for historical). Replaces the old hard-coded `resolveBudgetWindow(budget, today, 1)`
+        // which always used the global start-day pref as a fallback
+        // instead of the budget's own monthStartDay anchor.
+        currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow,
         displayCurrency: String,
         baseCurrency: String
     ): BudgetGroupSpending {
         val budget = group.budget
-        // Determine the displayed window.
-        val displayedWindow = if (isCurrentMonth) {
-            resolveBudgetWindow(budget, today, 1)
-        } else {
-            windowedSpend.lastOrNull()?.window
-                ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
-                    start = LocalDate.now(), end = LocalDate.now(), days = 1
-                )
+        val displayedWindow = currentWindow
+        // The windowedSpend list from the repo is keyed by the budget's
+        // own cycle's per-week windows (for Weekly) or the single cycle
+        // (for Monthly) or the literal range (for One-time). The
+        // displayed window may not match any of those keys — e.g. a
+        // Monthly budget with monthStartDay=25 has displayed window
+        // (Sep 25, Oct 24) but windowedSpend keys are (Sep 1, Sep 30)
+        // clipped per month. Match by containment: pick the window whose
+        // [start, end] range fully contains displayedWindow.
+        val matchedWindow = windowedSpend.firstOrNull { ws ->
+            !ws.window.start.isAfter(displayedWindow.start) &&
+                !ws.window.end.isBefore(displayedWindow.end)
+        } ?: windowedSpend.firstOrNull { ws ->
+            // Fallback: pick the window with the largest overlap.
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            !overlapStart.isAfter(overlapEnd)
         }
-        val spentInDisplay = windowedSpend.firstOrNull { it.window == displayedWindow }?.spent
+        val spentInDisplay = matchedWindow?.spent
+            ?: sumPrevCycleSpent(group.budget.id, windowedSpend, displayedWindow)
             ?: BigDecimal.ZERO
 
-        // previousWindows: Weekly historical only.
+        // previousWindows: Weekly historical only. The displayed window
+        // is the budget's own current window; older per-week windows
+        // (in the same month) become the sub-list.
         val previous = if (budget.periodType == BudgetPeriodType.WEEKLY && !isCurrentMonth) {
-            windowedSpend.dropLast(1).map {
-                PastWindowSpending(window = it.window, spent = it.spent)
-            }
+            windowedSpend
+                .filter { it.window != currentWindow }
+                .map { PastWindowSpending(window = it.window, spent = it.spent) }
         } else emptyList()
 
         val daysElapsed: Int

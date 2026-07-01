@@ -148,10 +148,12 @@ fun BudgetCard(
 
         Spacer(modifier = Modifier.height(Spacing.xs))
 
-        // Row 4: Per-cadence subtitle — tells the user what cadence this
-        // budget runs on, with the "X days left" relative to the displayed
-        // window. Old subtitle (e.g. "Period ended") is preserved for
-        // non-tracked (isTrackingAllExpenses) budgets.
+        // Row 4: Per-cadence subtitle — always framed as a renewal
+        // countdown ("Resets in X days" / "X days remaining") so the
+        // user knows when the budget's window ends. The displayed
+        // window comes from the per-budget current window (Weekly's
+        // Jun 29..Jul 5 even when the user is on the July page), so the
+        // number is consistent across month views.
         val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
         val subtitleText = when {
             groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays ->
@@ -161,22 +163,39 @@ fun BudgetCard(
             groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
                 val weekday = groupSpending.group.budget.weekStartDay?.let { DayOfWeek.of(it.coerceIn(1, 7)) }
                     ?: DayOfWeek.MONDAY
-                "${weekday.name.lowercase().replaceFirstChar { it.titlecase() }} \u00B7 ${groupSpending.daysRemaining} days left in this week"
+                // "Resets in X days" = "days until the current week ends".
+                // Subtract 1 because the budget renews *after* the last
+                // day, so the displayed week has (windowDays - daysRemaining)
+                // days left after today. For a Wed-on-a-Mon-start week:
+                // today=Wed, days remaining=5 (Thu..Mon), renewal in 4d.
+                val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+                val weekdayName = weekday.name.lowercase().replaceFirstChar { it.titlecase() }
+                when {
+                    renewalIn == 0 -> "Resets today · ${weekdayName} renew"
+                    renewalIn == 1 -> "Resets in 1 day · ${weekdayName} renew"
+                    else -> "Resets in $renewalIn days · ${weekdayName} renew"
+                }
             }
             groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
                 val startDay = groupSpending.group.budget.monthStartDay
                     ?: groupSpending.windowStart.dayOfMonth
-                "Resets on day $startDay \u00B7 ${groupSpending.daysRemaining} days left in this cycle"
+                val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+                when {
+                    renewalIn == 0 -> "Resets today · day $startDay"
+                    renewalIn == 1 -> "Resets in 1 day · day $startDay"
+                    else -> "Resets in $renewalIn days · day $startDay"
+                }
             }
             groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
                 val range = "${groupSpending.windowStart.format(dateFormatter)} – ${groupSpending.windowEnd.format(dateFormatter)}"
                 when {
                     isOverBudget -> "Over by ${CurrencyFormatter.formatCurrency(remainingAbs, currency)}"
-                    groupSpending.daysRemaining > 0 -> "Runs $range \u00B7 ${groupSpending.daysRemaining} days left"
+                    groupSpending.daysRemaining > 1 -> "Runs $range · ${groupSpending.daysRemaining - 1} days remaining"
+                    groupSpending.daysRemaining == 1 -> "Runs $range · 1 day remaining"
                     else -> "Finished"
                 }
             }
-            else -> "${CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)}/day \u00B7 ${groupSpending.daysRemaining} days left"
+            else -> "${groupSpending.daysRemaining} days remaining"
         }
         Text(
             text = subtitleText,

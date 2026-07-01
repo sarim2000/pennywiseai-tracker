@@ -158,5 +158,15 @@ data class BudgetGroupSpendingRaw(
      * repo populates it for the unified path so the home carousel can
      * show per-category spend without re-querying.
      */
-    val allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList()
+    val allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList(),
+    /**
+     * The per-budget *current* window (the budget's own cycle for the
+     * current month, the most-recent window in the list for a historical
+     * month). Keyed by budget id. Replaces the previous single
+     * `displayedWindow` / `daysRemaining` shape so each budget card on
+     * the home can use its own cycle for "X days remaining" — including
+     * a Weekly budget straddling a month boundary, where the same
+     * window shows in both June and July views.
+     */
+    val currentWindows: Map<Long, BudgetWindow> = emptyMap()
 )

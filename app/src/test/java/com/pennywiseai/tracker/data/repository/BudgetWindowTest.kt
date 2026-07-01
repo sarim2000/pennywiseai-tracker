@@ -291,4 +291,55 @@ class BudgetWindowTest {
         val cap = if (isCurrentWeek) today else monthEnd
         assertEquals(LocalDate.of(2026, 7, 5), cap)
     }
+
+    // ── Per-budget current window consistency across months ──────────
+    //
+    // These tests pin down the new "always show the budget's current
+    // window regardless of the page's month" behaviour. A Mon-anchored
+    // Weekly budget on Jul 1 has the same (Jun 29..Jul 5) window
+    // whether the user is on the June page or the July page. Before
+    // the fix, the June view showed the clipped Jun 29..Jun 30 portion
+    // and the July view showed a fresh Jul 1..Jul 5 portion with zero
+    // spend (because the actual spend fell on Jun 29..30).
+
+    @Test
+    fun `resolveBudgetWindow returns the same Jun 29 to Jul 5 window from both sides of the month boundary`() {
+        val budget = budgetOf(BudgetPeriodType.WEEKLY, weekStartDay = 1)
+        // June 30 — Tuesday. The Mon-anchored week containing today is Jun 29..Jul 5.
+        val wFromJune = resolveBudgetWindow(budget, LocalDate.of(2026, 6, 30), globalStartDay = 1)
+        val wFromJuly = resolveBudgetWindow(budget, LocalDate.of(2026, 7, 1), globalStartDay = 1)
+        assertEquals(LocalDate.of(2026, 6, 29), wFromJune.start)
+        assertEquals(LocalDate.of(2026, 7, 5), wFromJune.end)
+        assertEquals(wFromJune, wFromJuly)
+    }
+
+    @Test
+    fun `resolveBudgetWindow for Monthly budget with stored monthStartDay=25 uses the budget anchor, not the global default`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 25)
+        // Today = Oct 5, 2026, with startDay=25. The current cycle is Sep 25..Oct 24.
+        val w = resolveBudgetWindow(budget, LocalDate.of(2026, 10, 5), globalStartDay = 1)
+        assertEquals(LocalDate.of(2026, 9, 25), w.start)
+        assertEquals(LocalDate.of(2026, 10, 24), w.end)
+    }
+
+    @Test
+    fun `resolveBudgetWindow for Monthly budget with null monthStartDay falls back to the global startDay`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = null)
+        val w = resolveBudgetWindow(budget, LocalDate.of(2026, 10, 5), globalStartDay = 25)
+        assertEquals(LocalDate.of(2026, 9, 25), w.start)
+        assertEquals(LocalDate.of(2026, 10, 24), w.end)
+    }
+
+    @Test
+    fun `resolveBudgetWindow for Custom budget returns the literal saved range`() {
+        val budget = budgetOf(
+            BudgetPeriodType.CUSTOM,
+            startDate = LocalDate.of(2026, 11, 5),
+            endDate = LocalDate.of(2026, 12, 4)
+        )
+        val w = resolveBudgetWindow(budget, LocalDate.of(2026, 11, 15), globalStartDay = 1)
+        assertEquals(LocalDate.of(2026, 11, 5), w.start)
+        assertEquals(LocalDate.of(2026, 12, 4), w.end)
+        assertEquals(30, w.days)
+    }
 }

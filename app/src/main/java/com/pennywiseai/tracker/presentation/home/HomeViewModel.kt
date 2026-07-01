@@ -1353,6 +1353,24 @@ class HomeViewModel @Inject constructor(
         displayCurrency: String,
         baseCurrency: String
     ): BudgetOverallSummary {
+        // Per-budget current window for the "X days remaining" math
+        // on the home card. The repo's `raw.daysRemaining` is hard-
+        // coded to 0 (legacy) so we recompute it from the per-budget
+        // current window the repo just resolved — that's how the
+        // home pill knows "1 day remaining" is wrong.
+        fun daysRemainingFor(budget: com.pennywiseai.tracker.data.database.entity.BudgetEntity): Int {
+            val w = raw.currentWindows[budget.id] ?: return 0
+            val today = raw.today
+            return (ChronoUnit.DAYS.between(today, w.end).toInt() + 1)
+                .coerceIn(0, w.days)
+        }
+        fun daysElapsedFor(budget: com.pennywiseai.tracker.data.database.entity.BudgetEntity): Int {
+            val w = raw.currentWindows[budget.id] ?: return 0
+            val today = raw.today
+            return (ChronoUnit.DAYS.between(w.start, today).toInt() + 1)
+                .coerceIn(1, w.days)
+        }
+
         // Exclude a Refund from totalIncome only when it's also being subtracted
         // from a category by aggregateBudgetCategorySpending (categorised refund);
         // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
@@ -1424,8 +1442,10 @@ class HomeViewModel @Inject constructor(
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
             } else 0f
-            val dailyAllowance = if (raw.daysRemaining > 0 && remaining > BigDecimal.ZERO) {
-                remaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+            val daysRemaining = daysRemainingFor(group.budget)
+            val daysElapsed = daysElapsedFor(group.budget)
+            val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+                remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
             BudgetGroupSpending(
                 group = group,
@@ -1435,8 +1455,8 @@ class HomeViewModel @Inject constructor(
                 remaining = remaining,
                 percentageUsed = pctUsed,
                 dailyAllowance = dailyAllowance,
-                daysRemaining = raw.daysRemaining,
-                daysElapsed = raw.daysElapsed,
+                daysRemaining = daysRemaining,
+                daysElapsed = daysElapsed,
                 isTrackingAllExpenses = isTrackingAll
             )
         }
@@ -1452,8 +1472,11 @@ class HomeViewModel @Inject constructor(
             (netSavings.toFloat() / totalIncome.toFloat() * 100f)
         } else 0f
         val limitRemaining = totalLimitBudget - totalLimitSpent
-        val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
-            limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+        // Page-level "daysRemaining" picks the first budget's current
+        // window — matches the home carousel's hero card.
+        val pageDaysRemaining = groupSpendingList.firstOrNull()?.daysRemaining ?: 0
+        val dailyAllowance = if (pageDaysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
+            limitRemaining.divide(BigDecimal(pageDaysRemaining), 0, RoundingMode.HALF_UP)
         } else BigDecimal.ZERO
 
         return BudgetOverallSummary(
@@ -1468,7 +1491,7 @@ class HomeViewModel @Inject constructor(
             netSavings = netSavings,
             savingsRate = savingsRate,
             dailyAllowance = dailyAllowance,
-            daysRemaining = raw.daysRemaining,
+            daysRemaining = pageDaysRemaining,
             currency = displayCurrency
         )
     }

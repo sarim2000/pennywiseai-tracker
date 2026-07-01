@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
@@ -828,19 +829,24 @@ class HomeViewModel @Inject constructor(
             ) { unifiedMode, displayCurrency, baseCurrency, cycle ->
                 Quad(unifiedMode, displayCurrency, baseCurrency, cycle)
             }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency, cycle) ->
-                // Pass the cycle-start (year, month) to the budget repo so a user
-                // on the 25th-of-month cycle navigates to the right bucket —
-                // October 5 with startDay=25 should land in the Sep 25..Oct 24
-                // window (startYearMonth = 2026-9), not October.
+                // Always pass today's year-month to the budget repo. The
+                // home dashboard is the *current* view; a user on startDay=25
+                // seeing the page on Jul 1 should get the Jul view, not the
+                // Jun cycle-start view (the cycle's start year-month is for
+                // the *Budgets page* navigation, not the home). The repo
+                // resolves each budget's window from resolveBudgetWindow
+                // independently, so the per-cadence window math is correct
+                // regardless of which calendar month the page is on.
                 val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                val cycleStartYm = BudgetCycle.currentCycleStartYearMonth(cycle.first, startDay)
+                val today = LocalDate.now()
+                val todayYm = YearMonth.of(today.year, today.monthValue)
                 if (unifiedMode) {
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(cycleStartYm.year, cycleStartYm.monthValue)
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue)
                         .map { raw ->
                             mapRawToConvertedSummary(raw, displayCurrency, baseCurrency)
                         }
                 } else {
-                    budgetGroupRepository.getGroupSpending(cycleStartYm.year, cycleStartYm.monthValue, baseCurrency)
+                    budgetGroupRepository.getGroupSpending(todayYm.year, todayYm.monthValue, baseCurrency)
                 }
             }.collect { summary ->
                 _uiState.value = _uiState.value.copy(

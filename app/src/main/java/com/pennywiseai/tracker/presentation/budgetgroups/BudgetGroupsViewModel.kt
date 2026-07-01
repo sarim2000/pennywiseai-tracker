@@ -86,19 +86,19 @@ class BudgetGroupsViewModel @Inject constructor(
         )
 
     init {
-        // Seed the default to the cycle's start month, then react to changes
-        // to the start day so the picker snaps back to the new current cycle
-        // when the user hasn't navigated yet.
+        // Default to today's calendar month. A user on startDay=25 viewing
+        // the page on Jul 1 should land on the July view (the cycle started
+        // Jun 25 and ends Jul 24, but the page label is the calendar month
+        // today falls in). The cycle's start day still drives the per-budget
+        // displayed window via resolveBudgetWindow, so Monthly cards on the
+        // July view show the (Jun 25..Jul 24) cycle window — same data as
+        // before, just labelled with today's month.
+        _selectedYearMonth.value = YearMonth.now()
         viewModelScope.launch {
-            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-            _selectedYearMonth.value = BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
-        }
-        viewModelScope.launch {
-            userPreferencesRepository.budgetCycleStartDay.collect { startDay ->
-                if (_selectedYearMonth.value == null) {
-                    _selectedYearMonth.value =
-                        BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
-                }
+            userPreferencesRepository.budgetCycleStartDay.collect {
+                // No-op: the default is today regardless of start day. Kept
+                // as a hook for future logic (e.g. "snap to cycle" if the
+                // user explicitly navigates back to the current cycle).
             }
         }
         loadBudgetData()

@@ -53,6 +53,21 @@ data class PastWindowSpending(
     val isLive: Boolean = false
 )
 
+/**
+ * Per-category breakdown for a single window of a budget, shown in the
+ * Budget History screen's "View breakdown" bottom sheet. Same shape as
+ * the Budget Groups page's per-card category list, but scoped to one
+ * window (one week for Weekly, one cycle for Monthly, the literal range
+ * for One-time). Currency is whatever the viewmodel passed in.
+ */
+data class WindowBreakdown(
+    val window: BudgetWindow,
+    val categorySpending: List<BudgetCategorySpending>,
+    val totalBudget: BigDecimal,
+    val totalActual: BigDecimal,
+    val isTrackingAll: Boolean = false
+)
+
 data class BudgetGroupSpending(
     val group: BudgetWithCategories,
     val categorySpending: List<BudgetCategorySpending>,

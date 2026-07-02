@@ -73,7 +73,15 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
             val today = java.time.LocalDate.now()
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-            val cycleStartYm = BudgetCycle.currentCycleStartYearMonth(today, startDay)
+            // Use today's calendar month, not the cycle's start month —
+            // same fix as the home viewmodel. For a user on startDay=25
+            // viewing today=Jul 1, cycleStartYm was June, which made
+            // isCurrentMonth=false in the repo and the widget treated
+            // the current cycle as historical (daysRemaining=0, no
+            // daily allowance). The per-budget current window is
+            // resolved by resolveBudgetWindow inside the repo
+            // regardless of which calendar month the page is on.
+            val todayYm = java.time.YearMonth.of(today.year, today.monthValue)
             val prevCycle = BudgetCycle.previousCycle(
                 BudgetCycle.currentCycle(today, startDay), startDay
             )
@@ -81,7 +89,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
             val summary = if (isUnifiedMode) {
                 val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(
-                    cycleStartYm.year, cycleStartYm.monthValue
+                    todayYm.year, todayYm.monthValue
                 ).first()
 
                 // Reuse the same aggregator the Budgets screen uses so the widget
@@ -232,7 +240,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
-                    cycleStartYm.year, cycleStartYm.monthValue, currency
+                    todayYm.year, todayYm.monthValue, currency
                 ).first()
 
                 // Get previous month spending for delta calculation

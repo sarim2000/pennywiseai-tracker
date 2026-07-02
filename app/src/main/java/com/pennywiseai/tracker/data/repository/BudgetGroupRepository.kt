@@ -365,13 +365,20 @@ class BudgetGroupRepository @Inject constructor(
      */
     fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
         val today = LocalDate.now()
-        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
         val monthEnd = ym.atEndOfMonth()
         val isCurrentMonth = year == today.year && month == today.monthValue
 
-        return budgetDao.getActiveBudgetsWithCategories().map { groups ->
+        // combine() is suspending-friendly; .map { } on a Flow accepts
+        // a suspend transform too, but combine with the start-day flow
+        // here means we react to pref changes without a runBlocking
+        // call on the calling thread. The startDay flow emits the
+        // cached value on first read, so latency is unchanged.
+        return combine(
+            budgetDao.getActiveBudgetsWithCategories(),
+            userPreferencesRepository.budgetCycleStartDay
+        ) { groups, startDay ->
             // The displayed window for a Weekly budget is the budget's
             // own current window (Jun 29..Jul 5 for a Mon-anchored
             // budget on Jul 1), NOT a per-month clip. This keeps the
@@ -418,10 +425,14 @@ class BudgetGroupRepository @Inject constructor(
                     // current window, NOT a clipped per-month slice).
                     // For a historical month, fall back to the
                     // most-recent window from windowsForMonth.
+                    // Use lastOrNull() with an empty-window fallback —
+                    // windowsForMonth returns [] for a Custom (one-time)
+                    // budget whose literal range doesn't intersect the
+                    // selected year-month, and windows.last() would throw.
                     val displayWindow = if (isCurrentMonth) {
                         resolveBudgetWindow(budget, today, startDay)
                     } else {
-                        windows.last()
+                        windows.lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
                     }
                     // The list of *other* windows in the page's month
                     // — only meaningful for Weekly historical views
@@ -447,7 +458,12 @@ class BudgetGroupRepository @Inject constructor(
                             val cap = if (isLive) today else monthEnd
                             PastWindowSpending(
                                 window = w,
-                                spent = sumExpensesForWindow(transactionsByWindow[w].orEmpty()),
+                                // Per-category-filtered so the per-week
+                                // sub-list matches the per-card total
+                                // (otherwise the row says 43k but the
+                                // breakdown sheet says 8k for the same
+                                // window).
+                                spent = getBudgetWindowFilteredSpend(group, transactionsByWindow[w].orEmpty()),
                                 capDate = cap,
                                 isLive = isLive
                             )
@@ -548,9 +564,13 @@ class BudgetGroupRepository @Inject constructor(
 
     fun getGroupSpendingAllCurrencies(year: Int, month: Int): Flow<BudgetGroupSpendingRaw> {
         val today = LocalDate.now()
-        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
+        val ym = YearMonth.of(year, month)
+        val monthStart = ym.atDay(1)
         val isCurrentMonth = year == today.year && month == today.monthValue
-        return budgetDao.getActiveBudgetsWithCategories().map { groups ->
+        return combine(
+            budgetDao.getActiveBudgetsWithCategories(),
+            userPreferencesRepository.budgetCycleStartDay
+        ) { groups, startDay ->
             val windowed = mutableListOf<WindowSpending>()
             // Per-budget current window (for the home card's "X days
             // remaining" math). For the current month, this is the
@@ -569,7 +589,12 @@ class BudgetGroupRepository @Inject constructor(
                         w.start.atStartOfDay(),
                         w.end.atTime(23, 59, 59)
                     ).first()
-                    val spent = sumExpensesForWindow(txs)
+                    // Per-category-filtered so the home / widget
+                    // per-window spend matches the per-card total on the
+                    // Budget Groups page. Without this filter the home
+                    // card can show 43k while the same budget's category
+                    // breakdown on the Budgets page correctly says 8k.
+                    val spent = getBudgetWindowFilteredSpend(group, txs)
                     windowed.add(WindowSpending(budgetId = group.budget.id, window = w, spent = spent))
                     allTransactions.addAll(txs)
                 }
@@ -577,11 +602,14 @@ class BudgetGroupRepository @Inject constructor(
                 // not a clipped per-month slice. For Weekly this matters
                 // — the displayed window for Mon-anchored on Jul 1 is
                 // (Jun 29, Jul 5) whether the page is the June view or
-                // the July view.
+                // the July view. Use lastOrNull() with an empty-window
+                // fallback for the same reason as above (a Custom
+                // budget out of range for the selected year-month
+                // would otherwise crash on windows.last()).
                 val displayed = if (isCurrentMonth) {
                     resolveBudgetWindow(group.budget, today, startDay)
                 } else {
-                    windows.last()
+                    windows.lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
                 }
                 currentWindows[group.budget.id] = displayed
             }
@@ -643,6 +671,45 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     /**
+     * Sum the EXPENSE/INVESTMENT amounts in [transactions] that belong
+     * to one of [group]'s categories or type-buckets. The plain
+     * [sumExpensesForWindow] (above) is a date-range total — it counts
+     * every expense in the window, even ones outside the budget's
+     * categories. That mismatch is what made the Budget History page
+     * show 43k when the per-category breakdown correctly said 8k. Use
+     * this helper for any "what did this budget spend in this window"
+     * query the user sees on a card or history row.
+     *
+     * Falls back to [sumExpensesForWindow] for tracking-all budgets
+     * (no per-category allocations) — they include every expense.
+     */
+    private suspend fun getBudgetWindowFilteredSpend(
+        group: BudgetWithCategories,
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
+    ): BigDecimal {
+        if (group.categories.isEmpty()) return sumExpensesForWindow(transactions)
+        val (categoryAmounts, _, typeAmounts) = aggregateBudgetCategorySpending(
+            transactions = transactions,
+            convertSplit = { _, amount -> amount },
+            convertIncome = { tx -> tx.amount }
+        )
+        val catTotal = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        return catTotal + typeTotal
+    }
+
+    /** Look up the group for [budget], falling back to a synthetic
+     *  "tracking all" group if the budget was deleted or has no
+     *  current row in the dao. */
+    private suspend fun getGroupOrFallback(budget: BudgetEntity): BudgetWithCategories =
+        budgetDao.getActiveBudgetsWithCategories().first()
+            .firstOrNull { it.budget.id == budget.id }
+            ?: BudgetWithCategories(
+                budget = budget,
+                categories = emptyList()
+            )
+
+    /**
      * Build a [BudgetGroupSpending] from the per-window transactions.
      * Splits the window's transactions by category / type, applies the
      * same logic as the original monolithic [buildSummary] but for the
@@ -688,6 +755,9 @@ class BudgetGroupRepository @Inject constructor(
         val monthEnd = ym.atEndOfMonth()
         val isCurrentMonth = year == today.year && month == today.monthValue
         val windows = windowsForMonth(budget, year, month, startDay)
+        // Resolve the group once so the per-window spend query doesn't
+        // re-hit the dao for every window.
+        val group = getGroupOrFallback(budget)
         return windows.map { w ->
             val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
             val cap = if (isLive) today else monthEnd
@@ -697,9 +767,16 @@ class BudgetGroupRepository @Inject constructor(
                 effectiveEnd.atTime(23, 59, 59),
                 currency
             ).first()
+            // Use the per-category-filtered total so the per-row spend
+            // matches the per-category breakdown shown in the
+            // "View breakdown" bottom sheet (the previous shape used
+            // sumExpensesForWindow which counted every EXPENSE in
+            // the date range, including ones outside the budget's
+            // categories — a 43k row vs 8k breakdown mismatch).
+            val spent = getBudgetWindowFilteredSpend(group, txs)
             PastWindowSpending(
                 window = w,
-                spent = sumExpensesForWindow(txs),
+                spent = spent,
                 capDate = cap,
                 isLive = isLive
             )
@@ -771,8 +848,14 @@ class BudgetGroupRepository @Inject constructor(
         val totalActual = if (categorySpending.isNotEmpty()) {
             categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
         } else {
-            // No per-cat breakdown → report the window total.
-            sumExpensesForWindow(txs)
+            // No per-cat breakdown → report the window total. For
+            // tracking-all budgets the helper falls back to the
+            // unfiltered sumExpensesForWindow; for budgets that simply
+            // have no spend in this window it returns zero.
+            getBudgetWindowFilteredSpend(
+                group ?: BudgetWithCategories(budget = budget, categories = emptyList()),
+                txs
+            )
         }
         return WindowBreakdown(
             window = window,

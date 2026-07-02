@@ -205,21 +205,24 @@ class BudgetGroupsViewModel @Inject constructor(
             )
         }
 
-        val totalIncome = raw.windowedSpend.flatMap { ws ->
-            // We don't have raw transactions per window in the unified path
-            // (the repo returned the spend totals). The home/widget use
-            // this for the page-level "Income" stat; for the Budgets page
-            // it's not used in the card so we approximate using the same
-            // filter on the prev cycle transactions if the page is on the
-            // current month.
-            if (isCurrentMonth) raw.prevCycleTransactions else emptyList()
-        }.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-            val tx = txWithSplits.transaction
-            if (tx.transactionType == TransactionType.INCOME &&
-                !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
-            ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
-            else acc
-        }
+        // The unified path's raw doesn't carry raw transactions per
+        // window (it returns per-window spend totals only). The page-level
+        // income figure is therefore derived from prevCycleTransactions
+        // for the current month, and 0 for historical months. The earlier
+        // shape used `windowedSpend.flatMap { prevCycleTransactions }`,
+        // which ignored its argument and concatenated prevCycleTransactions
+        // once per (budget × window) entry — for a user with 1 weekly +
+        // 2 monthly budgets on the current month, totalIncome was 3× the
+        // real value, inflating netSavings / savingsRate on the page
+        // header. Use the list directly.
+        val totalIncome = (if (isCurrentMonth) raw.prevCycleTransactions else emptyList())
+            .fold(BigDecimal.ZERO) { acc, txWithSplits ->
+                val tx = txWithSplits.transaction
+                if (tx.transactionType == TransactionType.INCOME &&
+                    !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
+                ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                else acc
+            }
         // Note: totalIncome here uses the *previous* cycle's transactions
         // (since `windowedSpend` is keyed by window and doesn't carry the
         // raw income list). The page-level income figure is informational

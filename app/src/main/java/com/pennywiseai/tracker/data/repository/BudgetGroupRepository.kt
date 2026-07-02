@@ -646,7 +646,12 @@ class BudgetGroupRepository @Inject constructor(
                 today = today,
                 globalStartDay = startDay,
                 prevCycleTransactions = prevCycleTransactions,
-                allTransactions = allTransactions,
+                // Deduplicate by transaction id — multiple budgets
+                // covering the same date range (e.g. 2 monthly budgets)
+                // append the same transactions to allTransactions once
+                // per budget, inflating totalIncome and categoryAmounts
+                // N× for N budgets on the home / widget (unified mode).
+                allTransactions = allTransactions.distinctBy { it.transaction.id },
                 currentWindows = currentWindows
             )
         }

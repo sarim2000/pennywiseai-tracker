@@ -168,11 +168,7 @@ class BudgetGroupsViewModel @Inject constructor(
         baseCurrency: String
     ): BudgetOverallSummary {
         val today = raw.today
-        val yearMonth = YearMonth.of(today.year, today.monthValue) // for the "this is the current month" branch below
-        val isCurrentMonth = raw.budgetsWithCategories.firstOrNull()?.let {
-            val w = resolveBudgetWindow(it.budget, today, raw.globalStartDay)
-            today >= w.start && today <= w.end
-        } ?: false
+        val isCurrentMonth = raw.isCurrentMonth
 
         // Index the per-window spend by (budgetId, windowStart) for quick
         // lookup in the per-budget build.

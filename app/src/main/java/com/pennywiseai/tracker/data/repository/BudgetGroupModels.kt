@@ -158,6 +158,7 @@ data class BudgetGroupSpendingRaw(
     val daysRemaining: Int,
     val today: LocalDate,
     val globalStartDay: Int,
+    val isCurrentMonth: Boolean,
     /**
      * Transactions in the cycle that ended *just before* the current one
      * (the "vs last cycle" comparison for the home card / widget).

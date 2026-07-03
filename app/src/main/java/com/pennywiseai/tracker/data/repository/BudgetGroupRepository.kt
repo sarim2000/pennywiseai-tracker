@@ -566,6 +566,7 @@ class BudgetGroupRepository @Inject constructor(
         val today = LocalDate.now()
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
+        val monthEnd = ym.atEndOfMonth()
         val isCurrentMonth = year == today.year && month == today.monthValue
         return combine(
             budgetDao.getActiveBudgetsWithCategories(),
@@ -584,20 +585,7 @@ class BudgetGroupRepository @Inject constructor(
             val allTransactions = mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>()
             for (group in groups) {
                 val windows = windowsForMonth(group.budget, year, month, startDay)
-                for (w in windows) {
-                    val txs = transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
-                        w.start.atStartOfDay(),
-                        w.end.atTime(23, 59, 59)
-                    ).first()
-                    // Per-category-filtered so the home / widget
-                    // per-window spend matches the per-card total on the
-                    // Budget Groups page. Without this filter the home
-                    // card can show 43k while the same budget's category
-                    // breakdown on the Budgets page correctly says 8k.
-                    val spent = getBudgetWindowFilteredSpend(group, txs)
-                    windowed.add(WindowSpending(budgetId = group.budget.id, window = w, spent = spent))
-                    allTransactions.addAll(txs)
-                }
+                
                 // The home card shows the budget's own current window,
                 // not a clipped per-month slice. For Weekly this matters
                 // — the displayed window for Mon-anchored on Jul 1 is
@@ -612,6 +600,29 @@ class BudgetGroupRepository @Inject constructor(
                     windows.lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
                 }
                 currentWindows[group.budget.id] = displayed
+                
+                val otherWindows = windows.filter { it != displayed }
+                for (w in listOf(displayed) + otherWindows) {
+                    val capDate = if (isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)) {
+                        today
+                    } else {
+                        monthEnd
+                    }
+                    val effectiveEnd = if (capDate.isBefore(w.end)) capDate else w.end
+                    
+                    val txs = transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
+                        w.start.atStartOfDay(),
+                        effectiveEnd.atTime(23, 59, 59)
+                    ).first()
+                    // Per-category-filtered so the home / widget
+                    // per-window spend matches the per-card total on the
+                    // Budget Groups page. Without this filter the home
+                    // card can show 43k while the same budget's category
+                    // breakdown on the Budgets page correctly says 8k.
+                    val spent = getBudgetWindowFilteredSpend(group, txs)
+                    windowed.add(WindowSpending(budgetId = group.budget.id, window = w, spent = spent))
+                    allTransactions.addAll(txs)
+                }
             }
             // For the home / widget "vs last cycle" comparison on the
             // current month, also pull transactions in the *previous*
@@ -645,6 +656,7 @@ class BudgetGroupRepository @Inject constructor(
                 daysRemaining = 0,
                 today = today,
                 globalStartDay = startDay,
+                isCurrentMonth = isCurrentMonth,
                 prevCycleTransactions = prevCycleTransactions,
                 // Deduplicate by transaction id — multiple budgets
                 // covering the same date range (e.g. 2 monthly budgets)

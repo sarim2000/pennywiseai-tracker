@@ -50,7 +50,12 @@ echo "==> Checking existing Cloudflare secrets (these are preserved on redeploy)
 # empty list if the call fails (e.g. first-ever deploy before the Worker exists).
 existing="$(wrangler secret list --format json 2>/dev/null || echo '[]')"
 
-has_secret() { printf '%s' "$existing" | grep -q "\"$1\""; }
+# Match the secret's "name" field exactly, not the bare token anywhere in the
+# JSON — so a similarly-named secret (or another field) can't be mistaken for a
+# required one. wrangler emits {"name":"X","type":...}; allow optional spaces.
+has_secret() {
+  printf '%s' "$existing" | grep -Eq "\"name\"[[:space:]]*:[[:space:]]*\"$1\""
+}
 
 missing_required=()
 for name in "${REQUIRED_SECRETS[@]}"; do
@@ -93,6 +98,26 @@ if [ "${#missing_required[@]}" -gt 0 ]; then
     esac
   done
 fi
+
+# --- Stage parser-core into the Docker build context ----------------------
+# parser-core is a sibling module (../parser-core), so it lives outside this
+# Worker's Docker build context and the container Dockerfile can't COPY it
+# directly. The Dockerfile instead expects a staged copy at ./.parser-core,
+# built from parser-core's standalone-JVM gradle variants. Re-stage fresh on
+# every deploy so it can never go stale.
+PARSER_SRC="../parser-core"
+PARSER_STAGE=".parser-core"
+echo
+echo "==> Staging parser-core into the Docker build context ($PARSER_STAGE)"
+if [ ! -d "$PARSER_SRC" ]; then
+  echo "error: $PARSER_SRC not found (expected the parser-core module one level up)." >&2
+  exit 1
+fi
+rm -rf "$PARSER_STAGE"
+mkdir -p "$PARSER_STAGE"
+cp "$PARSER_SRC/build.docker.gradle.kts"    "$PARSER_STAGE/build.gradle.kts"
+cp "$PARSER_SRC/settings.docker.gradle.kts" "$PARSER_STAGE/settings.gradle.kts"
+cp -R "$PARSER_SRC/src"                      "$PARSER_STAGE/src"
 
 echo
 echo "==> Deploying Worker (secrets above are left untouched)"

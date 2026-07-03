@@ -7,8 +7,8 @@
 	],
 	"routes": [
 		{
-			"pattern": "pennywise.querymind.pro",
-			"zone_name": "querymind.pro",
+			"pattern": "pennywise.zynth.dev",
+			"zone_name": "zynth.dev",
 			"custom_domain": true
 		}
 	],

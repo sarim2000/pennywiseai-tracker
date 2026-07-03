@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
+    "deploy": "bash scripts/deploy.sh",
     "redeploy": "bash scripts/deploy.sh",
     "dev": "wrangler dev",
     "cf-typegen": "wrangler types"

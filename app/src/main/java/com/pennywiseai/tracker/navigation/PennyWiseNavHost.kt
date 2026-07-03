@@ -329,11 +329,6 @@ fun PennyWiseNavHost(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToHistory = { groupId, year, month ->
-                    navController.navigate(BudgetHistory(groupId, year, month)) {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToCategory = { category, yearMonth, currency ->
                     navController.navigate(TransactionsWithFilter(category, yearMonth, currency)) {
                         launchSingleTop = true
@@ -352,17 +347,6 @@ fun PennyWiseNavHost(
                 onNavigateBack = {
                     navController.safePopBackStack()
                 }
-            )
-        }
-
-        composable<BudgetHistory>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
-            com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

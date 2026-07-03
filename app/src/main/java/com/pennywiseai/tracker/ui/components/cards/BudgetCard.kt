@@ -27,14 +27,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.time.DayOfWeek
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun BudgetCard(
@@ -67,65 +64,54 @@ fun BudgetCard(
         modifier = modifier,
         onClick = onClick
     ) {
-        // Row 1: Cadence pill + budget name + percentage pill
+        // Row 1: Budget name + percentage pill
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            Text(
+                text = groupSpending.group.budget.name,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
-            ) {
-                CadencePill(periodType = groupSpending.periodType)
-                Text(
-                    text = groupSpending.group.budget.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            )
 
-            if (groupSpending.totalBudget > BigDecimal.ZERO) {
-                Text(
-                    text = "${pctUsed.toInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .background(
-                            color = statusColor,
-                            shape = RoundedCornerShape(50)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
+            Text(
+                text = "${pctUsed.toInt()}%",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .background(
+                        color = statusColor,
+                        shape = RoundedCornerShape(50)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(Spacing.sm))
 
         // Row 2: Custom rounded progress bar
-        if (groupSpending.totalBudget > BigDecimal.ZERO) {
-            val barShape = RoundedCornerShape(50)
+        val barShape = RoundedCornerShape(50)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(barShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
+                    .fillMaxWidth(fraction = animatedProgressState)
+                    .fillMaxHeight()
                     .clip(barShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = animatedProgressState)
-                        .fillMaxHeight()
-                        .clip(barShape)
-                        .background(statusColor)
-                )
-            }
+                    .background(statusColor)
+            )
         }
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -148,54 +134,11 @@ fun BudgetCard(
 
         Spacer(modifier = Modifier.height(Spacing.xs))
 
-        // Row 4: Per-cadence subtitle — always framed as a renewal
-        // countdown ("Resets in X days" / "X days remaining") so the
-        // user knows when the budget's window ends. The displayed
-        // window comes from the per-budget current window (Weekly's
-        // Jun 29..Jul 5 even when the user is on the July page), so the
-        // number is consistent across month views.
-        val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+        // Row 4: Contextual subtitle
         val subtitleText = when {
-            groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays ->
-                "Finished"
-            groupSpending.isTrackingAllExpenses ->
-                "Tracking all expenses"
-            groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
-                val weekday = groupSpending.group.budget.weekStartDay?.let { DayOfWeek.of(it.coerceIn(1, 7)) }
-                    ?: DayOfWeek.MONDAY
-                // "Resets in X days" = "days until the current week ends".
-                // Subtract 1 because the budget renews *after* the last
-                // day, so the displayed week has (windowDays - daysRemaining)
-                // days left after today. For a Wed-on-a-Mon-start week:
-                // today=Wed, days remaining=5 (Thu..Mon), renewal in 4d.
-                val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                val weekdayName = weekday.name.lowercase().replaceFirstChar { it.titlecase() }
-                when {
-                    renewalIn == 0 -> "Resets today · ${weekdayName} renew"
-                    renewalIn == 1 -> "Resets in 1 day · ${weekdayName} renew"
-                    else -> "Resets in $renewalIn days · ${weekdayName} renew"
-                }
-            }
-            groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
-                val startDay = groupSpending.group.budget.monthStartDay
-                    ?: groupSpending.windowStart.dayOfMonth
-                val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                when {
-                    renewalIn == 0 -> "Resets today · day $startDay"
-                    renewalIn == 1 -> "Resets in 1 day · day $startDay"
-                    else -> "Resets in $renewalIn days · day $startDay"
-                }
-            }
-            groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
-                val range = "${groupSpending.windowStart.format(dateFormatter)} – ${groupSpending.windowEnd.format(dateFormatter)}"
-                when {
-                    isOverBudget -> "Over by ${CurrencyFormatter.formatCurrency(remainingAbs, currency)}"
-                    groupSpending.daysRemaining > 1 -> "Runs $range · ${groupSpending.daysRemaining - 1} days remaining"
-                    groupSpending.daysRemaining == 1 -> "Runs $range · 1 day remaining"
-                    else -> "Finished"
-                }
-            }
-            else -> "${groupSpending.daysRemaining} days remaining"
+            groupSpending.daysRemaining == 0 -> "Period ended"
+            isOverBudget -> "Over by ${CurrencyFormatter.formatCurrency(remainingAbs, currency)}"
+            else -> "${CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)}/day \u00B7 ${groupSpending.daysRemaining} days left"
         }
         Text(
             text = subtitleText,
@@ -212,38 +155,4 @@ fun BudgetCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
     }
-}
-
-/**
- * Small pill that names the budget's cadence at a glance: 🔁 Weekly /
- * 🗓 Monthly / 📌 One-time. Colour-coded so a user can spot which type
- * of budget they're looking at without reading the subtitle.
- */
-@Composable
-fun CadencePill(periodType: BudgetPeriodType) {
-    val (label, bg, fg) = when (periodType) {
-        BudgetPeriodType.WEEKLY -> Triple(
-            "Weekly",
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
-        )
-        BudgetPeriodType.MONTHLY -> Triple(
-            "Monthly",
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        BudgetPeriodType.CUSTOM -> Triple(
-            "One-time",
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
-    }
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelSmall,
-        color = fg,
-        modifier = Modifier
-            .background(color = bg, shape = RoundedCornerShape(50))
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-    )
 }

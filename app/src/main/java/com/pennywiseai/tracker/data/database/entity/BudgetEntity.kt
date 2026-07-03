@@ -41,25 +41,6 @@ data class BudgetEntity(
     @Contextual
     val endDate: LocalDate,
 
-    /**
-     * Anchor day-of-week (1=Mon..7=Sun, per [java.time.DayOfWeek.value]) for a
-     * WEEKLY budget. Null for other period types. Read-time resolver uses
-     * this to roll the [startDate, endDate] window forward automatically each
-     * week — no DB writes needed.
-     */
-    @ColumnInfo(name = "weekday_anchor")
-    val weekStartDay: Int? = null,
-
-    /**
-     * Anchor day-of-month (1..31) for a MONTHLY budget. Null for other
-     * period types. Read-time resolver uses this to roll the
-     * [startDate, endDate] window forward automatically each cycle. Clamped
-     * to the month's length so a budget with startDay=31 in February
-     * resolves to Feb 28/29.
-     */
-    @ColumnInfo(name = "month_anchor")
-    val monthStartDay: Int? = null,
-
     @ColumnInfo(name = "currency", defaultValue = "INR")
     val currency: String = "INR",
 

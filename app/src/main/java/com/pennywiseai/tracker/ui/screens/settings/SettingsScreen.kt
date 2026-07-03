@@ -103,7 +103,6 @@ fun SettingsScreen(
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
     val numberFormatStyle by settingsViewModel.numberFormatStyle.collectAsStateWithLifecycle(initialValue = NumberFormatStyle.AUTO)
-    val budgetCycleStartDay by settingsViewModel.budgetCycleStartDay.collectAsStateWithLifecycle(initialValue = 1)
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
@@ -127,7 +126,6 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showNumberFormatDialog by remember { mutableStateOf(false) }
-    var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     var showMainAccountDropdown by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
@@ -347,25 +345,6 @@ fun SettingsScreen(
                     onClick = { showNumberFormatDialog = true },
                     position = ItemPosition.BOTTOM,
                     trailingText = numberFormatStyleLabel(numberFormatStyle)
-                )
-            }
-
-            // ── Budget ──
-            // The cycle start day is a budgeting concept, but it changes how
-            // Home / Analytics bucket transactions, so it lives up here next
-            // to the other "display" knobs rather than buried in Data
-            // Management with the budgets list.
-            SectionHeaderV2(title = "Budget")
-            SettingsGroup {
-                SettingsNavItem(
-                    icon = Icons.Default.DateRange,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
-                    title = "Budget Cycle Start Day",
-                    subtitle = "Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th",
-                    onClick = { showBudgetCycleDialog = true },
-                    position = ItemPosition.SINGLE,
-                    trailingText = ordinalSuffix(budgetCycleStartDay)
                 )
             }
 
@@ -719,59 +698,6 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showNumberFormatDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Budget Cycle Start Day Dialog
-    if (showBudgetCycleDialog) {
-        AlertDialog(
-            onDismissRequest = { showBudgetCycleDialog = false },
-            title = { Text("Budget Cycle Start Day") },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = "Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-
-                    (1..31).forEach { day ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = day == budgetCycleStartDay,
-                                    onClick = {
-                                        settingsViewModel.updateBudgetCycleStartDay(day)
-                                        showBudgetCycleDialog = false
-                                    }
-                                )
-                                .padding(vertical = Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = day == budgetCycleStartDay,
-                                onClick = {
-                                    settingsViewModel.updateBudgetCycleStartDay(day)
-                                    showBudgetCycleDialog = false
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(
-                                text = ordinalSuffix(day),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showBudgetCycleDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -1420,21 +1346,4 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = when (s
     NumberFormatStyle.AUTO -> "Matches each currency (₹1,50,000 · $150,000)"
     NumberFormatStyle.INDIAN -> "1,50,000 (lakh / crore)"
     NumberFormatStyle.INTERNATIONAL -> "150,000 (thousand / million)"
-}
-
-/**
- * English ordinal suffix for the budget cycle start day — "1st", "2nd", "3rd",
- * "4th"… "11th", "12th", "13th" follow the standard rule that the last two
- * digits decide the suffix (the 11/12/13 teens are always "th").
- */
-private fun ordinalSuffix(day: Int): String {
-    val safe = day.coerceIn(1, 31)
-    val suffix = when {
-        safe in 11..13 -> "th"
-        safe % 10 == 1 -> "st"
-        safe % 10 == 2 -> "nd"
-        safe % 10 == 3 -> "rd"
-        else -> "th"
-    }
-    return "$safe$suffix"
 }

@@ -18,9 +18,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository.Companion.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
-import com.pennywiseai.tracker.domain.model.BudgetCycle
 import java.math.BigDecimal
 import java.math.RoundingMode
 import dagger.assisted.Assisted
@@ -72,24 +71,10 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             val currency = if (isUnifiedMode) displayCurrency else baseCurrency
 
             val today = java.time.LocalDate.now()
-            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-            // Use today's calendar month, not the cycle's start month —
-            // same fix as the home viewmodel. For a user on startDay=25
-            // viewing today=Jul 1, cycleStartYm was June, which made
-            // isCurrentMonth=false in the repo and the widget treated
-            // the current cycle as historical (daysRemaining=0, no
-            // daily allowance). The per-budget current window is
-            // resolved by resolveBudgetWindow inside the repo
-            // regardless of which calendar month the page is on.
-            val todayYm = java.time.YearMonth.of(today.year, today.monthValue)
-            val prevCycle = BudgetCycle.previousCycle(
-                BudgetCycle.currentCycle(today, startDay), startDay
-            )
-            val prevCycleStartYm = java.time.YearMonth.from(prevCycle.first)
 
             val summary = if (isUnifiedMode) {
                 val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(
-                    todayYm.year, todayYm.monthValue
+                    today.year, today.monthValue
                 ).first()
 
                 // Reuse the same aggregator the Budgets screen uses so the widget
@@ -188,7 +173,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 // Previous month savings for delta — same aggregator, same currency
                 // converters, so the delta isn't skewed by stale logic on either side.
                 val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
-                    transactions = raw.prevCycleTransactions,
+                    transactions = raw.prevTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
                         currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
@@ -212,7 +197,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 }
 
                 var prevIncome = BigDecimal.ZERO
-                for (txWithSplits in raw.prevCycleTransactions) {
+                for (txWithSplits in raw.prevTransactions) {
                     val tx = txWithSplits.transaction
                     if (tx.transactionType != TransactionType.INCOME) continue
                     if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
@@ -240,12 +225,13 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
-                    todayYm.year, todayYm.monthValue, currency
+                    today.year, today.monthValue, currency
                 ).first()
 
                 // Get previous month spending for delta calculation
+                val prevYearMonth = java.time.YearMonth.of(today.year, today.monthValue).minusMonths(1)
                 val prevSpending = budgetGroupRepository.getGroupSpending(
-                    prevCycleStartYm.year, prevCycleStartYm.monthValue, currency
+                    prevYearMonth.year, prevYearMonth.monthValue, currency
                 ).first()
 
                 val savingsDelta = spending.netSavings - prevSpending.netSavings

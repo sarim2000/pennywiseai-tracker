@@ -51,13 +51,13 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 
 /**
- * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so
- * it is usable both in the `@Database(version = ...)` annotation below and in
+ * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so it
+ * is usable both in the `@Database(version = ...)` annotation below and in
  * non-Room code (e.g. [com.pennywiseai.tracker.data.backup.BackupExporter])
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 55
+const val SCHEMA_VERSION = 53
 
 /**
  * The PennyWise Room database.
@@ -523,53 +523,6 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Per-budget cadence anchors for the recurring / one-time split on
-         * the Budget Period card (Weekly / Monthly / One-time). Both columns
-         * are nullable so pre-existing rows keep working — the read-time
-         * resolver falls back to Monday (Weekly) or the global startDay
-         * preference (Monthly) when the anchor is null.
-         *
-         * No backfill: every existing row was created before this feature
-         * and is treated as Monthly anchored to the user's global startDay
-         * until the user opens the budget and explicitly picks a cadence.
-         */
-        val MIGRATION_53_54 = object : Migration(53, 54) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE `budgets` ADD COLUMN `weekday_anchor` INTEGER DEFAULT NULL")
-                db.execSQL("ALTER TABLE `budgets` ADD COLUMN `month_anchor` INTEGER DEFAULT NULL")
-            }
-        }
-
-        /**
-         * Drop the per-month budget snapshot tables. They stored a single
-         * reconstructed row per (year, month, budget) and assumed every
-         * budget was a monthly bucket — which made Weekly and One-time
-         * budgets invisible or mis-rendered on historical views. With the
-         * new cadence model the budget list is computed live per-window
-         * (see [com.pennywiseai.tracker.data.repository.windowsForMonth]),
-         * so the snapshot is no longer the source of truth for historical
-         * views.
-         *
-         * Destructive: existing per-month snapshots are gone after this
-         * migration runs. The live query reproduces the same data for any
-         * (year, month) the user navigates to, plus per-week sub-buckets
-         * for Weekly budgets that the snapshot couldn't represent.
-         */
-        val MIGRATION_54_55 = object : Migration(54, 55) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                // Clear — don't drop — the per-month snapshot tables. The
-                // tables remain in the schema because the backup format
-                // round-trips them as JSON; dropping them would cascade a
-                // larger refactor through BackupExporter/BackupImporter.
-                // The live per-window query in windowsForMonth is the new
-                // source of truth for historical views, so we just empty
-                // the tables.
-                db.execSQL("DELETE FROM `budget_category_month_snapshots`")
-                db.execSQL("DELETE FROM `budget_month_snapshots`")
-            }
-        }
-
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -623,8 +576,6 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_50_51,
             MIGRATION_51_52,
             MIGRATION_52_53,
-            MIGRATION_53_54,
-            MIGRATION_54_55,
         )
     }
     

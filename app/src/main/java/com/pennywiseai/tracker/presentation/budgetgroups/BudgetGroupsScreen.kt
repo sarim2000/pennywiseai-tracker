@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.CategoryIcon
@@ -65,6 +66,7 @@ fun BudgetGroupsScreen(
     viewModel: BudgetGroupsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
+    onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -130,6 +132,9 @@ fun BudgetGroupsScreen(
                 onDeleteGroup = { groupId -> viewModel.deleteGroup(groupId) },
                 onMoveGroupUp = { groupId -> viewModel.moveGroupUp(groupId) },
                 onMoveGroupDown = { groupId -> viewModel.moveGroupDown(groupId) },
+                onNavigateToHistory = { groupId ->
+                    onNavigateToHistory(groupId, uiState.selectedYear, uiState.selectedMonth)
+                },
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
@@ -211,6 +216,7 @@ private fun BudgetGroupsContent(
     onDeleteGroup: (Long) -> Unit,
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
+    onNavigateToHistory: (Long) -> Unit,
     onCategoryClick: (String) -> Unit
 ) {
     val summary = uiState.summary ?: return
@@ -294,6 +300,7 @@ private fun BudgetGroupsContent(
                     },
                     onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
                     onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
+                    onViewHistory = { onNavigateToHistory(groupSpending.group.budget.id) },
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.animateItem()
                 )
@@ -397,6 +404,7 @@ private fun BudgetCard(
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onViewHistory: () -> Unit,
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -511,6 +519,16 @@ private fun BudgetCard(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("View this period history") },
+                                onClick = {
+                                    showMenu = false
+                                    onViewHistory()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.History, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Move up") },
                                 onClick = {
                                     showMenu = false
@@ -578,11 +596,46 @@ private fun BudgetCard(
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
 
-                // Row 4: Contextual subtitle
+                // Row 4: Per-cadence renewal countdown — always framed
+                // as "Resets in X days" so the user knows when the
+                // budget's window ends. The displayed window is the
+                // budget's own current window (Jun 29..Jul 5 even when
+                // the page is the July view) so this number is
+                // consistent across month views.
+                val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("d MMM")
                 val subtitleText = when {
-                    groupSpending.daysRemaining == 0 -> "Period ended"
+                    groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> "Finished"
                     isOverBudget -> "Over by ${CurrencyFormatter.formatCurrency(remainingAbs, currency)}"
-                    else -> "${CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)}/day \u00B7 ${groupSpending.daysRemaining} days left"
+                    groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
+                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+                        val weekdayName = groupSpending.group.budget.weekStartDay
+                            ?.let { java.time.DayOfWeek.of(it.coerceIn(1, 7)).name.lowercase().replaceFirstChar { ch -> ch.titlecase() } }
+                            ?: "Monday"
+                        when {
+                            renewalIn == 0 -> "Resets today · $weekdayName renew"
+                            renewalIn == 1 -> "Resets in 1 day · $weekdayName renew"
+                            else -> "Resets in $renewalIn days · $weekdayName renew"
+                        }
+                    }
+                    groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
+                        val startDay = groupSpending.group.budget.monthStartDay
+                            ?: groupSpending.windowStart.dayOfMonth
+                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+                        when {
+                            renewalIn == 0 -> "Resets today · day $startDay"
+                            renewalIn == 1 -> "Resets in 1 day · day $startDay"
+                            else -> "Resets in $renewalIn days · day $startDay"
+                        }
+                    }
+                    groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
+                        val range = "${groupSpending.windowStart.format(dateFormatter)} – ${groupSpending.windowEnd.format(dateFormatter)}"
+                        when {
+                            groupSpending.daysRemaining > 1 -> "Runs $range · ${groupSpending.daysRemaining - 1} days remaining"
+                            groupSpending.daysRemaining == 1 -> "Runs $range · 1 day remaining"
+                            else -> "Runs $range · Finished"
+                        }
+                    }
+                    else -> "${groupSpending.daysRemaining} days remaining"
                 }
                 Text(
                     text = subtitleText,

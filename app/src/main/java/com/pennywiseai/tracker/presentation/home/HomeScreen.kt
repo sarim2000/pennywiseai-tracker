@@ -123,6 +123,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isProEntitled by viewModel.isProEntitled.collectAsState()
+    val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
@@ -351,7 +352,8 @@ fun HomeScreen(
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         isProEntitled = isProEntitled,
-                        onUpgradeClick = { showUpgradeSheet = true }
+                        onUpgradeClick = { showUpgradeSheet = true },
+                        cycleEnd = currentCycleWindow.second
                     )
                 }
             )

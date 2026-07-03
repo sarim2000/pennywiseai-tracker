@@ -223,6 +223,13 @@ object BrandIcons {
         "nmb bank" to R.drawable.ic_brand_nmb_bank,
         "nabil bank" to R.drawable.ic_brand_nmb_bank,
         "siddhartha bank" to R.drawable.ic_brand_siddhartha_bank,
+        "citizens bank" to R.drawable.ic_brand_citizens_bank,
+        "machchhapuchchhre bank" to R.drawable.ic_brand_machhapuchchhre_bank,
+        "lumbini bikash bank" to R.drawable.ic_brand_lumbini_bikash_bank,
+        "nepal bank limited" to R.drawable.ic_brand_nepal_bank,
+        "nepal bank" to R.drawable.ic_brand_nepal_bank,
+        "nepal sbi bank" to R.drawable.ic_brand_nepal_sbi_bank,
+        "standard chartered bank nepal" to R.drawable.ic_brand_standard_chartered,
         // Banks - Africa / Mobile Money
         "m-pesa" to R.drawable.ic_brand_mpesa,
         "mpesa" to R.drawable.ic_brand_mpesa,

@@ -1,5 +1,5 @@
 {
-  "totalBanks": 130,
+  "totalBanks": 136,
   "totalCountries": 22,
   "countries": [
     {
@@ -9,6 +9,14 @@
       "symbol": "₹",
       "bankCount": 53,
       "banks": ["AU Small Finance Bank", "Airtel Payments Bank", "Amazon Pay", "American Express", "Axis Bank", "Bandhan Bank", "Bank of Baroda", "Bank of India", "CRED", "Canara Bank", "Cashfree", "Central Bank of India", "City Union Bank", "DBS Bank", "Department of Post", "Dhanlaxmi Bank", "Equitas Small Finance Bank", "Federal Bank", "Greater Bank", "HDFC Bank", "HDFC Mutual Fund", "HSBC Bank", "ICICI Bank", "IDBI Bank", "IDFC First Bank", "India Post Payments Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "JK Bank", "Jana Small Finance Bank", "Jio Payments Bank", "JioPay", "Jupiter", "Karnataka Bank", "Kerala Bank", "Kerala Gramin Bank", "Kotak Bank", "LazyPay", "NSDL Payments Bank", "Navi Mutual Fund", "OneCard", "Punjab & Sind Bank", "Punjab National Bank", "Saraswat Co-operative Bank", "Slice", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "UCO Bank", "Union Bank of India", "Utkarsh Bank", "Yes Bank"]
+    },
+    {
+      "country": "Nepal",
+      "flag": "🇳🇵",
+      "currency": "NPR",
+      "symbol": "₨",
+      "bankCount": 13,
+      "banks": ["Citizens Bank", "Everest Bank", "Laxmi Sunrise Bank", "Lumbini Bikash Bank", "Machchhapuchchhre Bank", "Manjushree Finance", "NMB Bank", "Nabil Bank", "Nepal Bank Limited", "Nepal SBI Bank", "Prime Commercial Bank", "Siddhartha Bank", "Standard Chartered Bank Nepal"]
     },
     {
       "country": "Thailand",
@@ -25,14 +33,6 @@
       "symbol": "$",
       "bankCount": 10,
       "banks": ["ALECU", "AdelFi", "Altana Federal Credit Union", "Charles Schwab", "Chase", "Citi Bank", "Discover Card", "Huntington Bank", "Navy Federal Credit Union", "Old Hickory Credit Union"]
-    },
-    {
-      "country": "Nepal",
-      "flag": "🇳🇵",
-      "currency": "NPR",
-      "symbol": "₨",
-      "bankCount": 7,
-      "banks": ["Everest Bank", "Laxmi Sunrise Bank", "Manjushree Finance", "NMB Bank", "Nabil Bank", "Prime Commercial Bank", "Siddhartha Bank"]
     },
     {
       "country": "Tanzania",

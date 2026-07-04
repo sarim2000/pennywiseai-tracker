@@ -304,6 +304,45 @@ class AnalyticsViewModel @Inject constructor(
                     }
                 }
 
+                // Net "Refund" income (INCOME + DEDUCT_SPENT) out of Expenses so EVERY
+                // spend surface — total, category, account, merchant and the trend —
+                // agrees with the Home card and the Transactions page (both already net
+                // of refunds). A categorised refund subtracts from its budgetCategory;
+                // it also shrinks the headline total, its account, its merchant (when
+                // the refund carries the same merchant) and the trend on its day. All
+                // spend surfaces are floored at zero. Refunds live in
+                // allTransactionsWithSplits (loaded untyped) but were dropped by the
+                // EXPENSE type filter above, so pull them back in here. Only the Expense
+                // view is adjusted; Income/other views are untouched.
+                val refundByAccount = mutableMapOf<String, BigDecimal>()
+                val refundByMerchant = mutableMapOf<String, BigDecimal>()
+                val refundTransactions =
+                    mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionEntity>()
+                if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
+                    for (tw in allTransactionsWithSplits) {
+                        val tx = tw.transaction
+                        if (tx.loanId != null || tx.excludedFromAnalytics) continue
+                        if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
+                            tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
+                        ) continue
+                        val category = (tx.budgetCategory ?: "").ifEmpty { "Others" }
+                        // Respect an active category filter.
+                        if (filterState.categoryFilter != null && filterState.categoryFilter != category) continue
+                        val converted = if (isUnified) {
+                            currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        } else tx.amount
+                        totalSpending -= converted
+                        categoryAmounts[category]?.let {
+                            categoryAmounts[category] = (it - converted).coerceAtLeast(BigDecimal.ZERO)
+                        }
+                        val accountKey = "${tx.bankName}_${tx.accountNumber}"
+                        refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + converted
+                        refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + converted
+                        refundTransactions.add(tx)
+                    }
+                    totalSpending = totalSpending.coerceAtLeast(BigDecimal.ZERO)
+                }
+
                 val categoryBreakdown = categoryAmounts.map { (categoryName, categoryTotal) ->
                     CategoryData(
                         name = categoryName,
@@ -320,7 +359,7 @@ class AnalyticsViewModel @Inject constructor(
                     .groupBy { it.merchantName }
                     .entries
                     .map { (merchant, txns) ->
-                        val merchantAmount = if (isUnified) {
+                        val gross = if (isUnified) {
                             var sum = BigDecimal.ZERO
                             for (tx in txns) {
                                 sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
@@ -329,6 +368,9 @@ class AnalyticsViewModel @Inject constructor(
                         } else {
                             txns.map { it.amount.toDouble() }.sum().toBigDecimal()
                         }
+                        // Net any refund that carries this merchant's name (floored at zero).
+                        val merchantAmount = (gross - (refundByMerchant[merchant] ?: BigDecimal.ZERO))
+                            .coerceAtLeast(BigDecimal.ZERO)
                         MerchantData(
                             name = merchant,
                             amount = merchantAmount,
@@ -346,7 +388,7 @@ class AnalyticsViewModel @Inject constructor(
                     .groupBy { "${it.bankName}_${it.accountNumber}" }
                     .entries
                     .map { (accountKey, txns) ->
-                        val accountAmount = if (isUnified) {
+                        val gross = if (isUnified) {
                             var sum = BigDecimal.ZERO
                             for (tx in txns) {
                                 sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
@@ -355,6 +397,10 @@ class AnalyticsViewModel @Inject constructor(
                         } else {
                             txns.sumOf { it.amount.toDouble() }.toBigDecimal()
                         }
+                        // Net refunds credited back to this account (floored at zero) so
+                        // the account total — and its % of the net grand total — stay sane.
+                        val accountAmount = (gross - (refundByAccount[accountKey] ?: BigDecimal.ZERO))
+                            .coerceAtLeast(BigDecimal.ZERO)
                         AccountBreakdownData(
                             key = accountKey,
                             label = accountLabels[accountKey] ?: run {
@@ -391,7 +437,7 @@ class AnalyticsViewModel @Inject constructor(
                     currency = displayCurrency,
                     isLoading = false,
                     spendingTrend = calculateSpendingTrend(
-                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency
+                        filteredTransactions + refundTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency
                     ),
                     availableCategories = allCategoryNames,
                     accountBreakdown = accountBreakdown
@@ -496,7 +542,12 @@ class AnalyticsViewModel @Inject constructor(
             emptyMap()
         }
         val amountIn: (com.pennywiseai.tracker.data.database.entity.TransactionEntity) -> Double = { tx ->
-            if (isUnified) convertedById[tx.id] ?: tx.amount.toDouble() else tx.amount.toDouble()
+            val base = if (isUnified) convertedById[tx.id] ?: tx.amount.toDouble() else tx.amount.toDouble()
+            // Refunds (INCOME + DEDUCT_SPENT) are passed in alongside expenses so the
+            // trend nets them on the day they occurred — subtract rather than add.
+            if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME &&
+                tx.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
+            ) -base else base
         }
 
         when {

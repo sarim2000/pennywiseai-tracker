@@ -10,6 +10,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -79,19 +80,28 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 .getTransactionsBetweenDates(start, end)
                 .first()
 
-            val totalSpent = allTransactions
-                // Loan disbursements/repayments are tracked in the Loans feature, not
-                // spending — exclude them, matching Home/Analytics.
-                .filter { it.loanId == null }
-                .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
-                .fold(BigDecimal.ZERO) { acc, tx ->
-                    val amount = if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency)
-                    } else {
-                        tx.amount
-                    }
-                    acc + amount
+            // Loan disbursements/repayments are tracked in the Loans feature, not
+            // spending — exclude them, matching Home/Analytics.
+            val nonLoan = allTransactions.filter { it.loanId == null }
+            suspend fun inTarget(tx: com.pennywiseai.tracker.data.database.entity.TransactionEntity): BigDecimal =
+                if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
+                    currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency)
+                } else {
+                    tx.amount
                 }
+
+            val grossSpent = nonLoan
+                .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
+                .fold(BigDecimal.ZERO) { acc, tx -> acc + inTarget(tx) }
+
+            // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
+            // shrinks the spend total (floored at zero) — matching the Home card and
+            // the Transactions page, which were already net of refunds.
+            val refundTotal = nonLoan
+                .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+                .fold(BigDecimal.ZERO) { acc, tx -> acc + inTarget(tx) }
+
+            val totalSpent = (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
             val formatter = DateTimeFormatter.ofPattern("MMM d")
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -591,7 +592,7 @@ fun CreateRuleScreen(
                                         condition.field == TransactionField.ACCOUNT -> {
                                             val parts = condition.value.split("||")
                                             if (parts.size == 2) {
-                                                append("${parts[0]} ••${parts[1]}")
+                                                append(AccountBalanceEntity.accountLabel(parts[0], parts[1]))
                                             } else {
                                                 append(condition.value)
                                             }

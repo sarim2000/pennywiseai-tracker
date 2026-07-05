@@ -751,7 +751,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
         rowId: Long
     ) {
-        val accountLast4 = parsed.accountLast4 ?: return
+        val accountLast4 = parsed.accountLast4 ?: run {
+            // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
+            // number — the whole wallet is one account. Derive a service-level row
+            // from the running balance so a full re-scan also creates it, matching
+            // SmsTransactionProcessor.
+            if (parsed.isMobileWallet && parsed.balance != null) {
+                upsertWalletBalance(parsed, entity, rowId)
+            }
+            return
+        }
 
         val card = if (parsed.isFromCard) {
             (cardRepository.getCard(parsed.bankName, accountLast4)
@@ -842,6 +851,41 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             "Saved balance (${CurrencyFormatter.formatCurrency(newBalance, parsed.currency)})"
         }
         Log.i(TAG, logMsg)
+    }
+
+    /**
+     * Derives a single service-level account row for a mobile-money wallet
+     * (eMola, M-Pesa Mozambique). No per-account number, never a card/credit —
+     * keyed on bankName + [AccountBalanceEntity.WALLET_ACCOUNT_MARKER], balance
+     * taken straight from the SMS. Mirrors SmsTransactionProcessor.upsertWalletBalance.
+     */
+    private suspend fun upsertWalletBalance(
+        parsed: ParsedTransaction,
+        entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
+        rowId: Long
+    ) {
+        val balance = parsed.balance ?: return
+        val existing = accountBalanceRepository.getLatestBalance(
+            parsed.bankName,
+            AccountBalanceEntity.WALLET_ACCOUNT_MARKER
+        )
+        val balanceEntity = AccountBalanceEntity(
+            bankName      = parsed.bankName,
+            accountLast4  = AccountBalanceEntity.WALLET_ACCOUNT_MARKER,
+            balance       = balance,
+            timestamp     = entity.dateTime,
+            transactionId = if (rowId != -1L) rowId else null,
+            creditLimit   = null,
+            isCreditCard  = false,
+            smsSource     = parsed.smsBody.take(500),
+            sourceType    = "TRANSACTION",
+            currency      = parsed.currency,
+            profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+            alias         = existing?.alias,
+            lowBalanceThreshold = existing?.lowBalanceThreshold
+        )
+        accountBalanceRepository.insertBalance(balanceEntity)
+        Log.i(TAG, "Saved wallet balance for ${parsed.bankName}")
     }
 
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────

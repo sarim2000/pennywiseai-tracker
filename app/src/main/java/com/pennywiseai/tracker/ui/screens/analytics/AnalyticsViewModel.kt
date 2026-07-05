@@ -355,8 +355,11 @@ class AnalyticsViewModel @Inject constructor(
                     CategoryData(
                         name = categoryName,
                         amount = categoryTotal,
+                        // Clamp at 100%: when an over-refund pushes the total below a
+                        // category's floored spend, the raw ratio can exceed 100%, which
+                        // reads as nonsensical. A category is never "more than all spending".
                         percentage = if (totalSpending > BigDecimal.ZERO) {
-                            (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                            (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
                         } else 0f,
                         transactionCount = categoryTransactionCounts[categoryName] ?: 0
                     )
@@ -417,7 +420,7 @@ class AnalyticsViewModel @Inject constructor(
                             },
                             amount = accountAmount,
                             percentage = if (totalSpending > BigDecimal.ZERO) {
-                                (accountAmount.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                                (accountAmount.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
                             } else 0f,
                             transactionCount = txns.size
                         )

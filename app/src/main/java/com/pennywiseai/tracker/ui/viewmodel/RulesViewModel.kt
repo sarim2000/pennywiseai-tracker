@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.billing.FreeTierLimits
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -86,7 +87,7 @@ class RulesViewModel @Inject constructor(
                     AccountInfo(
                         bankName = balance.bankName,
                         accountLast4 = balance.accountLast4,
-                        displayName = "${balance.bankName} ••${balance.accountLast4}",
+                        displayName = AccountBalanceEntity.accountLabel(balance.bankName, balance.accountLast4),
                         isCreditCard = balance.isCreditCard,
                         accountType = balance.accountType
                     )

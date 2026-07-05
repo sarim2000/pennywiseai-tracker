@@ -126,7 +126,7 @@ fun MergeAccountsSheet(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${src.bankName} ••${src.accountLast4}",
+                            text = AccountBalanceEntity.accountLabel(src.bankName, src.accountLast4),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -153,9 +153,9 @@ fun MergeAccountsSheet(
                 val n = sourceTxnCount
                 Text(
                     if (n != null)
-                        "Move $n transactions from ${s.bankName} ••${s.accountLast4} into ${t.bankName} ••${t.accountLast4}. The source account is removed after the move. This can't be undone."
+                        "Move $n transactions from ${AccountBalanceEntity.accountLabel(s.bankName, s.accountLast4)} into ${AccountBalanceEntity.accountLabel(t.bankName, t.accountLast4)}. The source account is removed after the move. This can't be undone."
                     else
-                        "Move all transactions from ${s.bankName} ••${s.accountLast4} into ${t.bankName} ••${t.accountLast4}. The source account is removed after the move. This can't be undone."
+                        "Move all transactions from ${AccountBalanceEntity.accountLabel(s.bankName, s.accountLast4)} into ${AccountBalanceEntity.accountLabel(t.bankName, t.accountLast4)}. The source account is removed after the move. This can't be undone."
                 )
             },
             confirmButton = {
@@ -216,9 +216,11 @@ private fun AccountPicker(
                         )
                         Text(
                             text = buildString {
-                                append("••")
-                                append(acct.accountLast4)
-                                append(" · ")
+                                if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                                    append("••")
+                                    append(acct.accountLast4)
+                                    append(" · ")
+                                }
                                 append(acct.currency)
                                 if (acct.isCreditCard) append(" · Credit")
                             },

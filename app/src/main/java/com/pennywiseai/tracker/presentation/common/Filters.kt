@@ -136,7 +136,7 @@ fun accountOptions(accounts: List<AccountBalanceEntity>): List<AccountOption> {
         .map { account ->
             val key = "${account.bankName}_${account.accountLast4}"
             val alias = account.alias?.takeIf { it.isNotBlank() }
-            val label = alias ?: "${account.bankName} ••${account.accountLast4}"
+            val label = alias ?: AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4)
             AccountOption(key = key, label = label)
         }
         .distinctBy { it.key }

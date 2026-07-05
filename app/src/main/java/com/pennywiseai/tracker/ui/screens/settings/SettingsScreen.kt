@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -304,7 +305,7 @@ fun SettingsScreen(
                         subtitle = "Sets your default currency",
                         currentValue = mainAccount?.let { acc ->
                             val name = acc.alias?.takeIf { it.isNotBlank() } ?: acc.bankName
-                            if (acc.accountLast4.isNotBlank()) "$name ••${acc.accountLast4}" else name
+                            AccountBalanceEntity.accountLabel(name, acc.accountLast4)
                         } ?: "Not set",
                         expanded = showMainAccountDropdown,
                         onExpandedChange = { showMainAccountDropdown = it },
@@ -312,9 +313,7 @@ fun SettingsScreen(
                     ) {
                         accounts.forEach { account ->
                             val name = account.alias?.takeIf { it.isNotBlank() } ?: account.bankName
-                            val label = if (account.accountLast4.isNotBlank()) {
-                                "$name ••${account.accountLast4}"
-                            } else name
+                            val label = AccountBalanceEntity.accountLabel(name, account.accountLast4)
                             val key = "${account.bankName}_${account.accountLast4}"
                             DropdownMenuItem(
                                 text = { Text(label) },

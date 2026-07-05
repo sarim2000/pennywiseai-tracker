@@ -86,5 +86,18 @@ data class AccountBalanceEntity(
         // the whole wallet is one account, keyed on bank_name. The UI renders
         // this as the plain service name (no "••1234" suffix).
         const val WALLET_ACCOUNT_MARKER = "WALLET"
+
+        /**
+         * Human-readable label for an account. Mobile-money wallets have no
+         * account number (and a blank last4 is meaningless), so show just the
+         * name; otherwise "Name ••1234". Use this everywhere an account is
+         * labelled so the [WALLET_ACCOUNT_MARKER] never leaks into the UI.
+         */
+        fun accountLabel(name: String, accountLast4: String?): String =
+            if (accountLast4.isNullOrBlank() || accountLast4 == WALLET_ACCOUNT_MARKER) {
+                name
+            } else {
+                "$name ••$accountLast4"
+            }
     }
 }

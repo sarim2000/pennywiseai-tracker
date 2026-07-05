@@ -416,7 +416,8 @@ class AnalyticsViewModel @Inject constructor(
                             key = accountKey,
                             label = accountLabels[accountKey] ?: run {
                                 val first = txns.first()
-                                "${first.bankName ?: "Unknown"} ••${first.accountNumber ?: "----"}"
+                                com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+                                    .accountLabel(first.bankName ?: "Unknown", first.accountNumber ?: "----")
                             },
                             amount = accountAmount,
                             percentage = if (totalSpending > BigDecimal.ZERO) {

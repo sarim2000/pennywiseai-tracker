@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.displayName
@@ -368,7 +369,8 @@ fun TransactionTabContent(
                                     MaterialTheme.colorScheme.onSurface
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            if (uiState.selectedAccount != null) {
+                            if (uiState.selectedAccount != null &&
+                                uiState.selectedAccount?.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
                                 Text(
                                     text = "••${uiState.selectedAccount?.accountLast4}",
                                     style = MaterialTheme.typography.bodySmall,
@@ -482,7 +484,7 @@ fun TransactionTabContent(
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text("${account.bankName} ••${account.accountLast4}")
+                                    Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,

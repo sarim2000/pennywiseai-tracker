@@ -83,7 +83,7 @@ fun BalanceHistoryScreen(
                 .padding(horizontal = Dimensions.Padding.content)
         ) {
                 Text(
-                    text = "$bankName ••$accountLast4",
+                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

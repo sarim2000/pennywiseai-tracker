@@ -648,7 +648,7 @@ class ManageAccountsViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        successMessage = "Merged $moved transactions into ${target.bankName} ••${target.accountLast4}"
+                        successMessage = "Merged $moved transactions into ${AccountBalanceEntity.accountLabel(target.bankName, target.accountLast4)}"
                     )
                 }
                 delay(3000)

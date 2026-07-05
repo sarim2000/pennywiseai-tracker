@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1020,9 +1021,9 @@ private fun AccountItem(
                         // stack; this keeps it as a clean second line. (#465)
                         Text(
                             text = if (alias != null) {
-                                "${account.bankName} ••${account.accountLast4}"
+                                AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4)
                             } else {
-                                "••${account.accountLast4}"
+                                AccountBalanceEntity.accountLabel("", account.accountLast4).trim()
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1277,7 +1278,7 @@ private fun AccountItem(
     if (showAliasDialog) {
         AccountAliasDialog(
             currentAlias = account.alias,
-            accountLabel = "${account.bankName} ••${account.accountLast4}",
+            accountLabel = AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4),
             onDismiss = { showAliasDialog = false },
             onConfirm = { newAlias ->
                 onSetAlias(newAlias)
@@ -1289,7 +1290,7 @@ private fun AccountItem(
     if (showThresholdDialog) {
         LowBalanceThresholdDialog(
             currentThreshold = account.lowBalanceThreshold,
-            accountLabel = "${account.bankName} ••${account.accountLast4}",
+            accountLabel = AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4),
             currency = CurrencyFormatter.resolveAccountCurrency(
                 account.sourceType, account.currency, account.bankName
             ),
@@ -1424,7 +1425,7 @@ private fun UpdateBalanceDialog(
             Column {
                 Text("Update Balance")
                 Text(
-                    text = "$bankName ••$accountLast4",
+                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1502,7 +1503,7 @@ private fun UpdateCreditCardDialog(
             Column {
                 Text("Update Credit Card")
                 Text(
-                    text = "$bankName ••$accountLast4",
+                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1929,11 +1930,13 @@ private fun LinkCardDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(
-                                        text = "••${account.accountLast4}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                                        Text(
+                                            text = "••${account.accountLast4}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                     Text(
                                         text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,
@@ -2119,7 +2122,7 @@ private fun EditAccountDialog(
 
                 // Account Number (Read-only)
                 TextField(
-                    value = "••${account.accountLast4}",
+                    value = AccountBalanceEntity.accountLabel("", account.accountLast4).trim(),
                     onValueChange = {},
                     label = { Text("Account Number") },
                     enabled = false,

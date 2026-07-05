@@ -255,6 +255,20 @@ class ICICIBankParser : BaseIndianBankParser() {
             return "NEFT Transfer"
         }
 
+        // Pattern 0b: Incoming NEFT credit - "Info NEFT-<refcode>-<PAYER NAME>"
+        // The payer name follows the NEFT reference code (after the last hyphen),
+        // e.g. "Info NEFT-FDRLM4175907234-JOHN JOSE." -> "JOHN JOSE".
+        val neftCreditPattern = Regex(
+            """Info\s+NEFT-[A-Za-z0-9]+-(.+?)(?:\.|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        neftCreditPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 1: Salary transactions - "Info INF*...*...* SAL ..."
         // Example: "Info INF*000169831922*IQBO SAL FE"
         val salaryPattern = Regex(

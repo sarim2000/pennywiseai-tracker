@@ -369,7 +369,13 @@ fun BalanceCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${account.bankName} •• ${account.accountLast4}",
+                                        // Mobile-money wallets have no account number — show
+                                        // just the service name (no "•• 1234" suffix).
+                                        text = if (account.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                                            account.bankName
+                                        } else {
+                                            "${account.bankName} •• ${account.accountLast4}"
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )

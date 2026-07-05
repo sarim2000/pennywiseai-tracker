@@ -79,4 +79,12 @@ data class AccountBalanceEntity(
     @ColumnInfo(name = "lowBalanceThreshold")
     @Contextual
     val lowBalanceThreshold: BigDecimal? = null
-)
+) {
+    companion object {
+        // Sentinel account_last4 for mobile-money wallets (eMola, M-Pesa
+        // Mozambique) whose SMS has a running balance but no per-account number —
+        // the whole wallet is one account, keyed on bank_name. The UI renders
+        // this as the plain service name (no "••1234" suffix).
+        const val WALLET_ACCOUNT_MARKER = "WALLET"
+    }
+}

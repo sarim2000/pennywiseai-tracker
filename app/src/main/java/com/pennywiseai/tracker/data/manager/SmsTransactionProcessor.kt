@@ -202,7 +202,16 @@ class SmsTransactionProcessor @Inject constructor(
         entity: TransactionEntity,
         rowId: Long
     ) {
-        if (parsedTransaction.accountLast4 == null) return
+        if (parsedTransaction.accountLast4 == null) {
+            // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
+            // number — the whole wallet is one account. Derive a single service-level
+            // account row from the running balance the SMS carries, so the wallet shows
+            // up as an account and counts toward the total balance.
+            if (parsedTransaction.isMobileWallet && parsedTransaction.balance != null) {
+                upsertWalletBalance(parsedTransaction, entity, rowId)
+            }
+            return
+        }
 
         val isFromCard = parsedTransaction.isFromCard
 
@@ -321,5 +330,43 @@ class SmsTransactionProcessor @Inject constructor(
             accountBalanceRepository.insertBalance(balanceEntity)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
+    }
+
+    /**
+     * Derives a single service-level account row for a mobile-money wallet
+     * (eMola, M-Pesa Mozambique). These SMS carry the running balance but no
+     * per-account number, so the account is keyed on bankName with the
+     * [AccountBalanceEntity.WALLET_ACCOUNT_MARKER] sentinel and the balance is
+     * taken straight from the SMS (never a card, never credit).
+     */
+    private suspend fun upsertWalletBalance(
+        parsedTransaction: ParsedTransaction,
+        entity: TransactionEntity,
+        rowId: Long
+    ) {
+        val balance = parsedTransaction.balance ?: return
+        val existingAccount = accountBalanceRepository.getLatestBalance(
+            parsedTransaction.bankName,
+            AccountBalanceEntity.WALLET_ACCOUNT_MARKER
+        )
+
+        val balanceEntity = AccountBalanceEntity(
+            bankName = parsedTransaction.bankName,
+            accountLast4 = AccountBalanceEntity.WALLET_ACCOUNT_MARKER,
+            balance = balance,
+            timestamp = entity.dateTime,
+            transactionId = if (rowId != -1L) rowId else null,
+            creditLimit = null,
+            isCreditCard = false,
+            smsSource = parsedTransaction.smsBody.take(500),
+            sourceType = "TRANSACTION",
+            currency = parsedTransaction.currency,
+            profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
+            alias = existingAccount?.alias,
+            lowBalanceThreshold = existingAccount?.lowBalanceThreshold
+        )
+
+        accountBalanceRepository.insertBalance(balanceEntity)
+        Log.d(TAG, "Saved wallet balance for ${parsedTransaction.bankName}")
     }
 }

@@ -30,6 +30,10 @@ class MPesaMozambiqueParser : BankParser() {
 
     override fun getCurrency() = "MZN"
 
+    // Mobile-money wallet: SMS carries a running balance but no per-account
+    // number (the whole wallet is the account). See ParsedTransaction.isMobileWallet.
+    override fun isMobileWallet() = true
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         // M-Pesa Mozambique uses the same sender ID; differentiation is by content.

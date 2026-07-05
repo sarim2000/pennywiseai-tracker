@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import androidx.core.net.toUri
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -214,7 +215,7 @@ class TransactionDetailViewModel @Inject constructor(
                     AccountInfo(
                         bankName = balance.bankName,
                         accountLast4 = balance.accountLast4,
-                        displayName = "${balance.bankName} ••••${balance.accountLast4}",
+                        displayName = AccountBalanceEntity.accountLabel(balance.bankName, balance.accountLast4),
                         isCreditCard = balance.isCreditCard
                     )
                 }

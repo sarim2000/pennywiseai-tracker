@@ -330,22 +330,23 @@ class AnalyticsViewModel @Inject constructor(
                         val converted = if (isUnified) {
                             currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
                         } else tx.amount
-                        // Cap the refund at its category's spend this period so it can never
-                        // pull the headline total below the sum of the visible breakdown
-                        // rows. An orphaned refund (its category has no expense here) or the
-                        // excess of an over-refund contributes nothing. The SAME effective
-                        // amount is netted from the total, its category, account, merchant
-                        // and the trend, so every spend surface stays equal.
+                        if (converted <= BigDecimal.ZERO) continue
+                        // A refund (INCOME + DEDUCT_SPENT) reverses a prior expense, so the
+                        // FULL amount always comes off the headline total — keeping Analytics
+                        // consistent with the Home card, widget and Transactions page, which
+                        // are all net of refunds. The per-category / account / merchant / trend
+                        // buckets floor at zero (a bucket can't show negative spend), so an
+                        // over-refund or an orphaned refund (whose category has no expense
+                        // here) can leave the total below the sum of the visible rows — exactly
+                        // as it does on the Home card.
                         val existing = categoryAmounts[category] ?: BigDecimal.ZERO
-                        val effective = converted.coerceAtMost(existing)
-                        if (effective <= BigDecimal.ZERO) continue
-                        categoryAmounts[category] = existing - effective
-                        totalSpending -= effective
+                        categoryAmounts[category] = (existing - converted).coerceAtLeast(BigDecimal.ZERO)
+                        totalSpending -= converted
                         val accountKey = "${tx.bankName}_${tx.accountNumber}"
-                        refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + effective
-                        refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + effective
+                        refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + converted
+                        refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + converted
                         val day = tx.dateTime.toLocalDate()
-                        refundByDay[day] = (refundByDay[day] ?: BigDecimal.ZERO) + effective
+                        refundByDay[day] = (refundByDay[day] ?: BigDecimal.ZERO) + converted
                     }
                     totalSpending = totalSpending.coerceAtLeast(BigDecimal.ZERO)
                 }
@@ -553,8 +554,8 @@ class AnalyticsViewModel @Inject constructor(
             if (isUnified) convertedById[tx.id] ?: tx.amount.toDouble() else tx.amount.toDouble()
         }
         // Refunds already netted out of the total/category/etc. are passed here as a
-        // per-day (effective, capped) map and subtracted from each bucket below, so the
-        // trend agrees with the headline total.
+        // per-day map and subtracted from each bucket below. Each bucket floors at zero
+        // so a refund larger than that bucket's spend can't render a negative point.
         fun refundsInRange(start: LocalDate, end: LocalDate): BigDecimal =
             refundByDay.entries
                 .filter { !it.key.isBefore(start) && !it.key.isAfter(end) }
@@ -579,7 +580,8 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfYear = currentYear.withDayOfYear(currentYear.lengthOfYear())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentYear) && !it.dateTime.toLocalDate().isAfter(endOfYear)
-                        }.map(amountIn).sum().toBigDecimal() - refundsInRange(currentYear, endOfYear)
+                        }.map(amountIn).sum().toBigDecimal()
+                            .minus(refundsInRange(currentYear, endOfYear)).coerceAtLeast(BigDecimal.ZERO)
                         trend.add(BalancePoint(timestamp = currentYear.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentYear = currentYear.plusYears(1)
                     }
@@ -590,7 +592,8 @@ class AnalyticsViewModel @Inject constructor(
                         val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                         val totalAmount = transactions.filter {
                             !it.dateTime.toLocalDate().isBefore(currentMonth) && !it.dateTime.toLocalDate().isAfter(endOfMonth)
-                        }.map(amountIn).sum().toBigDecimal() - refundsInRange(currentMonth, endOfMonth)
+                        }.map(amountIn).sum().toBigDecimal()
+                            .minus(refundsInRange(currentMonth, endOfMonth)).coerceAtLeast(BigDecimal.ZERO)
                         trend.add(BalancePoint(timestamp = currentMonth.atStartOfDay(), balance = totalAmount, currency = currency))
                         currentMonth = currentMonth.plusMonths(1)
                     }
@@ -600,8 +603,8 @@ class AnalyticsViewModel @Inject constructor(
                 val transactionsByDate = transactions.groupBy { it.dateTime.toLocalDate() }
                 var currentDate = startDate
                 while (!currentDate.isAfter(endDate) && !currentDate.isAfter(LocalDate.now())) {
-                    val totalAmount = (transactionsByDate[currentDate] ?: emptyList()).map(amountIn).sum().toBigDecimal() -
-                        (refundByDay[currentDate] ?: BigDecimal.ZERO)
+                    val totalAmount = ((transactionsByDate[currentDate] ?: emptyList()).map(amountIn).sum().toBigDecimal() -
+                        (refundByDay[currentDate] ?: BigDecimal.ZERO)).coerceAtLeast(BigDecimal.ZERO)
                     trend.add(BalancePoint(timestamp = currentDate.atStartOfDay(), balance = totalAmount, currency = currency))
                     currentDate = currentDate.plusDays(1)
                 }

@@ -49,12 +49,26 @@ We follow Semantic Versioning (SemVer) - MAJOR.MINOR.PATCH:
 - **MINOR**: New features, significant improvements
 - **PATCH**: Bug fixes, minor improvements, performance optimizations
 
-Current version: 2.1.3 (versionCode: 13)
+### Releasing — do NOT hand-edit the version or changelog
+`scripts/release.sh [patch|minor|major]` owns the entire release and is the
+**only** thing that should touch the version. Never manually edit
+`versionCode` / `versionName` in `app/build.gradle.kts`, and never hand-write a
+`fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` file — the script
+generates all of that. In one run it:
+- bumps `versionName` (per the SemVer keyword) and increments `versionCode`,
+- generates the store changelog `<versionCode>.txt` + `default.txt` and the
+  GitHub `RELEASE_NOTES.md` from the commits since the last tag (via the Claude
+  Agent SDK, falling back to a commit list; `--no-claude` forces the fallback),
+- builds/renames/signs the standard + F-Droid APKs and computes SHA256,
+- commits `chore(release): bump version to X [skip ci]`, tags `vX`, pushes, and
+  cuts the GitHub release with the APKs attached.
 
-Recent version history:
-- 2.1.3: Federal Bank support, Discord community, GitHub issue templates
-- 2.1.2: Spotlight tutorial, SBI/Indian Bank support, auto-scan on launch
-- 2.0.1: Previous release
+Flags: `--yes` (non-interactive), `--play` (upload the `.aab` to Play Console as
+a draft), `--web` (also deploy `pennywise-web`), `--dry-run` (print the plan +
+notes, change nothing). So for a routine release just merge the PRs, then run
+e.g. `./scripts/release.sh patch --yes`. Use `--dry-run` first to preview the
+computed version and notes. The current version therefore lives in
+`app/build.gradle.kts`, not here.
 
 ## Module Structure
 The project now uses a multi-module architecture:

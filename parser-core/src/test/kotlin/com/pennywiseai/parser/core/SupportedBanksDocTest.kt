@@ -45,6 +45,7 @@ class SupportedBanksDocTest {
         "NGN" to CountryMeta("Nigeria", "🇳🇬", "₦"),
         "MZN" to CountryMeta("Mozambique", "🇲🇿", "MT"),
         "LKR" to CountryMeta("Sri Lanka", "🇱🇰", "Rs"),
+        "BDT" to CountryMeta("Bangladesh", "🇧🇩", "৳"),
         "TRY" to CountryMeta("Turkey", "🇹🇷", "₺"),
         "OMR" to CountryMeta("Oman", "🇴🇲", "ر.ع."),
         "EUR" to CountryMeta("Eurozone", "🇪🇺", "€"),

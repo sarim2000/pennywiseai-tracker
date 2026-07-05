@@ -325,6 +325,31 @@ class FederalBankParserTest {
                 shouldParse = false
             ),
 
+            // NEFT outgoing transfer - debit SMS (the one that SHOULD be logged) - issue #547
+            ParserTestCase(
+                name = "NEFT Outgoing Debit - should be EXPENSE",
+                message = "Debited Rs 6000 from a/c XX3343 on 24JUN2026 21:35 via NEFT to Jerry.Ref FDRLM4175007432.Bal Rs 76.82.Not you?Call 18004251199 -Federal Bank",
+                sender = "AD-FEDBNK-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("6000"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Jerry",
+                    reference = "FDRLM4175007432",
+                    accountLast4 = "3343",
+                    balance = BigDecimal("76.82"),
+                    isFromCard = false
+                )
+            ),
+
+            // NEFT outgoing transfer - confirmation receipt (duplicate) should NOT parse - issue #547
+            ParserTestCase(
+                name = "NEFT Outgoing Confirmation Receipt Should Not Parse (duplicate of debit)",
+                message = "Jerry Joseph has received Rs 6000.000 from your A/c XX3343 via NEFT on 24-06-2026 22:04:04. Ref no. FDRLM4175007432 - Federal Bank",
+                sender = "CP-FEDBNK-S",
+                shouldParse = false
+            ),
+
             // ATM Cash Withdrawal - should not extract phone number as merchant
             ParserTestCase(
                 name = "ATM Cash Withdrawal",

@@ -139,6 +139,9 @@ object BankParserFactory {
         GreaterBankParser(),  // Greater Bank (India)
         BPCEParser(),  // BPCE (France)
         SampathBankParser(),  // Sampath Bank (Sri Lanka)
+        NationsTrustBankParser(),  // Nations Trust Bank (Sri Lanka)
+        NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
+        BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)
         ZenithBankParser(),  // Zenith Bank (Nigeria)
         KeystoneBankParser(),  // Keystone Bank (Nigeria)

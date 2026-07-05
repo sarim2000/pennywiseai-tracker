@@ -526,6 +526,17 @@ class FederalBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Skip outgoing "<beneficiary> has received Rs X from your A/c ... via NEFT ... Ref no."
+        // confirmation receipts. For an outgoing NEFT/IMPS transfer, Federal Bank sends both a
+        // debit SMS ("Debited Rs X ... to <name>") and this delivery-confirmation SMS carrying the
+        // same reference. Parsing both double-counts the single transfer (issue #547); the debit SMS
+        // already records it, so the confirmation must not create a second transaction.
+        // Investment transfers (mutual fund, digital gold, etc.) are intentionally kept, since those
+        // are captured via this same confirmation shape and classified as INVESTMENT.
+        if (isOutgoingHasReceivedPattern(message) && !isInvestmentTransaction(lowerMessage)) {
+            return false
+        }
+
         // Federal Bank specific transaction keywords
         val federalKeywords = listOf(
             "sent via upi",

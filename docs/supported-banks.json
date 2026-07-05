@@ -1,6 +1,6 @@
 {
-  "totalBanks": 136,
-  "totalCountries": 22,
+  "totalBanks": 139,
+  "totalCountries": 23,
   "countries": [
     {
       "country": "India",
@@ -91,6 +91,14 @@
       "banks": ["M-Pesa Mozambique", "Millennium BIM", "Standard Bank Mozambique", "eMola"]
     },
     {
+      "country": "Sri Lanka",
+      "flag": "🇱🇰",
+      "currency": "LKR",
+      "symbol": "Rs",
+      "bankCount": 3,
+      "banks": ["National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
+    },
+    {
       "country": "Egypt",
       "flag": "🇪🇬",
       "currency": "EGP",
@@ -105,6 +113,14 @@
       "symbol": "€",
       "bankCount": 2,
       "banks": ["BPCE", "Sparkasse Rhein-Maas"]
+    },
+    {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 1,
+      "banks": ["bKash"]
     },
     {
       "country": "Belarus",
@@ -161,14 +177,6 @@
       "symbol": "₽",
       "bankCount": 1,
       "banks": ["T-Bank"]
-    },
-    {
-      "country": "Sri Lanka",
-      "flag": "🇱🇰",
-      "currency": "LKR",
-      "symbol": "Rs",
-      "bankCount": 1,
-      "banks": ["Sampath Bank"]
     },
     {
       "country": "Turkey",

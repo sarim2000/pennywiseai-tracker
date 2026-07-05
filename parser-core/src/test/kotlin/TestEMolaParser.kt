@@ -72,4 +72,20 @@ class EMolaParserTest {
             "eMola should route to EMolaParser"
         )
     }
+
+    @Test
+    fun `eMola is flagged as a mobile-money wallet`() {
+        Assertions.assertTrue(
+            EMolaParser().isMobileWallet(),
+            "eMola has a running balance but no account number, so it must be a wallet"
+        )
+        // The flag must reach the parsed result so the app can derive a wallet account.
+        val parsed = EMolaParser().parse(
+            "Transaction ID PP260530.0934.w91238. You transfered 100.00MT to 871234566, name: John Doe at 09:34:45 on 30/05/2026. Fee: 0.00MT. Your account balance is 3,123.45MT.",
+            "eMola",
+            0L
+        )
+        Assertions.assertNotNull(parsed)
+        Assertions.assertTrue(parsed!!.isMobileWallet, "parsed eMola transaction must carry isMobileWallet=true")
+    }
 }

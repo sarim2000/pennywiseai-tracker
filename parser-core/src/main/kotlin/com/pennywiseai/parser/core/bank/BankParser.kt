@@ -72,9 +72,18 @@ abstract class BankParser {
             timestamp = timestamp,
             bankName = getBankName(),
             isFromCard = detectIsCard(smsBody),
-            currency = getCurrency()
+            currency = getCurrency(),
+            isMobileWallet = isMobileWallet()
         )
     }
+
+    /**
+     * Whether this parser represents a mobile-money wallet whose SMS carries a
+     * running balance but no per-account number (e.g. eMola, M-Pesa Mozambique).
+     * When true, the app derives a single service-level account row from the
+     * balance instead of requiring an accountLast4. Defaults to false.
+     */
+    open fun isMobileWallet(): Boolean = false
 
     /**
      * Checks if the message is a transaction message (not OTP, promotional, etc.)

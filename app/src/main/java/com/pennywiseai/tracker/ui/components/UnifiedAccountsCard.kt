@@ -237,13 +237,16 @@ private fun CompactAccountItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = "••$accountLast4",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Mobile-money wallets have no account number — show just the service name.
+            if (accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                Text(
+                    text = "••$accountLast4",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        
+
         Column(
             horizontalAlignment = Alignment.End
         ) {

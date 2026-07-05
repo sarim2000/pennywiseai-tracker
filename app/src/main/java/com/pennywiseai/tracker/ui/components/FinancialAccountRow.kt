@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -31,11 +32,14 @@ fun FinancialAccountIdentity(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false)
         )
-        Spacer(modifier = Modifier.width(Spacing.xs))
-        Text(
-            text = "••$accountLast4",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Mobile-money wallets have no account number — show just the service name.
+        if (accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+            Spacer(modifier = Modifier.width(Spacing.xs))
+            Text(
+                text = "••$accountLast4",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

@@ -18,7 +18,12 @@ data class ParsedTransaction(
     val isFromCard: Boolean = false,
     val currency: String = "INR",
     val fromAccount: String? = null,
-    val toAccount: String? = null
+    val toAccount: String? = null,
+    // Mobile-money wallet (e.g. eMola, M-Pesa Mozambique): the SMS carries a
+    // running balance but no per-account number, because the whole wallet IS the
+    // account. When true, the app derives a single service-level account row from
+    // the balance instead of requiring an accountLast4.
+    val isMobileWallet: Boolean = false
 ) {
     fun generateTransactionId(): String {
         val normalizedAmount = amount.setScale(2, java.math.RoundingMode.HALF_UP)

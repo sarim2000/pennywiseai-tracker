@@ -6,7 +6,9 @@ import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import java.math.BigDecimal
 
 /**
@@ -127,5 +129,27 @@ class MPesaMozambiqueParserTest {
         assertNotNull(ke, "Kenya message should parse")
         assertEquals("M-PESA", ke!!.bankName)
         assertEquals("KES", ke.currency)
+    }
+
+    @Test
+    fun `only Mozambique M-Pesa is flagged as a mobile-money wallet`() {
+        val now = System.currentTimeMillis()
+
+        // Mozambique M-Pesa -> wallet (derives a service-level account row in the app).
+        val mozMsg = "Confirmado DET0KAIXP5E. Recebeste  12,345.67MT de 123456 - SIMO aos 29/5/26  as 6:22 PM o novo saldo  M-Pesa e de 1,234.56MT."
+        val moz = BankParserFactory.parse(mozMsg, "M-Pesa", now)
+        assertNotNull(moz)
+        assertTrue(moz!!.isMobileWallet, "Mozambique M-Pesa must be flagged as a wallet")
+
+        // Scope guard: Tanzania & Kenya M-Pesa are NOT touched by this change.
+        val tzMsg = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."
+        val tz = BankParserFactory.parse(tzMsg, "M-PESA", now)
+        assertNotNull(tz)
+        assertFalse(tz!!.isMobileWallet, "Tanzania M-Pesa must NOT be flagged (out of scope)")
+
+        val keMsg = "TJK6H7T3GA Confirmed. Ksh70.00 paid to person 1. on 20/10/24 at 4:21 PM.New M-PESA balance is Ksh123.12. Transaction cost, Ksh0.00. Amount you can transact within the day is 499,895.00."
+        val ke = BankParserFactory.parse(keMsg, "M-PESA", now)
+        assertNotNull(ke)
+        assertFalse(ke!!.isMobileWallet, "Kenya M-PESA must NOT be flagged (out of scope)")
     }
 }

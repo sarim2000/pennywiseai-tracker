@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -798,7 +799,10 @@ private fun OnBoardingBottomBar(
     val isFirstStep = uiState.currentStep == OnBoardingStep.WELCOME
     val canGoBack = !isFirstStep && !uiState.isScanning
 
-    Column {
+    // Keep the controls above the system navigation bar under edge-to-edge (#563):
+    // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,
+    // so without this the gesture/3-button nav bar overlaps the Next button.
+    Column(modifier = Modifier.navigationBarsPadding()) {
         StepIndicator(
             currentStep = uiState.currentStep,
             modifier = Modifier

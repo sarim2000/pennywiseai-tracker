@@ -511,17 +511,27 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     WEBAPP_DIR="$ORIGINAL_DIR/pennywise-web"
 
     if [ -d "$WEBAPP_DIR" ]; then
-        if [ -f "$WEBAPP_DIR/deploy.sh" ]; then
+        # The deploy script lives at pennywise-web/scripts/deploy.sh (what
+        # `bun run redeploy` runs). Older layouts kept it at the web root, so
+        # accept either.
+        WEB_DEPLOY=""
+        if [ -f "$WEBAPP_DIR/scripts/deploy.sh" ]; then
+            WEB_DEPLOY="scripts/deploy.sh"
+        elif [ -f "$WEBAPP_DIR/deploy.sh" ]; then
+            WEB_DEPLOY="deploy.sh"
+        fi
+
+        if [ -n "$WEB_DEPLOY" ]; then
             cd "$WEBAPP_DIR"
-            if bash deploy.sh; then
+            if bash "$WEB_DEPLOY"; then
                 echo -e "${GREEN}✅ Webapp deployed successfully${NC}"
             else
                 echo -e "${RED}❌ Webapp deployment failed${NC}"
-                echo -e "${YELLOW}You can retry manually: cd pennywise-web && ./deploy.sh${NC}"
+                echo -e "${YELLOW}You can retry manually: cd pennywise-web && bun run redeploy${NC}"
             fi
             cd "$ORIGINAL_DIR"
         else
-            echo -e "${RED}❌ deploy.sh not found in pennywise-web${NC}"
+            echo -e "${RED}❌ deploy script not found (looked for pennywise-web/scripts/deploy.sh and pennywise-web/deploy.sh)${NC}"
         fi
     else
         echo -e "${RED}❌ pennywise-web directory not found${NC}"

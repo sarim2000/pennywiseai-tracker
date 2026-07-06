@@ -429,6 +429,21 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Set the transaction's bank when the user picks an account from the
+     * dropdown. The account is keyed by (bankName, accountLast4), so selecting
+     * "HDFC ••1234" must update BOTH fields — otherwise a transaction that
+     * started on a different bank (e.g. a subscription-created row, or a
+     * "Manual Entry" row) keeps its stale bankName, saveChanges() looks up
+     * getLatestBalance(staleBank, newLast4), misses, and the account balance
+     * silently never updates (issues #566, #570).
+     */
+    fun updateBankName(bankName: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(bankName = if (bankName.isNullOrEmpty()) null else bankName)
+        }
+    }
+
     fun updateFromAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)

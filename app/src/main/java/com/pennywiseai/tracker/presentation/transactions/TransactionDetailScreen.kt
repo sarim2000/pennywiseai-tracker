@@ -1304,6 +1304,7 @@ private fun EditableExtractedInfoCard(
                 AccountNumberField(
                     accountNumber = transaction.accountNumber,
                     onAccountNumberChange = { viewModel.updateAccountNumber(it) },
+                    onBankNameChange = { viewModel.updateBankName(it) },
                     viewModel = viewModel
                 )
             }
@@ -1881,7 +1882,12 @@ private fun AccountNumberField(
     viewModel: TransactionDetailViewModel,
     label: String = "Account (Optional)",
     placeholder: String = "Select or enter account number",
-    excludeAccount: String? = null
+    excludeAccount: String? = null,
+    // Fired alongside onAccountNumberChange when a real account is picked from
+    // the dropdown, so the transaction's bankName follows the selected account
+    // (accounts are keyed by bankName+last4). Only the single-account field
+    // wires this; transfer From/To fields leave it null. See #566 / #570.
+    onBankNameChange: ((String?) -> Unit)? = null
 ) {
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
     val filteredAccounts = availableAccounts.filter { it.accountLast4 != excludeAccount }
@@ -1973,6 +1979,7 @@ private fun AccountNumberField(
                         onClick = {
                             selectedAccount = account.displayName
                             onAccountNumberChange(account.accountLast4)
+                            onBankNameChange?.invoke(account.bankName)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding

@@ -129,7 +129,8 @@ object CurrencyFormatter {
         "EGP" to Locale.Builder().setLanguage("en").setRegion("EG").build(),
         "JOD" to Locale.Builder().setLanguage("en").setRegion("JO").build(),
         "BHD" to Locale.Builder().setLanguage("en").setRegion("BH").build(),
-        "OMR" to Locale.Builder().setLanguage("en").setRegion("OM").build()
+        "OMR" to Locale.Builder().setLanguage("en").setRegion("OM").build(),
+        "LKR" to Locale.Builder().setLanguage("en").setRegion("LK").build()
     )
 
     /**

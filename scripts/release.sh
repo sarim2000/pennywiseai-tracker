@@ -137,22 +137,42 @@ if [ -z "$NO_CLAUDE" ] && [ -n "$LAST_TAG" ] && command -v node &> /dev/null && 
             NOTES_RUN=(timeout "${RELEASE_NOTES_TIMEOUT:-120}" "${NOTES_RUN[@]}")
         elif command -v gtimeout &> /dev/null; then
             NOTES_RUN=(gtimeout "${RELEASE_NOTES_TIMEOUT:-120}" "${NOTES_RUN[@]}")
+        else
+            echo -e "${YELLOW}    Note: no timeout/gtimeout on PATH — the note call has no hard time cap.${NC}"
+            echo -e "${YELLOW}    (install coreutils for one; falling back is still safe either way.)${NC}"
         fi
 
         # Capture the generator's stderr so a real failure (bad install, SDK
         # API change, auth, timeout) is surfaced on fallback instead of lost.
         NOTES_ERR=$(mktemp)
         COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
+        echo -e "${YELLOW}    → generator: $NOTES_DIR/index.mjs  model: ${RELEASE_NOTES_MODEL:-claude-sonnet-4-6}${NC}"
+        echo -e "${YELLOW}    → this can take 30-120s; it is Ctrl+C-safe (no version changes made yet)...${NC}"
+
+        # Run the generator WITHOUT letting a hiccup abort the release. The
+        # trailing '|| NOTES_EXIT=$?' keeps set -e from firing on a non-zero
+        # exit, so we always reach the fallback below (commit-list changelog)
+        # and print a diagnostic instead of the whole release dying silently.
+        NOTES_EXIT=0
         NOTES_JSON=$(printf '%s' "$COMMITS" \
             | RELEASE_VERSION="$NEXT_VERSION" \
               RELEASE_NOTES_MODEL="${RELEASE_NOTES_MODEL:-claude-sonnet-4-6}" \
-              "${NOTES_RUN[@]}" 2>"$NOTES_ERR")
+              "${NOTES_RUN[@]}" 2>"$NOTES_ERR") || NOTES_EXIT=$?
+        echo -e "${YELLOW}    → generator exited with code $NOTES_EXIT${NC}"
 
-        if [ -n "$NOTES_JSON" ] && printf '%s' "$NOTES_JSON" | jq -e . >/dev/null 2>&1; then
+        if [ "$NOTES_EXIT" -eq 0 ] && [ -n "$NOTES_JSON" ] && printf '%s' "$NOTES_JSON" | jq -e . >/dev/null 2>&1; then
             USE_CLAUDE=true
+            HL_COUNT=$(printf '%s' "$NOTES_JSON" | jq -r '.highlights | length' 2>/dev/null || echo "?")
+            echo -e "${GREEN}    ✓ structured notes received ($HL_COUNT highlights)${NC}"
         else
-            echo -e "${YELLOW}⚠️  AI generation failed, falling back to standard format${NC}"
-            [ -s "$NOTES_ERR" ] && sed 's/^/    /' "$NOTES_ERR"
+            echo -e "${YELLOW}⚠️  AI note generation did not succeed (exit $NOTES_EXIT) — falling back to the commit-list changelog.${NC}"
+            if [ -s "$NOTES_ERR" ]; then
+                echo -e "${YELLOW}    ┌─ generator stderr ─────────────────────────────${NC}"
+                sed 's/^/    │ /' "$NOTES_ERR"
+                echo -e "${YELLOW}    └────────────────────────────────────────────────${NC}"
+            else
+                echo -e "${YELLOW}    (generator produced no stderr — likely an empty/invalid response or a kill)${NC}"
+            fi
             NOTES_JSON=""
         fi
         rm -f "$NOTES_ERR"

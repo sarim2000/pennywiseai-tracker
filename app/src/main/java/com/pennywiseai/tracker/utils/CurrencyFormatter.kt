@@ -152,6 +152,18 @@ object CurrencyFormatter {
                 return "$symbol${formatAmount(amount, currencyCode)}"
             }
 
+            // Prefer our own symbol over the platform's so a formatted amount
+            // matches the picker / getCurrencySymbol (e.g. LKR renders as "Rs",
+            // SGD as "S$" instead of a bare "$"), while keeping the platform's
+            // locale-driven grouping and decimals.
+            (formatter as? java.text.DecimalFormat)?.let { df ->
+                CURRENCY_SYMBOLS[currencyCode]?.let { customSymbol ->
+                    val dfs = df.decimalFormatSymbols
+                    dfs.currencySymbol = customSymbol
+                    df.decimalFormatSymbols = dfs
+                }
+            }
+
             // Show decimals only if they exist
             formatter.minimumFractionDigits = 0
             formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2

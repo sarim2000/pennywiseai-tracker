@@ -87,7 +87,17 @@ object CurrencyFormatter {
         "EGP" to "E£",
         "JOD" to "JD",
         "BHD" to "BD",
-        "OMR" to "RO"
+        "OMR" to "RO",
+        "LKR" to "Rs",
+        "BDT" to "৳",
+        "CZK" to "Kč",
+        "RUB" to "₽",
+        "TRY" to "₺",
+        "MZN" to "MT",
+        "KES" to "KSh",
+        "SAR" to "SR",
+        "BYN" to "Br",
+        "COP" to "COL$"
     )
 
     /**
@@ -140,6 +150,18 @@ object CurrencyFormatter {
                 // If currency not supported, use symbol mapping
                 val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
                 return "$symbol${formatAmount(amount, currencyCode)}"
+            }
+
+            // Prefer our own symbol over the platform's so a formatted amount
+            // matches the picker / getCurrencySymbol (e.g. LKR renders as "Rs",
+            // SGD as "S$" instead of a bare "$"), while keeping the platform's
+            // locale-driven grouping and decimals.
+            (formatter as? java.text.DecimalFormat)?.let { df ->
+                CURRENCY_SYMBOLS[currencyCode]?.let { customSymbol ->
+                    val dfs = df.decimalFormatSymbols
+                    dfs.currencySymbol = customSymbol
+                    df.decimalFormatSymbols = dfs
+                }
             }
 
             // Show decimals only if they exist

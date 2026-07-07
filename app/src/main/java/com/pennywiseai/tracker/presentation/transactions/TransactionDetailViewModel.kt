@@ -429,6 +429,21 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Set the transaction's bank when the user picks an account from the
+     * dropdown. The account is keyed by (bankName, accountLast4), so selecting
+     * "HDFC ••1234" must update BOTH fields — otherwise a transaction that
+     * started on a different bank (e.g. a subscription-created row, or a
+     * "Manual Entry" row) keeps its stale bankName, saveChanges() looks up
+     * getLatestBalance(staleBank, newLast4), misses, and the account balance
+     * silently never updates (issues #566, #570).
+     */
+    fun updateBankName(bankName: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(bankName = if (bankName.isNullOrEmpty()) null else bankName)
+        }
+    }
+
     fun updateFromAccount(account: String?) {
         _editableTransaction.update { current ->
             current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
@@ -606,9 +621,25 @@ class TransactionDetailViewModel @Inject constructor(
                     newReceiptPath = receiptManager.saveReceipt(pendingUri)
                 }
 
+                // Reconcile the bank with the selected account so the balance
+                // lookup keys on the right (bankName, accountLast4) pair — even
+                // if the account number was hand-typed rather than picked from
+                // the dropdown (which already sets both). Only override when
+                // exactly one known account matches the last-4: don't guess when
+                // the same last-4 exists on multiple banks, or when it's a
+                // novel/unknown number. Clearing (accountNumber == null) keeps
+                // the existing bank untouched. Belt-and-braces with the picker's
+                // onBankNameChange so no edit path can desync (#566, #570).
+                val resolvedBankName = toSave.accountNumber
+                    ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
+                    ?.singleOrNull()
+                    ?.bankName
+                    ?: toSave.bankName
+
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName),
+                    bankName = resolvedBankName,
                     receiptPath = newReceiptPath
                 )
 

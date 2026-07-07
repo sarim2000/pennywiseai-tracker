@@ -621,9 +621,25 @@ class TransactionDetailViewModel @Inject constructor(
                     newReceiptPath = receiptManager.saveReceipt(pendingUri)
                 }
 
+                // Reconcile the bank with the selected account so the balance
+                // lookup keys on the right (bankName, accountLast4) pair — even
+                // if the account number was hand-typed rather than picked from
+                // the dropdown (which already sets both). Only override when
+                // exactly one known account matches the last-4: don't guess when
+                // the same last-4 exists on multiple banks, or when it's a
+                // novel/unknown number. Clearing (accountNumber == null) keeps
+                // the existing bank untouched. Belt-and-braces with the picker's
+                // onBankNameChange so no edit path can desync (#566, #570).
+                val resolvedBankName = toSave.accountNumber
+                    ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
+                    ?.singleOrNull()
+                    ?.bankName
+                    ?: toSave.bankName
+
                 // Normalize merchant name before saving
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName),
+                    bankName = resolvedBankName,
                     receiptPath = newReceiptPath
                 )
 

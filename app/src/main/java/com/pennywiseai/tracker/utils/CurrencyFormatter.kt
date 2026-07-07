@@ -87,7 +87,17 @@ object CurrencyFormatter {
         "EGP" to "E£",
         "JOD" to "JD",
         "BHD" to "BD",
-        "OMR" to "RO"
+        "OMR" to "RO",
+        "LKR" to "Rs",
+        "BDT" to "৳",
+        "CZK" to "Kč",
+        "RUB" to "₽",
+        "TRY" to "₺",
+        "MZN" to "MT",
+        "KES" to "KSh",
+        "SAR" to "SR",
+        "BYN" to "Br",
+        "COP" to "COL$"
     )
 
     /**

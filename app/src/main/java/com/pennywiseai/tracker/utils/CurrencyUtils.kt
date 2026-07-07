@@ -91,21 +91,24 @@ object CurrencyUtils {
      * @return List of currency codes sorted with INR first, then alphabetically
      */
     fun getAllSupportedCurrencies(): List<String> {
+        // Keep this in sync with the currencies our bank parsers emit
+        // (BankParser.getCurrency()) so anything the app can auto-import is also
+        // manually selectable. Every code here must be a valid ISO 4217 code.
         val currencies = listOf(
             // Major currencies
             "INR", "USD", "EUR", "GBP", "JPY", "CNY",
             // Middle East
-            "AED", "SAR", "KWD",
+            "AED", "SAR", "KWD", "OMR", "IRR", "JOD", "BHD",
+            // South Asia
+            "NPR", "LKR", "BDT", "PKR",
             // Asia Pacific
-            "SGD", "AUD", "THB", "MYR", "KRW", "NPR",
+            "SGD", "AUD", "THB", "MYR", "KRW",
             // Americas
-            "CAD", "MXN",
+            "CAD", "MXN", "COP", "BRL",
             // Africa
-            "ETB", "KES",
+            "ETB", "KES", "NGN", "TZS", "MZN", "EGP",
             // Europe
-            "BYN",
-            // South America
-            "COP"
+            "BYN", "CZK", "RUB", "TRY"
         )
         return sortCurrencies(currencies)
     }

@@ -1077,7 +1077,9 @@ class HomeViewModel @Inject constructor(
     private fun updateTransactionTypeTotals(transactions: List<TransactionEntity>) {
         val selectedCurrency = _uiState.value.selectedCurrency
         val isUnified = _uiState.value.isUnifiedMode
-        val nonLoanTransactions = transactions.filter { it.loanId == null }
+        // Drop excluded-from-analytics rows here too, so the home CREDIT/TRANSFER/
+        // INVESTMENT totals stay consistent with the income/spend breakdown (#451).
+        val nonLoanTransactions = transactions.filter { it.loanId == null && !it.excludedFromAnalytics }
 
         if (isUnified) {
             // Convert all transactions to display currency

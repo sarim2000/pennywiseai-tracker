@@ -134,11 +134,22 @@ object CurrencyFormatter {
     )
 
     /**
+     * Currencies whose ISO code is valid (so `Currency.getInstance()` succeeds and
+     * the try/catch fallback below never triggers), but whose *locale-derived*
+     * symbol collides with another currency's — e.g. `en-LK` can format LKR with a
+     * plain "Rs", identical to PKR's symbol, making mixed rupee amounts (as in
+     * [formatByCurrency]) indistinguishable. These bypass `NumberFormat`'s
+     * currency-instance symbol entirely and always render the explicit
+     * [CURRENCY_SYMBOLS] value instead.
+     */
+    private val EXPLICIT_SYMBOL_CURRENCIES = setOf("PKR", "LKR")
+
+    /**
      * Formats a BigDecimal amount as currency with the specified currency code
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
-        if (currencyCode == "PKR") {
-            return "${CURRENCY_SYMBOLS["PKR"]}${formatAmount(amount, "PKR")}"
+        if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {
+            return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
         }
         return try {
             val locale = groupingLocale(currencyCode)

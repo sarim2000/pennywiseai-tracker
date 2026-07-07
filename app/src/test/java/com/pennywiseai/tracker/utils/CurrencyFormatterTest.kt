@@ -129,6 +129,32 @@ class CurrencyFormatterTest {
         assertTrue("zero should still render in the fallback currency: $out", out.contains("$"))
     }
 
+    // ─── PKR/LKR symbol collision ───
+    //
+    // Both are valid ISO codes, so `Currency.getInstance()` succeeds and the
+    // locale-driven NumberFormat path is normally used — but some runtimes render
+    // LKR with a plain "Rs", identical to PKR's symbol, making a mixed PKR+LKR
+    // total unreadable. formatCurrency forces the explicit CURRENCY_SYMBOLS value
+    // for both so they never collide regardless of runtime ICU data.
+
+    @Test
+    fun `formatCurrency renders PKR and LKR with distinct explicit symbols`() {
+        val pkr = CurrencyFormatter.formatCurrency(BigDecimal(500), "PKR")
+        val lkr = CurrencyFormatter.formatCurrency(BigDecimal(500), "LKR")
+        assertTrue("PKR should use its explicit symbol, got: $pkr", pkr.startsWith("Rs"))
+        assertTrue("LKR should use its explicit symbol, got: $lkr", lkr.startsWith("රු"))
+        assertFalse("PKR and LKR must not render identically", pkr == lkr)
+    }
+
+    @Test
+    fun `formatByCurrency keeps PKR and LKR distinguishable in a mixed total`() {
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("PKR" to Money(BigDecimal(500), "PKR"), "LKR" to Money(BigDecimal(500), "LKR"))
+        )
+        assertTrue("expected the PKR symbol, got: $out", out.contains("Rs"))
+        assertTrue("expected the LKR symbol, got: $out", out.contains("රු"))
+    }
+
     @Test
     fun `sumByCurrency buckets per currency instead of folding into one`() {
         data class Row(val amount: BigDecimal, val currency: String)

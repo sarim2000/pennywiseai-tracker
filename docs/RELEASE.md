@@ -1,121 +1,75 @@
 # Release Process
 
-This document describes how to create releases for PennyWise.
+Releases are cut by **`scripts/release.sh`**, which replicates
+`.github/workflows/release.yml` locally. This script is the **single source of
+truth** for the version and changelogs.
 
-## Prerequisites
+> ⚠️ **Never hand-edit the version or changelogs.** Do not touch `versionCode` /
+> `versionName` in `app/build.gradle.kts`, and never hand-write a
+> `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`. The script
+> owns all of that — editing it by hand will conflict with the next release.
 
-### 1. Create Signing Keystore (One-time setup)
-If you don't have a keystore yet:
+## TL;DR
+
 ```bash
-keytool -genkey -v -keystore release.keystore \
-  -alias pennywise -keyalg RSA -keysize 2048 -validity 10000
+# Preview first — prints the computed version + release notes, changes nothing:
+./scripts/release.sh patch --dry-run
+
+# Cut the release (non-interactive):
+./scripts/release.sh patch --yes
 ```
 
-### 2. Add GitHub Secrets
-Go to GitHub → Settings → Secrets and variables → Actions
+The bump keyword is the usual SemVer choice:
 
-Add these secrets:
-- `KEYSTORE_BASE64`: Your keystore file encoded as base64
-  ```bash
-  base64 -i release.keystore | pbcopy  # Mac
-  base64 release.keystore | xclip -selection clipboard  # Linux
-  ```
-- `KEYSTORE_PASSWORD`: Password for your keystore
-- `KEY_ALIAS`: Key alias (e.g., "pennywise")
-- `KEY_PASSWORD`: Password for the key
+- `patch` — bug fixes, minor improvements (2.17.0 → 2.17.1)
+- `minor` — new features (2.17.0 → 2.18.0)
+- `major` — breaking changes / major overhaul (2.17.0 → 3.0.0)
 
-## Release Workflow
+## What the script does in one run
 
-### 1. Use Conventional Commits
-Start using conventional commit format:
+1. Bumps `versionName` (per the keyword) and increments `versionCode` in
+   `app/build.gradle.kts`.
+2. Generates release notes from the commits since the last tag via the Claude
+   Agent SDK (falling back to a plain commit list, or with `--no-claude`). From
+   the same structured notes it writes:
+   - the store changelog `changelogs/<versionCode>.txt` + `default.txt`, and
+   - `RELEASE_NOTES.md` for the GitHub release.
+3. Builds, renames, and (F-Droid) computes SHA256 for the standard + F-Droid
+   APKs.
+4. Commits `chore(release): bump version to X [skip ci]`, tags `vX`, and pushes.
+5. Cuts the GitHub release with the APKs + `.sha256` attached.
+
+If the script is interrupted, a trap reverts the version bump and changelog
+changes so you're left in a clean state.
+
+## Flags
+
+| Flag | Effect |
+|---|---|
+| `-y`, `--yes` | Auto-confirm every prompt (non-interactive / CI). |
+| `--dry-run` | Print the plan + release notes and change nothing. Run this first. |
+| `--no-claude` | Skip Claude note generation; use the commit-list fallback. |
+| `--play` | After building, also build the `.aab` and upload it to Play Console as a draft (via `scripts/upload-play.sh`). |
+| `--web` | Also deploy `pennywise-web` to Cloudflare (otherwise a routine app release never redeploys the site). |
+
+One-shot headless release with a Play draft:
+
 ```bash
-git commit -m "feat: add new bank parser"
-git commit -m "fix: resolve parsing error"
-git commit -m "docs: update README"
+./scripts/release.sh patch --yes --play
 ```
 
-The template will help you:
-```bash
-git commit  # Opens editor with template
-```
+## Prerequisites (one-time)
 
-### 2. Create a Release
+- **Signing** — the release build needs the signing config wired up (keystore +
+  credentials) the same way `release.yml` consumes its GitHub secrets. If the
+  workflow shows an unsigned APK, the signing config/secrets are misconfigured.
+- **`--play`** additionally needs the Play Console service-account credentials
+  that `scripts/upload-play.sh` expects.
+- **`--web`** needs the `pennywise-web` deploy toolchain (`bun`, Cloudflare
+  auth); the script runs `pennywise-web/scripts/deploy.sh`.
 
-#### Option A: Manual Version Selection
-1. Go to [GitHub Actions](../../actions)
-2. Click on "Release" workflow
-3. Click "Run workflow"
-4. Select version bump type:
-   - `patch`: Bug fixes only (2.1.7 → 2.1.8)
-   - `minor`: New features (2.1.7 → 2.2.0)
-   - `major`: Breaking changes (2.1.7 → 3.0.0)
-   - `auto`: Analyze commits (works after using conventional commits)
-5. Click "Run workflow"
+## Conventional commits
 
-#### Option B: Test with Dry Run
-1. Same as above but check "Dry run" checkbox
-2. This will preview the release without creating it
-
-### 3. What Happens Automatically
-
-The workflow will:
-1. Calculate next version based on your selection
-2. Generate changelog from recent commits
-3. Update version in `app/build.gradle.kts`
-4. Build signed APK
-5. Create git tag (e.g., `v2.2.0`)
-6. Create GitHub Release with:
-   - Changelog as description
-   - APK attached for download
-   - SHA256 checksum file
-
-### 4. Release Notes
-
-The workflow automatically generates release notes from your commits:
-```markdown
-## Changes since v2.1.7
-- feat: add ICICI Bank support (abc123)
-- fix: resolve download issues (def456)
-- docs: update README (ghi789)
-```
-
-## Version Strategy
-
-- **Patch** (2.1.7 → 2.1.8): Bug fixes, minor improvements
-- **Minor** (2.1.7 → 2.2.0): New features, significant improvements
-- **Major** (2.1.7 → 3.0.0): Breaking changes, major overhaul
-
-## Testing Releases
-
-Always test with dry run first:
-1. Check "Dry run" when running workflow
-2. Review the output in Actions logs
-3. If everything looks good, run without dry run
-
-## Troubleshooting
-
-### Keystore Issues
-If you see "unsigned APK" in the workflow:
-- Verify GitHub secrets are set correctly
-- Check keystore is properly base64 encoded
-- Ensure passwords are correct
-
-### Version Conflicts
-If version already exists:
-- Manually update version in `app/build.gradle.kts`
-- Commit and push
-- Try release again
-
-### Workflow Fails
-Check the Actions tab for detailed logs:
-- Build errors → Fix code issues
-- Signing errors → Check secrets
-- Git errors → Ensure you're on main branch
-
-## Future Improvements
-
-Once comfortable with the process:
-1. Add Play Store deployment
-2. Automate version selection with semantic-release
-3. Add automated testing before release
-4. Include release notes in multiple languages
+Release notes are generated from commit messages, so use conventional commits
+(`feat:`, `fix:`, `docs:`, `chore:` …). Better commit messages → better
+auto-generated changelog and GitHub release notes.

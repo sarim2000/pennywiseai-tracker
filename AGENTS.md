@@ -1,1 +1,1 @@
-Read from CLAUDE.md
+CLAUDE.md

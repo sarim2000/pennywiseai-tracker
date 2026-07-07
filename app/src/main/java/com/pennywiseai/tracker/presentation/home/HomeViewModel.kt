@@ -226,7 +226,14 @@ class HomeViewModel @Inject constructor(
     private fun computeBreakdownByCurrency(
         transactions: List<TransactionEntity>
     ): Map<String, TransactionRepository.MonthlyBreakdown> {
-        return transactions.groupBy { it.currency }.mapValues { (_, txs) ->
+        // "Exclude from analytics" transactions stay in history & account balances
+        // but must not count toward the home card's income/spend figures — same as
+        // the Analytics screen, budgets and AI summaries already do (#451). Without
+        // this, an excluded income still showed up as income on the main card even
+        // though the row is labelled "Excluded".
+        return transactions
+            .filter { !it.excludedFromAnalytics }
+            .groupBy { it.currency }.mapValues { (_, txs) ->
             // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
             // expense, so it should shrink "Spent this month" and not appear as
             // new income. "Extra budget" (ADD_TO_LIMIT) is real money in — leave
@@ -271,6 +278,7 @@ class HomeViewModel @Inject constructor(
         val daily = mutableMapOf<LocalDate, BigDecimal>()
         for (tx in transactions) {
             if (tx.loanId != null) continue
+            if (tx.excludedFromAnalytics) continue  // keep the trend line consistent with the income/spend figures (#451)
             if (!isUnified && tx.currency != selectedCurrency) continue
 
             val sign = when {
@@ -1069,7 +1077,9 @@ class HomeViewModel @Inject constructor(
     private fun updateTransactionTypeTotals(transactions: List<TransactionEntity>) {
         val selectedCurrency = _uiState.value.selectedCurrency
         val isUnified = _uiState.value.isUnifiedMode
-        val nonLoanTransactions = transactions.filter { it.loanId == null }
+        // Drop excluded-from-analytics rows here too, so the home CREDIT/TRANSFER/
+        // INVESTMENT totals stay consistent with the income/spend breakdown (#451).
+        val nonLoanTransactions = transactions.filter { it.loanId == null && !it.excludedFromAnalytics }
 
         if (isUnified) {
             // Convert all transactions to display currency

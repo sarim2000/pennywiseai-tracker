@@ -11,7 +11,16 @@ truth** for the version and changelogs.
 
 ## TL;DR
 
+> ⚠️ **Run from an up-to-date `main` with a clean working tree.** The script
+> commits the version bump to your *current* branch, tags that commit, and then
+> runs `git push origin main`. On any other branch — or a stale or dirty `main`
+> — it will tag the wrong commit and push a `main` that doesn't contain the
+> release. It does **not** guard against this for you.
+
 ```bash
+git checkout main && git pull --ff-only    # be on current main
+git status --porcelain                      # confirm a clean tree (expect no output)
+
 # Preview first — prints the computed version + release notes, changes nothing:
 ./scripts/release.sh patch --dry-run
 

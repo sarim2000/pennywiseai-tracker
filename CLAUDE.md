@@ -84,8 +84,10 @@ verify.
 fresh `[BANK]` issue).
 
 ## Releasing
-For a routine release: merge the PRs, then run
-`./scripts/release.sh patch|minor|major --yes` (preview first with `--dry-run`).
+For a routine release: merge the PRs, then — from an up-to-date `main` with a
+clean tree — run `./scripts/release.sh patch|minor|major --yes` (preview first
+with `--dry-run`). It commits/tags the current branch and pushes `main`, so the
+branch state matters.
 `scripts/release.sh` is the single source of truth — it bumps the version,
 generates changelogs + release notes, builds/signs the APKs, tags, pushes, and
 cuts the GitHub release. Full flag reference in `docs/RELEASE.md`.

@@ -19,18 +19,56 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # --- JDK 21 -----------------------------------------------------------------
-# Gradle here needs a JDK 21. If JAVA_HOME isn't set, fall back to Android
-# Studio's bundled JBR (the common local setup on macOS).
-if [[ -z "${JAVA_HOME:-}" ]]; then
-  ASTUDIO_JBR="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-  if [[ -d "$ASTUDIO_JBR" ]]; then
-    export JAVA_HOME="$ASTUDIO_JBR"
-    echo "→ JAVA_HOME not set; using Android Studio JBR: $JAVA_HOME"
-  else
-    echo "⚠️  JAVA_HOME is not set and Android Studio JBR was not found."
-    echo "    Set JAVA_HOME to a JDK 21 and re-run."
-    exit 1
+# Gradle here needs a JDK 21 (matches CI). Find one and verify its major
+# version rather than trusting whatever JAVA_HOME happens to point at — a stray
+# JDK 17/11 would otherwise fail the build with a cryptic error, and older
+# Android Studio JBRs are 17, not 21.
+
+jdk_major() {
+  # Print the major version of the JDK at $1 (e.g. "21"), or nothing if unusable.
+  local home="$1"
+  [[ -n "$home" && -x "$home/bin/java" ]] || return 1
+  "$home/bin/java" -version 2>&1 | awk -F'"' '/version/ {print $2; exit}' | cut -d. -f1
+}
+
+find_jdk21() {
+  local c major
+  local -a candidates=()
+  # 1. An already-correct JAVA_HOME wins (no surprise switching).
+  [[ -n "${JAVA_HOME:-}" ]] && candidates+=("$JAVA_HOME")
+  # 2. macOS: ask the OS for a registered JDK 21.
+  if [[ -x /usr/libexec/java_home ]]; then
+    c="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+    [[ -n "$c" ]] && candidates+=("$c")
   fi
+  # 3. Android Studio's bundled JBR (used only if it is actually 21).
+  candidates+=("/Applications/Android Studio.app/Contents/jbr/Contents/Home")
+  # 4. Common SDKMAN install.
+  candidates+=("${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/current")
+
+  for c in "${candidates[@]}"; do
+    major="$(jdk_major "$c" || true)"
+    if [[ "$major" == "21" ]]; then
+      printf '%s\n' "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if JDK21="$(find_jdk21)"; then
+  if [[ "${JAVA_HOME:-}" != "$JDK21" ]]; then
+    echo "→ Using JDK 21 at: $JDK21"
+    export JAVA_HOME="$JDK21"
+  fi
+else
+  echo "⚠️  No JDK 21 found. CI builds on JDK 21 and Gradle here needs it too." >&2
+  if [[ -n "${JAVA_HOME:-}" ]]; then
+    echo "    JAVA_HOME points at a JDK $(jdk_major "$JAVA_HOME" 2>/dev/null || echo '?'), not 21." >&2
+  fi
+  echo "    Install one (e.g. Temurin 21, or Android Studio's JBR) and either set" >&2
+  echo "    JAVA_HOME to it or make it discoverable via /usr/libexec/java_home, then re-run." >&2
+  exit 1
 fi
 
 TARGET="${1:-all}"

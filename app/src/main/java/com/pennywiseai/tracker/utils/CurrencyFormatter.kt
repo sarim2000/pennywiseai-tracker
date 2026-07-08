@@ -88,7 +88,7 @@ object CurrencyFormatter {
         "JOD" to "JD",
         "BHD" to "BD",
         "OMR" to "RO",
-        "LKR" to "Rs",
+        "LKR" to "රු",
         "BDT" to "৳",
         "CZK" to "Kč",
         "RUB" to "₽",

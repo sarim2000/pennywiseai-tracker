@@ -404,6 +404,22 @@ class TransactionDetailViewModel @Inject constructor(
             current?.copy(category = category.ifEmpty { "Others" })
         }
     }
+
+    /**
+     * Creates a category on the fly from the transaction edit flow (#584) and
+     * selects it. If a category with the same name already exists it is reused
+     * rather than duplicated, so the action is safe to repeat.
+     */
+    fun createAndSelectCategory(name: String, color: String, isIncome: Boolean) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            if (!categoryRepository.categoryExists(trimmed)) {
+                categoryRepository.createCategory(trimmed, color, isIncome)
+            }
+            updateCategory(trimmed)
+        }
+    }
     
     fun updateDateTime(dateTime: LocalDateTime) {
         _editableTransaction.update { current ->

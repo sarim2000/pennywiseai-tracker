@@ -43,12 +43,13 @@ private val presetColors = listOf(
 @Composable
 fun CategoryEditDialog(
     category: CategoryEntity? = null,
+    defaultIsIncome: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (name: String, color: String, isIncome: Boolean) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     var name by remember { mutableStateOf(category?.name ?: "") }
-    var isIncome by remember { mutableStateOf(category?.isIncome ?: false) }
+    var isIncome by remember { mutableStateOf(category?.isIncome ?: defaultIsIncome) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
     var showDeleteConfirm by remember { mutableStateOf(false) }

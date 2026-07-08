@@ -114,11 +114,27 @@ fun BudgetGroupsScreen(
         }
 
         if (!uiState.hasGroups) {
-            EmptyBudgetState(
-                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
-                onSmartDefaults = { viewModel.runSmartDefaults() },
-                onCreateNew = { onNavigateToGroupEdit(-1L) }
-            )
+            val isCurrentMonth =
+                YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
+            if (isCurrentMonth) {
+                EmptyBudgetState(
+                    modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
+                    onSmartDefaults = { viewModel.runSmartDefaults() },
+                    onCreateNew = { onNavigateToGroupEdit(-1L) }
+                )
+            } else {
+                // A past month with no snapshot has no groups to show, but the
+                // month navigator must stay on-screen so the user isn't trapped
+                // and can step back to the current month (#569).
+                EmptyPastMonthState(
+                    modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
+                    topPadding = paddingValues.calculateTopPadding(),
+                    year = uiState.selectedYear,
+                    month = uiState.selectedMonth,
+                    onPreviousMonth = { viewModel.selectPreviousMonth() },
+                    onNextMonth = { viewModel.selectNextMonth() }
+                )
+            }
         } else {
             BudgetGroupsContent(
                 modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
@@ -195,6 +211,62 @@ private fun EmptyBudgetState(
                 ) {
                     Text("Create Custom Budget")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyPastMonthState(
+    modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
+    year: Int,
+    month: Int,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = Dimensions.Padding.content + topPadding
+            )
+    ) {
+        MonthSelector(
+            year = year,
+            month = month,
+            isCurrentMonth = false,
+            onPrevious = onPreviousMonth,
+            onNext = onNextMonth
+        )
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalance,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "No budgets tracked this month",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "There's no budget history for ${YearMonth.of(year, month).format(DateTimeFormatter.ofPattern("MMMM yyyy"))}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

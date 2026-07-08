@@ -129,6 +129,7 @@ fun BudgetGroupsScreen(
                 EmptyPastMonthState(
                     modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                     topPadding = paddingValues.calculateTopPadding(),
+                    bottomPadding = paddingValues.calculateBottomPadding(),
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
                     onPreviousMonth = { viewModel.selectPreviousMonth() },
@@ -220,6 +221,7 @@ private fun EmptyBudgetState(
 private fun EmptyPastMonthState(
     modifier: Modifier = Modifier,
     topPadding: Dp = 0.dp,
+    bottomPadding: Dp = 0.dp,
     year: Int,
     month: Int,
     onPreviousMonth: () -> Unit,
@@ -231,7 +233,8 @@ private fun EmptyPastMonthState(
             .padding(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Dimensions.Padding.content + topPadding
+                top = Dimensions.Padding.content + topPadding,
+                bottom = bottomPadding
             )
     ) {
         MonthSelector(

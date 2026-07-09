@@ -13,33 +13,37 @@ class NationsTrustBankParserTest {
         val parser = NationsTrustBankParser()
 
         val testCases = listOf(
+            // Card numbers below are synthetic (fake BIN 123456, dummy last-4) — real card
+            // numbers are PII and must never be committed. Format matches real NTB SMS.
             ParserTestCase(
                 name = "Card purchase - bill payment",
-                message = "Transaction Approved on your Card **************** for LKR 500.00 at BILL PAYMENT VIA NATIONS Available Bal LKR 12345.73  Call 0114315315 for any inquiry.",
+                message = "Transaction Approved on your Card 123456******1234 for LKR 500.00 at BILL PAYMENT VIA NATIONS Available Bal LKR 12345.73  Call 0114315315 for any inquiry.",
                 sender = "NationsSMS",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500.00"),
                     currency = "LKR",
                     type = TransactionType.CREDIT,
                     merchant = "BILL PAYMENT VIA NATIONS",
+                    accountLast4 = "1234",
                     balance = BigDecimal("12345.73")
                 )
             ),
             ParserTestCase(
                 name = "Card purchase - ride",
-                message = "Transaction Approved on your Card **************** for LKR 771.51 at PICKME RIDE Available Bal LKR 16730.45  Call 0114315315 for any inquiry.",
+                message = "Transaction Approved on your Card 123456******5678 for LKR 771.51 at PICKME RIDE Available Bal LKR 16730.45  Call 0114315315 for any inquiry.",
                 sender = "NationsSMS",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("771.51"),
                     currency = "LKR",
                     type = TransactionType.CREDIT,
                     merchant = "PICKME RIDE",
+                    accountLast4 = "5678",
                     balance = BigDecimal("16730.45")
                 )
             ),
             ParserTestCase(
                 name = "Card bill settlement is skipped (not a spend)",
-                message = "Thank you for your payment of LKR 57,018.67 made to Card # **************** on 27-06-2026.",
+                message = "Thank you for your payment of LKR 57,018.67 made to Card # 123456*****1234 on 27-06-2026.",
                 sender = "NationsSMS",
                 shouldParse = false
             )

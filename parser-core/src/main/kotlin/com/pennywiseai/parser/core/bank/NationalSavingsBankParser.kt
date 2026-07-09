@@ -10,16 +10,18 @@ import java.math.BigDecimal
  *
  * Supported formats:
  * - Credit (INCOME):
- *   "Dear MR <NAME>,LKR 10,000.00 Credited to your A/c XXXXXXXXXXXX on DD/MM/YYYY at HH:mm.
+ *   "Dear MR <NAME>,LKR 10,000.00 Credited to your A/c XXXXXXXX1234 on DD/MM/YYYY at HH:mm.
  *    AvlBal LKR 12,653.61.Transaction CEFT Inward Transfer Deposit.Thank you for banking with us.Call Centre 1972."
  * - POS debit (EXPENSE):
- *   "Dear MR <NAME>,LKR 3,216.00 Debited from your A/c XXXXXXXXXXXX on DD/MM/YYYY at HH:mm.
+ *   "Dear MR <NAME>,LKR 3,216.00 Debited from your A/c XXXXXXXX1234 on DD/MM/YYYY at HH:mm.
  *    AvlBal LKR 9,437.61. @ Wetara Pharamcy & Groc Polgasowita. ATM POS Transaction.Thank you for banking with us.Call Centre 1972."
  * - ATM / Internet-Mobile withdrawal (EXPENSE):
- *   "Dear MR <NAME>,LKR 2,800.00 Debited from your A/c XXXXXXXXXXXX on DD/MM/YYYY at HH:mm.
+ *   "Dear MR <NAME>,LKR 2,800.00 Debited from your A/c XXXXXXXX1234 on DD/MM/YYYY at HH:mm.
  *    AvlBal LKR 24,037.61.Internet-Mobile Withdrawal.Thank you for banking with us.Call Centre 1972."
  *
- * The account number is fully masked ("XXXXXXXXXXXX") so no last 4 digits are available.
+ * The account number is masked with X's but exposes the last 4 digits ("XXXXXXXX1234");
+ * the last 4 are extracted. (Digits and names shown here are synthetic — real account
+ * numbers and customer names are PII and must never be committed.)
  */
 class NationalSavingsBankParser : BankParser() {
 
@@ -86,6 +88,9 @@ class NationalSavingsBankParser : BankParser() {
         return null
     }
 
-    // Account number is fully masked; no usable last 4 digits.
-    override fun extractAccountLast4(message: String): String? = null
+    override fun extractAccountLast4(message: String): String? {
+        // "A/c XXXXXXXX6146 on ..." — last 4 digits after the X-masked prefix.
+        val pattern = Regex("""A/c\s+X+(\d{4})(?!\d)""", RegexOption.IGNORE_CASE)
+        return pattern.find(message)?.groupValues?.get(1)
+    }
 }

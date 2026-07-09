@@ -395,7 +395,8 @@ class BudgetGroupRepository @Inject constructor(
                 queryStart.atStartOfDay(),
                 queryEnd.atTime(23, 59, 59),
                 currency
-            ).map { allTxs ->
+            ).map { allTxs0 ->
+                val allTxs = allTxs0.filter { !it.transaction.excludedFromAnalytics }
                 val groupSpendings = perBudgetWindows.map { (group, windows) ->
                     val budget = group.budget
                     if (windows.isEmpty()) {
@@ -588,7 +589,8 @@ class BudgetGroupRepository @Inject constructor(
             transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
                 unionMinStart.atStartOfDay(),
                 unionMaxEnd.atTime(23, 59, 59)
-            ).map { unionTxs ->
+            ).map { unionTxs0 ->
+                val unionTxs = unionTxs0.filter { !it.transaction.excludedFromAnalytics }
                 val windowed = mutableListOf<WindowSpending>()
                 val currentWindows = mutableMapOf<Long, BudgetWindow>()
                 val allTransactions = mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>()

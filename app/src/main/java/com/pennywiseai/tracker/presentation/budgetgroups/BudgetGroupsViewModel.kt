@@ -213,16 +213,18 @@ class BudgetGroupsViewModel @Inject constructor(
         )
 
         // Compute totalIncome from raw.allTransactions bounded by the page window
-        val totalIncome = raw.allTransactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-            val tx = txWithSplits.transaction
-            val d = tx.dateTime.toLocalDate()
-            val inWindow = !d.isBefore(minStart) && !d.isAfter(maxEnd)
+        val totalIncome = raw.allTransactions
+            .filter { !it.transaction.excludedFromAnalytics }
+            .fold(BigDecimal.ZERO) { acc, txWithSplits ->
+                val tx = txWithSplits.transaction
+                val d = tx.dateTime.toLocalDate()
+                val inWindow = !d.isBefore(minStart) && !d.isAfter(maxEnd)
 
-            if (inWindow && tx.transactionType == TransactionType.INCOME &&
-                !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
-            ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
-            else acc
-        }
+                if (inWindow && tx.transactionType == TransactionType.INCOME &&
+                    !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
+                ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                else acc
+            }
 
         val limitGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
         val targetGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }

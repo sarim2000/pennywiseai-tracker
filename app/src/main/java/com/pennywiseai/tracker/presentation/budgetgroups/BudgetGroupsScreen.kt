@@ -116,11 +116,27 @@ fun BudgetGroupsScreen(
         }
 
         if (!uiState.hasGroups) {
-            EmptyBudgetState(
-                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background).padding(paddingValues),
-                onSmartDefaults = { viewModel.runSmartDefaults() },
-                onCreateNew = { onNavigateToGroupEdit(-1L) }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(paddingValues)
+            ) {
+                MonthSelector(
+                    year = uiState.selectedYear,
+                    month = uiState.selectedMonth,
+                    isCurrentMonth = uiState.selectedYear == java.time.LocalDate.now().year &&
+                        uiState.selectedMonth == java.time.LocalDate.now().monthValue,
+                    onPrevious = { viewModel.selectPreviousMonth() },
+                    onNext = { viewModel.selectNextMonth() }
+                )
+                EmptyBudgetState(
+                    modifier = Modifier.fillMaxSize(),
+                    onSmartDefaults = { viewModel.runSmartDefaults() },
+                    onCreateNew = { onNavigateToGroupEdit(-1L) }
+                )
+            }
         } else {
             BudgetGroupsContent(
                 modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),

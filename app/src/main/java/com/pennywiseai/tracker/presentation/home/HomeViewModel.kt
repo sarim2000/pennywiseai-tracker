@@ -1391,8 +1391,9 @@ class HomeViewModel @Inject constructor(
         // from a category by aggregateBudgetCategorySpending (categorised refund);
         // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
         // understate.
+        val analyticsTransactions = raw.allTransactions.filter { !it.transaction.excludedFromAnalytics }
         var totalIncome = BigDecimal.ZERO
-        for (txWithSplits in raw.allTransactions) {
+        for (txWithSplits in analyticsTransactions) {
             val tx = txWithSplits.transaction
             if (tx.transactionType != TransactionType.INCOME) continue
             if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
@@ -1407,7 +1408,7 @@ class HomeViewModel @Inject constructor(
         // Extra budget (ADD_TO_LIMIT) take effect on the home carousel the same
         // way they do on the Budgets screen and the widget.
         val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
-            transactions = raw.allTransactions,
+            transactions = analyticsTransactions,
             convertSplit = { fromCurrency, amount ->
                 currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
             },

@@ -312,6 +312,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Lucifer1590"><img src="https://avatars.githubusercontent.com/Lucifer1590?v=4&s=100" width="100px;" alt="Lucifer1590"/><br /><sub><b>Lucifer1590</b></sub></a><br /><a href="#community-Lucifer1590" title="Community Management">👥</a> <a href="https://github.com/sarim2000/pennywiseai-tracker/issues?q=author%3ALucifer1590" title="Bug reports">🐛</a> <a href="#userTesting-Lucifer1590" title="User Testing">📓</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/akshaynexus"><img src="https://avatars.githubusercontent.com/akshaynexus?v=4&s=100" width="100px;" alt="akshaynexus"/><br /><sub><b>akshaynexus</b></sub></a><br /><a href="https://github.com/sarim2000/pennywiseai-tracker/commits?author=akshaynexus" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/WINDY-WINDWARD"><img src="https://avatars.githubusercontent.com/WINDY-WINDWARD?v=4&s=100" width="100px;" alt="WINDY-WINDWARD"/><br /><sub><b>WINDY-WINDWARD</b></sub></a><br /><a href="https://github.com/sarim2000/pennywiseai-tracker/commits?author=WINDY-WINDWARD" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

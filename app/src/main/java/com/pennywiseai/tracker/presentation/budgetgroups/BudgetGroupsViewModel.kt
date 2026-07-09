@@ -294,6 +294,7 @@ class BudgetGroupsViewModel @Inject constructor(
         if (group.categories.isEmpty()) {
             return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
                 val tx = txWithSplits.transaction
+                if (tx.loanId != null) return@fold acc
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
                 acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             }
@@ -307,8 +308,10 @@ class BudgetGroupsViewModel @Inject constructor(
                 currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
             }
         )
-        val catTotal = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        val typeTotal = typeAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+        val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
         return catTotal + typeTotal
     }
 

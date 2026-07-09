@@ -691,8 +691,10 @@ class BudgetGroupRepository @Inject constructor(
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
         )
-        val catTotal = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        val typeTotal = typeAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+        val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
         return catTotal + typeTotal
     }
 
@@ -895,7 +897,8 @@ class BudgetGroupRepository @Inject constructor(
             convertIncome = { tx -> tx.amount }
         )
 
-        val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
+        val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount } +
+                typeAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
 
         // Per-budget window timing. For the *current* month, daysElapsed
         // runs from displayWindow.start to today; daysRemaining runs from

@@ -424,7 +424,17 @@ class TransactionDetailViewModel @Inject constructor(
             ?.transactionType == TransactionType.INCOME
         viewModelScope.launch {
             try {
-                if (!categoryRepository.categoryExists(trimmed)) {
+                val existing = categoryRepository.getCategoryByName(trimmed)
+                if (existing != null && existing.isIncome != isIncome) {
+                    // A category with this name already exists but for the other
+                    // type; selecting it would filter it out of the picker and
+                    // blank the chip. Surface it instead of silently misbehaving.
+                    val existingType = if (existing.isIncome) "income" else "expense"
+                    _errorMessage.value =
+                        "A category named \"$trimmed\" already exists as $existingType"
+                    return@launch
+                }
+                if (existing == null) {
                     categoryRepository.createCategory(trimmed, color, isIncome)
                 }
                 updateCategory(trimmed)

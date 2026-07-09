@@ -597,11 +597,7 @@ class UserPreferencesRepository @Inject constructor(
             (preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1).coerceIn(1, 31)
         }
 
-    suspend fun getBudgetCycleStartDay(): Int {
-        return context.dataStore.data
-            .map { preferences -> (preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1).coerceIn(1, 31) }
-            .first()
-    }
+    suspend fun getBudgetCycleStartDay(): Int = budgetCycleStartDay.first()
 
     suspend fun updateBudgetCycleStartDay(day: Int) {
         val clamped = day.coerceIn(1, 31)

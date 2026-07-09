@@ -11,8 +11,8 @@ import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -277,25 +277,27 @@ class TransactionRepository @Inject constructor(
 
     private fun getTransactionsForCurrentMonth(): Flow<List<TransactionEntity>> {
         val now = LocalDate.now()
-        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
-        val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(now, startDay)
-        val startDate = cycleStart.atStartOfDay()
-        val endDate = cycleEnd.atTime(LocalTime.MAX)
-        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
-            // Monthly spending summary ignores analytics-excluded transactions (#451).
-            .map { txns -> txns.filter { !it.excludedFromAnalytics } }
+        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
+            val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(now, startDay)
+            val startDate = cycleStart.atStartOfDay()
+            val endDate = cycleEnd.atTime(LocalTime.MAX)
+            transactionDao.getTransactionsBetweenDates(startDate, endDate)
+                // Monthly spending summary ignores analytics-excluded transactions (#451).
+                .map { txns -> txns.filter { !it.excludedFromAnalytics } }
+        }
     }
 
     private fun getTransactionsForComparableLastMonth(): Flow<List<TransactionEntity>> {
         val now = LocalDate.now()
-        val startDay = runBlocking { userPreferencesRepository.getBudgetCycleStartDay() }
-        val current = BudgetCycle.currentCycle(now, startDay)
-        val (prevStart, prevEnd) = BudgetCycle.previousCycle(current, startDay)
-        val startDate = prevStart.atStartOfDay()
-        val endDate = prevEnd.atTime(LocalTime.MAX)
-        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
-            // Monthly spending summary ignores analytics-excluded transactions (#451).
-            .map { txns -> txns.filter { !it.excludedFromAnalytics } }
+        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
+            val current = BudgetCycle.currentCycle(now, startDay)
+            val (prevStart, prevEnd) = BudgetCycle.previousCycle(current, startDay)
+            val startDate = prevStart.atStartOfDay()
+            val endDate = prevEnd.atTime(LocalTime.MAX)
+            transactionDao.getTransactionsBetweenDates(startDate, endDate)
+                // Monthly spending summary ignores analytics-excluded transactions (#451).
+                .map { txns -> txns.filter { !it.excludedFromAnalytics } }
+        }
     }
 
     private fun List<TransactionEntity>.toMonthlyBreakdown(): MonthlyBreakdown {

@@ -90,7 +90,7 @@ class NationalSavingsBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // "A/c XXXXXXXX6146 on ..." — last 4 digits after the X-masked prefix.
-        val pattern = Regex("""A/c\s+X+(\d{4})""", RegexOption.IGNORE_CASE)
+        val pattern = Regex("""A/c\s+X+(\d{4})(?!\d)""", RegexOption.IGNORE_CASE)
         return pattern.find(message)?.groupValues?.get(1)
     }
 }

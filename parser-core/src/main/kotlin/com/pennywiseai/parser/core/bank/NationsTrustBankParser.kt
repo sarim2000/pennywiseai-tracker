@@ -80,7 +80,7 @@ class NationsTrustBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         // "Card 123456******1234 for LKR ..." — last 4 digits after the masked middle.
-        val pattern = Regex("""Card\s+\d{4,6}\*+(\d{4})""", RegexOption.IGNORE_CASE)
+        val pattern = Regex("""Card\s+\d+\*+(\d{4})(?!\d)""", RegexOption.IGNORE_CASE)
         return pattern.find(message)?.groupValues?.get(1)
     }
 }

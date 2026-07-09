@@ -112,6 +112,7 @@ object BankParserFactory {
         FaysalBankParser(),  // Faysal Bank (Pakistan)
         MelliBankParser(),  // Melli Bank (Iran)
         MellatBankParser(), // Mellat Bank (Iran)
+        PasargadBankParser(), // Pasargad Bank (Iran)
         ParsianBankParser(),  // Parsian Bank (Iran)
         BankinoBankParser(),  // Bankino / Middle East Bank (Iran)
         BluBankParser(),  // blu Bank (Iran)

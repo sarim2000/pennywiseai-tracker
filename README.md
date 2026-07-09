@@ -137,11 +137,11 @@ Supporting **140 banks & services** across **23 countries** with **multi-currenc
 ### 🇸🇦 Saudi Arabia — SAR ﷼ (6)
 **Al Rajhi Bank**, **Alinma Bank**, **D360 Bank**, **SABB**, **STC Bank**, **Saudi National Bank**
 
+### 🇮🇷 Iran — IRR ﷼ (6)
+**Bankino**, **Mellat Bank**, **Melli Bank**, **Parsian Bank**, **Pasargad Bank**, **blu Bank**
+
 ### 🇦🇪 UAE — AED د.إ (6)
 **Abu Dhabi Commercial Bank**, **Emirates Islamic**, **Emirates NBD**, **First Abu Dhabi Bank**, **Liv Bank**, **Mashreq Bank**
-
-### 🇮🇷 Iran — IRR ﷼ (5)
-**Bankino**, **Mellat Bank**, **Melli Bank**, **Parsian Bank**, **blu Bank**
 
 ### 🇳🇬 Nigeria — NGN ₦ (5)
 **Access Bank**, **Jaiz Bank**, **Keystone Bank**, **Opay**, **Zenith Bank**

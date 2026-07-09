@@ -48,9 +48,9 @@ fun CategoryPieChart(
             Pie(
                 label = category.name,
                 data = category.amount.toDouble(),
-                color = CategoryMapping.categories[category.name]?.color ?: Color.Gray,
-                selectedColor = (CategoryMapping.categories[category.name]?.color
-                    ?: Color.Gray).copy(alpha = 0.8f),
+                color = CategoryMapping.colorFor(category.name, category.color),
+                selectedColor = CategoryMapping.colorFor(category.name, category.color)
+                    .copy(alpha = 0.8f),
                 selected = false,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500)

@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,8 +42,15 @@ class AnalyticsViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val profileRepository: ProfileRepository,
+    private val categoryRepository: CategoryRepository,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
+
+    // name -> hex color for the user's categories (incl. recolored built-ins), so
+    // Analytics renders each category in its assigned color instead of gray (#586).
+    private val categoryColors: Flow<Map<String, String>> =
+        categoryRepository.getAllCategories()
+            .map { cats -> cats.associate { it.name to it.color } }
 
     // Profile filter — reuses the global Home profile selection so the two stay in sync.
     val selectedProfileId: StateFlow<Long?> = userPreferencesRepository.selectedProfileId
@@ -155,7 +163,9 @@ class AnalyticsViewModel @Inject constructor(
         )
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
-    }.flatMapLatest { (filterState, balances) ->
+    }.combine(categoryColors) { (fs, balances), colors ->
+        Triple(fs, balances, colors)
+    }.flatMapLatest { (filterState, balances, categoryColorMap) ->
         // Determine date range based on selected period. THIS_MONTH is special:
         // it follows the user's custom budget cycle (e.g. 25th → 24th) instead
         // of the calendar month, so the analytics range lines up with the
@@ -367,7 +377,8 @@ class AnalyticsViewModel @Inject constructor(
                         percentage = if (totalSpending > BigDecimal.ZERO) {
                             (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
                         } else 0f,
-                        transactionCount = categoryTransactionCounts[categoryName] ?: 0
+                        transactionCount = categoryTransactionCounts[categoryName] ?: 0,
+                        color = categoryColorMap[categoryName]
                     )
                 }.sortedByDescending { it.amount }
 
@@ -689,7 +700,10 @@ data class CategoryData(
     val name: String,
     val amount: BigDecimal,
     val percentage: Float,
-    val transactionCount: Int
+    val transactionCount: Int,
+    // Hex color (e.g. "#4CAF50") of the user's category, when known. Null falls
+    // back to the built-in CategoryMapping palette, then gray (#586).
+    val color: String? = null
 )
 
 data class MerchantData(

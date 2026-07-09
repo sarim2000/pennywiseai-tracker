@@ -78,10 +78,8 @@ private fun CategoryBar(
         label = "category_bar_${category.name}"
     )
 
-    // Get category-specific color
-    val categoryInfo = CategoryMapping.categories[category.name]
-        ?: CategoryMapping.categories["Others"]!!
-    val categoryColor = categoryInfo.color
+    // Category color: user's assigned color, else built-in palette, else gray (#586)
+    val categoryColor = CategoryMapping.colorFor(category.name, category.color)
 
     Column(
         modifier = Modifier

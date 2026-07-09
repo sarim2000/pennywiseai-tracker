@@ -126,7 +126,9 @@ class BudgetHistoryViewModel @Inject constructor(
                 totalSpent = totalSpent,
                 currency = displayCurrency,
                 baseCurrency = baseCurrency,
-                budgetAmount = budget.limitAmount
+                budgetAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
+                    budget.limitAmount.multiply(BigDecimal(history.size))
+                } else budget.limitAmount
             )
         }
     }

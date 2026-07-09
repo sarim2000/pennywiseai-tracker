@@ -404,6 +404,54 @@ class TransactionDetailViewModel @Inject constructor(
             current?.copy(category = category.ifEmpty { "Others" })
         }
     }
+
+    /**
+     * Creates a category on the fly from the transaction edit flow (#584) and
+     * selects it. If a category with the same name already exists it is reused
+     * rather than duplicated, so the action is safe to repeat.
+     *
+     * The new category's income/expense type is derived from the transaction
+     * being edited, not from any user toggle: the category picker is filtered by
+     * transaction type, so a mismatched category would be created, selected, and
+     * then immediately vanish from the list (leaving a blank chip). The dialog
+     * hides the type selector for this reason (lockType), and this is the safety
+     * net that guarantees consistency.
+     */
+    /**
+     * @param onResult invoked with `true` once the category is created/reused and
+     * selected, or `false` if it failed (e.g. same-name type conflict). The caller
+     * uses this to keep the add-category dialog open on failure so the user's typed
+     * name/color aren't lost and they can correct them in place.
+     */
+    fun createAndSelectCategory(name: String, color: String, onResult: (Boolean) -> Unit = {}) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) { onResult(false); return }
+        val isIncome = (_editableTransaction.value ?: _transaction.value)
+            ?.transactionType == TransactionType.INCOME
+        viewModelScope.launch {
+            try {
+                val existing = categoryRepository.getCategoryByName(trimmed)
+                if (existing != null && existing.isIncome != isIncome) {
+                    // A category with this name already exists but for the other
+                    // type; selecting it would filter it out of the picker and
+                    // blank the chip. Surface it instead of silently misbehaving.
+                    val existingType = if (existing.isIncome) "income" else "expense"
+                    _errorMessage.value =
+                        "A category named \"$trimmed\" already exists as $existingType"
+                    onResult(false)
+                    return@launch
+                }
+                if (existing == null) {
+                    categoryRepository.createCategory(trimmed, color, isIncome)
+                }
+                updateCategory(trimmed)
+                onResult(true)
+            } catch (e: Exception) {
+                _errorMessage.value = "Couldn't create category: ${e.message}"
+                onResult(false)
+            }
+        }
+    }
     
     fun updateDateTime(dateTime: LocalDateTime) {
         _editableTransaction.update { current ->

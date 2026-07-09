@@ -57,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -1313,6 +1314,7 @@ private fun EditableExtractedInfoCard(
                 CategoryDropdown(
                     selectedCategory = transaction.category,
                     onCategorySelected = { viewModel.updateCategory(it) },
+                    isIncomeTransaction = transaction.transactionType == TransactionType.INCOME,
                     viewModel = viewModel
                 )
             }
@@ -1560,11 +1562,13 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
 private fun CategoryDropdown(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
+    isIncomeTransaction: Boolean,
     viewModel: TransactionDetailViewModel
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
     var expanded by remember { mutableStateOf(false) }
-    
+    var showAddDialog by remember { mutableStateOf(false) }
+
     // Find the selected category entity for displaying with color
     val selectedCategoryEntity = categories.find { it.name == selectedCategory }
     
@@ -1606,7 +1610,7 @@ private fun CategoryDropdown(
         ) {
             categories.forEach { category ->
                 DropdownMenuItem(
-                    text = { 
+                    text = {
                         CategoryChip(category = category)
                     },
                     onClick = {
@@ -1616,7 +1620,42 @@ private fun CategoryDropdown(
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
+
+            HorizontalDivider()
+
+            // Create a new category without leaving the edit flow (#584)
+            DropdownMenuItem(
+                text = { Text("Add category") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    showAddDialog = true
+                },
+                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+            )
         }
+    }
+
+    if (showAddDialog) {
+        CategoryEditDialog(
+            defaultIsIncome = isIncomeTransaction,
+            lockType = true,
+            onDismiss = { showAddDialog = false },
+            onSave = { name, color, _ ->
+                // Dismiss only once the category is actually created/selected, so a
+                // failure (e.g. same-name type conflict) keeps the dialog open with
+                // the user's input intact.
+                viewModel.createAndSelectCategory(name, color) { success ->
+                    if (success) showAddDialog = false
+                }
+            }
+        )
     }
 }
 

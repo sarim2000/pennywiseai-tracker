@@ -15,12 +15,14 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -73,7 +75,9 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             val targetCurrency = resolveTargetCurrency(isUnifiedMode, displayCurrency, baseCurrency)
 
             val now = LocalDate.now()
-            val start = now.withDayOfMonth(1).atStartOfDay()
+            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+            val (cycleStart, _) = BudgetCycle.currentCycle(now, startDay)
+            val start = cycleStart.atStartOfDay()
             val end = LocalDateTime.now()
 
             val allTransactions = transactionRepository

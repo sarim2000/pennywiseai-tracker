@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -155,7 +156,10 @@ class AnalyticsViewModel @Inject constructor(
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
     }.flatMapLatest { (filterState, balances) ->
-        // Determine date range based on selected period
+        // Determine date range based on selected period. THIS_MONTH is special:
+        // it follows the user's custom budget cycle (e.g. 25th → 24th) instead
+        // of the calendar month, so the analytics range lines up with the
+        // home/cycle everywhere else in the app.
         val dateRange = if (filterState.period == TimePeriod.CUSTOM) {
             val customRange = filterState.customRange
             // Guard against invalid state: CUSTOM period must have a date range
@@ -164,10 +168,12 @@ class AnalyticsViewModel @Inject constructor(
                     "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
                 // Auto-correct the invalid state
                 _selectedPeriod.value = TimePeriod.THIS_MONTH
-                getDateRangeForPeriod(TimePeriod.THIS_MONTH)
+                getThisCycleRange()
             } else {
                 customRange
             }
+        } else if (filterState.period == TimePeriod.THIS_MONTH) {
+            getThisCycleRange()
         } else {
             getDateRangeForPeriod(filterState.period)
         }
@@ -521,6 +527,18 @@ class AnalyticsViewModel @Inject constructor(
         if (_selectedPeriod.value == TimePeriod.CUSTOM) {
             _selectedPeriod.value = TimePeriod.THIS_MONTH
         }
+    }
+
+    /**
+     * The "This Month" range for the Analytics tab. Honours the user's
+     * configured budget cycle start day (e.g. 25th → 24th) instead of the
+     * calendar month, so the chart and stats line up with the cycle used
+     * everywhere else in the app.
+     */
+    private suspend fun getThisCycleRange(): Pair<LocalDate, LocalDate> {
+        val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+        val (start, end) = BudgetCycle.currentCycle(LocalDate.now(), startDay)
+        return start to end
     }
 
     private suspend fun calculateSpendingTrend(

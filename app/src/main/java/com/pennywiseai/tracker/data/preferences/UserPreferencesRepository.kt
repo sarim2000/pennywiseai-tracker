@@ -92,6 +92,9 @@ class UserPreferencesRepository @Inject constructor(
         // Monthly Budget
         val MONTHLY_BUDGET_LIMIT = stringPreferencesKey("monthly_budget_limit")
 
+        // Budget Cycle Start Day (1..31, default 1 = calendar month)
+        val BUDGET_CYCLE_START_DAY = intPreferencesKey("budget_cycle_start_day")
+
         // Unified Currency Mode
         val UNIFIED_CURRENCY_MODE = booleanPreferencesKey("unified_currency_mode")
         val DISPLAY_CURRENCY = stringPreferencesKey("display_currency")
@@ -585,6 +588,25 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
+     * Day of the month the user's budget cycle starts on. 1 = first of the month
+     * (the calendar-month default); up to 31. Stored as an Int 1..31 — out-of-range
+     * values from older builds or migrations are clamped at read time.
+     */
+    val budgetCycleStartDay: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            (preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1).coerceIn(1, 31)
+        }
+
+    suspend fun getBudgetCycleStartDay(): Int = budgetCycleStartDay.first()
+
+    suspend fun updateBudgetCycleStartDay(day: Int) {
+        val clamped = day.coerceIn(1, 31)
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
+        }
+    }
+
+    /**
      * Explicit base-currency choice from the Settings currency selector. Marks the
      * currency as user-set so the main account can no longer override it.
      */
@@ -752,5 +774,7 @@ data class UserPreferences(
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
     val mainAccountKey: String? = null,
-    val selectedProfileId: Long? = null
+    val selectedProfileId: Long? = null,
+    /** Day of the month (1..31) the budget cycle starts on. 1 = calendar month. */
+    val budgetCycleStartDay: Int = 1
 )

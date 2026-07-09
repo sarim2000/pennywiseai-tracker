@@ -399,17 +399,6 @@ class BudgetGroupsViewModel @Inject constructor(
             daysRemaining = 0
         }
 
-        val convertedTotalBudget = currencyConversionService.convertAmount(
-            group.budget.limitAmount, baseCurrency, displayCurrency
-        )
-        val remaining = convertedTotalBudget - convertedTotalActual
-        val pctUsed = if (convertedTotalBudget > BigDecimal.ZERO) {
-            (convertedTotalActual.toFloat() / convertedTotalBudget.toFloat() * 100f).coerceAtLeast(0f)
-        } else 0f
-        val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
-            remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
-        } else BigDecimal.ZERO
-
         val categorySpending = if (group.categories.isEmpty()) emptyList() else {
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
@@ -449,6 +438,101 @@ class BudgetGroupsViewModel @Inject constructor(
             }.filter { it.actualAmount > BigDecimal.ZERO }.sortedByDescending { it.actualAmount }
         }
 
+        val convertedTotalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
+            currencyConversionService.convertAmount(
+                group.budget.limitAmount, baseCurrency, displayCurrency
+            )
+        } else {
+            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+        }
+
+        val remaining = convertedTotalBudget - convertedTotalActual
+        val pctUsed = if (convertedTotalBudget > BigDecimal.ZERO) {
+            (convertedTotalActual.toFloat() / convertedTotalBudget.toFloat() * 100f).coerceAtLeast(0f)
+        } else 0f
+        val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+            remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
+        } else BigDecimal.ZERO
+
+        suspend fun buildGroupPace(
+            categoryNames: Set<String>?,
+            matchTypes: Set<String>,
+            groupBudget: BigDecimal
+        ): Pair<List<Double>, List<Double>> {
+            if (daysElapsed < 1) return emptyList<Double>() to emptyList()
+            val effectiveDays = daysElapsed
+            val dailyAmounts = DoubleArray(displayedWindow.days)
+            
+            for (txWithSplits in txsInDisplay) {
+                val tx = txWithSplits.transaction
+                if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
+                    tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER ||
+                    tx.loanId != null
+                ) continue
+                val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
+                    .coerceIn(0, displayedWindow.days - 1)
+                
+                val convertedAmount = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+                
+                if (tx.transactionType.name in matchTypes) {
+                    dailyAmounts[dayIndex] += convertedAmount
+                } else if (tx.transactionType !in com.pennywiseai.tracker.data.repository.BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
+                    if (categoryNames == null) {
+                        dailyAmounts[dayIndex] += convertedAmount
+                    } else {
+                        for ((cat, amount) in txWithSplits.getAmountByCategory()) {
+                            val catName = cat.ifEmpty { "Others" }
+                            if (catName in categoryNames) {
+                                dailyAmounts[dayIndex] += currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
+            for (txWithSplits in txsInDisplay) {
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) continue
+                if (tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT) continue
+                
+                val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
+                    .coerceIn(0, displayedWindow.days - 1)
+                    
+                val convertedAmount = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+                
+                if (categoryNames == null) {
+                    dailyAmounts[dayIndex] -= convertedAmount
+                } else {
+                    for ((cat, amount) in txWithSplits.getAmountByCategory()) {
+                        val catName = cat.ifEmpty { "Others" }
+                        if (catName in categoryNames) {
+                            dailyAmounts[dayIndex] -= currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
+                        }
+                    }
+                }
+            }
+            
+            val cumulative = mutableListOf<Double>()
+            var runningTotal = 0.0
+            for (i in 0 until effectiveDays) {
+                runningTotal += dailyAmounts[i]
+                cumulative.add(runningTotal)
+            }
+            val pace = mutableListOf<Double>()
+            if (groupBudget > BigDecimal.ZERO && displayedWindow.days > 0) {
+                val dailyPace = groupBudget.toDouble() / displayedWindow.days
+                for (i in 0 until effectiveDays) {
+                    pace.add(dailyPace * (i + 1))
+                }
+            }
+            return cumulative to pace
+        }
+
+        val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+        val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
+
         return BudgetGroupSpending(
             group = group,
             categorySpending = categorySpending,
@@ -460,8 +544,8 @@ class BudgetGroupsViewModel @Inject constructor(
             daysRemaining = daysRemaining,
             daysElapsed = daysElapsed,
             isTrackingAllExpenses = group.categories.isEmpty(),
-            dailyCumulativeSpending = emptyList(),
-            dailyBudgetPace = emptyList(),
+            dailyCumulativeSpending = cumSpending,
+            dailyBudgetPace = budgetPace,
             windowStart = displayedWindow.start,
             windowEnd = displayedWindow.end,
             windowDays = displayedWindow.days,

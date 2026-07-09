@@ -41,15 +41,6 @@ class BudgetGroupRepository @Inject constructor(
      * which keeps consecutive cycles non-overlapping and gap-free even when
      * [startDay] exceeds the length of an intermediate month (e.g. Feb 30/31).
      */
-    private fun cycleWindow(year: Int, month: Int, startDay: Int): Pair<LocalDate, LocalDate> {
-        val cycleStart = YearMonth.of(year, month).atDay(1).let { firstOfMonth ->
-            val safe = startDay.coerceIn(1, 31)
-            val max = firstOfMonth.lengthOfMonth()
-            firstOfMonth.withDayOfMonth(safe.coerceAtMost(max))
-        }
-        val cycleEnd = BudgetCycle.nextCycleStart(cycleStart, startDay).minusDays(1)
-        return cycleStart to cycleEnd
-    }
 
 
     fun getActiveGroups(): Flow<List<BudgetWithCategories>> =
@@ -380,12 +371,6 @@ class BudgetGroupRepository @Inject constructor(
                 g to windowsForMonth(g.budget, year, month, startDay)
             }
             
-            val pageWindow = perBudgetWindows.firstOrNull()?.let { (g, _) ->
-                if (isCurrentMonth) resolveBudgetWindow(g.budget, today, startDay)
-                else perBudgetWindows.first().second.lastOrNull()
-                    ?: BudgetWindow(monthStart, monthEnd, monthEnd.dayOfMonth)
-            } ?: BudgetWindow(monthStart, monthEnd, monthEnd.dayOfMonth)
-
             val allWindows = perBudgetWindows.flatMap { (g, windows) ->
                 val displayWindow = if (isCurrentMonth) {
                     resolveBudgetWindow(g.budget, today, startDay)
@@ -395,10 +380,16 @@ class BudgetGroupRepository @Inject constructor(
                 listOf(displayWindow) + windows.filter { it != displayWindow }
             }.distinct()
 
-            val minStart = allWindows.minOfOrNull { it.start } ?: pageWindow.start
-            val maxEnd = allWindows.maxOfOrNull { it.end } ?: pageWindow.end
-            val queryEnd = if (maxEnd.isBefore(pageWindow.end)) pageWindow.end else maxEnd
-            val queryStart = if (minStart.isAfter(pageWindow.start)) pageWindow.start else minStart
+            val minStart = allWindows.minOfOrNull { it.start } ?: monthStart
+            val maxEnd = allWindows.maxOfOrNull { it.end } ?: monthEnd
+            val pageWindowDays = if (minStart != monthStart || maxEnd != monthEnd) {
+                java.time.temporal.ChronoUnit.DAYS.between(minStart, maxEnd).toInt() + 1
+            } else {
+                monthEnd.dayOfMonth
+            }
+            val pageWindow = BudgetWindow(minStart, maxEnd, pageWindowDays)
+            val queryEnd = maxEnd
+            val queryStart = minStart
 
             transactionSplitDao.getTransactionsWithSplitsFiltered(
                 queryStart.atStartOfDay(),

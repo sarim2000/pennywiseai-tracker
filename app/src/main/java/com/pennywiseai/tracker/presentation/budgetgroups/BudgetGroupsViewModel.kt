@@ -201,28 +201,28 @@ class BudgetGroupsViewModel @Inject constructor(
             )
         }
 
-        // The unified path's raw doesn't carry raw transactions per
-        // window (it returns per-window spend totals only). The page-level
-        // income figure is therefore derived from prevCycleTransactions
-        // for the current month, and 0 for historical months. The earlier
-        // shape used `windowedSpend.flatMap { prevCycleTransactions }`,
-        // which ignored its argument and concatenated prevCycleTransactions
-        // once per (budget × window) entry — for a user with 1 weekly +
-        // 2 monthly budgets on the current month, totalIncome was 3× the
-        // real value, inflating netSavings / savingsRate on the page
-        // header. Use the list directly.
-        val totalIncome = (if (isCurrentMonth) raw.prevCycleTransactions else emptyList())
-            .fold(BigDecimal.ZERO) { acc, txWithSplits ->
-                val tx = txWithSplits.transaction
-                if (tx.transactionType == TransactionType.INCOME &&
-                    !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
-                ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
-                else acc
-            }
-        // Note: totalIncome here uses the *previous* cycle's transactions
-        // (since `windowedSpend` is keyed by window and doesn't carry the
-        // raw income list). The page-level income figure is informational
-        // only; the per-card spending is correct.
+        val minStart = groupSpendings.minOfOrNull { it.windowStart } ?: today
+        val maxEnd = groupSpendings.maxOfOrNull { it.windowEnd } ?: today
+        val pageWindowDays = if (groupSpendings.isNotEmpty()) {
+            java.time.temporal.ChronoUnit.DAYS.between(minStart, maxEnd).toInt() + 1
+        } else 1
+        val pageWindow = com.pennywiseai.tracker.data.repository.BudgetWindow(
+            start = minStart,
+            end = maxEnd,
+            days = pageWindowDays
+        )
+
+        // Compute totalIncome from raw.allTransactions bounded by the page window
+        val totalIncome = raw.allTransactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
+            val tx = txWithSplits.transaction
+            val d = tx.dateTime.toLocalDate()
+            val inWindow = !d.isBefore(minStart) && !d.isAfter(maxEnd)
+
+            if (inWindow && tx.transactionType == TransactionType.INCOME &&
+                !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
+            ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+            else acc
+        }
 
         val limitGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
         val targetGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
@@ -241,22 +241,11 @@ class BudgetGroupsViewModel @Inject constructor(
         } else 0f
 
         val limitRemaining = totalLimitBudget - totalLimitSpent
-        val daysRemaining = groupSpendings.firstOrNull()?.daysRemaining ?: 0
+        val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(today, maxEnd).toInt()
+            .coerceIn(0, pageWindowDays)
         val dailyAllowance = if (daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
             limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
         } else BigDecimal.ZERO
-
-        val pageWindow = groupSpendings.firstOrNull()?.let {
-            com.pennywiseai.tracker.data.repository.BudgetWindow(
-                start = it.windowStart,
-                end = it.windowEnd,
-                days = it.windowDays
-            )
-        } ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
-            start = LocalDate.now(),
-            end = LocalDate.now(),
-            days = 1
-        )
 
         return BudgetOverallSummary(
             groups = groupSpendings,

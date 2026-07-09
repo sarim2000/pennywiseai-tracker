@@ -1648,8 +1648,12 @@ private fun CategoryDropdown(
             lockType = true,
             onDismiss = { showAddDialog = false },
             onSave = { name, color, _ ->
-                viewModel.createAndSelectCategory(name, color)
-                showAddDialog = false
+                // Dismiss only once the category is actually created/selected, so a
+                // failure (e.g. same-name type conflict) keeps the dialog open with
+                // the user's input intact.
+                viewModel.createAndSelectCategory(name, color) { success ->
+                    if (success) showAddDialog = false
+                }
             }
         )
     }

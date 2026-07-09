@@ -417,9 +417,15 @@ class TransactionDetailViewModel @Inject constructor(
      * hides the type selector for this reason (lockType), and this is the safety
      * net that guarantees consistency.
      */
-    fun createAndSelectCategory(name: String, color: String) {
+    /**
+     * @param onResult invoked with `true` once the category is created/reused and
+     * selected, or `false` if it failed (e.g. same-name type conflict). The caller
+     * uses this to keep the add-category dialog open on failure so the user's typed
+     * name/color aren't lost and they can correct them in place.
+     */
+    fun createAndSelectCategory(name: String, color: String, onResult: (Boolean) -> Unit = {}) {
         val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
+        if (trimmed.isEmpty()) { onResult(false); return }
         val isIncome = (_editableTransaction.value ?: _transaction.value)
             ?.transactionType == TransactionType.INCOME
         viewModelScope.launch {
@@ -432,14 +438,17 @@ class TransactionDetailViewModel @Inject constructor(
                     val existingType = if (existing.isIncome) "income" else "expense"
                     _errorMessage.value =
                         "A category named \"$trimmed\" already exists as $existingType"
+                    onResult(false)
                     return@launch
                 }
                 if (existing == null) {
                     categoryRepository.createCategory(trimmed, color, isIncome)
                 }
                 updateCategory(trimmed)
+                onResult(true)
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't create category: ${e.message}"
+                onResult(false)
             }
         }
     }

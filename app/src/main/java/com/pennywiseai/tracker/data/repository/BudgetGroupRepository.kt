@@ -418,7 +418,12 @@ class BudgetGroupRepository @Inject constructor(
                         } else {
                             windows.lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
                         }
-                        val otherWindows = windows.filter { it != displayWindow }
+                        // Use overlaps() instead of != to handle WEEKLY windows that
+                        // straddle a month boundary: resolveBudgetWindow returns the
+                        // unclipped week (e.g. Jun 30–Jul 6) while windowsForMonth
+                        // returns a clipped version (Jul 1–Jul 6). Plain != misses
+                        // the match and the current week appears twice.
+                        val otherWindows = windows.filter { !it.overlaps(displayWindow) }
                         val transactionsByWindow = (listOf(displayWindow) + otherWindows)
                             .associateWith { w ->
                                 val capDate = if (isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)) {
@@ -539,7 +544,7 @@ class BudgetGroupRepository @Inject constructor(
                 } else {
                     windows.lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
                 }
-                val otherWindows = windows.filter { it != displayed }
+                val otherWindows = windows.filter { !it.overlaps(displayed) }
                 listOf(displayed) + otherWindows
             }.distinct()
 
@@ -603,7 +608,7 @@ class BudgetGroupRepository @Inject constructor(
                     }
                     currentWindows[group.budget.id] = displayed
                     
-                    val otherWindows = windows.filter { it != displayed }
+                    val otherWindows = windows.filter { !it.overlaps(displayed) }
                     for (w in listOf(displayed) + otherWindows) {
                         val capDate = if (isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)) {
                             today

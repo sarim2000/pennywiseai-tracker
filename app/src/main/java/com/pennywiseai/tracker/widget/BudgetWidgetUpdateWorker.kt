@@ -85,7 +85,13 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             val prevCycle = BudgetCycle.previousCycle(
                 BudgetCycle.currentCycle(today, startDay), startDay
             )
-            val prevCycleStartYm = java.time.YearMonth.from(prevCycle.first)
+            // Use the end date of the previous cycle to derive the display month.
+            // Using prevCycle.first is wrong for non-default start days: e.g.
+            // startDay=25 → prevCycle = May 25–Jun 24, first = May, but
+            // getGroupSpending(May) resolves to Apr 25–May 24 (two cycles ago).
+            // prevCycle.second = Jun 24 → June → getGroupSpending(June) correctly
+            // resolves to May 25–Jun 24.
+            val prevCycleStartYm = java.time.YearMonth.from(prevCycle.second)
 
             val summary = if (isUnifiedMode) {
                 val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(

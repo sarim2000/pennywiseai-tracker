@@ -10,17 +10,17 @@ import java.math.BigDecimal
  *
  * Supported formats:
  * - Credit-card purchase (CREDIT):
- *   "Transaction Approved on your Card **************** for LKR 500.00 at BILL PAYMENT VIA NATIONS
+ *   "Transaction Approved on your Card 123456******1234 for LKR 500.00 at BILL PAYMENT VIA NATIONS
  *    Available Bal LKR 12345.73  Call 0114315315 for any inquiry."
  *
  * Not treated as a transaction:
- * - Credit-card bill settlement ("...payment of LKR 57,018.67 made to Card # **************** on ..."):
+ * - Credit-card bill settlement ("...payment of LKR 57,018.67 made to Card # 123456*****1234 on ..."):
  *   money paid TO the card to reduce the outstanding balance. There is no clean transaction
  *   type for it and it must not be misclassified as a spend, so we skip it — consistent with
  *   how ICICIBankParser skips credit-card bill payments.
  *
- * The card number is fully masked ("****************") so no usable last 4 digits are available;
- * accountLast4 is always null.
+ * Cards expose the last 4 digits with a masked middle ("123456******1234"); the last 4 are
+ * extracted. (Digits shown here are synthetic — real card numbers are PII, never committed.)
  */
 class NationsTrustBankParser : BankParser() {
 
@@ -78,6 +78,9 @@ class NationsTrustBankParser : BankParser() {
         return null
     }
 
-    // Card number is fully masked; no usable last 4 digits.
-    override fun extractAccountLast4(message: String): String? = null
+    override fun extractAccountLast4(message: String): String? {
+        // "Card 123456******1234 for LKR ..." — last 4 digits after the masked middle.
+        val pattern = Regex("""Card\s+\d{4,6}\*+(\d{4})""", RegexOption.IGNORE_CASE)
+        return pattern.find(message)?.groupValues?.get(1)
+    }
 }

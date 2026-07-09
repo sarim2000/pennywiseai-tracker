@@ -40,7 +40,7 @@ class BudgetGroupsIncomeFoldTest {
                     end = LocalDate.of(2026, 10, 5).plusDays((i - 1) * 7L + 6),
                     days = 7
                 ),
-                spent = BigDecimal("100.00")
+                transactions = emptyList()
             )
         }
 

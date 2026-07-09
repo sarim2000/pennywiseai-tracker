@@ -44,6 +44,7 @@ private val presetColors = listOf(
 fun CategoryEditDialog(
     category: CategoryEntity? = null,
     defaultIsIncome: Boolean = false,
+    lockType: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (name: String, color: String, isIncome: Boolean) -> Unit,
     onDelete: (() -> Unit)? = null
@@ -99,30 +100,34 @@ fun CategoryEditDialog(
                     )
                 )
 
-                // Category Type Selection
-                Column {
-                    Text(
-                        text = "Category Type",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        FilterChip(
-                            selected = !isIncome,
-                            onClick = { isIncome = false },
-                            label = { Text("Expense") },
-                            modifier = Modifier.weight(1f)
+                // Category Type Selection — hidden when the type is dictated by
+                // context (e.g. adding a category from a transaction edit, where a
+                // mismatched type would be filtered out of the picker anyway).
+                if (!lockType) {
+                    Column {
+                        Text(
+                            text = "Category Type",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
                         )
-                        FilterChip(
-                            selected = isIncome,
-                            onClick = { isIncome = true },
-                            label = { Text("Income") },
-                            modifier = Modifier.weight(1f)
-                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            FilterChip(
+                                selected = !isIncome,
+                                onClick = { isIncome = false },
+                                label = { Text("Expense") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = isIncome,
+                                onClick = { isIncome = true },
+                                label = { Text("Income") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 

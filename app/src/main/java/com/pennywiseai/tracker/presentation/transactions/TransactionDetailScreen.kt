@@ -1645,9 +1645,10 @@ private fun CategoryDropdown(
     if (showAddDialog) {
         CategoryEditDialog(
             defaultIsIncome = isIncomeTransaction,
+            lockType = true,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, isIncome ->
-                viewModel.createAndSelectCategory(name, color, isIncome)
+            onSave = { name, color, _ ->
+                viewModel.createAndSelectCategory(name, color)
                 showAddDialog = false
             }
         )

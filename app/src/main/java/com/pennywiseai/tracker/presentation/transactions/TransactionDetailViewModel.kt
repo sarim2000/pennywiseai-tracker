@@ -409,15 +409,28 @@ class TransactionDetailViewModel @Inject constructor(
      * Creates a category on the fly from the transaction edit flow (#584) and
      * selects it. If a category with the same name already exists it is reused
      * rather than duplicated, so the action is safe to repeat.
+     *
+     * The new category's income/expense type is derived from the transaction
+     * being edited, not from any user toggle: the category picker is filtered by
+     * transaction type, so a mismatched category would be created, selected, and
+     * then immediately vanish from the list (leaving a blank chip). The dialog
+     * hides the type selector for this reason (lockType), and this is the safety
+     * net that guarantees consistency.
      */
-    fun createAndSelectCategory(name: String, color: String, isIncome: Boolean) {
+    fun createAndSelectCategory(name: String, color: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
+        val isIncome = (_editableTransaction.value ?: _transaction.value)
+            ?.transactionType == TransactionType.INCOME
         viewModelScope.launch {
-            if (!categoryRepository.categoryExists(trimmed)) {
-                categoryRepository.createCategory(trimmed, color, isIncome)
+            try {
+                if (!categoryRepository.categoryExists(trimmed)) {
+                    categoryRepository.createCategory(trimmed, color, isIncome)
+                }
+                updateCategory(trimmed)
+            } catch (e: Exception) {
+                _errorMessage.value = "Couldn't create category: ${e.message}"
             }
-            updateCategory(trimmed)
         }
     }
     

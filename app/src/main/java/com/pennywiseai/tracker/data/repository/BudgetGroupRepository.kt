@@ -764,7 +764,7 @@ class BudgetGroupRepository @Inject constructor(
                 w.start.atStartOfDay(),
                 effectiveEnd.atTime(23, 59, 59),
                 currency
-            ).first()
+            ).first().filter { !it.transaction.excludedFromAnalytics }
             // Use the per-category-filtered total so the per-row spend
             // matches the per-category breakdown shown in the
             // "View breakdown" bottom sheet (the previous shape used
@@ -797,7 +797,7 @@ class BudgetGroupRepository @Inject constructor(
             window.start.atStartOfDay(),
             window.end.atTime(23, 59, 59),
             currency
-        ).first()
+        ).first().filter { !it.transaction.excludedFromAnalytics }
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             transactions = txs,
             convertSplit = { _, amount -> amount },

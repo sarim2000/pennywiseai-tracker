@@ -373,7 +373,7 @@ class BudgetGroupsViewModel @Inject constructor(
         // (in the same month) become the sub-list.
         val previous = if (budget.periodType == BudgetPeriodType.WEEKLY) {
             windowedSpend
-                .filter { it.window != currentWindow }
+                .filter { !it.window.overlaps(currentWindow) }
                 .map { 
                     PastWindowSpending(
                         window = it.window, 

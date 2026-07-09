@@ -241,7 +241,7 @@ class BudgetGroupsViewModel @Inject constructor(
         } else 0f
 
         val limitRemaining = totalLimitBudget - totalLimitSpent
-        val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(today, maxEnd).toInt()
+        val daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, maxEnd).toInt() + 1)
             .coerceIn(0, pageWindowDays)
         val dailyAllowance = if (daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
             limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
@@ -429,11 +429,7 @@ class BudgetGroupsViewModel @Inject constructor(
     }
 
     fun selectCurrentMonth() {
-        viewModelScope.launch {
-            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-            _selectedYearMonth.value =
-                BudgetCycle.currentCycleStartYearMonth(LocalDate.now(), startDay)
-        }
+        _selectedYearMonth.value = YearMonth.now()
     }
 
     fun deleteGroup(budgetId: Long) {

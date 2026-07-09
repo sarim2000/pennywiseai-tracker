@@ -477,7 +477,7 @@ class BudgetGroupRepository @Inject constructor(
                 }
 
                 val limitRemaining = totalLimitBudget - totalLimitSpent
-                val daysRemaining = ChronoUnit.DAYS.between(today, pageWindow.end).toInt()
+                val daysRemaining = (ChronoUnit.DAYS.between(today, pageWindow.end).toInt() + 1)
                     .coerceIn(0, pageWindow.days)
                 val dailyAllowance = if (daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
                     limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)

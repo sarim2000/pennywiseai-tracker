@@ -148,7 +148,7 @@ data class BudgetOverallSummary(
 data class WindowSpending(
     val budgetId: Long,
     val window: BudgetWindow,
-    val spent: BigDecimal
+    val transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
 )
 
 data class BudgetGroupSpendingRaw(

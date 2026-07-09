@@ -283,22 +283,49 @@ class BudgetGroupsViewModel @Inject constructor(
      * overlaps the displayed window. Each per-month window's spend is
      * already in the page's currency, so no further conversion needed.
      */
-    private fun sumPrevCycleSpent(
+    private suspend fun getBudgetWindowFilteredSpend(
+        group: com.pennywiseai.tracker.data.database.entity.BudgetWithCategories,
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        displayCurrency: String,
+        baseCurrency: String
+    ): BigDecimal {
+        if (group.categories.isEmpty()) {
+            return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
+                acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+            }
+        }
+        val (categoryAmounts, _, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
+            transactions = transactions,
+            convertSplit = { fromCurrency, amount ->
+                currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+            },
+            convertIncome = { tx ->
+                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+            }
+        )
+        val catTotal = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        return catTotal + typeTotal
+    }
+
+    private fun getTransactionsForOverlappingWindows(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,
         displayedWindow: com.pennywiseai.tracker.data.repository.BudgetWindow
-    ): BigDecimal? {
-        var total = BigDecimal.ZERO
+    ): List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>? {
+        val txs = mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>()
         var any = false
         for (ws in windowedSpend) {
             if (ws.budgetId != budgetId) continue
             val overlapStart = maxOf(ws.window.start, displayedWindow.start)
             val overlapEnd = minOf(ws.window.end, displayedWindow.end)
             if (overlapStart.isAfter(overlapEnd)) continue
-            total = total.add(ws.spent)
+            txs.addAll(ws.transactions)
             any = true
         }
-        return if (any) total else null
+        return if (any) txs.distinctBy { it.transaction.id } else null
     }
 
     private suspend fun buildUnifiedGroupSpending(
@@ -334,9 +361,10 @@ class BudgetGroupsViewModel @Inject constructor(
             val overlapEnd = minOf(ws.window.end, displayedWindow.end)
             !overlapStart.isAfter(overlapEnd)
         }
-        val spentInDisplay = matchedWindow?.spent
-            ?: sumPrevCycleSpent(group.budget.id, windowedSpend, displayedWindow)
-            ?: BigDecimal.ZERO
+        val txsInDisplay = matchedWindow?.transactions
+            ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
+            ?: emptyList()
+        val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows
@@ -344,7 +372,7 @@ class BudgetGroupsViewModel @Inject constructor(
         val previous = if (budget.periodType == BudgetPeriodType.WEEKLY && !isCurrentMonth) {
             windowedSpend
                 .filter { it.window != currentWindow }
-                .map { PastWindowSpending(window = it.window, spent = it.spent) }
+                .map { PastWindowSpending(window = it.window, spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency, baseCurrency)) }
         } else emptyList()
 
         val daysElapsed: Int
@@ -359,9 +387,6 @@ class BudgetGroupsViewModel @Inject constructor(
             daysRemaining = 0
         }
 
-        val convertedTotalActual = currencyConversionService.convertAmount(
-            spentInDisplay, baseCurrency, displayCurrency
-        )
         val convertedTotalBudget = currencyConversionService.convertAmount(
             group.budget.limitAmount, baseCurrency, displayCurrency
         )

@@ -1418,6 +1418,8 @@ class HomeViewModel @Inject constructor(
 
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val isTrackingAll = group.categories.isEmpty()
+            val daysRemaining = daysRemainingFor(group.budget)
+            val daysElapsed = daysElapsedFor(group.budget)
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
@@ -1426,8 +1428,8 @@ class HomeViewModel @Inject constructor(
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                     (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
-                val dailySpend = if (raw.daysElapsed > 0 && actual > BigDecimal.ZERO) {
-                    actual.divide(BigDecimal(raw.daysElapsed), 0, RoundingMode.HALF_UP)
+                val dailySpend = if (daysElapsed > 0 && actual > BigDecimal.ZERO) {
+                    actual.divide(BigDecimal(daysElapsed), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
                 BudgetCategorySpending(
                     categoryName = cat.categoryName,
@@ -1458,8 +1460,6 @@ class HomeViewModel @Inject constructor(
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
             } else 0f
-            val daysRemaining = daysRemainingFor(group.budget)
-            val daysElapsed = daysElapsedFor(group.budget)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO

@@ -544,8 +544,26 @@ class BudgetGroupRepository @Inject constructor(
 
             val minStart = allWindows.minOfOrNull { it.start } ?: monthStart
             val maxEnd = allWindows.maxOfOrNull { it.end } ?: monthEnd
+            val pageWindowDays = if (minStart != monthStart || maxEnd != monthEnd) {
+                java.time.temporal.ChronoUnit.DAYS.between(minStart, maxEnd).toInt() + 1
+            } else {
+                monthEnd.dayOfMonth
+            }
+            val pageWindow = BudgetWindow(minStart, maxEnd, pageWindowDays)
             val queryEnd = if (maxEnd.isBefore(monthEnd)) monthEnd else maxEnd
             val queryStart = if (minStart.isAfter(monthStart)) monthStart else minStart
+
+            val daysElapsed: Int
+            val daysRemaining: Int
+            if (isCurrentMonth) {
+                daysElapsed = (java.time.temporal.ChronoUnit.DAYS.between(pageWindow.start, today).toInt() + 1)
+                    .coerceIn(1, pageWindow.days)
+                daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, pageWindow.end).toInt() + 1)
+                    .coerceIn(0, pageWindow.days)
+            } else {
+                daysElapsed = pageWindow.days
+                daysRemaining = 0
+            }
 
             // We also need previous cycle transactions if it's the current month
             val prevCycleQueryStart: LocalDate?
@@ -598,8 +616,7 @@ class BudgetGroupRepository @Inject constructor(
                             !d.isBefore(w.start) && !d.isAfter(effectiveEnd)
                         }
                         
-                        val spent = getBudgetWindowFilteredSpend(group, txs)
-                        windowed.add(WindowSpending(budgetId = group.budget.id, window = w, spent = spent))
+                        windowed.add(WindowSpending(budgetId = group.budget.id, window = w, transactions = txs))
                         allTransactions.addAll(txs)
                     }
                 }
@@ -614,8 +631,8 @@ class BudgetGroupRepository @Inject constructor(
                 BudgetGroupSpendingRaw(
                     budgetsWithCategories = groups,
                     windowedSpend = windowed,
-                    daysElapsed = 0,
-                    daysRemaining = 0,
+                    daysElapsed = daysElapsed,
+                    daysRemaining = daysRemaining,
                     today = today,
                     globalStartDay = startDay,
                     isCurrentMonth = isCurrentMonth,

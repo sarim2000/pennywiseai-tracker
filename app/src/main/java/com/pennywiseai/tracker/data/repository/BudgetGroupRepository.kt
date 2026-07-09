@@ -569,11 +569,10 @@ class BudgetGroupRepository @Inject constructor(
             // We also need previous cycle transactions if it's the current month
             val prevCycleQueryStart: LocalDate?
             val prevCycleQueryEnd: LocalDate?
-            val firstBudget = groups.firstOrNull()?.budget
-            if (isCurrentMonth && firstBudget != null) {
-                val currentWindow = resolveBudgetWindow(firstBudget, today, startDay)
+            if (isCurrentMonth) {
+                val currentCycle = BudgetCycle.currentCycle(today, startDay)
                 val (prevStart, prevEnd) = BudgetCycle.previousCycle(
-                    currentWindow.start to currentWindow.end,
+                    currentCycle,
                     startDay
                 )
                 prevCycleQueryStart = prevStart

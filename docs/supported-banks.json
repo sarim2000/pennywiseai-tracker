@@ -1,5 +1,5 @@
 {
-  "totalBanks": 139,
+  "totalBanks": 140,
   "totalCountries": 23,
   "countries": [
     {
@@ -43,20 +43,20 @@
       "banks": ["CRDB Bank", "Diamond Trust Bank", "M-Pesa Tanzania", "Mixx by Yas", "NMB Bank Tanzania", "Selcom Pesa", "Tigo Pesa"]
     },
     {
+      "country": "Iran",
+      "flag": "🇮🇷",
+      "currency": "IRR",
+      "symbol": "﷼",
+      "bankCount": 6,
+      "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "Pasargad Bank", "blu Bank"]
+    },
+    {
       "country": "UAE",
       "flag": "🇦🇪",
       "currency": "AED",
       "symbol": "د.إ",
       "bankCount": 6,
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
-    },
-    {
-      "country": "Iran",
-      "flag": "🇮🇷",
-      "currency": "IRR",
-      "symbol": "﷼",
-      "bankCount": 5,
-      "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "blu Bank"]
     },
     {
       "country": "Nigeria",

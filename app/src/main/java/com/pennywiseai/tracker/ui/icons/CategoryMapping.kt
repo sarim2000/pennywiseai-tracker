@@ -56,6 +56,19 @@ object CategoryMapping {
         val fallbackIcon: ImageVector = Icons.Default.Category
     )
 
+    /**
+     * Resolves the display color for a category. Prefers the user's assigned color
+     * ([overrideHex], e.g. "#4CAF50" from CategoryEntity), then the built-in palette,
+     * then gray — so user-created categories no longer render gray in Analytics (#586).
+     */
+    fun colorFor(name: String, overrideHex: String? = null): Color {
+        if (!overrideHex.isNullOrBlank()) {
+            runCatching { Color(android.graphics.Color.parseColor(overrideHex)) }
+                .getOrNull()?.let { return it }
+        }
+        return categories[name]?.color ?: Color.Gray
+    }
+
     val categories = mapOf(
         "Food & Dining" to CategoryInfo(
             displayName = "Food & Dining",

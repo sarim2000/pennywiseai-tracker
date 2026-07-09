@@ -45,12 +45,12 @@ fun CategoryPieChart(
 
     val pieData = remember(categories) {
         categories.map { category ->
+            val sliceColor = CategoryMapping.colorFor(category.name, category.color)
             Pie(
                 label = category.name,
                 data = category.amount.toDouble(),
-                color = CategoryMapping.categories[category.name]?.color ?: Color.Gray,
-                selectedColor = (CategoryMapping.categories[category.name]?.color
-                    ?: Color.Gray).copy(alpha = 0.8f),
+                color = sliceColor,
+                selectedColor = sliceColor.copy(alpha = 0.8f),
                 selected = false,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500)

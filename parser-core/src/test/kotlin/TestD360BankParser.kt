@@ -77,6 +77,31 @@ class D360BankParserTest {
                 description = "Incoming transfer is income; merchant is the counterparty on the title line."
             ),
             ParserTestCase(
+                name = "Outgoing transfer (local SAR)",
+                message = """
+                    Outgoing Transfer: SAMPLE BANK
+                    Amount: SAR 500.00
+                    To: *9876
+                    IBAN: SA00
+                    at: 2026-07-08 19:20
+                """.trimIndent(),
+                sender = "D360BANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE BANK"
+                ),
+                description = "Outgoing transfer is an expense; the 'at:' datetime line must not be picked as merchant."
+            ),
+            ParserTestCase(
+                name = "Promotional SMS is not a transaction",
+                message = "Exclusive SAR cashback offer on all your transfers this weekend! Amount limits apply.",
+                sender = "D360BANK",
+                shouldParse = false,
+                description = "Promo messages that mention transaction words must be rejected."
+            ),
+            ParserTestCase(
                 name = "OTP is not a transaction",
                 message = "Your D360 Bank verification code is 123456. Do not share it with anyone.",
                 sender = "D360BANK",

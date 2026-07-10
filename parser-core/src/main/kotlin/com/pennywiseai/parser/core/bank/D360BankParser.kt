@@ -70,18 +70,23 @@ class D360BankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Purchases and ATM withdrawals: "At: FEED ME" / "At: CITY,TR".
-        // Case-sensitive "At:" so it never matches the lowercase "at:" datetime line.
-        Regex("""At:\s*([^\n]+)""").find(message)?.let { match ->
-            val merchant = cleanMerchantName(match.groupValues[1].trim())
+        // Purchases and ATM withdrawals: "At: FEED ME" / "At: CITY,TR". Matched
+        // case-insensitively (tolerates "AT:"), but the "at: <datetime>" line on
+        // transfers is skipped by rejecting date-shaped captures.
+        Regex("""At\s*:\s*([^\n]+)""", RegexOption.IGNORE_CASE).findAll(message).forEach { match ->
+            val candidate = match.groupValues[1].trim()
+            if (DATE_LIKE.containsMatchIn(candidate)) return@forEach
+            val merchant = cleanMerchantName(candidate)
             if (isValidMerchantName(merchant)) return merchant
         }
 
-        // Incoming transfer: the counterparty is on the title line, "Incoming Transfer: <bank>".
-        Regex("""Incoming Transfer\s*:\s*([^\n]+)""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
-            val merchant = cleanMerchantName(match.groupValues[1].trim())
-            if (isValidMerchantName(merchant)) return merchant
-        }
+        // Transfers: the counterparty is on the title line,
+        // "Incoming Transfer: <bank>" / "Outgoing Transfer: <bank>".
+        Regex("""(?:Incoming|Outgoing) Transfer\s*:\s*([^\n]+)""", RegexOption.IGNORE_CASE)
+            .find(message)?.let { match ->
+                val merchant = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(merchant)) return merchant
+            }
 
         return null
     }
@@ -104,9 +109,24 @@ class D360BankParser : BankParser() {
             lower.contains("one time password")
         ) return false
 
+        // Reject promotional messages that happen to mention transaction words
+        // (e.g. "Exclusive SAR cashback offer on all transfers!"). The base class
+        // filters these, but this override replaces its keyword gate, so guard here.
+        val promoMarkers = listOf(
+            "offer", "discount", "% off", "sale", "win ", "congratulations",
+            "promo", "reward points", "click", "unsubscribe"
+        )
+        if (promoMarkers.any { lower.contains(it) }) return false
+
         val keywords = listOf(
             "purchase", "withdrawal", "transfer", "incoming", "outgoing", "amount", "sar"
         )
         return keywords.any { lower.contains(it) }
+    }
+
+    private companion object {
+        // Matches an ISO-ish datetime ("2026-07-08 18:14") so the transfer
+        // "at: <datetime>" line is never mistaken for a merchant/location.
+        private val DATE_LIKE = Regex("""\d{4}-\d{2}-\d{2}""")
     }
 }

@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
+import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -39,6 +40,7 @@ import javax.inject.Inject
 class TransactionDetailViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val merchantMappingRepository: MerchantMappingRepository,
+    private val merchantAliasRepository: MerchantAliasRepository,
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val loanRepository: LoanRepository,
@@ -82,6 +84,25 @@ class TransactionDetailViewModel @Inject constructor(
     
     private val _updateExistingTransactions = MutableStateFlow(false)
     val updateExistingTransactions: StateFlow<Boolean> = _updateExistingTransactions.asStateFlow()
+
+    // Display alias for this merchant (#583). Empty = no alias / cleared.
+    private val _merchantAlias = MutableStateFlow("")
+    val merchantAlias: StateFlow<String> = _merchantAlias.asStateFlow()
+    // The alias that was loaded when edit mode opened, so save can tell
+    // "set/changed" from "cleared" from "untouched".
+    private var _originalMerchantAlias: String = ""
+
+    // Alias to render in the detail header for the loaded transaction's merchant
+    // (#583). Resolved here (the detail screen sits outside the merchant-display
+    // CompositionLocal provider) and reactive so it updates right after a save.
+    val currentMerchantAlias: StateFlow<String?> =
+        combine(
+            _transaction,
+            merchantAliasRepository.getAllAliases()
+        ) { txn, aliases ->
+            val raw = txn?.merchantName ?: return@combine null
+            aliases.firstOrNull { it.merchantName == raw }?.alias?.takeIf { it.isNotBlank() }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     
     private val _existingTransactionCount = MutableStateFlow(0)
     
@@ -331,7 +352,7 @@ class TransactionDetailViewModel @Inject constructor(
             _showSplitEditor.value = true
         }
 
-        // Load count of other transactions from same merchant
+        // Load count of other transactions from same merchant + any saved alias
         _transaction.value?.let { txn ->
             viewModelScope.launch {
                 val count = transactionRepository.getOtherTransactionCountForMerchant(
@@ -339,6 +360,10 @@ class TransactionDetailViewModel @Inject constructor(
                     txn.id
                 )
                 _existingTransactionCount.value = count
+
+                val alias = merchantAliasRepository.getAliasForMerchant(txn.merchantName) ?: ""
+                _originalMerchantAlias = alias
+                _merchantAlias.value = alias
             }
         }
     }
@@ -350,6 +375,8 @@ class TransactionDetailViewModel @Inject constructor(
         _applyToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
         _existingTransactionCount.value = 0
+        _merchantAlias.value = ""
+        _originalMerchantAlias = ""
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
 
@@ -357,9 +384,13 @@ class TransactionDetailViewModel @Inject constructor(
         _splits.value = _originalSplits.value
         _showSplitEditor.value = _hasSplits.value
     }
-    
+
     fun toggleApplyToAllFromMerchant() {
         _applyToAllFromMerchant.value = !_applyToAllFromMerchant.value
+    }
+
+    fun updateMerchantAlias(alias: String) {
+        _merchantAlias.value = alias
     }
     
     fun toggleUpdateExistingTransactions() {
@@ -816,6 +847,21 @@ class TransactionDetailViewModel @Inject constructor(
                     )
                 }
 
+                // Persist the merchant display alias (#583) when it changed. A
+                // blank alias clears any existing one. Keyed on the saved
+                // merchant name so it applies to every transaction from it.
+                val trimmedAlias = _merchantAlias.value.trim()
+                if (trimmedAlias != _originalMerchantAlias.trim()) {
+                    if (trimmedAlias.isEmpty()) {
+                        merchantAliasRepository.removeAlias(normalizedTransaction.merchantName)
+                    } else {
+                        merchantAliasRepository.setAlias(
+                            normalizedTransaction.merchantName,
+                            trimmedAlias
+                        )
+                    }
+                }
+
                 _transaction.value = normalizedTransaction
                 loadReceiptUri(normalizedTransaction)
                 _pendingReceiptUri.value = null
@@ -827,6 +873,8 @@ class TransactionDetailViewModel @Inject constructor(
                 _applyToAllFromMerchant.value = false
                 _updateExistingTransactions.value = false
                 _existingTransactionCount.value = 0
+                _merchantAlias.value = trimmedAlias
+                _originalMerchantAlias = trimmedAlias
                 _budgetImpactType.value = normalizedTransaction.budgetImpactType
                 _budgetCategory.value = normalizedTransaction.budgetCategory
             } catch (e: Exception) {

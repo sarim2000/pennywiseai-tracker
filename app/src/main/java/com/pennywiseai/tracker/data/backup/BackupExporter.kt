@@ -58,6 +58,7 @@ class BackupExporter @Inject constructor(
         val accountBalances = database.accountBalanceDao().getAllBalances().first()
         val subscriptions = database.subscriptionDao().getAllSubscriptions().first()
         val merchantMappings = database.merchantMappingDao().getAllMappings().first()
+        val merchantAliases = database.merchantAliasDao().getAllAliases().first()
         val unrecognizedSms = database.unrecognizedSmsDao().getAllUnrecognizedSms().first()
         val chatMessages = database.chatDao().getAllMessages().first()
         val rules = database.ruleDao().getAllRules().first()
@@ -149,6 +150,7 @@ class BackupExporter @Inject constructor(
                     totalProfiles = exportedProfiles.size,
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
+                    totalMerchantAliases = merchantAliases.size,
                     dateRange = dateRange
                 )
             ),
@@ -159,6 +161,7 @@ class BackupExporter @Inject constructor(
                 accountBalances = accountBalances,
                 subscriptions = subscriptions,
                 merchantMappings = merchantMappings,
+                merchantAliases = merchantAliases,
                 unrecognizedSms = if (privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
                 chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList(),
                 rules = exportedRules,

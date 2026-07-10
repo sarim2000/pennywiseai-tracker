@@ -78,8 +78,11 @@ fun MainScreen(
     // (TransactionItem, TransactionDetailScreen header, etc.) can apply the
     // same rule without prop-drilling the resolver everywhere.
     val useContactsForVpa by mainViewModel.useContactsForVpa.collectAsState()
-    val merchantDisplay = remember(useContactsForVpa) {
-        { raw: String? -> displayMerchantName(raw, useContactsForVpa, mainViewModel.contactsResolver) }
+    val merchantAliases by mainViewModel.merchantAliases.collectAsState()
+    val merchantDisplay = remember(useContactsForVpa, merchantAliases) {
+        { raw: String? ->
+            displayMerchantName(raw, useContactsForVpa, mainViewModel.contactsResolver, merchantAliases)
+        }
     }
 
     // Haze state for blur effects

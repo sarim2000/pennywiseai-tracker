@@ -26,9 +26,12 @@ package com.pennywiseai.tracker.data.contacts
 fun displayMerchantName(
     merchant: String?,
     useContactsForVpa: Boolean,
-    resolver: ContactsResolver
+    resolver: ContactsResolver,
+    aliases: Map<String, String> = emptyMap()
 ): String? {
     if (merchant.isNullOrBlank()) return merchant
+    // A user-defined alias (#583) wins over everything, incl. contact lookup.
+    aliases[merchant]?.let { if (it.isNotBlank()) return it }
     if (!useContactsForVpa) return merchant
     val phone = extractIndianMobile(merchant) ?: return merchant
     return resolver.resolve(phone) ?: merchant

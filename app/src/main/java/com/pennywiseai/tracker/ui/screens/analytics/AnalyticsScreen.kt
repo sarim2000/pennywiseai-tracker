@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
@@ -882,6 +883,9 @@ private fun MerchantListItem(
         }
     }
 
+    // Brand icon stays keyed on the raw merchant; only the label uses the alias (#583).
+    val merchantDisplay = LocalMerchantDisplay.current
+
     ListItemCardV2(
         leadingContent = {
             BrandIcon(
@@ -890,7 +894,7 @@ private fun MerchantListItem(
                 showBackground = true
             )
         },
-        title = merchant.name,
+        title = merchantDisplay(merchant.name) ?: merchant.name,
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(merchant.amount, currency),
         onClick = onClick

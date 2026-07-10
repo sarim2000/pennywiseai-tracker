@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
+import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
@@ -122,7 +123,19 @@ object DatabaseModule {
     fun provideMerchantMappingDao(database: PennyWiseDatabase): MerchantMappingDao {
         return database.merchantMappingDao()
     }
-    
+
+    /**
+     * Provides the MerchantAliasDao from the database.
+     *
+     * @param database The PennyWiseDatabase instance
+     * @return MerchantAliasDao for accessing merchant alias data
+     */
+    @Provides
+    @Singleton
+    fun provideMerchantAliasDao(database: PennyWiseDatabase): MerchantAliasDao {
+        return database.merchantAliasDao()
+    }
+
     /**
      * Provides the CategoryDao from the database.
      * 

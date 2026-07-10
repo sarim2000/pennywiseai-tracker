@@ -537,6 +537,72 @@ class BackupModelsTest {
     }
 
     /**
+     * #583 regression. An older backup predates the `merchant_aliases` table,
+     * so the key is simply absent from the database snapshot. It must default
+     * to an empty list (not null, not a crash) so the restore succeeds. A newer
+     * backup that *does* carry the table must round-trip its rows, and a row
+     * missing the newer `createdAt`/`updatedAt` keys must fall back to defaults
+     * rather than throwing.
+     */
+    @Test
+    fun oldBackupMissingMerchantAliases_defaultsToEmptyList() {
+        val json = """
+        {
+          "database": {
+            "merchant_mappings": [
+              { "merchantName": "xyz@upi", "category": "Food" }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val db = backupJson.decodeFromString<PennyWiseBackup>(json).database
+
+        // The whole table was omitted by the older format → empty, not null.
+        assertTrue(db.merchantAliases.isEmpty())
+        // The sibling table that existed before still decodes.
+        assertEquals(1, db.merchantMappings.size)
+    }
+
+    @Test
+    fun merchantAliases_roundTripAndTolerateMissingDates() {
+        val json = """
+        {
+          "database": {
+            "merchant_aliases": [
+              {
+                "merchantName": "xyz@upi",
+                "alias": "John's Store",
+                "createdAt": "2024-01-01T10:00:00",
+                "updatedAt": "2024-01-02T10:00:00"
+              },
+              {
+                "merchantName": "abc@ybl",
+                "alias": "Corner Shop"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val aliases = backupJson.decodeFromString<PennyWiseBackup>(json)
+            .database.merchantAliases
+
+        assertEquals(2, aliases.size)
+
+        val full = aliases.first { it.merchantName == "xyz@upi" }
+        assertEquals("John's Store", full.alias)
+        assertEquals(LocalDateTime.of(2024, 1, 1, 10, 0), full.createdAt)
+        assertEquals(LocalDateTime.of(2024, 1, 2, 10, 0), full.updatedAt)
+
+        // Row without the newer date keys → defaults applied, no crash.
+        val minimal = aliases.first { it.merchantName == "abc@ybl" }
+        assertEquals("Corner Shop", minimal.alias)
+        assertNotNull(minimal.createdAt)
+        assertNotNull(minimal.updatedAt)
+    }
+
+    /**
      * Forward compatibility (#415). A backup from a *newer* app carries keys
      * this version has never heard of — both unknown object keys and a whole
      * unknown table. They must be ignored, not rejected.

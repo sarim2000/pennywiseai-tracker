@@ -132,6 +132,9 @@ data class BackupStatistics(
     @SerialName("total_budget_category_month_snapshots")
     val totalBudgetCategoryMonthSnapshots: Int = 0,
 
+    @SerialName("total_merchant_aliases")
+    val totalMerchantAliases: Int = 0,
+
     @SerialName("date_range")
     val dateRange: DateRange? = null
 )
@@ -174,6 +177,9 @@ data class DatabaseSnapshot(
 
     @SerialName("merchant_mappings")
     val merchantMappings: List<MerchantMappingEntity> = emptyList(),
+
+    @SerialName("merchant_aliases")
+    val merchantAliases: List<MerchantAliasEntity> = emptyList(),
 
     @SerialName("unrecognized_sms")
     val unrecognizedSms: List<UnrecognizedSmsEntity> = emptyList(),

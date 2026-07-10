@@ -1,5 +1,5 @@
 {
-  "totalBanks": 139,
+  "totalBanks": 140,
   "totalCountries": 23,
   "countries": [
     {
@@ -43,6 +43,14 @@
       "banks": ["CRDB Bank", "Diamond Trust Bank", "M-Pesa Tanzania", "Mixx by Yas", "NMB Bank Tanzania", "Selcom Pesa", "Tigo Pesa"]
     },
     {
+      "country": "Saudi Arabia",
+      "flag": "🇸🇦",
+      "currency": "SAR",
+      "symbol": "﷼",
+      "bankCount": 6,
+      "banks": ["Al Rajhi Bank", "Alinma Bank", "D360 Bank", "SABB", "STC Bank", "Saudi National Bank"]
+    },
+    {
       "country": "UAE",
       "flag": "🇦🇪",
       "currency": "AED",
@@ -65,14 +73,6 @@
       "symbol": "₦",
       "bankCount": 5,
       "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Opay", "Zenith Bank"]
-    },
-    {
-      "country": "Saudi Arabia",
-      "flag": "🇸🇦",
-      "currency": "SAR",
-      "symbol": "﷼",
-      "bankCount": 5,
-      "banks": ["Al Rajhi Bank", "Alinma Bank", "SABB", "STC Bank", "Saudi National Bank"]
     },
     {
       "country": "Ethiopia",

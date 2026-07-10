@@ -95,6 +95,28 @@ class D360BankParserTest {
                 description = "Outgoing transfer is an expense; the 'at:' datetime line must not be picked as merchant."
             ),
             ParserTestCase(
+                name = "Merchant name containing a promo substring still parses",
+                message = """
+                    International Online Purchase
+                    Amount: SAR 88.00
+                    Card: *1234 - VISA (Ecommerce)
+                    Fee: SAR 0.00
+                    At: WHOLESALE MARKET
+                    Account number: *5678
+                    Country: Saudi Arabia
+                    On: 2026-07-08 12:00
+                """.trimIndent(),
+                sender = "D360BANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("88.00"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "WHOLESALE MARKET",
+                    isFromCard = true
+                ),
+                description = "'sale' inside 'WHOLESALE' must not trip the promo filter (word-boundary match)."
+            ),
+            ParserTestCase(
                 name = "Promotional SMS is not a transaction",
                 message = "Exclusive SAR cashback offer on all your transfers this weekend! Amount limits apply.",
                 sender = "D360BANK",

@@ -112,11 +112,11 @@ class D360BankParser : BankParser() {
         // Reject promotional messages that happen to mention transaction words
         // (e.g. "Exclusive SAR cashback offer on all transfers!"). The base class
         // filters these, but this override replaces its keyword gate, so guard here.
-        val promoMarkers = listOf(
-            "offer", "discount", "% off", "sale", "win ", "congratulations",
-            "promo", "reward points", "click", "unsubscribe"
-        )
-        if (promoMarkers.any { lower.contains(it) }) return false
+        // Short single words need word-boundary matching so they don't hit
+        // substrings of legitimate merchant names ("sale" ⊂ "WHOLESALE MARKET",
+        // "win" ⊂ "DARWIN BANK", "click" ⊂ "doubleclick").
+        val promoExact = listOf("% off", "congratulations", "reward points", "unsubscribe")
+        if (promoExact.any { lower.contains(it) } || PROMO_WORDS.containsMatchIn(lower)) return false
 
         val keywords = listOf(
             "purchase", "withdrawal", "transfer", "incoming", "outgoing", "amount", "sar"
@@ -128,5 +128,9 @@ class D360BankParser : BankParser() {
         // Matches an ISO-ish datetime ("2026-07-08 18:14") so the transfer
         // "at: <datetime>" line is never mistaken for a merchant/location.
         private val DATE_LIKE = Regex("""\d{4}-\d{2}-\d{2}""")
+
+        // Word-boundary promo markers (see isTransactionMessage) so short words
+        // don't false-match inside legitimate merchant/bank names.
+        private val PROMO_WORDS = Regex("""\b(?:offer|discount|sale|win|promo|click)\b""")
     }
 }

@@ -120,31 +120,16 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             updatedAt = LocalDateTime.now(),
         )
 
-        // Pin the manual/cash opening anchor from the PRE-insert snapshot so the
-        // post-insert recompute reflects this payment (see AddTransactionUseCase).
-        // No-op for SMS accounts and when the subscription has no funding account.
-        val bankName = sub.bankName
-        val accountLast4 = sub.accountLast4
-        if (bankName != null && accountLast4 != null) {
-            accountBalanceRepository.ensureManualOpening(bankName, accountLast4)
-        }
-
-        val rowId = transactionRepository.insertTransaction(transaction)
-
-        // Move the funding account's balance by this payment, mirroring a manual
-        // add. Previously the transaction was inserted raw with no account and no
+        // Insert the payment and move the funding account's balance atomically.
+        // Previously the transaction was inserted raw with no account and no
         // balance update, so marking a subscription paid never touched the
-        // account it was paid from (#570).
-        if (rowId != -1L && bankName != null && accountLast4 != null) {
-            accountBalanceRepository.applyTransactionToBalance(
-                bankName = bankName,
-                accountLast4 = accountLast4,
-                amount = sub.amount,
-                type = txnType,
-                date = txnDate,
-                transactionId = rowId,
-            )
-        }
+        // account it was paid from (#570). No-op balance side for SMS accounts
+        // and when the subscription has no funding account.
+        val rowId = accountBalanceRepository.insertTransactionWithBalance(
+            transaction = transaction,
+            bankName = sub.bankName,
+            accountLast4 = sub.accountLast4,
+        )
 
         val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
         subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)

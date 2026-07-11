@@ -46,13 +46,12 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
             while (!scheduled.isAfter(today)) {
                 val hash = "autopay-${sub.id}-$scheduled"
                 if (transactionRepository.getTransactionByHash(hash) == null) {
-                    val phantomDate = scheduled.atStartOfDay()
                     val phantom = TransactionEntity(
                         amount = sub.amount,
                         merchantName = sub.merchantName,
                         category = sub.category ?: "Income",
                         transactionType = TransactionType.INCOME,
-                        dateTime = phantomDate,
+                        dateTime = scheduled.atStartOfDay(),
                         description = "Scheduled income (autopay)",
                         bankName = sub.bankName,
                         accountNumber = accountLast4,
@@ -62,28 +61,16 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
                         createdAt = LocalDateTime.now(),
                         updatedAt = LocalDateTime.now()
                     )
-                    // Pin the manual opening anchor before insert so the recompute
-                    // reflects this phantom (see AddTransactionUseCase). No-op for
-                    // SMS accounts / when the subscription has no funding account.
-                    if (bankName != null && accountLast4 != null) {
-                        accountBalanceRepository.ensureManualOpening(bankName, accountLast4)
-                    }
-                    val rowId = transactionRepository.insertTransaction(phantom)
-                    if (rowId != -1L) {
-                        inserted++
-                        // Credit the funding account with this scheduled income so
-                        // the balance tracks phantom income too (#570).
-                        if (bankName != null && accountLast4 != null) {
-                            accountBalanceRepository.applyTransactionToBalance(
-                                bankName = bankName,
-                                accountLast4 = accountLast4,
-                                amount = sub.amount,
-                                type = TransactionType.INCOME,
-                                date = phantomDate,
-                                transactionId = rowId,
-                            )
-                        }
-                    }
+                    // Insert the phantom and credit the funding account atomically
+                    // so a crash between the two can't leave the row present (its
+                    // hash then blocking every retry) with the balance un-credited
+                    // (#570). No-op balance side for SMS / unlinked subscriptions.
+                    val rowId = accountBalanceRepository.insertTransactionWithBalance(
+                        transaction = phantom,
+                        bankName = bankName,
+                        accountLast4 = accountLast4,
+                    )
+                    if (rowId != -1L) inserted++
                 }
                 scheduled = subscriptionRepository.advance(scheduled, sub.billingCycle)
             }

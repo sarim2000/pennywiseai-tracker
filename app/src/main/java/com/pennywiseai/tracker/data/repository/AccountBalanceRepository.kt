@@ -287,6 +287,37 @@ class AccountBalanceRepository @Inject constructor(
         )
     }
 
+    /**
+     * Atomically insert [transaction] and reflect it on its account's balance,
+     * so a crash can't leave the transaction persisted (its dedup hash then
+     * blocking any retry) while the balance was never moved — a gap that would
+     * permanently short a hash-guarded autopay/mark-paid cycle. Wraps the
+     * opening-anchor pin, the insert, and [applyTransactionToBalance] in one
+     * Room transaction. Returns the new row id (-1 on a dedup-conflict insert).
+     * Pass a null account to insert with no balance side effect.
+     */
+    suspend fun insertTransactionWithBalance(
+        transaction: TransactionEntity,
+        bankName: String?,
+        accountLast4: String?
+    ): Long = database.withTransaction {
+        if (bankName != null && accountLast4 != null) {
+            ensureManualOpening(bankName, accountLast4)
+        }
+        val rowId = transactionDao.insertTransaction(transaction)
+        if (rowId != -1L && bankName != null && accountLast4 != null) {
+            applyTransactionToBalance(
+                bankName = bankName,
+                accountLast4 = accountLast4,
+                amount = transaction.amount,
+                type = transaction.transactionType,
+                date = transaction.dateTime,
+                transactionId = rowId
+            )
+        }
+        rowId
+    }
+
     private suspend fun insertBalanceDeltaByLast4(
         accountLast4: String,
         delta: BigDecimal,

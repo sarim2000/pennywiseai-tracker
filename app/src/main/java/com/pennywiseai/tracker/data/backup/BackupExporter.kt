@@ -58,6 +58,7 @@ class BackupExporter @Inject constructor(
         val accountBalances = database.accountBalanceDao().getAllBalances().first()
         val subscriptions = database.subscriptionDao().getAllSubscriptions().first()
         val merchantMappings = database.merchantMappingDao().getAllMappings().first()
+        val merchantAliases = database.merchantAliasDao().getAllAliases().first()
         val unrecognizedSms = database.unrecognizedSmsDao().getAllUnrecognizedSms().first()
         val chatMessages = database.chatDao().getAllMessages().first()
         val rules = database.ruleDao().getAllRules().first()
@@ -124,6 +125,9 @@ class BackupExporter @Inject constructor(
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
+        // Aliases carry raw merchant names (UPI VPAs, store names) + the user's
+        // custom labels — exactly what MASKED/ANONYMOUS is meant to hide (#583).
+        val exportedMerchantAliases = if (privacy == ExportPrivacy.FULL) merchantAliases else emptyList()
         
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -149,6 +153,7 @@ class BackupExporter @Inject constructor(
                     totalProfiles = exportedProfiles.size,
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
+                    totalMerchantAliases = merchantAliases.size,
                     dateRange = dateRange
                 )
             ),
@@ -159,6 +164,7 @@ class BackupExporter @Inject constructor(
                 accountBalances = accountBalances,
                 subscriptions = subscriptions,
                 merchantMappings = merchantMappings,
+                merchantAliases = exportedMerchantAliases,
                 unrecognizedSms = if (privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
                 chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList(),
                 rules = exportedRules,

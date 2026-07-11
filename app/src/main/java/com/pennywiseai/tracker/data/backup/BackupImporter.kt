@@ -118,6 +118,7 @@ class BackupImporter @Inject constructor(
                 database.accountBalanceDao().deleteAllBalances()
                 database.subscriptionDao().deleteAllSubscriptions()
                 database.merchantMappingDao().deleteAllMappings()
+                database.merchantAliasDao().deleteAllAliases()
                 database.unrecognizedSmsDao().deleteAll()
                 database.chatDao().deleteAllMessages()
                 database.ruleDao().deleteAllRules()
@@ -209,6 +210,10 @@ class BackupImporter @Inject constructor(
 
                 backup.database.merchantMappings.insertEachCounting({ skippedRows++ }) { mapping ->
                     database.merchantMappingDao().insertMapping(mapping)
+                }
+
+                backup.database.merchantAliases.insertEachCounting({ skippedRows++ }) { alias ->
+                    database.merchantAliasDao().insertOrUpdateAlias(alias)
                 }
 
                 backup.database.unrecognizedSms.insertEachCounting({ skippedRows++ }) { sms ->
@@ -393,6 +398,7 @@ class BackupImporter @Inject constructor(
                 importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
                 importSubscriptionsWithMerge(backup.database.subscriptions) { skippedRows++ }
                 importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
+                importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
 
                 // Import new entities with correct ID mapping for splits and applications
                 // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
@@ -551,6 +557,17 @@ class BackupImporter @Inject constructor(
         }
     }
     
+    /**
+     * Import merchant aliases with merge. Aliases are keyed by merchant_name
+     * (the PK), so a REPLACE insert lets a backup's alias overwrite any local
+     * one for the same merchant — matching how merchant mappings merge.
+     */
+    private suspend fun importMerchantAliasesWithMerge(aliases: List<MerchantAliasEntity>, onSkip: () -> Unit) {
+        aliases.insertEachCounting(onSkip) { alias ->
+            database.merchantAliasDao().insertOrUpdateAlias(alias)
+        }
+    }
+
     /**
      * Import rules with merge semantics - skip if exists locally
      */

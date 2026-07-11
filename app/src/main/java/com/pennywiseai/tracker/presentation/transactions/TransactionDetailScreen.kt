@@ -104,6 +104,7 @@ private fun editFilledColors() = TextFieldDefaults.colors(
 )
 
 private val editTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
 
@@ -606,12 +607,15 @@ private fun TransactionReceipt(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                // Show the contact-resolved name when the user has the
-                // toggle on; the raw merchant is still what the Edit
-                // field below renders so users can correct mis-detections.
+                // Prefer the user's saved alias (#583); else the contact-resolved
+                // name when that toggle is on. The raw merchant is still what the
+                // Edit field below renders so users can correct mis-detections.
                 val merchantDisplay = LocalMerchantDisplay.current
+                val currentAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
                 Text(
-                    text = merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+                    text = currentAlias
+                        ?: merchantDisplay(transaction.merchantName)
+                        ?: transaction.merchantName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
@@ -1196,6 +1200,27 @@ private fun EditableTransactionHeader(
                 modifier = Modifier.fillMaxWidth(),
                 shape = editTopShape,
                 isError = transaction.merchantName.isBlank(),
+                colors = editFilledColors()
+            )
+
+            // Display alias (#583): shown in place of the merchant everywhere,
+            // for all transactions from it. The raw merchant above is unchanged.
+            val merchantAlias by viewModel.merchantAlias.collectAsStateWithLifecycle()
+            TextField(
+                value = merchantAlias,
+                onValueChange = { viewModel.updateMerchantAlias(it) },
+                label = { Text("Display alias (Optional)", fontWeight = FontWeight.SemiBold) },
+                placeholder = { Text("Show a friendlier name instead") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Badge,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = editMiddleShape,
                 colors = editFilledColors()
             )
 

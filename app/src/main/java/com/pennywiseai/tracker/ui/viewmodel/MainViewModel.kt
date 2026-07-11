@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.contacts.ContactsResolver
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
+import kotlinx.coroutines.flow.map
 import com.pennywiseai.tracker.ui.components.WhatsNewContent
 import com.pennywiseai.tracker.ui.components.WhatsNewVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +24,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val merchantAliasRepository: MerchantAliasRepository,
     internal val contactsResolver: ContactsResolver
 ) : ViewModel() {
 
@@ -33,6 +36,14 @@ class MainViewModel @Inject constructor(
     // collecting on every render path.
     val useContactsForVpa: StateFlow<Boolean> = userPreferencesRepository.useContactsForVpa
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    // Raw merchant name -> user alias (#583). Projected as a StateFlow so
+    // MainScreen can build the merchant-display closure over the latest map
+    // without collecting on every render path.
+    val merchantAliases: StateFlow<Map<String, String>> =
+        merchantAliasRepository.getAllAliases()
+            .map { list -> list.associate { it.merchantName to it.alias } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     init {
         checkWhatsNew()

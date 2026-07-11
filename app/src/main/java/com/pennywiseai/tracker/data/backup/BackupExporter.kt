@@ -125,6 +125,9 @@ class BackupExporter @Inject constructor(
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
+        // Aliases carry raw merchant names (UPI VPAs, store names) + the user's
+        // custom labels — exactly what MASKED/ANONYMOUS is meant to hide (#583).
+        val exportedMerchantAliases = if (privacy == ExportPrivacy.FULL) merchantAliases else emptyList()
         
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -161,7 +164,7 @@ class BackupExporter @Inject constructor(
                 accountBalances = accountBalances,
                 subscriptions = subscriptions,
                 merchantMappings = merchantMappings,
-                merchantAliases = merchantAliases,
+                merchantAliases = exportedMerchantAliases,
                 unrecognizedSms = if (privacy == ExportPrivacy.FULL) unrecognizedSms else emptyList(),
                 chatMessages = if (privacy == ExportPrivacy.FULL) chatMessages else emptyList(),
                 rules = exportedRules,

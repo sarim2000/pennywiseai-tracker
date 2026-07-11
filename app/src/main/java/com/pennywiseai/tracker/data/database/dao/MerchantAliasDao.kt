@@ -13,9 +13,6 @@ interface MerchantAliasDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateAlias(alias: MerchantAliasEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAlias(alias: MerchantAliasEntity)
-
     @Query("DELETE FROM merchant_aliases WHERE merchant_name = :merchantName")
     suspend fun deleteAlias(merchantName: String)
 

@@ -213,7 +213,7 @@ class BackupImporter @Inject constructor(
                 }
 
                 backup.database.merchantAliases.insertEachCounting({ skippedRows++ }) { alias ->
-                    database.merchantAliasDao().insertAlias(alias)
+                    database.merchantAliasDao().insertOrUpdateAlias(alias)
                 }
 
                 backup.database.unrecognizedSms.insertEachCounting({ skippedRows++ }) { sms ->
@@ -564,7 +564,7 @@ class BackupImporter @Inject constructor(
      */
     private suspend fun importMerchantAliasesWithMerge(aliases: List<MerchantAliasEntity>, onSkip: () -> Unit) {
         aliases.insertEachCounting(onSkip) { alias ->
-            database.merchantAliasDao().insertAlias(alias)
+            database.merchantAliasDao().insertOrUpdateAlias(alias)
         }
     }
 

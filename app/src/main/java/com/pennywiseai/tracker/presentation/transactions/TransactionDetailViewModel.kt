@@ -847,18 +847,28 @@ class TransactionDetailViewModel @Inject constructor(
                     )
                 }
 
-                // Persist the merchant display alias (#583) when it changed. A
-                // blank alias clears any existing one. Keyed on the saved
-                // merchant name so it applies to every transaction from it.
+                // Persist the merchant display alias (#583), keyed on the saved
+                // merchant name so it applies to every transaction from it. A
+                // blank alias clears any existing one.
                 val trimmedAlias = _merchantAlias.value.trim()
-                if (trimmedAlias != _originalMerchantAlias.trim()) {
+                val newMerchantName = normalizedTransaction.merchantName
+                // _transaction still holds the pre-save transaction here (it is
+                // replaced below), so this is the original merchant name.
+                val oldMerchantName = _transaction.value?.merchantName
+                val merchantRenamed = oldMerchantName != null && oldMerchantName != newMerchantName
+
+                // If the merchant was renamed, drop any alias still keyed under
+                // the old name so it isn't orphaned under a name nothing uses.
+                if (merchantRenamed && _originalMerchantAlias.isNotBlank()) {
+                    merchantAliasRepository.removeAlias(oldMerchantName!!)
+                }
+                // Write the alias under the current name when it changed, or when
+                // the merchant was renamed (so a carried-over alias re-homes).
+                if (trimmedAlias != _originalMerchantAlias.trim() || merchantRenamed) {
                     if (trimmedAlias.isEmpty()) {
-                        merchantAliasRepository.removeAlias(normalizedTransaction.merchantName)
+                        merchantAliasRepository.removeAlias(newMerchantName)
                     } else {
-                        merchantAliasRepository.setAlias(
-                            normalizedTransaction.merchantName,
-                            trimmedAlias
-                        )
+                        merchantAliasRepository.setAlias(newMerchantName, trimmedAlias)
                     }
                 }
 

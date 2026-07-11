@@ -35,8 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
@@ -62,6 +65,7 @@ fun SubscriptionsScreen(
     onAddSubscriptionClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     // Subscription currently being marked-as-paid. Null = sheet closed.
     var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }
@@ -221,14 +225,15 @@ fun SubscriptionsScreen(
                     ) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
+                            accounts = accounts,
                             isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
-                            onEdit = { merchantName, amount, nextDate, category ->
-                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category)
+                            onEdit = { merchantName, amount, nextDate, category, account ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
@@ -454,13 +459,14 @@ private fun TotalSubscriptionsSummary(
 @Composable
 private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
+    accounts: List<AccountBalanceEntity> = emptyList(),
     isPaidThisCycle: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
-    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit = { _, _, _, _ -> },
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?) -> Unit = { _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -800,9 +806,10 @@ private fun SwipeableSubscriptionItem(
     if (showEditDialog) {
         EditSubscriptionDialog(
             subscription = subscription,
+            accounts = accounts,
             onDismiss = { showEditDialog = false },
-            onSave = { merchantName, amount, nextDate, category ->
-                onEdit(merchantName, amount, nextDate, category)
+            onSave = { merchantName, amount, nextDate, category, account ->
+                onEdit(merchantName, amount, nextDate, category, account)
                 showEditDialog = false
             }
         )
@@ -836,14 +843,25 @@ private fun SwipeableSubscriptionItem(
 @Composable
 private fun EditSubscriptionDialog(
     subscription: SubscriptionEntity,
+    accounts: List<AccountBalanceEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?) -> Unit
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?) -> Unit
 ) {
     var merchantName by remember { mutableStateOf(subscription.merchantName) }
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
     var category by remember { mutableStateOf(subscription.category.orEmpty()) }
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
+    // Pre-select the subscription's current funding account by (bank, last4).
+    var selectedAccount by remember(subscription.id, accounts) {
+        mutableStateOf(
+            accounts.firstOrNull {
+                it.bankName == subscription.bankName &&
+                    it.accountLast4 == subscription.accountLast4
+            }
+        )
+    }
 
     val parsedAmount = remember(amountText) {
         amountText.trim().takeIf { it.isNotEmpty() }?.let {
@@ -899,6 +917,75 @@ private fun EditSubscriptionDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // Funding account (#570). Marking this subscription paid moves
+                // the chosen account's balance; "No account" keeps it unlinked.
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = selectedAccount?.let {
+                            AccountBalanceEntity.accountLabel(it.bankName, it.accountLast4)
+                        } ?: "No account",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Paid from") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showAccountMenu = true },
+                        enabled = false,
+                        trailingIcon = {
+                            IconButton(onClick = { showAccountMenu = true }) {
+                                Icon(Icons.Default.AccountBalance, contentDescription = "Pick account")
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = showAccountMenu,
+                        onDismissRequest = { showAccountMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No account") },
+                            onClick = {
+                                selectedAccount = null
+                                showAccountMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                        )
+                        HorizontalDivider()
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
+                                        Text(
+                                            CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedAccount = account
+                                    showAccountMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        when (account.getAccountType()) {
+                                            AccountType.CASH -> Icons.Default.Money
+                                            AccountType.CREDIT -> Icons.Default.CreditCard
+                                            else -> Icons.Default.AccountBalance
+                                        },
+                                        contentDescription = null
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (selectedAccount?.id == account.id) {
+                                        Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -906,7 +993,7 @@ private fun EditSubscriptionDialog(
                 enabled = isValid,
                 onClick = {
                     parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category)
+                        onSave(merchantName, amt, nextDate, category, selectedAccount)
                     }
                 }
             ) { Text("Save") }

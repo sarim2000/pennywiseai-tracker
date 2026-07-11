@@ -180,6 +180,7 @@ class PNBBankParserTest {
                 assertEquals(BigDecimal("1500.00"), mandate?.amount)
                 assertEquals("Google", mandate?.merchant)
                 assertEquals("1d478c77808c410281f435rer5qwerty6@ybl-PNB", mandate?.umn)
+                assertEquals("4356", mandate?.accountLast4)
             }
         )
     }

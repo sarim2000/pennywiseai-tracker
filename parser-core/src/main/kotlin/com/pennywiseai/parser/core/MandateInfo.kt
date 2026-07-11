@@ -36,4 +36,11 @@ interface MandateInfo {
      */
     val dateFormat: String
         get() = "dd/MM/yy"
+
+    /**
+     * Last 4 digits of the account the mandate debits, if the SMS states it.
+     * Null when unknown.
+     */
+    val accountLast4: String?
+        get() = null
 }

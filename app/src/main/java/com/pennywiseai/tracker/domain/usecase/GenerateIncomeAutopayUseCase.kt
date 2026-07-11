@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.usecase
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.time.LocalDate
@@ -25,7 +26,8 @@ import javax.inject.Inject
  */
 class GenerateIncomeAutopayUseCase @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) {
 
     /** Returns the count of phantom transactions inserted. */
@@ -39,25 +41,49 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
             // Materialise every missed cycle up to today, not just one — a
             // user who didn't open the app for two months should see both
             // months' phantom income, not just the most recent.
+            val bankName = sub.bankName
+            val accountLast4 = sub.accountLast4
             while (!scheduled.isAfter(today)) {
                 val hash = "autopay-${sub.id}-$scheduled"
                 if (transactionRepository.getTransactionByHash(hash) == null) {
+                    val phantomDate = scheduled.atStartOfDay()
                     val phantom = TransactionEntity(
                         amount = sub.amount,
                         merchantName = sub.merchantName,
                         category = sub.category ?: "Income",
                         transactionType = TransactionType.INCOME,
-                        dateTime = scheduled.atStartOfDay(),
+                        dateTime = phantomDate,
                         description = "Scheduled income (autopay)",
                         bankName = sub.bankName,
+                        accountNumber = accountLast4,
                         currency = sub.currency,
                         transactionHash = hash,
                         isRecurring = true,
                         createdAt = LocalDateTime.now(),
                         updatedAt = LocalDateTime.now()
                     )
+                    // Pin the manual opening anchor before insert so the recompute
+                    // reflects this phantom (see AddTransactionUseCase). No-op for
+                    // SMS accounts / when the subscription has no funding account.
+                    if (bankName != null && accountLast4 != null) {
+                        accountBalanceRepository.ensureManualOpening(bankName, accountLast4)
+                    }
                     val rowId = transactionRepository.insertTransaction(phantom)
-                    if (rowId != -1L) inserted++
+                    if (rowId != -1L) {
+                        inserted++
+                        // Credit the funding account with this scheduled income so
+                        // the balance tracks phantom income too (#570).
+                        if (bankName != null && accountLast4 != null) {
+                            accountBalanceRepository.applyTransactionToBalance(
+                                bankName = bankName,
+                                accountLast4 = accountLast4,
+                                amount = sub.amount,
+                                type = TransactionType.INCOME,
+                                date = phantomDate,
+                                transactionId = rowId,
+                            )
+                        }
+                    }
                 }
                 scheduled = subscriptionRepository.advance(scheduled, sub.billingCycle)
             }

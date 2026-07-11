@@ -268,6 +268,9 @@ class SubscriptionRepository @Inject constructor(
                 nextPaymentDate = nextPaymentDate,
                 merchantName = mandateInfo.merchant,
                 umn = mandateInfo.umn ?: existing.umn, // Update UMN if provided
+                // Capture the debiting account from the mandate SMS when present,
+                // but never clobber an account the user assigned manually (#570).
+                accountLast4 = mandateInfo.accountLast4 ?: existing.accountLast4,
                 state = if (shouldReactivate) SubscriptionState.ACTIVE else existing.state,
                 smsBody = smsBody ?: existing.smsBody, // Update SMS body if provided
                 updatedAt = java.time.LocalDateTime.now()
@@ -282,6 +285,7 @@ class SubscriptionRepository @Inject constructor(
                 nextPaymentDate = nextPaymentDate,
                 state = SubscriptionState.ACTIVE,
                 bankName = bankName,
+                accountLast4 = mandateInfo.accountLast4,
                 umn = mandateInfo.umn,
                 category = determineCategory(mandateInfo.merchant),
                 smsBody = smsBody

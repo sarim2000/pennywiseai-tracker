@@ -32,7 +32,16 @@ data class SubscriptionEntity(
     
     @ColumnInfo(name = "bank_name")
     val bankName: String? = null,
-    
+
+    /**
+     * Last 4 digits of the specific account this subscription is paid from.
+     * Accounts are keyed by (bank_name + account_last4), so this pairs with
+     * [bankName] to identify the exact funding account (#570). Null when the
+     * source account isn't known (older rows, or SMS without an account tail).
+     */
+    @ColumnInfo(name = "account_last4")
+    val accountLast4: String? = null,
+
     @ColumnInfo(name = "umn")
     val umn: String? = null, // Unique Mandate Number for E-Mandates
     

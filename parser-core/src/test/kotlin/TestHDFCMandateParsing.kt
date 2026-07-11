@@ -50,6 +50,7 @@ UMN ref456@ybl
                 assertNotNull(info, "Should parse e-mandate notification")
                 assertEquals(BigDecimal("599.00"), info!!.amount, "Amount mismatch")
                 assertEquals("CloudStorage", info.merchant, "Merchant should be 'CloudStorage'")
+                assertEquals("1234", info.accountLast4, "accountLast4 should be extracted from 'A/c XX1234'")
             },
 
             dynamicTest("E-Mandate notification is not parsed as transaction") {
@@ -108,6 +109,7 @@ for MusicApp ID: sub789
                 assertNotNull(info, "Should parse future debit notification")
                 assertEquals(BigDecimal("500.00"), info!!.amount, "Amount mismatch")
                 assertEquals("FitnessApp", info.merchant, "Merchant should be 'FitnessApp'")
+                assertEquals("5678", info.accountLast4, "accountLast4 should be extracted from 'A/c XX5678'")
             },
 
             dynamicTest("parseFutureDebit extracts merchant from 'for X will be'") {

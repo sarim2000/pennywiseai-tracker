@@ -77,7 +77,7 @@ class AddTransactionUseCase @Inject constructor(
 
         // Update account balance if account was selected
         if (transactionId != -1L && bankName != null && accountLast4 != null) {
-            updateAccountBalance(
+            accountBalanceRepository.applyTransactionToBalance(
                 bankName = bankName,
                 accountLast4 = accountLast4,
                 amount = amount,
@@ -107,50 +107,6 @@ class AddTransactionUseCase @Inject constructor(
         }
     }
     
-    private suspend fun updateAccountBalance(
-        bankName: String,
-        accountLast4: String,
-        amount: BigDecimal,
-        type: TransactionType,
-        date: LocalDateTime,
-        transactionId: Long
-    ) {
-        // Manual/cash accounts derive their balance from their transactions, so a
-        // back-dated (or later edited) transaction must be reflected — recompute rather
-        // than writing a per-transaction delta snapshot stamped at the txn date (which a
-        // back-dated row hides from "latest"). The transaction is already persisted here,
-        // so the recompute sum includes it. (#469)
-        if (accountBalanceRepository.isManualAccount(bankName, accountLast4)) {
-            accountBalanceRepository.recomputeManualBalance(bankName, accountLast4)
-            return
-        }
-
-        // Get current account balance
-        val currentAccount = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
-
-        if (currentAccount != null) {
-            // Calculate new balance based on transaction type
-            val newBalance = when (type) {
-                TransactionType.INCOME -> currentAccount.balance + amount
-                TransactionType.EXPENSE, TransactionType.CREDIT -> currentAccount.balance - amount
-                TransactionType.TRANSFER -> currentAccount.balance - amount  // Simplified - from account
-                TransactionType.INVESTMENT -> currentAccount.balance - amount
-            }
-
-            // Insert new balance record
-            accountBalanceRepository.insertBalance(
-                currentAccount.copy(
-                    id = 0,  // Auto-generate new ID
-                    balance = newBalance,
-                    timestamp = date,
-                    transactionId = transactionId,
-                    sourceType = "TRANSACTION",
-                    smsSource = null
-                )
-            )
-        }
-    }
-
     private fun generateManualTransactionHash(
         amount: BigDecimal,
         merchant: String,

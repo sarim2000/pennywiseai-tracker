@@ -3,18 +3,22 @@ package com.pennywiseai.tracker.presentation.subscriptions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -26,10 +30,16 @@ class SubscriptionsViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+    accountBalanceRepository: AccountBalanceRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
     val uiState: StateFlow<SubscriptionsUiState> = _uiState.asStateFlow()
+
+    /** Accounts offered as the funding source in the edit dialog (#570). */
+    val accounts: StateFlow<List<AccountBalanceEntity>> =
+        accountBalanceRepository.getAllLatestBalances()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         loadSubscriptions()
@@ -173,7 +183,8 @@ class SubscriptionsViewModel @Inject constructor(
         merchantName: String,
         amount: BigDecimal,
         nextPaymentDate: java.time.LocalDate?,
-        category: String?
+        category: String?,
+        account: AccountBalanceEntity?,
     ) {
         viewModelScope.launch {
             val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
@@ -183,6 +194,11 @@ class SubscriptionsViewModel @Inject constructor(
                     amount = amount,
                     nextPaymentDate = nextPaymentDate,
                     category = category?.trim()?.takeIf { it.isNotEmpty() },
+                    // Re-key the funding account. Clearing it (null) reverts to the
+                    // unlinked "Manual Entry" placeholder so mark-as-paid stops
+                    // touching a balance. (#570)
+                    bankName = account?.bankName ?: "Manual Entry",
+                    accountLast4 = account?.accountLast4,
                     updatedAt = java.time.LocalDateTime.now()
                 )
             )

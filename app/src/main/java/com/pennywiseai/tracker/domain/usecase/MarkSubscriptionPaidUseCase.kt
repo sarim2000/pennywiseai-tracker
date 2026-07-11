@@ -4,6 +4,7 @@ import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.time.LocalDate
@@ -44,6 +45,7 @@ import javax.inject.Inject
 class MarkSubscriptionPaidUseCase @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
 ) {
 
     sealed class Result {
@@ -100,21 +102,49 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             return Result.AlreadyMarked(nextDate)
         }
 
+        val txnType = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
+        val txnDate = paymentDate.atStartOfDay()
         val transaction = TransactionEntity(
             amount = sub.amount,
             merchantName = sub.merchantName,
             category = sub.category ?: if (isIncome) "Income" else "Subscriptions",
-            transactionType = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
-            dateTime = paymentDate.atStartOfDay(),
+            transactionType = txnType,
+            dateTime = txnDate,
             description = if (isIncome) "Marked received" else "Marked paid",
             bankName = sub.bankName,
+            accountNumber = sub.accountLast4,
             currency = sub.currency,
             transactionHash = hash,
             isRecurring = true,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
         )
+
+        // Pin the manual/cash opening anchor from the PRE-insert snapshot so the
+        // post-insert recompute reflects this payment (see AddTransactionUseCase).
+        // No-op for SMS accounts and when the subscription has no funding account.
+        val bankName = sub.bankName
+        val accountLast4 = sub.accountLast4
+        if (bankName != null && accountLast4 != null) {
+            accountBalanceRepository.ensureManualOpening(bankName, accountLast4)
+        }
+
         val rowId = transactionRepository.insertTransaction(transaction)
+
+        // Move the funding account's balance by this payment, mirroring a manual
+        // add. Previously the transaction was inserted raw with no account and no
+        // balance update, so marking a subscription paid never touched the
+        // account it was paid from (#570).
+        if (rowId != -1L && bankName != null && accountLast4 != null) {
+            accountBalanceRepository.applyTransactionToBalance(
+                bankName = bankName,
+                accountLast4 = accountLast4,
+                amount = sub.amount,
+                type = txnType,
+                date = txnDate,
+                transactionId = rowId,
+            )
+        }
 
         val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
         subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)

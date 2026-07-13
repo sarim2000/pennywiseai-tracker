@@ -81,7 +81,11 @@ class AddTransactionUseCase @Inject constructor(
                 amount = amount,
                 nextPaymentDate = nextPaymentDate,
                 state = SubscriptionState.ACTIVE,
-                bankName = "Manual Entry",
+                // Carry the funding account onto the auto-created subscription so
+                // marking it paid later moves that account's balance — otherwise
+                // this whole class of subscriptions silently skips the #570 fix.
+                bankName = bankName ?: "Manual Entry",
+                accountLast4 = accountLast4,
                 category = category,
                 currency = currency,
                 createdAt = LocalDateTime.now(),

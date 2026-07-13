@@ -853,19 +853,26 @@ private fun EditSubscriptionDialog(
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
-    // Pre-select the subscription's current funding account by (bank, last4).
-    var selectedAccount by remember(subscription.id, accounts) {
-        mutableStateOf(
-            accounts.firstOrNull {
-                it.bankName == subscription.bankName &&
-                    it.accountLast4 == subscription.accountLast4
-            }
-        )
-    }
     // Whether the user actually changed the account. Guards against wiping a
     // stored account the picker can't represent (e.g. one not yet in the
     // balance list) when the user edits other fields and saves.
     var accountChanged by remember(subscription.id) { mutableStateOf(false) }
+    var selectedAccount by remember(subscription.id) {
+        mutableStateOf<AccountBalanceEntity?>(null)
+    }
+    // Pre-select the subscription's current funding account by (bank, last4).
+    // Runs when the async accounts list first resolves, but never once the user
+    // has touched the picker — otherwise an accounts tick mid-edit would revert
+    // a freshly-picked account while accountChanged stayed true, writing the
+    // stale value on save (keyed both on subscription.id keeps the two in sync).
+    LaunchedEffect(subscription.id, accounts) {
+        if (!accountChanged) {
+            selectedAccount = accounts.firstOrNull {
+                it.bankName == subscription.bankName &&
+                    it.accountLast4 == subscription.accountLast4
+            }
+        }
+    }
 
     val parsedAmount = remember(amountText) {
         amountText.trim().takeIf { it.isNotEmpty() }?.let {

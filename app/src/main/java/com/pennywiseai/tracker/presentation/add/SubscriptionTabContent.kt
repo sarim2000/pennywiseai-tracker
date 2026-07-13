@@ -22,6 +22,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -56,11 +60,13 @@ fun SubscriptionTabContent(
 ) {
     val uiState by viewModel.subscriptionUiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
 
     val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
 
@@ -361,6 +367,147 @@ fun SubscriptionTabContent(
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                     colors = subFilledColors()
                 )
+            }
+
+            // ── Funding account (optional) ──
+            // When set, marking this subscription paid (or an auto-created
+            // scheduled income) moves the chosen account's balance. Leaving it
+            // unset keeps the subscription unlinked, exactly like before. (#570)
+            Card(
+                onClick = { showAccountMenu = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = subFullShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                border = null
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        when (uiState.selectedAccount?.getAccountType()) {
+                            AccountType.CASH -> Icons.Default.Money
+                            AccountType.CREDIT -> Icons.Default.CreditCard
+                            AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
+                            null -> Icons.Default.AccountBalance
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = uiState.selectedAccount?.bankName ?: "Paid from (optional)",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (uiState.selectedAccount != null)
+                                MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (uiState.selectedAccount != null &&
+                            uiState.selectedAccount?.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                            Text(
+                                text = "••${uiState.selectedAccount?.accountLast4}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (uiState.selectedAccount != null) {
+                        IconButton(
+                            onClick = { viewModel.updateSubscriptionAccount(null) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Account selection dropdown menu
+            DropdownMenu(
+                expanded = showAccountMenu,
+                onDismissRequest = { showAccountMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text("No account")
+                            Text(
+                                "Won't affect any balance",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    onClick = {
+                        viewModel.updateSubscriptionAccount(null)
+                        showAccountMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                )
+                HorizontalDivider()
+                val groupedAccounts = accounts.groupBy { it.getAccountType() }
+                groupedAccounts.forEach { (accountType, accountList) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = accountType.displayName(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        onClick = {},
+                        enabled = false
+                    )
+                    accountList.forEach { account ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
+                                    Text(
+                                        CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            onClick = {
+                                viewModel.updateSubscriptionAccount(account)
+                                showAccountMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    when (accountType) {
+                                        AccountType.CASH -> Icons.Default.Money
+                                        AccountType.CREDIT -> Icons.Default.CreditCard
+                                        else -> Icons.Default.AccountBalance
+                                    },
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                if (uiState.selectedAccount?.id == account.id) {
+                                    Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        )
+                    }
+                }
             }
 
             // Bottom padding for save button overlay

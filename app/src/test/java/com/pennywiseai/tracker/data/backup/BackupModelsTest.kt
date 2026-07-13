@@ -490,6 +490,52 @@ class BackupModelsTest {
     }
 
     /**
+     * #570 regression. An older backup's subscription predates the
+     * `account_last4` column (which pairs with `bank_name` to identify the
+     * funding account), so the key is simply absent. It must default to null,
+     * not crash the restore. A second row that *does* carry the key must
+     * round-trip its value.
+     */
+    @Test
+    fun oldBackupMissingAccountLast4_defaultsToNull() {
+        val json = """
+        {
+          "database": {
+            "subscriptions": [
+              {
+                "id": 9,
+                "merchantName": "Netflix",
+                "amount": "499.00",
+                "nextPaymentDate": "2023-06-01",
+                "bankName": "HDFC"
+              },
+              {
+                "id": 10,
+                "merchantName": "Spotify",
+                "amount": "119.00",
+                "nextPaymentDate": "2023-06-05",
+                "bankName": "HDFC",
+                "accountLast4": "4321"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val subs = backupJson.decodeFromString<PennyWiseBackup>(json)
+            .database.subscriptions
+
+        // Older row: account_last4 key absent → default null, no crash.
+        val netflix = subs.single { it.merchantName == "Netflix" }
+        assertNull(netflix.accountLast4)
+        assertEquals("HDFC", netflix.bankName)
+
+        // Newer row: value round-trips.
+        val spotify = subs.single { it.merchantName == "Spotify" }
+        assertEquals("4321", spotify.accountLast4)
+    }
+
+    /**
      * #509 regression. An older backup's account_balances row predates the
      * per-account `lowBalanceThreshold` column, so the key is simply absent.
      * It must default to null (alert off), not crash the restore. A second row

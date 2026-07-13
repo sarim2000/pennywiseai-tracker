@@ -59,7 +59,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 56
+const val SCHEMA_VERSION = 57
 
 /**
  * The PennyWise Room database.
@@ -121,7 +121,10 @@ const val SCHEMA_VERSION = 56
         // 47→55 are manual migrations registered in DatabaseModule.
         // 55→56 adds the merchant_aliases table — a pure additive change, so
         // Room generates the CREATE TABLE automatically.
-        AutoMigration(from = 55, to = 56)
+        AutoMigration(from = 55, to = 56),
+        // 56→57 adds a nullable account_last4 column to subscriptions — a pure
+        // additive change, so Room generates the ALTER TABLE automatically (#570).
+        AutoMigration(from = 56, to = 57)
     ]
 )
 @TypeConverters(Converters::class)

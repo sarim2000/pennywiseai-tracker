@@ -241,6 +241,83 @@ class AccountBalanceRepository @Inject constructor(
         }
     }
 
+    /**
+     * Reflects a newly-inserted transaction ([transactionId], dated [date]) on
+     * its account's running balance. Manual/cash accounts are recomputed from
+     * their transactions (so back-dated or later-edited rows stay correct); an
+     * SMS-tracked account gets a signed "TRANSACTION" delta snapshot off its
+     * latest row. No-op when the account has no balance row yet (an SMS account
+     * we've never seen a balance for) — there's no anchor to move.
+     *
+     * The transaction MUST already be persisted before calling this. Callers
+     * that support manual accounts must also call [ensureManualOpening] BEFORE
+     * inserting the transaction, so the opening anchor is derived from the
+     * pre-insert balance. Shared by manual add (AddTransactionUseCase),
+     * subscription mark-as-paid and income-autopay (#570) so all three obey one
+     * balance rule.
+     */
+    suspend fun applyTransactionToBalance(
+        bankName: String,
+        accountLast4: String,
+        amount: BigDecimal,
+        type: TransactionType,
+        date: LocalDateTime,
+        transactionId: Long
+    ) {
+        if (isManualAccount(bankName, accountLast4)) {
+            recomputeManualBalance(bankName, accountLast4)
+            return
+        }
+        val currentAccount = getLatestBalance(bankName, accountLast4) ?: return
+        val newBalance = when (type) {
+            TransactionType.INCOME -> currentAccount.balance + amount
+            TransactionType.EXPENSE, TransactionType.CREDIT -> currentAccount.balance - amount
+            TransactionType.TRANSFER -> currentAccount.balance - amount
+            TransactionType.INVESTMENT -> currentAccount.balance - amount
+        }
+        insertBalance(
+            currentAccount.copy(
+                id = 0,
+                balance = newBalance,
+                timestamp = date,
+                transactionId = transactionId,
+                sourceType = "TRANSACTION",
+                smsSource = null
+            )
+        )
+    }
+
+    /**
+     * Atomically insert [transaction] and reflect it on its account's balance,
+     * so a crash can't leave the transaction persisted (its dedup hash then
+     * blocking any retry) while the balance was never moved — a gap that would
+     * permanently short a hash-guarded autopay/mark-paid cycle. Wraps the
+     * opening-anchor pin, the insert, and [applyTransactionToBalance] in one
+     * Room transaction. Returns the new row id (-1 on a dedup-conflict insert).
+     * Pass a null account to insert with no balance side effect.
+     */
+    suspend fun insertTransactionWithBalance(
+        transaction: TransactionEntity,
+        bankName: String?,
+        accountLast4: String?
+    ): Long = database.withTransaction {
+        if (bankName != null && accountLast4 != null) {
+            ensureManualOpening(bankName, accountLast4)
+        }
+        val rowId = transactionDao.insertTransaction(transaction)
+        if (rowId != -1L && bankName != null && accountLast4 != null) {
+            applyTransactionToBalance(
+                bankName = bankName,
+                accountLast4 = accountLast4,
+                amount = transaction.amount,
+                type = transaction.transactionType,
+                date = transaction.dateTime,
+                transactionId = rowId
+            )
+        }
+        rowId
+    }
+
     private suspend fun insertBalanceDeltaByLast4(
         accountLast4: String,
         delta: BigDecimal,

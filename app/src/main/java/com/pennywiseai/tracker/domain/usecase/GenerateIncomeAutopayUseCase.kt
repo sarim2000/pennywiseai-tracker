@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.usecase
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.time.LocalDate
@@ -25,7 +26,8 @@ import javax.inject.Inject
  */
 class GenerateIncomeAutopayUseCase @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) {
 
     /** Returns the count of phantom transactions inserted. */
@@ -39,6 +41,8 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
             // Materialise every missed cycle up to today, not just one — a
             // user who didn't open the app for two months should see both
             // months' phantom income, not just the most recent.
+            val bankName = sub.bankName
+            val accountLast4 = sub.accountLast4
             while (!scheduled.isAfter(today)) {
                 val hash = "autopay-${sub.id}-$scheduled"
                 if (transactionRepository.getTransactionByHash(hash) == null) {
@@ -50,13 +54,22 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
                         dateTime = scheduled.atStartOfDay(),
                         description = "Scheduled income (autopay)",
                         bankName = sub.bankName,
+                        accountNumber = accountLast4,
                         currency = sub.currency,
                         transactionHash = hash,
                         isRecurring = true,
                         createdAt = LocalDateTime.now(),
                         updatedAt = LocalDateTime.now()
                     )
-                    val rowId = transactionRepository.insertTransaction(phantom)
+                    // Insert the phantom and credit the funding account atomically
+                    // so a crash between the two can't leave the row present (its
+                    // hash then blocking every retry) with the balance un-credited
+                    // (#570). No-op balance side for SMS / unlinked subscriptions.
+                    val rowId = accountBalanceRepository.insertTransactionWithBalance(
+                        transaction = phantom,
+                        bankName = bankName,
+                        accountLast4 = accountLast4,
+                    )
                     if (rowId != -1L) inserted++
                 }
                 scheduled = subscriptionRepository.advance(scheduled, sub.billingCycle)

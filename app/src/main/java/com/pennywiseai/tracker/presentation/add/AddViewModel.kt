@@ -380,6 +380,17 @@ class AddViewModel @Inject constructor(
             currentState.copy(currency = currency)
         }
     }
+
+    fun updateSubscriptionAccount(account: AccountBalanceEntity?) {
+        _subscriptionUiState.update { currentState ->
+            // Keep the subscription currency aligned with the chosen account so
+            // the two figures the user sees can't silently disagree.
+            currentState.copy(
+                selectedAccount = account,
+                currency = account?.currency ?: currentState.currency
+            )
+        }
+    }
     
     fun saveSubscription(onSuccess: () -> Unit) {
         val state = _subscriptionUiState.value
@@ -424,7 +435,9 @@ class AddViewModel @Inject constructor(
                     paymentReminder = false, // Not implemented yet
                     notes = state.notes.takeIf { it.isNotBlank() },
                     currency = state.currency,
-                    direction = state.direction
+                    direction = state.direction,
+                    bankName = state.selectedAccount?.bankName,
+                    accountLast4 = state.selectedAccount?.accountLast4
                 )
                 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -527,7 +540,13 @@ data class SubscriptionUiState(
      * incoming bank-debit SMS as today.
      */
     val direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection =
-        com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
+        com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE,
+    /**
+     * Optional funding account (#570). When set, mark-as-paid / scheduled
+     * income moves this account's balance; null keeps the subscription
+     * unlinked ("Manual Entry", no balance tracking).
+     */
+    val selectedAccount: AccountBalanceEntity? = null
 ) {
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&

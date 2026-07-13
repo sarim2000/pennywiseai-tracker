@@ -185,6 +185,7 @@ class SubscriptionsViewModel @Inject constructor(
         nextPaymentDate: java.time.LocalDate?,
         category: String?,
         account: AccountBalanceEntity?,
+        accountChanged: Boolean,
     ) {
         viewModelScope.launch {
             val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
@@ -194,11 +195,14 @@ class SubscriptionsViewModel @Inject constructor(
                     amount = amount,
                     nextPaymentDate = nextPaymentDate,
                     category = category?.trim()?.takeIf { it.isNotEmpty() },
-                    // Re-key the funding account. Clearing it (null) reverts to the
-                    // unlinked "Manual Entry" placeholder so mark-as-paid stops
-                    // touching a balance. (#570)
-                    bankName = account?.bankName ?: "Manual Entry",
-                    accountLast4 = account?.accountLast4,
+                    // Only re-key the funding account when the user actually touched
+                    // the picker. Otherwise keep what's stored — the dialog can't
+                    // pre-select an account that isn't in the balance list yet (e.g.
+                    // one auto-captured from an SMS mandate), so blindly writing the
+                    // picker's null would wipe that assignment. Picking clears via
+                    // "No account" still work because that flips accountChanged. (#570)
+                    bankName = if (accountChanged) account?.bankName ?: "Manual Entry" else existing.bankName,
+                    accountLast4 = if (accountChanged) account?.accountLast4 else existing.accountLast4,
                     updatedAt = java.time.LocalDateTime.now()
                 )
             )

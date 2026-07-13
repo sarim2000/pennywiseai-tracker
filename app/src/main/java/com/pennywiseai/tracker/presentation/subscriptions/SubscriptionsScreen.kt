@@ -232,8 +232,8 @@ fun SubscriptionsScreen(
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
-                            onEdit = { merchantName, amount, nextDate, category, account ->
-                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account)
+                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
@@ -466,7 +466,7 @@ private fun SwipeableSubscriptionItem(
     onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
-    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?) -> Unit = { _, _, _, _, _ -> },
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -808,8 +808,8 @@ private fun SwipeableSubscriptionItem(
             subscription = subscription,
             accounts = accounts,
             onDismiss = { showEditDialog = false },
-            onSave = { merchantName, amount, nextDate, category, account ->
-                onEdit(merchantName, amount, nextDate, category, account)
+            onSave = { merchantName, amount, nextDate, category, account, accountChanged ->
+                onEdit(merchantName, amount, nextDate, category, account, accountChanged)
                 showEditDialog = false
             }
         )
@@ -845,7 +845,7 @@ private fun EditSubscriptionDialog(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?) -> Unit
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit
 ) {
     var merchantName by remember { mutableStateOf(subscription.merchantName) }
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
@@ -853,14 +853,25 @@ private fun EditSubscriptionDialog(
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    // Whether the user actually changed the account. Guards against wiping a
+    // stored account the picker can't represent (e.g. one not yet in the
+    // balance list) when the user edits other fields and saves.
+    var accountChanged by remember(subscription.id) { mutableStateOf(false) }
+    var selectedAccount by remember(subscription.id) {
+        mutableStateOf<AccountBalanceEntity?>(null)
+    }
     // Pre-select the subscription's current funding account by (bank, last4).
-    var selectedAccount by remember(subscription.id, accounts) {
-        mutableStateOf(
-            accounts.firstOrNull {
+    // Runs when the async accounts list first resolves, but never once the user
+    // has touched the picker — otherwise an accounts tick mid-edit would revert
+    // a freshly-picked account while accountChanged stayed true, writing the
+    // stale value on save (keyed both on subscription.id keeps the two in sync).
+    LaunchedEffect(subscription.id, accounts) {
+        if (!accountChanged) {
+            selectedAccount = accounts.firstOrNull {
                 it.bankName == subscription.bankName &&
                     it.accountLast4 == subscription.accountLast4
             }
-        )
+        }
     }
 
     val parsedAmount = remember(amountText) {
@@ -946,6 +957,7 @@ private fun EditSubscriptionDialog(
                             text = { Text("No account") },
                             onClick = {
                                 selectedAccount = null
+                                accountChanged = true
                                 showAccountMenu = false
                             },
                             leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
@@ -965,6 +977,7 @@ private fun EditSubscriptionDialog(
                                 },
                                 onClick = {
                                     selectedAccount = account
+                                    accountChanged = true
                                     showAccountMenu = false
                                 },
                                 leadingIcon = {
@@ -993,7 +1006,7 @@ private fun EditSubscriptionDialog(
                 enabled = isValid,
                 onClick = {
                     parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category, selectedAccount)
+                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
                     }
                 }
             ) { Text("Save") }

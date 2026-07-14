@@ -102,4 +102,52 @@ class BalanceCalculatorTest {
         )
         assertEquals(BigDecimal("500.00"), newBalance)
     }
+
+    @Test
+    fun `credit card with null current balance defaults to zero`() {
+        val newBalance = BalanceCalculator.calculateNewBalance(
+            explicitBalance = null,
+            isCreditCard = true,
+            transactionType = TransactionType.CREDIT,
+            transactionAmount = BigDecimal("50.00"),
+            currentBalance = null
+        )
+        assertEquals(BigDecimal("50.00"), newBalance)
+    }
+
+    @Test
+    fun `credit card transfer preserves outstanding balance`() {
+        val newBalance = BalanceCalculator.calculateNewBalance(
+            explicitBalance = null,
+            isCreditCard = true,
+            transactionType = TransactionType.TRANSFER,
+            transactionAmount = BigDecimal("100.00"),
+            currentBalance = BigDecimal("500.00")
+        )
+        assertEquals(BigDecimal("500.00"), newBalance)
+    }
+
+    @Test
+    fun `credit card expense adds to outstanding balance`() {
+        val newBalance = BalanceCalculator.calculateNewBalance(
+            explicitBalance = null,
+            isCreditCard = true,
+            transactionType = TransactionType.EXPENSE,
+            transactionAmount = BigDecimal("75.00"),
+            currentBalance = BigDecimal("100.00")
+        )
+        assertEquals(BigDecimal("175.00"), newBalance)
+    }
+
+    @Test
+    fun `credit card investment adds to outstanding balance`() {
+        val newBalance = BalanceCalculator.calculateNewBalance(
+            explicitBalance = null,
+            isCreditCard = true,
+            transactionType = TransactionType.INVESTMENT,
+            transactionAmount = BigDecimal("150.00"),
+            currentBalance = BigDecimal("100.00")
+        )
+        assertEquals(BigDecimal("250.00"), newBalance)
+    }
 }

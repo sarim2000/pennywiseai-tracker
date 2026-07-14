@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
+import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
@@ -270,42 +271,21 @@ class SmsTransactionProcessor @Inject constructor(
                 targetAccountLast4
             )
 
-            val newBalance = when {
-                parsedTransaction.balance != null -> parsedTransaction.balance!!
-                isCreditCard -> {
-                    val currentBalance = existingAccount?.balance ?: BigDecimal.ZERO
-                    currentBalance + parsedTransaction.amount
-                }
-                existingAccount?.isCreditCard == true && parsedTransaction.type.toEntityType() == TransactionType.INCOME -> {
-                    val currentBalance = existingAccount.balance ?: BigDecimal.ZERO
-                    (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
-                }
-                else -> {
-                    // SMS doesn't have explicit balance - calculate based on transaction type
-                    val currentBalance = existingAccount?.balance ?: BigDecimal.ZERO
-                    when (parsedTransaction.type.toEntityType()) {
-                        TransactionType.INCOME -> {
-                            // Money coming in - add to balance
-                            currentBalance + parsedTransaction.amount
-                        }
-                        TransactionType.EXPENSE, TransactionType.INVESTMENT -> {
-                            // Money going out - subtract from balance
-                            (currentBalance - parsedTransaction.amount).max(BigDecimal.ZERO)
-                        }
-                        TransactionType.CREDIT, TransactionType.TRANSFER -> {
-                            // Keep existing balance for transfers (complex logic needed)
-                            // Credit should be handled above, this is fallback
-                            currentBalance
-                        }
-                    }
-                }
-            }
+            val resolvedIsCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false)
+
+            val newBalance = BalanceCalculator.calculateNewBalance(
+                explicitBalance = parsedTransaction.balance,
+                isCreditCard = resolvedIsCreditCard,
+                transactionType = parsedTransaction.type.toEntityType(),
+                transactionAmount = parsedTransaction.amount,
+                currentBalance = existingAccount?.balance
+            )
 
             // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
             // available = creditLimit − balance, so store total = available + outstanding
             // (the post-transaction balance) to keep that math correct. Falls back to the
             // existing stored limit when the SMS carries no limit. (#486)
-            val resolvedCreditLimit = if (isCreditCard && parsedTransaction.creditLimit != null) {
+            val resolvedCreditLimit = if (resolvedIsCreditCard && parsedTransaction.creditLimit != null) {
                 parsedTransaction.creditLimit!! + newBalance
             } else {
                 existingAccount?.creditLimit
@@ -318,7 +298,7 @@ class SmsTransactionProcessor @Inject constructor(
                 timestamp = entity.dateTime,
                 transactionId = if (rowId != -1L) rowId else null,
                 creditLimit = resolvedCreditLimit,
-                isCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false),
+                isCreditCard = resolvedIsCreditCard,
                 smsSource = parsedTransaction.smsBody.take(500),
                 sourceType = "TRANSACTION",
                 currency = parsedTransaction.currency,

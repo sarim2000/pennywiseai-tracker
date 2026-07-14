@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
+import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
@@ -793,35 +794,21 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        // 1. Calculate the new balance
-        val newBalance = when {
-            // Explicit balance from SMS takes priority
-            parsed.balance != null -> parsed.balance!!
+        val resolvedIsCreditCard = isCreditCard || (existing?.isCreditCard ?: false)
 
-            // For Credit Cards: usually transaction amount adds to current outstanding balance
-            isCreditCard -> (existing?.balance ?: BigDecimal.ZERO) + parsed.amount
-
-            // For existing Credit Card accounts receiving a payment (INCOME)
-            existing?.isCreditCard == true && parsed.type.toEntityType() == TransactionType.INCOME -> {
-                (existing.balance - parsed.amount).max(BigDecimal.ZERO)
-            }
-
-            // Standard fallback calculation based on transaction type
-            else -> {
-                val cur = existing?.balance ?: BigDecimal.ZERO
-                when (parsed.type.toEntityType()) {
-                    TransactionType.INCOME -> cur + parsed.amount
-                    TransactionType.EXPENSE, TransactionType.INVESTMENT -> (cur - parsed.amount).max(BigDecimal.ZERO)
-                    else -> cur
-                }
-            }
-        }
+        val newBalance = BalanceCalculator.calculateNewBalance(
+            explicitBalance = parsed.balance,
+            isCreditCard = resolvedIsCreditCard,
+            transactionType = parsed.type.toEntityType(),
+            transactionAmount = parsed.amount,
+            currentBalance = existing?.balance
+        )
 
         // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
         // available = creditLimit − balance, so store total = available + outstanding
         // (the post-transaction balance). Falls back to the existing stored limit when
         // the SMS carries no limit. (#486)
-        val resolvedCreditLimit = if (isCreditCard && parsed.creditLimit != null) {
+        val resolvedCreditLimit = if (resolvedIsCreditCard && parsed.creditLimit != null) {
             parsed.creditLimit!! + newBalance
         } else {
             existing?.creditLimit
@@ -834,7 +821,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             timestamp     = entity.dateTime,
             transactionId = if (rowId != -1L) rowId else null,
             creditLimit   = resolvedCreditLimit,
-            isCreditCard  = isCreditCard || (existing?.isCreditCard ?: false),
+            isCreditCard  = resolvedIsCreditCard,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             currency      = parsed.currency,

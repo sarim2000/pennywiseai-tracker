@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -45,6 +46,7 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.filterIcon
@@ -81,6 +83,8 @@ fun AnalyticsScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showTagsUpgradeSheet by remember { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
@@ -440,23 +444,35 @@ fun AnalyticsScreen(
                     SectionHeaderV2(
                         title = "Top Tags",
                         action = {
-                            IconButton(onClick = {
-                                tagViewType = if (tagViewType == CategoryViewType.CHART) {
-                                    CategoryViewType.LIST
-                                } else {
-                                    CategoryViewType.CHART
+                            // View-toggle only makes sense once the breakdown is
+                            // unlocked; free users get no toggle over the locked card.
+                            if (isProEntitled) {
+                                IconButton(onClick = {
+                                    tagViewType = if (tagViewType == CategoryViewType.CHART) {
+                                        CategoryViewType.LIST
+                                    } else {
+                                        CategoryViewType.CHART
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = if (tagViewType == CategoryViewType.CHART)
+                                            Icons.AutoMirrored.Filled.List
+                                        else Icons.Default.PieChart,
+                                        contentDescription = "Toggle View",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            }) {
-                                Icon(
-                                    imageVector = if (tagViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
-                                    contentDescription = "Toggle View",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
                             }
                         }
                     )
+
+                    if (!isProEntitled) {
+                        // Basic tagging (create / apply / filter-by-tag) stays free;
+                        // only the aggregated Top Tags breakdown is Pro. Show a subtle,
+                        // on-brand locked card that routes to the paywall at the buy moment.
+                        TagBreakdownLockedCard(onClick = { showTagsUpgradeSheet = true })
+                        return@Column
+                    }
 
                     AnimatedContent(
                         targetState = tagViewType,
@@ -562,6 +578,49 @@ fun AnalyticsScreen(
             initialStartDate = customDateRange?.first,
             initialEndDate = customDateRange?.second
         )
+    }
+
+    if (showTagsUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showTagsUpgradeSheet = false }
+        )
+    }
+}
+
+@Composable
+private fun TagBreakdownLockedCard(onClick: () -> Unit) {
+    PennyWiseCardV2(onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Text(
+                    text = "See your Top Tags with Pro",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Unlock a spending breakdown across all your tags. Tagging and filtering stay free.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

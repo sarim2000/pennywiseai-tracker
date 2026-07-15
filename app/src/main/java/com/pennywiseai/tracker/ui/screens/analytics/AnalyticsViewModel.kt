@@ -45,8 +45,13 @@ class AnalyticsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
+    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
+
+    // Top Tags analytics breakdown is a Pro feature — basic tagging (create /
+    // apply / filter-by-tag) stays free; only the aggregated breakdown is gated.
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     // name -> hex color for the user's categories (incl. recolored built-ins), so
     // Analytics renders each category in its assigned color instead of gray (#586).

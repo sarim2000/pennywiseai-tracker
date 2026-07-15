@@ -527,11 +527,22 @@ fun SettingsScreen(
                     title = "Automatic Folder Backup",
                     subtitle = if (scheduledFolderBackupEnabled) {
                         "Daily backup at 2:00 AM to your chosen folder"
+                    } else if (!isProEntitled) {
+                        "Pro · Save a backup to a folder every day at 2:00 AM"
                     } else {
                         "Save a backup to a folder every day at 2:00 AM"
                     },
                     checked = scheduledFolderBackupEnabled,
-                    onCheckedChange = { settingsViewModel.setScheduledFolderBackupEnabled(it) },
+                    // Scheduling daily backups is a Pro feature. Turning it ON while
+                    // free routes to the paywall; turning it OFF is always allowed so
+                    // a lapsed/downgraded user can still stop scheduled backups.
+                    onCheckedChange = { enabled ->
+                        if (enabled && !isProEntitled) {
+                            showUpgradeSheet = true
+                        } else {
+                            settingsViewModel.setScheduledFolderBackupEnabled(enabled)
+                        }
+                    },
                     position = ItemPosition.MIDDLE
                 )
                 if (scheduledFolderBackupEnabled) {

@@ -28,6 +28,92 @@ import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
 
+/**
+ * Transaction-type options for rule condition/action pickers: stored enum name → display label.
+ * Labels mirror the [com.pennywiseai.tracker.data.database.entity.TransactionType] names (e.g.
+ * EXPENSE → "Expense") so what the user picks matches what the rule stores and applies.
+ */
+internal val RULE_TRANSACTION_TYPE_OPTIONS: List<Pair<String, String>> = listOf(
+    "INCOME" to "Income",
+    "EXPENSE" to "Expense",
+    "CREDIT" to "Credit",
+    "TRANSFER" to "Transfer",
+    "INVESTMENT" to "Investment"
+)
+
+/** User-facing label for a stored transaction-type value, falling back to the raw value. */
+internal fun ruleTransactionTypeLabel(value: String): String =
+    RULE_TRANSACTION_TYPE_OPTIONS.firstOrNull { it.first.equals(value, ignoreCase = true) }?.second
+        ?: value
+
+/** The operator a field should reset to when it becomes the condition's field. */
+private fun TransactionField.defaultConditionOperator(): ConditionOperator = when (this) {
+    TransactionField.AMOUNT -> ConditionOperator.LESS_THAN
+    TransactionField.TRANSACTION_TIME -> ConditionOperator.LESS_THAN
+    TransactionField.TRANSACTION_HOUR -> ConditionOperator.EQUALS
+    TransactionField.TRANSACTION_DAY_OF_WEEK -> ConditionOperator.EQUALS
+    TransactionField.TRANSACTION_DAY_OF_MONTH -> ConditionOperator.EQUALS
+    TransactionField.TRANSACTION_DATE -> ConditionOperator.EQUALS
+    TransactionField.ACCOUNT -> ConditionOperator.EQUALS
+    TransactionField.TYPE -> ConditionOperator.EQUALS
+    else -> ConditionOperator.CONTAINS
+}
+
+/**
+ * Operators offered for a condition field, paired with their display label. The first entry is
+ * the field's default (see [defaultConditionOperator]); every default must appear in its list.
+ */
+private fun conditionOperatorsForField(
+    field: TransactionField
+): List<Pair<ConditionOperator, String>> = when (field) {
+    TransactionField.AMOUNT -> listOf(
+        ConditionOperator.LESS_THAN to "<",
+        ConditionOperator.GREATER_THAN to ">",
+        ConditionOperator.EQUALS to "="
+    )
+    TransactionField.TYPE -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.NOT_EQUALS to "is not"
+    )
+    TransactionField.TRANSACTION_TIME -> listOf(
+        ConditionOperator.LESS_THAN to "before",
+        ConditionOperator.GREATER_THAN to "after",
+        ConditionOperator.GREATER_THAN_OR_EQUAL to "at or after",
+        ConditionOperator.LESS_THAN_OR_EQUAL to "at or before",
+        ConditionOperator.EQUALS to "exactly at"
+    )
+    TransactionField.TRANSACTION_HOUR -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.LESS_THAN to "before",
+        ConditionOperator.GREATER_THAN to "after"
+    )
+    TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.IN to "is any of",
+        ConditionOperator.NOT_EQUALS to "is not"
+    )
+    TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.IN to "is any of",
+        ConditionOperator.LESS_THAN to "before",
+        ConditionOperator.GREATER_THAN to "after"
+    )
+    TransactionField.TRANSACTION_DATE -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.LESS_THAN to "before",
+        ConditionOperator.GREATER_THAN to "after"
+    )
+    TransactionField.ACCOUNT -> listOf(
+        ConditionOperator.EQUALS to "is",
+        ConditionOperator.NOT_EQUALS to "is not"
+    )
+    else -> listOf(
+        ConditionOperator.CONTAINS to "contains",
+        ConditionOperator.EQUALS to "equals",
+        ConditionOperator.STARTS_WITH to "starts with"
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRuleScreen(
@@ -155,7 +241,7 @@ fun CreateRuleScreen(
                 RuleAction(
                     field = TransactionField.TYPE,
                     actionType = ActionType.SET,
-                    value = "income"
+                    value = "INCOME"
                 )
             )
         },
@@ -577,14 +663,7 @@ fun CreateRuleScreen(
                                     )
                                     when {
                                         condition.field == TransactionField.TYPE -> {
-                                            append(when(condition.value) {
-                                                "INCOME" -> "Incoming"
-                                                "EXPENSE" -> "Outgoing"
-                                                "CREDIT" -> "Credit Card"
-                                                "TRANSFER" -> "Transfer"
-                                                "INVESTMENT" -> "Investment"
-                                                else -> condition.value
-                                            })
+                                            append(ruleTransactionTypeLabel(condition.value))
                                         }
                                         condition.field == TransactionField.TRANSACTION_DAY_OF_WEEK -> {
                                             append(condition.value.split(",").joinToString(", ") { dayNames[it.trim()] ?: it })
@@ -615,14 +694,7 @@ fun CreateRuleScreen(
                                         })
                                         // Show user-friendly labels for transaction types in actions too
                                         if (action.field == TransactionField.TYPE) {
-                                            append(when(action.value) {
-                                                "INCOME" -> "Incoming"
-                                                "EXPENSE" -> "Outgoing"
-                                                "CREDIT" -> "Credit Card"
-                                                "TRANSFER" -> "Transfer"
-                                                "INVESTMENT" -> "Investment"
-                                                else -> action.value
-                                            })
+                                            append(ruleTransactionTypeLabel(action.value))
                                         } else {
                                             append(action.value)
                                         }
@@ -707,7 +779,16 @@ private fun ConditionFieldSelector(
                 DropdownMenuItem(
                     text = { Text(label) },
                     onClick = {
-                        onConditionChange(condition.copy(field = field, value = ""))
+                        // Reset value AND operator: the previous operator may be invalid for the
+                        // new field (e.g. keeping "<" from Amount when switching to Transaction
+                        // Type, which only supports is / is not).
+                        onConditionChange(
+                            condition.copy(
+                                field = field,
+                                value = "",
+                                operator = field.defaultConditionOperator()
+                            )
+                        )
                         fieldDropdownExpanded = false
                     }
                 )
@@ -718,50 +799,7 @@ private fun ConditionFieldSelector(
     Spacer(modifier = Modifier.height(Spacing.sm))
 
     // Operator selector
-    val operators = when(condition.field) {
-        TransactionField.AMOUNT -> listOf(
-            ConditionOperator.LESS_THAN to "<",
-            ConditionOperator.GREATER_THAN to ">",
-            ConditionOperator.EQUALS to "="
-        )
-        TransactionField.TRANSACTION_TIME -> listOf(
-            ConditionOperator.LESS_THAN to "before",
-            ConditionOperator.GREATER_THAN to "after",
-            ConditionOperator.GREATER_THAN_OR_EQUAL to "at or after",
-            ConditionOperator.LESS_THAN_OR_EQUAL to "at or before",
-            ConditionOperator.EQUALS to "exactly at"
-        )
-        TransactionField.TRANSACTION_HOUR -> listOf(
-            ConditionOperator.EQUALS to "is",
-            ConditionOperator.LESS_THAN to "before",
-            ConditionOperator.GREATER_THAN to "after"
-        )
-        TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
-            ConditionOperator.EQUALS to "is",
-            ConditionOperator.IN to "is any of",
-            ConditionOperator.NOT_EQUALS to "is not"
-        )
-        TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
-            ConditionOperator.EQUALS to "is",
-            ConditionOperator.IN to "is any of",
-            ConditionOperator.LESS_THAN to "before",
-            ConditionOperator.GREATER_THAN to "after"
-        )
-        TransactionField.TRANSACTION_DATE -> listOf(
-            ConditionOperator.EQUALS to "is",
-            ConditionOperator.LESS_THAN to "before",
-            ConditionOperator.GREATER_THAN to "after"
-        )
-        TransactionField.ACCOUNT -> listOf(
-            ConditionOperator.EQUALS to "is",
-            ConditionOperator.NOT_EQUALS to "is not"
-        )
-        else -> listOf(
-            ConditionOperator.CONTAINS to "contains",
-            ConditionOperator.EQUALS to "equals",
-            ConditionOperator.STARTS_WITH to "starts with"
-        )
-    }
+    val operators = conditionOperatorsForField(condition.field)
 
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -790,15 +828,9 @@ private fun ConditionFieldSelector(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                listOf(
-                    "INCOME" to "Incoming",
-                    "EXPENSE" to "Outgoing",
-                    "CREDIT" to "Credit Card",
-                    "TRANSFER" to "Transfer",
-                    "INVESTMENT" to "Investment"
-                ).forEach { (type, displayLabel) ->
+                RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                     FilterChip(
-                        selected = condition.value == type,
+                        selected = condition.value.equals(type, ignoreCase = true),
                         onClick = { onConditionChange(condition.copy(value = type)) },
                         label = {
                             Text(displayLabel, style = MaterialTheme.typography.bodySmall)
@@ -1231,15 +1263,9 @@ private fun ActionEditor(
                         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        listOf(
-                            "INCOME" to "Incoming",
-                            "EXPENSE" to "Outgoing",
-                            "CREDIT" to "Credit Card",
-                            "TRANSFER" to "Transfer",
-                            "INVESTMENT" to "Investment"
-                        ).forEach { (type, displayLabel) ->
+                        RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                             FilterChip(
-                                selected = action.value == type,
+                                selected = action.value.equals(type, ignoreCase = true),
                                 onClick = { onActionChange(action.copy(value = type)) },
                                 label = {
                                     Text(

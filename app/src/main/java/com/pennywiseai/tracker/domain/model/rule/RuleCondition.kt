@@ -1,6 +1,59 @@
 package com.pennywiseai.tracker.domain.model.rule
 
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.serialization.Serializable
+
+/**
+ * Parses a stored [TransactionField.TYPE] value (an enum name like "EXPENSE") into a
+ * [TransactionType], or null if it doesn't map to a known type. Case/whitespace tolerant
+ * so older or hand-edited values still resolve.
+ */
+fun parseRuleTransactionType(value: String): TransactionType? =
+    runCatching { TransactionType.valueOf(value.trim().uppercase()) }.getOrNull()
+
+/**
+ * Operators for a [TransactionField.TYPE] condition that we can evaluate purely from the
+ * transaction's type, without running the full rule. Anything outside this set is passed
+ * through for full evaluation (see [isRuleApplicableToTransactionType]).
+ */
+private val TYPE_PRE_FILTER_OPERATORS = setOf(
+    ConditionOperator.EQUALS,
+    ConditionOperator.IN,
+    ConditionOperator.NOT_EQUALS,
+    ConditionOperator.NOT_IN
+)
+
+/** Whether a single TYPE condition matches [typeName] (an enum name), for the pre-filter operators. */
+fun matchesTransactionTypeCondition(condition: RuleCondition, typeName: String): Boolean =
+    when (condition.operator) {
+        ConditionOperator.EQUALS -> condition.value.equals(typeName, ignoreCase = true)
+        ConditionOperator.IN -> condition.value.split(",")
+            .map { it.trim() }
+            .any { it.equals(typeName, ignoreCase = true) }
+        ConditionOperator.NOT_EQUALS -> !condition.value.equals(typeName, ignoreCase = true)
+        ConditionOperator.NOT_IN -> !condition.value.split(",")
+            .map { it.trim() }
+            .any { it.equals(typeName, ignoreCase = true) }
+        else -> false
+    }
+
+/**
+ * Pre-filter for rules scoped by transaction type. Returns true when the rule *could* match a
+ * transaction of [type], so callers can cheaply narrow rules before full evaluation.
+ *
+ * Conservatively passes a rule through (returns true) when it has no TYPE condition, mixes in
+ * any OR logic (a failing TYPE condition can still match via an OR'd sibling), or uses a TYPE
+ * operator we can't evaluate here — those are decided by the full [RuleEngine] evaluation.
+ */
+fun isRuleApplicableToTransactionType(rule: TransactionRule, type: TransactionType): Boolean {
+    val typeConditions = rule.conditions.filter { it.field == TransactionField.TYPE }
+    val hasOrLogic = rule.conditions.any { it.logicalOperator == LogicalOperator.OR }
+    if (typeConditions.isEmpty() || hasOrLogic) return true
+
+    if (typeConditions.any { it.operator !in TYPE_PRE_FILTER_OPERATORS }) return true
+
+    return typeConditions.any { matchesTransactionTypeCondition(it, type.name) }
+}
 
 @Serializable
 data class RuleCondition(
@@ -45,6 +98,7 @@ data class RuleCondition(
                 val parts = value.split("||")
                 parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()
             }
+            TransactionField.TYPE -> parseRuleTransactionType(value) != null
             else -> true
         }
     }
@@ -53,7 +107,7 @@ data class RuleCondition(
 @Serializable
 enum class TransactionField {
     AMOUNT,                  // Transaction amount
-    TYPE,                    // INCOME, EXPENSE, or TRANSFER
+    TYPE,                    // A TransactionType name: INCOME, EXPENSE, CREDIT, TRANSFER, or INVESTMENT
     CATEGORY,                // Transaction category
     MERCHANT,                // Merchant/vendor name
     NARRATION,               // Description/notes

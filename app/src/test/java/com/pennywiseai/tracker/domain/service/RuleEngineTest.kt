@@ -356,6 +356,97 @@ class RuleEngineTest {
         assertNotNull("Expected blocking rule to match", result)
     }
 
+    // --- TYPE action / condition tests (#515) ---
+
+    @Test
+    fun `SET TYPE action can set transaction type to EXPENSE`() {
+        val txn = transaction(
+            merchantName = "Amazon",
+            transactionType = TransactionType.CREDIT
+        )
+        val rule = TransactionRule(
+            name = "Mark card spend as expense",
+            conditions = listOf(
+                RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Amazon")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.TYPE, ActionType.SET, "EXPENSE")
+            )
+        )
+
+        val (result, applications) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertEquals(TransactionType.EXPENSE, result.transactionType)
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `SET TYPE action with unknown value keeps the original type`() {
+        val txn = transaction(
+            merchantName = "Amazon",
+            transactionType = TransactionType.CREDIT
+        )
+        val rule = TransactionRule(
+            name = "Bad type value",
+            conditions = listOf(
+                RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Amazon")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.TYPE, ActionType.SET, "Outgoing")
+            )
+        )
+
+        val (result, _) = engine.evaluateRules(txn, null, listOf(rule))
+
+        assertEquals(TransactionType.CREDIT, result.transactionType)
+    }
+
+    @Test
+    fun `evaluateRulesForType applies a TYPE EXPENSE rule to expense transactions`() {
+        val txn = transaction(transactionType = TransactionType.EXPENSE)
+        val rule = TransactionRule(
+            name = "Expense-only rule",
+            conditions = listOf(
+                RuleCondition(TransactionField.TYPE, ConditionOperator.EQUALS, "EXPENSE")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "General")
+            )
+        )
+
+        val (_, applications) = engine.evaluateRulesForType(
+            txn,
+            smsText = null,
+            rules = listOf(rule),
+            type = TransactionType.EXPENSE
+        )
+
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `evaluateRulesForType filters out a TYPE EXPENSE rule for income transactions`() {
+        val txn = transaction(transactionType = TransactionType.INCOME)
+        val rule = TransactionRule(
+            name = "Expense-only rule",
+            conditions = listOf(
+                RuleCondition(TransactionField.TYPE, ConditionOperator.EQUALS, "EXPENSE")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "General")
+            )
+        )
+
+        val (_, applications) = engine.evaluateRulesForType(
+            txn,
+            smsText = null,
+            rules = listOf(rule),
+            type = TransactionType.INCOME
+        )
+
+        assertTrue(applications.isEmpty())
+    }
+
     // --- factory helpers (shared) ---
 
     private fun transaction(

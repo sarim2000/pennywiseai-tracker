@@ -65,30 +65,10 @@ class RuleEngine @Inject constructor() {
         type: TransactionType
     ): Pair<TransactionEntity, List<RuleApplication>> {
         // Pre-filter rules that apply to this transaction type. This is an optimization
-        // for the common AND-only case; rules that mix in any OR logic are passed through
-        // since a TYPE condition that fails on its own can still let the rule match via
-        // an OR'd sibling.
+        // for the common AND-only case; the shared helper conservatively passes through
+        // rules with OR logic or non-pre-filterable TYPE operators for full evaluation.
         val applicableRules = rules.filter { rule ->
-            val hasTypeCondition = rule.conditions.any { it.field == TransactionField.TYPE }
-            val hasOrLogic = rule.conditions.any { it.logicalOperator == LogicalOperator.OR }
-            if (!hasTypeCondition || hasOrLogic) {
-                true
-            } else {
-                rule.conditions.any { condition ->
-                    condition.field == TransactionField.TYPE &&
-                    when (condition.operator) {
-                        ConditionOperator.EQUALS -> condition.value.equals(type.name, ignoreCase = true)
-                        ConditionOperator.IN -> condition.value.split(",")
-                            .map { it.trim() }
-                            .any { it.equals(type.name, ignoreCase = true) }
-                        ConditionOperator.NOT_EQUALS -> !condition.value.equals(type.name, ignoreCase = true)
-                        ConditionOperator.NOT_IN -> !condition.value.split(",")
-                            .map { it.trim() }
-                            .any { it.equals(type.name, ignoreCase = true) }
-                        else -> false
-                    }
-                }
-            }
+            isRuleApplicableToTransactionType(rule, type)
         }
 
         return evaluateRules(transaction, smsText, applicableRules)
@@ -285,14 +265,8 @@ class RuleEngine @Inject constructor() {
             }
             TransactionField.TYPE -> {
                 val newType = when (action.actionType) {
-                    ActionType.SET -> {
-                        // Convert string value to TransactionType enum
-                        try {
-                            TransactionType.valueOf(action.value.uppercase())
-                        } catch (e: Exception) {
-                            transaction.transactionType
-                        }
-                    }
+                    // Fall back to the existing type if the stored value isn't a known TransactionType.
+                    ActionType.SET -> parseRuleTransactionType(action.value) ?: transaction.transactionType
                     else -> transaction.transactionType
                 }
                 transaction.copy(transactionType = newType) to newType.name

@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.domain.model.rule
 
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -138,5 +141,120 @@ class RuleConditionTest {
             value = "32"
         )
         assertFalse(condition.validate())
+    }
+
+    // --- TYPE field validation ---
+
+    @Test
+    fun `TYPE with EXPENSE value returns true`() {
+        val condition = RuleCondition(
+            field = TransactionField.TYPE,
+            operator = ConditionOperator.EQUALS,
+            value = "EXPENSE"
+        )
+        assertTrue(condition.validate())
+    }
+
+    @Test
+    fun `TYPE with lowercase value returns true`() {
+        val condition = RuleCondition(
+            field = TransactionField.TYPE,
+            operator = ConditionOperator.EQUALS,
+            value = "income"
+        )
+        assertTrue(condition.validate())
+    }
+
+    @Test
+    fun `TYPE with unknown value returns false`() {
+        // A stale display label must not validate as a stored type value.
+        val condition = RuleCondition(
+            field = TransactionField.TYPE,
+            operator = ConditionOperator.EQUALS,
+            value = "Outgoing"
+        )
+        assertFalse(condition.validate())
+    }
+
+    // --- parseRuleTransactionType ---
+
+    @Test
+    fun `parseRuleTransactionType maps known names case- and whitespace-insensitively`() {
+        assertEquals(TransactionType.EXPENSE, parseRuleTransactionType("EXPENSE"))
+        assertEquals(TransactionType.INCOME, parseRuleTransactionType(" income "))
+        assertNull(parseRuleTransactionType("Outgoing"))
+    }
+
+    // --- isRuleApplicableToTransactionType ---
+
+    private fun typeRule(
+        operator: ConditionOperator,
+        value: String
+    ) = TransactionRule(
+        name = "Type rule",
+        conditions = listOf(
+            RuleCondition(field = TransactionField.TYPE, operator = operator, value = value)
+        ),
+        actions = listOf(
+            RuleAction(field = TransactionField.CATEGORY, actionType = ActionType.SET, value = "Food")
+        )
+    )
+
+    @Test
+    fun `isRuleApplicableToTransactionType matches EXPENSE only for expense transactions`() {
+        val rule = typeRule(ConditionOperator.EQUALS, "EXPENSE")
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.EXPENSE))
+        assertFalse(isRuleApplicableToTransactionType(rule, TransactionType.INCOME))
+    }
+
+    @Test
+    fun `isRuleApplicableToTransactionType with NOT_EQUALS excludes only that type`() {
+        val rule = typeRule(ConditionOperator.NOT_EQUALS, "EXPENSE")
+        assertFalse(isRuleApplicableToTransactionType(rule, TransactionType.EXPENSE))
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.INCOME))
+    }
+
+    @Test
+    fun `isRuleApplicableToTransactionType passes through rules with no TYPE condition`() {
+        val rule = TransactionRule(
+            name = "Merchant rule",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.MERCHANT,
+                    operator = ConditionOperator.CONTAINS,
+                    value = "Amazon"
+                )
+            ),
+            actions = listOf(
+                RuleAction(field = TransactionField.CATEGORY, actionType = ActionType.SET, value = "Shopping")
+            )
+        )
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.EXPENSE))
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.INCOME))
+    }
+
+    @Test
+    fun `isRuleApplicableToTransactionType passes through when any OR logic is present`() {
+        // An OR'd sibling can still match, so a failing TYPE condition must not exclude the rule.
+        val rule = TransactionRule(
+            name = "Type OR merchant",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.TYPE,
+                    operator = ConditionOperator.EQUALS,
+                    value = "EXPENSE"
+                ),
+                RuleCondition(
+                    field = TransactionField.MERCHANT,
+                    operator = ConditionOperator.CONTAINS,
+                    value = "Amazon",
+                    logicalOperator = LogicalOperator.OR
+                )
+            ),
+            actions = listOf(
+                RuleAction(field = TransactionField.CATEGORY, actionType = ActionType.SET, value = "Shopping")
+            )
+        )
+        assertTrue(isRuleApplicableToTransactionType(rule, TransactionType.INCOME))
     }
 }

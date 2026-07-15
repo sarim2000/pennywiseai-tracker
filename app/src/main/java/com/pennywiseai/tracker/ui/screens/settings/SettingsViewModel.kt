@@ -771,8 +771,12 @@ class SettingsViewModel @Inject constructor(
 
         userPreferencesRepository.setScheduledFolderBackupEnabled(true)
         scheduledFolderBackupScheduler.schedule()
-        performFolderBackup(showSuccessMessage = false)
-        _importExportMessage.value = "Automatic folder backup enabled. Backups run daily at 2:00 AM."
+        // Only claim success if the immediate backup actually wrote. On failure,
+        // performFolderBackup has already surfaced the reason — don't clobber it.
+        if (performFolderBackup(showSuccessMessage = false)) {
+            _importExportMessage.value =
+                "Automatic folder backup enabled. Backups run daily at 2:00 AM."
+        }
     }
     
     fun updateBaseCurrency(currency: String) {

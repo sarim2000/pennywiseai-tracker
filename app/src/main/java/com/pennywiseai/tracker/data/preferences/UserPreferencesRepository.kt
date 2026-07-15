@@ -829,14 +829,6 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
         }
     }
-
-    suspend fun clearScheduledFolderBackupState() {
-        context.dataStore.edit { preferences ->
-            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED)
-            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI)
-            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP)
-        }
-    }
 }
 
 data class UserPreferences(

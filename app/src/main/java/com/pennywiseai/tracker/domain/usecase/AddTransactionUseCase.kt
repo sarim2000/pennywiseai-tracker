@@ -6,16 +6,21 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 class AddTransactionUseCase @Inject constructor(
+    private val database: PennyWiseDatabase,
     private val subscriptionRepository: SubscriptionRepository,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val tagRepository: TagRepository
 ) {
     suspend fun execute(
         amount: BigDecimal,
@@ -24,6 +29,7 @@ class AddTransactionUseCase @Inject constructor(
         type: TransactionType,
         date: LocalDateTime,
         notes: String? = null,
+        tags: List<String> = emptyList(),
         isRecurring: Boolean = false,
         bankName: String? = null,
         accountLast4: String? = null,
@@ -62,37 +68,49 @@ class AddTransactionUseCase @Inject constructor(
             budgetImpactType = budgetImpactType
         )
 
-        // Insert the transaction and reflect it on the selected account's balance
-        // atomically. For manual/cash accounts the helper pins the opening anchor
-        // from the PRE-insert snapshot before inserting, so the recompute includes
-        // this new transaction. No-op balance side for SMS / no-account adds.
-        val transactionId = accountBalanceRepository.insertTransactionWithBalance(
-            transaction = transaction,
-            bankName = bankName,
-            accountLast4 = accountLast4
-        )
-        
-        // If marked as recurring, create a subscription
-        if (isRecurring && transactionId != -1L) {
-            val nextPaymentDate = date.toLocalDate().plusMonths(1) // Default to monthly
-            
-            val subscription = SubscriptionEntity(
-                merchantName = merchant,
-                amount = amount,
-                nextPaymentDate = nextPaymentDate,
-                state = SubscriptionState.ACTIVE,
-                // Carry the funding account onto the auto-created subscription so
-                // marking it paid later moves that account's balance — otherwise
-                // this whole class of subscriptions silently skips the #570 fix.
-                bankName = bankName ?: "Manual Entry",
-                accountLast4 = accountLast4,
-                category = category,
-                currency = currency,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+        // Insert the transaction, its tags, and any recurring subscription as a
+        // single atomic unit: if tag-linking (or the subscription insert) fails
+        // after the row is written, the whole add rolls back rather than leaving a
+        // persisted-but-untagged transaction the user might re-save as a duplicate.
+        // Room's withTransaction is reentrant, so insertTransactionWithBalance and
+        // setTagsForTransaction (which each open their own) join this outer one.
+        database.withTransaction {
+            // For manual/cash accounts the helper pins the opening anchor from the
+            // PRE-insert snapshot before inserting, so the recompute includes this
+            // new transaction. No-op balance side for SMS / no-account adds.
+            val transactionId = accountBalanceRepository.insertTransactionWithBalance(
+                transaction = transaction,
+                bankName = bankName,
+                accountLast4 = accountLast4
             )
-            
-            subscriptionRepository.insertSubscription(subscription)
+
+            // Link tags (create-or-select handled in the repository)
+            if (transactionId != -1L && tags.isNotEmpty()) {
+                tagRepository.setTagsForTransaction(transactionId, tags)
+            }
+
+            // If marked as recurring, create a subscription
+            if (isRecurring && transactionId != -1L) {
+                val nextPaymentDate = date.toLocalDate().plusMonths(1) // Default to monthly
+
+                val subscription = SubscriptionEntity(
+                    merchantName = merchant,
+                    amount = amount,
+                    nextPaymentDate = nextPaymentDate,
+                    state = SubscriptionState.ACTIVE,
+                    // Carry the funding account onto the auto-created subscription so
+                    // marking it paid later moves that account's balance — otherwise
+                    // this whole class of subscriptions silently skips the #570 fix.
+                    bankName = bankName ?: "Manual Entry",
+                    accountLast4 = accountLast4,
+                    category = category,
+                    currency = currency,
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+
+                subscriptionRepository.insertSubscription(subscription)
+            }
         }
     }
     

@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
@@ -46,6 +47,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val transactionGroupRepository: TransactionGroupRepository,
+    private val tagRepository: TagRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager,
@@ -69,6 +71,23 @@ class TransactionDetailViewModel @Inject constructor(
     
     private val _editableTransaction = MutableStateFlow<TransactionEntity?>(null)
     val editableTransaction: StateFlow<TransactionEntity?> = _editableTransaction.asStateFlow()
+
+    // Tags ----------------------------------------------------------------
+    // Read-only set of tag names on the currently loaded transaction.
+    val transactionTags: StateFlow<List<String>> = _transaction
+        .flatMapLatest { tx ->
+            if (tx == null) flowOf(emptyList())
+            else tagRepository.observeTagNamesForTransaction(tx.id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // All known tag names, for autocomplete in the editor.
+    val allTagNames: StateFlow<List<String>> = tagRepository.observeAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Working copy of tags while in edit mode (persisted on save).
+    private val _editableTags = MutableStateFlow<List<String>>(emptyList())
+    val editableTags: StateFlow<List<String>> = _editableTags.asStateFlow()
     
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
@@ -346,6 +365,13 @@ class TransactionDetailViewModel @Inject constructor(
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
 
+        // Seed the editable tag list from the persisted tags.
+        _transaction.value?.let { txn ->
+            viewModelScope.launch {
+                _editableTags.value = tagRepository.getTagNamesForTransaction(txn.id)
+            }
+        }
+
         // Restore split state from original splits
         if (_hasSplits.value) {
             _splits.value = _originalSplits.value
@@ -371,6 +397,7 @@ class TransactionDetailViewModel @Inject constructor(
     fun exitEditMode() {
         _editableTransaction.value = null
         _isEditMode.value = false
+        _editableTags.value = emptyList()
         _errorMessage.value = null
         _applyToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
@@ -493,6 +520,21 @@ class TransactionDetailViewModel @Inject constructor(
     fun updateDescription(description: String?) {
         _editableTransaction.update { current ->
             current?.copy(description = if (description.isNullOrEmpty()) null else description)
+        }
+    }
+
+    fun addTag(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        _editableTags.update { current ->
+            if (current.any { it.equals(trimmed, ignoreCase = true) }) current
+            else current + trimmed
+        }
+    }
+
+    fun removeTag(name: String) {
+        _editableTags.update { current ->
+            current.filterNot { it.equals(name, ignoreCase = true) }
         }
     }
     
@@ -736,6 +778,9 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 transactionRepository.updateTransaction(normalizedTransaction)
+
+                // Persist the edited tag set (create-or-select handled in repo).
+                tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
 
                 // Update account balance if account was changed or added
                 val originalTxn = _transaction.value

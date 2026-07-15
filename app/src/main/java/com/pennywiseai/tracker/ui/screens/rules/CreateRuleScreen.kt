@@ -33,7 +33,7 @@ import java.util.UUID
  * Labels mirror the [com.pennywiseai.tracker.data.database.entity.TransactionType] names (e.g.
  * EXPENSE → "Expense") so what the user picks matches what the rule stores and applies.
  */
-val RULE_TRANSACTION_TYPE_OPTIONS: List<Pair<String, String>> = listOf(
+internal val RULE_TRANSACTION_TYPE_OPTIONS: List<Pair<String, String>> = listOf(
     "INCOME" to "Income",
     "EXPENSE" to "Expense",
     "CREDIT" to "Credit",
@@ -42,7 +42,7 @@ val RULE_TRANSACTION_TYPE_OPTIONS: List<Pair<String, String>> = listOf(
 )
 
 /** User-facing label for a stored transaction-type value, falling back to the raw value. */
-fun ruleTransactionTypeLabel(value: String): String =
+internal fun ruleTransactionTypeLabel(value: String): String =
     RULE_TRANSACTION_TYPE_OPTIONS.firstOrNull { it.first.equals(value, ignoreCase = true) }?.second
         ?: value
 

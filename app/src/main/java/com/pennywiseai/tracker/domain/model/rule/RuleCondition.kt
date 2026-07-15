@@ -107,7 +107,7 @@ data class RuleCondition(
 @Serializable
 enum class TransactionField {
     AMOUNT,                  // Transaction amount
-    TYPE,                    // INCOME, EXPENSE, or TRANSFER
+    TYPE,                    // A TransactionType name: INCOME, EXPENSE, CREDIT, TRANSFER, or INVESTMENT
     CATEGORY,                // Transaction category
     MERCHANT,                // Merchant/vendor name
     NARRATION,               // Description/notes

@@ -12,6 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
+import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
@@ -32,6 +33,8 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TagEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryMonthSnapshotEntity
@@ -59,7 +62,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 57
+const val SCHEMA_VERSION = 58
 
 /**
  * The PennyWise Room database.
@@ -72,7 +75,7 @@ const val SCHEMA_VERSION = 57
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -148,6 +151,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionGroupDao(): TransactionGroupDao
     abstract fun budgetSnapshotDao(): BudgetSnapshotDao
     abstract fun profileDao(): ProfileDao
+    abstract fun tagDao(): TagDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -580,6 +584,20 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_57_58 = object : Migration(57, 58) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Free-text tags with a many-to-many link to transactions.
+                // SQL mirrors Room's generated schema (schemas/.../58.json) so
+                // the migrated DB matches the compiled identity hash.
+                db.execSQL("CREATE TABLE IF NOT EXISTS `tags` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `created_at` TEXT NOT NULL)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_name` ON `tags` (`name`)")
+
+                db.execSQL("CREATE TABLE IF NOT EXISTS `transaction_tag_cross_ref` (`transaction_id` INTEGER NOT NULL, `tag_id` INTEGER NOT NULL, PRIMARY KEY(`transaction_id`, `tag_id`), FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tag_id`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_tag_cross_ref_transaction_id` ON `transaction_tag_cross_ref` (`transaction_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_tag_cross_ref_tag_id` ON `transaction_tag_cross_ref` (`tag_id`)")
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -635,6 +653,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_52_53,
             MIGRATION_53_54,
             MIGRATION_54_55,
+            MIGRATION_57_58,
         )
     }
     

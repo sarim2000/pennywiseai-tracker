@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
@@ -45,6 +46,7 @@ import javax.inject.Inject
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val tagRepository: TagRepository,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
@@ -57,6 +59,11 @@ class TransactionsViewModel @Inject constructor(
     
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    // transactionId -> tag names, kept in sync for in-memory tag search.
+    private val transactionTagsMap: StateFlow<Map<Long, List<String>>> =
+        tagRepository.observeTransactionTagNames()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
@@ -80,6 +87,13 @@ class TransactionsViewModel @Inject constructor(
     // Account filter — null means "All accounts". Key is "bankName_accountLast4".
     private val _accountFilter = MutableStateFlow<String?>(null)
     val accountFilter: StateFlow<String?> = _accountFilter.asStateFlow()
+
+    // Tag filter — null means "All tags". Matches any transaction that carries the tag.
+    private val _tagFilter = MutableStateFlow<String?>(null)
+    val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
+
+    val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Pickable account options for the account filter dropdown (alias-preferred labels).
     val accountOptions: StateFlow<List<AccountOption>> =
@@ -624,6 +638,14 @@ class TransactionsViewModel @Inject constructor(
                 _profileAccountKeys.value = buildProfileAccountKeys(balances)
             }
         }
+        viewModelScope.launch {
+            availableTags.collect { tags ->
+                val current = _tagFilter.value
+                if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
+                    _tagFilter.value = null
+                }
+            }
+        }
 
         // Load unified mode preferences
         viewModelScope.launch {
@@ -688,10 +710,12 @@ class TransactionsViewModel @Inject constructor(
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
             _accountFilter.map { "accountFilter" },
+            tagFilter.map { "tagFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
-            customDateRange.map { "customDate" }
+            customDateRange.map { "customDate" },
+            transactionTagsMap.map { "tags" }
         )
             .transformLatest { trigger ->
                 // Get current values from all StateFlows
@@ -705,6 +729,7 @@ class TransactionsViewModel @Inject constructor(
 
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
+                val tag = _tagFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for THIS_MONTH. Non-THIS_MONTH
@@ -719,11 +744,19 @@ class TransactionsViewModel @Inject constructor(
                 // Get filtered transactions (without currency filter first)
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
                     .collect { allTransactions ->
-                        // Apply profile filter, then account filter
-                        val transactions = filterTransactionsByAccount(
+                        // Apply profile, account, then tag filters
+                        val profileAndAccountFiltered = filterTransactionsByAccount(
                             filterByProfile(allTransactions, profileId),
                             accountKey
                         )
+                        val transactions = if (tag != null) {
+                            profileAndAccountFiltered.filter { tx ->
+                                transactionTagsMap.value[tx.id]
+                                    ?.any { it.equals(tag, ignoreCase = true) } == true
+                            }
+                        } else {
+                            profileAndAccountFiltered
+                        }
                         if (isUnified) {
                             // Show all transactions regardless of currency
                             emit(sortTransactions(transactions, sort))
@@ -829,6 +862,15 @@ class TransactionsViewModel @Inject constructor(
     fun setAccountFilter(accountKey: String?) {
         _accountFilter.value = accountKey
     }
+
+    /** Sets the tag filter; null clears it ("All tags"). */
+    fun setTagFilter(tag: String?) {
+        _tagFilter.value = tag?.takeIf { it.isNotBlank() }
+    }
+
+    fun clearTagFilter() {
+        _tagFilter.value = null
+    }
     
     fun setSelectedProfile(profileId: Long?) {
         _selectedProfileId.value = profileId
@@ -922,6 +964,7 @@ class TransactionsViewModel @Inject constructor(
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         setAccountFilter(null)
+        clearTagFilter()
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
         if (!_isUnifiedMode.value) {
@@ -1234,7 +1277,11 @@ class TransactionsViewModel @Inject constructor(
                     // Check merchant name and description
                     val matchesMerchant = transaction.merchantName.contains(searchQuery, ignoreCase = true)
                     val matchesDescription = transaction.description?.contains(searchQuery, ignoreCase = true) == true
-                    
+
+                    // Check user-set tags
+                    val matchesTag = transactionTagsMap.value[transaction.id]
+                        ?.any { it.contains(searchQuery, ignoreCase = true) } == true
+
                     // Check SMS body (full text search)
                     val matchesSmsBody = transaction.smsBody?.contains(searchQuery, ignoreCase = true) == true
                     
@@ -1257,7 +1304,7 @@ class TransactionsViewModel @Inject constructor(
                         false
                     }
                     
-                    matchesMerchant || matchesDescription || matchesSmsBody || matchesAmount
+                    matchesMerchant || matchesDescription || matchesTag || matchesSmsBody || matchesAmount
                 }
             }
         }

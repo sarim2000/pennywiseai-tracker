@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDateTime
@@ -15,7 +16,8 @@ import javax.inject.Inject
 
 class AddTransactionUseCase @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val tagRepository: TagRepository
 ) {
     suspend fun execute(
         amount: BigDecimal,
@@ -24,6 +26,7 @@ class AddTransactionUseCase @Inject constructor(
         type: TransactionType,
         date: LocalDateTime,
         notes: String? = null,
+        tags: List<String> = emptyList(),
         isRecurring: Boolean = false,
         bankName: String? = null,
         accountLast4: String? = null,
@@ -71,7 +74,12 @@ class AddTransactionUseCase @Inject constructor(
             bankName = bankName,
             accountLast4 = accountLast4
         )
-        
+
+        // Link tags (create-or-select handled in the repository)
+        if (transactionId != -1L && tags.isNotEmpty()) {
+            tagRepository.setTagsForTransaction(transactionId, tags)
+        }
+
         // If marked as recurring, create a subscription
         if (isRecurring && transactionId != -1L) {
             val nextPaymentDate = date.toLocalDate().plusMonths(1) // Default to monthly

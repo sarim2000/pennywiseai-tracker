@@ -81,6 +81,8 @@ class BackupExporter @Inject constructor(
         val profiles = database.profileDao().getAllProfiles()
         val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
+        val tags = database.tagDao().getAllTagsSync()
+        val transactionTagCrossRefs = database.tagDao().getAllCrossRefs()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -138,7 +140,11 @@ class BackupExporter @Inject constructor(
         // Aliases carry raw merchant names (UPI VPAs, store names) + the user's
         // custom labels — exactly what MASKED/ANONYMOUS is meant to hide (#583).
         val exportedMerchantAliases = if (privacy == ExportPrivacy.FULL) merchantAliases else emptyList()
-        
+        // Tags are user-defined labels (no PII), so tag names are kept in all modes;
+        // the cross-refs point at transaction ids that only survive a FULL export.
+        val exportedTags = tags
+        val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) transactionTagCrossRefs else emptyList()
+
         return PennyWiseBackup(
             metadata = BackupMetadata(
                 exportId = UUID.randomUUID().toString(),
@@ -188,7 +194,9 @@ class BackupExporter @Inject constructor(
                 transactionGroups = exportedTransactionGroups,
                 profiles = exportedProfiles,
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
-                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots
+                budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
+                tags = exportedTags,
+                transactionTagCrossRefs = exportedTransactionTagCrossRefs
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

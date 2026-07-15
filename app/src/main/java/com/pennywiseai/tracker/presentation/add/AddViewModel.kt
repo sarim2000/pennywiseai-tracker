@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
@@ -39,9 +40,14 @@ class AddViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val transactionRepository: TransactionRepository,
+    private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    /** All known tag names for autocomplete in the add form. */
+    val allTagNames: StateFlow<List<String>> = tagRepository.observeAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // When launched via "Duplicate", this holds the id of the source transaction
     // whose values should pre-fill the form. Null for a fresh add.
@@ -94,6 +100,7 @@ class AddViewModel @Inject constructor(
                 categoryError = null,
                 date = LocalDateTime.now(),
                 notes = source.description ?: "",
+                tags = tagRepository.getTagNamesForTransaction(source.id),
                 isRecurring = source.isRecurring,
                 currency = source.currency,
                 budgetImpactType = source.budgetImpactType,
@@ -226,6 +233,21 @@ class AddViewModel @Inject constructor(
             currentState.copy(notes = notes)
         }
     }
+
+    fun addTransactionTag(tag: String) {
+        val trimmed = tag.trim()
+        if (trimmed.isEmpty()) return
+        _transactionUiState.update { currentState ->
+            if (currentState.tags.any { it.equals(trimmed, ignoreCase = true) }) currentState
+            else currentState.copy(tags = currentState.tags + trimmed)
+        }
+    }
+
+    fun removeTransactionTag(tag: String) {
+        _transactionUiState.update { currentState ->
+            currentState.copy(tags = currentState.tags.filterNot { it.equals(tag, ignoreCase = true) })
+        }
+    }
     
     fun updateTransactionRecurring(isRecurring: Boolean) {
         _transactionUiState.update { currentState ->
@@ -287,6 +309,7 @@ class AddViewModel @Inject constructor(
                     type = state.transactionType,
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
+                    tags = state.tags,
                     isRecurring = state.isRecurring,
                     bankName = selectedAccount?.bankName,
                     accountLast4 = selectedAccount?.accountLast4,
@@ -499,6 +522,7 @@ data class TransactionUiState(
     val categoryError: String? = null,
     val date: LocalDateTime = LocalDateTime.now(),
     val notes: String = "",
+    val tags: List<String> = emptyList(),
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,

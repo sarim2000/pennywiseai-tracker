@@ -75,6 +75,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -841,6 +842,17 @@ private fun TransactionReceipt(
                 )
             }
 
+            // Tags
+            val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
+            if (detailTags.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                DetailInfoRow(
+                    icon = Icons.Default.Sell,
+                    label = if (detailTags.size == 1) "Tag" else "Tags",
+                    value = detailTags.joinToString(", ")
+                )
+            }
+
             // Recurring
             if (transaction.isRecurring) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -1240,6 +1252,16 @@ private fun EditableTransactionHeader(
                 colors = editFilledColors()
             )
         }
+
+        // Tags (optional) — create or select existing
+        val editTags by viewModel.editableTags.collectAsStateWithLifecycle()
+        val allTagNames by viewModel.allTagNames.collectAsStateWithLifecycle()
+        TagInputField(
+            selectedTags = editTags,
+            allTags = allTagNames,
+            onAddTag = { viewModel.addTag(it) },
+            onRemoveTag = { viewModel.removeTag(it) }
+        )
 
         // Transaction Type
         FlowRow(

@@ -31,6 +31,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
+    @Inject
+    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -61,6 +64,14 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 purchaseGateway.refresh()
             } catch (e: Exception) {
                 android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
+
+        // Re-arm the daily folder backup on process start when the user has it enabled,
+        // so scheduled work survives reboots / app updates that clear WorkManager state.
+        applicationScope.launch {
+            if (userPreferencesRepository.isScheduledFolderBackupEnabled()) {
+                scheduledFolderBackupScheduler.schedule()
             }
         }
 

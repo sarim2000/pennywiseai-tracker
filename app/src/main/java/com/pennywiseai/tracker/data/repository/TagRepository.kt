@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
+import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
@@ -15,6 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class TagRepository @Inject constructor(
+    private val database: PennyWiseDatabase,
     private val tagDao: TagDao
 ) {
 
@@ -61,19 +64,24 @@ class TagRepository @Inject constructor(
      * tags that no longer reference any transaction.
      */
     suspend fun setTagsForTransaction(transactionId: Long, tagNames: List<String>) {
-        tagDao.deleteCrossRefsForTransaction(transactionId)
+        // Atomic: a crash/cancellation between the delete and the re-insert would
+        // otherwise silently strip a transaction's tags. Room's withTransaction is
+        // reentrant, so getOrCreateTag's inner DAO calls join this transaction.
+        database.withTransaction {
+            tagDao.deleteCrossRefsForTransaction(transactionId)
 
-        val tagIds = tagNames
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase() }
-            .map { getOrCreateTag(it) }
-            .filter { it > 0L }
-            .distinct()
+            val tagIds = tagNames
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinctBy { it.lowercase() }
+                .map { getOrCreateTag(it) }
+                .filter { it > 0L }
+                .distinct()
 
-        if (tagIds.isNotEmpty()) {
-            tagDao.insertCrossRefs(tagIds.map { TransactionTagCrossRef(transactionId, it) })
+            if (tagIds.isNotEmpty()) {
+                tagDao.insertCrossRefs(tagIds.map { TransactionTagCrossRef(transactionId, it) })
+            }
+            tagDao.deleteOrphanTags()
         }
-        tagDao.deleteOrphanTags()
     }
 }

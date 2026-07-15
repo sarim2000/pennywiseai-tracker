@@ -1162,7 +1162,6 @@ class TransactionsViewModel @Inject constructor(
     ): Flow<List<TransactionEntity>> {
         // Start with the base flow based on category filter
         val baseFlow = if (category != null) {
-            println("DEBUG: Filtering by category: '$category'")
             transactionRepository.getTransactionsByCategory(category)
         } else {
             transactionRepository.getAllTransactions()

@@ -412,8 +412,12 @@ class AnalyticsViewModel @Inject constructor(
                     TagData(
                         name = tagName,
                         amount = tagTotal,
+                        // Clamp at 100% like categoryBreakdown: refunds reduce totalSpending
+                        // but not a tag's summed amount, so the raw ratio for a single tag can
+                        // exceed 100%. (Different tags can still each be <100% yet sum to more,
+                        // since a transaction counts toward every tag it carries.)
                         percentage = if (totalSpending > BigDecimal.ZERO) {
-                            (tagTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat()
+                            (tagTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
                         } else 0f,
                         transactionCount = tagTransactionCounts[tagName] ?: 0
                     )

@@ -92,3 +92,6 @@ skills-lock.json
 # Release-notes generator (Claude Agent SDK) deps — package-lock.json is
 # committed for reproducible installs; only the installed modules are ignored.
 scripts/release-notes/node_modules/
+
+# Codegraph index
+.codegraph/

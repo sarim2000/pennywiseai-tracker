@@ -117,6 +117,9 @@ fun SettingsScreen(
     val mainAccountKey by settingsViewModel.mainAccountKey.collectAsStateWithLifecycle()
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
+    val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     // Launches the runtime permission request. If granted, we flip the
     // preference on; if denied, leave the switch off so the user can try
@@ -163,6 +166,20 @@ fun SettingsScreen(
             }
         }
     )
+
+    val backupFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+        onResult = { uri ->
+            uri?.let { settingsViewModel.onBackupFolderSelected(it) }
+        }
+    )
+
+    LaunchedEffect(requestFolderPicker) {
+        if (requestFolderPicker) {
+            backupFolderLauncher.launch(null)
+            settingsViewModel.onFolderPickerLaunched()
+        }
+    }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -503,6 +520,45 @@ fun SettingsScreen(
                     onClick = { settingsViewModel.exportBackup() },
                     position = ItemPosition.MIDDLE
                 )
+                SettingsSwitchRow(
+                    icon = Icons.Default.Backup,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = "Automatic Folder Backup",
+                    subtitle = if (scheduledFolderBackupEnabled) {
+                        "Daily backup at 2:00 AM to your chosen folder"
+                    } else {
+                        "Save a backup to a folder every day at 2:00 AM"
+                    },
+                    checked = scheduledFolderBackupEnabled,
+                    onCheckedChange = { settingsViewModel.setScheduledFolderBackupEnabled(it) },
+                    position = ItemPosition.MIDDLE
+                )
+                if (scheduledFolderBackupEnabled) {
+                    SettingsNavItem(
+                        icon = Icons.Default.SaveAlt,
+                        iconBgColor = green_light,
+                        iconTint = green_dark,
+                        title = "Back Up Now",
+                        subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
+                            val formatted = java.time.Instant.ofEpochMilli(timestamp)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                            "Last backup: $formatted"
+                        } ?: "Run a backup to your folder now",
+                        onClick = { settingsViewModel.backupToFolderNow() },
+                        position = ItemPosition.MIDDLE
+                    )
+                    SettingsNavItem(
+                        icon = Icons.Default.FolderOpen,
+                        iconBgColor = amber_light,
+                        iconTint = amber_dark,
+                        title = "Change Backup Folder",
+                        subtitle = "Pick a different folder for automatic backups",
+                        onClick = { settingsViewModel.requestChangeBackupFolder() },
+                        position = ItemPosition.MIDDLE
+                    )
+                }
                 SettingsNavItem(
                     icon = Icons.Default.Download,
                     iconBgColor = cyan_light,

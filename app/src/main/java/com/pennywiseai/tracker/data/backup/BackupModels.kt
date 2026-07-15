@@ -322,6 +322,16 @@ sealed class ExportResult {
 }
 
 /**
+ * In-memory export result for scheduled and manual folder backups.
+ */
+sealed class ExportBytesResult {
+    // Plain class, not data class: ByteArray has reference equality, so a generated
+    // equals/hashCode over it would be misleading. This result is only matched via `when`.
+    class Success(val bytes: ByteArray) : ExportBytesResult()
+    data class Error(val message: String) : ExportBytesResult()
+}
+
+/**
  * Import strategy options.
  */
 enum class ImportStrategy {

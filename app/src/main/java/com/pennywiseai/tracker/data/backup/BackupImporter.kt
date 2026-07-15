@@ -671,10 +671,16 @@ class BackupImporter @Inject constructor(
         // SMS preferences
         userPreferencesRepository.updateHasSkippedSmsPermission(preferences.sms.hasSkippedSmsPermission)
         userPreferencesRepository.updateSmsScanMonths(preferences.sms.smsScanMonths)
-        userPreferencesRepository.updateSmsScanUseCustomDate(preferences.sms.smsScanUseCustomDate)
-        preferences.sms.smsScanCustomDate?.let {
+        // Only enable custom-date mode when a paired date is present. A flag-without-date
+        // state would leave a "Scan from a custom start date" subtitle while the limited-data
+        // banner is suppressed (TransactionsViewModel can't resolve a start date).
+        val restoredCustomDate = preferences.sms.smsScanCustomDate
+        restoredCustomDate?.let {
             userPreferencesRepository.updateSmsScanCustomDate(it)
         }
+        userPreferencesRepository.updateSmsScanUseCustomDate(
+            preferences.sms.smsScanUseCustomDate && restoredCustomDate != null
+        )
         preferences.sms.lastScanTimestamp?.let {
             userPreferencesRepository.updateLastScanTimestamp(it)
         }

@@ -907,8 +907,15 @@ fun SettingsScreen(
             }
         )
 
+        // Cancelling/dismissing the picker returns to the scan-period dialog rather than
+        // silently dropping the user back to Settings (they came here to change the period).
+        fun reopenScanDialog() {
+            showSmsScanDatePicker = false
+            showSmsScanDialog = true
+        }
+
         DatePickerDialog(
-            onDismissRequest = { showSmsScanDatePicker = false },
+            onDismissRequest = { reopenScanDialog() },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -922,7 +929,7 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSmsScanDatePicker = false }) {
+                TextButton(onClick = { reopenScanDialog() }) {
                     Text("Cancel")
                 }
             }

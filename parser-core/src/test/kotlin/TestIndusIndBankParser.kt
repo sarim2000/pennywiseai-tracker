@@ -207,7 +207,10 @@ class IndusIndBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("250"),
                     currency = "INR",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    merchant = "Swiggy",
+                    accountLast4 = "1234",
+                    isFromCard = true
                 )
             )
         )

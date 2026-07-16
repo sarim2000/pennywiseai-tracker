@@ -65,10 +65,9 @@ class IndusIndBankParser : BaseIndianBankParser() {
         // Credit-card refund SMS say "credited to your IndusInd Bank Credit Card XX1234 ...
         // adjusted against the outstanding on your card account". The trailing "card account"
         // phrase makes the base detectIsCard bail out as an account (non-card) txn, so
-        // recognise the credit card explicitly here. (#486)
-        if (lower.contains("credit card") &&
-            Regex("""card\s+x{2}\d""", RegexOption.IGNORE_CASE).containsMatchIn(message)
-        ) {
+        // recognise the credit card explicitly here. Mask is 2+ X's so XX1234 and
+        // XXXX1234 both match. (#486)
+        if (lower.contains("credit card") && CARD_MASK_PATTERN.containsMatchIn(message)) {
             return true
         }
         return super.detectIsCard(message)
@@ -181,16 +180,9 @@ class IndusIndBankParser : BaseIndianBankParser() {
         // Credit-card refund: "refund of INR <amt> from <Merchant> has been credited ..."
         // IndusInd appends the legal entity + branch/location (e.g. "Swiggy Limited Banga");
         // keep just the brand so the refund nets against the original spend merchant. (#486)
-        val refundPattern = Regex(
-            """refund\s+of\s+(?:INR|Rs\.?|₹)\s*[0-9,]+(?:\.\d{2})?\s+from\s+(.+?)\s+has\s+been\s+credited""",
-            RegexOption.IGNORE_CASE
-        )
-        refundPattern.find(message)?.let { match ->
+        REFUND_MERCHANT_PATTERN.find(message)?.let { match ->
             var m = match.groupValues[1].trim()
-            m = m.replace(
-                Regex("""\s+(?:Limited|Ltd\.?|Pvt\.?|Private).*$""", RegexOption.IGNORE_CASE),
-                ""
-            )
+            m = m.replace(LEGAL_ENTITY_SUFFIX_PATTERN, "")
             if (m.isNotEmpty()) return cleanMerchantName(m)
         }
 
@@ -333,4 +325,21 @@ class IndusIndBankParser : BaseIndianBankParser() {
         return super.extractReference(message)
     }
 
+    private companion object {
+        // Masked card number on a credit-card SMS: "Card XX1234" or "Card XXXX1234".
+        // 2+ X's so both mask widths match. (#486)
+        private val CARD_MASK_PATTERN = Regex("""card\s+x{2,}\d""", RegexOption.IGNORE_CASE)
+
+        // Credit-card refund shape: "refund of INR <amt> from <Merchant> has been credited".
+        private val REFUND_MERCHANT_PATTERN = Regex(
+            """refund\s+of\s+(?:INR|Rs\.?|₹)\s*[0-9,]+(?:\.\d{2})?\s+from\s+(.+?)\s+has\s+been\s+credited""",
+            RegexOption.IGNORE_CASE
+        )
+
+        // Trailing legal-entity/branch noise appended to the brand ("Swiggy Limited Banga").
+        private val LEGAL_ENTITY_SUFFIX_PATTERN = Regex(
+            """\s+(?:Limited|Ltd\.?|Pvt\.?|Private).*$""",
+            RegexOption.IGNORE_CASE
+        )
+    }
 }

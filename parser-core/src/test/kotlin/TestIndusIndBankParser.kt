@@ -207,7 +207,24 @@ class IndusIndBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("250"),
                     currency = "INR",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    merchant = "Swiggy",
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                // Same refund shape but a 4-X mask (XXXX5678) — must still detect as card.
+                name = "Credit-card refund with 4-X card mask is detected as card",
+                message = "Dear Customer, refund of INR 499 from Zomato has been credited to your IndusInd Bank Credit Card XXXX5678 on 11-Jun-26 and the refund amount has been adjusted against the outstanding on your card account - IndusInd Bank",
+                sender = "AD-INDUSIND-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("499"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Zomato",
+                    accountLast4 = "5678",
+                    isFromCard = true
                 )
             )
         )

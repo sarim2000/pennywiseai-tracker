@@ -244,7 +244,7 @@ object BrandIcons {
         "alinma" to R.drawable.ic_brand_alinma_bank,
         "cib egypt" to R.drawable.ic_brand_cib_egypt,
         // Sri Lanka
-        "dialog" to R.drawable.ic_brand_dialog,
+        "dialog axiata" to R.drawable.ic_brand_dialog,
         "mobitel" to R.drawable.ic_brand_mobitel,
         "slt" to R.drawable.ic_brand_slt,
         "pickme" to R.drawable.ic_brand_pickme,
@@ -389,7 +389,7 @@ object BrandIcons {
         merchantName.contains("schwab", ignoreCase = true) -> "#00A0DF"
 
         // Sri Lanka
-        merchantName.contains("dialog", ignoreCase = true) -> "#D81818"
+        merchantName.contains("dialog axiata", ignoreCase = true) -> "#D81818"
         merchantName.contains("mobitel", ignoreCase = true) -> "#4CA64C"
         merchantName.contains("slt", ignoreCase = true) -> "#004890"
         merchantName.contains("pickme", ignoreCase = true) -> "#F0C000"

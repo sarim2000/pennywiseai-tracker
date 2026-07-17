@@ -496,7 +496,6 @@ object SharedCategoryMapping {
         "ceypetco",
         "mobitel",
         "slt",
-        "telecom",
         "dialog axiata"
     )
 

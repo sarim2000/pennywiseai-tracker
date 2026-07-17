@@ -22,7 +22,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RulesViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val ruleRepository: RuleRepository,
     private val ruleTemplateService: RuleTemplateService,
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,

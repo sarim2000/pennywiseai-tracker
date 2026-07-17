@@ -51,7 +51,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val modelRepository: ModelRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,

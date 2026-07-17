@@ -12,7 +12,7 @@ class RuleConditionTest {
     // --- ACCOUNT field validation ---
 
     @Test
-    fun `ACCOUNT with valid bankName||last4 format returns true`() {
+    fun `ACCOUNT with valid bankName and last4 format returns true`() {
         val condition = RuleCondition(
             field = TransactionField.ACCOUNT,
             operator = ConditionOperator.EQUALS,

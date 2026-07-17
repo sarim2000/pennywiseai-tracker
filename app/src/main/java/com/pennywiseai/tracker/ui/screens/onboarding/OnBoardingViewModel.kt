@@ -63,7 +63,7 @@ class OnBoardingViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val smsScanManager: SmsScanManager,
     private val accountBalanceRepository: AccountBalanceRepository,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnBoardingUiState())
@@ -186,7 +186,7 @@ class OnBoardingViewModel @Inject constructor(
             workManager.getWorkInfosForUniqueWorkLiveData(OptimizedSmsReaderWorker.WORK_NAME)
                 .asFlow()
                 .collect { workInfos ->
-                    val workInfo = workInfos?.firstOrNull() ?: return@collect
+                    val workInfo = workInfos.firstOrNull() ?: return@collect
 
                     val progress = workInfo.progress
                     val total = progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 0)

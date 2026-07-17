@@ -5,7 +5,7 @@ import java.time.Duration
 
 object TransactionDeduplication {
     private val upiReferencePattern = Regex("""\d{12}""")
-    val UPI_DUPLICATE_WINDOW: Duration = Duration.ofMinutes(3)
+    val UPI_DUPLICATE_WINDOW: Duration = Duration.ofHours(24)
 
     fun hasUpiReference(transaction: TransactionEntity): Boolean =
         transaction.reference?.let { upiReferencePattern.matches(it) } == true
@@ -22,9 +22,9 @@ object TransactionDeduplication {
         if (existing.amount.compareTo(incoming.amount) != 0) return false
         if (!accountsMatch(existing.accountNumber, incoming.accountNumber)) return false
 
-        // Allow up to 24 hours for unique UPI references to handle carrier delays
+        // Allow up to 24 hours (UPI_DUPLICATE_WINDOW) for unique UPI references to handle carrier delays
         val gap = Duration.between(existing.dateTime, incoming.dateTime).abs()
-        return gap <= Duration.ofHours(24)
+        return gap <= window
     }
 
     fun shouldReplaceWithIncoming(

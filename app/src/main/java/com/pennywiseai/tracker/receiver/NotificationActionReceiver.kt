@@ -39,42 +39,47 @@ class NotificationActionReceiver : BroadcastReceiver() {
             return
         }
 
-        when (intent.action) {
-            ACTION_DELETE_TRANSACTION -> {
-                deleteTransaction(context, transactionId, notificationId)
-            }
-            ACTION_CONFIRM_TRANSACTION -> {
-                confirmTransaction(context, notificationId)
-            }
-            ACTION_CHANGE_CATEGORY -> {
-                val newCategory = intent.getStringExtra(EXTRA_NEW_CATEGORY)
-                if (newCategory != null) {
-                    changeCategory(context, transactionId, newCategory, notificationId)
-                } else {
-                    Log.e(TAG, "No category provided")
+        val pendingResult = goAsync()
+        receiverScope.launch {
+            try {
+                when (intent.action) {
+                    ACTION_DELETE_TRANSACTION -> {
+                        deleteTransaction(context, transactionId, notificationId)
+                    }
+                    ACTION_CONFIRM_TRANSACTION -> {
+                        confirmTransaction(context, notificationId)
+                    }
+                    ACTION_CHANGE_CATEGORY -> {
+                        val newCategory = intent.getStringExtra(EXTRA_NEW_CATEGORY)
+                        if (newCategory != null) {
+                            changeCategory(context, transactionId, newCategory, notificationId)
+                        } else {
+                            Log.e(TAG, "No category provided")
+                        }
+                    }
+                    else -> {
+                        Log.w(TAG, "Unknown action: ${intent.action}")
+                    }
                 }
-            }
-            else -> {
-                Log.w(TAG, "Unknown action: ${intent.action}")
+            } finally {
+                pendingResult.finish()
             }
         }
     }
 
-    private fun deleteTransaction(context: Context, transactionId: Long, notificationId: Int) {
-        receiverScope.launch {
-            try {
-                val database = PennyWiseDatabase.getInstance(context)
-                val transactionDao = database.transactionDao()
+    private suspend fun deleteTransaction(context: Context, transactionId: Long, notificationId: Int) {
+        try {
+            val database = PennyWiseDatabase.getInstance(context)
+            val transactionDao = database.transactionDao()
 
-                // Soft delete the transaction
-                transactionDao.softDeleteTransaction(transactionId)
-                Log.d(TAG, "Deleted transaction: $transactionId")
+            // Soft delete the transaction
+            transactionDao.softDeleteTransaction(transactionId)
+            Log.d(TAG, "Deleted transaction: $transactionId")
 
-                // Dismiss the notification
-                dismissNotification(context, notificationId)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error deleting transaction", e)
-            }
+            // Dismiss the notification
+            dismissNotification(context, notificationId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting transaction", e)
         }
     }
 
@@ -84,31 +89,29 @@ class NotificationActionReceiver : BroadcastReceiver() {
         Log.d(TAG, "Transaction confirmed, notification dismissed")
     }
 
-    private fun changeCategory(context: Context, transactionId: Long, newCategory: String, notificationId: Int) {
-        receiverScope.launch {
-            try {
-                val database = PennyWiseDatabase.getInstance(context)
-                val transactionDao = database.transactionDao()
+    private suspend fun changeCategory(context: Context, transactionId: Long, newCategory: String, notificationId: Int) {
+        try {
+            val database = PennyWiseDatabase.getInstance(context)
+            val transactionDao = database.transactionDao()
 
-                // Get the transaction
-                val transaction = transactionDao.getTransactionById(transactionId)
-                if (transaction != null) {
-                    // Update with new category
-                    val updated = transaction.copy(
-                        category = newCategory,
-                        updatedAt = java.time.LocalDateTime.now()
-                    )
-                    transactionDao.updateTransaction(updated)
-                    Log.d(TAG, "Updated transaction $transactionId category to: $newCategory")
+            // Get the transaction
+            val transaction = transactionDao.getTransactionById(transactionId)
+            if (transaction != null) {
+                // Update with new category
+                val updated = transaction.copy(
+                    category = newCategory,
+                    updatedAt = java.time.LocalDateTime.now()
+                )
+                transactionDao.updateTransaction(updated)
+                Log.d(TAG, "Updated transaction $transactionId category to: $newCategory")
 
-                    // Dismiss the notification
-                    dismissNotification(context, notificationId)
-                } else {
-                    Log.e(TAG, "Transaction not found: $transactionId")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error changing category", e)
+                // Dismiss the notification
+                dismissNotification(context, notificationId)
+            } else {
+                Log.e(TAG, "Transaction not found: $transactionId")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error changing category", e)
         }
     }
 

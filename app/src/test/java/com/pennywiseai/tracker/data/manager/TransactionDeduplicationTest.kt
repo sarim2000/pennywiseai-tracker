@@ -52,9 +52,17 @@ class TransactionDeduplicationTest {
     }
 
     @Test
-    fun `does not match outside duplicate window`() {
+    fun `matches within 24 hour duplicate window for unique UPI references`() {
         val first = transaction(id = 1, dateTime = baseTime)
-        val later = transaction(id = 2, dateTime = baseTime.plusMinutes(4))
+        val later = transaction(id = 2, dateTime = baseTime.plusHours(12))
+
+        assertTrue(TransactionDeduplication.isSameUpiTransaction(first, later))
+    }
+
+    @Test
+    fun `does not match outside 24 hour duplicate window`() {
+        val first = transaction(id = 1, dateTime = baseTime)
+        val later = transaction(id = 2, dateTime = baseTime.plusHours(25))
 
         assertFalse(TransactionDeduplication.isSameUpiTransaction(first, later))
     }
@@ -76,12 +84,28 @@ class TransactionDeduplicationTest {
     }
 
     @Test
+    fun `cleanup does not transitively cluster unrelated transactions`() {
+        // A (0m), B (12h), C (25h) -> B is within 24h of A, but C is NOT within 24h of A (earliest of cluster).
+        // If clustering was transitive, A, B, C would form a single cluster and C would get deleted.
+        // With our fix, C is compared to A (the earliest) and since it is > 24h gap, it forms a new cluster.
+        val transactions = listOf(
+            transaction(id = 1, dateTime = baseTime),
+            transaction(id = 2, dateTime = baseTime.plusHours(12)),
+            transaction(id = 3, dateTime = baseTime.plusHours(25))
+        )
+
+        // Only 2 (duplicate of 1) should be deleted. 3 should be kept!
+        assertEquals(listOf(2L), TransactionDeduplication.duplicateIdsToDelete(transactions))
+    }
+
+    @Test
     fun `cleanup keeps earliest transaction per matching time window`() {
         val transactions = listOf(
             transaction(id = 3, dateTime = baseTime.plusMinutes(2)),
             transaction(id = 1, dateTime = baseTime),
             transaction(id = 2, dateTime = baseTime.plusMinutes(1)),
-            transaction(id = 4, dateTime = baseTime.plusMinutes(10)),
+            // Use different UPI reference so 4 is not deduped against 1
+            transaction(id = 4, reference = "999888777666", dateTime = baseTime.plusMinutes(10)),
             transaction(id = 5, amount = BigDecimal("15001.00")),
             transaction(id = 6, accountNumber = "1357")
         )

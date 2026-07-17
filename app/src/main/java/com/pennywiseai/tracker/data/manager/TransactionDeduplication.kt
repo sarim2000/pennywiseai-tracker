@@ -22,8 +22,9 @@ object TransactionDeduplication {
         if (existing.amount.compareTo(incoming.amount) != 0) return false
         if (!accountsMatch(existing.accountNumber, incoming.accountNumber)) return false
 
+        // Allow up to 24 hours for unique UPI references to handle carrier delays
         val gap = Duration.between(existing.dateTime, incoming.dateTime).abs()
-        return gap <= window
+        return gap <= Duration.ofHours(24)
     }
 
     fun shouldReplaceWithIncoming(
@@ -63,7 +64,7 @@ object TransactionDeduplication {
         group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
             .forEach { transaction ->
                 val matchingCluster = duplicateClusters.firstOrNull { cluster ->
-                    cluster.any { previous -> isSameUpiTransaction(previous, transaction) }
+                    isSameUpiTransaction(cluster.first(), transaction)
                 }
 
                 if (matchingCluster == null) {

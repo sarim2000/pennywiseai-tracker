@@ -116,6 +116,21 @@ class IndianBankParserTest {
                     accountLast4 = "1234",
                     balance = BigDecimal("21532.08")
                 )
+            ),
+            // User bug report (#): newer "Sent Rs. ... to MERCHANT.RRN ...Avl Bal" UPI-debit format
+            ParserTestCase(
+                name = "Sent UPI debit - Sent Rs to merchant with RRN",
+                message = "Sent Rs.440.00 from A/c *4512 on 17-07-26 to NARMADA FOODS.RRN 213416112187.Avl Bal Rs.4585.65.Not you? SMS BLOCK to 9289592895-Indian Bank",
+                sender = "AD-INDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("440.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "4512",
+                    merchant = "NARMADA FOODS",
+                    reference = "213416112187",
+                    balance = BigDecimal("4585.65")
+                )
             )
         )
 

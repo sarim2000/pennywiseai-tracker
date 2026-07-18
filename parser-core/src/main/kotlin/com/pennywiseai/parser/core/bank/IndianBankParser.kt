@@ -97,11 +97,33 @@ class IndianBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Pattern 5: Sent Rs.440.00 (newer UPI-debit format)
+        val sentPattern =
+            Regex("""Sent\s+Rs\.?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        sentPattern.find(message)?.let { match ->
+            val amount = match.groupValues[1].replace(",", "")
+            return try {
+                BigDecimal(amount)
+            } catch (e: NumberFormatException) {
+                null
+            }
+        }
+
         // Fall back to base class patterns
         return super.extractAmount(message)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Pattern 0: newer UPI-debit format "to NARMADA FOODS.RRN 213416112187"
+        // Stop at the period before RRN so the RRN/trailing text is not captured.
+        val sentToPattern = Regex("""to\s+([^.\n]+?)\.RRN\b""", RegexOption.IGNORE_CASE)
+        sentToPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
         // Pattern 1: "to Merchant Name"
         val toPattern = Regex("""to\s+([^.\n]+?)(?:\.\s*UPI:|UPI:|$)""", RegexOption.IGNORE_CASE)
         toPattern.find(message)?.let { match ->
@@ -180,6 +202,14 @@ class IndianBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
+        // Pattern 1b: RRN 213416112187 (newer UPI-debit format). Checked AFTER the
+        // UPI-ref patterns so that a message carrying both a UPI ref and an RRN keeps
+        // preferring the UPI ref; the "Sent Rs." format carries only the RRN.
+        val rrnPattern = Regex("""RRN\s+(\d+)""", RegexOption.IGNORE_CASE)
+        rrnPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
         // Pattern 2: Ref No. 123456
         val refNoPattern = Regex("""Ref\s+No\.?\s*(\w+)""", RegexOption.IGNORE_CASE)
         refNoPattern.find(message)?.let { match ->
@@ -235,6 +265,8 @@ class IndianBankParser : BaseIndianBankParser() {
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
             lowerMessage.contains("upi payment") && !lowerMessage.contains("received") -> TransactionType.EXPENSE
+            // Newer UPI-debit format: "Sent Rs.440.00 from A/c ..."
+            lowerMessage.contains("sent rs") -> TransactionType.EXPENSE
 
             lowerMessage.contains("credited") -> TransactionType.INCOME
             lowerMessage.contains("deposited") -> TransactionType.INCOME
@@ -243,6 +275,28 @@ class IndianBankParser : BaseIndianBankParser() {
             // Fall back to base class for other patterns
             else -> super.extractTransactionType(message)
         }
+    }
+
+    /**
+     * Recognise the newer "Sent Rs.<amt> ... to <merchant>" UPI-debit format as a
+     * transaction. The base [BankParser.isTransactionMessage] only knows verbs like
+     * debited/credited/withdrawn, so without this override the message is dropped
+     * (parse() returns null) even though it is a real debit.
+     */
+    override fun isTransactionMessage(message: String): Boolean {
+        if (super.isTransactionMessage(message)) return true
+        return message.lowercase().contains("sent rs")
+    }
+
+    /**
+     * Guard against classifying a "Sent Rs. ... Avl Bal ..." debit as a
+     * balance-update-only notification. The base guard treats any message with an
+     * "Avl Bal" keyword and no known txn verb as a pure balance update; "sent" is a
+     * txn verb here, so exclude it. Bank-local override keeps other banks unaffected.
+     */
+    override fun isBalanceUpdateNotification(message: String): Boolean {
+        if (message.lowercase().contains("sent rs")) return false
+        return super.isBalanceUpdateNotification(message)
     }
 
     // ==========================================

@@ -215,7 +215,8 @@ object SharedCategoryMapping {
         "salkara",
         "the coffee lab",
         "top cafeteria",
-        "bosporus sharjah"
+        "bosporus sharjah",
+        "uber eats"
     )
 
     private val GROCERY = setOf(
@@ -289,7 +290,10 @@ object SharedCategoryMapping {
         "foodland",
         "luluhypermarket",
         "majid al futtaim hypmk",
-        "majid al futtaim hypm"
+        "majid al futtaim hypm",
+        "keells",
+        "glomark",
+        "spar"
     )
 
     private val TRANSPORT = setOf(
@@ -328,7 +332,9 @@ object SharedCategoryMapping {
         "point sbia",
         "ptt",
         "pttst.c",
-        "smart auto"
+        "smart auto",
+        "interchange",
+        "pickme"
     )
 
     private val SHOPPING = setOf(
@@ -451,7 +457,11 @@ object SharedCategoryMapping {
         "space hub general ware",
         "virgin megastore",
         "empire tower",
-        "the empire tower"
+        "the empire tower",
+        "aliexpress",
+        "arpico",
+        "nolimit",
+        "lady j"
     )
 
     private val UTILITIES = setOf(
@@ -482,7 +492,11 @@ object SharedCategoryMapping {
         "noqsouth energy dwc",
         "tamdeed projects",
         "smart dubai government",
-        "paysolut"
+        "paysolut",
+        "ceypetco",
+        "mobitel",
+        "slt",
+        "dialog axiata"
     )
 
     private val ENTERTAINMENT = setOf(
@@ -500,7 +514,9 @@ object SharedCategoryMapping {
         "www.2c2p ticketmelon",
         "www.2cticketmelon",
         "sfcinemacity",
-        "platinumlist.net"
+        "platinumlist.net",
+        "scope entertainment",
+        "scope cinemas"
     )
 
     private val HEALTHCARE = setOf(
@@ -521,7 +537,10 @@ object SharedCategoryMapping {
         "lac nutrition for life",
         "mediclinic al sufouh",
         "boots_",
-        "boots_4287 c.world 3 fbangkok th"
+        "boots_4287 c.world 3 fbangkok th",
+        "healthcare",
+        "medihelp",
+        "union chemists"
     )
 
     private val INVESTMENT = setOf(

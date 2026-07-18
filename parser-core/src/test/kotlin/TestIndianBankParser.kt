@@ -131,6 +131,36 @@ class IndianBankParserTest {
                     reference = "213416112187",
                     balance = BigDecimal("4585.65")
                 )
+            ),
+            // Same "Sent Rs." format, comma-grouped amount — exercises comma stripping.
+            ParserTestCase(
+                name = "Sent UPI debit - comma-grouped amount",
+                message = "Sent Rs.1,500.00 from A/c *4512 on 17-07-26 to FLIPKART.RRN 213416112188.Avl Bal Rs.9585.65.Not you? SMS BLOCK to 9289592895-Indian Bank",
+                sender = "AD-INDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1500.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "4512",
+                    merchant = "FLIPKART",
+                    reference = "213416112188",
+                    balance = BigDecimal("9585.65")
+                )
+            ),
+            // Same "Sent Rs." format, whole-number amount — exercises optional-decimal path.
+            ParserTestCase(
+                name = "Sent UPI debit - whole-number amount",
+                message = "Sent Rs.500 from A/c *4512 on 17-07-26 to ZOMATO.RRN 213416112189.Avl Bal Rs.9085.65.Not you? SMS BLOCK to 9289592895-Indian Bank",
+                sender = "AD-INDBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "4512",
+                    merchant = "ZOMATO",
+                    reference = "213416112189",
+                    balance = BigDecimal("9085.65")
+                )
             )
         )
 

@@ -190,12 +190,6 @@ class IndianBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Pattern 0: RRN 213416112187 (newer UPI-debit format)
-        val rrnPattern = Regex("""RRN\s+(\d+)""", RegexOption.IGNORE_CASE)
-        rrnPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
         // Pattern 1: UPI:515314436916
         val upiRefPattern = Regex("""UPI:(\d+)""", RegexOption.IGNORE_CASE)
         upiRefPattern.find(message)?.let { match ->
@@ -205,6 +199,14 @@ class IndianBankParser : BaseIndianBankParser() {
         // Pattern 1a: UPI Ref no 917477824021
         val upiRefNoPattern = Regex("""UPI\s+Ref\s+no\s+(\d+)""", RegexOption.IGNORE_CASE)
         upiRefNoPattern.find(message)?.let { match ->
+            return match.groupValues[1]
+        }
+
+        // Pattern 1b: RRN 213416112187 (newer UPI-debit format). Checked AFTER the
+        // UPI-ref patterns so that a message carrying both a UPI ref and an RRN keeps
+        // preferring the UPI ref; the "Sent Rs." format carries only the RRN.
+        val rrnPattern = Regex("""RRN\s+(\d+)""", RegexOption.IGNORE_CASE)
+        rrnPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
 

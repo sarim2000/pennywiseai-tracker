@@ -59,6 +59,7 @@ class SettingsViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
+    private val importCsvUseCase: com.pennywiseai.tracker.data.csv.ImportCsvUseCase,
     private val folderBackupWriter: FolderBackupWriter,
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
@@ -663,6 +664,34 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Imports historical transactions from a CSV in PennyWise's own export format.
+     * Free feature (onboarding/migration) — not gated behind Pro.
+     */
+    fun importCsv(uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                _importExportMessage.value = "Importing transactions..."
+                when (val result = importCsvUseCase.execute(uri)) {
+                    is com.pennywiseai.tracker.data.csv.ImportCsvUseCase.Result.Success -> {
+                        val failedSuffix = if (result.failed > 0) {
+                            ", ${result.failed} rows could not be parsed"
+                        } else ""
+                        _importExportMessage.value =
+                            "Imported ${result.imported} transactions, skipped ${result.skippedDuplicate} duplicates$failedSuffix"
+                    }
+                    is com.pennywiseai.tracker.data.csv.ImportCsvUseCase.Result.Error -> {
+                        _importExportMessage.value = result.message
+                        Log.e("SettingsViewModel", "CSV import failed: ${result.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                _importExportMessage.value = "Import error: ${e.message}"
+                Log.e("SettingsViewModel", "CSV import error", e)
+            }
+        }
+    }
+
     fun clearImportExportMessage() {
         _importExportMessage.value = null
     }

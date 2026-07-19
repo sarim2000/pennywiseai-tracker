@@ -31,7 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -121,6 +126,10 @@ fun SettingsScreen(
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
+    var showSupportDialog by remember { mutableStateOf(false) }
+    // F-Droid builds have no Play billing, so they show a "Support development"
+    // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
+    val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.FLAVOR == "fdroid"
     // Launches the runtime permission request. If granted, we flip the
     // preference on; if denied, leave the switch off so the user can try
     // again without us silently turning the feature on later.
@@ -222,26 +231,44 @@ fun SettingsScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            // ── PennyWise Pro ──
-            // Top of Settings on purpose: highest-discoverability slot for
-            // the upgrade entry. Row content adapts to entitlement state —
-            // paid users see "Active" so the row reads as status, free
-            // users see "Upgrade" so it reads as a call-to-action.
-            SectionHeaderV2(title = "PennyWise Pro")
-            SettingsGroup {
-                SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
-                    iconBgColor = yellow_light,
-                    iconTint = yellow_dark,
-                    title = if (isProEntitled) "PennyWise Pro" else "Upgrade to PennyWise Pro",
-                    subtitle = if (isProEntitled) {
-                        "Active · all power features unlocked"
-                    } else {
-                        "Unlimited rules, statements, exports, and more"
-                    },
-                    onClick = { showUpgradeSheet = true },
-                    position = ItemPosition.SINGLE,
-                )
+            // ── PennyWise Pro / Support development ──
+            // Top of Settings on purpose: highest-discoverability slot.
+            // F-Droid builds have no Play billing (everything is already
+            // unlocked), so instead of an un-buyable Pro upsell they get a
+            // "Support development" tip jar. Play builds keep the Pro upgrade.
+            if (isFdroidBuild) {
+                SectionHeaderV2(title = "Support development")
+                SettingsGroup {
+                    SettingsNavItem(
+                        icon = Icons.Default.Favorite,
+                        iconBgColor = yellow_light,
+                        iconTint = yellow_dark,
+                        title = "Support development",
+                        subtitle = "Built by a solo dev — a small tip keeps it going 🦉",
+                        onClick = { showSupportDialog = true },
+                        position = ItemPosition.SINGLE,
+                    )
+                }
+            } else {
+                // Row content adapts to entitlement state — paid users see
+                // "Active" so the row reads as status, free users see "Upgrade"
+                // so it reads as a call-to-action.
+                SectionHeaderV2(title = "PennyWise Pro")
+                SettingsGroup {
+                    SettingsNavItem(
+                        icon = Icons.Default.AutoAwesome,
+                        iconBgColor = yellow_light,
+                        iconTint = yellow_dark,
+                        title = if (isProEntitled) "PennyWise Pro" else "Upgrade to PennyWise Pro",
+                        subtitle = if (isProEntitled) {
+                            "Active · all power features unlocked"
+                        } else {
+                            "Unlimited rules, statements, exports, and more"
+                        },
+                        onClick = { showUpgradeSheet = true },
+                        position = ItemPosition.SINGLE,
+                    )
+                }
             }
 
             // ── Personalization ──
@@ -1173,6 +1200,88 @@ fun SettingsScreen(
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
         )
+    }
+
+    if (showSupportDialog) {
+        val vpa = stringResource(R.string.support_upi_vpa)
+        val payeeName = stringResource(R.string.support_payee_name)
+        AlertDialog(
+            onDismissRequest = { showSupportDialog = false },
+            icon = {
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark)
+            },
+            title = { Text("Support development") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        "PennyWise is free and open source, built by a solo developer. " +
+                            "If it's useful to you, a small UPI tip helps keep it going 🦉",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    // Show the VPA so a user without a UPI app (or who'd rather pay
+                    // from their bank app) can copy it manually.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Text(
+                            text = vpa,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        val clipboard = LocalClipboardManager.current
+                        IconButton(onClick = {
+                            clipboard.setText(AnnotatedString(vpa))
+                            Toast.makeText(context, "UPI ID copied", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy UPI ID")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    launchUpiPayment(context, vpa, payeeName)
+                    showSupportDialog = false
+                }) {
+                    Text("Pay via UPI")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSupportDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Opens the user's UPI app pre-filled to pay the developer's [vpa]. Uses the
+ * standard `upi://pay` deep link, so the amount is left blank for the user to
+ * choose. Falls back to a toast if no UPI app is installed.
+ */
+private fun launchUpiPayment(context: android.content.Context, vpa: String, payeeName: String) {
+    val uri = android.net.Uri.Builder()
+        .scheme("upi")
+        .authority("pay")
+        .appendQueryParameter("pa", vpa)
+        .appendQueryParameter("pn", payeeName)
+        .appendQueryParameter("cu", "INR")
+        .appendQueryParameter("tn", "PennyWise support")
+        .build()
+    // Plain ACTION_VIEW (not createChooser): Android opens the UPI app directly,
+    // or shows its own picker if several are installed. When none is installed it
+    // throws ActivityNotFoundException, which we turn into a helpful hint (the
+    // dialog already offers a copy-the-VPA fallback) instead of the system's
+    // generic "No apps can perform this action".
+    val intent = Intent(Intent.ACTION_VIEW, uri)
+    try {
+        context.startActivity(intent)
+    } catch (e: android.content.ActivityNotFoundException) {
+        Toast.makeText(context, "No UPI app found. Copy the UPI ID instead.", Toast.LENGTH_LONG).show()
     }
 }
 

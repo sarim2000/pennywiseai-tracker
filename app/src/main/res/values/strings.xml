@@ -7,4 +7,10 @@
     <string name="widget_description_recent">View your monthly spend and latest transactions at a glance.</string>
     <string name="widget_name_add_transaction">Add Transaction</string>
     <string name="widget_description_add_transaction">Tap to quickly add a manual transaction without opening the app.</string>
+
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
+    <string name="support_upi_vpa" translatable="false">sarimbleedblue@okicici</string>
+    <string name="support_payee_name" translatable="false">PennyWise</string>
 </resources>

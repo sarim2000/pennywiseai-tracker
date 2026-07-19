@@ -719,7 +719,12 @@ fun SettingsScreen(
             onDismissRequest = { showDisplayCurrencyDialog = false },
             title = { Text("Display Currency") },
             text = {
-                Column {
+                // Scrollable: the full currency list overflows the dialog's max
+                // height, so without this the entries below the fold (e.g. MXN)
+                // are unreachable. (#615)
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     availableCurrencies.forEach { currency ->
                         Row(
                             modifier = Modifier

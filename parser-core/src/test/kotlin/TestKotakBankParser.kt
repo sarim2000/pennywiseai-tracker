@@ -195,6 +195,23 @@ class KotakBankParserTest {
                     reference = "9999999999",
                     accountLast4 = "5555"
                 )
+            ),
+            // Issue #616: credit-card refund. "refunded" is not a base transaction
+            // keyword, so isTransactionMessage must recognise it or parse() drops it.
+            // Type is INCOME (money back to the card), isFromCard=true, merchant is the
+            // payee between "<amount> from" and "refunded", card last4 from "Card xNNNN".
+            ParserTestCase(
+                name = "Issue #616 - Credit card refund",
+                message = "INR 2 from Airport Lounge refunded to your Kotak Credit Card x8848 on 17-Jul-2026. Opted for EMI? Please call 18602662666 to cancel.",
+                sender = "JM-Kotakb-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Airport Lounge",
+                    accountLast4 = "8848",
+                    isFromCard = true
+                )
             )
         )
 
@@ -204,6 +221,8 @@ class KotakBankParserTest {
             "JD-KOTAKB-T" to true,
             "VM-KOTAKD-S" to true,
             "JD-KOTAKD-S" to true,
+            // Issue #616: mixed-case DLT header for Kotak credit card refunds
+            "JM-Kotakb-S" to true,
             // RCS display-name senders (issue #360) match via the contains("KOTAK") branch
             "Kotak" to true,
             "Kotak Mahindra Bank" to true,

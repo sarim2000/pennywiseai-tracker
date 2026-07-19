@@ -29,6 +29,19 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Credit-card refund: "INR <amt> from <Merchant> refunded to your Kotak Credit Card xNNNN".
+        // The merchant is the payee that money is coming back from — capture the text between
+        // "<amount> from " and " refunded". Without this the base TO_PATTERN would wrongly grab
+        // "your Kotak Credit Card xNNNN" from the "refunded to your ..." clause. (#616)
+        val refundMerchantPattern = Regex(
+            """(?:INR|Rs\.?|₹)\s*[0-9,]+(?:\.\d{2})?\s+from\s+(.+?)\s+refunded\b""",
+            RegexOption.IGNORE_CASE
+        )
+        refundMerchantPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (merchant.isNotEmpty()) return merchant
+        }
+
         // IMPS credit from mobile: "linked to mobile xNNNN"
         val mobileLinkedPattern = Regex(
             """linked\s+to\s+mobile\s+([xX*]+\d{2,})""",
@@ -341,7 +354,10 @@ class KotakBankParser : BankParser() {
         val kotakTransactionKeywords = listOf(
             "sent", // Kotak uses "Sent Rs.X from Kotak Bank"
             "debited", "credited", "withdrawn", "deposited",
-            "spent", "received", "transferred", "paid"
+            "spent", "received", "transferred", "paid",
+            // Credit-card refund: "INR X from <Merchant> refunded to your Kotak Credit Card ...".
+            // The base keyword list doesn't cover "refunded", so parse() would drop it. (#616)
+            "refund"
         )
 
         return kotakTransactionKeywords.any { lowerMessage.contains(it) }

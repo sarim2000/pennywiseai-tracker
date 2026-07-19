@@ -168,6 +168,14 @@ interface TransactionDao {
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
 
     /**
+     * The subset of [hashes] that already exist (including soft-deleted rows).
+     * One query for the whole batch — used by CSV import to dedup a whole file
+     * without issuing a per-row lookup.
+     */
+    @Query("SELECT transaction_hash FROM transactions WHERE transaction_hash IN (:hashes)")
+    suspend fun getExistingHashes(hashes: List<String>): List<String>
+
+    /**
      * Find recent EXPENSE transactions whose merchant AND amount match —
      * used to surface candidate auto-pay charges when the user opens the
      * mark-as-paid sheet for a subscription (#412). Both filters matter:

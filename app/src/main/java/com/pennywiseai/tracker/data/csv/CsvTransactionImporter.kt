@@ -188,6 +188,12 @@ class CsvTransactionImporter @Inject constructor() {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid Amount '$amountText'")
         }
+        // Amounts are always positive; direction is carried by Type (matching the
+        // export). Reject non-positive values so a hand-crafted CSV using signed
+        // debits can't silently corrupt analytics totals — fail the row instead.
+        if (amount.signum() <= 0) {
+            throw IllegalArgumentException("Amount must be positive: '$amountText'")
+        }
 
         val typeText = row.cell(typeIdx)
             ?: throw IllegalArgumentException("Missing Type")

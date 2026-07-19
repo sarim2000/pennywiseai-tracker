@@ -46,19 +46,19 @@ class ImportCsvUseCase @Inject constructor(
                 }
             } ?: return@withContext Result.Error("Failed to read the selected file")
 
-            // Dedup against existing rows by hash. Also guard against duplicates
-            // *within* the same CSV (two identical rows) by tracking seen hashes.
+            // Dedup against existing rows by hash — one batch query for the whole
+            // file instead of a per-row lookup (a large CSV would otherwise issue
+            // N queries). Also guard against duplicates *within* the same CSV.
+            val existingHashes = transactionRepository
+                .getExistingHashes(parseResult.transactions.map { it.transactionHash })
+                .toHashSet()
             val toInsert = mutableListOf<TransactionEntity>()
             val seenHashes = HashSet<String>()
             var skippedDuplicate = 0
 
             for (transaction in parseResult.transactions) {
                 val hash = transaction.transactionHash
-                if (!seenHashes.add(hash)) {
-                    skippedDuplicate++
-                    continue
-                }
-                if (transactionRepository.getTransactionByHash(hash) != null) {
+                if (!seenHashes.add(hash) || hash in existingHashes) {
                     skippedDuplicate++
                     continue
                 }

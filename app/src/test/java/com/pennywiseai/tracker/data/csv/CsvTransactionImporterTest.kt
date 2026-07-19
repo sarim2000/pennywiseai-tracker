@@ -72,6 +72,24 @@ class CsvTransactionImporterTest {
     }
 
     @Test
+    fun `non-positive amount row is rejected as failed`() {
+        // Amounts must be positive (direction is carried by Type). A signed-debit
+        // CSV must fail the row rather than silently corrupt analytics totals.
+        val csv = buildString {
+            appendLine(header)
+            appendLine("2026-01-15,09:30:00,Ok,Food,Expense,250.00,INR,DemoBank,1234,,,")
+            appendLine("2026-01-16,10:00:00,Negative,Food,Expense,-250.00,INR,DemoBank,1234,,,")
+            appendLine("2026-01-17,10:00:00,Zero,Food,Expense,0,INR,DemoBank,1234,,,")
+        }
+
+        val result = importer.parse(StringReader(csv))
+
+        assertEquals(1, result.transactions.size)
+        assertEquals(2, result.failedCount)
+        assertTrue(result.failureReasons.all { it.contains("Amount") })
+    }
+
+    @Test
     fun `type labels and bare enum names map back case-insensitively`() {
         val csv = buildString {
             appendLine(header)

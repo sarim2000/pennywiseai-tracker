@@ -145,6 +145,10 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
+    /** The subset of [hashes] already present (one query — see [TransactionDao.getExistingHashes]). */
+    suspend fun getExistingHashes(hashes: List<String>): List<String> =
+        transactionDao.getExistingHashes(hashes)
+
     /** See [TransactionDao.findRecentExpensesByMerchantAndAmount]. */
     suspend fun findRecentExpensesByMerchantAndAmount(
         merchant: String,

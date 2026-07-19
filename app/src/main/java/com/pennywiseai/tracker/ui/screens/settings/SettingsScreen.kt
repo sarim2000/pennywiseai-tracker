@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -237,14 +239,14 @@ fun SettingsScreen(
             // unlocked), so instead of an un-buyable Pro upsell they get a
             // "Support development" tip jar. Play builds keep the Pro upgrade.
             if (isFdroidBuild) {
-                SectionHeaderV2(title = "Support development")
+                SectionHeaderV2(title = stringResource(R.string.support_title))
                 SettingsGroup {
                     SettingsNavItem(
                         icon = Icons.Default.Favorite,
                         iconBgColor = yellow_light,
                         iconTint = yellow_dark,
-                        title = "Support development",
-                        subtitle = "Built by a solo dev — a small tip keeps it going 🦉",
+                        title = stringResource(R.string.support_title),
+                        subtitle = stringResource(R.string.support_subtitle),
                         onClick = { showSupportDialog = true },
                         position = ItemPosition.SINGLE,
                     )
@@ -1210,12 +1212,11 @@ fun SettingsScreen(
             icon = {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark)
             },
-            title = { Text("Support development") },
+            title = { Text(stringResource(R.string.support_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
-                        "PennyWise is free and open source, built by a solo developer. " +
-                            "If it's useful to you, a small UPI tip helps keep it going 🦉",
+                        stringResource(R.string.support_dialog_body),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     // Show the VPA so a user without a UPI app (or who'd rather pay
@@ -1232,26 +1233,31 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f)
                         )
                         val clipboard = LocalClipboardManager.current
+                        val copiedMsg = stringResource(R.string.support_copied_toast)
                         IconButton(onClick = {
                             clipboard.setText(AnnotatedString(vpa))
-                            Toast.makeText(context, "UPI ID copied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy UPI ID")
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.support_copy_upi_id)
+                            )
                         }
                     }
                 }
             },
             confirmButton = {
+                val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
                 TextButton(onClick = {
-                    launchUpiPayment(context, vpa, payeeName)
+                    launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)
                     showSupportDialog = false
                 }) {
-                    Text("Pay via UPI")
+                    Text(stringResource(R.string.support_pay_via_upi))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSupportDialog = false }) {
-                    Text("Close")
+                    Text(stringResource(R.string.support_close))
                 }
             }
         )
@@ -1263,8 +1269,8 @@ fun SettingsScreen(
  * standard `upi://pay` deep link, so the amount is left blank for the user to
  * choose. Falls back to a toast if no UPI app is installed.
  */
-private fun launchUpiPayment(context: android.content.Context, vpa: String, payeeName: String) {
-    val uri = android.net.Uri.Builder()
+private fun launchUpiPayment(context: Context, vpa: String, payeeName: String, noUpiAppMessage: String) {
+    val uri = Uri.Builder()
         .scheme("upi")
         .authority("pay")
         .appendQueryParameter("pa", vpa)
@@ -1280,8 +1286,8 @@ private fun launchUpiPayment(context: android.content.Context, vpa: String, paye
     val intent = Intent(Intent.ACTION_VIEW, uri)
     try {
         context.startActivity(intent)
-    } catch (e: android.content.ActivityNotFoundException) {
-        Toast.makeText(context, "No UPI app found. Copy the UPI ID instead.", Toast.LENGTH_LONG).show()
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, noUpiAppMessage, Toast.LENGTH_LONG).show()
     }
 }
 

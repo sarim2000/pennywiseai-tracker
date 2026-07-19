@@ -64,6 +64,87 @@ private val bottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bot
 private val middleShape = RoundedCornerShape(4.dp)
 private val fullShape = RoundedCornerShape(16.dp)
 
+/** Which account picker the shared account dropdown is currently assigning to. */
+private enum class AccountPickerTarget { FROM, TO }
+
+/**
+ * Tappable account card used by the single-account picker and by both legs of a
+ * TRANSFER. Shows the selected account (bank name + ••last4) or [placeholder],
+ * with a clear button when an account is set.
+ */
+@Composable
+private fun AccountSelectorCard(
+    account: AccountBalanceEntity?,
+    placeholder: String,
+    shape: androidx.compose.ui.graphics.Shape,
+    onClick: () -> Unit,
+    onClear: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                when (account?.getAccountType()) {
+                    AccountType.CASH -> Icons.Default.Money
+                    AccountType.CREDIT -> Icons.Default.CreditCard
+                    AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
+                    null -> Icons.Default.AccountBalance
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = account?.bankName ?: placeholder,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (account != null)
+                        MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (account != null &&
+                    account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                    Text(
+                        text = "••${account.accountLast4}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (account != null) {
+                IconButton(
+                    onClick = onClear,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Clear",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Icon(
+                Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionTabContent(
@@ -77,8 +158,12 @@ fun TransactionTabContent(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
-    var showAccountMenu by remember { mutableStateOf(false) }
+    // Which account picker is open (null = closed). For a TRANSFER this routes the
+    // chosen account to either the FROM or TO card; for other types only FROM is used.
+    var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
+
+    val isTransfer = uiState.transactionType == TransactionType.TRANSFER
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -142,29 +227,33 @@ fun TransactionTabContent(
             }
 
             // ── Merchant + Notes (connected cards) ──
+            // Merchant is meaningless for a TRANSFER (it moves money between own
+            // accounts), so hide it and show Notes on its own.
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(1.5.dp)
             ) {
-                TextField(
-                    value = uiState.merchant,
-                    onValueChange = viewModel::updateTransactionMerchant,
-                    label = { Text("Merchant", fontWeight = FontWeight.SemiBold) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = topShape,
-                    leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
-                    isError = uiState.merchantError != null,
-                    supportingText = uiState.merchantError?.let { { Text(it) } },
-                    colors = filledFieldColors()
-                )
+                if (!isTransfer) {
+                    TextField(
+                        value = uiState.merchant,
+                        onValueChange = viewModel::updateTransactionMerchant,
+                        label = { Text("Merchant", fontWeight = FontWeight.SemiBold) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = topShape,
+                        leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
+                        isError = uiState.merchantError != null,
+                        supportingText = uiState.merchantError?.let { { Text(it) } },
+                        colors = filledFieldColors()
+                    )
+                }
 
                 TextField(
                     value = uiState.notes,
                     onValueChange = viewModel::updateTransactionNotes,
                     label = { Text("Notes (Optional)", fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = bottomShape,
+                    shape = if (isTransfer) fullShape else bottomShape,
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                     colors = filledFieldColors()
                 )
@@ -338,144 +427,119 @@ fun TransactionTabContent(
                 }
             }
 
-            // ── Account + Category (connected cards) ──
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-                // Account card
-                val accountInteractionSource = remember { MutableInteractionSource() }
-                Card(
-                    onClick = { showAccountMenu = true },
+            // ── Account(s) + Category (connected cards) ──
+            if (isTransfer) {
+                // Two account pickers: From (money out) and To (money in).
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = topShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    border = null
+                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            when (uiState.selectedAccount?.getAccountType()) {
-                                AccountType.CASH -> Icons.Default.Money
-                                AccountType.CREDIT -> Icons.Default.CreditCard
-                                AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-                                null -> Icons.Default.AccountBalance
-                            },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = uiState.selectedAccount?.bankName ?: "Select Account",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (uiState.selectedAccount != null)
-                                    MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (uiState.selectedAccount != null &&
-                                uiState.selectedAccount?.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
-                                Text(
-                                    text = "••${uiState.selectedAccount?.accountLast4}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        if (uiState.selectedAccount != null) {
-                            IconButton(
-                                onClick = { viewModel.updateSelectedAccount(null) },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = "Clear",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Icon(
-                            Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Category field
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryMenu,
-                    onExpandedChange = { showCategoryMenu = it },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TextField(
-                        value = uiState.category,
-                        onValueChange = {},
-                        label = { Text("Category", fontWeight = FontWeight.SemiBold) },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    AccountSelectorCard(
+                        account = uiState.selectedAccount,
+                        placeholder = "From account",
+                        shape = topShape,
+                        onClick = { accountPickerTarget = AccountPickerTarget.FROM },
+                        onClear = { viewModel.updateSelectedAccount(null) }
+                    )
+                    AccountSelectorCard(
+                        account = uiState.toAccount,
+                        placeholder = "To account",
                         shape = bottomShape,
-                        leadingIcon = {
-                            Icon(Icons.Default.Category, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
-                        },
-                        isError = uiState.categoryError != null,
-                        supportingText = uiState.categoryError?.let { { Text(it) } },
-                        colors = filledFieldColors()
+                        onClick = { accountPickerTarget = AccountPickerTarget.TO },
+                        onClear = { viewModel.updateToAccount(null) }
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                ) {
+                    // Account card
+                    AccountSelectorCard(
+                        account = uiState.selectedAccount,
+                        placeholder = "Select Account",
+                        shape = topShape,
+                        onClick = { accountPickerTarget = AccountPickerTarget.FROM },
+                        onClear = { viewModel.updateSelectedAccount(null) }
                     )
 
-                    ExposedDropdownMenu(
+                    // Category field
+                    ExposedDropdownMenuBox(
                         expanded = showCategoryMenu,
-                        onDismissRequest = { showCategoryMenu = false }
+                        onExpandedChange = { showCategoryMenu = it },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category.name) },
-                                onClick = {
-                                    viewModel.updateTransactionCategory(category.name)
-                                    showCategoryMenu = false
-                                }
-                            )
+                        TextField(
+                            value = uiState.category,
+                            onValueChange = {},
+                            label = { Text("Category", fontWeight = FontWeight.SemiBold) },
+                            readOnly = true,
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            shape = bottomShape,
+                            leadingIcon = {
+                                Icon(Icons.Default.Category, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
+                            },
+                            isError = uiState.categoryError != null,
+                            supportingText = uiState.categoryError?.let { { Text(it) } },
+                            colors = filledFieldColors()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = showCategoryMenu,
+                            onDismissRequest = { showCategoryMenu = false }
+                        ) {
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        viewModel.updateTransactionCategory(category.name)
+                                        showCategoryMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Account selection dropdown menu
+            // Account selection dropdown menu (shared by From/To pickers).
             DropdownMenu(
-                expanded = showAccountMenu,
-                onDismissRequest = { showAccountMenu = false }
+                expanded = accountPickerTarget != null,
+                onDismissRequest = { accountPickerTarget = null }
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text("No account (Manual Entry)")
-                            Text(
-                                "Won't affect account balance",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    onClick = {
-                        viewModel.updateSelectedAccount(null)
-                        showAccountMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
-                )
-                HorizontalDivider()
+                val target = accountPickerTarget
+                // "No account" only makes sense outside a transfer — both transfer
+                // legs must reference a real account to move money.
+                if (!isTransfer) {
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text("No account (Manual Entry)")
+                                Text(
+                                    "Won't affect account balance",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        onClick = {
+                            viewModel.updateSelectedAccount(null)
+                            accountPickerTarget = null
+                        },
+                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                    )
+                    HorizontalDivider()
+                }
+                val selectedForTarget = when (target) {
+                    AccountPickerTarget.TO -> uiState.toAccount
+                    else -> uiState.selectedAccount
+                }
                 val groupedAccounts = accounts.groupBy { it.getAccountType() }
                 groupedAccounts.forEach { (accountType, accountList) ->
                     DropdownMenuItem(
@@ -503,8 +567,12 @@ fun TransactionTabContent(
                                 }
                             },
                             onClick = {
-                                viewModel.updateSelectedAccount(account)
-                                showAccountMenu = false
+                                if (target == AccountPickerTarget.TO) {
+                                    viewModel.updateToAccount(account)
+                                } else {
+                                    viewModel.updateSelectedAccount(account)
+                                }
+                                accountPickerTarget = null
                             },
                             leadingIcon = {
                                 Icon(
@@ -517,7 +585,7 @@ fun TransactionTabContent(
                                 )
                             },
                             trailingIcon = {
-                                if (uiState.selectedAccount?.id == account.id) {
+                                if (selectedForTarget?.id == account.id) {
                                     Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }

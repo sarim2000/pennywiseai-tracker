@@ -155,7 +155,21 @@ class AddViewModel @Inject constructor(
     // Transaction Tab Functions
     fun updateSelectedAccount(account: AccountBalanceEntity?) {
         _transactionUiState.update { currentState ->
-            currentState.copy(selectedAccount = account)
+            // For a TRANSFER, the FROM account drives the entry currency so the
+            // two figures can't silently disagree (we never sum across currencies).
+            val currency = if (currentState.transactionType == TransactionType.TRANSFER && account != null) {
+                account.currency
+            } else {
+                currentState.currency
+            }
+            currentState.copy(selectedAccount = account, currency = currency)
+        }
+    }
+
+    /** The TO account for a TRANSFER (see [updateSelectedAccount] for FROM). */
+    fun updateToAccount(account: AccountBalanceEntity?) {
+        _transactionUiState.update { currentState ->
+            currentState.copy(toAccount = account)
         }
     }
 
@@ -277,11 +291,13 @@ class AddViewModel @Inject constructor(
 
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
-        
+        val isTransfer = state.transactionType == TransactionType.TRANSFER
+
         val amountError = validateAmount(state.amount)
-        val merchantError = validateMerchant(state.merchant)
-        val categoryError = validateCategory(state.category)
-        
+        // Transfers have no merchant/category to validate.
+        val merchantError = if (isTransfer) null else validateMerchant(state.merchant)
+        val categoryError = if (isTransfer) null else validateCategory(state.category)
+
         if (amountError != null || merchantError != null || categoryError != null) {
             _transactionUiState.update { currentState ->
                 currentState.copy(
@@ -292,7 +308,22 @@ class AddViewModel @Inject constructor(
             }
             return
         }
-        
+
+        if (isTransfer) {
+            val from = state.selectedAccount
+            val to = state.toAccount
+            when {
+                from == null || to == null ->
+                    _transactionUiState.update { it.copy(error = "Select both a From and To account") }
+                from.id == to.id ->
+                    _transactionUiState.update { it.copy(error = "From and To accounts must be different") }
+                from.currency != to.currency ->
+                    _transactionUiState.update { it.copy(error = "Both accounts must use the same currency") }
+                else -> saveTransferInternal(state, from, to, onSuccess)
+            }
+            return
+        }
+
         viewModelScope.launch {
             try {
                 _transactionUiState.update { it.copy(isLoading = true) }
@@ -327,6 +358,42 @@ class AddViewModel @Inject constructor(
                     currentState.copy(
                         isLoading = false,
                         error = e.message ?: "Failed to save transaction"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun saveTransferInternal(
+        state: TransactionUiState,
+        from: AccountBalanceEntity,
+        to: AccountBalanceEntity,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _transactionUiState.update { it.copy(isLoading = true, error = null) }
+
+                addTransactionUseCase.executeTransfer(
+                    amount = BigDecimal(state.amount),
+                    date = state.date,
+                    notes = state.notes.takeIf { it.isNotBlank() },
+                    tags = state.tags,
+                    currency = from.currency,
+                    fromBankName = from.bankName,
+                    fromLast4 = from.accountLast4,
+                    toBankName = to.bankName,
+                    toLast4 = to.accountLast4
+                )
+
+                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
+
+                onSuccess()
+            } catch (e: Exception) {
+                _transactionUiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to save transfer"
                     )
                 }
             }
@@ -527,21 +594,36 @@ data class TransactionUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedAccount: AccountBalanceEntity? = null,
+    // For a TRANSFER, [selectedAccount] is the FROM account and this is the TO
+    // account. Unused for all other transaction types.
+    val toAccount: AccountBalanceEntity? = null,
     val currency: String = "INR",
     val receiptUri: Uri? = null,
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null
 ) {
     val isValid: Boolean
-        get() = amount.isNotBlank() &&
-                amount.toDoubleOrNull() != null &&
-                amount.toDouble() > 0 &&
-                merchant.isNotBlank() &&
-                category.isNotBlank() &&
-                amountError == null &&
-                merchantError == null &&
-                categoryError == null &&
-                (budgetImpactType == null || budgetCategory != null)
+        get() {
+            val amountOk = amount.isNotBlank() &&
+                    amount.toDoubleOrNull() != null &&
+                    amount.toDouble() > 0 &&
+                    amountError == null
+            if (!amountOk) return false
+
+            if (transactionType == TransactionType.TRANSFER) {
+                // Transfers move money between two distinct accounts of the same
+                // currency (we never sum across currencies). No merchant needed.
+                val from = selectedAccount ?: return false
+                val to = toAccount ?: return false
+                return from.id != to.id && from.currency == to.currency
+            }
+
+            return merchant.isNotBlank() &&
+                    category.isNotBlank() &&
+                    merchantError == null &&
+                    categoryError == null &&
+                    (budgetImpactType == null || budgetCategory != null)
+        }
 }
 
 data class SubscriptionUiState(

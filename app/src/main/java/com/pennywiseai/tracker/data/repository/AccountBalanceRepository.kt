@@ -318,6 +318,58 @@ class AccountBalanceRepository @Inject constructor(
         rowId
     }
 
+    /**
+     * Atomically insert a manual TRANSFER [transaction] and move BOTH legs'
+     * balances as one Room transaction, so a crash can never leave the money
+     * debited from one account but never credited to the other (or vice-versa).
+     * The [transaction] must already carry `transactionType = TRANSFER`,
+     * `fromAccount = fromLast4` and `toAccount = toLast4`.
+     *
+     * The two legs use different balance mechanics, mirroring the rest of this
+     * class:
+     *  - Manual/cash accounts have a *derived* balance (opening + Σtxns, with
+     *    TRANSFER handled by `from_account`/`to_account` in [signedTransactionSum]).
+     *    Once the row is inserted, [recomputeManualBalance] re-derives the figure —
+     *    no explicit delta needed. Opening anchors for both legs are pinned from
+     *    the PRE-insert snapshot via [ensureManualOpening] before the insert, so
+     *    the recompute includes this new transfer exactly once.
+     *  - SMS-tracked accounts have a bank-reported balance, so we snapshot a signed
+     *    "TRANSACTION" delta off the latest row via [insertBalanceDeltaByLast4]
+     *    (−amount on the FROM leg, +amount on the TO leg). No-op if that account
+     *    has no balance row yet.
+     *
+     * Returns the new row id (-1 on a dedup-conflict insert, in which case no
+     * balance is moved).
+     */
+    suspend fun insertTransferWithBalance(
+        transaction: TransactionEntity,
+        fromBankName: String,
+        fromLast4: String,
+        toBankName: String,
+        toLast4: String
+    ): Long = database.withTransaction {
+        // Pin opening anchors from the PRE-insert snapshot for manual accounts (both legs).
+        ensureManualOpening(fromBankName, fromLast4)
+        ensureManualOpening(toBankName, toLast4)
+        val rowId = transactionDao.insertTransaction(transaction)
+        if (rowId != -1L) {
+            // FROM leg: money out. Bank-aware so a shared last4 (Kotak ••9999 vs
+            // HDFC ••9999) debits the account the user actually picked.
+            if (isManualAccount(fromBankName, fromLast4)) {
+                recomputeManualBalance(fromBankName, fromLast4)
+            } else {
+                insertBalanceDelta(fromBankName, fromLast4, transaction.amount.negate(), transaction.dateTime, rowId)
+            }
+            // TO leg: money in.
+            if (isManualAccount(toBankName, toLast4)) {
+                recomputeManualBalance(toBankName, toLast4)
+            } else {
+                insertBalanceDelta(toBankName, toLast4, transaction.amount, transaction.dateTime, rowId)
+            }
+        }
+        rowId
+    }
+
     private suspend fun insertBalanceDeltaByLast4(
         accountLast4: String,
         delta: BigDecimal,
@@ -325,6 +377,33 @@ class AccountBalanceRepository @Inject constructor(
         transactionId: Long
     ) {
         val latest = accountBalanceDao.getLatestBalanceByLast4(accountLast4) ?: return
+        accountBalanceDao.insertBalance(
+            latest.copy(
+                id = 0,
+                balance = latest.balance + delta,
+                timestamp = timestamp,
+                transactionId = transactionId,
+                sourceType = "TRANSACTION",
+                smsSource = null
+            )
+        )
+    }
+
+    /**
+     * Bank-aware sibling of [insertBalanceDeltaByLast4]: resolves the account by
+     * (bankName, last4) so a transfer leg can't be misattributed to a *different*
+     * account that merely shares the same last4 (e.g. Kotak ••9999 vs HDFC ••9999).
+     * Used by [insertTransferWithBalance], where the full bank name is known for
+     * both legs. No-op if that account has no balance row yet.
+     */
+    private suspend fun insertBalanceDelta(
+        bankName: String,
+        accountLast4: String,
+        delta: BigDecimal,
+        timestamp: LocalDateTime,
+        transactionId: Long
+    ) {
+        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return
         accountBalanceDao.insertBalance(
             latest.copy(
                 id = 0,

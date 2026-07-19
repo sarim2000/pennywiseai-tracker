@@ -7,4 +7,18 @@
     <string name="widget_description_recent">View your monthly spend and latest transactions at a glance.</string>
     <string name="widget_name_add_transaction">Add Transaction</string>
     <string name="widget_description_add_transaction">Tap to quickly add a manual transaction without opening the app.</string>
+
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
+    <string name="support_upi_vpa" translatable="false">sarimbleedblue@okicici</string>
+    <string name="support_payee_name" translatable="false">PennyWise</string>
+    <string name="support_title">Support development</string>
+    <string name="support_subtitle">Built by a solo dev — a small tip keeps it going 🦉</string>
+    <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. If it\'s useful to you, a small UPI tip helps keep it going 🦉</string>
+    <string name="support_pay_via_upi">Pay via UPI</string>
+    <string name="support_close">Close</string>
+    <string name="support_copy_upi_id">Copy UPI ID</string>
+    <string name="support_copied_toast">UPI ID copied</string>
+    <string name="support_no_upi_app">No UPI app found. Copy the UPI ID instead.</string>
 </resources>

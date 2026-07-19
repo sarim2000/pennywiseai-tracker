@@ -157,6 +157,16 @@ fun SettingsScreen(
         }
     )
 
+    // File picker for CSV transaction import
+    val csvImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                settingsViewModel.importCsv(it)
+            }
+        }
+    )
+
     // File saver for export
     val exportSaveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -577,6 +587,15 @@ fun SettingsScreen(
                     title = "Import Data",
                     subtitle = "Restore data from backup",
                     onClick = { importLauncher.launch("*/*") },
+                    position = ItemPosition.MIDDLE
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Download,
+                    iconBgColor = cyan_light,
+                    iconTint = cyan_dark,
+                    title = "Import Transactions (CSV)",
+                    subtitle = "Import from a PennyWise CSV export",
+                    onClick = { csvImportLauncher.launch("*/*") },
                     position = ItemPosition.MIDDLE
                 )
                 SettingsNavItem(

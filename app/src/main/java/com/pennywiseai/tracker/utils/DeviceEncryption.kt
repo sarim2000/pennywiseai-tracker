@@ -23,12 +23,10 @@ object DeviceEncryption {
                 context.contentResolver,
                 Settings.Secure.ANDROID_ID
             ) ?: "unknown"
-            android.util.Log.d("DeviceEncryption", "Device ID: $deviceId")
             
             // Add timestamp for replay protection
             val timestamp = System.currentTimeMillis()
             val dataToEncrypt = "$deviceId|$timestamp"
-            android.util.Log.d("DeviceEncryption", "Data to encrypt: $dataToEncrypt")
             
             // Load public key
             val publicKey = loadPublicKey()

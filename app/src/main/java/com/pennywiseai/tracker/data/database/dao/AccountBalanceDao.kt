@@ -44,22 +44,7 @@ interface AccountBalanceDao {
     suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity?
     
     @Query("""
-        SELECT DISTINCT 
-            ab1.id,
-            ab1.bank_name,
-            ab1.account_last4,
-            ab1.balance,
-            ab1.timestamp,
-            ab1.transaction_id,
-            ab1.created_at,
-            ab1.credit_limit,
-            ab1.is_credit_card,
-            ab1.sms_source,
-            ab1.source_type,
-            ab1.currency,
-            ab1.profile_id,
-            ab1.alias,
-            ab1.lowBalanceThreshold
+        SELECT DISTINCT ab1.*
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
@@ -112,22 +97,7 @@ interface AccountBalanceDao {
     suspend fun deleteRebuildableBalances()
     
     @Query("""
-        SELECT DISTINCT 
-            ab1.id,
-            ab1.bank_name,
-            ab1.account_last4,
-            ab1.balance,
-            ab1.timestamp,
-            ab1.transaction_id,
-            ab1.created_at,
-            ab1.credit_limit,
-            ab1.is_credit_card,
-            ab1.sms_source,
-            ab1.source_type,
-            ab1.currency,
-            ab1.profile_id,
-            ab1.alias,
-            ab1.lowBalanceThreshold
+        SELECT DISTINCT ab1.*
         FROM account_balances ab1
         INNER JOIN (
             SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp

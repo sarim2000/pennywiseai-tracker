@@ -22,7 +22,7 @@ object BalanceCalculator {
                 when (transactionType) {
                     TransactionType.INCOME -> {
                         // Refunds or repayments reduce outstanding debt
-                        (cur - transactionAmount).max(BigDecimal.ZERO)
+                        cur - transactionAmount
                     }
                     TransactionType.EXPENSE, TransactionType.INVESTMENT, TransactionType.CREDIT -> {
                         // Purchases or cash withdrawals increase outstanding debt
@@ -38,7 +38,7 @@ object BalanceCalculator {
             else -> {
                 when (transactionType) {
                     TransactionType.INCOME -> cur + transactionAmount
-                    TransactionType.EXPENSE, TransactionType.INVESTMENT -> (cur - transactionAmount).max(BigDecimal.ZERO)
+                    TransactionType.EXPENSE, TransactionType.INVESTMENT -> cur - transactionAmount
                     TransactionType.TRANSFER, TransactionType.CREDIT -> {
                         // Transfers/credits on debit accounts do not change standard balance directly
                         cur

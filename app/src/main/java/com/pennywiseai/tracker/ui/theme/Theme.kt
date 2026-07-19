@@ -193,7 +193,7 @@ fun PennyWiseTheme(
 
 private fun relativeLuminance(color: Color): Double {
     fun linearize(c: Float): Double {
-        return if (c <= 0.03928f) (c / 12.92).toDouble()
+        return if (c <= 0.03928f) (c / 12.92)
         else Math.pow(((c + 0.055) / 1.055), 2.4)
     }
     val r = linearize(color.red)

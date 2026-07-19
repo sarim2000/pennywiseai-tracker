@@ -5,10 +5,11 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.pennywiseai.shared"
         compileSdk = 36
         minSdk = 26
+        withHostTest {}
     }
 
     if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {

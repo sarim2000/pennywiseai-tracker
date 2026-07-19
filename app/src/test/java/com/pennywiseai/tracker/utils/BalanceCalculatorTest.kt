@@ -32,7 +32,7 @@ class BalanceCalculatorTest {
     }
 
     @Test
-    fun `credit card income transaction clamps outstanding balance to zero`() {
+    fun `credit card income transaction supports negative outstanding balance representing overpayment`() {
         val newBalance = BalanceCalculator.calculateNewBalance(
             explicitBalance = null,
             isCreditCard = true,
@@ -40,7 +40,7 @@ class BalanceCalculatorTest {
             transactionAmount = BigDecimal("150.00"),
             currentBalance = BigDecimal("100.00")
         )
-        assertEquals(BigDecimal.ZERO, newBalance)
+        assertEquals(BigDecimal("-50.00"), newBalance)
     }
 
     @Test
@@ -152,7 +152,7 @@ class BalanceCalculatorTest {
     }
 
     @Test
-    fun `debit expense clamps standard account balance to zero`() {
+    fun `debit expense supports negative balance representing overdraft`() {
         val newBalance = BalanceCalculator.calculateNewBalance(
             explicitBalance = null,
             isCreditCard = false,
@@ -160,11 +160,11 @@ class BalanceCalculatorTest {
             transactionAmount = BigDecimal("150.00"),
             currentBalance = BigDecimal("100.00")
         )
-        assertEquals(BigDecimal.ZERO, newBalance)
+        assertEquals(BigDecimal("-50.00"), newBalance)
     }
 
     @Test
-    fun `debit investment clamps standard account balance to zero`() {
+    fun `debit investment supports negative balance representing overdraft`() {
         val newBalance = BalanceCalculator.calculateNewBalance(
             explicitBalance = null,
             isCreditCard = false,
@@ -172,7 +172,7 @@ class BalanceCalculatorTest {
             transactionAmount = BigDecimal("150.00"),
             currentBalance = BigDecimal("100.00")
         )
-        assertEquals(BigDecimal.ZERO, newBalance)
+        assertEquals(BigDecimal("-50.00"), newBalance)
     }
 
     @Test

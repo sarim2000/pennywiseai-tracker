@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UnrecognizedSmsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository
 ) : ViewModel() {
     

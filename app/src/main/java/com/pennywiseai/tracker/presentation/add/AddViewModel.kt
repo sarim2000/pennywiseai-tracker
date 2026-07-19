@@ -199,7 +199,10 @@ class AddViewModel @Inject constructor(
                     else -> currentState.category
                 },
                 budgetImpactType = if (type != TransactionType.INCOME) null else currentState.budgetImpactType,
-                budgetCategory = if (type != TransactionType.INCOME) null else currentState.budgetCategory
+                budgetCategory = if (type != TransactionType.INCOME) null else currentState.budgetCategory,
+                // The To account only applies to a transfer — drop it when leaving
+                // TRANSFER so a stale selection can't silently pre-fill a later one.
+                toAccount = if (type == TransactionType.TRANSFER) currentState.toAccount else null
             )
         }
     }

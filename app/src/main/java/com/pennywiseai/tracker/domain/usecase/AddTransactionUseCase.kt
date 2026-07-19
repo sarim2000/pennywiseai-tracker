@@ -133,11 +133,15 @@ class AddTransactionUseCase @Inject constructor(
         toBankName: String,
         toLast4: String
     ) {
-        // Unique hash incorporating both legs so two distinct transfers (or a
-        // transfer and its reverse) never collide on the unique hash index.
+        // Unique hash incorporating both legs — with bank names, not just last4 —
+        // so two distinct transfers (e.g. Kotak ••9999 vs HDFC ••9999 to the same
+        // destination for the same amount at the same second) never collide on the
+        // unique hash index and silently no-op the second one.
         val transactionHash = generateTransferHash(
             amount = amount,
+            fromBankName = fromBankName,
             fromLast4 = fromLast4,
+            toBankName = toBankName,
             toLast4 = toLast4,
             date = date
         )
@@ -196,12 +200,14 @@ class AddTransactionUseCase @Inject constructor(
 
     private fun generateTransferHash(
         amount: BigDecimal,
+        fromBankName: String,
         fromLast4: String,
+        toBankName: String,
         toLast4: String,
         date: LocalDateTime
     ): String {
-        // Format: TRANSFER_<amount>_<from>_<to>_<datetime>
-        val data = "TRANSFER_${amount}_${fromLast4}_${toLast4}_${date}"
+        // Format: TRANSFER_<amount>_<fromBank>_<from>_<toBank>_<to>_<datetime>
+        val data = "TRANSFER_${amount}_${fromBankName}_${fromLast4}_${toBankName}_${toLast4}_${date}"
 
         return MessageDigest.getInstance("MD5")
             .digest(data.toByteArray())

@@ -1249,8 +1249,11 @@ fun SettingsScreen(
             confirmButton = {
                 val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
                 TextButton(onClick = {
-                    launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)
-                    showSupportDialog = false
+                    // Only dismiss if a UPI app actually opened; otherwise keep the
+                    // dialog up so the copy-the-VPA fallback stays on screen.
+                    if (launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)) {
+                        showSupportDialog = false
+                    }
                 }) {
                     Text(stringResource(R.string.support_pay_via_upi))
                 }
@@ -1269,7 +1272,8 @@ fun SettingsScreen(
  * standard `upi://pay` deep link, so the amount is left blank for the user to
  * choose. Falls back to a toast if no UPI app is installed.
  */
-private fun launchUpiPayment(context: Context, vpa: String, payeeName: String, noUpiAppMessage: String) {
+/** @return true if a UPI app was launched; false (with a toast) if none is installed. */
+private fun launchUpiPayment(context: Context, vpa: String, payeeName: String, noUpiAppMessage: String): Boolean {
     val uri = Uri.Builder()
         .scheme("upi")
         .authority("pay")
@@ -1284,10 +1288,12 @@ private fun launchUpiPayment(context: Context, vpa: String, payeeName: String, n
     // dialog already offers a copy-the-VPA fallback) instead of the system's
     // generic "No apps can perform this action".
     val intent = Intent(Intent.ACTION_VIEW, uri)
-    try {
+    return try {
         context.startActivity(intent)
+        true
     } catch (e: ActivityNotFoundException) {
         Toast.makeText(context, noUpiAppMessage, Toast.LENGTH_LONG).show()
+        false
     }
 }
 

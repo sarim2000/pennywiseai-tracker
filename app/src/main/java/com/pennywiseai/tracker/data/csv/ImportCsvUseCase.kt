@@ -46,6 +46,12 @@ class ImportCsvUseCase @Inject constructor(
                 }
             } ?: return@withContext Result.Error("Failed to read the selected file")
 
+            // A structural problem (e.g. wrong file / missing required columns)
+            // yields no rows and a reason — surface it instead of a bare "Imported 0".
+            if (parseResult.transactions.isEmpty() && parseResult.failureReasons.isNotEmpty()) {
+                return@withContext Result.Error(parseResult.failureReasons.first())
+            }
+
             // Dedup against existing rows by hash — one batch query for the whole
             // file instead of a per-row lookup (a large CSV would otherwise issue
             // N queries). Also guard against duplicates *within* the same CSV.

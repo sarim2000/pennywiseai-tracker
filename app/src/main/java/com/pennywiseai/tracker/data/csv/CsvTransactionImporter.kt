@@ -96,7 +96,9 @@ class CsvTransactionImporter @Inject constructor() {
                 return ImportParseResult(
                     transactions = emptyList(),
                     failedCount = 0,
-                    failureReasons = listOf("Missing required column(s): $missing")
+                    failureReasons = listOf(
+                        "This doesn't look like a PennyWise CSV export — missing column(s): $missing"
+                    )
                 )
             }
 

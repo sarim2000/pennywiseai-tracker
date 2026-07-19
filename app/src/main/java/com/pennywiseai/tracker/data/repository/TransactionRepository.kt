@@ -145,9 +145,13 @@ class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
-    /** The subset of [hashes] already present (one query — see [TransactionDao.getExistingHashes]). */
+    /**
+     * The subset of [hashes] already present. Chunked under SQLite's 999
+     * bind-variable limit (Room does not auto-chunk `IN (:list)`), so a large
+     * CSV import can't crash with "too many SQL variables".
+     */
     suspend fun getExistingHashes(hashes: List<String>): List<String> =
-        transactionDao.getExistingHashes(hashes)
+        hashes.chunked(900).flatMap { transactionDao.getExistingHashes(it) }
 
     /** See [TransactionDao.findRecentExpensesByMerchantAndAmount]. */
     suspend fun findRecentExpensesByMerchantAndAmount(

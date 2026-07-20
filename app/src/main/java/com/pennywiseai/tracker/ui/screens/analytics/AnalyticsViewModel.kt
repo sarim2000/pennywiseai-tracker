@@ -281,6 +281,16 @@ class AnalyticsViewModel @Inject constructor(
                     // stay in history and count toward balance — only these breakdowns,
                     // totals, averages and the spending trend ignore them.
                     .filter { !it.transaction.excludedFromAnalytics }
+                    // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
+                    // offset spending and are already netted out of the Expense view
+                    // below, so counting them as income too would double-count them
+                    // (and inflate net savings). Mirrors the Home card, which excludes
+                    // DEDUCT_SPENT from its income figure. Other views are unaffected —
+                    // the Expense view pulls these refunds back in separately. (#629)
+                    .filter {
+                        !(transactionTypeFilter == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME &&
+                            it.transaction.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT)
+                    }
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits

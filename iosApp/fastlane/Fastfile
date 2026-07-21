@@ -1,0 +1,56 @@
+default_platform(:ios)
+
+# App Store Connect API key — .p8 lives in the git-ignored secrets/ dir,
+# key/issuer IDs come from the git-ignored fastlane/.env.
+def asc_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("ASC_KEY_ID"),
+    issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+    key_filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__),
+    in_house: false
+  )
+end
+
+platform :ios do
+  desc "Create the App Store Connect app record (one-time)"
+  lane :create_app do
+    produce(
+      app_identifier: "com.pennywiseai.iosApp",
+      app_name: "PennyWise AI",
+      language: "English (U.S.)",
+      sku: "pennywise-ios-001",
+      team_id: "F9FY44V4RR",
+      api_key: asc_key
+    )
+  end
+
+  desc "Archive a Release build and upload to TestFlight"
+  lane :beta do
+    build_app(
+      project: "iosApp.xcodeproj",
+      scheme: "iosApp",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "PennyWise.ipa",
+      xcargs: "-allowProvisioningUpdates"
+    )
+    upload_to_testflight(
+      api_key: asc_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Upload App Store listing (metadata + screenshots), no submit"
+  lane :metadata do
+    deliver(
+      api_key: asc_key,
+      app_identifier: "com.pennywiseai.iosApp",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      overwrite_screenshots: true,
+      run_precheck_before_submit: false,
+      force: true
+    )
+  end
+end

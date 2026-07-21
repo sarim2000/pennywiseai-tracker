@@ -1,0 +1,1 @@
+spending,finance,budgeting,expenses,savings,bills,subscription,statement,offline,cashflow,wallet

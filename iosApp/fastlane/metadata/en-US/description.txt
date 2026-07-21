@@ -1,0 +1,29 @@
+PennyWise is a private expense tracker and budget app that keeps your money — and your data — entirely on your device. No accounts. No cloud. No tracking. No ads.
+
+Add expenses in seconds, import your bank statements, and watch a clean, categorized timeline of where your money goes — with budgets, trends, and insights that never leave your iPhone.
+
+Why PennyWise
+• 100% on-device & private — your data never leaves your phone
+• No sign-up, no accounts — open the app and start
+• Import statements — bring in Google Pay & PhonePe PDF statements
+• Smart analytics — spending trends, category breakdowns, top merchants
+• Budgets — set limits per category, with custom monthly cycles
+• Subscription tracking — keep an eye on recurring payments
+• Smart rules — auto-categorize your transactions
+• Multi-currency support
+• Beautiful dark mode
+• Open source (AGPL-3.0)
+
+Expense tracking, your way
+Add income and expenses fast, or import a statement to backfill your history. Every transaction lands in a searchable, categorized timeline — a spending tracker that's always up to date.
+
+Budgets that fit real life
+Set category budgets and track progress at a glance. Custom cycle start days mean your "month" can begin on payday, not the 1st.
+
+Private by design
+All processing happens on your device — no servers, no API calls, nothing leaving your phone. There are no accounts to create, and the full source is open (AGPL-3.0) so anyone can verify exactly what the app does.
+
+Free, with optional Pro
+PennyWise is free to use. An optional Pro upgrade unlocks power-user extras — unlimited custom rules, CSV export, and more — and directly supports a solo developer building PennyWise independently.
+
+Download PennyWise for private, effortless expense tracking and budgeting.

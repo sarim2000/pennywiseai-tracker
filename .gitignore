@@ -95,3 +95,6 @@ scripts/release-notes/node_modules/
 
 # Codegraph index
 .codegraph/
+
+# iOS fastlane env (ASC key/issuer IDs)
+iosApp/fastlane/.env

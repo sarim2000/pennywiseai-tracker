@@ -67,7 +67,14 @@ private enum class CategoryViewType { CHART, LIST }
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
-    onNavigateToTransactions: (category: String?, merchant: String?, period: String?, currency: String?) -> Unit = { _, _, _, _ -> },
+    onNavigateToTransactions: (
+        category: String?,
+        merchant: String?,
+        period: String?,
+        currency: String?,
+        startDateEpochDay: Long?,
+        endDateEpochDay: Long?
+    ) -> Unit = { _, _, _, _, _, _ -> },
     onNavigateToHome: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,6 +113,10 @@ fun AnalyticsScreen(
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
+    // Carry the custom range through drill-down navigation so the Transactions
+    // screen (and its CSV export) shows exactly the slice being viewed here.
+    val navStartEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.first?.toEpochDay() else null
+    val navEndEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.second?.toEpochDay() else null
     val primaryVisibleCurrency = availableCurrencies.firstOrNull() ?: selectedCurrency
     val hasCurrencyFilter = !isUnifiedMode &&
             availableCurrencies.size > 1 &&
@@ -421,14 +432,14 @@ fun AnalyticsScreen(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
-                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                                 }
                             )
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
-                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency)
+                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                                 }
                             )
                         }
@@ -494,14 +505,14 @@ fun AnalyticsScreen(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
-                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency)
+                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                                 }
                             )
                             CategoryViewType.LIST -> TagBreakdownCard(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
-                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency)
+                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                                 }
                             )
                         }
@@ -529,7 +540,7 @@ fun AnalyticsScreen(
                         merchant = merchant,
                         currency = selectedCurrency,
                         onClick = {
-                            onNavigateToTransactions(null, merchant.name, selectedPeriod.name, selectedCurrency)
+                            onNavigateToTransactions(null, merchant.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                         }
                     )
                 }

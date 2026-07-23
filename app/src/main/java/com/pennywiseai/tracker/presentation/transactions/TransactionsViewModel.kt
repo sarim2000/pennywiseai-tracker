@@ -984,7 +984,9 @@ class TransactionsViewModel @Inject constructor(
         category: String?,
         merchant: String?,
         period: String?,
-        currency: String?
+        currency: String?,
+        startDateEpochDay: Long? = null,
+        endDateEpochDay: Long? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -1005,14 +1007,7 @@ class TransactionsViewModel @Inject constructor(
             }
 
             period?.let { periodName ->
-                val timePeriod = when (periodName) {
-                    "THIS_MONTH" -> TimePeriod.THIS_MONTH
-                    "LAST_MONTH" -> TimePeriod.LAST_MONTH
-                    "CURRENT_FY" -> TimePeriod.CURRENT_FY
-                    "ALL" -> TimePeriod.ALL
-                    else -> null
-                }
-                timePeriod?.let { selectPeriod(it) }
+                applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
             }
 
             // Only set currency if it's provided (from navigation)
@@ -1022,14 +1017,42 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Maps a navigated period name onto the period filter. A "CUSTOM" period
+     * carries its date range as epoch days (analytics custom range drill-down);
+     * without both dates it is ignored and the current period is kept.
+     */
+    private fun applyNavigatedPeriod(
+        periodName: String,
+        startDateEpochDay: Long?,
+        endDateEpochDay: Long?
+    ) {
+        when (periodName) {
+            "THIS_MONTH" -> selectPeriod(TimePeriod.THIS_MONTH)
+            "LAST_MONTH" -> selectPeriod(TimePeriod.LAST_MONTH)
+            "CURRENT_FY" -> selectPeriod(TimePeriod.CURRENT_FY)
+            "ALL" -> selectPeriod(TimePeriod.ALL)
+            "CUSTOM" -> if (startDateEpochDay != null && endDateEpochDay != null) {
+                setCustomDateRange(
+                    LocalDate.ofEpochDay(startDateEpochDay),
+                    LocalDate.ofEpochDay(endDateEpochDay)
+                )
+            }
+        }
+    }
+
     fun applyNavigationFilters(
         category: String?,
         merchant: String?,
         period: String?,
-        currency: String?
+        currency: String?,
+        startDateEpochDay: Long? = null,
+        endDateEpochDay: Long? = null
     ) {
         // Create current params to compare
-        val currentParams = NavigationParams(category, merchant, period, currency)
+        val currentParams = NavigationParams(
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay
+        )
 
         // Only apply navigation filters if:
         // 1. This is the first time (appliedNavigationParams is null)
@@ -1060,14 +1083,7 @@ class TransactionsViewModel @Inject constructor(
         }
 
         period?.let { periodName ->
-            val timePeriod = when (periodName) {
-                "THIS_MONTH" -> TimePeriod.THIS_MONTH
-                "LAST_MONTH" -> TimePeriod.LAST_MONTH
-                "CURRENT_FY" -> TimePeriod.CURRENT_FY
-                "ALL" -> TimePeriod.ALL
-                else -> null
-            }
-            timePeriod?.let { selectPeriod(it) }
+            applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
         }
 
         // Only set currency if it's provided (from navigation)
@@ -1466,7 +1482,9 @@ private data class NavigationParams(
     val category: String?,
     val merchant: String?,
     val period: String?,
-    val currency: String?
+    val currency: String?,
+    val startDateEpochDay: Long? = null,
+    val endDateEpochDay: Long? = null
 )
 
 /**

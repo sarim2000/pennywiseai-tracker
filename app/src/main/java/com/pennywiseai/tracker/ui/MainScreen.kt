@@ -230,7 +230,7 @@ fun MainScreen(
                 )
 
                 composable(
-                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}",
+                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}&startDate={startDate}&endDate={endDate}",
                     arguments = listOf(
                         navArgument("category") {
                             type = NavType.StringType
@@ -260,6 +260,16 @@ fun MainScreen(
                             type = NavType.StringType
                             nullable = true
                             defaultValue = null
+                        },
+                        navArgument("startDate") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("endDate") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
                         }
                     ),
                     content = { backStackEntry: NavBackStackEntry ->
@@ -269,6 +279,8 @@ fun MainScreen(
                         val currency = backStackEntry.arguments?.getString("currency")
                         val focusSearch = backStackEntry.arguments?.getBoolean("focusSearch") ?: false
                         val transactionType = backStackEntry.arguments?.getString("type")
+                        val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
+                        val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
 
                         TransactionsScreen(
                             modifier = Modifier.imePadding(),
@@ -276,6 +288,8 @@ fun MainScreen(
                             initialMerchant = merchant,
                             initialPeriod = period,
                             initialCurrency = currency,
+                            initialCustomStartEpochDay = startDate,
+                            initialCustomEndEpochDay = endDate,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
                             onNavigateBack = {
@@ -335,7 +349,7 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
-                            onNavigateToTransactions = { category, merchant, period, currency ->
+                            onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay ->
                                 val route = buildString {
                                     append("transactions")
                                     val params = mutableListOf<String>()
@@ -352,6 +366,12 @@ fun MainScreen(
                                     }
                                     currency?.let {
                                         params.add("currency=$it")
+                                    }
+                                    startDateEpochDay?.let {
+                                        params.add("startDate=$it")
+                                    }
+                                    endDateEpochDay?.let {
+                                        params.add("endDate=$it")
                                     }
                                     if (params.isNotEmpty()) {
                                         append("?")

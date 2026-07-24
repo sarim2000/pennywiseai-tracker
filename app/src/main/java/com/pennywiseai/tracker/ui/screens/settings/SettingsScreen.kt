@@ -46,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -1205,95 +1206,7 @@ fun SettingsScreen(
     }
 
     if (showSupportDialog) {
-        val vpa = stringResource(R.string.support_upi_vpa)
-        val payeeName = stringResource(R.string.support_payee_name)
-        AlertDialog(
-            onDismissRequest = { showSupportDialog = false },
-            icon = {
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark)
-            },
-            title = { Text(stringResource(R.string.support_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(
-                        stringResource(R.string.support_dialog_body),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    // Show the VPA so a user without a UPI app (or who'd rather pay
-                    // from their bank app) can copy it manually.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Text(
-                            text = vpa,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        val clipboard = LocalClipboardManager.current
-                        val copiedMsg = stringResource(R.string.support_copied_toast)
-                        IconButton(onClick = {
-                            clipboard.setText(AnnotatedString(vpa))
-                            Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
-                        }) {
-                            Icon(
-                                Icons.Default.ContentCopy,
-                                contentDescription = stringResource(R.string.support_copy_upi_id)
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
-                TextButton(onClick = {
-                    // Only dismiss if a UPI app actually opened; otherwise keep the
-                    // dialog up so the copy-the-VPA fallback stays on screen.
-                    if (launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)) {
-                        showSupportDialog = false
-                    }
-                }) {
-                    Text(stringResource(R.string.support_pay_via_upi))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSupportDialog = false }) {
-                    Text(stringResource(R.string.support_close))
-                }
-            }
-        )
-    }
-}
-
-/**
- * Opens the user's UPI app pre-filled to pay the developer's [vpa]. Uses the
- * standard `upi://pay` deep link, so the amount is left blank for the user to
- * choose. Falls back to a toast if no UPI app is installed.
- */
-/** @return true if a UPI app was launched; false (with a toast) if none is installed. */
-private fun launchUpiPayment(context: Context, vpa: String, payeeName: String, noUpiAppMessage: String): Boolean {
-    val uri = Uri.Builder()
-        .scheme("upi")
-        .authority("pay")
-        .appendQueryParameter("pa", vpa)
-        .appendQueryParameter("pn", payeeName)
-        .appendQueryParameter("cu", "INR")
-        .appendQueryParameter("tn", "PennyWise support")
-        .build()
-    // Plain ACTION_VIEW (not createChooser): Android opens the UPI app directly,
-    // or shows its own picker if several are installed. When none is installed it
-    // throws ActivityNotFoundException, which we turn into a helpful hint (the
-    // dialog already offers a copy-the-VPA fallback) instead of the system's
-    // generic "No apps can perform this action".
-    val intent = Intent(Intent.ACTION_VIEW, uri)
-    return try {
-        context.startActivity(intent)
-        true
-    } catch (e: ActivityNotFoundException) {
-        Toast.makeText(context, noUpiAppMessage, Toast.LENGTH_LONG).show()
-        false
+        SupportDevelopmentDialog(onDismiss = { showSupportDialog = false })
     }
 }
 

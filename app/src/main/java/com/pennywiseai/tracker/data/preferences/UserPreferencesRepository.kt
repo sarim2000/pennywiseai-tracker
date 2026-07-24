@@ -85,6 +85,10 @@ class UserPreferencesRepository @Inject constructor(
         // while the BillingClient connects.
         val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
 
+        // F-Droid support nudge — epoch-day of the last contextual "Support
+        // development" prompt, so it stays frequency-capped.
+        val SUPPORT_NUDGE_LAST_SHOWN_DAY = longPreferencesKey("support_nudge_last_shown_epoch_day")
+
         // Pro tier — statement-import monthly quota tracking.
         val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
 
@@ -554,6 +558,16 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setProCachedIsPro(isPro: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
+        }
+    }
+
+    /** Epoch-day the contextual F-Droid support nudge was last shown (0 = never). */
+    val supportNudgeLastShownDay: Flow<Long> = context.dataStore.data
+        .map { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L }
+
+    suspend fun setSupportNudgeLastShownDay(epochDay: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] = epochDay
         }
     }
 

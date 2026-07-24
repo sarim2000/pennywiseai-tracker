@@ -633,7 +633,7 @@ fun SettingsScreen(
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
                     title = "Import Statement",
-                    subtitle = "Import from GPay, PhonePe",
+                    subtitle = "Import from GPay, PhonePe, Paytm",
                     onClick = onNavigateToImportStatement,
                     position = ItemPosition.MIDDLE
                 )

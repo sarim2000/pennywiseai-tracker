@@ -164,7 +164,7 @@ private fun IdleContent(onSelectPdf: () -> Unit) {
     )
 
     Text(
-        text = "Import transactions from Google Pay or PhonePe PDF statements. Duplicates are automatically detected and skipped.",
+        text = "Import transactions from Google Pay, PhonePe, or Paytm PDF statements. Duplicates are automatically detected and skipped.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,

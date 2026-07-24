@@ -47,11 +47,10 @@ fun ExportTransactionsDialog(
     var showSupportDialog by remember { mutableStateOf(false) }
     LaunchedEffect(exportState) {
         if (exportState is ExportState.Success &&
-            BuildConfig.FLAVOR == "fdroid" &&
-            viewModel.isSupportNudgeDue()
+            BuildConfig.IS_FDROID_BUILD &&
+            viewModel.claimSupportNudge()
         ) {
             showSupportNudge = true
-            viewModel.recordSupportNudgeShown()
         }
     }
     val csvLimit = com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH

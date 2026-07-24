@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.CsvExporter
@@ -11,7 +10,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -38,19 +36,20 @@ class ExportViewModel @Inject constructor(
     }
 
     /**
-     * True when the contextual "Support development" nudge hasn't been shown in
-     * the last [NUDGE_COOLDOWN_DAYS] days. The caller additionally gates this on
-     * the F-Droid flavor — Play builds sell Pro instead of asking for tips.
+     * Atomically decides whether to show the contextual "Support development"
+     * nudge and, if so, records it as shown before returning — so back-to-back
+     * exports can't slip through and show it twice. Returns true at most once
+     * per [NUDGE_COOLDOWN_DAYS] days. The caller additionally gates this on the
+     * F-Droid flavor — Play builds sell Pro instead of asking for tips.
      */
-    suspend fun isSupportNudgeDue(): Boolean {
+    suspend fun claimSupportNudge(): Boolean {
+        val today = LocalDate.now().toEpochDay()
         val last = userPreferencesRepository.supportNudgeLastShownDay.first()
-        return LocalDate.now().toEpochDay() - last >= NUDGE_COOLDOWN_DAYS
-    }
-
-    fun recordSupportNudgeShown() {
-        viewModelScope.launch {
-            userPreferencesRepository.setSupportNudgeLastShownDay(LocalDate.now().toEpochDay())
-        }
+        if (today - last < NUDGE_COOLDOWN_DAYS) return false
+        // Await the write before returning true so a subsequent claim reads the
+        // updated timestamp rather than the stale one.
+        userPreferencesRepository.setSupportNudgeLastShownDay(today)
+        return true
     }
 
     private companion object {

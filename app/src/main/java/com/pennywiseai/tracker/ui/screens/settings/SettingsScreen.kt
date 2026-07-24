@@ -132,7 +132,7 @@ fun SettingsScreen(
     var showSupportDialog by remember { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
-    val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.FLAVOR == "fdroid"
+    val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
     // Launches the runtime permission request. If granted, we flip the
     // preference on; if denied, leave the switch off so the user can try
     // again without us silently turning the feature on later.

@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.statement
 import com.pennywiseai.parser.core.TransactionType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -274,6 +275,17 @@ class PaytmPdfParserTest {
         val txs = parser.parse(statementText)
         assertEquals("State Bank Of India", txs[0].bankName)
         assertEquals("17", txs[0].accountLast4)
+    }
+
+    @Test
+    fun `recovers account last4 from a merged-column transaction`() {
+        val txs = parser.parse(statementText)
+        // The last (Ravi Verma) block has its amount fused onto the anchor line,
+        // so there is no standalone amount line. The account still trails in
+        // "# Food Of India - 17"; at minimum the last4 must be recovered rather
+        // than silently dropped to null. (#618 review)
+        assertEquals("17", txs[8].accountLast4)
+        assertNotNull("merged-column account should not be silently null", txs[8].bankName)
     }
 
     @Test

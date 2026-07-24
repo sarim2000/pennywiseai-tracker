@@ -46,6 +46,16 @@ class PaytmPdfParser : PdfStatementParser {
 
     private val IST = TimeZone.getTimeZone("Asia/Kolkata")
 
+    // SimpleDateFormat is not thread-safe and is comparatively expensive to
+    // construct. A statement can hold hundreds of transactions, so reuse one
+    // instance per thread instead of allocating a fresh formatter per call.
+    private val dateTimeFormat = object : ThreadLocal<SimpleDateFormat>() {
+        override fun initialValue() = SimpleDateFormat("dd MMM yyyy hh:mm a", Locale.ENGLISH).apply {
+            timeZone = IST
+            isLenient = false
+        }
+    }
+
     private val dateLineRegex = Regex("""^(\d{1,2})\s+([A-Za-z]{3})$""")
     private val timeLineRegex = Regex("""^(\d{1,2}:\d{2})\s*([AaPp][Mm])$""")
     private val signedAmountRegex = Regex("""^([+-])\s*Rs\.?\s*([\d,]+(?:\.\d{1,2})?)$""")
@@ -59,6 +69,10 @@ class PaytmPdfParser : PdfStatementParser {
         """(\d{1,2})\s+([A-Za-z]{3})'(\d{2})\s*-\s*(\d{1,2})\s+([A-Za-z]{3})'(\d{2})"""
     )
     private val accountLineRegex = Regex("""^(.+?)\s*-\s*(\d{1,4})$""")
+
+    // A leading category marker ("# Food ") fused onto a merged-column account
+    // line; stripped before parsing the account so the bank name isn't polluted.
+    private val CATEGORY_MARKER = Regex("""^#\s*\S+\s+""")
 
     private val anchorPrefixes = listOf(
         "Cashback received from",
@@ -143,6 +157,12 @@ class PaytmPdfParser : PdfStatementParser {
                 inBlock = true
                 continue
             }
+
+            // A real transaction date is always immediately followed by a time
+            // line. Reaching a non-date, non-time content line means a pending
+            // date was date-like text inside a Note — drop it so a later bare
+            // time line can't consume the stale date and split a bogus block.
+            pendingDate = null
 
             if (inBlock) current.appendLine(line)
         }
@@ -261,15 +281,33 @@ class PaytmPdfParser : PdfStatementParser {
      * e.g. "State Bank " / "Of India - 17" → bank="State Bank Of India", last4="17".
      */
     private fun extractAccountInfo(lines: List<String>): AccountInfo {
+        // Standard layout: the account sits on the 1–2 lines directly above a
+        // standalone signed-amount line.
         val amountIndex = lines.indexOfFirst { signedAmountRegex.matches(it) }
-        if (amountIndex < 1) return AccountInfo(null, null)
+        if (amountIndex >= 1) {
+            val candidates = lines.subList(maxOf(3, amountIndex - 2), amountIndex)
+            accountFrom(candidates.joinToString(" "))?.let { return it }
+        }
 
-        val candidates = lines.subList(maxOf(3, amountIndex - 2), amountIndex)
-        if (candidates.isEmpty()) return AccountInfo(null, null)
+        // Merged-column fallback: PdfBox sometimes collapses the amount onto the
+        // anchor line, so no standalone amount line exists and the branch above
+        // finds nothing. The account then trails in a later detail line, often
+        // fused with the category marker ("# Food Of India - 17"). Recover at
+        // least the last4 from the last account-shaped detail line below the
+        // anchor rather than dropping the account entirely. (#618 review)
+        for (i in lines.indices.reversed()) {
+            if (i < 3) break
+            val line = lines[i]
+            if (line.startsWith("UPI", ignoreCase = true)) continue
+            if (line.startsWith("Order ID", ignoreCase = true)) continue
+            accountFrom(line.replace(CATEGORY_MARKER, ""))?.let { return it }
+        }
+        return AccountInfo(null, null)
+    }
 
-        val joined = candidates.joinToString(" ").replace(Regex("""\s+"""), " ").trim()
-        val match = accountLineRegex.find(joined) ?: return AccountInfo(null, null)
-
+    private fun accountFrom(text: String): AccountInfo? {
+        val cleaned = text.replace(Regex("""\s+"""), " ").trim()
+        val match = accountLineRegex.find(cleaned) ?: return null
         val bankName = match.groupValues[1].trim().takeIf { it.isNotEmpty() }
         val last4 = match.groupValues[2].trim()
         return AccountInfo(bankName, last4)
@@ -311,11 +349,7 @@ class PaytmPdfParser : PdfStatementParser {
 
     private fun parseDateTime(text: String): Long? {
         return try {
-            val sdf = SimpleDateFormat("dd MMM yyyy hh:mm a", Locale.ENGLISH).apply {
-                timeZone = IST
-                isLenient = false
-            }
-            sdf.parse(text)?.time
+            dateTimeFormat.get()!!.parse(text)?.time
         } catch (e: Exception) {
             Log.e(TAG, "Date parse failed — input='$text': ${e.message}")
             null

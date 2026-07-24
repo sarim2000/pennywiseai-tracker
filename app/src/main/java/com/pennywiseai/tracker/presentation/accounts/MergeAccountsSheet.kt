@@ -75,6 +75,10 @@ fun MergeAccountsSheet(
         // the source and target lists share one scroll surface — the second list
         // stays reachable instead of being pushed off-screen (#624). Previously
         // two nested LazyColumns competed for height inside a non-scrolling Column.
+        // No list-wide verticalArrangement: structural items (header, section
+        // labels) keep their own paddings, while account rows carry an xs top
+        // gap so the inter-row rhythm matches the original two-picker layout
+        // instead of spacing every item uniformly.
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,8 +86,7 @@ fun MergeAccountsSheet(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     bottom = Spacing.lg
-                ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                )
         ) {
             item(key = "header") {
                 Column {
@@ -230,6 +233,7 @@ private fun AccountPickerRow(
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = Modifier
+            .padding(top = Spacing.xs)
             .fillMaxWidth()
             .clickable { onClick() }
     ) {

@@ -44,11 +44,6 @@ fun BalanceHistoryScreen(
     val balanceHistory by viewModel.history.collectAsStateWithLifecycle()
     val bankName = viewModel.bankName
     val accountLast4 = viewModel.accountLast4
-
-    // Get the primary currency for this account
-    val accountPrimaryCurrency = remember(bankName) {
-        CurrencyFormatter.getBankBaseCurrency(bankName)
-    }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var editingValue by remember { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf<Long?>(null) }
@@ -107,7 +102,15 @@ fun BalanceHistoryScreen(
                             val isLatest = balance == balanceHistory.first()
                             val isOnlyRecord = balanceHistory.size == 1
                             val isExpanded = expandedSources.contains(balance.id)
-                            
+                            // Resolve the row's currency the same way the rest of the
+                            // account UI does: a MANUAL account keeps its stored currency
+                            // (e.g. MXN); SMS-tracked rows fall back to the bank base. (#631)
+                            val rowCurrency = CurrencyFormatter.resolveAccountCurrency(
+                                sourceType = balance.sourceType,
+                                storedCurrency = balance.currency,
+                                bankName = bankName
+                            )
+
                             BalanceHistoryItem(
                                 balance = balance,
                                 isLatest = isLatest,
@@ -115,7 +118,7 @@ fun BalanceHistoryScreen(
                                 isExpanded = isExpanded,
                                 editingId = editingId,
                                 editingValue = editingValue,
-                                accountPrimaryCurrency = accountPrimaryCurrency,
+                                accountPrimaryCurrency = rowCurrency,
                                 onEditClick = {
                                     editingId = balance.id
                                     editingValue = balance.balance.toPlainString()

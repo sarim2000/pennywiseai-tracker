@@ -86,6 +86,16 @@ class PasargadBankParserTest {
             "OTP verification",
             """
                 Your OTP code is 12345
+            """.trimIndent(),
+            // Carries the compact Pasargad amount/balance shape AND an OTP line —
+            // must still be rejected, proving the base OTP guard isn't bypassed
+            // by the format match. (#591)
+            """
+                777.888.20000275.1
+                +1,000,000,000
+                04/13_10:22
+                مانده: 1,000,000,000
+                رمز یکبار مصرف: 54321
             """.trimIndent()
         )
 

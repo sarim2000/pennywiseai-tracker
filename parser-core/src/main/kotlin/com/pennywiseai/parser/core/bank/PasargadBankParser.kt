@@ -25,7 +25,25 @@ class PasargadBankParser : BaseIranianBankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
-        return pattern.containsMatchIn(message.trim())
+        // Defer to the base class first: it rejects OTP / promotional /
+        // payment-request messages. The compact Pasargad format carries none of
+        // the base's transaction keywords, so accept a pattern match here — but
+        // not when the body is OTP/promo, so those guards aren't bypassed. (#591)
+        if (super.isTransactionMessage(message)) return true
+
+        if (pattern.containsMatchIn(message.trim())) {
+            val lower = message.lowercase()
+            val nonTransactional = lower.contains("otp") ||
+                lower.contains("رمز یکبار مصرف") ||
+                lower.contains("کد تایید") ||
+                lower.contains("تبلیغ") ||
+                lower.contains("پیشنهاد") ||
+                lower.contains("تخفیف") ||
+                lower.contains("cashback offer") ||
+                (lower.contains("درخواست") && lower.contains("پرداخت"))
+            return !nonTransactional
+        }
+        return false
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -54,12 +72,10 @@ class PasargadBankParser : BaseIranianBankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         pattern.find(message.trim())?.let { match ->
-            val fullAccount = match.groupValues[1]
-            val pureNumeric = fullAccount.replace(".", "")
-            if (pureNumeric.length >= 4) {
-                return pureNumeric.takeLast(4)
-            }
-            return fullAccount
+            val pureNumeric = match.groupValues[1].replace(".", "")
+            // last4 is 4 digits or nothing — never the raw dotted account, which
+            // isn't a last-4 and would be inconsistent with the >=4 branch. (#591)
+            return if (pureNumeric.length >= 4) pureNumeric.takeLast(4) else null
         }
         return null
     }

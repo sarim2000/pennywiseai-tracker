@@ -148,16 +148,31 @@ class CanaraBankParser : BaseIndianBankParser() {
             return false
         }
 
-        // Check for Canara-specific transaction keywords
-        if (lowerMessage.contains("paid thru") ||
-            lowerMessage.contains("has been debited") ||
-            lowerMessage.contains("has been credited") ||
-            COMPACT_DEBIT_PATTERN.containsMatchIn(message)
-        ) {
+        // Defer to the base class first. It accepts the standard keyword forms
+        // ("paid thru", "has been debited/credited") AND — importantly — rejects
+        // OTP / promotional / payment-request / reminder messages. The previous
+        // version short-circuited to `true` on those keywords (and on the
+        // compact pattern) *before* super, bypassing those guards. (#621)
+        if (super.isTransactionMessage(message)) {
             return true
         }
 
-        return super.isTransactionMessage(message)
+        // The compact debit form ("Dr. INR 500") carries no standard keyword, so
+        // the base class drops it. Accept it here — but not when it appears
+        // inside an OTP / promotional body that merely quotes a "Dr. INR" figure.
+        if (COMPACT_DEBIT_PATTERN.containsMatchIn(message)) {
+            val looksNonTransactional = lowerMessage.contains("otp") ||
+                lowerMessage.contains("one time password") ||
+                lowerMessage.contains("verification code") ||
+                lowerMessage.contains("offer") ||
+                lowerMessage.contains("discount") ||
+                lowerMessage.contains("win ") ||
+                lowerMessage.contains("has requested") ||
+                lowerMessage.contains("payment request")
+            return !looksNonTransactional
+        }
+
+        return false
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

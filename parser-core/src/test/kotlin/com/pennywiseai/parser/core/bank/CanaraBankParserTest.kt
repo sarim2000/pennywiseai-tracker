@@ -70,6 +70,26 @@ class CanaraBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Compact Dr INR UPI debit with comma-terminated merchant",
+                message = "Dear Customer, Acct XXX321 Dr. INR 88.00 on 09/07/26 to CORNER STORE, UPI: 111222333444; Bal INR 5,000.00.Not you? SMS BLOCKUPI to XXXXXXXXXX-CanaraBank",
+                sender = "VK-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("88.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "CORNER STORE",
+                    reference = "111222333444",
+                    accountLast4 = "321",
+                    balance = BigDecimal("5000.00")
+                )
+            ),
+            ParserTestCase(
+                name = "OTP quoting a Dr. INR amount is ignored (base guard not bypassed)",
+                message = "123456 is your OTP for a Dr. INR 500.00 transaction on your Canara Bank card. Do not share it with anyone.-Canara Bank",
+                sender = "VK-CANBNK-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "ATM free-transaction usage notification is ignored",
                 message = "Card ending 4321: Dear Customer, you have done 02 out of 06 free transactions at Canara ATMs in this month. Charges applicable beyond free transactions.-Canara Bank",
                 sender = "JK-CANBNK-S",

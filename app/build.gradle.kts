@@ -69,11 +69,16 @@ android {
             ndk {
                 abiFilters += setOf("arm64-v8a", "armeabi-v7a")
             }
+            // Type-safe flavor check for code that adapts to F-Droid (everything
+            // unlocked, tip-jar instead of Pro). Beats matching BuildConfig.FLAVOR
+            // against the "fdroid" string literal, which a typo would silently break.
+            buildConfigField("boolean", "IS_FDROID_BUILD", "true")
         }
         create("standard") {
             dimension = "version"
             isDefault = true
             // Standard flavor includes all architectures (including x86 for emulators)
+            buildConfigField("boolean", "IS_FDROID_BUILD", "false")
         }
     }
 

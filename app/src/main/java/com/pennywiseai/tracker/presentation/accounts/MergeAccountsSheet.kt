@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,30 +71,40 @@ fun MergeAccountsSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(
+        // A single LazyColumn drives the whole sheet so that, with many accounts,
+        // the source and target lists share one scroll surface — the second list
+        // stays reachable instead of being pushed off-screen (#624). Previously
+        // two nested LazyColumns competed for height inside a non-scrolling Column.
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     bottom = Spacing.lg
-                )
+                ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            Text(
-                text = "Merge accounts",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Move all transactions from one account into another. The source account is removed when done.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md)
-            )
+            item(key = "header") {
+                Column {
+                    Text(
+                        text = "Merge accounts",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Move all transactions from one account into another. The source account is removed when done.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md)
+                    )
+                }
+            }
 
             // Source picker
-            SectionLabel("Move from")
-            AccountPicker(
+            item(key = "from-label") { SectionLabel("Move from") }
+            accountPickerItems(
+                idPrefix = "src",
                 accounts = accounts,
                 selected = source,
                 onSelect = { picked ->
@@ -107,31 +118,38 @@ fun MergeAccountsSheet(
             source?.let { src ->
                 val targets = accounts.filter { compatible(src, it) }
                 if (targets.isEmpty()) {
-                    Text(
-                        text = "No other accounts match this one's currency / type.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = Spacing.md)
-                    )
-                } else {
-                    SectionLabel("Into", modifier = Modifier.padding(top = Spacing.md))
-                    Row(
-                        modifier = Modifier.padding(bottom = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = Spacing.xs),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    item(key = "no-targets") {
                         Text(
-                            text = AccountBalanceEntity.accountLabel(src.bankName, src.accountLast4),
+                            text = "No other accounts match this one's currency / type.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = Spacing.md)
                         )
                     }
-                    AccountPicker(
+                } else {
+                    item(key = "into-header") {
+                        Column(modifier = Modifier.padding(top = Spacing.md)) {
+                            SectionLabel("Into")
+                            Row(
+                                modifier = Modifier.padding(bottom = Spacing.xs),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = Spacing.xs),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = AccountBalanceEntity.accountLabel(src.bankName, src.accountLast4),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    accountPickerItems(
+                        idPrefix = "tgt",
                         accounts = targets,
                         selected = target,
                         onSelect = { target = it }
@@ -179,74 +197,84 @@ private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Composable
-private fun AccountPicker(
+/**
+ * Emits selectable account rows directly into the parent [LazyColumn] (rather
+ * than nesting its own scroll container), so both the source and target lists
+ * live on the sheet's single scroll surface. [idPrefix] keeps item keys unique
+ * across the two lists.
+ */
+private fun LazyListScope.accountPickerItems(
+    idPrefix: String,
     accounts: List<AccountBalanceEntity>,
     selected: AccountBalanceEntity?,
     onSelect: (AccountBalanceEntity) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    items(
+        accounts,
+        key = { "$idPrefix|${it.bankName}|${it.accountLast4}|${it.id}" }
+    ) { acct ->
+        val isSelected = selected?.bankName == acct.bankName &&
+            selected.accountLast4 == acct.accountLast4
+        AccountPickerRow(acct = acct, isSelected = isSelected, onClick = { onSelect(acct) })
+    }
+}
+
+@Composable
+private fun AccountPickerRow(
+    acct: AccountBalanceEntity,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
-        items(
-            accounts,
-            key = { "${it.bankName}|${it.accountLast4}|${it.id}" }
-        ) { acct ->
-            val isSelected = selected?.bankName == acct.bankName &&
-                selected.accountLast4 == acct.accountLast4
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceContainerHighest,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(acct) }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = acct.bankName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = acct.bankName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                )
+                Text(
+                    text = buildString {
+                        if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                            append("••")
+                            append(acct.accountLast4)
+                            append(" · ")
+                        }
+                        append(acct.currency)
+                        if (acct.isCreditCard) append(" · Credit")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (isSelected) {
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Selected") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 2.dp)
                         )
-                        Text(
-                            text = buildString {
-                                if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
-                                    append("••")
-                                    append(acct.accountLast4)
-                                    append(" · ")
-                                }
-                                append(acct.currency)
-                                if (acct.isCreditCard) append(" · Credit")
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (isSelected) {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text("Selected") },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(end = 2.dp)
-                                )
-                            },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                labelColor = MaterialTheme.colorScheme.onPrimary,
-                                leadingIconContentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        )
-                    }
-                }
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        labelColor = MaterialTheme.colorScheme.onPrimary,
+                        leadingIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
             }
         }
     }

@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -46,6 +47,7 @@ fun TransactionGroupDetailScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    var showExportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) onNavigateBack()
@@ -83,6 +85,13 @@ fun TransactionGroupDetailScreen(
                                 onClick = { showMenu = false; viewModel.showEditDialog() },
                                 leadingIcon = { Icon(Icons.Default.Edit, null) }
                             )
+                            if (uiState.linkedTransactions.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Export CSV") },
+                                    onClick = { showMenu = false; showExportDialog = true },
+                                    leadingIcon = { Icon(Icons.Default.FileDownload, null) }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; viewModel.showDeleteDialog() },
@@ -278,6 +287,15 @@ fun TransactionGroupDetailScreen(
             currentNote = group.note,
             onDismiss = { viewModel.hideEditDialog() },
             onSave = { name, note -> viewModel.updateGroupName(name, note) }
+        )
+    }
+
+    // Export dialog — reuses the transactions CSV exporter (same Pro/free
+    // row-limit behavior) on this group's linked transactions.
+    if (showExportDialog) {
+        ExportTransactionsDialog(
+            transactions = uiState.linkedTransactions,
+            onDismiss = { showExportDialog = false }
         )
     }
 

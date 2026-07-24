@@ -86,6 +86,9 @@ fun TransactionsScreen(
     initialMerchant: String? = null,
     initialPeriod: String? = null,
     initialCurrency: String? = null,
+    // Custom date range carried by an analytics drill-down (period == CUSTOM)
+    initialCustomStartEpochDay: Long? = null,
+    initialCustomEndEpochDay: Long? = null,
     focusSearch: Boolean = false,
     // New parameters for budget navigation
     initialStartDateEpochDay: Long? = null,
@@ -196,7 +199,9 @@ fun TransactionsScreen(
             initialCategory,
             initialMerchant,
             initialPeriod,
-            initialCurrency
+            initialCurrency,
+            initialCustomStartEpochDay,
+            initialCustomEndEpochDay
         )
     }
 
@@ -204,13 +209,15 @@ fun TransactionsScreen(
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay) {
         if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
                 initialMerchant,
                 initialPeriod,
-                initialCurrency
+                initialCurrency,
+                initialCustomStartEpochDay,
+                initialCustomEndEpochDay
             )
             processedNavParams = true
         }

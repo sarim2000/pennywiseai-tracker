@@ -8,6 +8,13 @@ import java.math.BigDecimal
  */
 class CanaraBankParser : BaseIndianBankParser() {
 
+    private companion object {
+        val COMPACT_DEBIT_PATTERN = Regex(
+            """\bDr\.?\s*(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{2})?)\b""",
+            RegexOption.IGNORE_CASE
+        )
+    }
+
     override fun getBankName() = "Canara Bank"
 
     override fun canHandle(sender: String): Boolean {
@@ -17,6 +24,10 @@ class CanaraBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
+        COMPACT_DEBIT_PATTERN.find(message)?.let { match ->
+            return match.groupValues[1].replace(",", "").toBigDecimalOrNull()
+        }
+
         // Pattern: Rs.23.00 paid thru
         val upiAmountPattern = Regex(
             """Rs\.?\s*([\d,]+(?:\.\d{2})?)\s+paid""",
@@ -65,7 +76,7 @@ class CanaraBankParser : BaseIndianBankParser() {
 
         // Pattern 2: UPI - paid thru A/C XX1234 on 08-8-25 16:41:00 to BMTC BUS KA57F6
         val upiMerchantPattern = Regex(
-            """\sto\s+([^,]+?)(?:,\s*UPI|\.|-Canara)""",
+            """\sto\s+([^,;]+?)(?:[,;]\s*UPI|\.|-Canara)""",
             RegexOption.IGNORE_CASE
         )
         upiMerchantPattern.find(message)?.let { match ->
@@ -137,15 +148,31 @@ class CanaraBankParser : BaseIndianBankParser() {
             return false
         }
 
-        // Check for Canara-specific transaction keywords
-        if (lowerMessage.contains("paid thru") ||
-            lowerMessage.contains("has been debited") ||
-            lowerMessage.contains("has been credited")
-        ) {
+        // Defer to the base class first. It accepts the standard keyword forms
+        // ("paid thru", "has been debited/credited") AND — importantly — rejects
+        // OTP / promotional / payment-request / reminder messages. The previous
+        // version short-circuited to `true` on those keywords (and on the
+        // compact pattern) *before* super, bypassing those guards. (#621)
+        if (super.isTransactionMessage(message)) {
             return true
         }
 
-        return super.isTransactionMessage(message)
+        // The compact debit form ("Dr. INR 500") carries no standard keyword, so
+        // the base class drops it. Accept it here — but not when it appears
+        // inside an OTP / promotional body that merely quotes a "Dr. INR" figure.
+        if (COMPACT_DEBIT_PATTERN.containsMatchIn(message)) {
+            val looksNonTransactional = lowerMessage.contains("otp") ||
+                lowerMessage.contains("one time password") ||
+                lowerMessage.contains("verification code") ||
+                lowerMessage.contains("offer") ||
+                lowerMessage.contains("discount") ||
+                lowerMessage.contains("win ") ||
+                lowerMessage.contains("has requested") ||
+                lowerMessage.contains("payment request")
+            return !looksNonTransactional
+        }
+
+        return false
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
@@ -155,6 +182,10 @@ class CanaraBankParser : BaseIndianBankParser() {
         // This overrides the base class which would mark "mutual fund" as INVESTMENT
         if (lowerMessage.contains("redemption") && lowerMessage.contains("credited")) {
             return TransactionType.INCOME
+        }
+
+        if (COMPACT_DEBIT_PATTERN.containsMatchIn(message)) {
+            return TransactionType.EXPENSE
         }
 
         // Fall back to base class

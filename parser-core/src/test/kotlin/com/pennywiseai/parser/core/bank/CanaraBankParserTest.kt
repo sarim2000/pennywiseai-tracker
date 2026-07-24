@@ -26,9 +26,84 @@ class CanaraBankParserTest {
                     merchant = "AXIS MUTUAL FUND REDEMPTION PO",
                     accountLast4 = "9108"
                 )
+            ),
+            ParserTestCase(
+                name = "Compact Dr INR UPI debit from VK sender",
+                message = "Dear Customer, Acct XXX123 Dr. INR 260.00 on 06/07/26 to SAMPLE MART; UPI: 123456789012; Bal INR 12,345.67.Not you? SMS BLOCKUPI to XXXXXXXXXX-CanaraBank",
+                sender = "VK-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("260.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE MART",
+                    reference = "123456789012",
+                    accountLast4 = "123",
+                    balance = BigDecimal("12345.67")
+                )
+            ),
+            ParserTestCase(
+                name = "Compact Dr Rs UPI debit from JK sender",
+                message = "Dear Customer, Acct XXX456 Dr. Rs. 75.50 on 07/07/26 to CITY CAFE; UPI: 987654321098; Bal INR 9,876.54.Not you? SMS BLOCKUPI to XXXXXXXXXX-CanaraBank",
+                sender = "JK-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("75.50"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "CITY CAFE",
+                    reference = "987654321098",
+                    accountLast4 = "456",
+                    balance = BigDecimal("9876.54")
+                )
+            ),
+            ParserTestCase(
+                name = "Compact Dr rupee-symbol UPI debit",
+                message = "Dear Customer, Acct XXX789 Dr. ₹41.00 on 08/07/26 to METRO TRANSIT; UPI: 456789012345; Bal INR 8,765.43.Not you? SMS BLOCKUPI to XXXXXXXXXX-CanaraBank",
+                sender = "VK-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("41.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "METRO TRANSIT",
+                    reference = "456789012345",
+                    accountLast4 = "789",
+                    balance = BigDecimal("8765.43")
+                )
+            ),
+            ParserTestCase(
+                name = "Compact Dr INR UPI debit with comma-terminated merchant",
+                message = "Dear Customer, Acct XXX321 Dr. INR 88.00 on 09/07/26 to CORNER STORE, UPI: 111222333444; Bal INR 5,000.00.Not you? SMS BLOCKUPI to XXXXXXXXXX-CanaraBank",
+                sender = "VK-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("88.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "CORNER STORE",
+                    reference = "111222333444",
+                    accountLast4 = "321",
+                    balance = BigDecimal("5000.00")
+                )
+            ),
+            ParserTestCase(
+                name = "OTP quoting a Dr. INR amount is ignored (base guard not bypassed)",
+                message = "123456 is your OTP for a Dr. INR 500.00 transaction on your Canara Bank card. Do not share it with anyone.-Canara Bank",
+                sender = "VK-CANBNK-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "ATM free-transaction usage notification is ignored",
+                message = "Card ending 4321: Dear Customer, you have done 02 out of 06 free transactions at Canara ATMs in this month. Charges applicable beyond free transactions.-Canara Bank",
+                sender = "JK-CANBNK-S",
+                shouldParse = false
             )
         )
 
-        return ParserTestUtils.runTestSuite(parser, cases)
+        return ParserTestUtils.runTestSuite(
+            parser = parser,
+            testCases = cases,
+            handleCases = listOf(
+                "VK-CANBNK-S" to true,
+                "JK-CANBNK-S" to true
+            )
+        )
     }
 }

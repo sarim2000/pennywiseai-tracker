@@ -300,6 +300,17 @@ fun TransactionsScreen(
                         // Wrap explicitly in a Row so both action IconButtons render
                         // even when the top-bar's actions slot is constrained.
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Link exactly two selected rows as a transfer — the
+                            // manual counterpart to the auto-detected chip (#614),
+                            // covering pairs the detector misses (fees, wide gaps).
+                            if (selectedIds.size == 2) {
+                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }) {
+                                    Icon(
+                                        Icons.Default.SwapHoriz,
+                                        contentDescription = "Mark as transfer"
+                                    )
+                                }
+                            }
                             IconButton(onClick = { showBulkCategorySheet = true }) {
                                 Icon(Icons.Default.Category, contentDescription = "Change category")
                             }

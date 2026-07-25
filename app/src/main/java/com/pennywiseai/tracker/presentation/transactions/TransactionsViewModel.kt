@@ -327,7 +327,12 @@ class TransactionsViewModel @Inject constructor(
 
     private fun findSelfTransferPairs(txns: List<TransactionEntity>): Map<Long, Long> {
         if (txns.size < 2) return emptyMap()
-        val matchWindowMinutes = 10L
+        // Transfers between the user's own accounts often reflect more than a few
+        // minutes apart (bank posting lag), so use a generous window. The pairing
+        // still requires an exact amount + currency match on a different account,
+        // and only *suggests* the link (the user confirms), so a wider window is
+        // low-risk. (#614)
+        val matchWindowMinutes = 60L
         val acctOf: (TransactionEntity) -> String =
             { "${it.bankName.orEmpty()}|${it.accountNumber.orEmpty()}" }
 
@@ -377,6 +382,33 @@ class TransactionsViewModel @Inject constructor(
      * `toAccount` for each row. No structural link is created between the
      * rows — TRANSFER already excludes them from Net cash flow.
      */
+    /**
+     * Link the two currently-selected transactions as a transfer (#614) — the
+     * manual counterpart to the auto-detected [suggestedTransferPartnerOf] chip,
+     * for pairs the detector misses (transfer fees, gaps beyond the window, a
+     * single-leg SMS the user pairs by hand). Requires exactly two selected rows,
+     * one outgoing (expense) and one incoming (income); otherwise it surfaces a
+     * hint. Reuses [markPairAsTransfer] so undo behaves identically.
+     */
+    fun bulkMarkAsTransfer() {
+        val ids = _selectedIds.value.toList()
+        if (ids.size != 2) {
+            _bulkSnack.value = BulkSnack("Select exactly 2 transactions to mark as a transfer")
+            return
+        }
+        val all = _uiState.value.transactions
+        val a = all.firstOrNull { it.id == ids[0] } ?: return
+        val b = all.firstOrNull { it.id == ids[1] } ?: return
+        val hasExpense = listOf(a, b).any { it.transactionType == TransactionType.EXPENSE }
+        val hasIncome = listOf(a, b).any { it.transactionType == TransactionType.INCOME }
+        if (!(hasExpense && hasIncome)) {
+            _bulkSnack.value = BulkSnack("Pick one outgoing (expense) and one incoming (income) transaction")
+            return
+        }
+        clearSelection()
+        markPairAsTransfer(a.id, b.id)
+    }
+
     fun markPairAsTransfer(aId: Long, bId: Long) {
         viewModelScope.launch {
             val all = _uiState.value.transactions

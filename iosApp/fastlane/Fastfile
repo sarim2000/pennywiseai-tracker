@@ -53,4 +53,24 @@ platform :ios do
       force: true
     )
   end
+
+  desc "Submit the current version for App Store review (metadata/screenshots already uploaded)"
+  lane :submit do
+    deliver(
+      api_key: asc_key,
+      app_identifier: "com.pennywiseai.iosApp",
+      submit_for_review: true,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: true,
+      force: true,
+      run_precheck_before_submit: false,
+      automatic_release: true,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        add_id_info_uses_idfa: false,
+        content_rights_contains_third_party_content: false
+      }
+    )
+  end
 end

@@ -98,3 +98,6 @@ scripts/release-notes/node_modules/
 
 # iOS fastlane env (ASC key/issuer IDs)
 iosApp/fastlane/.env
+
+# fastlane run artifact (regenerated every run)
+iosApp/fastlane/report.xml

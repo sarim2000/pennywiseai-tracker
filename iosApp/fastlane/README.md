@@ -39,6 +39,14 @@ Archive a Release build and upload to TestFlight
 
 Upload App Store listing (metadata + screenshots), no submit
 
+### ios submit
+
+```sh
+[bundle exec] fastlane ios submit
+```
+
+Submit the current version for App Store review (metadata/screenshots already uploaded)
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

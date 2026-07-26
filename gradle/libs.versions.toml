@@ -34,7 +34,9 @@ pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
 reviewKtx = "2.0.2"
 roomVersion = "2.8.4"
-litertlm = "0.+"
+# Pinned (was "0.+"): a dynamic version made builds non-reproducible and could
+# silently swap the native/ABI surface between releases. See #599.
+litertlm = "0.14.0"
 visionInternalVkp = "18.2.3"
 workVersion = "2.11.2"
 coil = "2.7.0"

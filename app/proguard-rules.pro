@@ -24,6 +24,14 @@
 -keep class com.google.ai.edge.litertlm.** { *; }
 -dontwarn com.google.ai.edge.litertlm.**
 
+# LiteRT-LM's generation callbacks are invoked from native code (JNI), so R8
+# can't see that its kept, unminified bytecode still calls into kotlinx-coroutines
+# Channel/Flow APIs. In full mode R8 then strips the referenced members (e.g.
+# SendChannel.close$default), producing a release-only NoSuchMethodError the moment
+# the on-device model finishes generating. Keep the coroutines surface it uses. (#599)
+-keep class kotlinx.coroutines.channels.** { *; }
+-keep class kotlinx.coroutines.flow.** { *; }
+
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *

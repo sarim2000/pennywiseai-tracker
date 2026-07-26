@@ -1033,10 +1033,12 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Share your month (Top) — the growth loop lives here rather than
-                // buried in the Subscriptions screen, where nobody would find it.
+                // Monthly recap (Top) — the growth loop lives here rather than buried
+                // in the Subscriptions screen, where nobody would find it. Named for what
+                // it is rather than "Share ...": the menu sits beside Settings and Rate,
+                // and leading with the ask makes it read as a favour being requested.
                 MenuListItem(
-                    headline = "Share your month",
+                    headline = "Monthly recap",
                     icon = { Icon(Icons.Default.Share, contentDescription = null) },
                     position = ListItemPosition.Top,
                     onClick = {

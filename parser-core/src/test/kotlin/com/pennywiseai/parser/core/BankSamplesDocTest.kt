@@ -105,6 +105,24 @@ class BankSamplesDocTest {
         return digits.length > 8 || Regex("""^(9{5,}|0+)$""").matches(digits)
     }
 
+    // --- Anonymization gate --------------------------------------------------------
+    // These messages are published verbatim on public bank pages, so the "already
+    // PII-free" assumption of the source corpus must be *enforced*, not trusted: a
+    // real SMS that slipped into a parser test would leak personal data. We reject a
+    // sample carrying a personal email address — one marker that has no legitimate
+    // place in a bank SMS (real transaction SMS use bank UPI handles like @okhdfcbank
+    // or @ybl, never a personal inbox). Phone numbers are deliberately NOT gated:
+    // bank SMS quote fraud-reporting helplines ("Not you? SMS BLOCK to …"), which are
+    // public bank numbers, not the user's — gating them would drop clean samples for
+    // no privacy gain. (#643 review)
+    private val personalEmailPattern = Regex(
+        """[\w.+-]+@(?:gmail|googlemail|yahoo|ymail|outlook|hotmail|live|icloud|proton(?:mail)?|rediffmail|aol|zoho)\.[a-z.]+""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    private fun containsPersonalData(message: String): Boolean =
+        personalEmailPattern.containsMatchIn(message)
+
     // `message = "..."` / `sender = "..."`, tolerating escaped quotes inside.
     private val messageRe = Regex("""message\s*=\s*"((?:[^"\\]|\\.)*)"""")
     private val senderRe = Regex("""sender\s*=\s*"((?:[^"\\]|\\.)*)"""")
@@ -177,6 +195,8 @@ class BankSamplesDocTest {
             harvest(file.readText()).forEach { (sender, message) ->
                 // Keep the demo readable on a phone.
                 if (message.length !in 40..260 || message.contains('\n')) return@forEach
+                // Never publish a real phone/email that slipped into a fixture.
+                if (containsPersonalData(message)) return@forEach
                 val parser = BankParserFactory.getParser(sender) ?: return@forEach
                 val parsed = runCatching { parser.parse(message, sender, FIXED_TIMESTAMP) }
                     .getOrNull() ?: return@forEach

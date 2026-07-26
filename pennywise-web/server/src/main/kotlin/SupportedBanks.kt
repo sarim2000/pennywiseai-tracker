@@ -94,6 +94,14 @@ object SupportedBanks {
 
     private val bySlug: Map<String, BankPage> by lazy { banks.associateBy { it.slug } }
     private val countryBySlug: Map<String, CountryEntry> by lazy {
+        // Same hazard as bank slugs: two country names slugging to one URL would
+        // silently shadow each other under associateBy, serving the wrong page.
+        val collisions = catalogue.countries.groupBy { countrySlug(it.country) }.filterValues { it.size > 1 }
+        check(collisions.isEmpty()) {
+            "Country slug collision(s): " + collisions.entries.joinToString("; ") { (slug, entries) ->
+                "$slug <- ${entries.joinToString(", ") { it.country }}"
+            }
+        }
         catalogue.countries.associateBy { countrySlug(it.country) }
     }
 

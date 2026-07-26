@@ -29,7 +29,10 @@ data class ManageAccountsUiState(
     val orphanedCards: List<CardEntity> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    // F-Droid-only contextual support nudge after a merge (a Pro-equivalent
+    // power feature); persists past the transient successMessage until dismissed.
+    val showSupportNudge: Boolean = false
 )
 
 data class AccountFormState(
@@ -646,18 +649,27 @@ class ManageAccountsViewModel @Inject constructor(
                     _uiState.update { it.copy(hiddenAccounts = hidden) }
                 }
 
+                // F-Droid-only tip nudge; gate on flavor first so Play builds
+                // don't silently consume the global cooldown.
+                val nudge = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD &&
+                    userPreferencesRepository.claimSupportNudge()
                 _uiState.update {
                     it.copy(
-                        successMessage = "Merged $moved transactions into ${AccountBalanceEntity.accountLabel(target.bankName, target.accountLast4)}"
+                        successMessage = "Merged $moved transactions into ${AccountBalanceEntity.accountLabel(target.bankName, target.accountLast4)}",
+                        showSupportNudge = it.showSupportNudge || nudge
                     )
                 }
+                loadCards()
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-                loadCards()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Merge failed: ${e.message}") }
             }
         }
+    }
+
+    fun dismissSupportNudge() {
+        _uiState.update { it.copy(showSupportNudge = false) }
     }
 
     fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long) {

@@ -100,6 +100,13 @@ class TransactionRepository @Inject constructor(
     suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String> =
         transactionDao.getTopCategoriesByUsage(limit)
 
+    suspend fun getTopCategoriesByUsageBetween(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        limit: Int = 3
+    ): List<String> =
+        transactionDao.getTopCategoriesByUsageBetween(startDate, endDate, limit)
+
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
     

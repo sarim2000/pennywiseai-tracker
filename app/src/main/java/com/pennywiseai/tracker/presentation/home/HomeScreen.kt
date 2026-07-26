@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
@@ -62,6 +63,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
@@ -137,6 +139,7 @@ fun HomeScreen(
 
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
+    var showShareSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
     // Profile filter dropdown state
@@ -975,6 +978,11 @@ fun HomeScreen(
         }
     }
 
+    // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
+    if (showShareSheet) {
+        ShareCardSheet(onDismiss = { showShareSheet = false })
+    }
+
     // Avatar menu bottom sheet
     if (showMenuSheet) {
         ModalBottomSheet(
@@ -999,11 +1007,23 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Settings (Top)
+                // Share your month (Top) — the growth loop lives here rather than
+                // buried in the Subscriptions screen, where nobody would find it.
+                MenuListItem(
+                    headline = "Share your month",
+                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    position = ListItemPosition.Top,
+                    onClick = {
+                        showMenuSheet = false
+                        showShareSheet = true
+                    }
+                )
+
+                // Settings (Middle)
                 MenuListItem(
                     headline = "Settings",
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    position = ListItemPosition.Top,
+                    position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
                         onNavigateToSettings()

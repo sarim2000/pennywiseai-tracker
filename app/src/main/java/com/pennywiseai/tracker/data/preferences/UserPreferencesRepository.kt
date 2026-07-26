@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pennywiseai.tracker.data.share.ShareCardConfig
+import com.pennywiseai.tracker.data.share.SharePeriod
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -68,6 +70,12 @@ class UserPreferencesRepository @Inject constructor(
         val LAST_SCAN_TIMESTAMP = longPreferencesKey("last_scan_timestamp")
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
+
+        // Share card — which sections the user puts on the image they share
+        val SHARE_CARD_TRANSACTIONS = booleanPreferencesKey("share_card_transactions")
+        val SHARE_CARD_CATEGORIES = booleanPreferencesKey("share_card_categories")
+        val SHARE_CARD_SUBSCRIPTIONS = booleanPreferencesKey("share_card_subscriptions")
+        val SHARE_CARD_PERIOD = stringPreferencesKey("share_card_period")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -390,7 +398,31 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.LAST_SCAN_PERIOD] = period
         }
     }
-    
+
+    /**
+     * The user's saved share-card layout. Defaults have every section on: the preview
+     * shows exactly what will be sent, so an opinionated default is safe and means the
+     * first share is two taps rather than a configuration exercise.
+     */
+    val shareCardConfig: Flow<ShareCardConfig> = context.dataStore.data
+        .map { preferences ->
+            ShareCardConfig(
+                showTransactions = preferences[PreferencesKeys.SHARE_CARD_TRANSACTIONS] ?: true,
+                showCategories = preferences[PreferencesKeys.SHARE_CARD_CATEGORIES] ?: true,
+                showSubscriptions = preferences[PreferencesKeys.SHARE_CARD_SUBSCRIPTIONS] ?: true,
+                period = SharePeriod.fromName(preferences[PreferencesKeys.SHARE_CARD_PERIOD]),
+            )
+        }
+
+    suspend fun setShareCardConfig(config: ShareCardConfig) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHARE_CARD_TRANSACTIONS] = config.showTransactions
+            preferences[PreferencesKeys.SHARE_CARD_CATEGORIES] = config.showCategories
+            preferences[PreferencesKeys.SHARE_CARD_SUBSCRIPTIONS] = config.showSubscriptions
+            preferences[PreferencesKeys.SHARE_CARD_PERIOD] = config.period.name
+        }
+    }
+
     suspend fun setFirstLaunchTime(timestamp: Long) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FIRST_LAUNCH_TIME] = timestamp

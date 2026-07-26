@@ -19,4 +19,9 @@
     <cache-path
         name="camera_temp"
         path="camera_temp/" />
+
+    <!-- Cache directory for rendered share cards -->
+    <cache-path
+        name="share_cards"
+        path="share_cards/" />
 </paths>

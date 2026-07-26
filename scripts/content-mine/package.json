@@ -1,0 +1,10 @@
+{
+  "name": "pennywise-content-mine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mines the parser git history for defensible, post-worthy facts. The facts step needs no dependencies; only `--draft` uses the Claude Agent SDK (local Claude subscription, same auth as the `claude` CLI — no API key).",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.173"
+  }
+}

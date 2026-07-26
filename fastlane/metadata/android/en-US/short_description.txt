@@ -1,1 +1,1 @@
-Private expense tracker & budget app — auto-reads bank SMS, on-device AI.
+Auto-track UPI & bank SMS. Private expense tracker and budget app, no sign-up.

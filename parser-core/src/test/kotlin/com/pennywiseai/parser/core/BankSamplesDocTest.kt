@@ -109,19 +109,64 @@ class BankSamplesDocTest {
     private val messageRe = Regex("""message\s*=\s*"((?:[^"\\]|\\.)*)"""")
     private val senderRe = Regex("""sender\s*=\s*"((?:[^"\\]|\\.)*)"""")
 
+    /** Test-case constructors in the suite. `SimpleTestCase` orders its arguments
+     *  sender-then-message; `ParserTestCase` does the opposite. */
+    private val caseHeads = listOf("ParserTestCase(", "SimpleTestCase(")
+
     /**
-     * Pairs each `message =` with the `sender =` that follows it inside the same
-     * ParserTestCase block. Both orderings appear in the suite, so fall back to the
-     * nearest preceding sender when none follows.
+     * Returns the span of one balanced `(...)` argument list starting at [open], skipping
+     * over string literals so a bracket inside a message body can't end the block early.
+     */
+    private fun blockEnd(source: String, open: Int): Int {
+        var depth = 0
+        var i = open
+        var inString = false
+        while (i < source.length) {
+            val c = source[i]
+            when {
+                inString && c == '\\' -> i++
+                c == '"' -> inString = !inString
+                inString -> {}
+                c == '(' -> depth++
+                c == ')' -> {
+                    depth--
+                    if (depth == 0) return i
+                }
+            }
+            i++
+        }
+        return -1
+    }
+
+    /**
+     * Pairs each message with the sender declared in the SAME test-case block.
+     *
+     * This used to key off proximity — "the first `sender =` after this `message =`" — which
+     * is wrong whenever a constructor lists sender first (SimpleTestCase does). In a file
+     * covering several banks, such as ThailandBankParsersTest, that walked past the end of
+     * the block and picked up the *next* bank's sender, filing a UOB message under CIMB
+     * Thai. Scanning balanced parens makes the pairing correct by construction instead of
+     * by luck, so a multi-bank test file can no longer cross-contaminate.
      */
     private fun harvest(source: String): List<Pair<String, String>> {
-        val messages = messageRe.findAll(source).map { it.range.first to unescape(it.groupValues[1]) }.toList()
-        val senders = senderRe.findAll(source).map { it.range.first to unescape(it.groupValues[1]) }.toList()
-        if (senders.isEmpty()) return emptyList()
-        return messages.mapNotNull { (pos, msg) ->
-            val sender = senders.firstOrNull { it.first > pos } ?: senders.last { it.first < pos }
-            sender.second.takeIf { it.isNotBlank() }?.let { it to msg }
+        val out = mutableListOf<Pair<String, String>>()
+        for (head in caseHeads) {
+            var from = 0
+            while (true) {
+                val start = source.indexOf(head, from)
+                if (start < 0) break
+                val open = start + head.length - 1
+                val end = blockEnd(source, open)
+                if (end < 0) break
+                from = end + 1
+
+                val block = source.substring(open, end)
+                val msg = messageRe.find(block)?.groupValues?.get(1)?.let(::unescape) ?: continue
+                val sender = senderRe.find(block)?.groupValues?.get(1)?.let(::unescape) ?: continue
+                if (sender.isNotBlank()) out.add(sender to msg)
+            }
         }
+        return out
     }
 
     private fun buildSamples(): Map<String, Sample> {
@@ -191,6 +236,41 @@ class BankSamplesDocTest {
         }
         sb.append("  }\n}\n")
         return sb.toString()
+    }
+
+    @Test
+    fun `harvest never pairs a message with another block's sender`() {
+        // Mirrors the shape that broke: one file covering two banks, where the first
+        // constructor lists sender AFTER message and the second lists it BEFORE. A
+        // proximity-based pairing walks out of block one and steals block two's sender.
+        val source = """
+            val a = listOf(
+                ParserTestCase(
+                    name = "uob",
+                    message = "UOB: Card transaction 3,200.00 THB at AMAZON Bal 22,400.00 THB",
+                    sender = "UOB",
+                    expected = ExpectedTransaction(amount = BigDecimal("3200.00")),
+                ),
+                SimpleTestCase(
+                    bankName = "CIMB Thai",
+                    sender = "CIMB",
+                    message = "CIMB: Transfer received 6,000.00 THB A/C x5566",
+                ),
+            )
+        """.trimIndent()
+
+        val senderOf = harvest(source).associate { (sender, message) -> message to sender }
+        assertEquals(2, senderOf.size, "both test-case shapes should be harvested")
+        assertEquals(
+            "UOB",
+            senderOf.entries.first { it.key.startsWith("UOB:") }.value,
+            "a UOB message must stay paired with the UOB sender"
+        )
+        assertEquals(
+            "CIMB",
+            senderOf.entries.first { it.key.startsWith("CIMB:") }.value,
+            "a CIMB message must stay paired with the CIMB sender"
+        )
     }
 
     @Test

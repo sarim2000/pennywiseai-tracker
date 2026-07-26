@@ -25,6 +25,7 @@ object ParseViews {
                     "Paste any bank SMS and see precisely which transaction details " +
                         "PennyWise extracts from it. Runs the same parser that ships in the app.",
                     "/",
+                    htmx = true,
                 )
                 style {
                     unsafe {

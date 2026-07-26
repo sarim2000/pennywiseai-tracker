@@ -14,11 +14,16 @@ object SharedComponents {
      * @param description meta description — the snippet Google shows under the result.
      *   Keep it under ~160 chars and make it answer the query the page targets.
      * @param canonicalPath absolute path (e.g. "/banks/hdfc-bank") for the canonical URL.
+     * @param htmx load htmx from the CDN. Off by default: only the parser and feedback
+     *   pages actually use it, and the landing pages shouldn't disclose a visitor's IP,
+     *   User-Agent and Referer to a third party — nor block rendering on it — for a
+     *   script they never call.
      */
     fun HEAD.commonHead(
         pageTitle: String,
         description: String? = null,
         canonicalPath: String? = null,
+        htmx: Boolean = false,
     ) {
         title { +pageTitle }
         meta { charset = "utf-8" }
@@ -43,17 +48,20 @@ object SharedComponents {
         // fields, which is where most of this design's personality lives. Body text stays
         // on the system stack deliberately — it costs nothing on a mobile connection and
         // falls back correctly across the scripts this audience actually reads in.
-        link { rel = "preconnect"; href = "https://fonts.googleapis.com" }
+        //
+        // Self-hosted, NOT loaded from Google Fonts. This is the marketing site for an app
+        // whose entire claim is that nothing leaves your device; shipping a third-party
+        // font request would disclose every visitor's IP, User-Agent and Referer to Google
+        // before the page rendered. See static/fonts/LICENSE.md. It also removes a
+        // render-blocking cross-origin round trip. Preload only the face used above the
+        // fold (the h1) — the rest load normally.
         link {
-            rel = "preconnect"; href = "https://fonts.gstatic.com"
+            rel = "preload"; href = "/static/fonts/archivo-variable-latin.woff2"
+            attributes["as"] = "font"
+            attributes["type"] = "font/woff2"
             attributes["crossorigin"] = ""
         }
-        link {
-            rel = "stylesheet"
-            href = "https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800" +
-                "&family=IBM+Plex+Mono:wght@400;500&display=swap"
-        }
-        script { src = "https://unpkg.com/htmx.org@1.9.12" }
+        if (htmx) script { src = "https://unpkg.com/htmx.org@1.9.12" }
     }
 
     fun FlowContent.siteHeader(currentPage: String = "") {
@@ -88,6 +96,28 @@ object SharedComponents {
     }
 
     val commonStyles = """
+        /* Self-hosted — see static/fonts/LICENSE.md for why and under what licence. */
+        @font-face {
+          font-family: 'Archivo';
+          src: url('/static/fonts/archivo-variable-latin.woff2') format('woff2-variations');
+          font-weight: 600 800;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'IBM Plex Mono';
+          src: url('/static/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'IBM Plex Mono';
+          src: url('/static/fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
         :root {
           color-scheme: dark;
           /* Palette is lifted from the app's own Material theme (Color.kt): the dark-mode

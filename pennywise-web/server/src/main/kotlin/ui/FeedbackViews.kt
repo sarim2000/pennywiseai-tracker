@@ -10,7 +10,7 @@ object FeedbackViews {
     suspend fun ApplicationCall.respondFeedbackPage() {
         respondHtml(HttpStatusCode.OK) {
             head {
-                SharedComponents.apply { commonHead("PennyWise AI - Feedback") }
+                SharedComponents.apply { commonHead("PennyWise AI - Feedback", htmx = true) }
                 style {
                     unsafe {
                         +SharedComponents.commonStyles

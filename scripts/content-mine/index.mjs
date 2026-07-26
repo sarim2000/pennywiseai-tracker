@@ -23,6 +23,7 @@
 // more than the post earns.
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -69,7 +70,7 @@ function parserCommits(sinceExpr) {
       commit = { hash, date, subject: rest.join("|") };
     } else if (commit && line.startsWith(BANK_DIR) && line.endsWith(".kt")) {
       const file = line.slice(BANK_DIR.length).replace(/\.kt$/, "");
-      if (file.includes("/") || NOT_A_BANK.has(file)) continue;
+      if (file.includes("/") || notABank(file)) continue;
       out.push({ ...commit, parser: file });
     }
   }
@@ -93,7 +94,7 @@ function firstSeen() {
     if (line.startsWith("\0")) date = line.slice(1);
     else if (date && line.startsWith(BANK_DIR) && line.endsWith(".kt")) {
       const file = line.slice(BANK_DIR.length).replace(/\.kt$/, "");
-      if (file.includes("/") || NOT_A_BANK.has(file)) continue;
+      if (file.includes("/") || notABank(file)) continue;
       // git log walks newest-first, so the last write wins = the earliest add.
       seen.set(file, date);
     }
@@ -128,14 +129,31 @@ const FAILURE_MODES = [
   ["Code-review follow-up", /greptile|\breview\b|\bfeedback\b/],
 ];
 
-// Base classes / registries live alongside the parsers but aren't banks.
-const NOT_A_BANK = new Set([
-  "BankParser",
-  "BankParserFactory",
-  "BankParserRegistry",
-  "BaseIndianBankParser",
-  "UAEBankParser",
-]);
+// Base classes, factories and registries live in the same directory as the parsers but
+// are not banks, and counting them inflates every per-parser statistic below.
+//
+// This was a hand-maintained denylist and it had already rotted — BaseIranianBankParser
+// and BaseThailandBankParser were being counted as banks. So derive it instead: anything
+// whose file declares an abstract/sealed class of the same name is scaffolding, not a
+// bank. Files no longer on disk are kept (a deleted parser was still a real parser).
+const INFRA_BY_NAME = new Set(["BankParserFactory", "BankParserRegistry"]);
+
+const notABank = (() => {
+  const cache = new Map();
+  return (name) => {
+    if (INFRA_BY_NAME.has(name)) return true;
+    if (cache.has(name)) return cache.get(name);
+    let abstract = false;
+    try {
+      const src = readFileSync(path.join(REPO_ROOT, BANK_DIR, `${name}.kt`), "utf8");
+      abstract = new RegExp(`\\b(?:abstract|sealed)\\s+class\\s+${name}\\b`).test(src);
+    } catch {
+      abstract = false; // deleted/renamed — assume it was a genuine parser
+    }
+    cache.set(name, abstract);
+    return abstract;
+  };
+})();
 
 const classify = (subject) => {
   const s = subject.toLowerCase();

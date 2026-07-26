@@ -167,14 +167,14 @@
     },
     "CIMB Thai": {
       "sender": "CIMB",
-      "message": "UOB: Card transaction 3,200.00 THB at AMAZON Bal 22,400.00 THB",
+      "message": "CIMB: Transfer received 6,000.00 THB A/C x5566 Bal 14,980.00 THB",
       "currency": "THB",
-      "amount": "3200.00",
-      "type": "EXPENSE",
-      "merchant": "AMAZON",
-      "accountLast4": null,
-      "reference": "3",
-      "balance": "22400.00"
+      "amount": "6000.00",
+      "type": "INCOME",
+      "merchant": null,
+      "accountLast4": "5566",
+      "reference": null,
+      "balance": "14980.00"
     },
     "CRDB Bank": {
       "sender": "CRDB",
@@ -541,14 +541,14 @@
     },
     "KTC": {
       "sender": "KTC",
-      "message": "CIMB: Transfer received 6,000.00 THB A/C x5566 Bal 14,980.00 THB",
+      "message": "KTC: Credit card spending 2,999.00 THB at LAZADA Available limit 47,001.00 THB",
       "currency": "THB",
-      "amount": "6000.00",
-      "type": "INCOME",
-      "merchant": null,
-      "accountLast4": "5566",
+      "amount": "2999.00",
+      "type": "CREDIT",
+      "merchant": "LAZADA",
+      "accountLast4": null,
       "reference": null,
-      "balance": "14980.00"
+      "balance": null
     },
     "Kasikorn Bank": {
       "sender": "KBank",
@@ -585,14 +585,14 @@
     },
     "Krungsri": {
       "sender": "BAY",
-      "message": "KTB: เงินเข้า 4,200.00 บาท บช x7788 คงเหลือ 12,350.75 บาท",
+      "message": "Krungsri: ATM withdrawal 1,000.00 THB A/C x3344 Bal 9,540.00 THB",
       "currency": "THB",
-      "amount": "4200.00",
-      "type": "INCOME",
+      "amount": "1000.00",
+      "type": "EXPENSE",
       "merchant": null,
-      "accountLast4": "7788",
+      "accountLast4": "3344",
       "reference": null,
-      "balance": "12350.75"
+      "balance": "9540.00"
     },
     "Krungthai Bank": {
       "sender": "KTB",
@@ -838,14 +838,14 @@
     },
     "Siam Commercial Bank": {
       "sender": "SCB",
-      "message": "KBank: You spent 1,250.00 THB at SHOPEE. A/C x5678 Bal 8,430.20 THB",
+      "message": "SCB: Transfer in 12,000.00 THB A/C x8899 Bal 18,200.00 THB",
       "currency": "THB",
-      "amount": "1250.00",
-      "type": "EXPENSE",
-      "merchant": "SHOPEE.",
-      "accountLast4": "5678",
+      "amount": "12000.00",
+      "type": "INCOME",
+      "merchant": null,
+      "accountLast4": "8899",
       "reference": null,
-      "balance": "8430.20"
+      "balance": "18200.00"
     },
     "Siddhartha Bank": {
       "sender": "SBL_Alert",
@@ -937,18 +937,18 @@
     },
     "TTB": {
       "sender": "TTB",
-      "message": "Krungsri: ATM withdrawal 1,000.00 THB A/C x3344 Bal 9,540.00 THB",
+      "message": "ttb: Payment 1,500.00 THB via PromptPay A/C x9012 Bal 7,200.00 THB",
       "currency": "THB",
-      "amount": "1000.00",
+      "amount": "1500.00",
       "type": "EXPENSE",
       "merchant": null,
-      "accountLast4": "3344",
+      "accountLast4": "9012",
       "reference": null,
-      "balance": "9540.00"
+      "balance": "7200.00"
     },
     "Tigo Pesa": {
       "sender": "TIGOPESA(smsfp)",
-      "message": "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026. 16/08/23 15:19. Dial150 01# or use Tigo Pesa App. No Levy while sending money with Tigo Pesa",
+      "message": "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026.",
       "currency": "TZS",
       "amount": "100000",
       "type": "INCOME",

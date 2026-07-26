@@ -24,18 +24,36 @@ import java.io.FileOutputStream
 object ShareCardExporter {
 
     private const val DIR = "share_cards"
-    private const val FILE = "pennywise-share-card.png"
 
     /**
-     * Persists [bitmap] and returns a content:// URI other apps can read.
+     * How long an exported card is kept. Long enough that one still sitting in a chat
+     * draft remains readable; short enough that the directory can't grow without bound.
+     */
+    private const val MAX_AGE_MS = 24L * 60 * 60 * 1000
+
+    /**
+     * Persists [bitmap] under a fresh name and returns a content:// URI other apps can read.
      *
-     * Always overwrites the single file rather than accumulating one per share — the
-     * card is disposable, and a cache directory that grows every time someone taps
-     * Share is a slow leak nobody would ever notice.
+     * Each export gets its own file, deliberately. Reusing one fixed path looks tidier and
+     * bounds the cache for free, which is why the first version did it — but the read
+     * permission granted with a share outlives the share itself. Someone who picks a chat
+     * and leaves the image in a draft still holds that URI, so writing the next card over
+     * the same path swaps the image under them and sends a later recap to an earlier
+     * recipient. Deleting the old file instead would only turn that into a broken
+     * attachment.
+     *
+     * Growth is therefore bounded by age, not by overwriting, so the file just handed to
+     * another app is never the one reclaimed.
      */
     suspend fun writeCard(context: Context, bitmap: Bitmap): Uri = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, DIR).apply { mkdirs() }
-        val file = File(dir, FILE)
+        val now = System.currentTimeMillis()
+
+        dir.listFiles()
+            ?.filter { now - it.lastModified() > MAX_AGE_MS }
+            ?.forEach { it.delete() }
+
+        val file = File(dir, "pennywise-recap-$now.png")
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }

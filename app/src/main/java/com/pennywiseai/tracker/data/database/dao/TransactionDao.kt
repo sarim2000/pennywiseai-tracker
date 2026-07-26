@@ -90,24 +90,6 @@ interface TransactionDao {
     """)
     suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String>
 
-    /**
-     * Same ranking as [getTopCategoriesByUsage] but restricted to a window — used by the
-     * share card's "this month" mode. Ranked by transaction *count*, not spend: summing
-     * amounts per category would break across currencies, and the card shows no money.
-     */
-    @Query("""
-        SELECT category FROM transactions
-        WHERE is_deleted = 0
-        AND date_time BETWEEN :startDate AND :endDate
-        GROUP BY category
-        ORDER BY COUNT(*) DESC
-        LIMIT :limit
-    """)
-    suspend fun getTopCategoriesByUsageBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
-        limit: Int = 3
-    ): List<String>
 
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>

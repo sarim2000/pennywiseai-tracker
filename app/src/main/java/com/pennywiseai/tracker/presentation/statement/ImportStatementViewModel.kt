@@ -93,5 +93,13 @@ class ImportStatementViewModel @Inject constructor(
 
     fun resetState() {
         _uiState.value = ImportStatementUiState.Idle
+        // Clear the nudge so a subsequent import in the same screen instance
+        // doesn't re-show a card the cooldown would otherwise suppress.
+        _showSupportNudge.value = false
+    }
+
+    /** Consume the nudge once the user acts on it (opens the tip jar). */
+    fun dismissSupportNudge() {
+        _showSupportNudge.value = false
     }
 }

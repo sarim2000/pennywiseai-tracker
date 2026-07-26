@@ -124,7 +124,10 @@ fun ImportStatementScreen(
                 is ImportStatementUiState.Success -> SuccessContent(
                     result = state.result,
                     showSupportNudge = showSupportNudge,
-                    onSupportClick = { showSupportDialog = true },
+                    onSupportClick = {
+                        showSupportDialog = true
+                        viewModel.dismissSupportNudge()
+                    },
                     onImportAnother = {
                         viewModel.resetState()
                         onTryLaunchPicker()

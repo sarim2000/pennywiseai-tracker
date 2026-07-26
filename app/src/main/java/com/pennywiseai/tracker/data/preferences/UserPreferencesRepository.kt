@@ -580,10 +580,18 @@ class UserPreferencesRepository @Inject constructor(
      */
     suspend fun claimSupportNudge(): Boolean {
         val today = LocalDate.now().toEpochDay()
-        val last = context.dataStore.data.map { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L }.first()
-        if (today - last < SUPPORT_NUDGE_COOLDOWN_DAYS) return false
-        context.dataStore.edit { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] = today }
-        return true
+        // Check-and-set inside a single edit{} so the read and write are one
+        // atomic transaction — DataStore serializes edit blocks, so two
+        // concurrent claims can't both observe the stale timestamp and win.
+        var claimed = false
+        context.dataStore.edit { prefs ->
+            val last = prefs[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L
+            if (today - last >= SUPPORT_NUDGE_COOLDOWN_DAYS) {
+                prefs[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] = today
+                claimed = true
+            }
+        }
+        return claimed
     }
 
     /**

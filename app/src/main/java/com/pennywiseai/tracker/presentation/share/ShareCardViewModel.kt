@@ -31,6 +31,9 @@ data class ShareCardData(
     val periodLabel: String = "",
 )
 
+private val MONTH_LABEL: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+
 @HiltViewModel
 class ShareCardViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
@@ -44,9 +47,19 @@ class ShareCardViewModel @Inject constructor(
     private val _data = MutableStateFlow(ShareCardData())
     val data: StateFlow<ShareCardData> = _data.asStateFlow()
 
+    /**
+     * Period the caller asked for, if any. Held separately because it can arrive before
+     * the saved config finishes loading: the sheet's LaunchedEffect fires on first
+     * composition, while [init] is still suspended reading DataStore. Without this the
+     * load completes second and silently clobbers the override — the monthly prompt then
+     * opens on the current (nearly empty) month instead of the finished one.
+     */
+    private var pendingPeriodOverride: SharePeriod? = null
+
     init {
         viewModelScope.launch {
-            _config.value = userPreferencesRepository.shareCardConfig.first()
+            val saved = userPreferencesRepository.shareCardConfig.first()
+            _config.value = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
             refresh()
         }
     }
@@ -71,6 +84,18 @@ class ShareCardViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Points the card at [period] for this viewing only, without writing it to
+     * preferences — the monthly prompt opens on last month, but that shouldn't silently
+     * rewrite a choice the user made in Customise.
+     */
+    fun applyPeriodOverride(period: SharePeriod) {
+        pendingPeriodOverride = period
+        if (_config.value.period == period) return
+        _config.value = _config.value.copy(period = period)
+        viewModelScope.launch { refresh() }
+    }
+
     private suspend fun refresh() {
         val period = _config.value.period
         val now = LocalDate.now()
@@ -78,16 +103,20 @@ class ShareCardViewModel @Inject constructor(
         val (start, end) = when (period) {
             SharePeriod.THIS_MONTH ->
                 YearMonth.from(now).atDay(1).atStartOfDay() to now.atTime(23, 59, 59)
+            SharePeriod.LAST_MONTH -> {
+                val month = YearMonth.from(now).minusMonths(1)
+                month.atDay(1).atStartOfDay() to month.atEndOfMonth().atTime(23, 59, 59)
+            }
             SharePeriod.ALL_TIME ->
                 LocalDateTime.of(2000, 1, 1, 0, 0) to LocalDateTime.now().plusYears(10)
         }
 
         val transactions = transactionRepository.getTransactionsBetweenDates(start, end).first()
         val categories = when (period) {
-            SharePeriod.THIS_MONTH ->
-                transactionRepository.getTopCategoriesByUsageBetween(start, end, limit = 3)
             SharePeriod.ALL_TIME ->
                 transactionRepository.getTopCategoriesByUsage(limit = 3)
+            else ->
+                transactionRepository.getTopCategoriesByUsageBetween(start, end, limit = 3)
         }
         val subscriptions = subscriptionRepository.getActiveSubscriptions().first()
 
@@ -97,7 +126,9 @@ class ShareCardViewModel @Inject constructor(
             subscriptionCount = subscriptions.size,
             periodLabel = when (period) {
                 SharePeriod.THIS_MONTH ->
-                    now.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)).uppercase()
+                    now.format(MONTH_LABEL).uppercase()
+                SharePeriod.LAST_MONTH ->
+                    now.minusMonths(1).format(MONTH_LABEL).uppercase()
                 SharePeriod.ALL_TIME -> "ALL TIME"
             },
         )

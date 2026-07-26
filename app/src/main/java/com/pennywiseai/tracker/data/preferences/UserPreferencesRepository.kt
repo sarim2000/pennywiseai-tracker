@@ -76,6 +76,10 @@ class UserPreferencesRepository @Inject constructor(
         val SHARE_CARD_CATEGORIES = booleanPreferencesKey("share_card_categories")
         val SHARE_CARD_SUBSCRIPTIONS = booleanPreferencesKey("share_card_subscriptions")
         val SHARE_CARD_PERIOD = stringPreferencesKey("share_card_period")
+        // Calendar month ("2026-07") the monthly share prompt was last acted on or
+        // dismissed. A month string rather than a day count: "30 days" drifts off the
+        // month boundary this prompt is entirely about.
+        val SHARE_PROMPT_HANDLED_MONTH = stringPreferencesKey("share_prompt_handled_month")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -413,6 +417,27 @@ class UserPreferencesRepository @Inject constructor(
                 period = SharePeriod.fromName(preferences[PreferencesKeys.SHARE_CARD_PERIOD]),
             )
         }
+
+    /**
+     * The month ("2026-07") whose share prompt the user has already dismissed or acted
+     * on, or null if they never have.
+     */
+    val sharePromptHandledMonth: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] }
+
+    /**
+     * Records [month] as handled so the Home banner doesn't come back until the next one.
+     *
+     * Deliberately not the claim-on-decide shape used by [claimSupportNudge]: that nudge
+     * is contextual and fires once at a moment, whereas this banner should persist across
+     * launches until the user actually engages with it. Marking on dismissal rather than
+     * on display means an app kill doesn't silently burn the month's only prompt.
+     */
+    suspend fun markSharePromptHandled(month: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] = month
+        }
+    }
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {
         context.dataStore.edit { preferences ->

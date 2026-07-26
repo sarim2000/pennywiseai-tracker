@@ -1,8 +1,15 @@
 package com.pennywiseai.tracker.data.share
 
-/** Window the share card summarises. */
+/**
+ * Window the share card summarises.
+ *
+ * [LAST_MONTH] exists for the monthly prompt: on the 1st, "this month" is nearly empty,
+ * and a card showing three transactions is worse than no card. A completed month is the
+ * only version of this worth sending.
+ */
 enum class SharePeriod {
     THIS_MONTH,
+    LAST_MONTH,
     ALL_TIME;
 
     companion object {

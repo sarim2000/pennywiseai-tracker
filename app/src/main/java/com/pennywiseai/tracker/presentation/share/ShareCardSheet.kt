@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +56,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ShareCardSheet(
     onDismiss: () -> Unit,
+    initialPeriod: SharePeriod? = null,
     viewModel: ShareCardViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -63,6 +65,12 @@ fun ShareCardSheet(
 
     val config by viewModel.config.collectAsStateWithLifecycle()
     val data by viewModel.data.collectAsStateWithLifecycle()
+
+    // The monthly prompt opens on the finished month regardless of the saved period,
+    // but doesn't overwrite the user's saved choice.
+    LaunchedEffect(initialPeriod) {
+        initialPeriod?.let(viewModel::applyPeriodOverride)
+    }
 
     var showCustomise by remember { mutableStateOf(false) }
     val graphicsLayer = rememberGraphicsLayer()
@@ -144,6 +152,13 @@ fun ShareCardSheet(
                                 viewModel.updateConfig { it.copy(period = SharePeriod.THIS_MONTH) }
                             },
                             label = { Text("This month") },
+                        )
+                        FilterChip(
+                            selected = config.period == SharePeriod.LAST_MONTH,
+                            onClick = {
+                                viewModel.updateConfig { it.copy(period = SharePeriod.LAST_MONTH) }
+                            },
+                            label = { Text("Last month") },
                         )
                         FilterChip(
                             selected = config.period == SharePeriod.ALL_TIME,

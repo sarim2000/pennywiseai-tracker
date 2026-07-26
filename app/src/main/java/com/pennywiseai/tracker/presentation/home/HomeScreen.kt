@@ -63,7 +63,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
+import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
@@ -129,6 +131,7 @@ fun HomeScreen(
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
+    val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -140,6 +143,9 @@ fun HomeScreen(
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
+    // Period the sheet should open on. The monthly banner points it at the finished
+    // month; opening from the overflow menu uses whatever the user saved.
+    var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
     // Profile filter dropdown state
@@ -451,6 +457,23 @@ fun HomeScreen(
                             }
                         )
                     }
+                }
+            }
+
+            // 1.2. Monthly share prompt. Offers the user something ("your month, summed
+            // up") rather than asking a favour, and only appears when the finished month
+            // actually has enough in it to be worth sending.
+            if (showSharePrompt) {
+                item {
+                    ShareMonthBanner(
+                        onOpen = {
+                            viewModel.markSharePromptHandled()
+                            sharePromptPeriod = SharePeriod.LAST_MONTH
+                            showShareSheet = true
+                        },
+                        onDismiss = { viewModel.markSharePromptHandled() },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    )
                 }
             }
 
@@ -980,7 +1003,10 @@ fun HomeScreen(
 
     // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
     if (showShareSheet) {
-        ShareCardSheet(onDismiss = { showShareSheet = false })
+        ShareCardSheet(
+            initialPeriod = sharePromptPeriod,
+            onDismiss = { showShareSheet = false; sharePromptPeriod = null },
+        )
     }
 
     // Avatar menu bottom sheet

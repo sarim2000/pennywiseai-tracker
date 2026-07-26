@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# Regenerates the supported-banks catalogue (docs/supported-banks.json + the
-# README marker block) from the live BankParserFactory registry.
+# Regenerates everything derived from the live BankParserFactory registry:
 #
-# Run this after adding/removing/renaming a bank parser. CI runs the same
-# generator in assert mode (parser-core:jvmTest), so a stale catalogue fails
-# the build with a pointer back to this script.
+#   SupportedBanksDocTest -> docs/supported-banks.json
+#                            README supported-banks block + summary bullet
+#                            pennywise-web .../resources/supported-banks.json
+#                            the coverage claim in the Play Store long description
+#   BankSamplesDocTest    -> pennywise-web .../resources/bank-samples.json
+#                            (one real sample SMS per bank + what the parser
+#                             extracts, used by the per-bank landing pages)
+#
+# Run this after adding/removing/renaming a bank parser, or after changing a
+# parser's extraction behaviour. CI runs both generators in assert mode
+# (parser-core:jvmTest), so anything stale fails the build with a pointer here.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# --rerun-tasks is required: without it Gradle treats the test as UP-TO-DATE on
-# repeat runs and skips it, so the generated files would not be rewritten. Only
-# this on-demand regen uses it; the CI staleness guard runs the test normally.
+# --rerun-tasks is required: without it Gradle treats the tests as UP-TO-DATE on
+# repeat runs and skips them, so the generated files would not be rewritten. Only
+# this on-demand regen uses it; the CI staleness guard runs the tests normally.
 UPDATE_SUPPORTED_BANKS=true ./gradlew :parser-core:jvmTest \
   --tests "com.pennywiseai.parser.core.SupportedBanksDocTest" \
+  --tests "com.pennywiseai.parser.core.BankSamplesDocTest" \
   --rerun-tasks
 
-echo "Updated docs/supported-banks.json and the README supported-banks block."
+echo "Updated the supported-banks catalogue, the README block, the Play listing"
+echo "coverage claim, and the per-bank parse samples."

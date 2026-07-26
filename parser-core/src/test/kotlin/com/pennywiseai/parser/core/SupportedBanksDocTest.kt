@@ -176,6 +176,16 @@ class SupportedBanksDocTest {
         return readme.substring(s + summaryStart.length, e)
     }
 
+    /**
+     * The coverage claim in the Play Store long description. Play listings can't carry
+     * HTML comment markers (they'd render as literal text), so the sentence itself is the
+     * marker — this regex has to keep matching the wording in full_description.txt.
+     */
+    private val listingClaim = Regex("""\d+ banks and payment services across \d+ countries""")
+
+    private fun listingText(groups: List<CountryGroup>) =
+        "${groups.sumOf { it.banks.size }} banks and payment services across ${groups.size} countries"
+
     @Test
     fun `supported-banks catalogue is in sync`() {
         val groups = buildGroups()
@@ -186,12 +196,23 @@ class SupportedBanksDocTest {
         val root = repoRoot()
         val jsonFile = File(root, "docs/supported-banks.json")
         val readmeFile = File(root, "README.md")
+        // pennywise-web serves a landing page per bank/country off this same catalogue, and
+        // reads it from its own classpath — so the web module gets a generated copy too.
+        val webJsonFile = File(root, "pennywise-web/server/src/main/resources/supported-banks.json")
+        // The Play Store long description quotes the same coverage numbers.
+        val listingFile = File(root, "fastlane/metadata/android/en-US/full_description.txt")
+        val claim = listingText(groups)
 
         if (System.getenv("UPDATE_SUPPORTED_BANKS") == "true") {
             jsonFile.parentFile.mkdirs()
             jsonFile.writeText(json)
+            webJsonFile.parentFile.mkdirs()
+            webJsonFile.writeText(json)
             val updated = replaceSummary(replaceMarkers(readmeFile.readText(), block), summary)
             readmeFile.writeText(updated)
+            if (listingFile.exists()) {
+                listingFile.writeText(listingFile.readText().replace(listingClaim, claim))
+            }
             return
         }
 
@@ -199,6 +220,18 @@ class SupportedBanksDocTest {
             json,
             jsonFile.takeIf { it.exists() }?.readText(),
             "docs/supported-banks.json is stale — run scripts/update-supported-banks.sh"
+        )
+        assertEquals(
+            json,
+            webJsonFile.takeIf { it.exists() }?.readText(),
+            "pennywise-web/server/src/main/resources/supported-banks.json is stale — " +
+                "run scripts/update-supported-banks.sh"
+        )
+        assertEquals(
+            claim,
+            listingFile.takeIf { it.exists() }?.readText()?.let { listingClaim.find(it)?.value },
+            "The Play listing coverage claim (fastlane/.../full_description.txt) is stale — " +
+                "run scripts/update-supported-banks.sh"
         )
         val readme = readmeFile.readText()
         assertEquals(

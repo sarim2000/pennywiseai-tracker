@@ -1,1 +1,1 @@
-PennyWise AI - Expense Tracker
+PennyWise: SMS Expense Tracker

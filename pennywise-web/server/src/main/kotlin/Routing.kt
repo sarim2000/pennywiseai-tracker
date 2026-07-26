@@ -13,6 +13,10 @@ import com.pennywiseai.parser.core.bank.BankParserRegistry
 import com.pennywiseai.parser.core.bank.*
 import com.example.ui.ParseViews.respondParsePage
 import com.example.ui.ParseViews.renderParseResult
+import com.example.ui.BankViews
+import com.example.ui.BankViews.respondBankPage
+import com.example.ui.BankViews.respondBanksIndex
+import com.example.ui.BankViews.respondCountryPage
 
 fun Application.configureRouting() {
     install(CORS) {
@@ -39,6 +43,28 @@ fun Application.configureRouting() {
         // Serve HTMX page at root
         get("/") { call.respondParsePage() }
         get("/tools/parse") { call.respondParsePage() }
+
+        // Long-tail landing pages, one per supported bank/country. Generated from the
+        // same catalogue the README and Play listing use, so they can never advertise a
+        // bank we don't actually parse.
+        get("/banks") { call.respondBanksIndex() }
+        get("/banks/country/{slug}") {
+            val country = SupportedBanks.country(call.parameters["slug"].orEmpty())
+            if (country == null) call.respond(HttpStatusCode.NotFound, "Unknown country")
+            else call.respondCountryPage(country)
+        }
+        get("/banks/{slug}") {
+            val bank = SupportedBanks.bank(call.parameters["slug"].orEmpty())
+            if (bank == null) call.respond(HttpStatusCode.NotFound, "Unknown bank")
+            else call.respondBankPage(bank)
+        }
+
+        get("/sitemap.xml") {
+            call.respondText(BankViews.buildSitemap(), ContentType.Text.Xml)
+        }
+        get("/robots.txt") {
+            call.respondText(BankViews.buildRobots(), ContentType.Text.Plain)
+        }
 
         // HTMX endpoint that returns an HTML snippet with parsed result
         post("/htmx/parse") {

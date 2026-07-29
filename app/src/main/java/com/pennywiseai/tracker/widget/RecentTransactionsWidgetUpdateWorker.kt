@@ -85,8 +85,10 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 .first()
 
             // Loan disbursements/repayments are tracked in the Loans feature, not
-            // spending — exclude them, matching Home/Analytics.
-            val nonLoan = allTransactions.filter { it.loanId == null }
+            // spending — exclude them, matching Home/Analytics. Analytics-excluded
+            // transactions are opted out of every spend figure by the user, so they
+            // must not count toward the widget's spend total either.
+            val nonLoan = allTransactions.filter { it.loanId == null && !it.excludedFromAnalytics }
             suspend fun inTarget(tx: com.pennywiseai.tracker.data.database.entity.TransactionEntity): BigDecimal =
                 if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
                     currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency)

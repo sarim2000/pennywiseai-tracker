@@ -34,7 +34,13 @@ pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
 reviewKtx = "2.0.2"
 roomVersion = "2.8.4"
-litertlm = "0.+"
+# Pinned: litertlm 0.14.0 is compiled with -Xjvm-default=all and calls
+# SendChannel.close$default as an interface static, which no public
+# kotlinx-coroutines build provides (it lives in SendChannel$DefaultImpls) —
+# so the AI assistant hard-crashes with NoSuchMethodError the moment generation
+# finishes. 0.13.1 emits the DefaultImpls call and works. Do NOT float to 0.+
+# again until upstream fixes this. (#599)
+litertlm = "0.13.1"
 visionInternalVkp = "18.2.3"
 workVersion = "2.11.2"
 coil = "2.7.0"

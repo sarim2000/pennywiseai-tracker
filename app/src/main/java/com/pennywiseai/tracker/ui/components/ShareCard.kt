@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import com.pennywiseai.tracker.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -92,16 +97,34 @@ fun ShareCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "PENNYWISE",
-                style = TextStyle(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp,
-                    color = ShareCardColors.Text,
-                ),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // A raster copy of the launcher icon, NOT R.mipmap.ic_launcher: that
+                // resolves to an <adaptive-icon> XML on API 26+, and painterResource only
+                // accepts VectorDrawables or rasters — it throws at composition time, which
+                // a green build will not tell you. The mark itself is the right one: on a
+                // card seen mostly by people who don't have the app, what's worth showing is
+                // exactly what they'd tap on the Play Store listing, and it matches the
+                // website header's treatment.
+                Image(
+                    painter = painterResource(id = R.drawable.share_card_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(7.dp)),
+                )
+                Spacer(Modifier.width(9.dp))
+                Text(
+                    text = "PENNYWISE",
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        color = ShareCardColors.Text,
+                    ),
+                )
+            }
             Text(
                 text = data.periodLabel,
                 style = TextStyle(

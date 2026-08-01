@@ -23,7 +23,7 @@ Set category budgets and track progress at a glance. Custom cycle start days mea
 Private by design
 All processing happens on your device — no servers, no API calls, nothing leaving your phone. There are no accounts to create, and the full source is open (AGPL-3.0) so anyone can verify exactly what the app does.
 
-Free, with optional Pro
-PennyWise is free to use. An optional Pro upgrade unlocks power-user extras — unlimited custom rules, CSV export, and more — and directly supports a solo developer building PennyWise independently.
+Free & open source
+PennyWise is completely free, with no ads and no in-app purchases. The full source is open (AGPL-3.0).
 
 Download PennyWise for private, effortless expense tracking and budgeting.

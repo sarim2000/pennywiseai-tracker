@@ -67,13 +67,7 @@ fun ShareCard(
     data: ShareCardData,
     modifier: Modifier = Modifier,
 ) {
-    // A "0 subscriptions" card isn't worth sending, so fall back rather than publish a
-    // zero the user never asked for.
-    val hero = if (config.hero == ShareHero.SUBSCRIPTIONS && data.subscriptionCount == 0) {
-        ShareHero.TRANSACTIONS
-    } else {
-        config.hero
-    }
+    val hero = config.effectiveHero(data.subscriptionCount)
 
     val value = when (hero) {
         ShareHero.TRANSACTIONS -> data.transactionCount

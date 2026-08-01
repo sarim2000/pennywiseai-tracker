@@ -53,4 +53,20 @@ enum class ShareHero {
 data class ShareCardConfig(
     val hero: ShareHero = ShareHero.TRANSACTIONS,
     val period: SharePeriod = SharePeriod.THIS_MONTH,
-)
+) {
+    /**
+     * The hero actually rendered, given how many subscriptions were found.
+     *
+     * A card leading with "0 subscriptions" isn't worth sending, so it falls back. Both
+     * the card and the picker resolve through here rather than each applying their own
+     * rule — when only the card did, choosing Subscriptions with none detected highlighted
+     * the chip and changed nothing, which reads as a broken control rather than a
+     * deliberate substitution.
+     */
+    fun effectiveHero(subscriptionCount: Int): ShareHero =
+        if (hero == ShareHero.SUBSCRIPTIONS && subscriptionCount == 0) {
+            ShareHero.TRANSACTIONS
+        } else {
+            hero
+        }
+}

@@ -138,20 +138,37 @@ fun ShareCardSheet(
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(bottom = Spacing.xs),
                     )
+                    // Selection reflects the hero actually drawn, not the stored one, so
+                    // the chip can never disagree with the card above it.
+                    val effectiveHero = config.effectiveHero(data.subscriptionCount)
+                    val hasSubscriptions = data.subscriptionCount > 0
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
-                            selected = config.hero == ShareHero.TRANSACTIONS,
+                            selected = effectiveHero == ShareHero.TRANSACTIONS,
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.TRANSACTIONS) }
                             },
                             label = { Text("Transactions") },
                         )
                         FilterChip(
-                            selected = config.hero == ShareHero.SUBSCRIPTIONS,
+                            selected = effectiveHero == ShareHero.SUBSCRIPTIONS,
+                            // Disabled rather than silently ignored: tapping a chip and
+                            // seeing nothing happen reads as a bug, not as a choice the
+                            // data can't support.
+                            enabled = hasSubscriptions,
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.SUBSCRIPTIONS) }
                             },
                             label = { Text("Subscriptions") },
+                        )
+                    }
+                    if (!hasSubscriptions) {
+                        Text(
+                            text = "No subscriptions detected yet — PennyWise finds these " +
+                                "from recurring payments in your SMS.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.xs),
                         )
                     }
 

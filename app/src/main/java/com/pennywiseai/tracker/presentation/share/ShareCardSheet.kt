@@ -17,7 +17,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -38,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.share.ShareCardExporter
 import com.pennywiseai.tracker.ui.components.ShareCard
@@ -130,20 +130,35 @@ fun ShareCardSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    ToggleRow("Transactions", config.showTransactions) { on ->
-                        viewModel.updateConfig { it.copy(showTransactions = on) }
-                    }
-                    ToggleRow("Most frequent categories", config.showCategories) { on ->
-                        viewModel.updateConfig { it.copy(showCategories = on) }
-                    }
-                    ToggleRow("Subscriptions", config.showSubscriptions) { on ->
-                        viewModel.updateConfig { it.copy(showSubscriptions = on) }
+                    // A single choice rather than three switches: the card shows one
+                    // figure, so offering three independent toggles would imply a stacked
+                    // layout that no longer exists.
+                    Text(
+                        text = "Show",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(bottom = Spacing.xs),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        FilterChip(
+                            selected = config.hero == ShareHero.TRANSACTIONS,
+                            onClick = {
+                                viewModel.updateConfig { it.copy(hero = ShareHero.TRANSACTIONS) }
+                            },
+                            label = { Text("Transactions") },
+                        )
+                        FilterChip(
+                            selected = config.hero == ShareHero.SUBSCRIPTIONS,
+                            onClick = {
+                                viewModel.updateConfig { it.copy(hero = ShareHero.SUBSCRIPTIONS) }
+                            },
+                            label = { Text("Subscriptions") },
+                        )
                     }
 
                     Text(
                         text = "Period",
                         style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.xs),
+                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
@@ -168,27 +183,9 @@ fun ShareCardSheet(
                             label = { Text("All time") },
                         )
                     }
-
-                    Text(
-                        text = "At least one section stays on — an empty card can't be shared.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = Spacing.sm),
-                    )
                 }
             }
         }
     }
 }
 
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
-}

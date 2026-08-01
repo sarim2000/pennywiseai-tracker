@@ -19,25 +19,38 @@ enum class SharePeriod {
 }
 
 /**
+ * Which single figure the card leads with.
+ *
+ * One, not several. The card is consumed as a ~260px thumbnail in a chat, and at that
+ * size only a large number and a few words survive. An earlier version stacked three
+ * labelled sections; downscaled, none of them were legible — including the URL, the one
+ * element that brings anyone back. Adding information to a canvas that small subtracts
+ * from it.
+ */
+enum class ShareHero {
+    /** "312 — tracked. 0 typed." The effort not spent, which is the actual product. */
+    TRANSACTIONS,
+
+    /** "4 — subscriptions I'd forgotten." A discovery, so it carries higher share intent. */
+    SUBSCRIPTIONS;
+
+    companion object {
+        fun fromName(value: String?): ShareHero =
+            entries.firstOrNull { it.name == value } ?: TRANSACTIONS
+    }
+}
+
+/**
  * What the user has chosen to put on their share card.
  *
- * Configurability is the privacy mechanism here. An earlier version redacted everything
- * because that was the safest guess about what people would be willing to broadcast —
- * but the user is the only one who knows whether their own categories are boring or
- * sensitive. They choose, and the preview shows them the result before anything leaves
- * the device.
+ * Configurability is the privacy mechanism: only the user knows whether their own figures
+ * are boring or sensitive, so they choose and the preview shows the result before anything
+ * leaves the device.
  *
- * At least one section must stay enabled; [enabledSectionCount] is what the card's
- * layout scales against and what the ViewModel guards on.
+ * Categories were dropped as an option — a category name is not a number, and it cannot
+ * carry a card at the size this one is actually read at.
  */
 data class ShareCardConfig(
-    val showTransactions: Boolean = true,
-    val showCategories: Boolean = true,
-    val showSubscriptions: Boolean = true,
+    val hero: ShareHero = ShareHero.TRANSACTIONS,
     val period: SharePeriod = SharePeriod.THIS_MONTH,
-) {
-    val enabledSectionCount: Int
-        get() = listOf(showTransactions, showCategories, showSubscriptions).count { it }
-
-    val hasAnySection: Boolean get() = enabledSectionCount > 0
-}
+)

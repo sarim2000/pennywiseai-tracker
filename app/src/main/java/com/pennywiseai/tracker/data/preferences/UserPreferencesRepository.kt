@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.share.ShareCardConfig
+import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -71,10 +72,8 @@ class UserPreferencesRepository @Inject constructor(
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
 
-        // Share card — which sections the user puts on the image they share
-        val SHARE_CARD_TRANSACTIONS = booleanPreferencesKey("share_card_transactions")
-        val SHARE_CARD_CATEGORIES = booleanPreferencesKey("share_card_categories")
-        val SHARE_CARD_SUBSCRIPTIONS = booleanPreferencesKey("share_card_subscriptions")
+        // Share card — which single figure the card leads with, and over what window
+        val SHARE_CARD_HERO = stringPreferencesKey("share_card_hero")
         val SHARE_CARD_PERIOD = stringPreferencesKey("share_card_period")
         // Calendar month ("2026-07") the monthly share prompt was last acted on or
         // dismissed. A month string rather than a day count: "30 days" drifts off the
@@ -411,9 +410,7 @@ class UserPreferencesRepository @Inject constructor(
     val shareCardConfig: Flow<ShareCardConfig> = context.dataStore.data
         .map { preferences ->
             ShareCardConfig(
-                showTransactions = preferences[PreferencesKeys.SHARE_CARD_TRANSACTIONS] ?: true,
-                showCategories = preferences[PreferencesKeys.SHARE_CARD_CATEGORIES] ?: true,
-                showSubscriptions = preferences[PreferencesKeys.SHARE_CARD_SUBSCRIPTIONS] ?: true,
+                hero = ShareHero.fromName(preferences[PreferencesKeys.SHARE_CARD_HERO]),
                 period = SharePeriod.fromName(preferences[PreferencesKeys.SHARE_CARD_PERIOD]),
             )
         }
@@ -441,9 +438,7 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SHARE_CARD_TRANSACTIONS] = config.showTransactions
-            preferences[PreferencesKeys.SHARE_CARD_CATEGORIES] = config.showCategories
-            preferences[PreferencesKeys.SHARE_CARD_SUBSCRIPTIONS] = config.showSubscriptions
+            preferences[PreferencesKeys.SHARE_CARD_HERO] = config.hero.name
             preferences[PreferencesKeys.SHARE_CARD_PERIOD] = config.period.name
         }
     }

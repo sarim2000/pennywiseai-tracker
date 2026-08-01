@@ -95,15 +95,11 @@ class ShareCardViewModel @Inject constructor(
     }
 
     /**
-     * Applies [update], unless it would leave the card with nothing on it.
-     *
-     * Silently keeping the last switch on is friendlier than disabling Share and letting
-     * the user stare at an empty card wondering what's wrong.
+     * Applies [update]. No emptiness guard is needed any more: with a single hero there is
+     * no configuration that produces a blank card.
      */
     fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
         val candidate = update(_config.value)
-        if (!candidate.hasAnySection) return
-
         val periodChanged = candidate.period != _config.value.period
         _config.value = candidate
         viewModelScope.launch { userPreferencesRepository.setShareCardConfig(candidate) }

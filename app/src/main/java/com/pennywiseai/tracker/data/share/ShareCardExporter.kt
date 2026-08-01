@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.ui.components.SHARE_CARD_URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,15 +71,14 @@ object ShareCardExporter {
      * back to the landing pages.
      */
     fun shareText(config: ShareCardConfig, transactions: Int, subscriptions: Int): String {
-        val lead = when {
-            config.showTransactions ->
-                "PennyWise tracked $transactions transactions for me without me typing in a single one."
-            config.showSubscriptions -> {
-                val subs = if (subscriptions == 1) "1 subscription" else "$subscriptions subscriptions"
-                "PennyWise found $subs I'd forgotten I was paying for."
-            }
-            else ->
-                "PennyWise sorted my spending into categories automatically."
+        // Follows whichever figure the card leads with, so the words and the image agree.
+        val heroIsSubscriptions =
+            config.hero == ShareHero.SUBSCRIPTIONS && subscriptions > 0
+        val lead = if (heroIsSubscriptions) {
+            val subs = if (subscriptions == 1) "1 subscription" else "$subscriptions subscriptions"
+            "PennyWise found $subs I'd forgotten I was paying for."
+        } else {
+            "PennyWise tracked $transactions transactions for me without me typing in a single one."
         }
         return "$lead It reads bank SMS on your phone — nothing gets uploaded. " +
             "https://$SHARE_CARD_URL"

@@ -54,6 +54,155 @@ platform :ios do
     )
   end
 
+  desc "Read-only: print live description + list review (draft) submissions"
+  lane :asc_status do
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    UI.message("APP #{app.name} id=#{app.id}")
+    editable = app.get_edit_app_store_version
+    UI.message("EDIT_VERSION #{editable&.version_string} state=#{editable&.app_store_state}")
+    if editable
+      locs = editable.get_app_store_version_localizations
+      loc = locs.find { |l| l.locale == "en-US" } || locs.first
+      d = loc.description.to_s
+      UI.message("DESC_MENTIONS_PRO #{d.include?('Pro')}")
+      UI.message("DESC_TAIL ...#{d[-160..-1]}")
+    end
+    UI.message("EDIT_VERSION_ID #{editable&.id}")
+    subs = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    UI.message("REVIEW_SUBMISSIONS count=#{subs.size}")
+    subs.each do |s|
+      items = (Spaceship::ConnectAPI.get_review_submission_items(review_submission_id: s.id).to_models rescue [])
+      UI.message("  SUB id=#{s.id} state=#{s.state} platform=#{s.platform} items=#{items.size}")
+    end
+  end
+
+  desc "Cancel the rejected/in-progress review submission holding the version (frees it to resubmit)"
+  lane :cancel_rejected do
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    subs = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    cancellable = %w[UNRESOLVED_ISSUES WAITING_FOR_REVIEW IN_REVIEW]
+    subs.each do |s|
+      if cancellable.include?(s.state)
+        UI.message("CANCELING #{s.id} (state=#{s.state})")
+        s.cancel_submission
+      end
+    end
+    sleep(5)
+    after = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    after.each { |s| UI.message("  NOW id=#{s.id} state=#{s.state}") }
+  end
+
+  desc "Attach version 1.0 to a review submission and submit for review (reuses an empty draft)"
+  lane :submit_version do
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    editable = app.get_edit_app_store_version(includes: "build")
+    UI.user_error!("No editable version") unless editable
+    build = editable.build rescue nil
+    UI.message("EDIT_VERSION #{editable.version_string} state=#{editable.app_store_state} build=#{build&.id} (#{build&.version})")
+    UI.user_error!("No build attached to the edit version — cannot submit") if build.nil?
+
+    subs = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    draft = subs.find { |s| s.state == "READY_FOR_REVIEW" }
+    draft ||= Spaceship::ConnectAPI.post_review_submission(app_id: app.id, platform: Spaceship::ConnectAPI::Platform::IOS).to_models.first
+    UI.message("USING submission #{draft.id} (state=#{draft.state})")
+
+    items = Spaceship::ConnectAPI.get_review_submission_items(review_submission_id: draft.id).to_models
+    if items.empty?
+      draft.add_app_store_version_to_review_items(app_store_version_id: editable.id)
+      UI.message("ADDED version #{editable.id} as review item")
+    else
+      UI.message("submission already has #{items.size} item(s)")
+    end
+
+    result = draft.submit_for_review
+    UI.message("SUBMITTED submission #{draft.id} -> state=#{result&.state}")
+  end
+
+  desc "Hard-DELETE empty draft review submissions (READY_FOR_REVIEW, 0 items) via raw ASC REST"
+  lane :delete_empty_drafts do
+    require 'net/http'
+    require 'uri'
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    subs = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    subs.each do |s|
+      items = (Spaceship::ConnectAPI.get_review_submission_items(review_submission_id: s.id).to_models rescue [])
+      unless s.state == "READY_FOR_REVIEW" && items.empty?
+        UI.message("SKIP #{s.id} state=#{s.state} items=#{items.size}")
+        next
+      end
+      uri = URI("https://api.appstoreconnect.apple.com/v1/reviewSubmissions/#{s.id}")
+      req = Net::HTTP::Delete.new(uri)
+      req["Authorization"] = "Bearer #{token.text}"
+      res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(req) }
+      UI.message("DELETE #{s.id} -> HTTP #{res.code} #{res.body.to_s[0, 220]}")
+    end
+  end
+
+  desc "Cancel empty draft review submissions (READY_FOR_REVIEW, 0 items)"
+  lane :cancel_drafts do
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    subs = Spaceship::ConnectAPI.get_review_submissions(app_id: app.id).to_models
+    subs.each do |s|
+      items = (Spaceship::ConnectAPI.get_review_submission_items(review_submission_id: s.id).to_models rescue [])
+      if s.state == "READY_FOR_REVIEW" && items.size == 0
+        UI.message("CANCELING empty draft #{s.id}")
+        s.cancel_submission
+      else
+        UI.message("KEEPING #{s.id} state=#{s.state} items=#{items.size}")
+      end
+    end
+  end
+
+  desc "Push corrected text metadata (description etc.) and resubmit the rejected version for review — metadata-only, no new binary"
+  lane :resubmit_metadata do
+    deliver(
+      api_key: asc_key,
+      app_identifier: "com.pennywiseai.iosApp",
+      submit_for_review: true,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,          # DO upload the text metadata (the description fix)
+      force: true,
+      run_precheck_before_submit: false,
+      automatic_release: true,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        add_id_info_uses_idfa: false,
+        content_rights_contains_third_party_content: false
+      }
+    )
+  end
+
   desc "Submit the current version for App Store review (metadata/screenshots already uploaded)"
   lane :submit do
     deliver(

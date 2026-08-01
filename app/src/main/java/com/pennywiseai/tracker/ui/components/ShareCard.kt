@@ -80,9 +80,11 @@ fun ShareCard(
         ShareHero.SUBSCRIPTIONS -> data.subscriptionCount
     }
     val caption = when (hero) {
-        // Four words. The zero is the surprising half — the effort that wasn't spent —
-        // and unlike the old three-line supporting text it still reads as a thumbnail.
-        ShareHero.TRANSACTIONS -> "tracked. 0 typed."
+        // "bank texts" carries the product. Without it the card says "15 — tracked" to
+        // someone who has never heard of PennyWise, and the only line explaining what was
+        // tracked is the smallest text on the image. The zero stays: the effort that
+        // wasn't spent is the surprising half, and it still reads at thumbnail size.
+        ShareHero.TRANSACTIONS -> "bank texts tracked. 0 typed."
         ShareHero.SUBSCRIPTIONS ->
             if (value == 1) "subscription I forgot" else "subscriptions I forgot"
     }
@@ -163,11 +165,12 @@ fun ShareCard(
 
         Spacer(Modifier.weight(1f))
 
-        // The redaction motif, demoted from a labelled section to texture. It was the most
-        // distinctive part of the first design and the least legible once stacked with
-        // everything else; as a band it still reads as "a list with the values blacked out"
-        // at full size and simply as texture when small — degrading rather than vanishing.
-        RedactionBand()
+        // One row per real category, each bar sized from the length of the name it hides.
+        // An earlier version drew a fixed three-row pattern, which looked the same whether
+        // you had two categories or forty — decoration imitating data. That's the one thing
+        // this card cannot afford: its whole claim is that the structure is real and only
+        // the values are withheld. Nothing to hide means no band, rather than a fake one.
+        RedactionBand(data.topCategories)
 
         Spacer(Modifier.height(18.dp))
 
@@ -194,25 +197,36 @@ fun ShareCard(
     }
 }
 
+/**
+ * One redacted row per [categories] entry. The bar is sized from the length of the name it
+ * covers, so the block genuinely varies with the user's own data rather than being a
+ * decorative constant — the same relationship the app's masked account tails have to the
+ * numbers behind them.
+ */
 @Composable
-private fun RedactionBand() {
-    val rows = listOf(
-        listOf(0.42f, 0.22f),
-        listOf(0.30f, 0.36f),
-        listOf(0.52f, 0.18f),
-    )
+private fun RedactionBand(categories: List<String>) {
+    if (categories.isEmpty()) return
+
     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        rows.forEach { widths ->
+        categories.take(3).forEach { name ->
+            // Map name length onto a readable span. Clamped at both ends so a one-word
+            // category still reads as a bar and a long one can't run to the edge.
+            val width = (0.26f + name.length * 0.028f).coerceIn(0.26f, 0.62f)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                widths.forEach { w ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(w)
-                            .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(ShareCardColors.Redaction),
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(width)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(ShareCardColors.Redaction),
+                )
+                Box(
+                    modifier = Modifier
+                        .width(46.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(ShareCardColors.Redaction),
+                )
             }
         }
     }

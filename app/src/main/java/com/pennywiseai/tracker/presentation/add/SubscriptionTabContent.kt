@@ -401,7 +401,11 @@ fun SubscriptionTabContent(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = uiState.selectedAccount?.bankName ?: "Paid from (optional)",
+                            // Alias-aware like the dropdown items, so the account
+                            // doesn't change name when the menu closes (#637).
+                            text = uiState.selectedAccount
+                                ?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
+                                ?: "Paid from (optional)",
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (uiState.selectedAccount != null)
                                 MaterialTheme.colorScheme.onSurface

@@ -64,12 +64,17 @@ fun ShareCardSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val config by viewModel.config.collectAsStateWithLifecycle()
-    val data by viewModel.data.collectAsStateWithLifecycle()
+    val loadedData by viewModel.data.collectAsStateWithLifecycle()
+    // Null while (re)loading — preview a blank card and keep Share disabled rather than
+    // let a previous profile's or period's numbers go out under the current label.
+    val data = loadedData ?: ShareCardData()
 
     // The monthly prompt opens on the finished month regardless of the saved period,
-    // but doesn't overwrite the user's saved choice.
+    // but doesn't overwrite the user's saved choice. Reported even when there is no
+    // override: the ViewModel outlives the sheet, so a plain opening has to clear a
+    // previous viewing's override.
     LaunchedEffect(initialPeriod) {
-        initialPeriod?.let(viewModel::applyPeriodOverride)
+        viewModel.setPeriodOverride(initialPeriod)
     }
 
     var showCustomise by remember { mutableStateOf(false) }
@@ -103,6 +108,7 @@ fun ShareCardSheet(
             )
 
             Button(
+                enabled = loadedData != null,
                 onClick = {
                     scope.launch {
                         val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()

@@ -11,12 +11,19 @@ import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -50,9 +57,6 @@ class ShareCardViewModel @Inject constructor(
     private val _config = MutableStateFlow(ShareCardConfig())
     val config: StateFlow<ShareCardConfig> = _config.asStateFlow()
 
-    private val _data = MutableStateFlow(ShareCardData())
-    val data: StateFlow<ShareCardData> = _data.asStateFlow()
-
     /**
      * Period the caller asked for, if any. Held separately because it can arrive before
      * the saved config finishes loading: the sheet's LaunchedEffect fires on first
@@ -63,67 +67,55 @@ class ShareCardViewModel @Inject constructor(
     private var pendingPeriodOverride: SharePeriod? = null
 
     /**
-     * The in-flight refresh, cancelled before a new one starts.
-     *
-     * Each refresh reads several suspending sources, so two of them racing can finish out
-     * of order and leave [_data] describing a period the user has already moved off —
-     * flick between the period chips quickly and the card settles on the wrong one.
+     * The period as persisted, mirrored here so an override can be undone without an
+     * async DataStore read (which could race the write [updateConfig] just started).
+     * Null until the saved config has loaded.
      */
-    private var refreshJob: Job? = null
+    private var savedPeriod: SharePeriod? = null
 
-    private fun scheduleRefresh() {
-        refreshJob?.cancel()
-        refreshJob = viewModelScope.launch { refresh() }
-    }
+    /**
+     * Gates [data]: queries wait for the saved config so the card never loads the
+     * default period's data only to flip to the saved one a frame later.
+     */
+    private val configLoaded = MutableStateFlow(false)
 
     init {
         viewModelScope.launch {
             val saved = userPreferencesRepository.shareCardConfig.first()
+            savedPeriod = saved.period
             _config.value = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
-            scheduleRefresh()
-        }
-        // The sheet's ViewModel outlives a single viewing, so filtering by profile at
-        // read time isn't enough on its own: switch profile, reopen the sheet, and
-        // nothing would have re-read the database — the card would still show the
-        // previous profile's totals. Following the selection keeps the two in step
-        // whether it changes between viewings or while the sheet is open.
-        viewModelScope.launch {
-            userPreferencesRepository.selectedProfileId
-                .distinctUntilChanged()
-                .collect { scheduleRefresh() }
+            configLoaded.value = true
         }
     }
 
     /**
-     * Applies [update]. No emptiness guard is needed any more: with a single hero there is
-     * no configuration that produces a blank card.
+     * Everything on the card, or null while it is still being computed — the sheet keeps
+     * Share disabled on null so a half-refreshed card can never be exported.
+     *
+     * Built as one reactive pipeline rather than one-shot reads because this ViewModel
+     * outlives a single viewing of the sheet: any snapshot taken "on open" goes stale the
+     * moment the underlying data changes while the sheet is closed. Deriving from the
+     * live flows means a profile switch, an account being reassigned between profiles,
+     * or new transactions all reach the card without anyone having to remember to
+     * trigger a refresh. flatMapLatest drops the old period/profile's in-flight query
+     * when the selection changes, and the onStart null publishes "loading" for the gap
+     * so the previous selection's numbers are never shown — or shared — under the new
+     * selection's label.
      */
-    fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
-        val candidate = update(_config.value)
-        val periodChanged = candidate.period != _config.value.period
-        _config.value = candidate
-        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(candidate) }
-        // Only the period changes what we have to read back out of the database;
-        // toggling a section just shows or hides something already loaded.
-        if (periodChanged) scheduleRefresh()
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val data: StateFlow<ShareCardData?> =
+        combine(
+            configLoaded,
+            _config,
+            userPreferencesRepository.selectedProfileId,
+        ) { loaded, config, profileId -> if (loaded) config.period to profileId else null }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .flatMapLatest { (period, profileId) -> cardData(period, profileId) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /**
-     * Points the card at [period] for this viewing only, without writing it to
-     * preferences — the monthly prompt opens on last month, but that shouldn't silently
-     * rewrite a choice the user made in Customise.
-     */
-    fun applyPeriodOverride(period: SharePeriod) {
-        pendingPeriodOverride = period
-        if (_config.value.period == period) return
-        _config.value = _config.value.copy(period = period)
-        scheduleRefresh()
-    }
-
-    private suspend fun refresh() {
-        val period = _config.value.period
+    private fun cardData(period: SharePeriod, profileId: Long?): Flow<ShareCardData?> {
         val now = LocalDate.now()
-
         val (start, end) = when (period) {
             SharePeriod.THIS_MONTH ->
                 YearMonth.from(now).atDay(1).atStartOfDay() to now.atTime(23, 59, 59)
@@ -135,47 +127,84 @@ class ShareCardViewModel @Inject constructor(
                 LocalDateTime.of(2000, 1, 1, 0, 0) to LocalDateTime.now().plusYears(10)
         }
 
-        // Scope to the profile the user is currently viewing. Home does this for every
-        // figure it shows (filterTransactionsByProfile); a recap that ignored it would
-        // count a Business profile's card using the owner's personal transactions too —
-        // wrong, and it would put those counts into an image built for sharing.
-        val selectedProfileId = userPreferencesRepository.selectedProfileId.first()
-        val profileAccountKeys =
-            buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+        return combine(
+            transactionRepository.getTransactionsBetweenDates(start, end),
+            accountBalanceRepository.getAllLatestBalances(),
+            subscriptionRepository.getActiveSubscriptions(),
+        ) { allTransactions, balances, subscriptions ->
+            // Scope to the profile the user is currently viewing. Home does this for
+            // every figure it shows (filterTransactionsByProfile); a recap that ignored
+            // it would count a Business profile's card using the owner's personal
+            // transactions too — wrong, and it would put those counts into an image
+            // built for sharing.
+            val transactions = filterTransactionsByProfile(
+                allTransactions,
+                profileId,
+                buildProfileAccountKeys(balances),
+            )
 
-        val transactions = filterTransactionsByProfile(
-            transactionRepository.getTransactionsBetweenDates(start, end).first(),
-            selectedProfileId,
-            profileAccountKeys,
-        )
+            // Ranked in Kotlin from the same filtered list rather than by a GROUP BY:
+            // the query can't see the profile filter, and deriving both figures from one
+            // list means the count and the categories can never describe different
+            // populations.
+            val categories = transactions
+                .groupingBy { it.category }
+                .eachCount()
+                .entries
+                .sortedWith(
+                    compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }
+                )
+                .take(3)
+                .map { it.key }
 
-        // Ranked in Kotlin from the same filtered list rather than by a GROUP BY: the
-        // query can't see the profile filter, and deriving both figures from one list
-        // means the count and the categories can never describe different populations.
-        val categories = transactions
-            .groupingBy { it.category }
-            .eachCount()
-            .entries
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .take(3)
-            .map { it.key }
+            ShareCardData(
+                transactionCount = transactions.size,
+                topCategories = categories,
+                // Subscriptions are deliberately not filtered: SubscriptionEntity
+                // carries no profileId and Home doesn't scope them either, so filtering
+                // here would invent semantics the rest of the app doesn't have.
+                subscriptionCount = subscriptions.size,
+                periodLabel = when (period) {
+                    SharePeriod.THIS_MONTH ->
+                        now.format(MONTH_LABEL).uppercase()
+                    SharePeriod.LAST_MONTH ->
+                        now.minusMonths(1).format(MONTH_LABEL).uppercase()
+                    SharePeriod.ALL_TIME -> "ALL TIME"
+                },
+            )
+        }.onStart<ShareCardData?> { emit(null) }
+    }
 
-        // Subscriptions are deliberately not filtered: SubscriptionEntity carries no
-        // profileId and Home doesn't scope them either, so filtering here would invent
-        // semantics the rest of the app doesn't have.
-        val subscriptions = subscriptionRepository.getActiveSubscriptions().first()
+    /**
+     * Applies [update]. No emptiness guard is needed any more: with a single hero there is
+     * no configuration that produces a blank card.
+     */
+    fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
+        val candidate = update(_config.value)
+        if (candidate.period != _config.value.period) {
+            // An explicit choice in Customise supersedes whatever the caller opened on.
+            pendingPeriodOverride = null
+            savedPeriod = candidate.period
+        }
+        _config.value = candidate
+        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(candidate) }
+    }
 
-        _data.value = ShareCardData(
-            transactionCount = transactions.size,
-            topCategories = categories,
-            subscriptionCount = subscriptions.size,
-            periodLabel = when (period) {
-                SharePeriod.THIS_MONTH ->
-                    now.format(MONTH_LABEL).uppercase()
-                SharePeriod.LAST_MONTH ->
-                    now.minusMonths(1).format(MONTH_LABEL).uppercase()
-                SharePeriod.ALL_TIME -> "ALL TIME"
-            },
-        )
+    /**
+     * Points the card at [period] for this viewing only, without writing it to
+     * preferences — the monthly prompt opens on last month, but that shouldn't silently
+     * rewrite a choice the user made in Customise. Null means "no override": because
+     * this ViewModel survives the sheet closing, a later plain opening (the overflow
+     * menu) must actively put the saved period back or it would inherit the previous
+     * viewing's override.
+     */
+    fun setPeriodOverride(period: SharePeriod?) {
+        pendingPeriodOverride = period
+        // Before the saved config loads there is nothing to restore (and nothing shown);
+        // init applies pendingPeriodOverride on top of the load, covering both cases.
+        val target = period ?: savedPeriod ?: return
+        if (_config.value.period != target) {
+            _config.value = _config.value.copy(period = target)
+        }
     }
 }

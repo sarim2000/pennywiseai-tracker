@@ -186,4 +186,56 @@ class BalanceCalculatorTest {
         )
         assertEquals(BigDecimal("500.00"), newBalance)
     }
+
+    // ── signedBalanceEffect — the shared sign convention for add/edit/delete ──
+
+    @Test
+    fun `signed effect on debit account follows money direction`() {
+        val a = BigDecimal("100.00")
+        assertEquals(a, BalanceCalculator.signedBalanceEffect(false, TransactionType.INCOME, a))
+        assertEquals(a.negate(), BalanceCalculator.signedBalanceEffect(false, TransactionType.EXPENSE, a))
+        assertEquals(a.negate(), BalanceCalculator.signedBalanceEffect(false, TransactionType.INVESTMENT, a))
+        assertEquals(a.negate(), BalanceCalculator.signedBalanceEffect(false, TransactionType.CREDIT, a))
+    }
+
+    @Test
+    fun `signed effect on credit card tracks outstanding owed`() {
+        val a = BigDecimal("100.00")
+        // Spending raises outstanding; income (refund/repayment) lowers it.
+        assertEquals(a, BalanceCalculator.signedBalanceEffect(true, TransactionType.EXPENSE, a))
+        assertEquals(a, BalanceCalculator.signedBalanceEffect(true, TransactionType.CREDIT, a))
+        assertEquals(a, BalanceCalculator.signedBalanceEffect(true, TransactionType.INVESTMENT, a))
+        assertEquals(a.negate(), BalanceCalculator.signedBalanceEffect(true, TransactionType.INCOME, a))
+    }
+
+    @Test
+    fun `transfers have no single-account effect - their legs carry it`() {
+        val a = BigDecimal("100.00")
+        assertEquals(0, BalanceCalculator.signedBalanceEffect(false, TransactionType.TRANSFER, a).signum())
+        assertEquals(0, BalanceCalculator.signedBalanceEffect(true, TransactionType.TRANSFER, a).signum())
+    }
+
+    @Test
+    fun `edit net effect - expense to income on a debit account swings by twice the amount`() {
+        val a = BigDecimal("100.00")
+        val net = BalanceCalculator.signedBalanceEffect(false, TransactionType.INCOME, a) -
+            BalanceCalculator.signedBalanceEffect(false, TransactionType.EXPENSE, a)
+        assertEquals(BigDecimal("200.00"), net)
+    }
+
+    // ── transferLegEffect — credit-card-aware transfer legs ──
+
+    @Test
+    fun `transfer leg on debit account moves with the money`() {
+        val a = BigDecimal("100.00")
+        assertEquals(a, BalanceCalculator.transferLegEffect(false, incoming = true, a))
+        assertEquals(a.negate(), BalanceCalculator.transferLegEffect(false, incoming = false, a))
+    }
+
+    @Test
+    fun `transfer leg on credit card flips sign - a payment reduces outstanding`() {
+        val a = BigDecimal("100.00")
+        assertEquals(a.negate(), BalanceCalculator.transferLegEffect(true, incoming = true, a))
+        assertEquals(a, BalanceCalculator.transferLegEffect(true, incoming = false, a))
+    }
 }

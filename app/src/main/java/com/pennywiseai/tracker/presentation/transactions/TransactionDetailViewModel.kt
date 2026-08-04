@@ -782,7 +782,12 @@ class TransactionDetailViewModel @Inject constructor(
                 // Persist the edited tag set (create-or-select handled in repo).
                 tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
 
-                // Update account balance if account was changed or added
+                // Reflect the edit on account balances (#636). One repository
+                // call owns every shape of change — type or amount edits on the
+                // same account, account moves (revert the old account, apply to
+                // the new), and TRANSFER conversions in either direction. It
+                // skips manual/cash accounts, whose derived balances the
+                // recompute below re-derives.
                 val originalTxn = _transaction.value
                 val oldBank = originalTxn?.bankName
                 val oldAccount = originalTxn?.accountNumber
@@ -790,57 +795,18 @@ class TransactionDetailViewModel @Inject constructor(
                 val newAccount = normalizedTransaction.accountNumber
                 val accountChanged = oldBank != newBank || oldAccount != newAccount
 
-                val isTransfer = normalizedTransaction.transactionType == TransactionType.TRANSFER
-                val wasTransfer = originalTxn?.transactionType == TransactionType.TRANSFER
-                val transferFieldsChanged = (isTransfer || wasTransfer) && (
-                    isTransfer != wasTransfer ||
-                    originalTxn?.fromAccount != normalizedTransaction.fromAccount ||
-                    originalTxn?.toAccount != normalizedTransaction.toAccount ||
-                    originalTxn?.amount != normalizedTransaction.amount
+                val balanceRelevantChange = originalTxn != null && (
+                    accountChanged ||
+                    originalTxn.transactionType != normalizedTransaction.transactionType ||
+                    originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
+                    originalTxn.fromAccount != normalizedTransaction.fromAccount ||
+                    originalTxn.toAccount != normalizedTransaction.toAccount
                 )
-
-                if (transferFieldsChanged) {
-                    // Atomically revert the old transfer pair and apply the new
-                    // one. When the user converts FROM a TRANSFER to another
-                    // type, the new type's single-account effect still needs to
-                    // land — handled by the branch below.
-                    accountBalanceRepository.applyTransferBalanceShift(
+                if (balanceRelevantChange) {
+                    accountBalanceRepository.applyTransactionBalanceShift(
                         original = originalTxn,
                         updated = normalizedTransaction
                     )
-                }
-
-                // Single-account update fires for non-TRANSFER edits when the
-                // account changed, OR when this save converted a TRANSFER into a
-                // non-TRANSFER (so the new type still moves the new account's
-                // balance). Skipped entirely when the saved type is TRANSFER —
-                // that path is handled atomically above.
-                val convertedFromTransfer = wasTransfer && !isTransfer
-                val shouldRunSingleAccount = !isTransfer && newBank != null && newAccount != null &&
-                    (accountChanged || convertedFromTransfer)
-
-                // Skip the incremental snapshot for manual accounts — the recompute
-                // below derives their balance, so this row would be redundant clutter.
-                if (shouldRunSingleAccount && !accountBalanceRepository.isManualAccount(newBank!!, newAccount!!)) {
-                    val currentBalance = accountBalanceRepository.getLatestBalance(newBank, newAccount)
-                    if (currentBalance != null) {
-                        val balanceChange = when (normalizedTransaction.transactionType) {
-                            TransactionType.INCOME -> normalizedTransaction.amount
-                            TransactionType.EXPENSE, TransactionType.CREDIT -> -normalizedTransaction.amount
-                            TransactionType.TRANSFER -> BigDecimal.ZERO // handled above
-                            TransactionType.INVESTMENT -> -normalizedTransaction.amount
-                        }
-                        accountBalanceRepository.insertBalance(
-                            currentBalance.copy(
-                                id = 0,
-                                balance = currentBalance.balance + balanceChange,
-                                timestamp = normalizedTransaction.dateTime,
-                                transactionId = normalizedTransaction.id,
-                                sourceType = "TRANSACTION",
-                                smsSource = null
-                            )
-                        )
-                    }
                 }
 
                 // Manual/cash accounts derive their balance from their transactions, so
@@ -1008,6 +974,13 @@ class TransactionDetailViewModel @Inject constructor(
                         accountBalanceRepository.ensureManualOpening(bank, acct)
                     }
                     transactionRepository.deleteTransaction(txn)
+                    // Revert the transaction's effect on SMS-tracked and
+                    // credit-card balances (incl. transfer legs) — the manual
+                    // recompute below doesn't cover those regimes (#636).
+                    accountBalanceRepository.applyTransactionBalanceShift(
+                        original = txn,
+                        updated = null
+                    )
                     if (bank != null && acct != null) {
                         accountBalanceRepository.recomputeManualBalance(bank, acct)
                     }

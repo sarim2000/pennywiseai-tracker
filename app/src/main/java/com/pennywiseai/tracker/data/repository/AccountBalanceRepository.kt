@@ -220,11 +220,15 @@ class AccountBalanceRepository @Inject constructor(
      * recompute them — while manual transfer *legs* are recomputed here, since
      * no caller tracks leg accounts.
      *
-     * Revert entries are timestamped with the original transaction's dateTime,
-     * apply entries with the updated one's, so the balance history timeline
-     * stays correct. Effects only ever layer onto an account's *latest* row; the
-     * next SMS that reports an explicit balance re-anchors the account to the
-     * bank's own figure regardless (#636).
+     * Corrective rows are stamped with the current time, NOT the edited
+     * transaction's dateTime: "latest balance" is resolved by `ORDER BY
+     * timestamp DESC`, so a correction stamped into the past (any edit of a
+     * transaction older than the account's newest balance row — the common
+     * case) would never become the latest row and would be invisible. A
+     * correction is a now-event — we learned about it now, and it adjusts the
+     * current figure. Effects only ever layer onto an account's *latest* row;
+     * the next SMS that reports an explicit balance re-anchors the account to
+     * the bank's own figure regardless (#636).
      */
     suspend fun applyTransactionBalanceShift(
         original: TransactionEntity?,
@@ -247,7 +251,7 @@ class AccountBalanceRepository @Inject constructor(
                             latest.isCreditCard, original!!.transactionType, original.amount
                         )
                         if (net.signum() != 0) {
-                            insertBalanceDelta(bank, acct, net, updated.dateTime, updated.id)
+                            insertBalanceDelta(bank, acct, net, LocalDateTime.now(), updated.id)
                         }
                     }
                 }
@@ -257,30 +261,30 @@ class AccountBalanceRepository @Inject constructor(
             if (original != null) {
                 if (original.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(original.fromAccount, incoming = false, revert = true,
-                        original.amount, original.dateTime, updated?.id)
+                        original.amount, updated?.id)
                     shiftTransferLeg(original.toAccount, incoming = true, revert = true,
-                        original.amount, original.dateTime, updated?.id)
+                        original.amount, updated?.id)
                 } else if (origKey != null) {
                     shiftSingleAccount(origKey, original.transactionType, original.amount,
-                        revert = true, original.dateTime, updated?.id)
+                        revert = true, updated?.id)
                 }
             }
             if (updated != null) {
                 if (updated.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(updated.fromAccount, incoming = false, revert = false,
-                        updated.amount, updated.dateTime, updated.id)
+                        updated.amount, updated.id)
                     shiftTransferLeg(updated.toAccount, incoming = true, revert = false,
-                        updated.amount, updated.dateTime, updated.id)
+                        updated.amount, updated.id)
                 } else if (updKey != null) {
                     shiftSingleAccount(updKey, updated.transactionType, updated.amount,
-                        revert = false, updated.dateTime, updated.id)
+                        revert = false, updated.id)
                 }
             }
         }
     }
 
     /**
-     * Reflects a newly-inserted transaction ([transactionId], dated [date]) on
+     * Reflects a newly-inserted transaction ([transactionId]) on
      * its account's running balance. Manual/cash accounts are recomputed from
      * their transactions (so back-dated or later-edited rows stay correct); an
      * SMS-tracked account gets a signed "TRANSACTION" delta snapshot off its
@@ -299,7 +303,6 @@ class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         amount: BigDecimal,
         type: TransactionType,
-        date: LocalDateTime,
         transactionId: Long
     ) {
         if (isManualAccount(bankName, accountLast4)) {
@@ -315,7 +318,10 @@ class AccountBalanceRepository @Inject constructor(
             currentAccount.copy(
                 id = 0,
                 balance = currentAccount.balance + effect,
-                timestamp = date,
+                // Stamped now, not [date]: a back-dated add stamped into the past
+                // would lose the ORDER BY timestamp DESC race to the row it was
+                // computed from and never become the visible balance.
+                timestamp = LocalDateTime.now(),
                 transactionId = transactionId,
                 sourceType = "TRANSACTION",
                 smsSource = null
@@ -347,7 +353,6 @@ class AccountBalanceRepository @Inject constructor(
                 accountLast4 = accountLast4,
                 amount = transaction.amount,
                 type = transaction.transactionType,
-                date = transaction.dateTime,
                 transactionId = rowId
             )
         }
@@ -397,7 +402,9 @@ class AccountBalanceRepository @Inject constructor(
             } else {
                 getLatestBalance(fromBankName, fromLast4)?.let { latest ->
                     val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = false, transaction.amount)
-                    insertBalanceDelta(fromBankName, fromLast4, effect, transaction.dateTime, rowId)
+                    // now() not dateTime: a back-dated leg must still postdate
+                    // the latest row to become the visible balance.
+                    insertBalanceDelta(fromBankName, fromLast4, effect, LocalDateTime.now(), rowId)
                 }
             }
             // TO leg: money in.
@@ -406,7 +413,7 @@ class AccountBalanceRepository @Inject constructor(
             } else {
                 getLatestBalance(toBankName, toLast4)?.let { latest ->
                     val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = true, transaction.amount)
-                    insertBalanceDelta(toBankName, toLast4, effect, transaction.dateTime, rowId)
+                    insertBalanceDelta(toBankName, toLast4, effect, LocalDateTime.now(), rowId)
                 }
             }
         }
@@ -435,7 +442,6 @@ class AccountBalanceRepository @Inject constructor(
         type: TransactionType,
         amount: BigDecimal,
         revert: Boolean,
-        timestamp: LocalDateTime,
         transactionId: Long?
     ) {
         val (bank, acct) = key
@@ -444,7 +450,7 @@ class AccountBalanceRepository @Inject constructor(
         var effect = BalanceCalculator.signedBalanceEffect(latest.isCreditCard, type, amount)
         if (revert) effect = effect.negate()
         if (effect.signum() == 0) return
-        insertBalanceDelta(bank, acct, effect, timestamp, transactionId)
+        insertBalanceDelta(bank, acct, effect, LocalDateTime.now(), transactionId)
     }
 
     /**
@@ -460,7 +466,6 @@ class AccountBalanceRepository @Inject constructor(
         incoming: Boolean,
         revert: Boolean,
         amount: BigDecimal,
-        timestamp: LocalDateTime,
         transactionId: Long?
     ) {
         if (accountLast4 == null) return
@@ -477,7 +482,7 @@ class AccountBalanceRepository @Inject constructor(
             latest.copy(
                 id = 0,
                 balance = latest.balance + effect,
-                timestamp = timestamp,
+                timestamp = LocalDateTime.now(),
                 transactionId = transactionId,
                 sourceType = "TRANSACTION",
                 smsSource = null

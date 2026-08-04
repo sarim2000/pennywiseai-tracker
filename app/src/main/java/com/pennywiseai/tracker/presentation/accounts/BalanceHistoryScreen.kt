@@ -466,7 +466,7 @@ private fun BalanceHistoryItem(
                                         Text(
                                             text = "(${smsSource.length} chars)",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }

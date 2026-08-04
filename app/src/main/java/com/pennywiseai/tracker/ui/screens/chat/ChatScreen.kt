@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -231,8 +232,8 @@ fun ChatScreen(
                                     progress = { downloadProgress / 100f },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
+                                        .height(Spacing.sm)
+                                        .clip(CircleShape),
                                     drawStopIndicator = {}
                                 )
                             }
@@ -470,7 +471,7 @@ fun ChatScreen(
                                     placeholder = { Text("Ask about your expenses...") },
                                     enabled = !uiState.isLoading,
                                     maxLines = 3,
-                                    shape = RoundedCornerShape(24.dp)
+                                    shape = MaterialTheme.shapes.extraLarge
                                 )
 
                                 Spacer(modifier = Modifier.width(Spacing.sm))
@@ -687,7 +688,7 @@ fun DeveloperInfoCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(Spacing.xs)
-                            .clip(RoundedCornerShape(2.dp)),
+                            .clip(CircleShape),
                         color = usageColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         drawStopIndicator = {}
@@ -700,13 +701,13 @@ fun DeveloperInfoCard(
                         Text(
                             text = "${TokenUtils.formatNumber(chatStats.estimatedTokens)} / ${TokenUtils.formatNumber(chatStats.maxTokens)} tokens",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (chatStats.systemPromptTokens > 0) {
                             Text(
                                 text = "System: ${TokenUtils.formatNumber(chatStats.systemPromptTokens)}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

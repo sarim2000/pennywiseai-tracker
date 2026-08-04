@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Spacing
 import java.math.BigDecimal
 
 @Composable
@@ -150,7 +151,7 @@ fun AnalyticsSummaryCard(
                         Text(
                             text = " /day",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
@@ -174,9 +175,9 @@ fun AnalyticsSummaryCard(
                                     color = categoryInfo.color.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             CategoryIcon(
                                 category = topCategory,

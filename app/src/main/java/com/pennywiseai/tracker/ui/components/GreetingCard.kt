@@ -109,7 +109,7 @@ fun GreetingCard(
         val ringColor = yellow_dark
         Box(
             modifier = Modifier
-                .size(52.dp)
+                .size(Dimensions.Icon.avatarLarge)
                 // Clip to a circle before clickable so the tap ripple stays
                 // within the ring instead of rendering as a square.
                 .clip(CircleShape)
@@ -188,7 +188,7 @@ fun GreetingCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 

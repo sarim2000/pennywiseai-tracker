@@ -57,7 +57,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
@@ -67,7 +66,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
-import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -76,6 +74,8 @@ import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
@@ -99,6 +99,19 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
+
+/** Distance each card travels on the first-composition entrance animation. */
+private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
+
+/** Diameter of one avatar in the overlapping subscription stack. */
+private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
+
+/** Horizontal step between stacked avatars — less than the diameter, so they
+ *  overlap and read as a group. */
+private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
+
+/** The surface-coloured ring that separates one stacked avatar from the next. */
+private val STACKED_AVATAR_RING = Spacing.xxs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,7 +182,7 @@ fun HomeScreen(
     // Staggered entrance animation state — only animates on first composition
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
@@ -252,8 +265,8 @@ fun HomeScreen(
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(end = Dimensions.Padding.content),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         // Subtle Pro discovery chip — yellow sparkle that ties
                         // back to the Settings → PennyWise Pro entry. Hidden
@@ -262,7 +275,7 @@ fun HomeScreen(
                         if (!isProEntitled) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(Dimensions.Component.iconButton)
                                     .clip(CircleShape)
                                     .background(
                                         color = com.pennywiseai.tracker.ui.theme.yellow_light,
@@ -279,7 +292,7 @@ fun HomeScreen(
                                     imageVector = Icons.Default.AutoAwesome,
                                     contentDescription = "Upgrade to PennyWise Pro",
                                     tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.inline),
                                 )
                             }
                         }
@@ -288,7 +301,7 @@ fun HomeScreen(
                         Box {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(Dimensions.Component.iconButton)
                                     .clip(CircleShape)
                                     .background(
                                         color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
@@ -305,7 +318,7 @@ fun HomeScreen(
                                     imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
                                     contentDescription = "Profile filter",
                                     tint = MaterialTheme.colorScheme.inverseSurface,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(Dimensions.Icon.inline)
                                 )
                             }
                             ProfileFilterDropdown(
@@ -319,7 +332,7 @@ fun HomeScreen(
                         // More options button
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(Dimensions.Component.iconButton)
                                 .clip(CircleShape)
                                 .background(
                                     color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
@@ -381,7 +394,9 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = Dimensions.Component.bottomBarHeight + 120.dp // Space for dual FABs (Add + Sync) + bottom nav bar
+                // Clears the nav bar plus the Add + Sync FAB stack above it.
+                bottom = Dimensions.Component.bottomBarHeight +
+                    Dimensions.Component.fabScrollClearance
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -490,7 +505,9 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                        ) {
                             SectionHeaderV2(
                                 title = "Budgets",
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -530,7 +547,9 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                        ) {
                             SectionHeaderV2(
                                 title = "Loans",
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -577,13 +596,13 @@ fun HomeScreen(
                             title = "Recent Transactions",
                             action = {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Search button
                                     IconButton(
                                         onClick = onNavigateToTransactionsWithSearch,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(Dimensions.Component.iconButton)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Search,
@@ -612,7 +631,7 @@ fun HomeScreen(
                 item {
                     Column(
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
                     ) {
                         repeat(5) {
                             TransactionItemSkeleton()
@@ -641,7 +660,7 @@ fun HomeScreen(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             ghostContent = {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
                                 ) {
                                     repeat(3) {
                                         TransactionItemSkeleton()
@@ -666,7 +685,7 @@ fun HomeScreen(
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
                         ) {
                             val profileAccountKeys = remember(uiState.accountBalances) {
                                 buildProfileAccountKeys(uiState.accountBalances)
@@ -709,7 +728,9 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                        ) {
                             SectionHeaderV2(
                                 title = "Bank Accounts",
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -760,7 +781,9 @@ fun HomeScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                        ) {
                             SectionHeaderV2(
                                 title = "Upcoming Subscriptions",
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -805,7 +828,9 @@ fun HomeScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    Column {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                    ) {
                         SectionHeaderV2(
                             title = "Activity",
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -845,9 +870,9 @@ fun HomeScreen(
                 .align(Alignment.BottomEnd)
                 .padding(
                     end = Dimensions.Padding.content,
-                    bottom = 96.dp
+                    bottom = Dimensions.Component.fabBottomInset
                 ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
             horizontalAlignment = Alignment.End
         ) {
             // Add FAB (top, small)
@@ -866,12 +891,12 @@ fun HomeScreen(
             // Single tap: incremental scan, Long press: full resync
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Surface(
                     modifier = Modifier
                         .spotlightTarget(onFabPositioned)
-                        .size(56.dp)
+                        .size(Dimensions.Component.fab)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = { viewModel.scanSmsMessages() },
@@ -883,8 +908,8 @@ fun HomeScreen(
                         },
                     shape = FloatingActionButtonDefaults.shape,
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shadowElevation = 6.dp,
-                    tonalElevation = 6.dp,
+                    shadowElevation = Dimensions.Elevation.fab,
+                    tonalElevation = Dimensions.Elevation.fab,
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -903,7 +928,7 @@ fun HomeScreen(
                     Text(
                         text = "Hold for full resync",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -986,13 +1011,13 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
                 // Title
                 Text(
                     text = "More Options",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .padding(bottom = Spacing.sm)
@@ -1045,7 +1070,7 @@ fun HomeScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Version footer
                 val versionName = remember {
@@ -1059,7 +1084,7 @@ fun HomeScreen(
                     Text(
                         text = "v$it",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
@@ -1099,99 +1124,47 @@ private fun BreakdownDialog(
         PennyWiseCardV2(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.md), // Reduced horizontal padding for wider modal
+                .padding(horizontal = Spacing.md),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            contentPadding = 0.dp
+            contentPadding = Dimensions.Padding.dialog
         ) {
+            // Period blocks are the unit of meaning here, so the gap *between*
+            // blocks (lg) is larger than the gap between a block's own rows
+            // (sm). The previous uniform 16dp made the period label float
+            // equidistant from both periods' figures.
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.Padding.card),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
-                // Title
                 Text(
                     text = "Calculation Breakdown",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall
                 )
-                
-                // Current Period Section
-                Text(
-                    text = currentPeriod,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                BreakdownRow(
-                    label = "Income",
-                    amount = currentMonthIncome,
-                    isIncome = true,
+
+                BreakdownPeriod(
+                    period = currentPeriod,
+                    income = currentMonthIncome,
+                    expenses = currentMonthExpenses,
+                    net = currentMonthTotal,
                     currency = currency
                 )
 
-                BreakdownRow(
-                    label = "Expenses",
-                    amount = currentMonthExpenses,
-                    isIncome = false,
+                BreakdownPeriod(
+                    period = lastPeriod,
+                    income = lastMonthIncome,
+                    expenses = lastMonthExpenses,
+                    net = lastMonthTotal,
                     currency = currency
                 )
 
-                HorizontalDivider()
-
-                BreakdownRow(
-                    label = "Net Worth",
-                    amount = currentMonthTotal,
-                    isIncome = currentMonthTotal >= BigDecimal.ZERO,
-                    isBold = true,
-                    currency = currency
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Last Period Section
-                Text(
-                    text = lastPeriod,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                BreakdownRow(
-                    label = "Income",
-                    amount = lastMonthIncome,
-                    isIncome = true,
-                    currency = currency
-                )
-
-                BreakdownRow(
-                    label = "Expenses",
-                    amount = lastMonthExpenses,
-                    isIncome = false,
-                    currency = currency
-                )
-
-                HorizontalDivider()
-
-                BreakdownRow(
-                    label = "Net Worth",
-                    amount = lastMonthTotal,
-                    isIncome = lastMonthTotal >= BigDecimal.ZERO,
-                    isBold = true,
-                    currency = currency
-                )
-                
-                // Formula explanation
-                Spacer(modifier = Modifier.height(Spacing.sm))
                 PennyWiseCardV2(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = Spacing.sm
+                    contentPadding = Spacing.smd
                 ) {
                     Text(
                         text = "Formula: Income - Expenses = Net Worth\n" +
@@ -1201,8 +1174,7 @@ private fun BreakdownDialog(
                         textAlign = TextAlign.Center
                     )
                 }
-                
-                // Close button
+
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
@@ -1211,6 +1183,34 @@ private fun BreakdownDialog(
                 }
             }
         }
+    }
+}
+
+/** One period's income / expenses / net block inside [BreakdownDialog]. */
+@Composable
+private fun BreakdownPeriod(
+    period: String,
+    income: BigDecimal,
+    expenses: BigDecimal,
+    net: BigDecimal,
+    currency: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = period,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        BreakdownRow(label = "Income", amount = income, isIncome = true, currency = currency)
+        BreakdownRow(label = "Expenses", amount = expenses, isIncome = false, currency = currency)
+        HorizontalDivider()
+        BreakdownRow(
+            label = "Net Worth",
+            amount = net,
+            isIncome = net >= BigDecimal.ZERO,
+            isBold = true,
+            currency = currency
+        )
     }
 }
 
@@ -1233,8 +1233,9 @@ private fun BreakdownRow(
         )
         Text(
             text = "${if (isIncome) "+" else "-"}${CurrencyFormatter.formatCurrency(amount.abs(), currency)}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
+                fontWeight = FontWeight.Normal
+            ),
             color = if (isIncome) {
                 if (!isSystemInDarkTheme()) income_light else income_dark
             } else {
@@ -1300,16 +1301,21 @@ private fun UpcomingSubscriptionsCard(
                     val maxIcons = 4
                     val visibleSubs = subscriptions.take(maxIcons)
                     val extraCount = subscriptions.size - maxIcons
+                    // Overlapping avatar stack. The trailing Spacer reserves the
+                    // stack's true width, since the offset children don't
+                    // contribute to the Box's measured size — derive it from the
+                    // same constants rather than restating the numbers.
+                    val stackedCount = visibleSubs.size + if (extraCount > 0) 1 else 0
                     Box {
                         visibleSubs.forEachIndexed { index, sub ->
                             BrandIcon(
                                 merchantName = sub.merchantName,
-                                size = 32.dp,
+                                size = STACKED_AVATAR_SIZE,
                                 modifier = Modifier
-                                    .offset(x = (index * 20).dp)
+                                    .offset(x = STACKED_AVATAR_STEP * index)
                                     .zIndex((maxIcons - index).toFloat())
                                     .border(
-                                        width = 2.dp,
+                                        width = STACKED_AVATAR_RING,
                                         color = MaterialTheme.colorScheme.surface,
                                         shape = CircleShape
                                     )
@@ -1319,11 +1325,11 @@ private fun UpcomingSubscriptionsCard(
                         if (extraCount > 0) {
                             Box(
                                 modifier = Modifier
-                                    .offset(x = (visibleSubs.size * 20).dp)
+                                    .offset(x = STACKED_AVATAR_STEP * visibleSubs.size)
                                     .zIndex(0f)
-                                    .size(32.dp)
+                                    .size(STACKED_AVATAR_SIZE)
                                     .border(
-                                        width = 2.dp,
+                                        width = STACKED_AVATAR_RING,
                                         color = MaterialTheme.colorScheme.surface,
                                         shape = CircleShape
                                     )
@@ -1334,19 +1340,17 @@ private fun UpcomingSubscriptionsCard(
                                 Text(
                                     text = "+$extraCount",
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Medium
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        // Spacer to reserve the width of the stacked icons
                         Spacer(
                             modifier = Modifier
                                 .width(
-                                    ((visibleSubs.size - 1) * 20 + 32 + if (extraCount > 0) 20 else 0).dp
+                                    STACKED_AVATAR_SIZE +
+                                        STACKED_AVATAR_STEP * (stackedCount - 1).coerceAtLeast(0)
                                 )
-                                .height(32.dp)
+                                .height(STACKED_AVATAR_SIZE)
                         )
                     }
                 } else {
@@ -1447,16 +1451,11 @@ private fun ActiveLoansSummaryCard(
     }
 }
 
-private enum class ListItemPosition { Top, Middle, Bottom, Single }
-
-@Composable
-private fun ListItemPosition.toShape(): RoundedCornerShape = when (this) {
-    ListItemPosition.Top -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-    ListItemPosition.Middle -> RoundedCornerShape(4.dp)
-    ListItemPosition.Bottom -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    ListItemPosition.Single -> RoundedCornerShape(16.dp)
-}
-
+/**
+ * A row in the "More options" bottom sheet. Uses the shared grouped-list
+ * primitives so it matches the rows in Settings exactly — this sheet is the
+ * shortcut *into* Settings, so the two looking different was jarring.
+ */
 @Composable
 private fun MenuListItem(
     headline: String,
@@ -1464,30 +1463,20 @@ private fun MenuListItem(
     position: ListItemPosition,
     onClick: () -> Unit,
 ) {
-    val shape = position.toShape()
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content, vertical = 2.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            CompositionLocalProvider(
-                LocalContentColor provides MaterialTheme.colorScheme.secondary
-            ) { icon() }
-            Text(
-                text = headline,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.secondary
+        ) { icon() }
+        Text(
+            text = headline,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

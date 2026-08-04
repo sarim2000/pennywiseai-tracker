@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -65,13 +66,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
 // TextFieldDefaults already imported above
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 
@@ -167,7 +168,7 @@ private fun WelcomeStep() {
             painter = painterResource(id = R.mipmap.ic_launcher_foreground),
             contentDescription = "PennyWise",
             modifier = Modifier
-                .size(100.dp)
+                .size(HERO_ICON_SIZE)
                 .clip(CircleShape),
             contentScale = ContentScale.Crop
         )
@@ -196,7 +197,7 @@ private fun WelcomeStep() {
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(Spacing.md)) {
@@ -252,7 +253,7 @@ private fun ProfileStep(
             onValueChange = { viewModel.updateUserName(it) },
             label = { Text("Your name") },
             singleLine = true,
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -281,7 +282,7 @@ private fun ProfileStep(
                 val isSelected = uiState.profileImageUri == null && uiState.selectedAvatarIndex == index
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(OPTION_TILE_SIZE)
                         .clip(CircleShape)
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.primaryContainer
@@ -289,7 +290,7 @@ private fun ProfileStep(
                         )
                         .then(
                             if (isSelected) Modifier.border(
-                                3.dp,
+                                SELECTION_RING_WIDTH,
                                 MaterialTheme.colorScheme.primary,
                                 CircleShape
                             ) else Modifier
@@ -300,7 +301,7 @@ private fun ProfileStep(
                     Image(
                         painter = painterResource(id = drawableRes),
                         contentDescription = "Avatar ${index + 1}",
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(Dimensions.Icon.avatar),
                         colorFilter = ColorFilter.tint(
                             if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -313,7 +314,7 @@ private fun ProfileStep(
                 // Gallery picker option
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(OPTION_TILE_SIZE)
                         .clip(CircleShape)
                         .background(
                             if (uiState.profileImageUri != null) MaterialTheme.colorScheme.primaryContainer
@@ -321,7 +322,7 @@ private fun ProfileStep(
                         )
                         .then(
                             if (uiState.profileImageUri != null) Modifier.border(
-                                3.dp,
+                                SELECTION_RING_WIDTH,
                                 MaterialTheme.colorScheme.primary,
                                 CircleShape
                             ) else Modifier
@@ -334,7 +335,7 @@ private fun ProfileStep(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Photo selected",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(Dimensions.Icon.large)
                         )
                     } else {
                         Text(
@@ -365,12 +366,12 @@ private fun ProfileStep(
                 val isSelected = uiState.selectedBackgroundColor == index
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(Dimensions.Icon.avatar)
                         .clip(CircleShape)
                         .background(Color(colorInt))
                         .then(
                             if (isSelected) Modifier.border(
-                                3.dp,
+                                SELECTION_RING_WIDTH,
                                 MaterialTheme.colorScheme.onSurface,
                                 CircleShape
                             ) else Modifier
@@ -416,7 +417,7 @@ private fun PermissionsStep(
         Icon(
             imageVector = Icons.Filled.MailOutline,
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
+            modifier = Modifier.size(HERO_ICON_SIZE_SMALL),
             tint = MaterialTheme.colorScheme.primary
         )
 
@@ -444,7 +445,7 @@ private fun PermissionsStep(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(Spacing.md)) {
@@ -473,7 +474,7 @@ private fun PermissionsStep(
                 colors = CardDefaults.cardColors(
                     containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -524,7 +525,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
     ) {
         if (uiState.isScanning) {
             CircularProgressIndicator(
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
             )
 
             Spacer(modifier = Modifier.height(Spacing.lg))
@@ -578,7 +579,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
             )
 
@@ -613,7 +614,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
             Icon(
                 imageVector = Icons.Filled.MailOutline,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
             )
 
@@ -657,7 +658,7 @@ private fun AccountSetupStep(
             Icon(
                 imageVector = Icons.Filled.AccountBalance,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
             )
 
@@ -701,6 +702,18 @@ private fun AccountSetupStep(
                 val accountKey = "${account.bankName}_${account.accountLast4}"
                 val isSelected = uiState.selectedAccountKey == accountKey
 
+                // The muted "on" colour has to follow the container. Selecting a
+                // row swaps its fill to primaryContainer, and onSurfaceVariant —
+                // a colour paired with `surface` — then sat on it at almost no
+                // contrast, making the masked digits vanish on the selected row.
+                val mutedColor = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                        alpha = Dimensions.Alpha.subtitle
+                    )
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
                 Card(
                     onClick = { onSelectAccount(accountKey) },
                     colors = CardDefaults.cardColors(
@@ -710,7 +723,7 @@ private fun AccountSetupStep(
                             MaterialTheme.colorScheme.surfaceContainerHigh
                     ),
                     border = if (isSelected) BorderStroke(
-                        2.dp,
+                        Spacing.xxs,
                         MaterialTheme.colorScheme.primary
                     ) else null,
                     modifier = Modifier
@@ -720,38 +733,39 @@ private fun AccountSetupStep(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(Spacing.md),
+                            .padding(Spacing.md)
+                            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                        ) {
                             Text(
                                 text = account.bankName,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleSmall
                             )
                             // Mobile-money wallets have no account number.
                             if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
                                 Text(
                                     text = "****${account.accountLast4}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = PennyWiseText.amountSmall,
+                                    color = mutedColor
                                 )
                             }
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "${account.currency} ${account.balance}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Text(
+                            text = "${account.currency} ${account.balance}",
+                            style = PennyWiseText.amountRow
+                        )
                         if (isSelected) {
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(Dimensions.Icon.inline)
                             )
                         }
                     }
@@ -777,8 +791,8 @@ private fun StepIndicator(
             val isPast = index < steps.indexOf(currentStep)
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(if (isActive) 8.dp else 6.dp)
+                    .padding(horizontal = Spacing.xs)
+                    .size(if (isActive) STEP_DOT_ACTIVE else STEP_DOT_INACTIVE)
                     .clip(CircleShape)
                     .background(
                         when {
@@ -917,3 +931,12 @@ private fun OnBoardingBottomBar(
     }
     }
 }
+
+// Onboarding-only geometry. These are intentionally larger than any in-app
+// token: full-screen illustrative moments, not list chrome.
+private val HERO_ICON_SIZE = 100.dp
+private val HERO_ICON_SIZE_SMALL = 80.dp
+private val OPTION_TILE_SIZE = 72.dp
+private val SELECTION_RING_WIDTH = 3.dp
+private val STEP_DOT_ACTIVE = Spacing.sm
+private val STEP_DOT_INACTIVE = 6.dp

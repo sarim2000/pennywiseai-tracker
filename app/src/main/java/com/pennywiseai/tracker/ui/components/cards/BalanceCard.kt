@@ -50,6 +50,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
@@ -164,7 +165,7 @@ fun BalanceCard(
                     ) {
                         SpendingAmountHeader(
                             amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                            amountStyle = MaterialTheme.typography.headlineSmall,
+                            amountStyle = PennyWiseText.amountLarge,
                             isBalanceHidden = isBalanceHidden,
                             onToggleBalanceVisibility = {
                                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
@@ -194,16 +195,14 @@ fun BalanceCard(
                                     } else {
                                         "Balance: ${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
                                     },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    fontWeight = FontWeight.Medium
+                                    style = PennyWiseText.amountSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (accountBalances.size > 1) {
                                     Text(
                                         text = " · ${accountBalances.size} accounts",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        fontWeight = FontWeight.Medium
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -214,7 +213,7 @@ fun BalanceCard(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         SpendingAmountHeader(
                             amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                            amountStyle = MaterialTheme.typography.headlineMedium,
+                            amountStyle = PennyWiseText.heroAmount,
                             isBalanceHidden = isBalanceHidden,
                             onToggleBalanceVisibility = {
                                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
@@ -241,7 +240,7 @@ fun BalanceCard(
                                 lineColor = expenseColor,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(80.dp),
+                                    .height(SPARKLINE_HEIGHT),
                                 currency = currency,
                                 isBalanceHidden = isBalanceHidden,
                                 comparisonData = lastMonthSpendingHistory.ifEmpty { null },
@@ -269,11 +268,11 @@ fun BalanceCard(
                                     Spacer(modifier = Modifier.width(Spacing.md))
                                     Box(
                                         modifier = Modifier
-                                            .width(12.dp)
-                                            .height(2.dp)
+                                            .width(Spacing.smd)
+                                            .height(Spacing.xxs)
                                             .background(
                                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                                RoundedCornerShape(1.dp)
+                                                CircleShape
                                             )
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -517,7 +516,7 @@ private fun SpendingAmountHeader(
             Icon(
                 imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                 contentDescription = if (isBalanceHidden) "Show balance" else "Hide balance",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
@@ -577,7 +576,7 @@ private fun CurrencyChip(
         shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
         border = BorderStroke(
-            0.5.dp,
+            Dimensions.Component.hairline,
             MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         )
     ) {
@@ -616,7 +615,7 @@ private fun SummaryItem(
         Box(
             modifier = Modifier
                 .width(Spacing.xs)
-                .height(40.dp)
+                .height(Dimensions.Component.iconButton)
                 .background(
                     color = accentColor,
                     shape = RoundedCornerShape(Dimensions.CornerRadius.small)
@@ -643,3 +642,6 @@ private fun SummaryItem(
         }
     }
 }
+
+/** Height of the inline spending sparkline inside the expanded balance card. */
+private val SPARKLINE_HEIGHT = Spacing.xxl + Spacing.xl

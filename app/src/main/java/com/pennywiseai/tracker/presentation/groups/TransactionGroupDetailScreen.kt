@@ -250,7 +250,7 @@ fun TransactionGroupDetailScreen(
                                 Icons.Default.AddCircleOutline,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 "No transactions yet",
@@ -260,7 +260,7 @@ fun TransactionGroupDetailScreen(
                             Text(
                                 "Tap + to add transactions to this group",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

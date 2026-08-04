@@ -12,9 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -39,27 +39,30 @@ fun SummaryCardV2(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Label first, figure second: the label is the quieter element, so
+            // it sits above at label weight while the figure carries the size.
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
                     alpha = Dimensions.Alpha.subtitle
-                )
+                ),
+                textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(Spacing.sm))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = amount,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
+                style = PennyWiseText.heroAmount,
+                color = amountColor,
+                textAlign = TextAlign.Center
             )
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                        alpha = Dimensions.Alpha.surface
+                        alpha = Dimensions.Alpha.subtitle
                     ),
                     textAlign = TextAlign.Center
                 )

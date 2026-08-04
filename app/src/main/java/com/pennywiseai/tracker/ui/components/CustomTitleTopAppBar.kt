@@ -49,9 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -255,7 +256,7 @@ private fun TitleForLargeTopAppBar(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         BlurredAnimatedVisibility(
             visible = !isHomeScreen,
@@ -264,12 +265,11 @@ private fun TitleForLargeTopAppBar(
         ) {
             Text(
                 text = title,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Start,
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp)
+                    .padding(start = Spacing.smd)
             )
         }
         extraInfoCard()
@@ -304,11 +304,11 @@ private fun RegularTopAppBar(
                 if (isHomeScreen) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 4.dp)
+                        modifier = Modifier.padding(start = Spacing.xs)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(Dimensions.Icon.large)
                                 .clip(CircleShape)
                                 .background(
                                     if (profileBackgroundColor != 0) Color(profileBackgroundColor)
@@ -349,19 +349,17 @@ private fun RegularTopAppBar(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(Spacing.smd))
                         Text(
                             text = userName.ifBlank { "PennyWise" },
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Start,
                         )
                     }
                 } else {
                     Text(
                         text = title,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.animatedOffsetModifier(
                             hasBackButton = hasBackButton,

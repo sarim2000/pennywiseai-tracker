@@ -25,7 +25,6 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -85,16 +84,15 @@ fun HeatmapWidget(
             containerColor = containerColor
         )
     ) {
+        // No section header here: every caller places this card under an
+        // "Activity" SectionHeaderV2, so a second one inside the card rendered
+        // the word twice, one above the other.
         Column {
-            SectionHeaderV2(title = "Activity")
+            val cellSize = HEATMAP_CELL_SIZE
+            val gapSize = HEATMAP_CELL_GAP
+            val dayLabelWidth = HEATMAP_DAY_LABEL_WIDTH
 
-            val cellSize = 14.dp
-            val gapSize = 4.dp
-            val dayLabelWidth = 20.dp
-
-            Column(
-                modifier = Modifier.padding(top = Spacing.sm)
-            ) {
+            Column {
                 Row {
                     // Day-of-week labels (M, W, F)
                     Column(
@@ -117,8 +115,7 @@ fun HeatmapWidget(
                                     Text(
                                         text = label,
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -130,7 +127,7 @@ fun HeatmapWidget(
                         horizontalArrangement = Arrangement.spacedBy(gapSize),
                         modifier = Modifier
                             .horizontalScroll(scrollState)
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = Spacing.sm)
                     ) {
                         for (w in 0 until weeksToShow) {
                             Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
@@ -152,7 +149,7 @@ fun HeatmapWidget(
                                     Box(
                                         modifier = Modifier
                                             .size(cellSize)
-                                            .clip(RoundedCornerShape(4.dp))
+                                            .clip(MaterialTheme.shapes.extraSmall)
                                             .background(color)
                                     )
                                 }
@@ -172,8 +169,7 @@ fun HeatmapWidget(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.offset(x = xOffset)
                         )
                     }
@@ -182,3 +178,10 @@ fun HeatmapWidget(
         }
     }
 }
+
+// Heatmap cell geometry. The grid is 7 rows tall and sized to fit a year of
+// weeks across a phone, so these are laid out by hand rather than by a token —
+// but they're named so the three of them stay related.
+private val HEATMAP_CELL_SIZE = 14.dp
+private val HEATMAP_CELL_GAP = Spacing.xs
+private val HEATMAP_DAY_LABEL_WIDTH = Dimensions.Icon.inline

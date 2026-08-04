@@ -51,8 +51,9 @@ import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.delay
@@ -579,7 +580,7 @@ private fun BudgetCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(10.dp)
+                        .height(Dimensions.Component.progressBarHeight)
                         .clip(barShape)
                         .background(statusColor.copy(alpha = 0.15f))
                 ) {
@@ -859,9 +860,8 @@ private fun SpendingPaceChart(
                 dividerProperties = DividerProperties(enabled = false),
                 indicatorProperties = HorizontalIndicatorProperties(
                     enabled = true,
-                    textStyle = androidx.compose.ui.text.TextStyle.Default.copy(
-                        fontSize = 10.sp,
-                        color = themeColors.onSurfaceVariant.copy(0.7f)
+                    textStyle = PennyWiseText.chartLabel.copy(
+                        color = themeColors.onSurfaceVariant
                     ),
                     contentBuilder = { value ->
                         CurrencyFormatter.formatAbbreviated(value, currency)

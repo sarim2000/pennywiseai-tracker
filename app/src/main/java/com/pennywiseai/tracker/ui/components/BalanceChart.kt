@@ -11,9 +11,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
 import ir.ehsannarmani.compose_charts.models.DividerProperties
@@ -56,6 +56,9 @@ fun BalanceChart(
     }
 
     val themeColors = MaterialTheme.colorScheme
+    // One style for every label this chart draws — axis ticks, the value
+    // indicator and the legend — so they can't drift apart.
+    val chartLabel = PennyWiseText.chartLabel
 
     val chartValues = remember(smoothedHistory) {
         smoothedHistory.map { it.balance.toDouble() }
@@ -117,9 +120,8 @@ fun BalanceChart(
         ),
         indicatorProperties = HorizontalIndicatorProperties(
             enabled = true,
-            textStyle = TextStyle.Default.copy(
-                fontSize = 10.sp,
-                color = themeColors.onSurfaceVariant.copy(0.7f),
+            textStyle = chartLabel.copy(
+                color = themeColors.onSurfaceVariant,
                 textAlign = TextAlign.Center
             ),
             contentBuilder = { value ->
@@ -128,17 +130,15 @@ fun BalanceChart(
         ),
         labelHelperProperties = LabelHelperProperties(
             enabled = true,
-            textStyle = TextStyle.Default.copy(
-                fontSize = 10.sp,
+            textStyle = chartLabel.copy(
                 color = themeColors.onSurface,
                 textAlign = TextAlign.End
             ),
         ),
         labelProperties = LabelProperties(
             enabled = true,
-            textStyle = TextStyle.Default.copy(
-                fontSize = 10.sp,
-                color = themeColors.onSurface.copy(0.7f),
+            textStyle = chartLabel.copy(
+                color = themeColors.onSurfaceVariant,
                 textAlign = TextAlign.End
             ),
             labels = labels,

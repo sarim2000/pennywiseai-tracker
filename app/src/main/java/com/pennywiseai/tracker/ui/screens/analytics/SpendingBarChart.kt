@@ -18,10 +18,10 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -43,11 +43,12 @@ fun SpendingBarChart(
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
     val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
     val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
-    val indicatorColor = themeColors.onSurfaceVariant.copy(alpha = 0.7f)
+    val indicatorColor = themeColors.onSurfaceVariant
 
-    val labelStyle = TextStyle(fontSize = 10.sp, color = labelColor, textAlign = TextAlign.Center)
-    val valueLabelStyle = TextStyle(fontSize = 10.sp, color = valueLabelColor, textAlign = TextAlign.Center)
-    val indicatorStyle = TextStyle(fontSize = 10.sp, color = indicatorColor, textAlign = TextAlign.End)
+    val chartLabel = PennyWiseText.chartLabel
+    val labelStyle = chartLabel.copy(color = labelColor, textAlign = TextAlign.Center)
+    val valueLabelStyle = chartLabel.copy(color = valueLabelColor, textAlign = TextAlign.Center)
+    val indicatorStyle = chartLabel.copy(color = indicatorColor, textAlign = TextAlign.End)
 
     val chartData = remember(sortedData) {
         val isYearly = sortedData.size > 1 && sortedData.all { it.timestamp.dayOfYear == 1 }

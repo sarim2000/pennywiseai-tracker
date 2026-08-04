@@ -28,7 +28,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -39,6 +38,7 @@ import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -342,15 +342,13 @@ fun TransactionTabContent(
                         Column {
                             Text(
                                 text = uiState.date.format(DateTimeFormatter.ofPattern("yyyy")),
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = uiState.date.format(DateTimeFormatter.ofPattern("dd MMMM")),
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.bodyLarge,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -377,50 +375,44 @@ fun TransactionTabContent(
 
                         Box(
                             modifier = Modifier
-                                .padding(4.dp)
+                                .padding(Spacing.xs)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary.copy(0.2f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = MaterialTheme.shapes.small
                                 )
                         ) {
                             Text(
                                 text = String.format("%02d", hour),
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                modifier = Modifier.padding(5.dp)
+                                style = PennyWiseText.amountMedium,
+                                modifier = Modifier.padding(Spacing.xs)
                             )
                         }
                         Text(
                             text = ":",
-                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp
+                            style = PennyWiseText.amountMedium
                         )
                         Box(
                             modifier = Modifier
-                                .padding(4.dp)
+                                .padding(Spacing.xs)
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = MaterialTheme.shapes.small
                                 )
                         ) {
                             Text(
                                 text = String.format("%02d", minute),
-                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                modifier = Modifier.padding(5.dp)
+                                style = PennyWiseText.amountMedium,
+                                modifier = Modifier.padding(Spacing.xs)
                             )
                         }
-                        Box(modifier = Modifier.padding(4.dp)) {
+                        Box(modifier = Modifier.padding(Spacing.xs)) {
                             Text(
                                 text = amPm,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

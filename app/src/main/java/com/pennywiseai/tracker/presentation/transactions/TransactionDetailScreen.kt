@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -70,7 +69,6 @@ import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.PennyWiseCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
@@ -81,6 +79,8 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.formatAmount
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -578,9 +578,9 @@ private fun TransactionReceipt(
         // ── Hero Header ──
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 2.dp
+            tonalElevation = Dimensions.Elevation.raisedCard
         ) {
             Column(
                 modifier = Modifier
@@ -1749,15 +1749,13 @@ private fun DateTimeField(
                 Column {
                     Text(
                         text = dateTime.format(DateTimeFormatter.ofPattern("yyyy")),
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = dateTime.format(DateTimeFormatter.ofPattern("dd MMMM")),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1784,50 +1782,44 @@ private fun DateTimeField(
 
                 Box(
                     modifier = Modifier
-                        .padding(4.dp)
+                        .padding(Spacing.xs)
                         .background(
                             color = MaterialTheme.colorScheme.primary.copy(0.2f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.small
                         )
                 ) {
                     Text(
                         text = String.format("%02d", hour),
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        lineHeight = 16.sp,
-                        modifier = Modifier.padding(5.dp)
+                        style = PennyWiseText.amountMedium,
+                        modifier = Modifier.padding(Spacing.xs)
                     )
                 }
                 Text(
                     text = ":",
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp
+                    style = PennyWiseText.amountMedium
                 )
                 Box(
                     modifier = Modifier
-                        .padding(4.dp)
+                        .padding(Spacing.xs)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.small
                         )
                 ) {
                     Text(
                         text = String.format("%02d", minute),
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 16.sp,
-                        lineHeight = 16.sp,
-                        modifier = Modifier.padding(5.dp)
+                        style = PennyWiseText.amountMedium,
+                        modifier = Modifier.padding(Spacing.xs)
                     )
                 }
-                Box(modifier = Modifier.padding(4.dp)) {
+                Box(modifier = Modifier.padding(Spacing.xs)) {
                     Text(
                         text = amPm,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

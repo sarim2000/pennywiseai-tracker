@@ -1,542 +1,297 @@
 # PennyWise Design System
 
-## Overview
-PennyWise follows Material 3 design principles with a focus on simplicity, clarity, and user-centric design. This document outlines the visual design system, theming approach, and layout guidelines.
+Material 3 (Expressive), with a small set of app-specific tokens and components
+layered on top. This document describes what is **actually implemented** — if
+the code and this file disagree, the code in `app/src/main/java/com/pennywiseai/tracker/ui/theme/`
+is the source of truth and this file is the bug.
 
-## Theme System
+## The one rule
 
-### Material You Integration
-PennyWise leverages Android 12+ dynamic color system to create personalized experiences:
-- **Dynamic Color**: Automatically derives colors from user's wallpaper
-- **Adaptive Theming**: Seamlessly adapts to system-wide theme preferences
-- **Fallback Colors**: Provides branded colors for older Android versions
+**Never hard-code a dp or sp value in a screen.** Every spacing, size and text
+style comes from a token. If nothing fits, add a token — then the next screen
+agrees with this one instead of inventing a fourth value for the same idea.
 
-### Light & Dark Themes
+The tokens live in four files:
 
-#### Light Theme
-```kotlin
-val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6750A4),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEADDFF),
-    onPrimaryContainer = Color(0xFF21005D),
-    
-    secondary = Color(0xFF625B71),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE8DEF8),
-    onSecondaryContainer = Color(0xFF1D192B),
-    
-    tertiary = Color(0xFF7D5260),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFFFD8E4),
-    onTertiaryContainer = Color(0xFF31111D),
-    
-    surface = Color(0xFFFFFBFE),
-    onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFE7E0EC),
-    onSurfaceVariant = Color(0xFF49454F),
-    
-    background = Color(0xFFFFFBFE),
-    onBackground = Color(0xFF1C1B1F),
-    
-    error = Color(0xFFBA1A1A),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
-    
-    outline = Color(0xFF79747E),
-    outlineVariant = Color(0xFFCAC4D0),
-    scrim = Color(0xFF000000)
-)
+| File | Holds |
+|---|---|
+| `theme/Spacing.kt` | The raw 4dp scale + `Spacing.Layout.*` semantic gaps |
+| `theme/Dimensions.kt` | Semantic sizes: padding, icons, elevation, component metrics |
+| `theme/Type.kt` | The Material type scale (tuned — see below) |
+| `theme/TextStyles.kt` | `PennyWiseText.*` — money, row, chart and label styles |
+
+---
+
+## Spacing
+
+### The scale (`Spacing`)
+
+| Token | Value | Use |
+|---|---|---|
+| `xxs` | 2dp | Hairline separation; grouped-list gutter; stacked meta lines |
+| `xs` | 4dp | Tight pairing — a label above its value |
+| `sm` | 8dp | Related items inside one block |
+| `smd` | 12dp | Between `sm` and `md` — icon-to-label in a row, compact gaps |
+| `md` | 16dp | The workhorse: card padding, screen gutters, list gaps |
+| `lg` | 24dp | Between distinct blocks inside a section |
+| `xl` | 32dp | Between sections |
+| `xxl` / `xxxl` | 48 / 64dp | Large vertical breaks |
+
+### Semantic gaps (`Spacing.Layout`)
+
+Prefer these — they name the *role*, so the rhythm can be retuned in one place.
+
+| Token | Value | Use |
+|---|---|---|
+| `screenHorizontal` | 16dp | Screen edge → content |
+| `sectionGap` | 20dp | Between two top-level sections |
+| `headerToContent` | 8dp | Section header → the content it labels |
+| `listGap` | 8dp | Between sibling rows in a plain list |
+| `groupedListGap` | 2dp | Between rows of a connected/grouped block |
+| `nestedContent` | 12dp | Content nested inside an already-padded card |
+| `scrollBottomPadding` | 24dp | Bottom breathing room in a scrolling list |
+
+### The rhythm that matters
+
+Hierarchy comes from **unequal** gaps. A heading must sit closer to the content
+it labels than to the section above it:
+
+```
+        ↕ 16dp  (section gap: header's own top inset + the column's spacedBy)
+[ Section header ]
+        ↕ 8dp   (headerToContent)
+[ content ]
 ```
 
-#### Dark Theme
-```kotlin
-val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFD0BCFF),
-    onPrimary = Color(0xFF381E72),
-    primaryContainer = Color(0xFF4F378B),
-    onPrimaryContainer = Color(0xFFEADDFF),
-    
-    secondary = Color(0xFFCCC2DC),
-    onSecondary = Color(0xFF332D41),
-    secondaryContainer = Color(0xFF4A4458),
-    onSecondaryContainer = Color(0xFFE8DEF8),
-    
-    tertiary = Color(0xFFEFB8C8),
-    onTertiary = Color(0xFF492532),
-    tertiaryContainer = Color(0xFF633B48),
-    onTertiaryContainer = Color(0xFFFFD8E4),
-    
-    surface = Color(0xFF1C1B1F),
-    onSurface = Color(0xFFE6E1E5),
-    surfaceVariant = Color(0xFF49454F),
-    onSurfaceVariant = Color(0xFFCAC4D0),
-    
-    background = Color(0xFF1C1B1F),
-    onBackground = Color(0xFFE6E1E5),
-    
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    
-    outline = Color(0xFF938F99),
-    outlineVariant = Color(0xFF49454F),
-    scrim = Color(0xFF000000)
-)
-```
+`SectionHeaderV2` carries its own 8dp top inset (`topSpacing`) precisely so this
+works when a screen lays sections out in a `Column` with one uniform `spacedBy`.
+Pass `topSpacing = Spacing.none` for the first header on a screen, or where a
+parent already supplies the gap.
 
-### Theme Implementation
-```kotlin
-@Composable
-fun PennyWiseTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-    
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
-}
-```
+---
 
-### Color Semantic Usage
-- **Primary**: Main actions, FAB, primary buttons
-- **Primary Container**: Selected states, highlights
-- **Secondary**: Supporting actions, filter chips
-- **Secondary Container**: Input fields, secondary selections
-- **Tertiary**: Additional accents, special states
-- **Tertiary Container**: Tags, badges
-- **Surface**: Cards, sheets, dialogs
-- **Surface Variant**: Subtle backgrounds, dividers
-- **Background**: Screen backgrounds
-- **Error**: Error states, destructive actions
-- **Error Container**: Error backgrounds, warnings
-- **Outline**: Borders, dividers
-- **Outline Variant**: Subtle borders, inactive states
+## Dimensions
+
+### Padding (`Dimensions.Padding`)
+
+| Token | Value | Use |
+|---|---|---|
+| `content` | 16dp | Screen gutter |
+| `card` | 16dp | Card interior. Matches `content` so card text lines up with unwrapped text |
+| `cardCompact` | 12dp | List rows and dense tiles |
+| `listRowVertical` | 12dp | Vertical padding of a two-line row |
+| `dialog` | 24dp | Dialog / bottom-sheet interior (M3 spec) |
+| `empty` | 32dp | Empty-state block |
+| `fab` | 16dp | FAB inset from the screen edge |
+
+### Icon sizes (`Dimensions.Icon`)
+
+Five steps with clear jobs, plus avatar sizes. Anything outside this set reads as
+a mistake next to its neighbours.
+
+| Token | Value | Use |
+|---|---|---|
+| `tiny` | 12dp | Legend swatches, trend arrows glued to text |
+| `small` | 16dp | Inline with body text; trailing chevron in a button |
+| `inline` | 20dp | Inline with a title; row trailing affordance; dense toolbars |
+| `medium` | 24dp | **The default** — app-bar actions, list leading icons |
+| `large` | 32dp | Glyph inside a tonal circle; prominent standalone glyph |
+| `list` / `avatar` | 40dp | Leading avatar / brand circle in a row (M3 standard) |
+| `avatarLarge` | 48dp | Profile headers, settings-row circles |
+| `emptyStateGlyph` / `emptyStateContainer` | 32 / 64dp | Empty-state icon + its circle |
+| `extraLarge` | 96dp | Whole-screen illustrative icon |
+
+### Component metrics (`Dimensions.Component`)
+
+`minTouchTarget` (48dp) is the accessibility floor for anything tappable —
+`GroupedRow` and `ListItemCardV2` enforce it via `defaultMinSize`. `iconButton`
+(40dp) is the compact icon-button footprint; pair it with surrounding padding so
+the real target still reaches 48dp.
+
+Also here: `progressBarHeight` (8dp — one height for budget, loan and download
+tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
+`fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
+
+### Elevation (`Dimensions.Elevation`)
+
+The app is **flat**. Containers separate via tonal surfaces
+(`surfaceContainerLow` / `High`), not shadows. `card` is 0dp. Only genuinely
+floating things get elevation: `fab` (6dp), `dialog` (8dp), `bottomBar` (3dp).
+
+### Alpha (`Dimensions.Alpha`)
+
+Only ever apply an alpha to a **strong** colour role (`onSurface`, `onPrimary`,
+…). Dimming an already-muted role such as `onSurfaceVariant` stacks two
+reductions and drops below the WCAG AA contrast floor — that was the single most
+common contrast bug in this codebase. Secondary text should be
+`onSurfaceVariant` at full opacity.
+
+---
 
 ## Typography
 
-### Type Scale
+`theme/Type.kt` is the Material scale with two deliberate departures, both aimed
+at making hierarchy readable in a dense, number-heavy UI:
+
+1. **Titles and headlines are `SemiBold`, not `Normal`/`Medium`.** Material's
+   defaults leave a `titleMedium` heading nearly indistinguishable from the
+   `bodyLarge` under it, so screens read as one flat wall. A weight step
+   separates them without needing a size step.
+2. **Tracking is tightened at the large end, left wide at the small end.** Big
+   figures get negative tracking so digits group into one number; 11–12sp labels
+   keep Material's generous tracking, which is what makes small text legible.
+
+### Roles — pick the same style for the same job
+
+| Role | Use |
+|---|---|
+| `displaySmall`+ | Hero balance on the Home balance card |
+| `headlineMedium` / `Small` | Screen-level totals, dialog titles |
+| `titleLarge` | Screen title in a top app bar |
+| `titleMedium` | Card heading |
+| `titleSmall` | Section header, grouped-list heading |
+| `bodyLarge` | Primary row text (merchant, setting name) |
+| `bodyMedium` | Supporting row text, descriptions, paragraph copy |
+| `bodySmall` | Metadata: timestamps, counts, footnotes |
+| `labelLarge` | Buttons, prominent inline actions |
+| `labelMedium` / `Small` | Chips, badges, axis ticks, overlines |
+
+### `PennyWiseText` — named styles
+
+Derived from the theme typography (so they follow the user's font choice), for
+the jobs the plain roles don't cover:
+
+- **Money:** `heroAmount`, `amountLarge`, `amountMedium`, `amountRow`,
+  `amountSmall`. All carry `tnum` (**tabular figures**) so a column of amounts
+  lines up instead of shimmering as digits change width.
+- **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
+- **Structure:** `sectionHeader`, `fieldLabel`.
+- **Charts:** `chartLabel` — one style for every axis tick, value label and
+  legend, since Canvas text takes a `TextStyle` rather than a Material role and
+  each chart used to declare its own literal.
+
+---
+
+## Shape
+
+`theme/Shape.kt`: `extraSmall` 4 · `small` 8 · `medium` 12 · `large` 16 ·
+`extraLarge` 28.
+
+Reference `MaterialTheme.shapes.*` rather than re-typing
+`RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
+`extraSmall`; pill shapes use `CircleShape`.
+
+---
+
+## Components
+
+### `PennyWiseCardV2` — the standard card
+
+One card style everywhere: `shapes.large`, `surfaceContainerLow` fill, no
+elevation, and — in **dark mode only** — a 0.5dp hairline so the card separates
+from an AMOLED-black background where a tonal fill barely registers.
+
+Pass `contentPadding` rather than padding the content yourself, so the ripple on
+a clickable card covers the whole surface.
+
+### Grouped lists — `GroupedList` / `GroupedRow` / `GroupedColumn`
+
+The app's one grouped-list pattern: sibling rows share a tonal surface,
+separated by a 2dp gutter, with the block's outer corners rounded and interior
+corners nearly square. **The shape does the grouping — no dividers.**
+
 ```kotlin
-val Typography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
-    ),
-    headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = 0.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    )
-)
-```
-
-### Typography Usage
-- **Display**: Monthly total amounts
-- **Headline**: Screen titles, section headers
-- **Title**: Card headers, dialog titles
-- **Body**: Transaction descriptions, general content
-- **Label**: Buttons, chips, navigation
-
-## Layout System
-
-### Spacing & Padding
-Based on 8dp grid system:
-```kotlin
-object Spacing {
-    val xs = 4.dp
-    val sm = 8.dp
-    val md = 16.dp
-    val lg = 24.dp
-    val xl = 32.dp
-    val xxl = 48.dp
-}
-```
-
-### Standard Margins
-- **Screen padding**: 16.dp (standard Android margin)
-- **Card padding**: 16.dp
-- **List item padding**: 16.dp horizontal, 12.dp vertical
-- **Component spacing**: 8.dp between related items
-
-### Safe Areas
-```kotlin
-@Composable
-fun SafeScreen(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .navigationBarsPadding()
-    ) {
-        content()
-    }
-}
-```
-
-## Component Design
-
-### Cards
-```kotlin
-@Composable
-fun TransactionCard(
-    transaction: Transaction,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Content
+GroupedList {
+    items.forEachIndexed { i, item ->
+        GroupedRow(position = ListItemPosition.from(i, items.size), onClick = { … }) {
+            IconTile(icon = …, containerColor = …, contentColor = …)
+            RowLabels(title = …, subtitle = …)
+            Icon(Icons.Default.ChevronRight, null, Modifier.size(Dimensions.Icon.inline))
         }
     }
 }
 ```
 
-### Bottom Navigation
-- Maximum 5 destinations
-- Active indicator with primary color
-- Icon + label for clarity
+`ListItemPosition.toShape()` in `ui/components/cards/ListItemCardV2.kt` is the
+**single source of truth** for grouped corners. It used to exist in four places
+(Home, Settings, `PreferenceSwitch`, `ListItemCardV2`) with three different
+corner radii and three different gutters — which is why Settings and Appearance
+never quite matched. Don't re-add a local copy.
 
-### Floating Action Button
-- Primary action only (Add transaction manually)
-- Bottom-right placement
-- Extended FAB on scroll
+Helpers:
+- `IconTile` — the tinted circle that leads a settings-style row (fixed circle
+  and glyph sizes, so a 24dp glyph in one row and 20dp in the next can't happen).
+- `RowLabels` — title + supporting text, weighted to fill. Supporting text is
+  `bodyMedium`/`onSurfaceVariant`, not `bodySmall`: at 12sp the second line of a
+  two-line row is genuinely hard to read, and the colour role already carries
+  the "secondary" signal.
 
-## Screen Layouts
+### `ListItemCardV2` / `TransactionItem` — transaction rows
 
-### Home Screen Layout
-```
-┌─────────────────────────┐
-│   Status Bar (System)   │
-├─────────────────────────┤
-│   App Bar (Optional)    │
-├─────────────────────────┤
-│   Month Summary Card    │
-│   - Total Amount        │
-│   - Trend Indicator     │
-├─────────────────────────┤
-│   Category Chips        │
-│   (Horizontal Scroll)   │
-├─────────────────────────┤
-│   Recent Transactions   │
-│   - LazyColumn          │
-│   - Grouped by Date     │
-│                         │
-│                    FAB  │
-├─────────────────────────┤
-│   Bottom Navigation     │
-└─────────────────────────┘
-```
+Leading avatar (`Icon.list`), title + one metadata line, trailing amount in
+`PennyWiseText.amountRow`. The subtitle here stays `bodySmall` on purpose: it's a
+joined metadata string ("9 Jan · 3:42 PM · Food · Bal ₹1,234"), not prose.
 
-### Responsive Breakpoints
+`TransactionItemSkeleton` derives its geometry from the same tokens, so rows
+don't shift or change height when data arrives.
+
+### `SectionHeaderV2`
+
+`titleSmall`/SemiBold on **`onSurface`**, not `primary` — when every heading is
+accent-coloured none of them stands out and the accent stops meaning "this is
+actionable". The accent belongs to the `action` slot on the right, which *is* a
+control. A fixed minimum height keeps headers with a "View All" link the same
+height as headers without one.
+
+### `PennyWiseEmptyState`
+
+Tonal icon circle → headline → one line of explanation → optional action.
+Spacing is deliberately **uneven** (icon→headline gap larger than
+headline→description) so the three read as one grouped unit. The description is
+width-capped so centred text doesn't wrap into an awkward shape.
+
+### `PennyWiseScaffold` / `CustomTitleTopAppBar`
+
+All screens use one of these for consistent system-bar and app-bar handling.
+App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+
+---
+
+## Colour
+
+Material You dynamic colour on Android 12+, a branded Rose Pine palette
+(`ThemeStyle.BRANDED`), and an AMOLED override that swaps the surface ramp for
+true black. Always use semantic roles — never hard-code a colour.
+
+Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
+`income`, `expense`, `credit`, `transfer`, `investment` — each resolves
+light/dark automatically.
+
+---
+
+## Accessibility checklist
+
+- [ ] 48dp minimum touch target on everything tappable
+- [ ] Secondary text is `onSurfaceVariant` at full opacity (no stacked alpha)
+- [ ] Light **and** dark theme checked
+- [ ] Dynamic colour + branded + AMOLED all checked
+- [ ] Font scaling to 200% doesn't clip or overlap
+- [ ] Section headers carry `semantics { heading() }` (`SectionHeaderV2` does)
+- [ ] Decorative icons pass `contentDescription = null`; meaningful ones don't
+
+## Previews
+
 ```kotlin
-enum class WindowSize {
-    COMPACT,   // < 600dp (phones)
-    MEDIUM,    // 600-840dp (tablets)
-    EXPANDED   // > 840dp (large tablets)
-}
-
+@Preview(name = "Light")
+@Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun rememberWindowSize(): WindowSize {
-    val configuration = LocalConfiguration.current
-    return when {
-        configuration.screenWidthDp < 600 -> WindowSize.COMPACT
-        configuration.screenWidthDp < 840 -> WindowSize.MEDIUM
-        else -> WindowSize.EXPANDED
-    }
+private fun ComponentPreview() {
+    PennyWiseTheme { /* component */ }
 }
-```
-
-## Accessibility
-
-### Color Contrast
-- Ensure WCAG AA compliance (4.5:1 for normal text)
-- Test with color blindness simulators
-- Provide high contrast theme option
-
-### Touch Targets
-- Minimum 48dp x 48dp for interactive elements
-- Adequate spacing between targets
-- Clear visual feedback on interaction
-
-### Content Description
-```kotlin
-IconButton(
-    onClick = { /* action */ },
-    modifier = Modifier.semantics {
-        contentDescription = "Add new transaction"
-    }
-) {
-    Icon(Icons.Default.Add, contentDescription = null)
-}
-```
-
-## Motion & Animation
-
-### Transition Patterns
-```kotlin
-object Animations {
-    val QuickTransition = 200
-    val StandardTransition = 300
-    val SlowTransition = 500
-    
-    val EasingStandard = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
-    val EasingDecelerate = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
-    val EasingAccelerate = CubicBezierEasing(0.4f, 0.0f, 1.0f, 1.0f)
-}
-```
-
-### Common Animations
-- **List item appearance**: Fade + slide
-- **Screen transitions**: Shared element when possible
-- **Loading states**: Skeleton screens over spinners
-- **FAB transformation**: Scale + fade
-
-## Icons & Imagery
-
-### Icon Style
-- Material Symbols (outlined variant)
-- Consistent 24dp size
-- Tinted with appropriate color roles
-
-### Common Icons
-```kotlin
-object PennyWiseIcons {
-    val Home = Icons.Outlined.Home
-    val Transactions = Icons.Outlined.Receipt
-    val Analytics = Icons.Outlined.Analytics
-    val Settings = Icons.Outlined.Settings
-    val Add = Icons.Outlined.Add
-    val Category = Icons.Outlined.Category
-    val Calendar = Icons.Outlined.CalendarMonth
-    val Search = Icons.Outlined.Search
-}
-```
-
-## Shape System
-
-### Shape Scale
-```kotlin
-val Shapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(28.dp)
-)
-```
-
-### Shape Usage
-- **Extra Small**: Chips, small buttons
-- **Small**: Cards, list items
-- **Medium**: Dialogs, sheets
-- **Large**: Navigation drawer, large cards
-- **Extra Large**: Full-screen modals
-
-## Empty States
-
-### Design Principles
-- Helpful illustration or icon
-- Clear message explaining the state
-- Action button when applicable
-
-### Example
-```kotlin
-@Composable
-fun EmptyTransactions() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.Outlined.Receipt,
-            contentDescription = null,
-            modifier = Modifier.size(96.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "No transactions yet",
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            "Transactions will appear here once detected from SMS",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-```
-
-## Testing Themes
-
-### Preview Configuration
-```kotlin
-@Preview(name = "Light Theme")
-@Preview(name = "Dark Theme", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun ComponentPreview() {
-    PennyWiseTheme {
-        // Component
-    }
-}
-```
-
-### Theme Testing Checklist
-- [ ] Light theme readability
-- [ ] Dark theme contrast
-- [ ] Dynamic color adaptation
-- [ ] High contrast mode support
-- [ ] Font scaling (up to 200%)
-- [ ] Landscape orientation
-- [ ] Different screen sizes
-
-## Best Practices
-
-### Do's
-- ✅ Respect system theme preference
-- ✅ Use semantic color roles
-- ✅ Test on various devices and themes
-- ✅ Maintain consistent spacing
-- ✅ Follow Material 3 guidelines
-
-### Don'ts
-- ❌ Hard-code colors
-- ❌ Ignore safe areas
-- ❌ Use custom themes without testing
-- ❌ Create inconsistent layouts
-- ❌ Override system preferences without user consent
-
-## Material 3 Components Usage
-
-### Navigation Components
-```kotlin
-// For phones (compact)
-NavigationBar {
-    destinations.forEach { destination ->
-        NavigationBarItem(
-            selected = currentDestination == destination,
-            onClick = { navigate(destination) },
-            icon = { Icon(destination.icon, contentDescription = null) },
-            label = { Text(destination.label) }
-        )
-    }
-}
-
-// For tablets (medium/expanded)
-NavigationRail {
-    destinations.forEach { destination ->
-        NavigationRailItem(
-            selected = currentDestination == destination,
-            onClick = { navigate(destination) },
-            icon = { Icon(destination.icon, contentDescription = null) },
-            label = { Text(destination.label) }
-        )
-    }
-}
-```
-
-### Adaptive Navigation
-```kotlin
-@Composable
-fun AdaptiveNavigation(
-    windowSize: WindowSize,
-    currentDestination: Destination,
-    onNavigate: (Destination) -> Unit
-) {
-    when (windowSize) {
-        WindowSize.COMPACT -> {
-            NavigationBar {
-                // Navigation items
-            }
-        }
-        WindowSize.MEDIUM, WindowSize.EXPANDED -> {
-            NavigationRail {
-                // Navigation items
-            }
-        }
-    }
-}
-```
-
-## Custom Color Extensions
-```kotlin
-// Custom semantic colors for specific use cases
-val ColorScheme.success: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) Color(0xFF4CAF50) else Color(0xFF2E7D32)
-
-val ColorScheme.warning: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) Color(0xFFFFA726) else Color(0xFFF57C00)
-
-val ColorScheme.income: Color
-    @Composable
-    get() = success
-
-val ColorScheme.expense: Color
-    @Composable
-    get() = error
 ```
 
 ## Resources
-- [Material 3 Design Kit](https://www.figma.com/community/file/1035203688168086460)
-- [Material Theme Builder](https://m3.material.io/theme-builder)
-- [Color Contrast Checker](https://webaim.org/resources/contrastchecker/)
+
+- [Material 3](https://m3.material.io/) · [Material Theme Builder](https://m3.material.io/theme-builder)
 - [Material Symbols](https://fonts.google.com/icons)
-- [Material 3 Components](https://developer.android.com/jetpack/compose/designsystems/material3)
-- [Dynamic Color](https://developer.android.com/develop/ui/views/theming/dynamic-colors)
+- [Contrast checker](https://webaim.org/resources/contrastchecker/)

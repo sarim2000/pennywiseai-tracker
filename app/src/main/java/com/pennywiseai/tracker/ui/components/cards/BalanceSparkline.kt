@@ -14,8 +14,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 
 @Composable
 fun BalanceSparkline(
@@ -38,7 +38,7 @@ fun BalanceSparkline(
 
     val textMeasurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-    val labelStyle = TextStyle(fontSize = 9.sp, color = labelColor)
+    val labelStyle = PennyWiseText.chartLabel.copy(color = labelColor)
 
     val startLabel = if (isBalanceHidden) "••••" else formatCompactBalance(data.first(), currency)
     val endLabel = if (isBalanceHidden) "••••" else formatCompactBalance(data.last(), currency)

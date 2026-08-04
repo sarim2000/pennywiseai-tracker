@@ -79,11 +79,22 @@ class ShareCardViewModel @Inject constructor(
      */
     private val configLoaded = MutableStateFlow(false)
 
+    /**
+     * Set when [updateConfig] runs before the saved config has loaded. The user's edit
+     * is newer than the persisted snapshot (and is already being written over it), so
+     * the load must not clobber [_config] with what it read.
+     */
+    private var editedBeforeLoad = false
+
     init {
         viewModelScope.launch {
             val saved = userPreferencesRepository.shareCardConfig.first()
-            savedPeriod = saved.period
-            _config.value = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
+            if (!editedBeforeLoad) {
+                _config.value = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
+            }
+            // An explicit period change before the load already recorded the newest
+            // saved period; only fall back to the snapshot when it didn't.
+            if (savedPeriod == null) savedPeriod = saved.period
             configLoaded.value = true
         }
     }
@@ -180,6 +191,7 @@ class ShareCardViewModel @Inject constructor(
      * no configuration that produces a blank card.
      */
     fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
+        if (!configLoaded.value) editedBeforeLoad = true
         val candidate = update(_config.value)
         if (candidate.period != _config.value.period) {
             // An explicit choice in Customise supersedes whatever the caller opened on.

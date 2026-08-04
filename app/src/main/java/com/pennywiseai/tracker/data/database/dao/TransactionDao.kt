@@ -90,6 +90,7 @@ interface TransactionDao {
     """)
     suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String>
 
+
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
     

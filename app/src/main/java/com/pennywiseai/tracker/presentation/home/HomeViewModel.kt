@@ -136,9 +136,18 @@ class HomeViewModel @Inject constructor(
     private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
     private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
 
+    /**
+     * Declared above init{} deliberately: Kotlin initialises properties in declaration
+     * order, and init calls refreshSharePrompt(). Leaving this further down the class
+     * means the flow does not exist yet when that runs.
+     */
+    private val _showSharePrompt = MutableStateFlow(false)
+    val showSharePrompt: StateFlow<Boolean> = _showSharePrompt.asStateFlow()
+
     init {
         loadUnifiedModePreferences()
         loadUserName()
+        refreshSharePrompt()
         // Load base currency FIRST so selectedCurrency is set before data loads
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
@@ -1103,6 +1112,42 @@ class HomeViewModel @Inject constructor(
      * Checks if eligible for in-app review and shows if appropriate.
      * Should be called with the current activity context.
      */
+    /**
+     * Whether to offer the monthly "your month, summed up" prompt on Home.
+     *
+     * Checked on composition rather than scheduled through WorkManager: the OEM battery
+     * managers that dominate this app's install base (Xiaomi, Oppo, Vivo, Realme) kill
+     * background work aggressively, so a scheduled job would fire late, or never. Users
+     * open their expense tracker anyway, which makes the scheduler unnecessary.
+     */
+    private val lastMonthKey: String
+        get() = YearMonth.from(LocalDate.now()).minusMonths(1).toString()
+
+    private fun refreshSharePrompt() {
+        viewModelScope.launch {
+            if (userPreferencesRepository.sharePromptHandledMonth.first() == lastMonthKey) {
+                _showSharePrompt.value = false
+                return@launch
+            }
+            // A card summarising three transactions is worse than no card, and nobody
+            // shares one. Below this bar the prompt simply doesn't appear.
+            val month = YearMonth.from(LocalDate.now()).minusMonths(1)
+            val count = transactionRepository.getTransactionsBetweenDates(
+                month.atDay(1).atStartOfDay(),
+                month.atEndOfMonth().atTime(23, 59, 59),
+            ).first().size
+            _showSharePrompt.value = count >= MIN_TRANSACTIONS_FOR_SHARE_PROMPT
+        }
+    }
+
+    /** Called when the user opens or dismisses the prompt — either way it's handled. */
+    fun markSharePromptHandled() {
+        _showSharePrompt.value = false
+        viewModelScope.launch {
+            userPreferencesRepository.markSharePromptHandled(lastMonthKey)
+        }
+    }
+
     fun checkForInAppReview(activity: ComponentActivity) {
         viewModelScope.launch {
             // Get current transaction count as additional eligibility factor
@@ -1512,6 +1557,11 @@ class HomeViewModel @Inject constructor(
             currency = displayCurrency
         )
     }
+    private companion object {
+        /** Below this the summary is too thin to be worth sending. */
+        const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
+    }
+
 }
 
 data class HomeUiState(

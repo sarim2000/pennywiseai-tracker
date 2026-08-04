@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
@@ -62,6 +63,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.presentation.share.ShareCardSheet
+import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
@@ -127,6 +131,7 @@ fun HomeScreen(
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
+    val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -137,6 +142,10 @@ fun HomeScreen(
 
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
+    var showShareSheet by remember { mutableStateOf(false) }
+    // Period the sheet should open on. The monthly banner points it at the finished
+    // month; opening from the overflow menu uses whatever the user saved.
+    var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
     // Profile filter dropdown state
@@ -448,6 +457,23 @@ fun HomeScreen(
                             }
                         )
                     }
+                }
+            }
+
+            // 1.2. Monthly share prompt. Offers the user something ("your month, summed
+            // up") rather than asking a favour, and only appears when the finished month
+            // actually has enough in it to be worth sending.
+            if (showSharePrompt) {
+                item {
+                    ShareMonthBanner(
+                        onOpen = {
+                            viewModel.markSharePromptHandled()
+                            sharePromptPeriod = SharePeriod.LAST_MONTH
+                            showShareSheet = true
+                        },
+                        onDismiss = { viewModel.markSharePromptHandled() },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    )
                 }
             }
 
@@ -975,6 +1001,14 @@ fun HomeScreen(
         }
     }
 
+    // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
+    if (showShareSheet) {
+        ShareCardSheet(
+            initialPeriod = sharePromptPeriod,
+            onDismiss = { showShareSheet = false; sharePromptPeriod = null },
+        )
+    }
+
     // Avatar menu bottom sheet
     if (showMenuSheet) {
         ModalBottomSheet(
@@ -999,11 +1033,25 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Settings (Top)
+                // Monthly recap (Top) — the growth loop lives here rather than buried
+                // in the Subscriptions screen, where nobody would find it. Named for what
+                // it is rather than "Share ...": the menu sits beside Settings and Rate,
+                // and leading with the ask makes it read as a favour being requested.
+                MenuListItem(
+                    headline = "Monthly recap",
+                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    position = ListItemPosition.Top,
+                    onClick = {
+                        showMenuSheet = false
+                        showShareSheet = true
+                    }
+                )
+
+                // Settings (Middle)
                 MenuListItem(
                     headline = "Settings",
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    position = ListItemPosition.Top,
+                    position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
                         onNavigateToSettings()

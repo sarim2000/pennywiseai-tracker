@@ -478,7 +478,7 @@ fun SubscriptionTabContent(
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
+                                    Text(account.displayLabel)
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,

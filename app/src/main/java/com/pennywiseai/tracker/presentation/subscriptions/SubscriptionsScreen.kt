@@ -933,9 +933,7 @@ private fun EditSubscriptionDialog(
                 // the chosen account's balance; "No account" keeps it unlinked.
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = selectedAccount?.let {
-                            AccountBalanceEntity.accountLabel(it.bankName, it.accountLast4)
-                        } ?: "No account",
+                        value = selectedAccount?.displayLabel ?: "No account",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Paid from") },
@@ -967,7 +965,7 @@ private fun EditSubscriptionDialog(
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
+                                        Text(account.displayLabel)
                                         Text(
                                             CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                             style = MaterialTheme.typography.bodySmall,

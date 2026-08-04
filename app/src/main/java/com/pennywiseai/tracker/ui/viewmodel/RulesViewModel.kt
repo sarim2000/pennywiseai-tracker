@@ -87,7 +87,7 @@ class RulesViewModel @Inject constructor(
                     AccountInfo(
                         bankName = balance.bankName,
                         accountLast4 = balance.accountLast4,
-                        displayName = AccountBalanceEntity.accountLabel(balance.bankName, balance.accountLast4),
+                        displayName = balance.displayLabel,
                         isCreditCard = balance.isCreditCard,
                         accountType = balance.accountType
                     )

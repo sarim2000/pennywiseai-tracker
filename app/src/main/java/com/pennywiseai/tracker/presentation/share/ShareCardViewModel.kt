@@ -80,21 +80,29 @@ class ShareCardViewModel @Inject constructor(
     private val configLoaded = MutableStateFlow(false)
 
     /**
-     * Set when [updateConfig] runs before the saved config has loaded. The user's edit
-     * is newer than the persisted snapshot (and is already being written over it), so
-     * the load must not clobber [_config] with what it read.
+     * Edits made before the saved config finished loading, kept so the load can replay
+     * them on top of the snapshot it read. Simply letting either side win loses data:
+     * the snapshot winning reverts the user's tap, and the edit winning persists a
+     * candidate derived from the *default* config — a pre-load period tap would
+     * silently reset a saved non-default hero.
      */
-    private var editedBeforeLoad = false
+    private val preLoadEdits = mutableListOf<(ShareCardConfig) -> ShareCardConfig>()
 
     init {
         viewModelScope.launch {
             val saved = userPreferencesRepository.shareCardConfig.first()
-            if (!editedBeforeLoad) {
-                _config.value = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
-            }
             // An explicit period change before the load already recorded the newest
             // saved period; only fall back to the snapshot when it didn't.
             if (savedPeriod == null) savedPeriod = saved.period
+            var merged = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
+            preLoadEdits.forEach { merged = it(merged) }
+            _config.value = merged
+            if (preLoadEdits.isNotEmpty()) {
+                preLoadEdits.clear()
+                // The pre-load updateConfig persisted its default-derived candidate;
+                // re-persist the merge to put the fields it never touched back.
+                userPreferencesRepository.setShareCardConfig(merged.copy(period = savedPeriod!!))
+            }
             configLoaded.value = true
         }
     }
@@ -191,7 +199,7 @@ class ShareCardViewModel @Inject constructor(
      * no configuration that produces a blank card.
      */
     fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
-        if (!configLoaded.value) editedBeforeLoad = true
+        if (!configLoaded.value) preLoadEdits += update
         val candidate = update(_config.value)
         if (candidate.period != _config.value.period) {
             // An explicit choice in Customise supersedes whatever the caller opened on.
@@ -199,7 +207,14 @@ class ShareCardViewModel @Inject constructor(
             savedPeriod = candidate.period
         }
         _config.value = candidate
-        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(candidate) }
+        // Persist the user's choices, but never an active override's period: editing
+        // the hero while the banner's override is showing shouldn't silently rewrite
+        // the period the user saved in Customise.
+        val persisted = savedPeriod
+            ?.takeIf { pendingPeriodOverride != null }
+            ?.let { candidate.copy(period = it) }
+            ?: candidate
+        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(persisted) }
     }
 
     /**

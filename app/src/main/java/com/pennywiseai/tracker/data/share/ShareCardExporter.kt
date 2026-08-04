@@ -54,7 +54,10 @@ object ShareCardExporter {
             ?.filter { now - it.lastModified() > MAX_AGE_MS }
             ?.forEach { it.delete() }
 
-        val file = File(dir, "pennywise-recap-$now.png")
+        // createTempFile rather than a timestamped name: two exports racing (a double-tap
+        // on Share) can land in the same millisecond, and a name collision would put the
+        // second card under the first share's URI — the exact overwrite documented above.
+        val file = File.createTempFile("pennywise-recap-", ".png", dir)
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }

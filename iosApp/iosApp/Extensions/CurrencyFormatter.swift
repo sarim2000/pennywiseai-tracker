@@ -52,7 +52,12 @@ enum CurrencyFormatter {
         "OMR": "OMR",
         "QAR": "QR",
         "ILS": "₪",
-        "JOD": "JD"
+        "JOD": "JD",
+        // South American pesos (#654) — prefixed like MX$ so a peso figure can
+        // never be misread as USD. Same symbols as the Android formatter.
+        "ARS": "AR$",
+        "CLP": "CL$",
+        "UYU": "$U"
     ]
 
     static func symbol(for currencyCode: String) -> String {
@@ -68,9 +73,13 @@ enum CurrencyFormatter {
 
     static func format(amountMinor: Int64, currencyCode: String) -> String {
         let isZeroDecimal = zeroDecimalCurrencies.contains(currencyCode)
-        let amount: Double = isZeroDecimal
-            ? Double(amountMinor)
-            : Double(amountMinor) / 100.0
+        // amountMinor is uniformly value × 100: every write path multiplies by
+        // 100 regardless of currency (AddEditTransactionView, AddEditSubscription),
+        // and every other read divides (CSV export, edit prefill). Zero-decimal
+        // currencies differ only in DISPLAY (no fraction digits), not in storage
+        // scale — treating their minor amounts as unscaled rendered JPY/KRW/VND
+        // (and CLP) a hundred times too large.
+        let amount = Double(amountMinor) / 100.0
 
         if indianGroupingCurrencies.contains(currencyCode) {
             return formatIndian(amount: amount, currencyCode: currencyCode, isZeroDecimal: isZeroDecimal)
@@ -170,6 +179,9 @@ enum CurrencyFormatter {
         case "THB": return Locale(identifier: "th_TH")
         case "MYR": return Locale(identifier: "ms_MY")
         case "KWD": return Locale(identifier: "en_KW")
+        case "ARS": return Locale(identifier: "es_AR")
+        case "CLP": return Locale(identifier: "es_CL")
+        case "UYU": return Locale(identifier: "es_UY")
         default: return Locale(identifier: "en_US")
         }
     }

@@ -104,7 +104,7 @@ object CurrencyUtils {
             // Asia Pacific
             "SGD", "AUD", "THB", "MYR", "KRW",
             // Americas
-            "CAD", "MXN", "COP", "BRL",
+            "CAD", "MXN", "COP", "BRL", "ARS", "CLP", "UYU",
             // Africa
             "ETB", "KES", "NGN", "TZS", "MZN", "EGP",
             // Europe

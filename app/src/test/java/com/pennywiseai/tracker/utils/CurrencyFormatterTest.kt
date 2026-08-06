@@ -223,4 +223,37 @@ class CurrencyFormatterTest {
             CurrencyFormatter.formatAbbreviated(10_000_000.0, "TZS").endsWith("M")
         )
     }
+
+    // ── South American pesos (#654) ──
+
+    @Test
+    fun `ARS CLP UYU are selectable and carry non-USD symbols`() {
+        // Every peso must be in the pickers' source list…
+        listOf("ARS", "CLP", "UYU").forEach { code ->
+            assertTrue(
+                "$code missing from CurrencyFormatter.getSupportedCurrencies()",
+                code in CurrencyFormatter.getSupportedCurrencies()
+            )
+            assertTrue(
+                "$code missing from CurrencyUtils.getAllSupportedCurrencies()",
+                code in CurrencyUtils.getAllSupportedCurrencies()
+            )
+        }
+        // …and no peso may render as a bare "$" — that reads as USD in a
+        // mixed-currency list (the reporter's exact workaround-pain in #654).
+        assertEquals("AR$", CurrencyFormatter.getCurrencySymbol("ARS"))
+        assertEquals("CL$", CurrencyFormatter.getCurrencySymbol("CLP"))
+        assertEquals("\$U", CurrencyFormatter.getCurrencySymbol("UYU"))
+    }
+
+    @Test
+    fun `formatted peso amounts carry their distinguishing symbol`() {
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+        val ars = CurrencyFormatter.formatCurrency(BigDecimal("1234.56"), "ARS")
+        assertTrue("expected AR$ in: $ars", ars.contains("AR$"))
+        val clp = CurrencyFormatter.formatCurrency(BigDecimal("1234"), "CLP")
+        assertTrue("expected CL$ in: $clp", clp.contains("CL$"))
+        val uyu = CurrencyFormatter.formatCurrency(BigDecimal("1234.56"), "UYU")
+        assertTrue("expected \$U in: $uyu", uyu.contains("\$U"))
+    }
 }

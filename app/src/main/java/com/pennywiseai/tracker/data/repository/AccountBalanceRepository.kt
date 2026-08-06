@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.utils.BalanceCalculator
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -206,43 +207,84 @@ class AccountBalanceRepository @Inject constructor(
     }
 
     /**
-     * Atomically revert the balance impact of the [original] TRANSFER (if it was
-     * one) and apply the [updated] TRANSFER's impact (if it is one) — wrapped in
-     * a Room transaction so a crash mid-sequence can't leave accounts in a
-     * half-reverted state. Revert entries are timestamped with the original
-     * transaction's dateTime, apply entries with the updated transaction's, so
-     * the balance history timeline stays correct.
+     * Atomically shift account balances to reflect replacing [original] with
+     * [updated] — the single owner of "what does this edit do to balances".
+     * Pass `updated = null` for a deletion. Wrapped in a Room transaction so a
+     * crash mid-sequence can't leave accounts half-reverted.
      *
-     * Looks up accounts by `accountLast4` alone — `from_account` / `to_account`
-     * only persist the last4. A missing balance row for a referenced last4 is
-     * silently skipped (account not tracked yet); the other side still runs.
+     * Covers every shape of change: type or amount edits on the same account
+     * (netted into one corrective row), account moves (revert the old account,
+     * apply to the new), and TRANSFER conversions in either direction (legs
+     * reverted/applied per account, credit-card aware). Manual/cash accounts are
+     * skipped for the assigned account — their balance is *derived*, so callers
+     * recompute them — while manual transfer *legs* are recomputed here, since
+     * no caller tracks leg accounts.
+     *
+     * Corrective rows are stamped with the current time, NOT the edited
+     * transaction's dateTime: "latest balance" is resolved by `ORDER BY
+     * timestamp DESC`, so a correction stamped into the past (any edit of a
+     * transaction older than the account's newest balance row — the common
+     * case) would never become the latest row and would be invisible. A
+     * correction is a now-event — we learned about it now, and it adjusts the
+     * current figure. Effects only ever layer onto an account's *latest* row;
+     * the next SMS that reports an explicit balance re-anchors the account to
+     * the bank's own figure regardless (#636).
      */
-    suspend fun applyTransferBalanceShift(
+    suspend fun applyTransactionBalanceShift(
         original: TransactionEntity?,
-        updated: TransactionEntity
+        updated: TransactionEntity?
     ) {
         database.withTransaction {
-            if (original != null && original.transactionType == TransactionType.TRANSFER) {
-                original.fromAccount?.let {
-                    insertBalanceDeltaByLast4(it, original.amount, original.dateTime, updated.id)
+            val origKey = singleAccountKey(original)
+            val updKey = singleAccountKey(updated)
+
+            // Same-account non-transfer edit: one net corrective row instead of a
+            // revert/apply pair, so the history doesn't grow two entries per edit.
+            if (origKey != null && origKey == updKey) {
+                val (bank, acct) = origKey
+                if (!isManualAccount(bank, acct)) {
+                    val latest = getLatestBalance(bank, acct)
+                    if (latest != null) {
+                        val net = BalanceCalculator.signedBalanceEffect(
+                            latest.isCreditCard, updated!!.transactionType, updated.amount
+                        ) - BalanceCalculator.signedBalanceEffect(
+                            latest.isCreditCard, original!!.transactionType, original.amount
+                        )
+                        if (net.signum() != 0) {
+                            insertBalanceDelta(bank, acct, net, LocalDateTime.now(), updated.id)
+                        }
+                    }
                 }
-                original.toAccount?.let {
-                    insertBalanceDeltaByLast4(it, original.amount.negate(), original.dateTime, updated.id)
+                return@withTransaction
+            }
+
+            if (original != null) {
+                if (original.transactionType == TransactionType.TRANSFER) {
+                    shiftTransferLeg(original.fromAccount, incoming = false, revert = true,
+                        original.amount, updated?.id)
+                    shiftTransferLeg(original.toAccount, incoming = true, revert = true,
+                        original.amount, updated?.id)
+                } else if (origKey != null) {
+                    shiftSingleAccount(origKey, original.transactionType, original.amount,
+                        revert = true, updated?.id)
                 }
             }
-            if (updated.transactionType == TransactionType.TRANSFER) {
-                updated.fromAccount?.let {
-                    insertBalanceDeltaByLast4(it, updated.amount.negate(), updated.dateTime, updated.id)
-                }
-                updated.toAccount?.let {
-                    insertBalanceDeltaByLast4(it, updated.amount, updated.dateTime, updated.id)
+            if (updated != null) {
+                if (updated.transactionType == TransactionType.TRANSFER) {
+                    shiftTransferLeg(updated.fromAccount, incoming = false, revert = false,
+                        updated.amount, updated.id)
+                    shiftTransferLeg(updated.toAccount, incoming = true, revert = false,
+                        updated.amount, updated.id)
+                } else if (updKey != null) {
+                    shiftSingleAccount(updKey, updated.transactionType, updated.amount,
+                        revert = false, updated.id)
                 }
             }
         }
     }
 
     /**
-     * Reflects a newly-inserted transaction ([transactionId], dated [date]) on
+     * Reflects a newly-inserted transaction ([transactionId]) on
      * its account's running balance. Manual/cash accounts are recomputed from
      * their transactions (so back-dated or later-edited rows stay correct); an
      * SMS-tracked account gets a signed "TRANSACTION" delta snapshot off its
@@ -261,7 +303,6 @@ class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         amount: BigDecimal,
         type: TransactionType,
-        date: LocalDateTime,
         transactionId: Long
     ) {
         if (isManualAccount(bankName, accountLast4)) {
@@ -269,17 +310,18 @@ class AccountBalanceRepository @Inject constructor(
             return
         }
         val currentAccount = getLatestBalance(bankName, accountLast4) ?: return
-        val newBalance = when (type) {
-            TransactionType.INCOME -> currentAccount.balance + amount
-            TransactionType.EXPENSE, TransactionType.CREDIT -> currentAccount.balance - amount
-            TransactionType.TRANSFER -> currentAccount.balance - amount
-            TransactionType.INVESTMENT -> currentAccount.balance - amount
-        }
+        // Credit-card aware (#636): a purchase on a card must *raise* its
+        // outstanding, which the old debit-only formula got backwards.
+        val effect = BalanceCalculator.signedBalanceEffect(currentAccount.isCreditCard, type, amount)
+        if (effect.signum() == 0) return
         insertBalance(
             currentAccount.copy(
                 id = 0,
-                balance = newBalance,
-                timestamp = date,
+                balance = currentAccount.balance + effect,
+                // Stamped now, not [date]: a back-dated add stamped into the past
+                // would lose the ORDER BY timestamp DESC race to the row it was
+                // computed from and never become the visible balance.
+                timestamp = LocalDateTime.now(),
                 transactionId = transactionId,
                 sourceType = "TRANSACTION",
                 smsSource = null
@@ -311,7 +353,6 @@ class AccountBalanceRepository @Inject constructor(
                 accountLast4 = accountLast4,
                 amount = transaction.amount,
                 type = transaction.transactionType,
-                date = transaction.dateTime,
                 transactionId = rowId
             )
         }
@@ -334,9 +375,9 @@ class AccountBalanceRepository @Inject constructor(
      *    the PRE-insert snapshot via [ensureManualOpening] before the insert, so
      *    the recompute includes this new transfer exactly once.
      *  - SMS-tracked accounts have a bank-reported balance, so we snapshot a signed
-     *    "TRANSACTION" delta off the latest row via [insertBalanceDeltaByLast4]
-     *    (−amount on the FROM leg, +amount on the TO leg). No-op if that account
-     *    has no balance row yet.
+     *    "TRANSACTION" delta off the latest row via [insertBalanceDelta]
+     *    (money out on the FROM leg, in on the TO leg, sign-flipped for credit
+     *    cards). No-op if that account has no balance row yet.
      *
      * Returns the new row id (-1 on a dedup-conflict insert, in which case no
      * balance is moved).
@@ -354,34 +395,94 @@ class AccountBalanceRepository @Inject constructor(
         val rowId = transactionDao.insertTransaction(transaction)
         if (rowId != -1L) {
             // FROM leg: money out. Bank-aware so a shared last4 (Kotak ••9999 vs
-            // HDFC ••9999) debits the account the user actually picked.
+            // HDFC ••9999) debits the account the user actually picked. Legs are
+            // credit-card aware: money arriving at a card pays down outstanding.
             if (isManualAccount(fromBankName, fromLast4)) {
                 recomputeManualBalance(fromBankName, fromLast4)
             } else {
-                insertBalanceDelta(fromBankName, fromLast4, transaction.amount.negate(), transaction.dateTime, rowId)
+                getLatestBalance(fromBankName, fromLast4)?.let { latest ->
+                    val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = false, transaction.amount)
+                    // now() not dateTime: a back-dated leg must still postdate
+                    // the latest row to become the visible balance.
+                    insertBalanceDelta(fromBankName, fromLast4, effect, LocalDateTime.now(), rowId)
+                }
             }
             // TO leg: money in.
             if (isManualAccount(toBankName, toLast4)) {
                 recomputeManualBalance(toBankName, toLast4)
             } else {
-                insertBalanceDelta(toBankName, toLast4, transaction.amount, transaction.dateTime, rowId)
+                getLatestBalance(toBankName, toLast4)?.let { latest ->
+                    val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = true, transaction.amount)
+                    insertBalanceDelta(toBankName, toLast4, effect, LocalDateTime.now(), rowId)
+                }
             }
         }
         rowId
     }
 
-    private suspend fun insertBalanceDeltaByLast4(
-        accountLast4: String,
-        delta: BigDecimal,
-        timestamp: LocalDateTime,
-        transactionId: Long
+    /**
+     * The (bankName, accountLast4) pair a non-TRANSFER transaction's balance
+     * effect lands on, or null when there is nothing to shift (no account, or a
+     * TRANSFER — whose effects travel through its legs instead).
+     */
+    private fun singleAccountKey(txn: TransactionEntity?): Pair<String, String>? {
+        if (txn == null || txn.transactionType == TransactionType.TRANSFER) return null
+        val bank = txn.bankName ?: return null
+        val acct = txn.accountNumber ?: return null
+        return bank to acct
+    }
+
+    /**
+     * Applies (or, with [revert], undoes) a non-TRANSFER transaction's effect on
+     * its account as a delta off the latest row. Skips manual accounts (derived
+     * balance — callers recompute) and accounts with no balance row (no anchor).
+     */
+    private suspend fun shiftSingleAccount(
+        key: Pair<String, String>,
+        type: TransactionType,
+        amount: BigDecimal,
+        revert: Boolean,
+        transactionId: Long?
     ) {
+        val (bank, acct) = key
+        if (isManualAccount(bank, acct)) return
+        val latest = getLatestBalance(bank, acct) ?: return
+        var effect = BalanceCalculator.signedBalanceEffect(latest.isCreditCard, type, amount)
+        if (revert) effect = effect.negate()
+        if (effect.signum() == 0) return
+        insertBalanceDelta(bank, acct, effect, LocalDateTime.now(), transactionId)
+    }
+
+    /**
+     * Applies (or, with [revert], undoes) one TRANSFER leg's effect. Resolved by
+     * last4 alone — `from_account`/`to_account` only persist the last4. Manual
+     * leg accounts are re-derived instead of getting a delta row (their MANUAL
+     * row would fight it); an account with no anchor yet stays untouched, in
+     * line with the rest of this class. Credit-card legs flip sign — money
+     * arriving at a card pays down outstanding.
+     */
+    private suspend fun shiftTransferLeg(
+        accountLast4: String?,
+        incoming: Boolean,
+        revert: Boolean,
+        amount: BigDecimal,
+        transactionId: Long?
+    ) {
+        if (accountLast4 == null) return
         val latest = accountBalanceDao.getLatestBalanceByLast4(accountLast4) ?: return
+        if (isManualAccount(latest.bankName, latest.accountLast4)) {
+            ensureManualOpening(latest.bankName, latest.accountLast4)
+            recomputeManualBalance(latest.bankName, latest.accountLast4)
+            return
+        }
+        var effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming, amount)
+        if (revert) effect = effect.negate()
+        if (effect.signum() == 0) return
         accountBalanceDao.insertBalance(
             latest.copy(
                 id = 0,
-                balance = latest.balance + delta,
-                timestamp = timestamp,
+                balance = latest.balance + effect,
+                timestamp = LocalDateTime.now(),
                 transactionId = transactionId,
                 sourceType = "TRANSACTION",
                 smsSource = null
@@ -390,18 +491,17 @@ class AccountBalanceRepository @Inject constructor(
     }
 
     /**
-     * Bank-aware sibling of [insertBalanceDeltaByLast4]: resolves the account by
-     * (bankName, last4) so a transfer leg can't be misattributed to a *different*
-     * account that merely shares the same last4 (e.g. Kotak ••9999 vs HDFC ••9999).
-     * Used by [insertTransferWithBalance], where the full bank name is known for
-     * both legs. No-op if that account has no balance row yet.
+     * Inserts a signed delta snapshot off an account's latest balance row,
+     * resolved by (bankName, last4) so an effect can't be misattributed to a
+     * *different* account that merely shares the same last4 (e.g. Kotak ••9999
+     * vs HDFC ••9999). No-op if that account has no balance row yet.
      */
     private suspend fun insertBalanceDelta(
         bankName: String,
         accountLast4: String,
         delta: BigDecimal,
         timestamp: LocalDateTime,
-        transactionId: Long
+        transactionId: Long?
     ) {
         val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return
         accountBalanceDao.insertBalance(

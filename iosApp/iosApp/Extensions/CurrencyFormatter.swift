@@ -73,9 +73,13 @@ enum CurrencyFormatter {
 
     static func format(amountMinor: Int64, currencyCode: String) -> String {
         let isZeroDecimal = zeroDecimalCurrencies.contains(currencyCode)
-        let amount: Double = isZeroDecimal
-            ? Double(amountMinor)
-            : Double(amountMinor) / 100.0
+        // amountMinor is uniformly value × 100: every write path multiplies by
+        // 100 regardless of currency (AddEditTransactionView, AddEditSubscription),
+        // and every other read divides (CSV export, edit prefill). Zero-decimal
+        // currencies differ only in DISPLAY (no fraction digits), not in storage
+        // scale — treating their minor amounts as unscaled rendered JPY/KRW/VND
+        // (and CLP) a hundred times too large.
+        let amount = Double(amountMinor) / 100.0
 
         if indianGroupingCurrencies.contains(currencyCode) {
             return formatIndian(amount: amount, currencyCode: currencyCode, isZeroDecimal: isZeroDecimal)

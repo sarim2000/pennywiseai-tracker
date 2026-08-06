@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -41,12 +40,17 @@ import androidx.compose.ui.text.AnnotatedString
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -249,7 +253,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.support_title),
                         subtitle = stringResource(R.string.support_subtitle),
                         onClick = { showSupportDialog = true },
-                        position = ItemPosition.SINGLE,
+                        position = ListItemPosition.Single,
                     )
                 }
             } else {
@@ -269,7 +273,7 @@ fun SettingsScreen(
                             "Unlimited rules, statements, exports, and more"
                         },
                         onClick = { showUpgradeSheet = true },
-                        position = ItemPosition.SINGLE,
+                        position = ListItemPosition.Single,
                     )
                 }
             }
@@ -284,7 +288,7 @@ fun SettingsScreen(
                     title = "Appearance",
                     subtitle = "Theme, colors, fonts & navigation",
                     onClick = onNavigateToAppearance,
-                    position = ItemPosition.SINGLE
+                    position = ListItemPosition.Single
                 )
             }
 
@@ -299,7 +303,7 @@ fun SettingsScreen(
                     subtitle = "Convert all transactions to display currency",
                     checked = unifiedCurrencyMode,
                     onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) },
-                    position = ItemPosition.TOP
+                    position = ListItemPosition.Top
                 )
                 AnimatedVisibility(visible = unifiedCurrencyMode) {
                     SettingsNavItem(
@@ -309,7 +313,7 @@ fun SettingsScreen(
                         title = "Display Currency",
                         subtitle = "All amounts shown in this currency",
                         onClick = { showDisplayCurrencyDialog = true },
-                        position = ItemPosition.MIDDLE,
+                        position = ListItemPosition.Middle,
                         trailingText = "${CurrencyFormatter.getCurrencySymbol(displayCurrency)} $displayCurrency"
                     )
                 }
@@ -320,7 +324,7 @@ fun SettingsScreen(
                     title = "Exchange Rates",
                     subtitle = "View and customize rates",
                     onClick = onNavigateToExchangeRates,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsDropdownItem(
                     icon = Icons.Default.Flag,
@@ -331,7 +335,7 @@ fun SettingsScreen(
                     currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 ) {
                     availableCurrencies.forEach { currency ->
                         DropdownMenuItem(
@@ -372,7 +376,7 @@ fun SettingsScreen(
                         } ?: "Not set",
                         expanded = showMainAccountDropdown,
                         onExpandedChange = { showMainAccountDropdown = it },
-                        position = ItemPosition.MIDDLE
+                        position = ListItemPosition.Middle
                     ) {
                         accounts.forEach { account ->
                             val name = account.alias?.takeIf { it.isNotBlank() } ?: account.bankName
@@ -405,7 +409,7 @@ fun SettingsScreen(
                     title = "Number Format",
                     subtitle = "How large amounts are grouped",
                     onClick = { showNumberFormatDialog = true },
-                    position = ItemPosition.BOTTOM,
+                    position = ListItemPosition.Bottom,
                     trailingText = numberFormatStyleLabel(numberFormatStyle)
                 )
             }
@@ -424,7 +428,7 @@ fun SettingsScreen(
                     title = "Budget Cycle Start Day",
                     subtitle = "Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th",
                     onClick = { showBudgetCycleDialog = true },
-                    position = ItemPosition.SINGLE,
+                    position = ListItemPosition.Single,
                     trailingText = ordinalSuffix(budgetCycleStartDay)
                 )
             }
@@ -455,7 +459,7 @@ fun SettingsScreen(
                             settingsViewModel.setUseContactsForVpa(false)
                         }
                     },
-                    position = ItemPosition.SINGLE
+                    position = ListItemPosition.Single
                 )
             }
 
@@ -475,7 +479,7 @@ fun SettingsScreen(
                     checked = appLockUiState.isLockEnabled,
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
                     enabled = appLockUiState.canUseBiometric,
-                    position = if (appLockUiState.isLockEnabled) ItemPosition.TOP else ItemPosition.SINGLE
+                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Top else ListItemPosition.Single
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
@@ -489,7 +493,7 @@ fun SettingsScreen(
                             else -> "After ${appLockUiState.timeoutMinutes} minutes"
                         },
                         onClick = { showTimeoutDialog = true },
-                        position = ItemPosition.BOTTOM
+                        position = ListItemPosition.Bottom
                     )
                 }
             }
@@ -504,7 +508,7 @@ fun SettingsScreen(
                     title = "Manage Accounts",
                     subtitle = "View and manage your bank accounts",
                     onClick = onNavigateToManageAccounts,
-                    position = ItemPosition.TOP
+                    position = ListItemPosition.Top
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Category,
@@ -513,7 +517,7 @@ fun SettingsScreen(
                     title = "Categories",
                     subtitle = "Manage expense and income categories",
                     onClick = onNavigateToCategories,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.AutoAwesome,
@@ -522,7 +526,7 @@ fun SettingsScreen(
                     title = "Smart Rules",
                     subtitle = "Automatic transaction categorization",
                     onClick = onNavigateToRules,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.AccountBalanceWallet,
@@ -531,7 +535,7 @@ fun SettingsScreen(
                     title = "Budgets",
                     subtitle = "Track spending limits by category",
                     onClick = onNavigateToBudgets,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.SwapHoriz,
@@ -540,7 +544,7 @@ fun SettingsScreen(
                     title = "Loans",
                     subtitle = "Track money lent and borrowed",
                     onClick = onNavigateToLoans,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Folder,
@@ -549,7 +553,7 @@ fun SettingsScreen(
                     title = "Transaction Groups",
                     subtitle = "Organise transactions under a topic",
                     onClick = onNavigateToTransactionGroups,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Upload,
@@ -558,7 +562,7 @@ fun SettingsScreen(
                     title = "Export Data",
                     subtitle = "Backup all data to a file",
                     onClick = { settingsViewModel.exportBackup() },
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.Backup,
@@ -583,7 +587,7 @@ fun SettingsScreen(
                             settingsViewModel.setScheduledFolderBackupEnabled(enabled)
                         }
                     },
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 if (scheduledFolderBackupEnabled) {
                     SettingsNavItem(
@@ -598,7 +602,7 @@ fun SettingsScreen(
                             "Last backup: $formatted"
                         } ?: "Run a backup to your folder now",
                         onClick = { settingsViewModel.backupToFolderNow() },
-                        position = ItemPosition.MIDDLE
+                        position = ListItemPosition.Middle
                     )
                     SettingsNavItem(
                         icon = Icons.Default.FolderOpen,
@@ -607,7 +611,7 @@ fun SettingsScreen(
                         title = "Change Backup Folder",
                         subtitle = "Pick a different folder for automatic backups",
                         onClick = { settingsViewModel.requestChangeBackupFolder() },
-                        position = ItemPosition.MIDDLE
+                        position = ListItemPosition.Middle
                     )
                 }
                 SettingsNavItem(
@@ -617,7 +621,7 @@ fun SettingsScreen(
                     title = "Import Data",
                     subtitle = "Restore data from backup",
                     onClick = { importLauncher.launch("*/*") },
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Download,
@@ -626,7 +630,7 @@ fun SettingsScreen(
                     title = "Import Transactions (CSV)",
                     subtitle = "Import from a PennyWise CSV export",
                     onClick = { csvImportLauncher.launch("*/*") },
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Description,
@@ -635,7 +639,7 @@ fun SettingsScreen(
                     title = "Import Statement",
                     subtitle = "Import from GPay, PhonePe, Paytm",
                     onClick = onNavigateToImportStatement,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Sms,
@@ -644,7 +648,7 @@ fun SettingsScreen(
                     title = "Unrecognized SMS",
                     subtitle = "View and report unsupported bank messages",
                     onClick = onNavigateToUnrecognizedSms,
-                    position = ItemPosition.MIDDLE
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.CalendarMonth,
@@ -664,7 +668,7 @@ fun SettingsScreen(
                         else -> "Scan last $smsScanMonths months"
                     },
                     onClick = { showSmsScanDialog = true },
-                    position = ItemPosition.BOTTOM,
+                    position = ListItemPosition.Bottom,
                     trailingText = when {
                         smsScanAllTime -> "All Time"
                         smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) } ?: "Custom"
@@ -686,7 +690,7 @@ fun SettingsScreen(
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         notificationAccessLauncher.launch(intent)
                     },
-                    position = ItemPosition.SINGLE,
+                    position = ListItemPosition.Single,
                     trailingText = if (hasNotificationAccess) "On" else "Off"
                 )
             }
@@ -716,7 +720,7 @@ fun SettingsScreen(
                     subtitle = "Show technical information in chat",
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ItemPosition.SINGLE
+                    position = ListItemPosition.Single
                 )
             }
 
@@ -730,7 +734,7 @@ fun SettingsScreen(
                     title = "Help & FAQ",
                     subtitle = "Frequently asked questions and help",
                     onClick = onNavigateToFaq,
-                    position = ItemPosition.TOP
+                    position = ListItemPosition.Top
                 )
                 SettingsNavItem(
                     icon = Icons.Default.BugReport,
@@ -742,7 +746,7 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
                     },
-                    position = ItemPosition.BOTTOM,
+                    position = ListItemPosition.Bottom,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
                 )
             }
@@ -1211,24 +1215,18 @@ fun SettingsScreen(
 }
 
 // ── Reusable Settings Components ──
-
-private enum class ItemPosition { TOP, MIDDLE, BOTTOM, SINGLE }
-
-private fun ItemPosition.toShape(): RoundedCornerShape = when (this) {
-    ItemPosition.TOP -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-    ItemPosition.MIDDLE -> RoundedCornerShape(4.dp)
-    ItemPosition.BOTTOM -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    ItemPosition.SINGLE -> RoundedCornerShape(16.dp)
-}
+//
+// Row chrome — tonal surface, grouped-corner shape, padding, minimum height,
+// the tinted icon circle, title/subtitle typography — lives in the shared
+// `GroupedList` / `GroupedRow` / `IconTile` / `RowLabels` primitives, so a
+// settings row and a grouped row on any other screen are literally the same
+// object. These wrappers only add the settings-specific trailing affordance.
 
 @Composable
 private fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        content = content
-    )
+    GroupedList(content = content)
 }
 
 @Composable
@@ -1239,59 +1237,28 @@ private fun SettingsNavItem(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    position: ItemPosition,
+    position: ListItemPosition,
     trailingText: String? = null,
     trailingIcon: ImageVector = Icons.Default.ChevronRight
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = position.toShape()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = Spacing.md, vertical = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(iconBgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (trailingText != null) {
-                Text(
-                    text = trailingText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            Icon(
-                trailingIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium)
+    GroupedRow(position = position, onClick = onClick) {
+        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
+        RowLabels(title = title, subtitle = subtitle)
+        if (trailingText != null) {
+            Text(
+                text = trailingText,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
         }
+        // The chevron is a hint, not a control — at 20dp it stops competing
+        // with the leading icon for attention the way a 24dp one did.
+        Icon(
+            trailingIcon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(Dimensions.Icon.inline)
+        )
     }
 }
 
@@ -1304,50 +1271,26 @@ private fun SettingsSwitchRow(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    position: ItemPosition,
+    position: ListItemPosition,
     enabled: Boolean = true
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = position.toShape()
+    GroupedRow(
+        position = position,
+        enabled = enabled,
+        onClick = { onCheckedChange(!checked) }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled) { onCheckedChange(!checked) }
-                .padding(horizontal = Spacing.md, vertical = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(iconBgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.error
-                )
-            }
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled
-            )
-        }
+        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
+        RowLabels(
+            title = title,
+            subtitle = subtitle,
+            subtitleColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+            else MaterialTheme.colorScheme.error
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
     }
 }
 
@@ -1362,76 +1305,49 @@ private fun SettingsDropdownItem(
     currentValue: String,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    position: ItemPosition,
+    position: ListItemPosition,
     dropdownContent: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = position.toShape()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.md)
+    GroupedColumn(position = position) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(iconBgColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(Dimensions.Icon.medium))
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            ExposedDropdownMenuBox(
+            IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
+            RowLabels(title = title, subtitle = subtitle)
+        }
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = onExpandedChange
+        ) {
+            TextField(
+                value = currentValue,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Currency") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                shape = MaterialTheme.shapes.large,
+                colors = TextFieldDefaults.colors(
+                    // A field nested inside an already-tonal row needs a step
+                    // of contrast against it, otherwise the input boundary
+                    // disappears.
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+            ExposedDropdownMenu(
                 expanded = expanded,
-                onExpandedChange = onExpandedChange
-            ) {
-                TextField(
-                    value = currentValue,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Currency") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                    )
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { onExpandedChange(false) },
-                    content = dropdownContent
-                )
-            }
+                onDismissRequest = { onExpandedChange(false) },
+                content = dropdownContent
+            )
         }
     }
 }
@@ -1446,156 +1362,138 @@ private fun AiChatSettingsItem(
     onCancel: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(16.dp)
+    GroupedColumn(
+        position = ListItemPosition.Single,
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(yellow_light),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = yellow_dark, modifier = Modifier.size(Dimensions.Icon.medium))
+            IconTile(
+                icon = Icons.Default.AutoAwesome,
+                containerColor = yellow_light,
+                contentColor = yellow_dark
+            )
+            RowLabels(
+                title = "AI Chat Assistant",
+                subtitle = when (downloadState) {
+                    DownloadState.NOT_DOWNLOADED -> "Download AI model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
+                    DownloadState.DOWNLOADING -> "Downloading AI model..."
+                    DownloadState.PAUSED -> "Download interrupted"
+                    DownloadState.COMPLETED -> "AI model ready for chat"
+                    DownloadState.FAILED -> "Download failed"
+                    DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "AI Chat Assistant",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = when (downloadState) {
-                            DownloadState.NOT_DOWNLOADED -> "Download AI model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                            DownloadState.DOWNLOADING -> "Downloading AI model..."
-                            DownloadState.PAUSED -> "Download interrupted"
-                            DownloadState.COMPLETED -> "AI model ready for chat"
-                            DownloadState.FAILED -> "Download failed"
-                            DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            )
 
-                when (downloadState) {
-                    DownloadState.NOT_DOWNLOADED -> {
-                        Button(onClick = onDownload) {
-                            Icon(Icons.Default.Download, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Download")
-                        }
+            when (downloadState) {
+                DownloadState.NOT_DOWNLOADED -> {
+                    Button(onClick = onDownload) {
+                        Icon(Icons.Default.Download, contentDescription = null)
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Download")
                     }
-                    DownloadState.DOWNLOADING -> {
-                        Text(
-                            text = "$downloadProgress%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                }
+                DownloadState.DOWNLOADING -> {
+                    Text(
+                        text = "$downloadProgress%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                DownloadState.PAUSED -> {
+                    Button(onClick = onDownload) {
+                        Icon(Icons.Default.Download, contentDescription = null)
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Retry")
                     }
-                    DownloadState.PAUSED -> {
-                        Button(onClick = onDownload) {
-                            Icon(Icons.Default.Download, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Retry")
-                        }
-                    }
-                    DownloadState.COMPLETED -> {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = "Downloaded",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(Dimensions.Icon.medium)
-                            )
-                            TextButton(onClick = onDelete) {
-                                Text("Delete")
-                            }
-                        }
-                    }
-                    DownloadState.FAILED -> {
-                        Button(
-                            onClick = onDownload,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Retry")
-                        }
-                    }
-                    DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                }
+                DownloadState.COMPLETED -> {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
-                            Icons.Default.Error,
-                            contentDescription = "Error",
-                            tint = MaterialTheme.colorScheme.error,
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Downloaded",
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
+                        TextButton(onClick = onDelete) {
+                            Text("Delete")
+                        }
                     }
                 }
-            }
-
-            // Progress details during download
-            AnimatedVisibility(
-                visible = downloadState == DownloadState.DOWNLOADING,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    LinearProgressIndicator(
-                        progress = { downloadProgress / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "$downloadedMB MB / $totalMB MB",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                DownloadState.FAILED -> {
                     Button(
-                        onClick = onCancel,
-                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Icon(Icons.Default.Cancel, contentDescription = null)
+                        Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Cancel Download")
+                        Text("Retry")
                     }
                 }
+                DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                    Icon(
+                        Icons.Default.Error,
+                        contentDescription = "Error",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                }
             }
+        }
 
-            // Info about AI features
-            if (downloadState == DownloadState.NOT_DOWNLOADED ||
-                downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE
+        // Progress details during download
+        AnimatedVisibility(
+            visible = downloadState == DownloadState.DOWNLOADING,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                HorizontalDivider()
+                LinearProgressIndicator(
+                    progress = { downloadProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Text(
-                    text = "Chat with AI about your expenses and get financial insights. " +
-                            "All conversations stay private on your device.",
+                    text = "$downloadedMB MB / $totalMB MB",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Button(
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Cancel, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Cancel Download")
+                }
             }
+        }
+
+        // Info about AI features
+        if (downloadState == DownloadState.NOT_DOWNLOADED ||
+            downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE
+        ) {
+            HorizontalDivider()
+            Text(
+                text = "Chat with AI about your expenses and get financial insights. " +
+                        "All conversations stay private on your device.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -1622,7 +1520,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(Dimensions.Icon.small)
+                modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }
     }

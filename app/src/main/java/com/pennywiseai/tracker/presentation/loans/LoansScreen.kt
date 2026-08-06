@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -32,6 +31,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
@@ -83,26 +83,11 @@ fun LoansScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.SwapHoriz,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.extraLarge),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                    Text(
-                        "No loans yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Text(
-                        "Mark a transaction as \"Lent\" or \"Borrowed\" to start tracking",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
+                PennyWiseEmptyState(
+                    icon = Icons.Default.SwapHoriz,
+                    headline = "No loans yet",
+                    description = "Mark a transaction as \"Lent\" or \"Borrowed\" to start tracking"
+                )
             }
             return@Scaffold
         }
@@ -304,8 +289,8 @@ fun LoanListItem(
                         progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
+                            .height(Spacing.xs)
+                            .clip(CircleShape),
                         color = progressColor,
                         trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )

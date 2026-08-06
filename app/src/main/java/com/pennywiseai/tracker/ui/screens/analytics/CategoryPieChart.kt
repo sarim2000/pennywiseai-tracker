@@ -22,12 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.Pie
 
@@ -162,13 +162,13 @@ private fun PieLegendItem(
                 if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 else Color.Transparent
             )
-            .padding(6.dp)
+            .padding(Spacing.xs)
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(10.dp)
+                .size(Dimensions.Component.legendDot)
                 .clip(CircleShape)
                 .background(color)
         )
@@ -184,12 +184,12 @@ private fun PieLegendItem(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "($percentage%)",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }

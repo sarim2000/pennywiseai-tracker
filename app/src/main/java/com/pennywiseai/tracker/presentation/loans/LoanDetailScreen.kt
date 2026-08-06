@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
@@ -221,8 +222,8 @@ fun LoanDetailScreen(
                                 progress = { progress },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                    .height(Dimensions.Component.progressBarHeight)
+                                    .clip(CircleShape),
                                 color = progressColor,
                                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             )

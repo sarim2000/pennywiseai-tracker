@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import androidx.compose.foundation.shape.CircleShape
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
@@ -524,7 +525,7 @@ fun TransactionsScreen(
                         top = Spacing.md,
                         bottom = paddingValues.calculateBottomPadding()
                     ),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
                     stickyHeader {
@@ -554,7 +555,7 @@ fun TransactionsScreen(
                         item {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = Spacing.sm)
@@ -659,10 +660,10 @@ fun TransactionsScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.SwapHoriz,
                                                         contentDescription = null,
-                                                        modifier = Modifier.size(16.dp)
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
                                                 },
-                                                modifier = Modifier.padding(start = Spacing.sm, top = 4.dp)
+                                                modifier = Modifier.padding(start = Spacing.sm, top = Spacing.xs)
                                             )
                                         }
                                     }
@@ -969,16 +970,19 @@ private fun TransactionDateHeader(
     ) {
         Spacer(
             modifier = Modifier
-                .width(4.dp)
-                .height(18.dp)
+                .width(DATE_MARKER_WIDTH)
+                .height(DATE_MARKER_HEIGHT)
                 .background(
                     color = MaterialTheme.colorScheme.tertiary,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                    shape = CircleShape
                 )
         )
         SectionHeaderV2(
             title = title,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            // The Row already supplies the gap above; a second inset here
+            // would push the marker out of line with the title.
+            topSpacing = Spacing.none
         )
     }
 }
@@ -1387,7 +1391,7 @@ private fun TransactionSearchBar(
 ) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Surface(
-        modifier = modifier.height(48.dp),
+        modifier = modifier.height(Dimensions.Component.minTouchTarget),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
@@ -1478,3 +1482,10 @@ private fun EmptyTransactionsState(
         )
     }
 }
+
+/** Width of the tertiary-coloured marker beside a sticky date header. */
+private val DATE_MARKER_WIDTH = Spacing.xs
+
+/** Height of that marker — set to the cap height of the header text so the two
+ *  read as one unit rather than a bar next to a label. */
+private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs

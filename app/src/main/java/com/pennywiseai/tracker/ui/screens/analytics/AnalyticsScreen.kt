@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
@@ -37,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
@@ -273,7 +271,7 @@ fun AnalyticsScreen(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 ),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = Spacing.xs)
+                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs)
                             ) {
                                 Icon(
                                     imageVector = when (chartType) {
@@ -312,17 +310,17 @@ fun AnalyticsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .clip(MaterialTheme.shapes.medium)
                                         .clickable {
                                             viewModel.setChartType(type)
                                             showChartTypeSelector = false
                                         }
-                                        .padding(horizontal = Spacing.md, vertical = 12.dp),
+                                        .padding(horizontal = Spacing.md, vertical = Dimensions.Padding.listRowVertical),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
@@ -960,8 +958,8 @@ private fun analyticsFilterChipColors() = FilterChipDefaults.filterChipColors(
 private fun analyticsFilterChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
     selected = selected,
     enabled = true,
-    borderWidth = 0.dp,
-    selectedBorderWidth = 0.dp
+    borderWidth = Dimensions.Elevation.none,
+    selectedBorderWidth = Dimensions.Elevation.none
 )
 
 @Composable
@@ -976,14 +974,14 @@ private fun CategoryListItem(
         leadingContent = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(Dimensions.Icon.avatar)
                     .clip(CircleShape)
                     .background(categoryInfo.color.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 CategoryIcon(
                     category = category.name,
-                    size = 24.dp,
+                    size = Dimensions.Icon.medium,
                     tint = categoryInfo.color
                 )
             }
@@ -1022,7 +1020,7 @@ private fun MerchantListItem(
         leadingContent = {
             BrandIcon(
                 merchantName = merchant.name,
-                size = 48.dp,
+                size = Dimensions.Icon.avatarLarge,
                 showBackground = true
             )
         },
@@ -1042,7 +1040,7 @@ private fun AccountBreakdownListItem(
         leadingContent = {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(Dimensions.Icon.avatar)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
@@ -1051,7 +1049,7 @@ private fun AccountBreakdownListItem(
                     imageVector = Icons.Default.AccountBalanceWallet,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(Dimensions.Icon.medium)
                 )
             }
         },

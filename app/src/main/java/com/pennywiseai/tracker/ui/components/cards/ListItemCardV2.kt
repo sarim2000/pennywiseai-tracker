@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -13,12 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 
+/**
+ * Where a row sits inside a connected group, which decides which of its
+ * corners are rounded. See [GroupedList] for the container.
+ */
 enum class ListItemPosition {
     Top,
     Middle,
@@ -37,25 +44,41 @@ enum class ListItemPosition {
     }
 }
 
+/**
+ * The single source of truth for grouped-row corners. Derived from the theme
+ * shape scale so a change to `shapes.large` carries through, rather than being
+ * re-typed as `RoundedCornerShape(16.dp)` per screen.
+ */
 @Composable
 fun ListItemPosition.toShape(): CornerBasedShape {
-    val large = MaterialTheme.shapes.large
-    val small = MaterialTheme.shapes.extraSmall
+    val outer = MaterialTheme.shapes.large
+    val inner = MaterialTheme.shapes.extraSmall
 
     return when (this) {
-        ListItemPosition.Top -> large.copy(
-            bottomStart = small.bottomStart,
-            bottomEnd = small.bottomEnd
+        ListItemPosition.Top -> outer.copy(
+            bottomStart = inner.bottomStart,
+            bottomEnd = inner.bottomEnd
         )
-        ListItemPosition.Middle -> small
-        ListItemPosition.Bottom -> large.copy(
-            topStart = small.topStart,
-            topEnd = small.topEnd
+        ListItemPosition.Middle -> inner
+        ListItemPosition.Bottom -> outer.copy(
+            topStart = inner.topStart,
+            topEnd = inner.topEnd
         )
-        ListItemPosition.Single -> large
+        ListItemPosition.Single -> outer
     }
 }
 
+/**
+ * A transaction-style row: leading avatar, title + one metadata line, trailing
+ * amount.
+ *
+ * The subtitle uses `bodySmall` on purpose — it carries a joined metadata
+ * string ("9 Jan · 3:42 PM · Food · Bal ₹1,234"), and a dense single line of
+ * facts wants to stay visually subordinate to the merchant name. Rows whose
+ * second line is real supporting *prose* should use
+ * [RowLabels][com.pennywiseai.tracker.ui.components.cards.RowLabels] instead,
+ * which sets it at `bodyMedium`.
+ */
 @Composable
 fun ListItemCardV2(
     title: String,
@@ -66,7 +89,7 @@ fun ListItemCardV2(
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
-    contentPadding: Dp = Spacing.md,
+    contentPadding: Dp = Dimensions.Padding.cardCompact,
     /** Overrides the card's container colour when set (e.g. for selected state). */
     containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
@@ -85,40 +108,47 @@ fun ListItemCardV2(
         onLongClick = onLongClick
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                // Keeps a row tappable even when its content is a single short
+                // line, without padding out rows that are already tall.
+                .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (leadingContent != null) {
                 leadingContent()
-                Spacer(modifier = Modifier.width(Spacing.md))
+                Spacer(modifier = Modifier.width(Spacing.smd))
             }
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = PennyWiseText.rowTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = PennyWiseText.metadata,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.width(Spacing.sm))
 
             if (trailingContent != null) {
                 trailingContent()
             } else {
                 Text(
                     text = amount,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = PennyWiseText.amountRow,
                     color = amountColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

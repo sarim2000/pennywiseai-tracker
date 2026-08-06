@@ -594,14 +594,14 @@ private fun IncludesBlock() {
         Spacer(Modifier.height(Spacing.xs))
         PRO_FEATURES.forEach { feature ->
             Row(
-                modifier = Modifier.padding(vertical = 6.dp),
+                modifier = Modifier.padding(vertical = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(Dimensions.Icon.small),
                 )
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
@@ -658,7 +658,7 @@ private fun TrustRow(
             Spacer(Modifier.height(Spacing.xs))
             Text(
                 text = "Prices shown are indicative · Play Store confirms at checkout",
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -766,14 +766,14 @@ private fun CelebrationContent(onContinue: () -> Unit) {
             ) {
                 PRO_FEATURES.forEach { feature ->
                     Row(
-                        modifier = Modifier.padding(vertical = 6.dp),
+                        modifier = Modifier.padding(vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Check,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(Dimensions.Icon.small),
                         )
                         Spacer(Modifier.width(Spacing.sm))
                         Text(

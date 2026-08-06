@@ -15,9 +15,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.Dimensions
 
+/**
+ * The app's standard card container.
+ *
+ * One card style, everywhere: `shapes.large` corners, `surfaceContainerLow`
+ * fill, no elevation, and — in dark mode only — a 0.5dp hairline so the card
+ * separates from an AMOLED-black background where a tonal fill alone barely
+ * registers. Light mode needs no border because the tonal step is visible.
+ *
+ * Pass [contentPadding] rather than padding the content yourself, so the
+ * ripple on a clickable card covers the whole surface.
+ */
 @Composable
 fun PennyWiseCardV2(
     modifier: Modifier = Modifier,
@@ -32,7 +42,9 @@ fun PennyWiseCardV2(
     colors: CardColors = CardDefaults.cardColors(
         containerColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow
     ),
-    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    elevation: CardElevation = CardDefaults.cardElevation(
+        defaultElevation = Dimensions.Elevation.card
+    ),
     border: BorderStroke? = null,
     onClick: (() -> Unit)? = null,
     /**
@@ -47,11 +59,14 @@ fun PennyWiseCardV2(
      * we fail fast rather than ship that affordance.
      */
     onLongClick: (() -> Unit)? = null,
-    contentPadding: Dp = Spacing.md,
+    contentPadding: Dp = Dimensions.Padding.card,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val effectiveBorder = border ?: if (isSystemInDarkTheme()) {
-        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        BorderStroke(
+            width = Dimensions.Component.hairline,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
+        )
     } else {
         null
     }

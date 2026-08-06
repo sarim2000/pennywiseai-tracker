@@ -43,6 +43,8 @@ import androidx.navigation.NavHostController
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
@@ -83,14 +85,14 @@ fun PennyWiseBottomNavigation(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.2f)
+                    thickness = Dimensions.Component.dividerThickness,
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface.copy(
                         alpha = if (blurEffects) 0.5f else 1f
                     ),
-                    tonalElevation = 2.dp,
+                    tonalElevation = Dimensions.Elevation.raisedCard,
                     modifier = Modifier.then(
                         if (blurEffects) Modifier.hazeEffect(
                             state = hazeState,
@@ -129,8 +131,12 @@ fun PennyWiseBottomNavigation(
                                         if (hidePill) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onPrimaryContainer
                                     } else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    // Without a pill or a label there is
+                                    // nothing else marking the selected item, so
+                                    // the glyph steps up to carry that weight.
                                     modifier = Modifier.size(
-                                        if (hidePill && hideLabels) 28.dp else 24.dp
+                                        if (hidePill && hideLabels) Dimensions.Icon.large
+                                        else Dimensions.Icon.medium
                                     )
                                 )
                             },
@@ -233,7 +239,7 @@ fun PennyWiseBottomNavigation(
                                 else MaterialTheme.colorScheme.tertiaryContainer,
                                 checkedContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                             ),
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.xs)
                         ) {
                             Icon(imageVector = item.icon, contentDescription = item.title)
                             AnimatedVisibility(
@@ -243,7 +249,7 @@ fun PennyWiseBottomNavigation(
                             ) {
                                 Text(
                                     text = item.title,
-                                    modifier = Modifier.padding(start = 8.dp)
+                                    modifier = Modifier.padding(start = Spacing.sm)
                                 )
                             }
                         }

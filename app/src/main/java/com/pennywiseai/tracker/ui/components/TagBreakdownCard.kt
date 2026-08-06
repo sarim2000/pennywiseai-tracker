@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.screens.analytics.TagData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 
@@ -127,7 +128,7 @@ private fun TagBar(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(Dimensions.Component.legendDot)
                         .clip(CircleShape)
                         .background(barColor)
                 )

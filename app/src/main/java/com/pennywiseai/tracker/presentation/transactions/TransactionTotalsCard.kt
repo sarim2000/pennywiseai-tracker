@@ -20,10 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -74,7 +72,7 @@ fun TransactionTotalsCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
-            shape = RoundedCornerShape(Spacing.lg)
+            shape = MaterialTheme.shapes.large
         ) {
             Column(
                 modifier = Modifier
@@ -110,7 +108,7 @@ fun TransactionTotalsCard(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                     contentDescription = "Income",
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.inline),
                                     tint = if (!isSystemInDarkTheme()) income_light else income_dark
                                 )
                             },
@@ -121,13 +119,7 @@ fun TransactionTotalsCard(
                         )
                     }
 
-                    // Vertical Divider
-                    VerticalDivider(
-                        modifier = Modifier
-                            .height(48.dp)
-                            .padding(horizontal = 0.5.dp),
-                        color = Color.Transparent
-                    )
+                    Spacer(modifier = Modifier.width(Spacing.xxs))
 
                     // Expenses Column
                     Box(
@@ -151,7 +143,7 @@ fun TransactionTotalsCard(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                                     contentDescription = "Expenses",
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.inline),
                                     tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
                                 )
                             },
@@ -162,13 +154,7 @@ fun TransactionTotalsCard(
                         )
                     }
 
-                    // Vertical Divider
-                    VerticalDivider(
-                        modifier = Modifier
-                            .height(48.dp)
-                            .padding(horizontal = 0.5.dp),
-                        color = Color.Transparent
-                    )
+                    Spacer(modifier = Modifier.width(Spacing.xxs))
 
                     // Net Balance Column
                     val netColor = when {
@@ -203,7 +189,7 @@ fun TransactionTotalsCard(
                                 Icon(
                                     imageVector = Icons.Filled.SettingsEthernet,
                                     contentDescription = "Net",
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.inline),
                                     tint = netColor
                                 )
                             },
@@ -254,8 +240,7 @@ private fun TotalColumn(
         }
         Text(
             text = amount,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = PennyWiseText.amountRow,
             color = color,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -276,9 +261,9 @@ private fun CurrencyPickerPill(
 
     Box(modifier = modifier) {
         Surface(
-            shape = RoundedCornerShape(Spacing.lg),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 0.dp,
+            tonalElevation = Dimensions.Elevation.none,
             modifier = Modifier.clickable { expanded = true }
         ) {
             Row(

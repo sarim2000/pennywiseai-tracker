@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -9,9 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -143,7 +142,7 @@ fun TransactionItem(
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
         shape = listItemPosition.toShape(),
-        contentPadding = 14.dp,
+        contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -172,18 +171,20 @@ fun TransactionItem(
         },
         trailingContent = {
             if (convertedAmount != null && displayCurrency != null) {
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                ) {
                     Text(
                         text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = PennyWiseText.amountRow,
                         color = amountColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "(${transaction.formatAmount()})",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = PennyWiseText.amountSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -192,8 +193,7 @@ fun TransactionItem(
             } else {
                 Text(
                     text = "$amountPrefix$formattedAmount",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = PennyWiseText.amountRow,
                     color = amountColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

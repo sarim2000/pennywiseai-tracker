@@ -67,6 +67,9 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
@@ -238,52 +241,42 @@ fun AppearanceScreen(
                         }
                     }
 
-                    // AMOLED + Blur grouped toggles
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                    ) {
-                        if (themeUiState.isDarkTheme != false) {
+                    // AMOLED + Blur grouped toggles. Both rows are conditional,
+                    // so positions are derived from which ones are actually
+                    // showing — a hand-maintained isFirst/isLast pair got this
+                    // wrong whenever only one row was visible.
+                    val showAmoled = themeUiState.isDarkTheme != false
+                    val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
+                    GroupedList {
+                        if (showAmoled) {
                             PreferenceSwitch(
                                 title = "AMOLED Black",
                                 subtitle = "Use pure black background for deeper contrast",
                                 checked = themeUiState.isAmoledMode,
                                 onCheckedChange = { themeViewModel.updateAmoledMode(it) },
                                 leadingIcon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .background(
-                                                color = if (themeUiState.isAmoledMode) {
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                } else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                shape = CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.DarkMode,
-                                            contentDescription = null,
-                                            tint = if (themeUiState.isAmoledMode) {
-                                                MaterialTheme.colorScheme.onPrimaryContainer
-                                            } else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    IconTile(
+                                        icon = Icons.Default.DarkMode,
+                                        containerColor = if (themeUiState.isAmoledMode) {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        contentColor = if (themeUiState.isAmoledMode) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 },
-                                padding = PaddingValues(horizontal = Spacing.md),
-                                isFirst = themeUiState.isDarkTheme != false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                                isSingle = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                                position = ListItemPosition.from(0, toggleCount)
                             )
                         }
 
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (showBlur) {
                             PreferenceSwitch(
                                 title = "Blur Effects",
                                 subtitle = "Enable glassmorphism blur effects in UI components",
                                 checked = themeUiState.blurEffectsEnabled,
                                 onCheckedChange = { themeViewModel.updateBlurEffects(it) },
-                                padding = PaddingValues(horizontal = Spacing.md),
-                                isLast = themeUiState.isDarkTheme != false,
-                                isSingle = themeUiState.isDarkTheme == false
+                                position = ListItemPosition.from(toggleCount - 1, toggleCount)
                             )
                         }
                     }
@@ -292,7 +285,7 @@ fun AppearanceScreen(
                 // Navigation Style Section
                 SectionHeaderV2(
                     title = "Navigation",
-                    modifier = Modifier.padding(start = Spacing.xl, top = Spacing.md)
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 NavBarStyleSelector(
                     currentStyle = themeUiState.navBarStyle,
@@ -302,7 +295,7 @@ fun AppearanceScreen(
                 // Cover Style Section
                 SectionHeaderV2(
                     title = "Cover Style",
-                    modifier = Modifier.padding(start = Spacing.xl)
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 CoverStyleSelector(
                     currentStyle = themeUiState.coverStyle,
@@ -313,7 +306,7 @@ fun AppearanceScreen(
                 // Font Selection Section
                 SectionHeaderV2(
                     title = "Fonts",
-                    modifier = Modifier.padding(start = Spacing.xl)
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 FontSelector(
                     currentFont = themeUiState.appFont,
@@ -479,7 +472,7 @@ private fun ThemeStyleSelector(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (currentStyle == ThemeStyle.DYNAMIC)
                                 MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -513,7 +506,7 @@ private fun ThemeStyleSelector(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == ThemeStyle.BRANDED)
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -646,7 +639,7 @@ private fun NavBarStyleSelector(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.FLOATING)
                             MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -684,7 +677,7 @@ private fun NavBarStyleSelector(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.NORMAL)
                             MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -803,7 +796,7 @@ private fun FontSelector(
                         fontFamily = FontFamily.Default,
                         color = if (currentFont == AppFont.SYSTEM)
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -843,7 +836,7 @@ private fun FontSelector(
                         fontFamily = SNProFontFamily,
                         color = if (currentFont == AppFont.SN_PRO)
                             MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

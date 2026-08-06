@@ -114,7 +114,7 @@ fun BudgetCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
+                    .height(Dimensions.Component.progressBarHeight)
                     .clip(barShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {

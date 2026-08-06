@@ -128,16 +128,14 @@ data class AccountOption(
 /**
  * Builds the list of [AccountOption]s for the account picker from account balances.
  *
- * The label prefers the account [AccountBalanceEntity.alias] when non-blank,
- * otherwise falls back to "$bankName ••$accountLast4". Deduped by key.
+ * The label is [AccountBalanceEntity.displayLabel] — the user-set alias when
+ * one exists, otherwise "$bankName ••$accountLast4". Deduped by key.
  */
 fun accountOptions(accounts: List<AccountBalanceEntity>): List<AccountOption> {
     return accounts
         .map { account ->
             val key = "${account.bankName}_${account.accountLast4}"
-            val alias = account.alias?.takeIf { it.isNotBlank() }
-            val label = alias ?: AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4)
-            AccountOption(key = key, label = label)
+            AccountOption(key = key, label = account.displayLabel)
         }
         .distinctBy { it.key }
         .sortedBy { it.label.lowercase() }

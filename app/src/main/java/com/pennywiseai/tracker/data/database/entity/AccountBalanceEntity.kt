@@ -80,6 +80,15 @@ data class AccountBalanceEntity(
     @Contextual
     val lowBalanceThreshold: BigDecimal? = null
 ) {
+    /**
+     * Label to show wherever the user picks or reads this account: the user-set
+     * [alias] when one exists, otherwise [accountLabel]. An account renamed in
+     * Manage Accounts must be recognizable under that name everywhere — pickers
+     * that ignored the alias were the bug in #637.
+     */
+    val displayLabel: String
+        get() = alias?.takeIf { it.isNotBlank() } ?: accountLabel(bankName, accountLast4)
+
     companion object {
         // Sentinel account_last4 for mobile-money wallets (eMola, M-Pesa
         // Mozambique) whose SMS has a running balance but no per-account number —

@@ -69,8 +69,10 @@ private enum class AccountPickerTarget { FROM, TO }
 
 /**
  * Tappable account card used by the single-account picker and by both legs of a
- * TRANSFER. Shows the selected account (bank name + ••last4) or [placeholder],
- * with a clear button when an account is set.
+ * TRANSFER. Shows the selected account (alias when set, else bank name, with a
+ * ••last4 subtitle) or [placeholder], with a clear button when an account is
+ * set. The alias line matches the dropdown items so the account doesn't change
+ * name the moment the menu closes (#637).
  */
 @Composable
 private fun AccountSelectorCard(
@@ -108,7 +110,8 @@ private fun AccountSelectorCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = account?.bankName ?: placeholder,
+                    text = account?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
+                        ?: placeholder,
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (account != null)
                         MaterialTheme.colorScheme.onSurface
@@ -550,7 +553,7 @@ fun TransactionTabContent(
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text(AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4))
+                                    Text(account.displayLabel)
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,

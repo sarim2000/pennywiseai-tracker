@@ -76,6 +76,7 @@ import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.formatAmount
@@ -1897,12 +1898,10 @@ private fun CurrencyDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Common currencies
-    val currencies = listOf(
-        "INR", "USD", "EUR", "GBP", "AED", "SGD",
-        "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB",
-        "THB", "MYR", "KWD", "KRW"
-    )
+    // The shared list, not a local copy: this dropdown used to hard-code 17
+    // codes, so editing a transaction couldn't set currencies (BRL, COP, ARS…)
+    // that adding one could.
+    val currencies = remember { CurrencyUtils.getAllSupportedCurrencies() }
 
     ExposedDropdownMenuBox(
         expanded = expanded,

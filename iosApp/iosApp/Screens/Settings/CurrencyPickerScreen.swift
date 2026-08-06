@@ -108,5 +108,8 @@ extension CurrencyPickerScreen {
         CurrencyInfo(code: "NGN", name: "Nigerian Naira", symbol: "\u{20A6}"),
         CurrencyInfo(code: "GHS", name: "Ghanaian Cedi", symbol: "GH\u{20B5}"),
         CurrencyInfo(code: "ETB", name: "Ethiopian Birr", symbol: "ETB"),
+        CurrencyInfo(code: "ARS", name: "Argentine Peso", symbol: "AR$"),
+        CurrencyInfo(code: "CLP", name: "Chilean Peso", symbol: "CL$"),
+        CurrencyInfo(code: "UYU", name: "Uruguayan Peso", symbol: "$U"),
     ]
 }

@@ -20,7 +20,8 @@ fun createAndroidSharedDatabase(context: Context): SharedDatabase =
         klass = SharedDatabase::class.java,
         name = SharedDatabase.DATABASE_NAME
     )
-        .fallbackToDestructiveMigration(dropAllTables = true)
+        // No destructive fallback — see SharedDatabaseFactory.ios.kt: schema
+        // changes must ship Migrations, never silently drop a finance DB.
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()

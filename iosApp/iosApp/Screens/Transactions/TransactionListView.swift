@@ -202,9 +202,12 @@ struct TransactionListView: View {
         var income: Int64 = 0
         var expense: Int64 = 0
         for item in filteredTransactions {
+            // EXPENSE only, mirroring Android and the home snapshot: TRANSFER
+            // moves money between own accounts and CREDIT/INVESTMENT are their
+            // own types — "everything that isn't income" overstated spending.
             if item.transactionType == "INCOME" {
                 income += item.amountMinor
-            } else {
+            } else if item.transactionType == "EXPENSE" {
                 expense += item.amountMinor
             }
         }

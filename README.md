@@ -31,6 +31,9 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 <a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">
   <img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" />
 </a>
+<a href="https://apps.apple.com/app/id6793073167">
+  <img src="https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=apple&logoColor=white" alt="Download on the App Store" />
+</a>
 <a href="https://f-droid.org/packages/com.pennywiseai.tracker">
   <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
 </a>
@@ -363,6 +366,7 @@ This project is licensed under AGPL v3, which means:
 
 <p align="center">
 <a href="https://github.com/sarim2000/pennywiseai-tracker/releases">Download</a> •
+<a href="https://apps.apple.com/app/id6793073167">iOS App</a> •
 <a href="https://github.com/sarim2000/pennywiseai-tracker/issues">Report Bug</a> •
 <a href="https://github.com/sarim2000/pennywiseai-tracker/issues">Request Feature</a>
 </p>

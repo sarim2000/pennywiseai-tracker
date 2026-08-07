@@ -76,11 +76,19 @@ struct MerchantRankingItem: Identifiable {
 }
 
 struct AnalyticsSummaryData {
+    /// EXPENSE transactions only — transfers/investments never count as spend.
     let totalSpendingMinor: Int64
+    /// INCOME transactions only.
+    let incomeMinor: Int64
+    let netMinor: Int64
     let transactionCount: Int
     let dailyAverageMinor: Int64
     let topCategoryName: String?
     let topCategoryIcon: String?
+    /// Spending change vs the equal-length window immediately before this
+    /// period (Android's "vs previous period" badge). Nil when there is no
+    /// baseline (All Time, or an empty previous window).
+    let spendingTrendPct: Int?
 }
 
 class AnalyticsViewModel: ObservableObject {
@@ -91,12 +99,16 @@ class AnalyticsViewModel: ObservableObject {
     @Published var isLoading = false
 
     @Published var summary = AnalyticsSummaryData(
-        totalSpendingMinor: 0, transactionCount: 0,
-        dailyAverageMinor: 0, topCategoryName: nil, topCategoryIcon: nil
+        totalSpendingMinor: 0, incomeMinor: 0, netMinor: 0, transactionCount: 0,
+        dailyAverageMinor: 0, topCategoryName: nil, topCategoryIcon: nil,
+        spendingTrendPct: nil
     )
     @Published var categoryBreakdown: [CategoryBreakdownItem] = []
     @Published var dailySpending: [DailySpendingItem] = []
     @Published var merchantRanking: [MerchantRankingItem] = []
+    /// The period's transactions after the type-filter chip — kept so category
+    /// and merchant rows can drill through to their underlying transactions.
+    @Published var periodTransactions: [SharedRecentTransactionItem] = []
 
     func loadAnalytics() {
         isLoading = true
@@ -104,14 +116,52 @@ class AnalyticsViewModel: ObservableObject {
         let startMs = range.start.epochMillis
         let endMs = range.end.epochMillis
 
-        let transactions = facade.getTransactionsForPeriod(
-            startDateMs: startMs,
-            endDateMs: endMs,
-            type: selectedTypeFilter.transactionTypeFilter
+        // One unfiltered fetch: the summary always needs both sides
+        // (income vs spend), the lists then apply the chip in memory.
+        let all = facade.getTransactionsForPeriod(
+            startDateMs: startMs, endDateMs: endMs, type: nil
         )
+        let filtered: [SharedRecentTransactionItem]
+        if let typeFilter = selectedTypeFilter.transactionTypeFilter {
+            filtered = all.filter { $0.transactionType == typeFilter }
+        } else {
+            filtered = all
+        }
+        periodTransactions = filtered
 
-        computeAnalytics(transactions: transactions, startDate: range.start, endDate: range.end)
+        let previousSpendMinor = previousWindowSpend(range: range)
+        computeAnalytics(
+            all: all,
+            filtered: filtered,
+            startDate: range.start,
+            endDate: range.end,
+            previousSpendMinor: previousSpendMinor
+        )
         isLoading = false
+    }
+
+    /// EXPENSE total of the equal-length window immediately before [range];
+    /// nil when the period has no meaningful baseline.
+    private func previousWindowSpend(range: (start: Date, end: Date)) -> Int64? {
+        guard selectedPeriod != .allTime else { return nil }
+        let length = range.end.timeIntervalSince(range.start)
+        let prevStart = range.start.addingTimeInterval(-length)
+        let prevEnd = range.start.addingTimeInterval(-1)
+        let previous = facade.getTransactionsForPeriod(
+            startDateMs: prevStart.epochMillis,
+            endDateMs: prevEnd.epochMillis,
+            type: "EXPENSE"
+        )
+        guard !previous.isEmpty else { return nil }
+        return previous.reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    func transactions(inCategory category: String) -> [SharedRecentTransactionItem] {
+        periodTransactions.filter { ($0.category.isEmpty ? "Others" : $0.category) == category }
+    }
+
+    func transactions(forMerchant merchant: String) -> [SharedRecentTransactionItem] {
+        periodTransactions.filter { $0.merchantName == merchant }
     }
 
     func selectPeriod(_ period: AnalyticsPeriod) {
@@ -125,18 +175,30 @@ class AnalyticsViewModel: ObservableObject {
     }
 
     private func computeAnalytics(
-        transactions: [SharedRecentTransactionItem],
+        all: [SharedRecentTransactionItem],
+        filtered transactions: [SharedRecentTransactionItem],
         startDate: Date,
-        endDate: Date
+        endDate: Date,
+        previousSpendMinor: Int64?
     ) {
-        let totalMinor = transactions.reduce(Int64(0)) { $0 + $1.amountMinor }
+        // Summary is always honest regardless of the chip: spend = EXPENSE,
+        // income = INCOME — transfers and investments are neither.
+        let spendMinor = all.filter { $0.transactionType == "EXPENSE" }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+        let incomeMinor = all.filter { $0.transactionType == "INCOME" }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
         let count = transactions.count
 
         let calendar = Calendar.current
         let daysBetween = max(1, calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 1)
-        let dailyAvg = count > 0 ? totalMinor / Int64(daysBetween) : 0
+        let dailyAvg = spendMinor > 0 ? spendMinor / Int64(daysBetween) : 0
 
-        // Category breakdown
+        let trendPct: Int? = previousSpendMinor.flatMap { prev in
+            guard prev > 0 else { return nil }
+            return Int((Double(spendMinor - prev) / Double(prev) * 100.0).rounded())
+        }
+
+        // Category breakdown (follows the chip selection)
         var categoryTotals: [String: (total: Int64, count: Int)] = [:]
         for txn in transactions {
             let cat = txn.category.isEmpty ? "Others" : txn.category
@@ -144,8 +206,9 @@ class AnalyticsViewModel: ObservableObject {
             categoryTotals[cat] = (total: existing.total + txn.amountMinor, count: existing.count + 1)
         }
 
+        let filteredTotal = transactions.reduce(Int64(0)) { $0 + $1.amountMinor }
         let sortedCategories = categoryTotals.sorted { $0.value.total > $1.value.total }
-        let totalForPercentage = max(totalMinor, 1)
+        let totalForPercentage = max(filteredTotal, 1)
         categoryBreakdown = sortedCategories.map { entry in
             CategoryBreakdownItem(
                 name: entry.key,
@@ -158,11 +221,14 @@ class AnalyticsViewModel: ObservableObject {
 
         let topCategory = sortedCategories.first
         summary = AnalyticsSummaryData(
-            totalSpendingMinor: totalMinor,
+            totalSpendingMinor: spendMinor,
+            incomeMinor: incomeMinor,
+            netMinor: incomeMinor - spendMinor,
             transactionCount: count,
             dailyAverageMinor: dailyAvg,
             topCategoryName: topCategory?.key,
-            topCategoryIcon: nil
+            topCategoryIcon: nil,
+            spendingTrendPct: trendPct
         )
 
         // Daily spending

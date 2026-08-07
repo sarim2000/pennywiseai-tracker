@@ -13,6 +13,9 @@ struct HomeScreen: View {
     @State private var showAddTransaction = false
     @State private var selectedDetail: SharedRecentTransactionItem?
     @State private var appeared = false
+    @State private var fabExpanded = false
+    @State private var showImportPicker = false
+    @State private var importResult: String?
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
@@ -88,6 +91,26 @@ struct HomeScreen: View {
         }
         .sheet(item: $selectedDetail) { item in
             TransactionDetailSheet(item: item)
+        }
+        .fileImporter(
+            isPresented: $showImportPicker,
+            allowedContentTypes: [.pdf]
+        ) { result in
+            if case .success(let url) = result {
+                importResult = StatementImportService.importPDF(at: url)
+                viewModel.loadHome()
+            }
+        }
+        .alert(
+            "Statement Import",
+            isPresented: Binding(
+                get: { importResult != nil },
+                set: { if !$0 { importResult = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { importResult = nil }
+        } message: {
+            Text(importResult ?? "")
         }
     }
 
@@ -191,17 +214,66 @@ struct HomeScreen: View {
 
     // MARK: - Floating Add Button
 
+    /// Android-style speed dial: + expands into labeled actions instead of
+    /// jumping straight to one form, so statement import is one tap away.
     private var addButton: some View {
-        Button {
-            showAddTransaction = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.title2.bold())
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Circle().fill(.blue))
-                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+        VStack(alignment: .trailing, spacing: AppSpacing.md) {
+            if fabExpanded {
+                fabAction(
+                    label: "Import Statement",
+                    systemImage: "doc.text.fill"
+                ) {
+                    showImportPicker = true
+                }
+                fabAction(
+                    label: "Add Transaction",
+                    systemImage: "square.and.pencil"
+                ) {
+                    showAddTransaction = true
+                }
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    fabExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+                    .rotationEffect(.degrees(fabExpanded ? 45 : 0))
+                    .frame(width: 56, height: 56)
+                    .background(Circle().fill(.blue))
+                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
         }
         .padding(AppSpacing.lg)
+    }
+
+    private func fabAction(
+        label: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                fabExpanded = false
+            }
+            action()
+        } label: {
+            HStack(spacing: AppSpacing.sm) {
+                Text(label)
+                    .font(AppTypography.caption)
+                    .fontWeight(.semibold)
+                Image(systemName: systemImage)
+                    .font(.body)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, AppSpacing.md)
+            .frame(height: 44)
+            .background(Capsule().fill(.blue))
+            .shadow(color: .blue.opacity(0.25), radius: 6, x: 0, y: 3)
+        }
+        .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
     }
 }

@@ -67,6 +67,27 @@ class SharedRuleEvaluatorTest {
     }
 
     @Test
+    fun non_primitive_fields_are_non_matches_not_exceptions() {
+        // Valid JSON whose fields aren't primitives must not throw — this runs
+        // inside the import pipeline, where an exception aborts the whole
+        // statement import over one bad rule.
+        val objectValue = rule(conditionsJson = """{"type":"merchant_contains","value":{"nested":true}}""")
+        val arrayType = rule(conditionsJson = """{"type":["merchant_contains"],"value":"swiggy"}""")
+        assertNull(SharedRuleEvaluator.firstMatch(listOf(objectValue, arrayType), "swiggy"))
+
+        // A matching condition with a non-primitive action field: the broken
+        // field is ignored; with no usable action left, the rule is a non-match.
+        val badAction = SharedRuleEntity(
+            id = "bad-action", name = "bad", priority = 0,
+            conditionsJson = """{"type":"merchant_contains","value":"swiggy"}""",
+            actionsJson = """{"category":{"x":1}}""",
+            isActive = true, isSystemTemplate = false,
+            createdAtEpochMillis = 0, updatedAtEpochMillis = 0
+        )
+        assertNull(SharedRuleEvaluator.firstMatch(listOf(badAction), "swiggy"))
+    }
+
+    @Test
     fun action_can_change_the_transaction_type() {
         val hit = SharedRuleEvaluator.firstMatch(
             listOf(rule(keyword = "salary", category = null, type = "INCOME")),

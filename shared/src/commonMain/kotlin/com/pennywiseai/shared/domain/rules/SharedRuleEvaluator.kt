@@ -2,8 +2,9 @@ package com.pennywiseai.shared.domain.rules
 
 import com.pennywiseai.shared.data.local.entity.SharedRuleEntity
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Evaluates stored Smart Rules against transactions entering through the
@@ -53,14 +54,14 @@ object SharedRuleEvaluator {
 
     private fun adjustmentIfMatched(rule: SharedRuleEntity, merchant: String): Adjustment? {
         val condition = parseObject(rule.conditionsJson) ?: return null
-        val type = condition["type"]?.jsonPrimitive?.content ?: return null
+        val type = condition.stringOrNull("type") ?: return null
         if (type != "merchant_contains") return null
-        val keyword = condition["value"]?.jsonPrimitive?.content?.trim() ?: return null
+        val keyword = condition.stringOrNull("value")?.trim() ?: return null
         if (keyword.isEmpty() || !merchant.contains(keyword, ignoreCase = true)) return null
 
         val action = parseObject(rule.actionsJson) ?: return null
-        val category = action["category"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-        val transactionType = action["transactionType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+        val category = action.stringOrNull("category")?.takeIf { it.isNotBlank() }
+        val transactionType = action.stringOrNull("transactionType")?.takeIf { it.isNotBlank() }
         if (category == null && transactionType == null) return null
         return Adjustment(
             category = category,
@@ -75,4 +76,13 @@ object SharedRuleEvaluator {
     } catch (_: Exception) {
         null
     }
+
+    /**
+     * The string at [key], or null when absent or not a primitive — a
+     * non-primitive (`"value": {…}`) must make the rule a non-match, never an
+     * exception: this runs inside the import pipeline, and a throw here would
+     * abort the whole statement import over one bad rule.
+     */
+    private fun JsonObject.stringOrNull(key: String): String? =
+        (this[key] as? JsonPrimitive)?.content
 }

@@ -295,33 +295,18 @@ struct TransactionListView: View {
 
     // MARK: - Filter Bar
 
+    /// Android-parity filter header: ONE row of dropdown chips (period, type,
+    /// category), each opening an anchored menu with checkmarks — instead of
+    /// three stacked always-expanded chip rows. "Clear filters" lives in the
+    /// toolbar's sort menu, same as Android's overflow.
     @ViewBuilder
     private var filterBar: some View {
-        VStack(spacing: AppSpacing.sm) {
-            // Date period filter chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.sm) {
-                    // Clear All chip
-                    if hasActiveFilters {
-                        FilterChipView(
-                            label: "Clear All",
-                            icon: "xmark.circle",
-                            isSelected: false
-                        ) {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.impactOccurred()
-                            clearAllFilters()
-                        }
-                    }
-
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.sm) {
+                // Period — always highlighted, like Android's calendar chip.
+                Menu {
                     ForEach(DatePeriodFilter.allCases, id: \.self) { period in
-                        FilterChipView(
-                            label: period == .custom && selectedDatePeriod == .custom
-                                ? customDateLabel
-                                : period.rawValue,
-                            icon: period.icon,
-                            isSelected: selectedDatePeriod == period
-                        ) {
+                        Button {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
                             if period == .custom {
@@ -329,58 +314,83 @@ struct TransactionListView: View {
                             } else {
                                 selectedDatePeriod = period
                             }
-                        }
-                    }
-                }
-                .padding(.horizontal, AppSpacing.md)
-            }
-
-            // Type filter chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.sm) {
-                    ForEach(TransactionTypeFilter.allCases, id: \.self) { filter in
-                        FilterChipView(
-                            label: filter.displayName,
-                            icon: filter == .all ? nil : filter.icon,
-                            isSelected: selectedTypeFilter == filter
-                        ) {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            selectedTypeFilter = filter
-                        }
-                    }
-                }
-                .padding(.horizontal, AppSpacing.md)
-            }
-
-            // Category filter chips
-            if !categories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: AppSpacing.sm) {
-                        FilterChipView(
-                            label: "All Categories",
-                            isSelected: selectedCategory == nil
-                        ) {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            selectedCategory = nil
-                        }
-
-                        ForEach(categories, id: \.self) { category in
-                            FilterChipView(
-                                label: category,
-                                dotColor: AppColors.categoryColor(for: category),
-                                isSelected: selectedCategory == category
-                            ) {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.impactOccurred()
-                                selectedCategory = category
+                        } label: {
+                            if selectedDatePeriod == period {
+                                Label(period.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(period.rawValue)
                             }
                         }
                     }
-                    .padding(.horizontal, AppSpacing.md)
+                } label: {
+                    FilterMenuChipLabel(
+                        label: selectedDatePeriod == .custom ? customDateLabel : selectedDatePeriod.rawValue,
+                        icon: "calendar",
+                        isActive: true
+                    )
+                }
+
+                // Type — highlighted only when narrowed.
+                Menu {
+                    ForEach(TransactionTypeFilter.allCases, id: \.self) { filter in
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            selectedTypeFilter = filter
+                        } label: {
+                            if selectedTypeFilter == filter {
+                                Label(filter.displayName, systemImage: "checkmark")
+                            } else {
+                                Label(filter.displayName, systemImage: filter.icon)
+                            }
+                        }
+                    }
+                } label: {
+                    FilterMenuChipLabel(
+                        label: selectedTypeFilter == .all ? "Type" : selectedTypeFilter.displayName,
+                        icon: selectedTypeFilter == .all ? "line.3.horizontal.decrease" : selectedTypeFilter.icon,
+                        isActive: selectedTypeFilter != .all
+                    )
+                }
+
+                // Category — Android's "more filters" chip, minus profiles
+                // (iOS has none yet).
+                if !categories.isEmpty || selectedCategory != nil {
+                    Menu {
+                        Button {
+                            selectedCategory = nil
+                        } label: {
+                            if selectedCategory == nil {
+                                Label("All Categories", systemImage: "checkmark")
+                            } else {
+                                Text("All Categories")
+                            }
+                        }
+                        Divider()
+                        ForEach(categories, id: \.self) { category in
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                selectedCategory = category
+                            } label: {
+                                if selectedCategory == category {
+                                    Label(category, systemImage: "checkmark")
+                                } else {
+                                    Text(category)
+                                }
+                            }
+                        }
+                    } label: {
+                        FilterMenuChipLabel(
+                            label: selectedCategory ?? "Category",
+                            dotColor: selectedCategory.map { AppColors.categoryColor(for: $0) },
+                            icon: selectedCategory == nil ? "slider.horizontal.3" : nil,
+                            isActive: selectedCategory != nil
+                        )
+                    }
                 }
             }
+            .padding(.horizontal, AppSpacing.md)
         }
         .padding(.vertical, AppSpacing.sm)
     }
@@ -538,6 +548,17 @@ struct TransactionListView: View {
                     }
                 }
             }
+            // Android keeps "Clear filters" in this same overflow.
+            if hasActiveFilters {
+                Divider()
+                Button(role: .destructive) {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    clearAllFilters()
+                } label: {
+                    Label("Clear filters", systemImage: "xmark.circle")
+                }
+            }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
         }
@@ -568,43 +589,45 @@ private struct SectionHeaderView: View {
     }
 }
 
-// MARK: - Filter Chip
+// MARK: - Filter Chip (dropdown style, Android parity)
 
-private struct FilterChipView: View {
+/// The label half of a filter dropdown chip: current selection + a chevron so
+/// it reads as a menu, highlighted while its filter is narrowing the list.
+private struct FilterMenuChipLabel: View {
     let label: String
-    var icon: String? = nil
     var dotColor: Color? = nil
-    let isSelected: Bool
-    let action: () -> Void
+    var icon: String? = nil
+    let isActive: Bool
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: AppSpacing.xs) {
-                if let dotColor {
-                    Circle()
-                        .fill(dotColor)
-                        .frame(width: 8, height: 8)
-                }
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.caption2)
-                }
-                Text(label)
-                    .font(AppTypography.caption)
+        HStack(spacing: AppSpacing.xs) {
+            if let dotColor {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 8, height: 8)
             }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.accentColor : AppColors.surface(isAmoled: isAmoled))
-            .foregroundStyle(isSelected ? .white : .primary)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
-            )
+            if let icon {
+                Image(systemName: icon)
+                    .font(.caption2)
+            }
+            Text(label)
+                .font(AppTypography.caption)
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .opacity(0.75)
         }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 6)
+        .background(isActive ? Color.accentColor : AppColors.surface(isAmoled: isAmoled))
+        .foregroundStyle(isActive ? .white : .primary)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(isActive ? Color.accentColor : Color(.separator).opacity(0.5), lineWidth: 1)
+        )
+        .animation(.easeInOut(duration: 0.2), value: isActive)
     }
 }
 

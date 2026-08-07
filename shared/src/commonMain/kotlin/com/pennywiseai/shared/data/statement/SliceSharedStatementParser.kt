@@ -76,7 +76,14 @@ class SliceSharedStatementParser : SharedStatementParser {
         for (line in lines.drop(headerIndex + 1)) {
             val trimmed = line.trim()
             if (trimmed.isEmpty()) continue
-            if (trimmed.startsWith(FOOTER_PREFIX)) break
+            // Skip, don't stop: on a multi-page statement the "Generated on"
+            // footer can repeat per page with more transactions after it. Any
+            // footer junk absorbed into an open block can never match the
+            // amount tail, so it is dropped at the next date row.
+            if (trimmed.startsWith(FOOTER_PREFIX)) {
+                block = null
+                continue
+            }
 
             if (txnStartPattern.containsMatchIn(trimmed)) {
                 // A new date row while a block is still open means the open
@@ -134,15 +141,17 @@ class SliceSharedStatementParser : SharedStatementParser {
         }
 
         // Money moving between the user's own slice balances: pots ("atom"),
-        // automatic saving, and round-ups. Never income or spending.
-        details.startsWith("Auto save to", ignoreCase = true) ->
-            SharedTransactionType.TRANSFER to stripPotName(details.removePrefix("Auto save to "))
+        // automatic saving, and round-ups. Never income or spending. Prefixes
+        // are dropped by length (the startsWith already matched case-
+        // insensitively) so "AUTO SAVE TO … ATOM" normalizes the same way.
+        details.startsWith("Auto save to ", ignoreCase = true) ->
+            SharedTransactionType.TRANSFER to stripPotName(details.drop("Auto save to ".length))
 
-        details.startsWith("Transfer from", ignoreCase = true) && details.endsWith("atom", ignoreCase = true) ->
-            SharedTransactionType.TRANSFER to stripPotName(details.removePrefix("Transfer from "))
+        details.startsWith("Transfer from ", ignoreCase = true) && details.endsWith("atom", ignoreCase = true) ->
+            SharedTransactionType.TRANSFER to stripPotName(details.drop("Transfer from ".length))
 
-        details.startsWith("Transfer to", ignoreCase = true) && details.endsWith("atom", ignoreCase = true) ->
-            SharedTransactionType.TRANSFER to stripPotName(details.removePrefix("Transfer to "))
+        details.startsWith("Transfer to ", ignoreCase = true) && details.endsWith("atom", ignoreCase = true) ->
+            SharedTransactionType.TRANSFER to stripPotName(details.drop("Transfer to ".length))
 
         details.equals("Round ups", ignoreCase = true) ->
             SharedTransactionType.TRANSFER to "Round ups"
@@ -151,9 +160,16 @@ class SliceSharedStatementParser : SharedStatementParser {
             (if (isDebit) SharedTransactionType.EXPENSE else SharedTransactionType.INCOME) to details
     }
 
-    /** "Daily saver atom" → "Daily saver". */
-    private fun stripPotName(raw: String): String =
-        raw.removeSuffix(" atom").removeSuffix(" Atom").trim().ifEmpty { raw.trim() }
+    /** "Daily saver atom" → "Daily saver" (any casing of "atom"). */
+    private fun stripPotName(raw: String): String {
+        val trimmed = raw.trim()
+        val stripped = if (trimmed.endsWith(" atom", ignoreCase = true)) {
+            trimmed.dropLast(" atom".length).trim()
+        } else {
+            trimmed
+        }
+        return stripped.ifEmpty { trimmed }
+    }
 
     /**
      * Merchant from a UPI descriptor:

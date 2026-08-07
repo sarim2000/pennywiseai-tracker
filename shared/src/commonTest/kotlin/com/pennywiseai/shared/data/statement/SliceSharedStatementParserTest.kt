@@ -98,6 +98,37 @@ class SliceSharedStatementParserTest {
     }
 
     @Test
+    fun per_page_footers_do_not_truncate_multipage_statements() {
+        // Page 1 ends with the "Generated on" footer, page 2 continues with
+        // more rows — everything after a mid-stream footer must still parse.
+        val multiPage = """
+            A/C number 999900005678
+            DATE DETAILS REF NO. AMOUNT BALANCE
+            02 Jan '26 Interest Cr. for 01-Jan-2026 111122223333 ₹1.23 ₹10,001.23
+            Generated on 31 Jan '26
+            2/2
+            05 Jan '26 UPI-Debit-999900003333-PAGE TWO SHOP-WXYZ0AB1234-x@upi-1 2026010512345680 -₹200 ₹9,801.23
+            Generated on 31 Jan '26
+        """.trimIndent()
+        val txns = parser.parse(multiPage)
+        assertEquals(2, txns.size)
+        assertEquals("PAGE TWO SHOP", txns[1].merchant)
+    }
+
+    @Test
+    fun pot_rows_normalize_regardless_of_casing() {
+        val shouty = """
+            A/C number 999900005678
+            DATE DETAILS REF NO. AMOUNT BALANCE
+            03 Jan '26 AUTO SAVE TO Daily saver ATOM 444455559 -₹50 ₹9,751.23
+        """.trimIndent()
+        val txns = parser.parse(shouty)
+        assertEquals(1, txns.size)
+        assertEquals(SharedTransactionType.TRANSFER, txns[0].transactionType)
+        assertEquals("Daily saver", txns[0].merchant)
+    }
+
+    @Test
     fun summary_figures_above_the_table_are_not_transactions() {
         // The opening/closing summary row also contains ₹ figures; none of the
         // parsed transactions may come from it.

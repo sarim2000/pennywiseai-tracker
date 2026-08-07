@@ -22,12 +22,6 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         private val accountPattern = Regex("""(?:Paid\s+by|Received\s+by)\s+X+(\d{4})""", RegexOption.IGNORE_CASE)
         // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
         private const val MAX_AMOUNT_MINOR = 1_000_000_000L
-
-        private val MONTH_MAP = mapOf(
-            "jan" to 1, "feb" to 2, "mar" to 3, "apr" to 4,
-            "may" to 5, "jun" to 6, "jul" to 7, "aug" to 8,
-            "sep" to 9, "oct" to 10, "nov" to 11, "dec" to 12
-        )
     }
 
     override fun canHandle(text: String): Boolean {
@@ -131,7 +125,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         val day: Int
         val year: Int
 
-        val firstAsMonth = MONTH_MAP[parts[0].lowercase()]
+        val firstAsMonth = STATEMENT_MONTHS[parts[0].lowercase()]
         if (firstAsMonth != null) {
             // "Mar 02 2026"
             month = firstAsMonth
@@ -140,7 +134,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         } else {
             // "02 Mar 2026"
             day = parts[0].toIntOrNull() ?: return null
-            month = MONTH_MAP[parts[1].lowercase()] ?: return null
+            month = STATEMENT_MONTHS[parts[1].lowercase()] ?: return null
             year = parts[2].toIntOrNull() ?: return null
         }
 
@@ -161,19 +155,6 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         }
 
         // Convert to epoch millis (UTC-based, IST = UTC+5:30)
-        return dateToEpochMillis(year, month, day, hour, minute)
-    }
-
-    private fun dateToEpochMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long {
-        // Days from Unix epoch (1970-01-01) to the given date
-        // Using a simple algorithm to compute days since epoch
-        val y = if (month <= 2) year - 1 else year
-        val m = if (month <= 2) month + 9 else month - 3
-        val daysSinceEpoch = 365L * y + y / 4 - y / 100 + y / 400 + (m * 306 + 5) / 10 + (day - 1) - 719468L
-
-        val timeMillis = (hour * 3600L + minute * 60L) * 1000L
-        val istOffsetMillis = 5 * 3600_000L + 30 * 60_000L // IST = UTC+5:30
-
-        return daysSinceEpoch * 86_400_000L + timeMillis - istOffsetMillis
+        return istDateToEpochMillis(year, month, day, hour, minute)
     }
 }

@@ -3,7 +3,8 @@ package com.pennywiseai.shared.data.statement
 object SharedStatementParserFactory {
     private val parsers: List<SharedStatementParser> = listOf(
         GPaySharedStatementParser(),
-        PhonePeSharedStatementParser()
+        PhonePeSharedStatementParser(),
+        SliceSharedStatementParser()
     )
 
     fun getParser(text: String): SharedStatementParser? = parsers.firstOrNull { it.canHandle(text) }

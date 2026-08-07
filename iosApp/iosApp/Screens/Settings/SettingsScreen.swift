@@ -147,7 +147,7 @@ struct SettingsScreen: View {
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             Text("Import Bank Statement")
                                 .font(AppTypography.body)
-                            Text("Import GPay, PhonePe, or bank PDF")
+                            Text("Import GPay, PhonePe, or slice PDF")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(.secondary)
                         }

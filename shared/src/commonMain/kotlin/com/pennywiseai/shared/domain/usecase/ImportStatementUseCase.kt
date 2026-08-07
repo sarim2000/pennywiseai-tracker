@@ -26,7 +26,7 @@ class ImportStatementUseCase(
     suspend fun importFromText(statementText: String): SharedStatementImportResult {
         val parser = SharedStatementParserFactory.getParser(statementText)
             ?: return SharedStatementImportResult.Error(
-                "Unsupported statement format. Currently supported: Google Pay, PhonePe."
+                "Unsupported statement format. Currently supported: Google Pay, PhonePe, slice."
             )
 
         val parsedTransactions = parser.parse(statementText)

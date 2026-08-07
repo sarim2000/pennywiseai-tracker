@@ -1,8 +1,10 @@
 import SwiftUI
+import Shared
 
 struct AnalyticsScreen: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
     @StateObject private var viewModel = AnalyticsViewModel()
+    @State private var drillDown: AnalyticsDrillDown?
 
     var body: some View {
         ScrollView {
@@ -32,14 +34,25 @@ struct AnalyticsScreen: View {
                         CategoryPieChart(categories: viewModel.categoryBreakdown)
                     }
 
-                    // Category breakdown list
+                    // Category breakdown list — rows drill through to their
+                    // transactions, like Android's breakdowns.
                     if !viewModel.categoryBreakdown.isEmpty {
-                        CategoryBreakdownList(categories: viewModel.categoryBreakdown)
+                        CategoryBreakdownList(categories: viewModel.categoryBreakdown) { item in
+                            drillDown = AnalyticsDrillDown(
+                                title: item.name,
+                                transactions: viewModel.transactions(inCategory: item.name)
+                            )
+                        }
                     }
 
                     // Top merchants
                     if !viewModel.merchantRanking.isEmpty {
-                        TopMerchantsList(merchants: viewModel.merchantRanking)
+                        TopMerchantsList(merchants: viewModel.merchantRanking) { item in
+                            drillDown = AnalyticsDrillDown(
+                                title: item.name,
+                                transactions: viewModel.transactions(forMerchant: item.name)
+                            )
+                        }
                     }
                 }
             }
@@ -49,6 +62,9 @@ struct AnalyticsScreen: View {
         .navigationTitle("Analytics")
         .onAppear {
             viewModel.loadAnalytics()
+        }
+        .sheet(item: $drillDown) { drill in
+            AnalyticsDrillDownSheet(drill: drill)
         }
     }
 
@@ -124,5 +140,56 @@ struct AnalyticsScreen: View {
         }
         .frame(maxWidth: .infinity, minHeight: 300)
         .padding(AppSpacing.lg)
+    }
+}
+
+// MARK: - Drill-down (Android-parity: breakdown rows open their transactions)
+
+struct AnalyticsDrillDown: Identifiable {
+    let id = UUID()
+    let title: String
+    let transactions: [SharedRecentTransactionItem]
+}
+
+struct AnalyticsDrillDownSheet: View {
+    let drill: AnalyticsDrillDown
+    @State private var selectedDetail: SharedRecentTransactionItem?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(drill.transactions) { item in
+                Button {
+                    selectedDetail = item
+                } label: {
+                    HStack(spacing: AppSpacing.sm) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.merchantName)
+                                .font(AppTypography.body)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Text(Date(epochMillis: item.occurredAtEpochMillis), style: .date)
+                                .font(AppTypography.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text(AmountFormatter.format(minorUnits: item.amountMinor, currency: item.currency))
+                            .font(AppTypography.amountSmall)
+                            .foregroundStyle(item.transactionType == "INCOME" ? .green : .primary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle(drill.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(item: $selectedDetail) { item in
+                TransactionDetailSheet(item: item)
+            }
+        }
     }
 }

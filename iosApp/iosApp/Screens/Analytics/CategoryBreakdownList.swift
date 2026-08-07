@@ -3,6 +3,8 @@ import SwiftUI
 struct CategoryBreakdownList: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
     let categories: [CategoryBreakdownItem]
+    /// Drill-through to the category's transactions (Android parity).
+    var onSelect: ((CategoryBreakdownItem) -> Void)? = nil
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
@@ -27,6 +29,15 @@ struct CategoryBreakdownList: View {
     }
 
     private func categoryRow(_ item: CategoryBreakdownItem) -> some View {
+        Button {
+            onSelect?(item)
+        } label: {
+            categoryRowContent(item)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func categoryRowContent(_ item: CategoryBreakdownItem) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Circle()
                 .fill(AppColors.categoryColor(for: item.name))
@@ -50,7 +61,14 @@ struct CategoryBreakdownList: View {
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)
             }
+
+            if onSelect != nil {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, AppSpacing.xs)
+        .contentShape(Rectangle())
     }
 }

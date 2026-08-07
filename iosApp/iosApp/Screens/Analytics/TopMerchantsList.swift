@@ -3,6 +3,8 @@ import SwiftUI
 struct TopMerchantsList: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
     let merchants: [MerchantRankingItem]
+    /// Drill-through to the merchant's transactions (Android parity).
+    var onSelect: ((MerchantRankingItem) -> Void)? = nil
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
@@ -27,6 +29,15 @@ struct TopMerchantsList: View {
     }
 
     private func merchantRow(_ merchant: MerchantRankingItem, rank: Int) -> some View {
+        Button {
+            onSelect?(merchant)
+        } label: {
+            merchantRowContent(merchant, rank: rank)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func merchantRowContent(_ merchant: MerchantRankingItem, rank: Int) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Text("\(rank)")
                 .font(AppTypography.caption)
@@ -46,7 +57,14 @@ struct TopMerchantsList: View {
 
             Text(AmountFormatter.format(minorUnits: merchant.totalMinor, currency: CurrencyManager.shared.displayCurrency))
                 .font(AppTypography.amountSmall)
+
+            if onSelect != nil {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, AppSpacing.xs)
+        .contentShape(Rectangle())
     }
 }

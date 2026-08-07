@@ -52,6 +52,7 @@
 		JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0001002D39B001007A8A11 /* CurrencyManager.swift */; };
 		JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */; };
 		JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */; };
+		JJ0009002D39B001007A8A11 /* StatementImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = JJ0008002D39B001007A8A11 /* StatementImportService.swift */; };
 		LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0001002D39B001007A8A11 /* ThemeManager.swift */; };
 		LL0004002D39B001007A8A11 /* AppearanceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = LL0003002D39B001007A8A11 /* AppearanceScreen.swift */; };
 		MM0003002D39B001007A8A11 /* FAQScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM0001002D39B001007A8A11 /* FAQScreen.swift */; };
@@ -123,6 +124,7 @@
 		JJ0001002D39B001007A8A11 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
 		JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormatter.swift; sourceTree = "<group>"; };
 		JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyPickerScreen.swift; sourceTree = "<group>"; };
+		JJ0008002D39B001007A8A11 /* StatementImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatementImportService.swift; sourceTree = "<group>"; };
 		LL0001002D39B001007A8A11 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		LL0003002D39B001007A8A11 /* AppearanceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceScreen.swift; sourceTree = "<group>"; };
 		MM0001002D39B001007A8A11 /* FAQScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQScreen.swift; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 				BB0013002D39B001007A8A11 /* AmountFormatting.swift */,
 				JJ0001002D39B001007A8A11 /* CurrencyManager.swift */,
 				JJ0002002D39B001007A8A11 /* CurrencyFormatter.swift */,
+				JJ0008002D39B001007A8A11 /* StatementImportService.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -507,6 +510,7 @@
 				JJ0004002D39B001007A8A11 /* CurrencyManager.swift in Sources */,
 				JJ0005002D39B001007A8A11 /* CurrencyFormatter.swift in Sources */,
 				JJ0006002D39B001007A8A11 /* CurrencyPickerScreen.swift in Sources */,
+				JJ0009002D39B001007A8A11 /* StatementImportService.swift in Sources */,
 				NN0003002D39B001007A8A11 /* AppLockManager.swift in Sources */,
 				NN0004002D39B001007A8A11 /* LockScreenView.swift in Sources */,
 				LL0002002D39B001007A8A11 /* ThemeManager.swift in Sources */,

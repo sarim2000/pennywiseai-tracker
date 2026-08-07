@@ -31,6 +31,25 @@ struct SettingsScreen: View {
                             .foregroundStyle(.orange)
                     }
                 }
+
+                // The picker existed but nothing navigated to it, so every user
+                // was stuck on the INR default for display formatting.
+                NavigationLink {
+                    CurrencyPickerScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Currency")
+                                .font(AppTypography.body)
+                            Text("Default currency for totals and new entries")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "coloncurrencysign.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
             }
 
             // MARK: - Data Management

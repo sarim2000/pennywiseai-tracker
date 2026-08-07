@@ -125,7 +125,9 @@ class PennyWiseSharedFacade {
     private val graph by lazy { SharedDataGraph.getInstance() }
     private val createUseCase by lazy { CreateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
     private val updateUseCase by lazy { UpdateManualTransactionUseCase(graph.transactionRepository, graph.accountRepository) }
-    private val importStatementUseCase by lazy { ImportStatementUseCase(graph.transactionRepository, graph.accountRepository) }
+    private val importStatementUseCase by lazy {
+        ImportStatementUseCase(graph.transactionRepository, graph.accountRepository, graph.ruleRepository)
+    }
 
     fun initializeAndLoadHome(): SharedHomeSnapshot = safeSnapshot {
         runBlocking {
@@ -396,7 +398,9 @@ class PennyWiseSharedFacade {
                     val categoryNames = categories.map { it.categoryName }.toSet()
                     val periodTxns = transactions.filter { txn ->
                         txn.occurredAtEpochMillis in budget.startEpochMillis..budget.endEpochMillis &&
-                            txn.transactionType != SharedTransactionType.INCOME &&
+                            // EXPENSE only (mirrors the home totals): a TRANSFER
+                            // between own accounts must not eat budget.
+                            txn.transactionType == SharedTransactionType.EXPENSE &&
                             (categoryNames.isEmpty() || txn.category in categoryNames)
                     }
                     val totalSpent = periodTxns.fold(0L) { acc, txn -> acc + txn.amountMinor }
@@ -914,8 +918,12 @@ class PennyWiseSharedFacade {
         val monthlyIncome = thisMonthTxns
             .filter { it.transactionType == SharedTransactionType.INCOME }
             .fold(0L) { acc, txn -> acc + txn.amountMinor }
+        // EXPENSE only, matching Android's home breakdown: TRANSFER moves money
+        // between the user's own accounts, and INVESTMENT/CREDIT are tracked as
+        // their own types — "everything that isn't income" counted a transfer to
+        // your own savings as spending.
         val monthlyExpense = thisMonthTxns
-            .filter { it.transactionType != SharedTransactionType.INCOME }
+            .filter { it.transactionType == SharedTransactionType.EXPENSE }
             .fold(0L) { acc, txn -> acc + txn.amountMinor }
 
         return SharedHomeSnapshot(

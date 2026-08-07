@@ -2,17 +2,22 @@ package com.pennywiseai.shared.domain.usecase
 
 import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.model.SharedTransaction
+import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.repository.SharedAccountRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.statement.SharedPdfTextExtractor
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.statement.SharedStatementParserFactory
+import com.pennywiseai.shared.data.repository.SharedRuleRepository
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.shared.domain.rules.SharedRuleEvaluator
+import kotlinx.coroutines.flow.first
 
 class ImportStatementUseCase(
     private val transactionRepository: SharedTransactionRepository,
-    private val accountRepository: SharedAccountRepository
+    private val accountRepository: SharedAccountRepository,
+    private val ruleRepository: SharedRuleRepository? = null
 ) {
     suspend fun importFromPdfPath(filePath: String): SharedStatementImportResult {
         return importFromText(SharedPdfTextExtractor.extractText(filePath))
@@ -33,6 +38,11 @@ class ImportStatementUseCase(
         var skippedByReference = 0
         var skippedByAmountDate = 0
 
+        // Smart Rules run on parsed data (this pipeline), never on manual
+        // entry where the user picked the category themselves. Loaded once per
+        // import, applied per transaction after the default category mapping.
+        val rules = ruleRepository?.observeRules()?.first().orEmpty()
+
         val toInsert = parsedTransactions.mapNotNull { parsed ->
             val hash = buildImportHash(parsed.rawText, parsed.amountMinor, parsed.timestampEpochMillis)
             if (transactionRepository.getByHash(hash) != null) {
@@ -52,14 +62,22 @@ class ImportStatementUseCase(
                 return@mapNotNull null
             }
 
+            val merchant = parsed.merchant ?: "Unknown Merchant"
+            val adjustment = SharedRuleEvaluator.firstMatch(rules, merchant)
+            val ruleType = adjustment?.transactionType?.let { raw ->
+                // An unknown type string in a stored action must not sink the
+                // import — fall back to the parsed type.
+                SharedTransactionType.entries.firstOrNull { it.name == raw }
+            }
+
             SharedTransaction(
                 amountMinor = parsed.amountMinor,
-                merchantName = parsed.merchant ?: "Unknown Merchant",
-                category = SharedCategoryMapping.determineCategory(
-                    parsed.merchant ?: "Unknown Merchant",
+                merchantName = merchant,
+                category = adjustment?.category ?: SharedCategoryMapping.determineCategory(
+                    merchant,
                     parsed.transactionType.name
                 ),
-                transactionType = parsed.transactionType,
+                transactionType = ruleType ?: parsed.transactionType,
                 occurredAtEpochMillis = parsed.timestampEpochMillis,
                 note = null,
                 currency = "INR",

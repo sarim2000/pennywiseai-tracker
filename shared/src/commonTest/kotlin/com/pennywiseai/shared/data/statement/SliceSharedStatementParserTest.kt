@@ -116,6 +116,31 @@ class SliceSharedStatementParserTest {
     }
 
     @Test
+    fun transaction_straddling_a_page_boundary_is_not_dropped() {
+        // The nasty case: a multi-line UPI row starts at the bottom of page 1,
+        // the full page furniture repeats (footer, help line, range header —
+        // which itself starts with a date — page marker, table header), and the
+        // amount tail only arrives on page 2. The block must survive all of it.
+        val straddling = """
+            A/C number 999900005678
+            DATE DETAILS REF NO. AMOUNT BALANCE
+            05 Jan '26 UPI-Debit-999900004444-SPLIT ACROSS
+            Generated on 31 Jan '26
+            Need help? Contact our support team at help@slice.bank.in or +91-0000000000 slice small finance bank
+            01 Jan '26 - 31 Jan '26
+            2/2
+            DATE DETAILS REF NO. AMOUNT BALANCE
+            PAGES SHOP-WXYZ0AB1234-y@upi-2
+            2026010512345681 -₹300 ₹9,501.23
+        """.trimIndent()
+        val txns = parser.parse(straddling)
+        assertEquals(1, txns.size)
+        assertEquals("SPLIT ACROSS PAGES SHOP", txns[0].merchant)
+        assertEquals(30000L, txns[0].amountMinor)
+        assertEquals("2026010512345681", txns[0].reference)
+    }
+
+    @Test
     fun pot_rows_normalize_regardless_of_casing() {
         val shouty = """
             A/C number 999900005678

@@ -44,6 +44,14 @@ class SliceSharedStatementParser : SharedStatementParser {
         private const val TABLE_HEADER = "DATE DETAILS REF NO. AMOUNT BALANCE"
         private const val FOOTER_PREFIX = "Generated on"
 
+        // Page furniture that repeats per page on multi-page statements. The
+        // range header ("01 Jan '26 - 31 Jan '26") is the treacherous one — it
+        // starts with a date, so without this check it would read as a new
+        // transaction row and clobber a block awaiting its tail.
+        private val pageMarkerPattern = Regex("""^\d+/\d+$""")
+        private val rangeHeaderPattern =
+            Regex("""^\d{1,2} [A-Z][a-z]{2} '\d{2} ?- ?\d{1,2} [A-Z][a-z]{2} '\d{2}$""")
+
         private const val BANK_NAME = "slice"
         // ₹1 crore in paise, same sanity bound as the other statement parsers.
         private const val MAX_AMOUNT_MINOR = 1_000_000_000L
@@ -76,14 +84,12 @@ class SliceSharedStatementParser : SharedStatementParser {
         for (line in lines.drop(headerIndex + 1)) {
             val trimmed = line.trim()
             if (trimmed.isEmpty()) continue
-            // Skip, don't stop: on a multi-page statement the "Generated on"
-            // footer can repeat per page with more transactions after it. Any
-            // footer junk absorbed into an open block can never match the
-            // amount tail, so it is dropped at the next date row.
-            if (trimmed.startsWith(FOOTER_PREFIX)) {
-                block = null
-                continue
-            }
+            // Page furniture (footer, help line, "2/2" marker, repeated range
+            // and table headers) is skipped WITHOUT touching the open block: a
+            // transaction can straddle a page boundary — details at the end of
+            // one page, its amount tail after the next page's header — and
+            // must keep accumulating across it.
+            if (isPageFurniture(trimmed)) continue
 
             if (txnStartPattern.containsMatchIn(trimmed)) {
                 // A new date row while a block is still open means the open
@@ -96,6 +102,13 @@ class SliceSharedStatementParser : SharedStatementParser {
         }
         return results
     }
+
+    private fun isPageFurniture(trimmed: String): Boolean =
+        trimmed.startsWith(FOOTER_PREFIX) ||
+            trimmed.startsWith("Need help?") ||
+            trimmed == TABLE_HEADER ||
+            pageMarkerPattern.matches(trimmed) ||
+            rangeHeaderPattern.matches(trimmed)
 
     private fun parseBlock(block: String, accountLast4: String?): SharedParsedStatementTransaction? {
         val start = txnStartPattern.find(block) ?: return null

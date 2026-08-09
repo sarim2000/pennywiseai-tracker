@@ -129,6 +129,18 @@
                 android:resource="@xml/budget_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.CategoryPieWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_category_pie">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/category_pie_widget_info" />
+        </receiver>
+
         <!-- Recent Transactions Widget -->
         <receiver
             android:name=".widget.RecentTransactionsWidgetReceiver"

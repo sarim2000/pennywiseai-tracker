@@ -5,7 +5,8 @@ object PdfParserFactory {
     private val parsers = listOf(
         GPayPdfParser(),
         PhonePePdfParser(),
-        PaytmPdfParser()
+        PaytmPdfParser(),
+        SlicePdfParser()
     )
 
     fun getParser(extractedText: String): PdfStatementParser? {

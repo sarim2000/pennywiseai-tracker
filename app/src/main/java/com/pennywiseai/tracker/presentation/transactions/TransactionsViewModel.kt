@@ -211,7 +211,11 @@ class TransactionsViewModel @Inject constructor(
         currency: String,
         isUnified: Boolean
     ): FilteredTotals {
-        return if (isUnified && groupedTotals.totalsByCurrency.size > 1) {
+        // isNotEmpty, not size > 1: in unified mode even a single-currency set
+        // needs converting when that one currency isn't the display currency —
+        // a selection of only-USD rows under an INR display would otherwise
+        // look up the empty INR bucket and show zeros.
+        return if (isUnified && groupedTotals.totalsByCurrency.isNotEmpty()) {
             // Aggregate all currencies converted to display currency
             var income = BigDecimal.ZERO
             var expenses = BigDecimal.ZERO

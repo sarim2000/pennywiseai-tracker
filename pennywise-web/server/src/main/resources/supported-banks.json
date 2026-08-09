@@ -1,5 +1,5 @@
 {
-  "totalBanks": 141,
+  "totalBanks": 142,
   "totalCountries": 23,
   "countries": [
     {
@@ -95,8 +95,8 @@
       "flag": "🇱🇰",
       "currency": "LKR",
       "symbol": "Rs",
-      "bankCount": 3,
-      "banks": ["National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
+      "bankCount": 4,
+      "banks": ["National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
     },
     {
       "country": "Egypt",

@@ -21,6 +21,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,6 +72,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -130,6 +133,7 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
+    onNavigateToTransactionGroups: () -> Unit = {},
     onLoanClick: (Long) -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
@@ -144,6 +148,7 @@ fun HomeScreen(
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
+    val groupSummaries by viewModel.groupSummaries.collectAsState()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
@@ -598,6 +603,57 @@ fun HomeScreen(
                                     currency = uiState.selectedCurrency,
                                     onClick = onNavigateToLoans
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2.5. Groups section (#664) — a horizontal rail of the user's
+            // transaction groups, absent entirely when none exist so Home
+            // stays uncluttered for everyone else. Discovery was the ask:
+            // groups only surfaced via Settings or a group card that happened
+            // to have recent activity.
+            if (groupSummaries.isNotEmpty()) {
+                item {
+                    val visible = remember { mutableStateOf(hasAnimated) }
+                    LaunchedEffect(Unit) {
+                        if (!hasAnimated) { delay(100); visible.value = true }
+                    }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { slideOffsetPx },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                        ) {
+                            SectionHeaderV2(
+                                title = "Groups",
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                action = {
+                                    TextButton(onClick = onNavigateToTransactionGroups) {
+                                        Text("View All")
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                        )
+                                    }
+                                }
+                            )
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                items(groupSummaries, key = { it.group.id }) { summary ->
+                                    HomeGroupCard(
+                                        summary = summary,
+                                        onClick = { onGroupClick(summary.group.id) }
+                                    )
+                                }
                             }
                         }
                     }

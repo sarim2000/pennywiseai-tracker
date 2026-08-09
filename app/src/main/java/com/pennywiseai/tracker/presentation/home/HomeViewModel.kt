@@ -49,6 +49,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -98,6 +100,15 @@ class HomeViewModel @Inject constructor(
     // SMS scanning work progress tracking
     private val _smsScanWorkInfo = MutableStateFlow<WorkInfo?>(null)
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
+
+    /**
+     * Groups for the Home "Groups" section (#664). Groups were only reachable
+     * through Settings / the recent list's incidental group cards; an empty
+     * list keeps the section (and its Home footprint) entirely absent.
+     */
+    val groupSummaries: StateFlow<List<com.pennywiseai.tracker.data.repository.GroupSummary>> =
+        transactionGroupRepository.observeGroupSummaries()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
      * The user's current budget cycle window (start, end). Recomputed whenever

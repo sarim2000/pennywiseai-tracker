@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SettingsEthernet
 import androidx.compose.material3.*
@@ -36,6 +37,13 @@ fun TransactionTotalsCard(
     onCurrencySelected: (String) -> Unit = {},
     isUnifiedMode: Boolean = false,
     isLoading: Boolean = false,
+    // Optional fourth tile (#634): credit-card spend of the shown set. The
+    // regular list totals leave it off — credit lives on the Cash-Flow card —
+    // but selection totals show it, since the ask was income/expense/credit
+    // for exactly the rows the user picked.
+    credit: BigDecimal? = null,
+    // Optional heading, e.g. "3 selected".
+    title: String? = null,
     modifier: Modifier = Modifier
 ) {
     val incomeAlpha by animateFloatAsState(
@@ -79,6 +87,14 @@ fun TransactionTotalsCard(
                     .fillMaxWidth()
                     .padding(Spacing.sm)
             ) {
+                if (title != null) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = Spacing.xs, bottom = Spacing.xs)
+                    )
+                }
                 // Totals Row
                 Row(
                     modifier = Modifier
@@ -147,11 +163,45 @@ fun TransactionTotalsCard(
                                     tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
                                 )
                             },
-                            label = "Expenses",
+                            // Four tiles leave no room for the plural — it wraps.
+                            label = if (credit != null) "Expense" else "Expenses",
                             amount = CurrencyFormatter.formatCurrency(expenses, currency),
                             color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
                             modifier = Modifier.alpha(expenseAlpha)
                         )
+                    }
+
+                    if (credit != null) {
+                        Spacer(modifier = Modifier.width(Spacing.xxs))
+
+                        // Credit Column (selection totals only)
+                        val creditColor = if (!isSystemInDarkTheme()) credit_light else credit_dark
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(1f)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    shape = RoundedCornerShape(Spacing.xs)
+                                )
+                                .padding(Spacing.sm),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TotalColumn(
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.CreditCard,
+                                        contentDescription = "Credit",
+                                        modifier = Modifier.size(Dimensions.Icon.inline),
+                                        tint = creditColor
+                                    )
+                                },
+                                label = "Credit",
+                                amount = CurrencyFormatter.formatCurrency(credit, currency),
+                                color = creditColor,
+                                modifier = Modifier.alpha(expenseAlpha)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(Spacing.xxs))

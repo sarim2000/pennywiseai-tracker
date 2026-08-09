@@ -128,6 +128,7 @@ fun TransactionsScreen(
 
     // Bulk-edit selection (#369)
     val selectedIds by viewModel.selectedIds.collectAsState()
+    val selectionTotals by viewModel.selectionTotals.collectAsState()
     val bulkSnack by viewModel.bulkSnack.collectAsState()
     val selectionMode = selectedIds.isNotEmpty()
     var showBulkCategorySheet by remember { mutableStateOf(false) }
@@ -536,10 +537,20 @@ fun TransactionsScreen(
                             color = MaterialTheme.colorScheme.background,
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            // In selection mode the sticky card shows the totals of
+                            // just the selected rows (#634), with the credit tile the
+                            // reporter asked for; otherwise the filtered-list totals.
+                            val cardTotals = if (selectionMode) selectionTotals else filteredTotals
                             TransactionTotalsCard(
-                                income = filteredTotals.income,
-                                expenses = filteredTotals.expenses,
-                                netBalance = filteredTotals.netBalance,
+                                income = cardTotals.income,
+                                expenses = cardTotals.expenses,
+                                netBalance = cardTotals.netBalance,
+                                credit = if (selectionMode) cardTotals.credit else null,
+                                title = if (selectionMode) {
+                                    "${selectedIds.size} selected"
+                                } else {
+                                    null
+                                },
                                 currency = selectedCurrency,
                                 availableCurrencies = availableCurrencies,
                                 onCurrencySelected = { viewModel.selectCurrency(it) },

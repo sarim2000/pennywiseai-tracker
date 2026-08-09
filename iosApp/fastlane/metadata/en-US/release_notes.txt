@@ -1,1 +1,9 @@
-First release of PennyWise for iPhone — private, on-device expense tracking with budgets, analytics, statement import, and subscriptions. No accounts, no cloud.
+What's new in 1.1:
+
+• Import slice small finance bank statement PDFs — including multi-page statements, with pot transfers and round-ups tracked as transfers, not spending
+• Open any statement PDF with PennyWise straight from Files, Mail, or a share sheet
+• New quick-action button on Home: add a transaction or import a statement in one tap
+• Choose your display currency in Settings (plus new currencies: ARS, CLP, UYU)
+• Smarter Analytics: income vs expenses with a trend against the previous period, and tap any category or merchant to see its transactions
+• Cleaner transaction filters — one compact row of dropdown chips
+• Accuracy fixes: transfers no longer count as spending in totals or budgets, and Smart Rules now auto-categorize statement imports

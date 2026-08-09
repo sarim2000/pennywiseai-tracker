@@ -82,6 +82,42 @@ platform :ios do
     end
   end
 
+  desc "Read-only: list uploaded builds and their processing state"
+  lane :builds do
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      filepath: File.expand_path("../../secrets/AuthKey_#{ENV.fetch('ASC_KEY_ID')}.p8", __dir__)
+    )
+    Spaceship::ConnectAPI.token = token
+    app = Spaceship::ConnectAPI::App.find("com.pennywiseai.iosApp")
+    builds = Spaceship::ConnectAPI::Build.all(app_id: app.id)
+    builds.first(5).each do |b|
+      UI.message("BUILD version=#{b.version} state=#{b.processing_state} uploaded=#{b.uploaded_date}")
+    end
+  end
+
+  desc "Create/update the App Store version with metadata, attach a processed build, and submit for review. Usage: fastlane release version:1.1 build:2"
+  lane :release do |options|
+    deliver(
+      api_key: asc_key,
+      app_identifier: "com.pennywiseai.iosApp",
+      app_version: options[:version],
+      build_number: options[:build],
+      submit_for_review: true,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true,
+      run_precheck_before_submit: false,
+      automatic_release: true,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        add_id_info_uses_idfa: false,
+        content_rights_contains_third_party_content: false
+      }
+    )
+  end
+
   desc "Cancel the rejected/in-progress review submission holding the version (frees it to resubmit)"
   lane :cancel_rejected do
     token = Spaceship::ConnectAPI::Token.create(

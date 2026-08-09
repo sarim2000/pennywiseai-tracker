@@ -243,7 +243,7 @@ object ParseViews {
                                         let html = '';
 
                                         if (parsed.amount !== undefined) {
-                                            html += '<div class="info-row"><span class="info-label">Amount:</span><span class="info-value">₹' + parsed.amount.toLocaleString('en-IN') + '</span></div>';
+                                            html += '<div class="info-row"><span class="info-label">Amount:</span><span class="info-value">' + (parsed.currency === 'INR' || !parsed.currency ? '₹' + parsed.amount.toLocaleString('en-IN') : parsed.currency + ' ' + parsed.amount.toLocaleString()) + '</span></div>';
                                         }
                                         if (parsed.type) {
                                             html += '<div class="info-row"><span class="info-label">Type:</span><span class="info-value">' + parsed.type + '</span></div>';
@@ -335,7 +335,10 @@ object ParseViews {
             h3 { +"Parsed Transaction" }
             div(classes = "row") { div { +"Bank" }; div { +parsed.bankName } }
             div(classes = "row") { div { +"Type" }; div { +parsed.type.name } }
-            div(classes = "row") { div { +"Amount" }; div { +parsed.amount.toPlainString() } }
+            // Currency-tagged, never a bare number: the registry now parses
+            // non-INR banks (LKR since #658), so the code must travel with the
+            // amount.
+            div(classes = "row") { div { +"Amount" }; div { +"${parsed.currency} ${parsed.amount.toPlainString()}" } }
             if (parsed.merchant != null) {
                 div(classes = "row") { div { +"Merchant" }; div { +parsed.merchant!! } }
             }
@@ -369,6 +372,7 @@ object ParseViews {
         input(type = InputType.hidden) { id = "parsed_message"; value = message }
         input(type = InputType.hidden) { id = "parsed_result"; value = if (parsed != null) Json.encodeToString(JsonObject.serializer(), buildJsonObject {
             put("amount", parsed.amount.toDouble())
+            put("currency", parsed.currency)
             put("type", parsed.type.name)
             parsed.merchant?.let { put("merchant", it) }
         }) else "" }

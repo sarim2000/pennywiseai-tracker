@@ -726,6 +726,17 @@
       "reference": "MTXN0000517374-130",
       "balance": null
     },
+    "National Development Bank": {
+      "sender": "NDB ALERT",
+      "message": "LKR 12,724.00 debited from AC XXXXXXXX7497 as POS TXN on 30 Jul 2026 22:28 at COLOMBAY COLOMBO 2. Avl Bal 2,582.08 Call 94112448888 for info",
+      "currency": "LKR",
+      "amount": "12724.00",
+      "type": "EXPENSE",
+      "merchant": "COLOMBAY COLOMBO 2",
+      "accountLast4": "7497",
+      "reference": null,
+      "balance": "2582.08"
+    },
     "National Savings Bank": {
       "sender": "NSB",
       "message": "Dear MR MASKED NAME,LKR 10,000.00 Credited to your A/c XXXXXXXX1234 on DD/MM/YYYY at HH:mm.AvlBal LKR 12,653.61.Transaction CEFT Inward Transfer Deposit.Thank you for banking with us.Call Centre 1972.",

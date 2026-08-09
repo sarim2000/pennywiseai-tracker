@@ -191,7 +191,27 @@ class TransactionsViewModel @Inject constructor(
     ) { groupedTotals, currency, isUnified ->
         Triple(groupedTotals, currency, isUnified)
     }.mapLatest { (groupedTotals, currency, isUnified) ->
-        if (isUnified && groupedTotals.totalsByCurrency.size > 1) {
+        resolveTotals(groupedTotals, currency, isUnified)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = FilteredTotals()
+    )
+
+    /**
+     * Collapses per-currency grouped totals into the figures for [currency]:
+     * either that one currency's bucket, or — in unified mode — every bucket
+     * converted into it. This is the ONLY way a single-figure total may be
+     * produced from mixed currencies (hard constraint 2); shared by the list
+     * totals and the selection totals so the two cards can never disagree on
+     * the currency rules.
+     */
+    private suspend fun resolveTotals(
+        groupedTotals: CurrencyGroupedTotals,
+        currency: String,
+        isUnified: Boolean
+    ): FilteredTotals {
+        return if (isUnified && groupedTotals.totalsByCurrency.size > 1) {
             // Aggregate all currencies converted to display currency
             var income = BigDecimal.ZERO
             var expenses = BigDecimal.ZERO
@@ -234,12 +254,8 @@ class TransactionsViewModel @Inject constructor(
                 transactionCount = currencyTotals.transactionCount
             )
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = FilteredTotals()
-    )
-    
+    }
+
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()
 
@@ -249,6 +265,29 @@ class TransactionsViewModel @Inject constructor(
     // Long-press in the list enters this mode and tap-toggles add/remove rows.
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+    /**
+     * Income / expense / credit totals of just the selected rows (#634),
+     * resolved through [resolveTotals] so the selection card obeys exactly the
+     * same currency rules as the list card — one currency at a time, or
+     * converted in unified mode. Never a raw cross-currency sum.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val selectionTotals: StateFlow<FilteredTotals> = combine(
+        _selectedIds,
+        _uiState,
+        _selectedCurrency,
+        _isUnifiedMode
+    ) { ids, state, currency, isUnified ->
+        val selected = state.transactions.filter { it.id in ids }
+        Triple(selected, currency, isUnified)
+    }.mapLatest { (selected, currency, isUnified) ->
+        resolveTotals(calculateCurrencyGroupedTotals(selected), currency, isUnified)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = FilteredTotals()
+    )
 
     /** One-shot snackbar payload for a bulk action; cleared by the UI after showing. */
     data class BulkSnack(val message: String, val undo: (() -> Unit)? = null)

@@ -32,7 +32,10 @@ fun Application.configureRouting() {
             CityUnionBankParser(), KarnatakaBankParser(), PNBBankParser(), UnionBankParser(), JKBankParser(),
             AirtelPaymentsBankParser(), IPPBParser(), JioPaymentsBankParser(), JioPayParser(), JupiterBankParser(),
             HSBCBankParser(), SliceParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
-            UtkarshBankParser(), DBSBankParser(), JuspayParser()
+            UtkarshBankParser(), DBSBankParser(), JuspayParser(),
+            // Sri Lanka (#658) — the web tester advertises NDB samples, so the
+            // /htmx/parse registry must be able to parse them too.
+            NDBBankParser()
         )
     )
 

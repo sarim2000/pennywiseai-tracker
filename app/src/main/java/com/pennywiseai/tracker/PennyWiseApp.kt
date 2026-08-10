@@ -23,8 +23,7 @@ import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
-import com.pennywiseai.tracker.widget.CategoryPieWidgetUpdateWorker
-import com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker
+import com.pennywiseai.tracker.widget.WidgetRefresher
 
 @Composable
 fun PennyWiseApp(
@@ -121,8 +120,7 @@ fun PennyWiseApp(
 
     // Keep widgets current when app launches (covers upgrades/installs with existing widgets)
     LaunchedEffect(Unit) {
-        RecentTransactionsWidgetUpdateWorker.enqueueOneShot(context.applicationContext)
-        CategoryPieWidgetUpdateWorker.enqueueOneShot(context.applicationContext)
+        WidgetRefresher.refreshTransactionWidgets(context.applicationContext)
     }
 
     PennyWiseTheme(

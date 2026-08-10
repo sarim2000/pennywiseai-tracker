@@ -467,16 +467,14 @@ class SettingsViewModel @Inject constructor(
     fun setUnifiedCurrencyMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setUnifiedCurrencyMode(enabled)
-            com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(context)
-            com.pennywiseai.tracker.widget.CategoryPieWidgetUpdateWorker.enqueueOneShot(context)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 
     fun setDisplayCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesRepository.setDisplayCurrency(currency)
-            com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(context)
-            com.pennywiseai.tracker.widget.CategoryPieWidgetUpdateWorker.enqueueOneShot(context)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
         }
     }

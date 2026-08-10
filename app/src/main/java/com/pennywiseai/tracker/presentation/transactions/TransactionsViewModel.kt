@@ -56,7 +56,12 @@ class TransactionsViewModel @Inject constructor(
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
-    
+
+    // Keep home-screen widgets in sync with edits made here (delete/undo,
+    // bulk category changes, transfer marking).
+    private fun refreshWidgets() =
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -337,6 +342,7 @@ class TransactionsViewModel @Inject constructor(
             previous.keys.forEach { id ->
                 transactionRepository.updateCategory(id, newCategory)
             }
+            refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
                 message = "${previous.size} updated to \"$newCategory\"",
@@ -345,6 +351,7 @@ class TransactionsViewModel @Inject constructor(
                         previous.forEach { (id, oldCategory) ->
                             transactionRepository.updateCategory(id, oldCategory)
                         }
+                        refreshWidgets()
                     }
                 }
             )
@@ -487,6 +494,7 @@ class TransactionsViewModel @Inject constructor(
                     updatedAt = now
                 )
             )
+            refreshWidgets()
             _bulkSnack.value = BulkSnack(
                 message = "Marked as transfer",
                 undo = {
@@ -505,6 +513,7 @@ class TransactionsViewModel @Inject constructor(
                                 )
                             }
                         }
+                        refreshWidgets()
                     }
                 }
             )
@@ -521,12 +530,14 @@ class TransactionsViewModel @Inject constructor(
         viewModelScope.launch {
             val snapshot = _uiState.value.transactions.filter { it.id in ids }
             snapshot.forEach { transactionRepository.deleteTransaction(it) }
+            refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
                 message = "${snapshot.size} deleted",
                 undo = {
                     viewModelScope.launch {
                         snapshot.forEach { transactionRepository.undoDeleteTransaction(it) }
+                        refreshWidgets()
                     }
                 }
             )
@@ -1006,21 +1017,24 @@ class TransactionsViewModel @Inject constructor(
         viewModelScope.launch {
             _deletedTransaction.value = transaction
             transactionRepository.deleteTransaction(transaction)
+            refreshWidgets()
         }
     }
-    
+
     fun undoDelete() {
         _deletedTransaction.value?.let { transaction ->
             viewModelScope.launch {
                 transactionRepository.undoDeleteTransaction(transaction)
                 _deletedTransaction.value = null
+                refreshWidgets()
             }
         }
     }
-    
+
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             transactionRepository.undoDeleteTransaction(transaction)
+            refreshWidgets()
         }
     }
     

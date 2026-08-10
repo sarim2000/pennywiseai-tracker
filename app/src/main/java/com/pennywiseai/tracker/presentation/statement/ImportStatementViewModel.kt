@@ -8,7 +8,9 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.statement.ImportStatementUseCase
 import com.pennywiseai.tracker.data.statement.StatementImportResult
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +35,7 @@ class ImportStatementViewModel @Inject constructor(
     private val importStatementUseCase: ImportStatementUseCase,
     private val preferences: UserPreferencesRepository,
     entitlementGate: EntitlementGate,
+    @ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ImportStatementUiState>(ImportStatementUiState.Idle)
@@ -82,6 +85,7 @@ class ImportStatementViewModel @Inject constructor(
                     if (BuildConfig.IS_FDROID_BUILD && preferences.claimSupportNudge()) {
                         _showSupportNudge.value = true
                     }
+                    WidgetRefresher.refreshTransactionWidgets(appContext)
                     _uiState.value = ImportStatementUiState.Success(result)
                 }
                 is StatementImportResult.Error -> {

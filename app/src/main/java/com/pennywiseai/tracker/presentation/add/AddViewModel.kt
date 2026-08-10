@@ -353,7 +353,7 @@ class AddViewModel @Inject constructor(
                     budgetImpactType = state.budgetImpactType
                 )
 
-                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
                 onSuccess()
             } catch (e: Exception) {
@@ -389,7 +389,7 @@ class AddViewModel @Inject constructor(
                     toLast4 = to.accountLast4
                 )
 
-                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
                 onSuccess()
             } catch (e: Exception) {

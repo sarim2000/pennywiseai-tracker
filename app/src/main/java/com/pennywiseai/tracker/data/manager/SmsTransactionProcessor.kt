@@ -184,8 +184,8 @@ class SmsTransactionProcessor @Inject constructor(
                 // Process balance updates
                 processBalanceUpdate(parsedTransaction, finalEntity, rowId)
 
-                // Trigger widget refresh for recent transactions
-                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(appContext)
+                // Trigger widget refresh for the transaction-derived widgets
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
                 return ProcessingResult(true, transactionId = rowId)
             } else {

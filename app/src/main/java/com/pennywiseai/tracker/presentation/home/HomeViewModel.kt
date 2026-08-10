@@ -1097,21 +1097,24 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _deletedTransaction.value = transaction
             transactionRepository.deleteTransaction(transaction)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
-    
+
     fun undoDelete() {
         _deletedTransaction.value?.let { transaction ->
             viewModelScope.launch {
                 transactionRepository.undoDeleteTransaction(transaction)
                 _deletedTransaction.value = null
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             }
         }
     }
-    
+
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             transactionRepository.undoDeleteTransaction(transaction)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
     

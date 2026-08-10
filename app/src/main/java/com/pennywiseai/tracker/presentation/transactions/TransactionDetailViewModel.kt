@@ -206,6 +206,7 @@ class TransactionDetailViewModel @Inject constructor(
                 txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
             )
             _transaction.value = transactionRepository.getTransactionById(txn.id)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 
@@ -888,6 +889,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _pendingReceiptUri.value = null
                 _receiptRemoved.value = false
                 _saveSuccess.value = true
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 _isEditMode.value = false
                 _editableTransaction.value = null
                 _errorMessage.value = null
@@ -985,6 +987,7 @@ class TransactionDetailViewModel @Inject constructor(
                         accountBalanceRepository.recomputeManualBalance(bank, acct)
                     }
                     _deleteSuccess.value = true
+                    com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 } catch (e: Exception) {
                     _errorMessage.value = "Failed to delete transaction"
                 } finally {

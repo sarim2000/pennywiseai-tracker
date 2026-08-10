@@ -493,8 +493,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             if (unrecognizedBatch.isNotEmpty()) flushUnrecognizedBatch(unrecognizedBatch)
-            if (widgetNeedsUpdate)
-                com.pennywiseai.tracker.widget.RecentTransactionsWidgetUpdateWorker.enqueueOneShot(applicationContext)
+            if (widgetNeedsUpdate) {
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(applicationContext)
+            }
         }
 
         saver.join()

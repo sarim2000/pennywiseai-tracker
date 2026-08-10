@@ -165,8 +165,6 @@ class SlicePdfParser : PdfStatementParser {
 
         val (type, merchant) = classify(details, isDebit)
 
-        Log.i(TAG, "Block OK — $type merchant='$merchant' amount=$amount ref=$reference")
-
         return ParsedTransaction(
             amount = amount,
             type = type,

@@ -2,34 +2,14 @@ package com.pennywiseai.tracker.presentation.groups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
-import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import com.pennywiseai.tracker.utils.Money
 import javax.inject.Inject
-
-data class GroupSummary(
-    val group: TransactionGroupEntity,
-    val transactionCount: Int,
-    // Totals are kept per-currency because a group can mix currencies and summing
-    // across them is meaningless. Keyed by currency code.
-    val expenseByCurrency: Map<String, Money>,
-    val incomeByCurrency: Map<String, Money>
-) {
-    val hasExpense: Boolean get() = expenseByCurrency.values.any { it.isPositive }
-    val hasIncome: Boolean get() = incomeByCurrency.values.any { it.isPositive }
-}
 
 data class TransactionGroupsUiState(
     val groups: List<GroupSummary> = emptyList(),
@@ -51,33 +31,10 @@ class TransactionGroupsViewModel @Inject constructor(
 
     private fun loadGroups() {
         viewModelScope.launch {
-            repository.getAllGroups()
-                .flatMapLatest { groups ->
-                    if (groups.isEmpty()) {
-                        flowOf(emptyList())
-                    } else {
-                        combine(
-                            groups.map { group ->
-                                repository.getTransactionsForGroup(group.id)
-                                    .map { txns -> buildSummary(group, txns) }
-                            }
-                        ) { it.toList() }
-                    }
-                }
-                .collect { summaries ->
-                    _uiState.value = _uiState.value.copy(groups = summaries, isLoading = false)
-                }
+            repository.observeGroupSummaries().collect { summaries ->
+                _uiState.value = _uiState.value.copy(groups = summaries, isLoading = false)
+            }
         }
-    }
-
-    private fun buildSummary(group: TransactionGroupEntity, transactions: List<TransactionEntity>): GroupSummary {
-        val expense = transactions
-            .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .sumByCurrency({ it.currency }, { it.amount })
-        val income = transactions
-            .filter { it.transactionType == TransactionType.INCOME }
-            .sumByCurrency({ it.currency }, { it.amount })
-        return GroupSummary(group, transactions.size, expense, income)
     }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }

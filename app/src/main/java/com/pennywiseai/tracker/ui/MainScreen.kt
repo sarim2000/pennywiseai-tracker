@@ -207,6 +207,11 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)
                                 ) { launchSingleTop = true }
                             },
+                            onNavigateToTransactionGroups = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.TransactionGroups
+                                ) { launchSingleTop = true }
+                            },
                             onGroupClick = { groupId ->
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.TransactionGroupDetail(groupId)

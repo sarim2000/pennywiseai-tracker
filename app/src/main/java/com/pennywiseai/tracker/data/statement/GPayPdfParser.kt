@@ -207,22 +207,19 @@ class GPayPdfParser : PdfStatementParser {
         val merchant  = extractMerchant(anchorLine, isExpense)
 
         if (merchant == null) {
-            Log.w(TAG, "Block[$index] — could not extract merchant from: '$anchorLine'")
+            Log.w(TAG, "Block[$index] — could not extract merchant")
             return null
         }
 
         val amount = extractAmount(lines)
         if (amount == null) {
-            Log.w(TAG, "Block[$index] merchant='$merchant' — no amount found. Lines: $lines")
+            Log.w(TAG, "Block[$index] — no amount found")
             return null
         }
 
         val timestamp = extractTimestamp(lines, merchant)
         val upiId     = lines.firstNotNullOfOrNull { upiIdRegex.find(it)?.groupValues?.get(1) }
         val account   = extractAccountInfo(lines)
-
-        Log.i(TAG, "Block[$index] OK — $type merchant='$merchant' amount=$amount " +
-                "upi=$upiId bank='${account.bankName}' last4=${account.last4}")
 
         return ParsedTransaction(
             amount       = amount,

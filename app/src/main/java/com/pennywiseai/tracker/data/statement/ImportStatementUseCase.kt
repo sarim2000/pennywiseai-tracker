@@ -21,7 +21,7 @@ class ImportStatementUseCase @Inject constructor(
 
             val parser = PdfParserFactory.getParser(text)
                 ?: return@withContext StatementImportResult.Error(
-                    "Unsupported statement format. Currently supported: Google Pay, PhonePe."
+                    "Unsupported statement format. Currently supported: Google Pay, PhonePe, Paytm, slice."
                 )
 
             val parsedTransactions = parser.parse(text)

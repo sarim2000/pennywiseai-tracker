@@ -6,11 +6,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -38,19 +35,15 @@ class TransactionGroupRepository @Inject constructor(
 ) {
     fun getAllGroups(): Flow<List<TransactionGroupEntity>> = groupDao.getAllGroups()
 
-    /** Live [GroupSummary] per group; empty list when there are no groups. */
-    @OptIn(ExperimentalCoroutinesApi::class)
+    /**
+     * Live [GroupSummary] per group; empty list when there are no groups.
+     * All groups' transactions come from a single query (rather than one
+     * reactive query per group), so DB work stays constant as groups grow.
+     */
     fun observeGroupSummaries(): Flow<List<GroupSummary>> =
-        getAllGroups().flatMapLatest { groups ->
-            if (groups.isEmpty()) {
-                flowOf(emptyList())
-            } else {
-                combine(
-                    groups.map { group ->
-                        getTransactionsForGroup(group.id).map { txns -> buildSummary(group, txns) }
-                    }
-                ) { it.toList() }
-            }
+        combine(getAllGroups(), groupDao.getAllGroupedTransactions()) { groups, transactions ->
+            val byGroup = transactions.groupBy { it.groupId }
+            groups.map { group -> buildSummary(group, byGroup[group.id].orEmpty()) }
         }
 
     private fun buildSummary(

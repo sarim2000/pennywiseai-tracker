@@ -39,6 +39,10 @@ interface TransactionGroupDao {
     @Query("SELECT * FROM transactions WHERE group_id = :groupId AND is_deleted = 0 ORDER BY date_time DESC")
     fun getTransactionsForGroup(groupId: Long): Flow<List<TransactionEntity>>
 
+    /** Every grouped transaction in one query — for building all group summaries at once. */
+    @Query("SELECT * FROM transactions WHERE group_id IS NOT NULL AND is_deleted = 0")
+    fun getAllGroupedTransactions(): Flow<List<TransactionEntity>>
+
     @Query("SELECT COUNT(*) FROM transactions WHERE group_id = :groupId AND is_deleted = 0")
     fun getTransactionCount(groupId: Long): Flow<Int>
 

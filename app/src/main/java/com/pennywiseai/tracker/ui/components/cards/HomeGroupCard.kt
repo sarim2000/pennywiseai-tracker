@@ -83,29 +83,35 @@ fun HomeGroupCard(
             }
 
             // Per-currency figures, same rule as everywhere: mixed currencies
-            // are listed side by side, never summed into one number.
-            when {
-                summary.hasExpense -> Text(
-                    text = CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = expenseColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                summary.hasIncome -> Text(
-                    text = CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                else -> Text(
+            // are listed side by side, never summed into one number. A group
+            // holding both directions shows both lines, like the groups screen.
+            if (!summary.hasExpense && !summary.hasIncome) {
+                Text(
                     text = "No transactions yet",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            } else {
+                if (summary.hasExpense) {
+                    Text(
+                        text = CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = expenseColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (summary.hasIncome) {
+                    Text(
+                        text = CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

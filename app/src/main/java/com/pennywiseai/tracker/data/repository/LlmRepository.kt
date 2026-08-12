@@ -140,6 +140,13 @@ class LlmRepository @Inject constructor(
                 throw Exception("Model not downloaded. Please download from Settings.")
             }
 
+            // Integrity gate: never load a model whose bytes don't match the
+            // pinned hash (guards against an in-place-swapped or corrupted file).
+            if (!modelRepository.verifyModelIntegrity()) {
+                modelRepository.deleteModel()
+                throw Exception("AI model failed its integrity check and was removed. Please re-download it from Settings.")
+            }
+
             val initResult = llmService.initialize(modelFile.absolutePath)
             if (initResult.isFailure) {
                 throw initResult.exceptionOrNull() ?: Exception("Failed to initialize LLM")

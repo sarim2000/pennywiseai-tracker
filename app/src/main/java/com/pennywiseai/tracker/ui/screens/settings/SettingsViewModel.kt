@@ -261,28 +261,29 @@ class SettingsViewModel @Inject constructor(
         Log.d("SettingsViewModel", "Checking model file at: ${modelFile.absolutePath}")
         Log.d("SettingsViewModel", "Model file exists: ${modelFile.exists()}, size: ${modelFile.length()}, expected: ${Constants.ModelDownload.MODEL_SIZE_BYTES}")
 
-        // Check against expected size to ensure it's complete
-        // Allow 5% variance in file size as download sizes can vary slightly
+        // Drop an obviously-incomplete partial file before verifying.
+        // Allow 5% variance in file size as download sizes can vary slightly.
         val minSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 0.95).toLong()
+        if (modelFile.exists() && modelFile.length() < minSize) {
+            Log.d("SettingsViewModel", "Partial model file found (${modelFile.length()} bytes), deleting")
+            modelFile.delete()
+        }
 
-        if (modelFile.exists() && modelFile.length() >= minSize) {
+        // Re-verify a present full-size file; a hash mismatch deletes it here. This MUST
+        // run before we set DownloadState so a rejected model is never reported COMPLETED.
+        modelRepository.refreshModelState()
+
+        // Mirror the real post-verification outcome into the Settings download state, so
+        // a deleted (hash-invalid) model shows NOT_DOWNLOADED rather than a stale COMPLETED.
+        if (modelRepository.isModelDownloaded()) {
             _downloadState.value = DownloadState.COMPLETED
             _totalMB.value = modelFile.length() / (1024 * 1024)
             _downloadedMB.value = _totalMB.value
             _downloadProgress.value = 100
-        } else if (modelFile.exists()) {
-            // Partial file exists, delete it
-            Log.d("SettingsViewModel", "Partial model file found (${modelFile.length()} bytes), deleting")
-            modelFile.delete()
-            _downloadState.value = DownloadState.NOT_DOWNLOADED
         } else {
-            Log.d("SettingsViewModel", "Model not found")
             _downloadState.value = DownloadState.NOT_DOWNLOADED
+            _downloadProgress.value = 0
         }
-
-        // Own the shared ModelState here: a present file is re-verified (deleted if it
-        // fails the hash) before it is ever reported READY.
-        modelRepository.refreshModelState()
     }
     
     fun startModelDownload() {

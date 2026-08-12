@@ -316,7 +316,10 @@ class AnalyticsViewModel @Inject constructor(
                 var totalSpending = BigDecimal.ZERO
                 if (isUnified) {
                     for (tx in filteredTransactions) {
-                        totalSpending += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        // No known rate ever → leave the row out; face-valuing a
+                        // foreign amount into displayCurrency corrupts the total (#670).
+                        totalSpending += currencyConversionService
+                            .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
                     }
                 } else {
                     totalSpending = filteredTransactions.map { it.amount.toDouble() }.sum().toBigDecimal()
@@ -331,7 +334,8 @@ class AnalyticsViewModel @Inject constructor(
                     txWithSplits.getAmountByCategory().forEach { (category, amount) ->
                         val categoryName = category.ifEmpty { "Others" }
                         val converted = if (isUnified) {
-                            currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                            currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+                                ?: return@forEach // never-rated pair — skip, don't face-value (#670)
                         } else {
                             amount
                         }
@@ -364,7 +368,8 @@ class AnalyticsViewModel @Inject constructor(
                         // Respect an active category filter.
                         if (filterState.categoryFilter != null && filterState.categoryFilter != category) continue
                         val converted = if (isUnified) {
-                            currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                            currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                                ?: continue // never-rated pair — skip, don't face-value (#670)
                         } else tx.amount
                         if (converted <= BigDecimal.ZERO) continue
                         // A refund (INCOME + DEDUCT_SPENT) reverses a prior expense, so the
@@ -413,7 +418,8 @@ class AnalyticsViewModel @Inject constructor(
                 for (tx in filteredTransactions) {
                     val tagNames = tagMap[tx.id]?.takeIf { it.isNotEmpty() } ?: continue
                     val converted = if (isUnified) {
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                            ?: continue // never-rated pair — skip, don't face-value (#670)
                     } else {
                         tx.amount
                     }
@@ -446,7 +452,8 @@ class AnalyticsViewModel @Inject constructor(
                         val gross = if (isUnified) {
                             var sum = BigDecimal.ZERO
                             for (tx in txns) {
-                                sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                                sum += currencyConversionService
+                                    .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
                             }
                             sum
                         } else {
@@ -475,7 +482,8 @@ class AnalyticsViewModel @Inject constructor(
                         val gross = if (isUnified) {
                             var sum = BigDecimal.ZERO
                             for (tx in txns) {
-                                sum += currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                                sum += currencyConversionService
+                                    .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
                             }
                             sum
                         } else {
@@ -633,15 +641,18 @@ class AnalyticsViewModel @Inject constructor(
         val convertedById: Map<Long, Double> = if (isUnified) {
             val byId = HashMap<Long, Double>(transactions.size)
             for (tx in transactions) {
-                byId[tx.id] = currencyConversionService
-                    .convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
+                // Absent from the map = never-rated pair; amountIn treats it as 0
+                // so the row is excluded from the trend, matching the totals (#670).
+                val converted = currencyConversionService
+                    .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
+                byId[tx.id] = converted.toDouble()
             }
             byId
         } else {
             emptyMap()
         }
         val amountIn: (com.pennywiseai.tracker.data.database.entity.TransactionEntity) -> Double = { tx ->
-            if (isUnified) convertedById[tx.id] ?: tx.amount.toDouble() else tx.amount.toDouble()
+            if (isUnified) convertedById[tx.id] ?: 0.0 else tx.amount.toDouble()
         }
         // Refunds already netted out of the total/category/etc. are passed here as a
         // per-day map and subtracted from each bucket below. Each bucket floors at zero

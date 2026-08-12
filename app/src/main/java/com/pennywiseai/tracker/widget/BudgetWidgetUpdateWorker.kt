@@ -111,7 +111,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     transactions = raw.allTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                     }
                 )
 
@@ -197,7 +197,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     transactions = raw.prevCycleTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                     }
                 )
 

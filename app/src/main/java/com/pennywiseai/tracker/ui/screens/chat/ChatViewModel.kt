@@ -311,9 +311,19 @@ class ChatViewModel @Inject constructor(
                     if (statusCol != -1) {
                         when (cursor.getInt(statusCol)) {
                             DownloadManager.STATUS_SUCCESSFUL -> {
-                                _downloadProgress.value = 100
                                 userPreferencesRepository.clearActiveDownloadId()
-                                modelRepository.updateModelState(ModelState.READY)
+                                // Verify the freshly-downloaded bytes before trusting the model.
+                                if (modelRepository.verifyModelIntegrity()) {
+                                    _downloadProgress.value = 100
+                                    modelRepository.updateModelState(ModelState.READY)
+                                } else {
+                                    modelRepository.deleteModel()
+                                    _downloadProgress.value = 0
+                                    modelRepository.updateModelState(ModelState.ERROR)
+                                    _uiState.value = _uiState.value.copy(
+                                        error = "Downloaded model failed its integrity check and was removed. Please try downloading again."
+                                    )
+                                }
                             }
                             DownloadManager.STATUS_FAILED -> {
                                 userPreferencesRepository.clearActiveDownloadId()

@@ -22,11 +22,6 @@ class ModelRepository @Inject constructor(
     private val _modelState = MutableStateFlow(ModelState.NOT_DOWNLOADED)
     val modelState: Flow<ModelState> = _modelState.asStateFlow()
 
-    // Length of the file last confirmed to match the pinned hash, so we don't
-    // re-hash 1.5GB on every message once verified within this process.
-    @Volatile
-    private var lastVerifiedLength: Long = -1L
-    
     fun getModelFile(): File {
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
         Log.d("ModelRepository", "Model file path: ${file.absolutePath}")
@@ -49,9 +44,16 @@ class ModelRepository @Inject constructor(
     
     /**
      * Verifies the downloaded model against the pinned [Constants.ModelDownload.MODEL_SHA256]
-     * by streaming its SHA-256. Returns true only when the file exists and matches
-     * (or when no hash is pinned, in which case verification is intentionally
-     * disabled and a warning is logged). Result is cached per process by file length.
+     * by streaming its full SHA-256 — every call actually re-hashes the bytes on disk.
+     *
+     * This is the load-time security boundary, so it must NOT be short-circuited by a
+     * cheap proxy (size, mtime, a cached "already verified" flag): the model has a
+     * fixed length, so a same-length replacement would otherwise pass without ever
+     * being read. On a match it drops a verification marker that [isModelVerified] may
+     * read for UI state only — never as a substitute for this hash.
+     *
+     * Returns true when the bytes match, or when no hash is pinned (verification
+     * intentionally disabled, logged).
      */
     suspend fun verifyModelIntegrity(): Boolean = withContext(Dispatchers.IO) {
         val expected = Constants.ModelDownload.MODEL_SHA256.trim().lowercase()
@@ -63,12 +65,8 @@ class ModelRepository @Inject constructor(
         val file = getModelFile()
         if (!file.exists()) {
             Log.w(TAG, "verifyModelIntegrity: model file missing")
+            clearVerifiedMarker()
             return@withContext false
-        }
-
-        val length = file.length()
-        if (length > 0 && length == lastVerifiedLength) {
-            return@withContext true
         }
 
         val actual = try {
@@ -80,10 +78,10 @@ class ModelRepository @Inject constructor(
 
         val matches = actual == expected
         if (matches) {
-            lastVerifiedLength = length
+            writeVerifiedMarker(expected)
             Log.d(TAG, "Model integrity verified (sha256=$actual)")
         } else {
-            lastVerifiedLength = -1L
+            clearVerifiedMarker()
             Log.e(TAG, "Model integrity check FAILED: expected=$expected actual=$actual")
         }
         matches
@@ -102,24 +100,89 @@ class ModelRepository @Inject constructor(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    private fun verifiedMarkerFile(): File =
+        File(getModelFile().parentFile, Constants.ModelDownload.MODEL_FILE_NAME + ".verified")
+
+    private fun writeVerifiedMarker(hash: String) {
+        try {
+            verifiedMarkerFile().writeText(hash)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not write verification marker", e)
+        }
+    }
+
+    private fun clearVerifiedMarker() {
+        try {
+            val marker = verifiedMarkerFile()
+            if (marker.exists()) marker.delete()
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not clear verification marker", e)
+        }
+    }
+
+    /**
+     * Cheap check (no hashing) of whether the model on disk has previously passed
+     * [verifyModelIntegrity]. For driving UI state ONLY — the load path always
+     * re-hashes via [verifyModelIntegrity] and never trusts this marker.
+     */
+    fun isModelVerified(): Boolean {
+        if (!isModelDownloaded()) return false
+        val expected = Constants.ModelDownload.MODEL_SHA256.trim().lowercase()
+        if (expected.isEmpty()) return true // verification disabled → any downloaded file counts
+        val marker = verifiedMarkerFile()
+        return try {
+            marker.exists() && marker.readText().trim().lowercase() == expected
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun updateModelState(state: ModelState) {
         Log.d("ModelRepository", "Updating model state from ${_modelState.value} to $state")
         _modelState.value = state
     }
-    
-    fun checkModelState() {
-        val newState = if (isModelDownloaded()) {
-            ModelState.READY
-        } else {
-            ModelState.NOT_DOWNLOADED
+
+    /**
+     * Resolves the model state on app open. A previously-verified file goes straight to
+     * READY; a present-but-unverified file (a download whose post-download verification
+     * was interrupted, or a model carried over from an older build) is re-hashed before
+     * it is trusted, and deleted if it fails. Never reports READY for an unverified file.
+     */
+    suspend fun refreshModelState() {
+        when {
+            isModelVerified() -> updateModelState(ModelState.READY)
+            isModelDownloaded() -> {
+                updateModelState(ModelState.LOADING)
+                if (verifyModelIntegrity()) {
+                    updateModelState(ModelState.READY)
+                } else {
+                    Log.e(TAG, "Present model failed verification on open — deleting")
+                    deleteModel()
+                }
+            }
+            else -> updateModelState(ModelState.NOT_DOWNLOADED)
         }
-        Log.d("ModelRepository", "checkModelState: setting state to $newState")
-        _modelState.value = newState
     }
-    
+
+    /**
+     * Verifies a freshly-completed download before trusting it. Promotes to READY on a
+     * hash match, otherwise deletes the file and reports failure. Returns true iff the
+     * bytes matched the pinned hash.
+     */
+    suspend fun finalizeDownloadedModel(): Boolean {
+        return if (verifyModelIntegrity()) {
+            updateModelState(ModelState.READY)
+            true
+        } else {
+            Log.e(TAG, "Downloaded model failed verification — deleting")
+            deleteModel()
+            false
+        }
+    }
+
     fun deleteModel(): Boolean {
         val modelFile = getModelFile()
-        lastVerifiedLength = -1L
+        clearVerifiedMarker()
         return if (modelFile.exists()) {
             val deleted = modelFile.delete()
             if (deleted) {
@@ -127,6 +190,7 @@ class ModelRepository @Inject constructor(
             }
             deleted
         } else {
+            _modelState.value = ModelState.NOT_DOWNLOADED
             false
         }
     }

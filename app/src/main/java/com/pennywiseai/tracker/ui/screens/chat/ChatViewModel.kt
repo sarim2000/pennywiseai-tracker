@@ -73,7 +73,11 @@ class ChatViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = if (modelRepository.isModelDownloaded()) ModelState.READY else ModelState.NOT_DOWNLOADED
+            initialValue = when {
+                modelRepository.isModelVerified() -> ModelState.READY
+                modelRepository.isModelDownloaded() -> ModelState.LOADING // present, pending re-verify
+                else -> ModelState.NOT_DOWNLOADED
+            }
         )
     
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -131,14 +135,12 @@ class ChatViewModel @Inject constructor(
     )
     
     init {
-        modelRepository.checkModelState()
-
         // Load initial context message for display
         viewModelScope.launch {
             loadContextMessage()
         }
 
-        // Pick up any in-progress download
+        // Resume an in-progress download, or (when idle) resolve + re-verify the model.
         checkAndResumeDownload()
     }
     
@@ -312,12 +314,10 @@ class ChatViewModel @Inject constructor(
                         when (cursor.getInt(statusCol)) {
                             DownloadManager.STATUS_SUCCESSFUL -> {
                                 userPreferencesRepository.clearActiveDownloadId()
+                                _downloadProgress.value = 100
                                 // Verify the freshly-downloaded bytes before trusting the model.
-                                if (modelRepository.verifyModelIntegrity()) {
-                                    _downloadProgress.value = 100
-                                    modelRepository.updateModelState(ModelState.READY)
-                                } else {
-                                    modelRepository.deleteModel()
+                                modelRepository.updateModelState(ModelState.LOADING)
+                                if (!modelRepository.finalizeDownloadedModel()) {
                                     _downloadProgress.value = 0
                                     modelRepository.updateModelState(ModelState.ERROR)
                                     _uiState.value = _uiState.value.copy(
@@ -341,33 +341,38 @@ class ChatViewModel @Inject constructor(
 
     fun checkAndResumeDownload() {
         viewModelScope.launch {
-            val savedDownloadId = userPreferencesRepository.getActiveDownloadId() ?: return@launch
-            val query = DownloadManager.Query().setFilterById(savedDownloadId)
-            val cursor = downloadManager.query(query)
-            if (cursor != null && cursor.moveToFirst()) {
-                val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                if (statusIndex != -1) {
-                    val status = cursor.getInt(statusIndex)
-                    if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
-                        currentDownloadId = savedDownloadId
-                        modelRepository.updateModelState(ModelState.DOWNLOADING)
-                        val bytesCol = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                        val totalCol = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                        if (bytesCol != -1 && totalCol != -1) {
-                            val bytes = cursor.getLong(bytesCol)
-                            var total = cursor.getLong(totalCol)
-                            if (total <= 0) total = Constants.ModelDownload.MODEL_SIZE_BYTES
-                            _downloadedMB.value = bytes / (1024 * 1024)
-                            _totalMB.value = total / (1024 * 1024)
-                            if (total > 0) _downloadProgress.value = (bytes * 100 / total).toInt()
+            val savedDownloadId = userPreferencesRepository.getActiveDownloadId()
+            if (savedDownloadId != null) {
+                val query = DownloadManager.Query().setFilterById(savedDownloadId)
+                val cursor = downloadManager.query(query)
+                if (cursor != null && cursor.moveToFirst()) {
+                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                    if (statusIndex != -1) {
+                        val status = cursor.getInt(statusIndex)
+                        if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
+                            currentDownloadId = savedDownloadId
+                            modelRepository.updateModelState(ModelState.DOWNLOADING)
+                            val bytesCol = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            val totalCol = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            if (bytesCol != -1 && totalCol != -1) {
+                                val bytes = cursor.getLong(bytesCol)
+                                var total = cursor.getLong(totalCol)
+                                if (total <= 0) total = Constants.ModelDownload.MODEL_SIZE_BYTES
+                                _downloadedMB.value = bytes / (1024 * 1024)
+                                _totalMB.value = total / (1024 * 1024)
+                                if (total > 0) _downloadProgress.value = (bytes * 100 / total).toInt()
+                            }
+                            cursor.close()
+                            monitorDownload(savedDownloadId)
+                            return@launch
                         }
-                        cursor.close()
-                        monitorDownload(savedDownloadId)
-                        return@launch
                     }
+                    cursor.close()
                 }
-                cursor.close()
             }
+            // No active download to resume → resolve the model state, re-verifying a
+            // present-but-unverified file before it is shown as READY.
+            modelRepository.refreshModelState()
         }
     }
 

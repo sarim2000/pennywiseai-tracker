@@ -172,9 +172,9 @@ class SettingsViewModel @Inject constructor(
         )
     
     init {
+        // Resolves the shared ModelState (verifying a present file when needed) across
+        // every branch below, so it replaces the old size-only checkModelState().
         checkDownloadStatus()
-        // Also sync with model repository
-        modelRepository.checkModelState()
     }
     
     private fun checkDownloadStatus() {
@@ -217,10 +217,16 @@ class SettingsViewModel @Inject constructor(
                                 monitorDownload(savedDownloadId)
                             }
                             DownloadManager.STATUS_SUCCESSFUL -> {
-                                _downloadState.value = DownloadState.COMPLETED
                                 _downloadProgress.value = 100
                                 userPreferencesRepository.clearActiveDownloadId()
-                                modelRepository.updateModelState(ModelState.READY)
+                                // Verify before trusting the completed download.
+                                modelRepository.updateModelState(ModelState.LOADING)
+                                if (modelRepository.finalizeDownloadedModel()) {
+                                    _downloadState.value = DownloadState.COMPLETED
+                                } else {
+                                    _downloadState.value = DownloadState.FAILED
+                                    _downloadProgress.value = 0
+                                }
                             }
                             DownloadManager.STATUS_FAILED -> {
                                 _downloadState.value = DownloadState.FAILED
@@ -250,32 +256,20 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    private fun checkModelFile() {
+    private suspend fun checkModelFile() {
         val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
         Log.d("SettingsViewModel", "Checking model file at: ${modelFile.absolutePath}")
         Log.d("SettingsViewModel", "Model file exists: ${modelFile.exists()}, size: ${modelFile.length()}, expected: ${Constants.ModelDownload.MODEL_SIZE_BYTES}")
-        
+
         // Check against expected size to ensure it's complete
         // Allow 5% variance in file size as download sizes can vary slightly
         val minSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 0.95).toLong()
-        val maxSize = (Constants.ModelDownload.MODEL_SIZE_BYTES * 1.05).toLong()
-        
-        if (modelFile.exists() && modelFile.length() in minSize..maxSize) {
+
+        if (modelFile.exists() && modelFile.length() >= minSize) {
             _downloadState.value = DownloadState.COMPLETED
             _totalMB.value = modelFile.length() / (1024 * 1024)
             _downloadedMB.value = _totalMB.value
             _downloadProgress.value = 100
-            // Update model repository state
-            Log.d("SettingsViewModel", "Model complete (${modelFile.length()} bytes), updating repository state to READY")
-            modelRepository.updateModelState(ModelState.READY)
-        } else if (modelFile.exists() && modelFile.length() > maxSize) {
-            // File is too large, but might still be valid - mark as complete
-            _downloadState.value = DownloadState.COMPLETED
-            _totalMB.value = modelFile.length() / (1024 * 1024)
-            _downloadedMB.value = _totalMB.value
-            _downloadProgress.value = 100
-            Log.d("SettingsViewModel", "Model file larger than expected (${modelFile.length()} bytes), but marking as complete")
-            modelRepository.updateModelState(ModelState.READY)
         } else if (modelFile.exists()) {
             // Partial file exists, delete it
             Log.d("SettingsViewModel", "Partial model file found (${modelFile.length()} bytes), deleting")
@@ -285,6 +279,10 @@ class SettingsViewModel @Inject constructor(
             Log.d("SettingsViewModel", "Model not found")
             _downloadState.value = DownloadState.NOT_DOWNLOADED
         }
+
+        // Own the shared ModelState here: a present file is re-verified (deleted if it
+        // fails the hash) before it is ever reported READY.
+        modelRepository.refreshModelState()
     }
     
     fun startModelDownload() {
@@ -396,13 +394,19 @@ class SettingsViewModel @Inject constructor(
                     if (statusColumnIndex != -1) {
                         when (cursor.getInt(statusColumnIndex)) {
                             DownloadManager.STATUS_SUCCESSFUL -> {
-                                _downloadState.value = DownloadState.COMPLETED
                                 _downloadProgress.value = 100
                                 // Clear saved download ID
                                 userPreferencesRepository.clearActiveDownloadId()
-                                // Update model repository state
-                                modelRepository.updateModelState(ModelState.READY)
-                                Log.d("SettingsViewModel", "Download completed successfully")
+                                // Verify before trusting the completed download.
+                                modelRepository.updateModelState(ModelState.LOADING)
+                                if (modelRepository.finalizeDownloadedModel()) {
+                                    _downloadState.value = DownloadState.COMPLETED
+                                    Log.d("SettingsViewModel", "Download completed and verified")
+                                } else {
+                                    _downloadState.value = DownloadState.FAILED
+                                    _downloadProgress.value = 0
+                                    Log.e("SettingsViewModel", "Download failed integrity check")
+                                }
                             }
                             DownloadManager.STATUS_FAILED -> {
                                 _downloadState.value = DownloadState.FAILED

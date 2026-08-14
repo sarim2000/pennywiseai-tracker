@@ -63,6 +63,8 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
+import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -80,6 +82,8 @@ class HomeViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val restoreTransactionUseCase: RestoreTransactionUseCase,
     @ApplicationContext private val context: Context,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
@@ -1096,7 +1100,7 @@ class HomeViewModel @Inject constructor(
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             _deletedTransaction.value = transaction
-            transactionRepository.deleteTransaction(transaction)
+            deleteTransactionUseCase(transaction)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
@@ -1104,7 +1108,7 @@ class HomeViewModel @Inject constructor(
     fun undoDelete() {
         _deletedTransaction.value?.let { transaction ->
             viewModelScope.launch {
-                transactionRepository.undoDeleteTransaction(transaction)
+                restoreTransactionUseCase(transaction)
                 _deletedTransaction.value = null
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             }
@@ -1113,7 +1117,7 @@ class HomeViewModel @Inject constructor(
 
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
-            transactionRepository.undoDeleteTransaction(transaction)
+            restoreTransactionUseCase(transaction)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }

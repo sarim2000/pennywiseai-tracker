@@ -5,17 +5,31 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.widget.WidgetRefresher
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 /**
  * BroadcastReceiver that handles actions from transaction notifications.
  * Supports updating merchant, category, confirming, and deleting transactions.
  */
 class NotificationActionReceiver : BroadcastReceiver() {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface NotificationActionReceiverEntryPoint {
+        fun transactionDao(): TransactionDao
+        fun deleteTransactionUseCase(): DeleteTransactionUseCase
+    }
 
     companion object {
         private const val TAG = "NotificationActionReceiver"
@@ -39,12 +53,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
             return
         }
 
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NotificationActionReceiverEntryPoint::class.java
+        )
+        val transactionDao = entryPoint.transactionDao()
+        val deleteTransactionUseCase = entryPoint.deleteTransactionUseCase()
+
         val pendingResult = goAsync()
         receiverScope.launch {
             try {
                 when (intent.action) {
                     ACTION_DELETE_TRANSACTION -> {
-                        deleteTransaction(context, transactionId, notificationId)
+                        deleteTransaction(context, deleteTransactionUseCase, transactionId, notificationId)
                     }
                     ACTION_CONFIRM_TRANSACTION -> {
                         confirmTransaction(context, notificationId)
@@ -52,7 +73,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     ACTION_CHANGE_CATEGORY -> {
                         val newCategory = intent.getStringExtra(EXTRA_NEW_CATEGORY)
                         if (newCategory != null) {
-                            changeCategory(context, transactionId, newCategory, notificationId)
+                            changeCategory(context, transactionDao, transactionId, newCategory, notificationId)
                         } else {
                             Log.e(TAG, "No category provided")
                         }
@@ -67,14 +88,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun deleteTransaction(context: Context, transactionId: Long, notificationId: Int) {
+    private suspend fun deleteTransaction(
+        context: Context,
+        deleteTransactionUseCase: DeleteTransactionUseCase,
+        transactionId: Long,
+        notificationId: Int
+    ) {
         try {
-            val database = PennyWiseDatabase.getInstance(context)
-            val transactionDao = database.transactionDao()
-
-            // Soft delete the transaction
-            transactionDao.softDeleteTransaction(transactionId)
-            Log.d(TAG, "Deleted transaction: $transactionId")
+            val deleted = deleteTransactionUseCase(transactionId)
+            if (deleted) {
+                WidgetRefresher.refreshTransactionWidgets(context)
+                Log.d(TAG, "Deleted transaction and shifted balance: $transactionId")
+            } else {
+                Log.w(TAG, "Transaction not found for deletion: $transactionId")
+            }
 
             // Dismiss the notification
             dismissNotification(context, notificationId)
@@ -89,20 +116,24 @@ class NotificationActionReceiver : BroadcastReceiver() {
         Log.d(TAG, "Transaction confirmed, notification dismissed")
     }
 
-    private suspend fun changeCategory(context: Context, transactionId: Long, newCategory: String, notificationId: Int) {
+    private suspend fun changeCategory(
+        context: Context,
+        transactionDao: TransactionDao,
+        transactionId: Long,
+        newCategory: String,
+        notificationId: Int
+    ) {
         try {
-            val database = PennyWiseDatabase.getInstance(context)
-            val transactionDao = database.transactionDao()
-
             // Get the transaction
             val transaction = transactionDao.getTransactionById(transactionId)
             if (transaction != null) {
                 // Update with new category
                 val updated = transaction.copy(
                     category = newCategory,
-                    updatedAt = java.time.LocalDateTime.now()
+                    updatedAt = LocalDateTime.now()
                 )
                 transactionDao.updateTransaction(updated)
+                WidgetRefresher.refreshTransactionWidgets(context)
                 Log.d(TAG, "Updated transaction $transactionId category to: $newCategory")
 
                 // Dismiss the notification

@@ -23,7 +23,7 @@ import javax.inject.Singleton
 import kotlin.math.min
 
 @Singleton
-class TransactionRepository @Inject constructor(
+open class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository
@@ -31,7 +31,7 @@ class TransactionRepository @Inject constructor(
     fun getAllTransactions(): Flow<List<TransactionEntity>> = 
         transactionDao.getAllTransactions()
     
-    suspend fun getTransactionById(id: Long): TransactionEntity? = 
+    open suspend fun getTransactionById(id: Long): TransactionEntity? = 
         transactionDao.getTransactionById(id)
     
     fun getTransactionsBetweenDates(
@@ -118,7 +118,7 @@ class TransactionRepository @Inject constructor(
     suspend fun updateTransaction(transaction: TransactionEntity) = 
         transactionDao.updateTransaction(transaction)
     
-    suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
+    open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
         if (hardDelete) {
             transactionDao.deleteTransaction(transaction)
         } else {
@@ -202,7 +202,7 @@ class TransactionRepository @Inject constructor(
         return TransactionDeduplication.duplicateIdsToDelete(candidates)
     }
     
-    suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
+    open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))
     }
     

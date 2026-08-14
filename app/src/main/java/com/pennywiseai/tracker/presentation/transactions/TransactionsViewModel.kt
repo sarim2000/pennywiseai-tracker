@@ -28,6 +28,8 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,6 +55,8 @@ class TransactionsViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val profileRepository: ProfileRepository,
     private val transactionGroupRepository: TransactionGroupRepository,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val restoreTransactionUseCase: RestoreTransactionUseCase,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -529,14 +533,14 @@ class TransactionsViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             val snapshot = _uiState.value.transactions.filter { it.id in ids }
-            snapshot.forEach { transactionRepository.deleteTransaction(it) }
+            deleteTransactionUseCase(snapshot)
             refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
                 message = "${snapshot.size} deleted",
                 undo = {
                     viewModelScope.launch {
-                        snapshot.forEach { transactionRepository.undoDeleteTransaction(it) }
+                        restoreTransactionUseCase(snapshot)
                         refreshWidgets()
                     }
                 }
@@ -1016,7 +1020,7 @@ class TransactionsViewModel @Inject constructor(
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             _deletedTransaction.value = transaction
-            transactionRepository.deleteTransaction(transaction)
+            deleteTransactionUseCase(transaction)
             refreshWidgets()
         }
     }
@@ -1024,7 +1028,7 @@ class TransactionsViewModel @Inject constructor(
     fun undoDelete() {
         _deletedTransaction.value?.let { transaction ->
             viewModelScope.launch {
-                transactionRepository.undoDeleteTransaction(transaction)
+                restoreTransactionUseCase(transaction)
                 _deletedTransaction.value = null
                 refreshWidgets()
             }
@@ -1033,7 +1037,7 @@ class TransactionsViewModel @Inject constructor(
 
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
-            transactionRepository.undoDeleteTransaction(transaction)
+            restoreTransactionUseCase(transaction)
             refreshWidgets()
         }
     }

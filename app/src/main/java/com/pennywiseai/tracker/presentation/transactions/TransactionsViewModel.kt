@@ -372,61 +372,13 @@ class TransactionsViewModel @Inject constructor(
     // TRANSFER (which already excludes them from Net), with Undo restoring
     // the originals.
     val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
-        .map { state -> findSelfTransferPairs(state.transactions) }
+        .map { state -> computeSelfTransferPairs(state.transactions) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyMap()
         )
 
-    private fun findSelfTransferPairs(txns: List<TransactionEntity>): Map<Long, Long> {
-        if (txns.size < 2) return emptyMap()
-        // Transfers between the user's own accounts often reflect more than a few
-        // minutes apart (bank posting lag), so use a generous window. The pairing
-        // still requires an exact amount + currency match on a different account,
-        // and only *suggests* the link (the user confirms), so a wider window is
-        // low-risk. (#614)
-        val matchWindowMinutes = 60L
-        val acctOf: (TransactionEntity) -> String =
-            { "${it.bankName.orEmpty()}|${it.accountNumber.orEmpty()}" }
-
-        // Bucket INCOME rows by (currency, amount) for O(1) lookup per EXPENSE.
-        val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
-        for (tx in txns) {
-            if (tx.transactionType == TransactionType.INCOME) {
-                incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
-            }
-        }
-        if (incomesByKey.isEmpty()) return emptyMap()
-
-        val pair = HashMap<Long, Long>(txns.size / 8)
-        val claimedIncome = HashSet<Long>()
-        for (expense in txns) {
-            if (expense.transactionType != TransactionType.EXPENSE) continue
-            val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
-            // Closest in time within the window, on a *different* account, not
-            // already claimed by another expense.
-            val expenseAcct = acctOf(expense)
-            val match = candidates
-                .asSequence()
-                .filter { it.id !in claimedIncome }
-                .filter { acctOf(it) != expenseAcct }
-                .filter {
-                    java.time.Duration.between(expense.dateTime, it.dateTime)
-                        .toMinutes().let { d -> kotlin.math.abs(d) <= matchWindowMinutes }
-                }
-                .minByOrNull {
-                    kotlin.math.abs(
-                        java.time.Duration.between(expense.dateTime, it.dateTime).toMinutes()
-                    )
-                }
-                ?: continue
-            pair[expense.id] = match.id
-            pair[match.id] = expense.id
-            claimedIncome.add(match.id)
-        }
-        return pair
-    }
 
     /**
      * User-confirmed self-transfer: flip both rows to TRANSFER and populate
@@ -1596,3 +1548,65 @@ private data class BudgetParams(
     val categories: String?,
     val transactionType: String?
 )
+
+/**
+ * Self-transfer suggestion heuristic (#385): pair each EXPENSE with an INCOME row
+ * of the same currency + amount that landed on a *different* account within the
+ * match window, so the UI can surface a "↔ Mark as transfer" chip (the user
+ * confirms — no silent merge). Pure so it can be unit-tested directly.
+ *
+ * Account identity is null when unknown. A transfer moves between two accounts,
+ * so a pair is rejected only when BOTH legs are on the same *known* account;
+ * account-less manual rows (no accountNumber) are still allowed to pair — without
+ * this they'd all share one key and never pair (#611).
+ */
+internal fun computeSelfTransferPairs(
+    txns: List<TransactionEntity>,
+    matchWindowMinutes: Long = 60L
+): Map<Long, Long> {
+    if (txns.size < 2) return emptyMap()
+    val acctOf: (TransactionEntity) -> String? = { tx ->
+        tx.accountNumber?.takeIf { it.isNotBlank() }
+            ?.let { "${tx.bankName.orEmpty()}|$it" }
+    }
+
+    // Bucket INCOME rows by (currency, amount) for O(1) lookup per EXPENSE.
+    val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
+    for (tx in txns) {
+        if (tx.transactionType == TransactionType.INCOME) {
+            incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+        }
+    }
+    if (incomesByKey.isEmpty()) return emptyMap()
+
+    val pair = HashMap<Long, Long>(txns.size / 8)
+    val claimedIncome = HashSet<Long>()
+    for (expense in txns) {
+        if (expense.transactionType != TransactionType.EXPENSE) continue
+        val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+        // Closest in time within the window, not on the same known account, not
+        // already claimed by another expense.
+        val expenseAcct = acctOf(expense)
+        val match = candidates
+            .asSequence()
+            .filter { it.id !in claimedIncome }
+            .filter { income ->
+                val incomeAcct = acctOf(income)
+                incomeAcct == null || expenseAcct == null || incomeAcct != expenseAcct
+            }
+            .filter {
+                java.time.Duration.between(expense.dateTime, it.dateTime)
+                    .toMinutes().let { d -> kotlin.math.abs(d) <= matchWindowMinutes }
+            }
+            .minByOrNull {
+                kotlin.math.abs(
+                    java.time.Duration.between(expense.dateTime, it.dateTime).toMinutes()
+                )
+            }
+            ?: continue
+        pair[expense.id] = match.id
+        pair[match.id] = expense.id
+        claimedIncome.add(match.id)
+    }
+    return pair
+}

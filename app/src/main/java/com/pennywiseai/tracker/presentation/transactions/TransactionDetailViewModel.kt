@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,6 +52,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -967,25 +969,7 @@ class TransactionDetailViewModel @Inject constructor(
 
                 try {
                     txn.receiptPath?.let { receiptManager.deleteReceipt(it) }
-                    // Manual/cash accounts derive their balance from their transactions, so
-                    // deleting one must update the balance. Pin the opening from the
-                    // pre-delete snapshot, then recompute after. No-op for SMS accounts. (#470)
-                    val bank = txn.bankName
-                    val acct = txn.accountNumber
-                    if (bank != null && acct != null) {
-                        accountBalanceRepository.ensureManualOpening(bank, acct)
-                    }
-                    transactionRepository.deleteTransaction(txn)
-                    // Revert the transaction's effect on SMS-tracked and
-                    // credit-card balances (incl. transfer legs) — the manual
-                    // recompute below doesn't cover those regimes (#636).
-                    accountBalanceRepository.applyTransactionBalanceShift(
-                        original = txn,
-                        updated = null
-                    )
-                    if (bank != null && acct != null) {
-                        accountBalanceRepository.recomputeManualBalance(bank, acct)
-                    }
+                    deleteTransactionUseCase(txn)
                     _deleteSuccess.value = true
                     com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 } catch (e: Exception) {

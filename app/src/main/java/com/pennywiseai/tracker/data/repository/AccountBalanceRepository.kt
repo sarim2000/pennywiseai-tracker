@@ -16,7 +16,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AccountBalanceRepository @Inject constructor(
+open class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
     private val transactionDao: TransactionDao,
     private val database: PennyWiseDatabase
@@ -418,6 +418,43 @@ class AccountBalanceRepository @Inject constructor(
             }
         }
         rowId
+    }
+
+    /**
+     * Adjusts running account balances when [transaction] is deleted
+     * across manual, credit-card, SMS-tracked, and transfer accounts.
+     */
+    open suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
+        val bank = transaction.bankName
+        val acct = transaction.accountNumber
+        if (bank != null && acct != null) {
+            ensureManualOpening(bank, acct)
+        }
+        applyTransactionBalanceShift(
+            original = transaction,
+            updated = null
+        )
+        if (bank != null && acct != null) {
+            recomputeManualBalance(bank, acct)
+        }
+    }
+
+    /**
+     * Adjusts running account balances when [transaction] is restored / undeleted.
+     */
+    open suspend fun applyRestoreBalanceShift(transaction: TransactionEntity) {
+        val bank = transaction.bankName
+        val acct = transaction.accountNumber
+        if (bank != null && acct != null) {
+            ensureManualOpening(bank, acct)
+        }
+        applyTransactionBalanceShift(
+            original = null,
+            updated = transaction
+        )
+        if (bank != null && acct != null) {
+            recomputeManualBalance(bank, acct)
+        }
     }
 
     /**

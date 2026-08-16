@@ -1,5 +1,5 @@
 {
-  "totalBanks": 142,
+  "totalBanks": 143,
   "totalCountries": 23,
   "countries": [
     {
@@ -35,6 +35,14 @@
       "banks": ["ALECU", "AdelFi", "Altana Federal Credit Union", "Charles Schwab", "Chase", "Citi Bank", "Discover Card", "Huntington Bank", "Navy Federal Credit Union", "Old Hickory Credit Union"]
     },
     {
+      "country": "Saudi Arabia",
+      "flag": "🇸🇦",
+      "currency": "SAR",
+      "symbol": "﷼",
+      "bankCount": 7,
+      "banks": ["Al Rajhi Bank", "Alinma Bank", "Banque Saudi Fransi", "D360 Bank", "SABB", "STC Bank", "Saudi National Bank"]
+    },
+    {
       "country": "Tanzania",
       "flag": "🇹🇿",
       "currency": "TZS",
@@ -49,14 +57,6 @@
       "symbol": "﷼",
       "bankCount": 6,
       "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "Pasargad Bank", "blu Bank"]
-    },
-    {
-      "country": "Saudi Arabia",
-      "flag": "🇸🇦",
-      "currency": "SAR",
-      "symbol": "﷼",
-      "bankCount": 6,
-      "banks": ["Al Rajhi Bank", "Alinma Bank", "D360 Bank", "SABB", "STC Bank", "Saudi National Bank"]
     },
     {
       "country": "UAE",

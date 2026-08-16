@@ -130,6 +130,7 @@ object BankParserFactory {
         TBankParser(),  // T-Bank / Tinkoff (Russia)
         ChaseBankParser(),  // Chase Bank (USA)
         AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
+        BSFBankParser(),  // Banque Saudi Fransi / BSF (Saudi Arabia)
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)

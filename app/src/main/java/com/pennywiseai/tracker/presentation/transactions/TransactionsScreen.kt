@@ -98,6 +98,9 @@ fun TransactionsScreen(
     initialTransactionType: String? = null,
     viewModel: TransactionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
+    // False when shown as a top-level bottom-nav tab (no back arrow, like the
+    // other tab roots); true when reached as a drill-down. (#635)
+    showBackButton: Boolean = true,
     onTransactionClick: (Long) -> Unit = {},
     onAddTransactionClick: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {}
@@ -338,7 +341,7 @@ fun TransactionsScreen(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = "Transactions",
-                    hasBackButton = true,
+                    hasBackButton = showBackButton,
                     navigationContent = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(

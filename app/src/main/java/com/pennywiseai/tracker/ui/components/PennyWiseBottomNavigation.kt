@@ -69,6 +69,7 @@ fun PennyWiseBottomNavigation(
 ) {
     val navigationItems = listOf(
         BottomNavItem.Home,
+        BottomNavItem.Transactions,
         BottomNavItem.Analytics,
         BottomNavItem.Chat
     )
@@ -110,7 +111,9 @@ fun PennyWiseBottomNavigation(
                 ) {
                     navigationItems.forEach { item ->
                         val selected = currentDestination?.hierarchy?.any {
-                            it.route == item.route
+                            // Match on the route base so query-arg routes (e.g.
+                            // "transactions?type=…") still light up their tab.
+                            it.route?.substringBefore('?') == item.route
                         } == true
                         NavigationBarItem(
                             selected = selected,
@@ -213,7 +216,9 @@ fun PennyWiseBottomNavigation(
                 ) {
                     navigationItems.forEach { item ->
                         val selected = currentDestination?.hierarchy?.any {
-                            it.route == item.route
+                            // Match on the route base so query-arg routes (e.g.
+                            // "transactions?type=…") still light up their tab.
+                            it.route?.substringBefore('?') == item.route
                         } == true
 
                         TonalToggleButton(

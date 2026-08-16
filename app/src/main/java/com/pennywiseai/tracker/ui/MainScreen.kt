@@ -297,6 +297,8 @@ fun MainScreen(
                             initialCustomEndEpochDay = endDate,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
+                            // Transactions is a top-level tab (#635) — no back arrow.
+                            showBackButton = false,
                             onNavigateBack = {
                                 navController.safePopBackStack()
                             },
@@ -594,7 +596,7 @@ fun MainScreen(
             }
 
             // Bottom navigation OVERLAID on content
-            if (baseRoute in listOf("home", "analytics", "chat")) {
+            if (baseRoute in listOf("home", "transactions", "analytics", "chat")) {
                 PennyWiseBottomNavigation(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,

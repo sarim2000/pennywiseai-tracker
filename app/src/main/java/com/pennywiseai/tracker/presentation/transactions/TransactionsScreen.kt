@@ -281,6 +281,11 @@ fun TransactionsScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
+    // When shown as the bottom-nav tab (#635), MainScreen overlays an 80.dp nav
+    // bar over this content, so the list + FAB stack need matching bottom
+    // clearance (the Scaffold inset here doesn't know about that overlay).
+    val bottomBarClearance = if (showBackButton) 0.dp else Dimensions.Component.bottomBarHeight
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -356,6 +361,7 @@ fun TransactionsScreen(
         },
         floatingActionButton = {
             Column(
+                modifier = Modifier.padding(bottom = bottomBarClearance),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 // Export FAB (only show if transactions exist)
@@ -490,7 +496,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
@@ -527,7 +533,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }

@@ -297,8 +297,13 @@ fun MainScreen(
                             initialCustomEndEpochDay = endDate,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
-                            // Transactions is a top-level tab (#635) — no back arrow.
-                            showBackButton = false,
+                            // No back arrow for a plain tab tap; show it for a filtered
+                            // drill-down (Home category/search) so the user can return. (#635)
+                            showBackButton = category != null || merchant != null ||
+                                period != null || currency != null || focusSearch ||
+                                transactionType != null || startDate != null || endDate != null,
+                            // The bottom nav is overlaid on this route — always reserve clearance.
+                            reserveBottomBarSpace = true,
                             onNavigateBack = {
                                 navController.safePopBackStack()
                             },

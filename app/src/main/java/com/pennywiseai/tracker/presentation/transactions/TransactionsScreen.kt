@@ -98,9 +98,12 @@ fun TransactionsScreen(
     initialTransactionType: String? = null,
     viewModel: TransactionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    // False when shown as a top-level bottom-nav tab (no back arrow, like the
-    // other tab roots); true when reached as a drill-down. (#635)
+    // False for a plain bottom-nav tab tap (no back arrow, like the other tab
+    // roots); true when reached as a filtered drill-down so the user can return. (#635)
     showBackButton: Boolean = true,
+    // True when the app's bottom nav is overlaid on this screen (tab context), so
+    // the list + FAB reserve matching clearance regardless of the back arrow. (#635)
+    reserveBottomBarSpace: Boolean = false,
     onTransactionClick: (Long) -> Unit = {},
     onAddTransactionClick: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {}
@@ -281,10 +284,10 @@ fun TransactionsScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
-    // When shown as the bottom-nav tab (#635), MainScreen overlays an 80.dp nav
-    // bar over this content, so the list + FAB stack need matching bottom
-    // clearance (the Scaffold inset here doesn't know about that overlay).
-    val bottomBarClearance = if (showBackButton) 0.dp else Dimensions.Component.bottomBarHeight
+    // When the app bottom nav is overlaid on this screen (#635), it sits over an
+    // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
+    // stack need matching bottom clearance (whether or not a back arrow shows).
+    val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
     Scaffold(
         modifier = modifier

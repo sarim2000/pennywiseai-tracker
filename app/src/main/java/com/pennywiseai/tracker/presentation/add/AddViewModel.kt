@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
@@ -40,6 +41,7 @@ class AddViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val transactionRepository: TransactionRepository,
+    private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
     savedStateHandle: SavedStateHandle
@@ -64,6 +66,12 @@ class AddViewModel @Inject constructor(
     // Subscription Tab State
     private val _subscriptionUiState = MutableStateFlow(SubscriptionUiState())
     val subscriptionUiState: StateFlow<SubscriptionUiState> = _subscriptionUiState.asStateFlow()
+
+    // Per-type default category placeholders (see [updateTransactionType]) — treated
+    // as "unset" so a learned merchant→category mapping can fill in without
+    // clobbering a category the user actually chose. (#678)
+    private val DEFAULT_CATEGORY_PLACEHOLDERS =
+        setOf("Others", "Shopping", "Income", "Investment")
     
     
     init {
@@ -213,6 +221,24 @@ class AddViewModel @Inject constructor(
                 merchant = merchant,
                 merchantError = validateMerchant(merchant)
             )
+        }
+        // Suggest the category previously learned for this merchant (#678) — the
+        // same mapping SMS parsing already applies. Only fills in when the user
+        // hasn't chosen a specific category yet (still a per-type default), so an
+        // explicit choice is never overridden.
+        viewModelScope.launch {
+            val name = merchant.trim()
+            if (name.isEmpty()) return@launch
+            val mapped = merchantMappingRepository.getCategoryForMerchant(name) ?: return@launch
+            _transactionUiState.update { currentState ->
+                if (currentState.merchant.trim() == name &&
+                    currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS
+                ) {
+                    currentState.copy(category = mapped, categoryError = validateCategory(mapped))
+                } else {
+                    currentState
+                }
+            }
         }
     }
     

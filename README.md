@@ -350,7 +350,7 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sarim2000/pennywiseai-tracker&type=Date)](https://star-history.com/#sarim2000/pennywiseai-tracker&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=sarim2000/pennywiseai-tracker&type=Date)](https://star-history.dera.page/#sarim2000/pennywiseai-tracker&type=date)
 
 ## License
 

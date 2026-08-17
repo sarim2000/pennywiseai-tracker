@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MerchantMappingDao {
     
-    @Query("SELECT category FROM merchant_mappings WHERE merchant_name = :merchantName")
+    // COLLATE NOCASE so free-text manual entry matches regardless of casing
+    // (e.g. "amazon" finds a mapping saved as "Amazon"). (#678)
+    @Query("SELECT category FROM merchant_mappings WHERE merchant_name = :merchantName COLLATE NOCASE")
     suspend fun getCategoryForMerchant(merchantName: String): String?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -23,6 +23,7 @@ import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
@@ -72,6 +73,10 @@ class AddViewModel @Inject constructor(
     // clobbering a category the user actually chose. (#678)
     private val DEFAULT_CATEGORY_PLACEHOLDERS =
         setOf("Others", "Shopping", "Income", "Investment")
+
+    // Tracks the in-flight merchant→category lookup so a newer merchant/type
+    // change supersedes a slower earlier one instead of landing stale. (#678)
+    private var merchantSuggestionJob: Job? = null
     
     
     init {
@@ -226,12 +231,18 @@ class AddViewModel @Inject constructor(
         // same mapping SMS parsing already applies. Only fills in when the user
         // hasn't chosen a specific category yet (still a per-type default), so an
         // explicit choice is never overridden.
-        viewModelScope.launch {
-            val name = merchant.trim()
-            if (name.isEmpty()) return@launch
+        merchantSuggestionJob?.cancel() // supersede any slower in-flight lookup
+        val name = merchant.trim()
+        if (name.isEmpty()) return
+        val typeAtRequest = _transactionUiState.value.transactionType
+        merchantSuggestionJob = viewModelScope.launch {
             val mapped = merchantMappingRepository.getCategoryForMerchant(name) ?: return@launch
             _transactionUiState.update { currentState ->
+                // Only fill when the form is still in the state we looked up for:
+                // same merchant, same type (a type change resets the category to a
+                // placeholder), and no category the user has since chosen.
                 if (currentState.merchant.trim() == name &&
+                    currentState.transactionType == typeAtRequest &&
                     currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS
                 ) {
                     currentState.copy(category = mapped, categoryError = validateCategory(mapped))

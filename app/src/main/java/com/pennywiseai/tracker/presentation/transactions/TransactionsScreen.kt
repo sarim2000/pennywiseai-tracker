@@ -98,6 +98,12 @@ fun TransactionsScreen(
     initialTransactionType: String? = null,
     viewModel: TransactionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
+    // False for a plain bottom-nav tab tap (no back arrow, like the other tab
+    // roots); true when reached as a filtered drill-down so the user can return. (#635)
+    showBackButton: Boolean = true,
+    // True when the app's bottom nav is overlaid on this screen (tab context), so
+    // the list + FAB reserve matching clearance regardless of the back arrow. (#635)
+    reserveBottomBarSpace: Boolean = false,
     onTransactionClick: (Long) -> Unit = {},
     onAddTransactionClick: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {}
@@ -278,6 +284,11 @@ fun TransactionsScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
+    // When the app bottom nav is overlaid on this screen (#635), it sits over an
+    // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
+    // stack need matching bottom clearance (whether or not a back arrow shows).
+    val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -338,7 +349,7 @@ fun TransactionsScreen(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = "Transactions",
-                    hasBackButton = true,
+                    hasBackButton = showBackButton,
                     navigationContent = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
@@ -353,6 +364,7 @@ fun TransactionsScreen(
         },
         floatingActionButton = {
             Column(
+                modifier = Modifier.padding(bottom = bottomBarClearance),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 // Export FAB (only show if transactions exist)
@@ -487,7 +499,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
@@ -524,7 +536,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }

@@ -297,6 +297,13 @@ fun MainScreen(
                             initialCustomEndEpochDay = endDate,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
+                            // No back arrow for a plain tab tap; show it for a filtered
+                            // drill-down (Home category/search) so the user can return. (#635)
+                            showBackButton = category != null || merchant != null ||
+                                period != null || currency != null || focusSearch ||
+                                transactionType != null || startDate != null || endDate != null,
+                            // The bottom nav is overlaid on this route — always reserve clearance.
+                            reserveBottomBarSpace = true,
                             onNavigateBack = {
                                 navController.safePopBackStack()
                             },
@@ -594,7 +601,7 @@ fun MainScreen(
             }
 
             // Bottom navigation OVERLAID on content
-            if (baseRoute in listOf("home", "analytics", "chat")) {
+            if (baseRoute in listOf("home", "transactions", "analytics", "chat")) {
                 PennyWiseBottomNavigation(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,

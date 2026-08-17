@@ -8,8 +8,13 @@ import kotlinx.coroutines.flow.Flow
 interface MerchantMappingDao {
     
     // COLLATE NOCASE so free-text manual entry matches regardless of casing
-    // (e.g. "amazon" finds a mapping saved as "Amazon"). (#678)
-    @Query("SELECT category FROM merchant_mappings WHERE merchant_name = :merchantName COLLATE NOCASE")
+    // (e.g. "amazon" finds a mapping saved as "Amazon"). If case-distinct rows
+    // both match, prefer the most recently updated one so the result is
+    // deterministic ("latest wins"). (#678)
+    @Query(
+        "SELECT category FROM merchant_mappings WHERE merchant_name = :merchantName COLLATE NOCASE " +
+            "ORDER BY updated_at DESC LIMIT 1"
+    )
     suspend fun getCategoryForMerchant(merchantName: String): String?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)

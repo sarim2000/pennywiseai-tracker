@@ -418,7 +418,9 @@ private fun LoanTransactionItem(
                 )
             }
             Text(
-                text = "${sign}${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}",
+                // Show the portion assigned to this loan, not the full transaction
+                // amount — matches how the loan total is computed (#681).
+                text = "${sign}${CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color

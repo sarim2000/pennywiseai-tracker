@@ -24,7 +24,12 @@ data class ExpectedTransaction(
     val creditLimit: BigDecimal? = null,
     val isFromCard: Boolean? = null,
     val fromAccount: String? = null,
-    val toAccount: String? = null
+    val toAccount: String? = null,
+    val isMobileWallet: Boolean? = null,
+    // Explicitly assert that no per-account number was extracted. `accountLast4 = null` alone
+    // can't express this (a null expectation is treated as "don't check"), so mobile-money
+    // wallets that must consolidate into one account (#682) set this flag.
+    val expectNullAccountLast4: Boolean = false
 )
 
 data class ParserTestCase(
@@ -118,6 +123,10 @@ object ParserTestUtils {
         expected.isFromCard?.let { if (result.isFromCard != it) errors.add("isFromCard mismatch: expected $it, got ${result.isFromCard}") }
         expected.fromAccount?.let { if (result.fromAccount != it) errors.add("From account mismatch: expected $it, got ${result.fromAccount}") }
         expected.toAccount?.let { if (result.toAccount != it) errors.add("To account mismatch: expected $it, got ${result.toAccount}") }
+        expected.isMobileWallet?.let { if (result.isMobileWallet != it) errors.add("isMobileWallet mismatch: expected $it, got ${result.isMobileWallet}") }
+        if (expected.expectNullAccountLast4 && result.accountLast4 != null) {
+            errors.add("Expected no account number (mobile wallet) but got ${result.accountLast4}")
+        }
 
         return errors
     }
@@ -167,6 +176,16 @@ object ParserTestUtils {
             {
                 expected.toAccount?.let {
                     assertEquals(it, parsed.toAccount, "To account mismatch")
+                }
+            },
+            {
+                expected.isMobileWallet?.let {
+                    assertEquals(it, parsed.isMobileWallet, "isMobileWallet mismatch")
+                }
+            },
+            {
+                if (expected.expectNullAccountLast4) {
+                    assertNull(parsed.accountLast4, "Expected no account number (mobile wallet)")
                 }
             }
         )

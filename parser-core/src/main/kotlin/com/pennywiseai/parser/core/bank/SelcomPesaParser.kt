@@ -7,8 +7,8 @@ import java.math.BigDecimal
  * Parser for Selcom Pesa (Tanzania) mobile money SMS messages
  *
  * Handles formats like:
- * - "0426JXCX Confirmed. You have received TZS 175,000.00 from MICHAEL EMIL LUYANGI - NMB"
- * - "0426JXGC Accepted. You have sent TZS 50,000.00 to NURU ISSA - Mixx by Yas"
+ * - "0426JXCX Confirmed. You have received TZS 175,000.00 from SENDER NAME - NMB"
+ * - "0426JXGC Accepted. You have sent TZS 50,000.00 to RECIPIENT NAME - Mixx by Yas"
  * - "10234C2WQ Confirmed. You have withdrawn TZS 200,000.00 at ATM"
  * - "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL"
  *
@@ -71,7 +71,7 @@ class SelcomPesaParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: "from NAME - BANK/SERVICE (account/phone)"
-        // e.g., "from MICHAEL EMIL LUYANGI - NMB (201100XXXXX)"
+        // e.g., "from SENDER NAME - NMB (201100XXXXX)"
         val fromPattern = Regex(
             """from\s+([A-Z][A-Za-z\s]+?)(?:\s+-\s+[^(]+)?\s*\([^)]+\)""",
             RegexOption.IGNORE_CASE
@@ -84,7 +84,7 @@ class SelcomPesaParser : BankParser() {
         }
 
         // Pattern 2: "to NAME - SERVICE (phone)" for sent money
-        // e.g., "to NURU ISSA - Mixx by Yas (Tigo Pesa) (25571XXXXXXX)"
+        // e.g., "to RECIPIENT NAME - Mixx by Yas (Tigo Pesa) (25571XXXXXXX)"
         val toNamePattern = Regex(
             """to\s+([A-Z][A-Za-z\s]+?)(?:\s+-\s+[^(]+)?\s*\([^)]+\)""",
             RegexOption.IGNORE_CASE
@@ -178,19 +178,23 @@ class SelcomPesaParser : BankParser() {
         return null
     }
 
-    override fun extractAccountLast4(message: String): String? {
-        super.extractAccountLast4(message)?.let { return it }
-        // Pattern: "card ending with 8318" or "card ending 1915"
-        val cardPattern = Regex(
-            """card\s+ending\s+(?:with\s+)?(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        cardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
+    /**
+     * Selcom Pesa is a mobile-money wallet with no stable per-account number in its SMS —
+     * the numbers present are the counterparty's phone (e.g. "(201100XXXXX)") or the
+     * "card ending XXXX" of whichever card funded a given payment, both of which vary per
+     * transaction. Capturing them (whether via the generic base regex or a card-ending
+     * pattern) minted a new (bank, last4) account per SMS (#682). Return null so all wallet
+     * activity consolidates into one account. Card payments are still flagged via
+     * detectIsCard(), which is independent of the account identity.
+     */
+    override fun extractAccountLast4(message: String): String? = null
 
-        return null
-    }
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
 
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()

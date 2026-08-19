@@ -33,6 +33,21 @@ class MixxByYasParser : BankParser() {
 
     override fun getCurrency() = "TZS"  // TSh is the same as TZS (Tanzanian Shilling)
 
+    /**
+     * Mixx by Yas is a phone-number-identified mobile-money wallet: its SMS carry no stable
+     * per-account number, only a counterparty phone or a numeric TxnID that changes every
+     * transaction. Letting the generic base regex capture one minted a new (bank, last4)
+     * account per SMS (#682). Return null so all wallet activity consolidates into one account.
+     */
+    override fun extractAccountLast4(message: String): String? = null
+
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
+
     override fun canHandle(sender: String): Boolean {
         // Normalize by stripping spaces, dashes and underscores so "MIXX BY YAS",
         // "MIXX-BY-YAS" and "MixxByYas" all collapse to MIXXBYYAS.

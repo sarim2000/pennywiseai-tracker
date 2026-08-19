@@ -24,6 +24,22 @@ class MPESAParser : BankParser() {
 
     override fun getCurrency() = "KES"
 
+    /**
+     * M-PESA (Kenya) is a phone-number-identified mobile-money wallet: its SMS carry no stable
+     * per-account number, only the counterparty's phone or a paybill "for account <ref>" that
+     * varies every transaction. Letting the generic base regex capture one would mint a new
+     * (bank, last4) account per SMS — the same defect fixed for the Tanzanian wallets in #682.
+     * Return null so all wallet activity consolidates into one account.
+     */
+    override fun extractAccountLast4(message: String): String? = null
+
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("MPESA") ||

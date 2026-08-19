@@ -21,7 +21,7 @@ class MixxByYasParserTest {
             // #1 Outbound P2P (PRIMARY of a twin pair)
             ParserTestCase(
                 name = "Outbound P2P transfer (primary)",
-                message = "Money sent successfully to  -255742311312. Amount TSh 52,000. Total Charges TSh 1,125, VAT TSh 172. New balance is TSh 0. TxnID: 26495371373758. Receipt: 503-DFE9B1DABO. 14/06/26 19:19. Every Transaction is a Winning Goal!",
+                message = "Money sent successfully to  -255XXXXXXXXX. Amount TSh 52,000. Total Charges TSh 1,125, VAT TSh 172. New balance is TSh 0. TxnID: 26495371373758. Receipt: 503-DFE9B1DABO. 14/06/26 19:19. Every Transaction is a Winning Goal!",
                 sender = "MixxByYas",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("52000"),
@@ -29,7 +29,9 @@ class MixxByYasParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Mobile Money Transfer",
                     balance = BigDecimal("0"),
-                    reference = "26495371373758"
+                    reference = "26495371373758",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #2 Inbound push transfer
@@ -43,7 +45,9 @@ class MixxByYasParserTest {
                     type = TransactionType.INCOME,
                     merchant = "CRDB",
                     balance = BigDecimal("15000"),
-                    reference = "26452334860211"
+                    reference = "26452334860211",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #3 Utility/PostPaid bill payment (PRIMARY)
@@ -57,7 +61,9 @@ class MixxByYasParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Yas PostPaid",
                     balance = BigDecimal("0"),
-                    reference = "26952325632986"
+                    reference = "26952325632986",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #4 Bustisha micro-loan repayment
@@ -71,7 +77,9 @@ class MixxByYasParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Bustisha",
                     balance = BigDecimal("137633"),
-                    reference = "26307515424020"
+                    reference = "26307515424020",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #5 Agent cash-out
@@ -85,7 +93,9 @@ class MixxByYasParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Agent Cash Out",
                     balance = BigDecimal("5879"),
-                    reference = "26106452201270"
+                    reference = "26106452201270",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #6 GePG government payment
@@ -99,7 +109,9 @@ class MixxByYasParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Malipo ya Serikali",
                     balance = BigDecimal("206"),
-                    reference = "26592309810022"
+                    reference = "26592309810022",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #7 LUKU electricity token (multi-line; amount on TOTAL line)
@@ -125,13 +137,15 @@ class MixxByYasParserTest {
                     type = TransactionType.INCOME,
                     merchant = "Mixx Interest",
                     balance = BigDecimal("414"),
-                    reference = "26406495404220"
+                    reference = "26406495404220",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // #9 SECONDARY twin of #1 — must NOT parse (would double-count TxnID)
             ParserTestCase(
                 name = "Secondary outbound twin is rejected",
-                message = "You have sent TSh 52,000 to Vodacom receiver JOHN DOE - 255742311312. Charges TSh 1,125. VAT TSh 172. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19 Please wait for confirmation. Every Transaction is a Winning Goal!",
+                message = "You have sent TSh 52,000 to Vodacom receiver JOHN DOE - 255XXXXXXXXX. Charges TSh 1,125. VAT TSh 172. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19 Please wait for confirmation. Every Transaction is a Winning Goal!",
                 sender = "MixxByYas",
                 shouldParse = false
             ),
@@ -162,7 +176,7 @@ class MixxByYasParserTest {
             // PRIMARY outbound routes to Mixx by Yas.
             dynamicTest("Primary outbound routes to Mixx by Yas") {
                 val p = BankParserFactory.parse(
-                    "Money sent successfully to  -255742311312. Amount TSh 52,000. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19.",
+                    "Money sent successfully to  -255XXXXXXXXX. Amount TSh 52,000. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19.",
                     "MIXX BY YAS", ts
                 )
                 assertEquals("Mixx by Yas", p?.bankName)
@@ -171,7 +185,7 @@ class MixxByYasParserTest {
             // SECONDARY twin must not be booked by ANY parser (no double-count).
             dynamicTest("Secondary outbound twin is not booked by any parser") {
                 val p = BankParserFactory.parse(
-                    "You have sent TSh 52,000 to Vodacom receiver JOHN DOE - 255742311312. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19 Please wait for confirmation.",
+                    "You have sent TSh 52,000 to Vodacom receiver JOHN DOE - 255XXXXXXXXX. New balance is TSh 0. TxnID: 26495371373758. 14/06/26 19:19 Please wait for confirmation.",
                     "MIXX BY YAS", ts
                 )
                 assertNull(p, "Twin secondary should not be booked: $p")

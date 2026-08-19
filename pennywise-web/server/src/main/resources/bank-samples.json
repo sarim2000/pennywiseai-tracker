@@ -838,14 +838,14 @@
     },
     "Selcom Pesa": {
       "sender": "Selcom Pesa",
-      "message": "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL using your card ending 1915 on 2025-04-28 11:36. Updated balance is TZS 1,650.00. Help 0800 714 888 / 0800 784 888",
+      "message": "0426JXCX Confirmed. You have received TZS 175,000.00 from PERSON ONE - NMB (201XXXXXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00.",
       "currency": "TZS",
-      "amount": "8900.00",
-      "type": "EXPENSE",
-      "merchant": "APPLECOMBILL",
-      "accountLast4": "1915",
-      "reference": "0428KRRY",
-      "balance": "1650.00"
+      "amount": "175000.00",
+      "type": "INCOME",
+      "merchant": "PERSON ONE",
+      "accountLast4": null,
+      "reference": "0426JXCX",
+      "balance": "175000.00"
     },
     "Siam Commercial Bank": {
       "sender": "SCB",
@@ -959,11 +959,11 @@
     },
     "Tigo Pesa": {
       "sender": "TIGOPESA(smsfp)",
-      "message": "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026.",
+      "message": "Cash-In of TSh 100,000 from Agent - PERSON FIVE is successful. New balance is TSh 100,000. TxnId: 13411949026.",
       "currency": "TZS",
       "amount": "100000",
       "type": "INCOME",
-      "merchant": "Agent - LUCY SUKUM",
+      "merchant": "Agent - PERSON FIVE",
       "accountLast4": null,
       "reference": "13411949026",
       "balance": "100000"

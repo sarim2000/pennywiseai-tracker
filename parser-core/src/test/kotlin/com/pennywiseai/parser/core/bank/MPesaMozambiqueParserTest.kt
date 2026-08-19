@@ -117,7 +117,7 @@ class MPesaMozambiqueParserTest {
         assertEquals("MZN", moz.currency)
 
         // (b) Tanzania — English "Confirmed" + TZS -> Tanzania
-        val tzMsg = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."
+        val tzMsg = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255XXXXXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."
         val tz = BankParserFactory.parse(tzMsg, "M-PESA", now)
         assertNotNull(tz, "Tanzania message should parse")
         assertEquals("M-Pesa Tanzania", tz!!.bankName)
@@ -132,24 +132,25 @@ class MPesaMozambiqueParserTest {
     }
 
     @Test
-    fun `only Mozambique M-Pesa is flagged as a mobile-money wallet`() {
+    fun `M-Pesa variants are flagged as mobile-money wallets`() {
         val now = System.currentTimeMillis()
 
-        // Mozambique M-Pesa -> wallet (derives a service-level account row in the app).
+        // Mozambique M-Pesa -> wallet (derives a single service-level account row).
         val mozMsg = "Confirmado DET0KAIXP5E. Recebeste  12,345.67MT de 123456 - SIMO aos 29/5/26  as 6:22 PM o novo saldo  M-Pesa e de 1,234.56MT."
         val moz = BankParserFactory.parse(mozMsg, "M-Pesa", now)
         assertNotNull(moz)
         assertTrue(moz!!.isMobileWallet, "Mozambique M-Pesa must be flagged as a wallet")
 
-        // Scope guard: Tanzania & Kenya M-Pesa are NOT touched by this change.
-        val tzMsg = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."
+        // Tanzania & Kenya M-Pesa are now wallets too (#682) — a wallet has no stable
+        // account number, so they consolidate instead of minting one account per txn.
+        val tzMsg = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255XXXXXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."
         val tz = BankParserFactory.parse(tzMsg, "M-PESA", now)
         assertNotNull(tz)
-        assertFalse(tz!!.isMobileWallet, "Tanzania M-Pesa must NOT be flagged (out of scope)")
+        assertTrue(tz!!.isMobileWallet, "Tanzania M-Pesa must be flagged as a wallet (#682)")
 
         val keMsg = "TJK6H7T3GA Confirmed. Ksh70.00 paid to person 1. on 20/10/24 at 4:21 PM.New M-PESA balance is Ksh123.12. Transaction cost, Ksh0.00. Amount you can transact within the day is 499,895.00."
         val ke = BankParserFactory.parse(keMsg, "M-PESA", now)
         assertNotNull(ke)
-        assertFalse(ke!!.isMobileWallet, "Kenya M-PESA must NOT be flagged (out of scope)")
+        assertTrue(ke!!.isMobileWallet, "Kenya M-PESA must be flagged as a wallet (#682)")
     }
 }

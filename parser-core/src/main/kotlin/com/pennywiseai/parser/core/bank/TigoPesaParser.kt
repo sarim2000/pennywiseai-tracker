@@ -26,6 +26,22 @@ class TigoPesaParser : BankParser() {
 
     override fun getCurrency() = "TZS"  // TSh is same as TZS (Tanzanian Shilling)
 
+    /**
+     * Tigo Pesa (and its Mixx by Yas rebrand) is a phone-number-identified mobile-money wallet:
+     * its SMS carry no stable per-account number, only counterparty phones (e.g.
+     * "255713XXXXXX"), TIPS references, or numeric TxnIDs that vary every transaction. Letting
+     * the generic base regex capture one minted a new (bank, last4) account per SMS (#682).
+     * Return null so all wallet activity consolidates into one account.
+     */
+    override fun extractAccountLast4(message: String): String? = null
+
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("TIGOPESA") ||

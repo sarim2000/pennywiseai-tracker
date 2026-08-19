@@ -450,5 +450,15 @@ class FederalBankParserTest {
         assertNull(paymentDueResult?.umn, "Payment due notifications don't have UMN")
     }
 
+    @Test
+    fun `Scapia txn message does not capture a fabricated reference`() {
+        val parser = FederalBankParser()
+        val message =
+            "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card earned you 10% rewards! Not you? Call 18002961199. - Federal Bank"
 
+        val parsed = parser.parse(message, "TX-FEDSCP-S", 0L)
+
+        assertNotNull(parsed, "Scapia rewards txn should parse")
+        assertNull(parsed?.reference, "The word after 'txn' must not be captured as a reference")
+    }
 }

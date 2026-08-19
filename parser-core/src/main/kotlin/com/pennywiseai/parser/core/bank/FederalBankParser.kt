@@ -619,6 +619,10 @@ class FederalBankParser : BaseIndianBankParser() {
         return null
     }
 
+    override fun extractReference(message: String): String? {
+        return super.extractReference(message)?.takeIf { ref -> ref.any(Char::isDigit) }
+    }
+
     override fun extractBalance(message: String): BigDecimal? {
         // Don't extract credit limit as balance
         return super.extractBalance(message)

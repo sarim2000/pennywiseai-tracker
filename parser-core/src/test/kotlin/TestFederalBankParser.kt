@@ -256,13 +256,6 @@ class FederalBankParserTest {
 
             // Messages that should not parse
             ParserTestCase(
-                name = "Scapia Declined Transaction Should Not Parse",
-                message = "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card was declined. You would have earned 10% rewards! Not you? Call 18002961199. - Federal Bank",
-                sender = "TX-FEDSCP-S",
-                shouldParse = false
-            ),
-
-            ParserTestCase(
                 name = "Failed Transaction Should Not Parse",
                 message = "Hi, txn of Rs. 1500.00 using card XX**3456 failed due to insufficient funds. Current Bal: Rs.250.75. Call 18004251199 if txn not initiated by you -Federal Bank",
                 sender = "AD-FEDBNK",

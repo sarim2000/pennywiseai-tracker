@@ -66,7 +66,9 @@ class TanzaniaParserTest {
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
                     merchant = "ATM - TEMEKE BRANCH",
-                    accountLast4 = "8318",
+                    // No stable per-account number in a wallet SMS: the "card ending 8318" is the
+                    // funding card, which varies per transaction (#682). Consolidate to one account.
+                    accountLast4 = null,
                     balance = BigDecimal("2264749.05"),
                     reference = "10234C2WQ",
                     isFromCard = true
@@ -81,7 +83,8 @@ class TanzaniaParserTest {
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
                     merchant = "APPLECOMBILL",
-                    accountLast4 = "1915",
+                    // "card ending 1915" is the funding card, not a stable wallet account (#682).
+                    accountLast4 = null,
                     balance = BigDecimal("1650.00"),
                     reference = "0428KRRY",
                     isFromCard = true
@@ -386,6 +389,90 @@ class TanzaniaParserTest {
         )
 
         return ParserTestUtils.runTestSuite(parser, cases)
+    }
+
+    // ==========================================
+    // #682 — wallets must NOT mint a per-transaction account
+    // ==========================================
+
+    /**
+     * Tanzanian mobile-money wallets have no stable per-account number in their SMS — only
+     * counterparty phones, card-ending values, or TxnIDs that vary every transaction. Each of
+     * these parsers must therefore return accountLast4 == null so the app consolidates all
+     * activity into a single wallet account instead of one-per-transaction (#682). The shared
+     * runTestSuite skips null accountLast4 expectations, so these are asserted directly.
+     */
+    @TestFactory
+    fun `tz mobile-money wallets never emit a per-transaction account (#682)`(): List<DynamicTest> {
+        val mpesaTz = MPesaTanzaniaParser()
+        val selcom = SelcomPesaParser()
+        val mixx = MixxByYasParser()
+        val tigo = TigoPesaParser()
+
+        fun last4(p: BankParser, sender: String, msg: String): String? =
+            p.parse(msg, sender, 0L)?.accountLast4
+
+        val samples = listOf(
+            // --- M-Pesa Tanzania: received / sent / paid / withdraw ---
+            Triple("M-Pesa TZ received", "M-PESA",
+                "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."),
+            Triple("M-Pesa TZ sent", "M-PESA",
+                "SGR9876543 Confirmed. TZS 20,000.00 sent to JANE SMITH (255762XXXXXX) on 2025-05-12 at 11:45 AM. Transaction cost TZS 500.00. New M-Pesa balance is TZS 129,500.00."),
+            Triple("M-Pesa TZ paid (merchant id)", "M-PESA",
+                "SGR5544332 Confirmed. TZS 15,000.00 paid to SUPERMARKET X (Merchant ID: 556677) on 2025-05-13 at 08:20 PM. Transaction cost TZS 0.00. New M-Pesa balance is TZS 114,500.00."),
+            Triple("M-Pesa TZ sent for account (ref varies)", "M-Pesa",
+                "DFE9B1D5UM Confirmed. Tsh40,000.00 sent to TIPS-SELCOM MF for account 06XXXXXXXX on 14/6/26 at 7:20 pm Total fee Tsh2,000.00 (M-Pesa fee Tsh2,000.00 + Government Levy Tsh0.00). Balance is Tsh1,151.36."),
+            Triple("M-Pesa TZ withdraw (agent)", "M-Pesa",
+                "DFF9B1DPIJ Confirmed. On 15/6/26 at 8:08 pm Withdraw Tsh100,000.00 from 431836 - AGENT NAME OUTLET Total fee Tsh4,357.00 (M-Pesa fee Tsh3,650.00 + Government levy Tsh707.00). Balance is Tsh0.36. Your Songesha limit is Tsh4836")
+        )
+
+        val tests = mutableListOf<DynamicTest>()
+
+        for ((label, sender, msg) in samples) {
+            tests += DynamicTest.dynamicTest("$label -> accountLast4 null") {
+                Assertions.assertNull(last4(mpesaTz, sender, msg), "M-Pesa TZ should not emit an account for: $label")
+            }
+        }
+
+        // Selcom Pesa: received / sent / withdrawn (card) / paid (card) / bill.
+        val selcomSamples = listOf(
+            "0426JXCX Confirmed. You have received TZS 175,000.00 from MICHAEL EMIL LUYANGI - NMB (201100XXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00.",
+            "0426JXGC Accepted. You have sent TZS 50,000.00 to NURU ISSA - Mixx by Yas (Tigo Pesa) (25571XXXXXXX) on 2025-04-26 11:56. Total charges TZS 550.00 (Fee 424, VAT 84, Ex Duty 42). Updated balance is TZS 124,450.00.",
+            "10234C2WQ Confirmed. You have withdrawn TZS 200,000.00 at ATM - TEMEKE BRANCH using your card ending with 8318 on 2025-10-23 18:00. Total charges TZS 2,500.00. Updated balance is TZS 2,264,749.05.",
+            "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL using your card ending 1915 on 2025-04-28 11:36. Updated balance is TZS 1,650.00.",
+            "0426JXSG Accepted. You have sent TZS 80,000.00 to CATHERINE MINJA - Airtel Money (255694XXXXXX) for Taka April 2025 on 2025-04-26 12:10. Charge is FREE. Updated balance is TZS 550.00."
+        )
+        selcomSamples.forEachIndexed { i, msg ->
+            tests += DynamicTest.dynamicTest("Selcom sample #${i + 1} -> accountLast4 null") {
+                Assertions.assertNull(last4(selcom, "Selcom Pesa", msg), "Selcom should not emit an account")
+            }
+        }
+
+        // Mixx by Yas: inbound / outbound.
+        val mixxSamples = listOf(
+            "Transfer Successful. New balance is TSh 15,000. You have received TSh 15,000 from CRDB; JOHN DOE with TxnId: 26452334860211.",
+            "Money sent successfully to 255713XXXXXX. Amount TSh 52,000. New balance is TSh 10,000. TxnID: 12345678901"
+        )
+        mixxSamples.forEachIndexed { i, msg ->
+            tests += DynamicTest.dynamicTest("Mixx sample #${i + 1} -> accountLast4 null") {
+                Assertions.assertNull(last4(mixx, "MIXX BY YAS", msg), "Mixx by Yas should not emit an account")
+            }
+        }
+
+        // Tigo Pesa: cash-in / sent / paid / TIPS inbound.
+        val tigoSamples = listOf(
+            "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026.",
+            "You have sent TSh 25,000 with CashOut fee TSh 2,156 to 255713XXXXXX - BENEDICTA MREMA. TxnID: 27755640833. New balance is TSh 481,801.",
+            "You have paid TSh 131,000 to DIAPERS AND WIPES SUPPLIERS. Charges TSh 2,000. Trnx ID: 63425443091. Your New balance is TSh 467,372.",
+            "Transfer Successful. New balance is TSh 97,000. You have received TSh 97,000 from TIPS.Selcom_MFB.2.Tigo, with TxnId: 25693126312543."
+        )
+        tigoSamples.forEachIndexed { i, msg ->
+            tests += DynamicTest.dynamicTest("Tigo sample #${i + 1} -> accountLast4 null") {
+                Assertions.assertNull(last4(tigo, "TIGOPESA(smsfp)", msg), "Tigo Pesa should not emit an account")
+            }
+        }
+
+        return tests
     }
 
     // ==========================================

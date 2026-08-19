@@ -178,19 +178,16 @@ class SelcomPesaParser : BankParser() {
         return null
     }
 
-    override fun extractAccountLast4(message: String): String? {
-        super.extractAccountLast4(message)?.let { return it }
-        // Pattern: "card ending with 8318" or "card ending 1915"
-        val cardPattern = Regex(
-            """card\s+ending\s+(?:with\s+)?(\d{4})""",
-            RegexOption.IGNORE_CASE
-        )
-        cardPattern.find(message)?.let { match ->
-            return match.groupValues[1]
-        }
-
-        return null
-    }
+    /**
+     * Selcom Pesa is a mobile-money wallet with no stable per-account number in its SMS —
+     * the numbers present are the counterparty's phone (e.g. "(201100XXXXX)") or the
+     * "card ending XXXX" of whichever card funded a given payment, both of which vary per
+     * transaction. Capturing them (whether via the generic base regex or a card-ending
+     * pattern) minted a new (bank, last4) account per SMS (#682). Return null so all wallet
+     * activity consolidates into one account. Card payments are still flagged via
+     * detectIsCard(), which is independent of the account identity.
+     */
+    override fun extractAccountLast4(message: String): String? = null
 
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()

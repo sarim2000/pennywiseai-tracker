@@ -760,11 +760,19 @@ class TransactionDetailViewModel @Inject constructor(
                     ?.bankName
                     ?: toSave.bankName
 
-                // Normalize merchant name before saving
+                // Loan linkage (loanId / loanContribution) is owned by mark-as-loan
+                // and unmark, never the edit form. The editable copy was snapshotted
+                // when edit mode opened, so if the transaction was linked to a loan
+                // in between, saving `toSave` would clobber that link — the loan would
+                // still count the txn but the txn would show "Mark as loan" again
+                // (#688). Carry the current persisted values through the save.
+                val currentPersisted = _transaction.value
                 val normalizedTransaction = toSave.copy(
                     merchantName = normalizeMerchantName(toSave.merchantName),
                     bankName = resolvedBankName,
-                    receiptPath = newReceiptPath
+                    receiptPath = newReceiptPath,
+                    loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
+                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution
                 )
 
                 // Pin opening anchors from the PRE-update snapshot for the affected

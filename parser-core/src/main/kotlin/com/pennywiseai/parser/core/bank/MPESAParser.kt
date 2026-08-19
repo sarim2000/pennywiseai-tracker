@@ -33,6 +33,13 @@ class MPESAParser : BankParser() {
      */
     override fun extractAccountLast4(message: String): String? = null
 
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
+
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("MPESA") ||

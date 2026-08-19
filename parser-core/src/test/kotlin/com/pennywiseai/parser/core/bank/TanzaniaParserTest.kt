@@ -13,6 +13,14 @@ import java.math.BigDecimal
  * - Selcom Pesa
  * - M-Pesa Tanzania (Vodacom)
  * - Tigo Pesa / Mixx by Yas
+ *
+ * These are phone-number-identified mobile-money wallets with no stable per-account number in
+ * their SMS. Each wallet case asserts `isMobileWallet = true` and `expectNullAccountLast4 = true`
+ * so the app consolidates all activity into ONE wallet account (whose balance still tracks the
+ * SMS "Updated balance") instead of minting a new account per transaction (#682).
+ *
+ * No PII: person names are neutral placeholders (PERSON ONE, …) and counterparty phone digits
+ * are masked (255XXXXXXXXX).
  */
 class TanzaniaParserTest {
 
@@ -24,83 +32,82 @@ class TanzaniaParserTest {
     fun `selcom pesa parser handles key paths`(): List<DynamicTest> {
         val parser = SelcomPesaParser()
 
-        ParserTestUtils.printTestHeader(
-            parserName = "Selcom Pesa (Tanzania)",
-            bankName = parser.getBankName(),
-            currency = parser.getCurrency()
-        )
-
         val cases = listOf(
             ParserTestCase(
                 name = "Incoming Transfer / Cash-In",
-                message = "0426JXCX Confirmed. You have received TZS 175,000.00 from MICHAEL EMIL LUYANGI - NMB (201100XXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00. Help 0800 714 888 / 0800 784 888",
+                message = "0426JXCX Confirmed. You have received TZS 175,000.00 from PERSON ONE - NMB (201XXXXXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00. Help 0800 714 888 / 0800 784 888",
                 sender = "Selcom Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("175000.00"),
                     currency = "TZS",
                     type = TransactionType.INCOME,
-                    merchant = "MICHAEL EMIL LUYANGI",
+                    merchant = "PERSON ONE",
                     balance = BigDecimal("175000.00"),
-                    reference = "0426JXCX"
+                    reference = "0426JXCX",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
                 name = "Outgoing Transfer with Tax Breakdown",
-                message = "0426JXGC Accepted. You have sent TZS 50,000.00 to NURU ISSA - Mixx by Yas (Tigo Pesa) (25571XXXXXXX) on 2025-04-26 11:56. Total charges TZS 550.00 (Fee 424, VAT 84, Ex Duty 42). Updated balance is TZS 124,450.00. Help 0800 714 888 / 0800 784 888",
+                message = "0426JXGC Accepted. You have sent TZS 50,000.00 to PERSON TWO - Mixx by Yas (Tigo Pesa) (255XXXXXXXXX) on 2025-04-26 11:56. Total charges TZS 550.00 (Fee 424, VAT 84, Ex Duty 42). Updated balance is TZS 124,450.00. Help 0800 714 888 / 0800 784 888",
                 sender = "Selcom Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("50000.00"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
-                    merchant = "NURU ISSA",
+                    merchant = "PERSON TWO",
                     balance = BigDecimal("124450.00"),
-                    reference = "0426JXGC"
+                    reference = "0426JXGC",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
-                name = "ATM Withdrawal",
-                message = "10234C2WQ Confirmed. You have withdrawn TZS 200,000.00 at ATM - TEMEKE BRANCH using your card ending with 8318 on 2025-10-23 18:00. Total charges TZS 2,500.00 (Fee 1,926, VAT 381, Ex Duty 193). Govt Levy TZS ( (resp govtLevy ) ). Updated balance is TZS 2,264,749.05. Help 0800 714 888 / 0800 784 888",
+                name = "ATM Withdrawal (card ending is not a stable account)",
+                message = "10234C2WQ Confirmed. You have withdrawn TZS 200,000.00 at ATM - TEMEKE BRANCH using your card ending with XXXX on 2025-10-23 18:00. Total charges TZS 2,500.00 (Fee 1,926, VAT 381, Ex Duty 193). Govt Levy TZS ( (resp govtLevy ) ). Updated balance is TZS 2,264,749.05. Help 0800 714 888 / 0800 784 888",
                 sender = "Selcom Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("200000.00"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
                     merchant = "ATM - TEMEKE BRANCH",
-                    // No stable per-account number in a wallet SMS: the "card ending 8318" is the
-                    // funding card, which varies per transaction (#682). Consolidate to one account.
-                    accountLast4 = null,
                     balance = BigDecimal("2264749.05"),
                     reference = "10234C2WQ",
-                    isFromCard = true
+                    isFromCard = true,
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
-                name = "Merchant Card Payment",
-                message = "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL using your card ending 1915 on 2025-04-28 11:36. Updated balance is TZS 1,650.00. Help 0800 714 888 / 0800 784 888",
+                name = "Merchant Card Payment (card ending is not a stable account)",
+                message = "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL using your card ending XXXX on 2025-04-28 11:36. Updated balance is TZS 1,650.00. Help 0800 714 888 / 0800 784 888",
                 sender = "Selcom Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("8900.00"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
                     merchant = "APPLECOMBILL",
-                    // "card ending 1915" is the funding card, not a stable wallet account (#682).
-                    accountLast4 = null,
                     balance = BigDecimal("1650.00"),
                     reference = "0428KRRY",
-                    isFromCard = true
+                    isFromCard = true,
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
                 name = "Promotional / Free Transaction",
-                message = "0426JXSG Accepted. You have sent TZS 80,000.00 to CATHERINE MINJA - Airtel Money (255694XXXXXX) for Taka April 2025 on 2025-04-26 12:10. Charge is FREE. Transaction 1 of 5 kwa Jero. Updated balance is TZS 550.00. Help 0800 714 888 / 0800 784 888",
+                message = "0426JXSG Accepted. You have sent TZS 80,000.00 to PERSON THREE - Airtel Money (255XXXXXXXXX) for Taka April 2025 on 2025-04-26 12:10. Charge is FREE. Transaction 1 of 5 kwa Jero. Updated balance is TZS 550.00. Help 0800 714 888 / 0800 784 888",
                 sender = "Selcom Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("80000.00"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
-                    merchant = "CATHERINE MINJA",
+                    merchant = "PERSON THREE",
                     balance = BigDecimal("550.00"),
-                    reference = "0426JXSG"
+                    reference = "0426JXSG",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             )
         )
@@ -116,42 +123,40 @@ class TanzaniaParserTest {
     fun `mpesa tanzania parser handles key paths`(): List<DynamicTest> {
         val parser = MPesaTanzaniaParser()
 
-        ParserTestUtils.printTestHeader(
-            parserName = "M-Pesa Tanzania (Vodacom)",
-            bankName = parser.getBankName(),
-            currency = parser.getCurrency()
-        )
-
         val cases = listOf(
             ParserTestCase(
                 name = "Received Money",
-                message = "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00.",
+                message = "SGR1234567 Confirmed. You have received TZS 50,000.00 from PERSON ONE (255XXXXXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00.",
                 sender = "M-PESA",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("50000.00"),
                     currency = "TZS",
                     type = TransactionType.INCOME,
-                    merchant = "JOHN DOE",
+                    merchant = "PERSON ONE",
                     balance = BigDecimal("150000.00"),
-                    reference = "SGR1234567"
+                    reference = "SGR1234567",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
                 name = "Sent Money / P2P",
-                message = "SGR9876543 Confirmed. TZS 20,000.00 sent to JANE SMITH (255762XXXXXX) on 2025-05-12 at 11:45 AM. Transaction cost TZS 500.00. New M-Pesa balance is TZS 129,500.00.",
+                message = "SGR9876543 Confirmed. TZS 20,000.00 sent to PERSON TWO (255XXXXXXXXX) on 2025-05-12 at 11:45 AM. Transaction cost TZS 500.00. New M-Pesa balance is TZS 129,500.00.",
                 sender = "M-PESA",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("20000.00"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
-                    merchant = "JANE SMITH",
+                    merchant = "PERSON TWO",
                     balance = BigDecimal("129500.00"),
-                    reference = "SGR9876543"
+                    reference = "SGR9876543",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
                 name = "Lipa kwa M-Pesa / Merchant",
-                message = "SGR5544332 Confirmed. TZS 15,000.00 paid to SUPERMARKET X (Merchant ID: 556677) on 2025-05-13 at 08:20 PM. Transaction cost TZS 0.00. New M-Pesa balance is TZS 114,500.00.",
+                message = "SGR5544332 Confirmed. TZS 15,000.00 paid to SUPERMARKET X (Merchant ID: XXXXXX) on 2025-05-13 at 08:20 PM. Transaction cost TZS 0.00. New M-Pesa balance is TZS 114,500.00.",
                 sender = "M-PESA",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("15000.00"),
@@ -159,7 +164,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "SUPERMARKET X",
                     balance = BigDecimal("114500.00"),
-                    reference = "SGR5544332"
+                    reference = "SGR5544332",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -172,7 +179,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "LUKU",
                     balance = BigDecimal("104500.00"),
-                    reference = "SGR1122334"
+                    reference = "SGR1122334",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             // ---- Real-world "Tsh"/"Tshs" notation (issue #522) ----
@@ -186,7 +195,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "VODACOM-BUNDLES 2",
                     balance = BigDecimal("0.36"),
-                    reference = "DFJ9B1FPQ8"
+                    reference = "DFJ9B1FPQ8",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -199,7 +210,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "M-Pesa Overdraft",
                     balance = BigDecimal("0.36"),
-                    reference = "DFJ9B1FU69"
+                    reference = "DFJ9B1FU69",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -212,7 +225,9 @@ class TanzaniaParserTest {
                     type = TransactionType.INCOME,
                     merchant = "TIPS-SELCOM MF",
                     balance = BigDecimal("4000.36"),
-                    reference = "DFJ9B1FX2B"
+                    reference = "DFJ9B1FX2B",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -225,7 +240,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Agent Withdrawal",
                     balance = BigDecimal("0.36"),
-                    reference = "DFF9B1DPIJ"
+                    reference = "DFF9B1DPIJ",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -238,7 +255,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "M-KOBA",
                     balance = BigDecimal("493.36"),
-                    reference = "DFF9B1DSI4"
+                    reference = "DFF9B1DSI4",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -251,7 +270,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "TIPS-SELCOM MF",
                     balance = BigDecimal("1151.36"),
-                    reference = "DFE9B1D5UM"
+                    reference = "DFE9B1D5UM",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -264,7 +285,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "LIPA KIBUGUMO PHARMACY",
                     balance = BigDecimal("9583.36"),
-                    reference = "DES9B14S4R"
+                    reference = "DES9B14S4R",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             )
         )
@@ -274,7 +297,7 @@ class TanzaniaParserTest {
             // Thin outbound receipt-match duplicate of the #7 transfer — person name, no balance.
             ParserTestCase(
                 name = "Reject - thin receipt duplicate (has received, no balance)",
-                message = "DFE9B1D5UM Confirmed. VALENTINA MAUMBA has received Tsh 40000 on 2026-06-14 19:20:55.",
+                message = "DFE9B1D5UM Confirmed. PERSON SIX has received Tsh 40000 on 2026-06-14 19:20:55.",
                 sender = "M-Pesa",
                 shouldParse = false
             )
@@ -286,14 +309,16 @@ class TanzaniaParserTest {
         val swahiliTwin = listOf(
             ParserTestCase(
                 name = "Swahili TIPS twin parses (dedup via shared reference hash)",
-                message = "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
+                message = "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - PERSON ONE tarehe 19/06/2026 saa 22:38:24.",
                 sender = "M-Pesa",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("4000.00"),
                     currency = "TZS",
                     type = TransactionType.INCOME,
                     merchant = "SELCOM MF",
-                    reference = "DFJ9B1FX2B"
+                    reference = "DFJ9B1FX2B",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             )
         )
@@ -309,7 +334,7 @@ class TanzaniaParserTest {
             "M-Pesa", 0L
         )
         val swahili = parser.parse(
-            "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - JOHN DOE tarehe 19/06/2026 saa 22:38:24.",
+            "DFJ9B1FX2B imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****1234 - PERSON ONE tarehe 19/06/2026 saa 22:38:24.",
             "M-Pesa", 0L
         )
         org.junit.jupiter.api.Assertions.assertNotNull(english)
@@ -327,37 +352,35 @@ class TanzaniaParserTest {
     fun `tigo pesa parser handles key paths`(): List<DynamicTest> {
         val parser = TigoPesaParser()
 
-        ParserTestUtils.printTestHeader(
-            parserName = "Tigo Pesa / Mixx by Yas (Tanzania)",
-            bankName = parser.getBankName(),
-            currency = parser.getCurrency()
-        )
-
         val cases = listOf(
             ParserTestCase(
                 name = "Cash-In from Agent",
-                message = "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026. 16/08/23 15:19. Dial150 01# or use Tigo Pesa App. No Levy while sending money with Tigo Pesa",
+                message = "Cash-In of TSh 100,000 from Agent - PERSON FIVE is successful. New balance is TSh 100,000. TxnId: 13411949026. 16/08/23 15:19. Dial150 01# or use Tigo Pesa App. No Levy while sending money with Tigo Pesa",
                 sender = "TIGOPESA(smsfp)",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("100000"),
                     currency = "TZS",
                     type = TransactionType.INCOME,
-                    merchant = "Agent - LUCY SUKUM",
+                    merchant = "Agent - PERSON FIVE",
                     balance = BigDecimal("100000"),
-                    reference = "13411949026"
+                    reference = "13411949026",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
                 name = "Sent Money with Detailed Charges",
-                message = "You have sent TSh 25,000 with CashOut fee TSh 2,156 to 255713XXXXXX - BENEDICTA MREMA. Total Charges TSh 380.(Fees TSh 380, Levy TSh 0), VAT TSh 58. TxnID: 27755640833. 14/08/23 14:55. New balance is TSh 481,801. Thank you for using Tigo Pesa.",
+                message = "You have sent TSh 25,000 with CashOut fee TSh 2,156 to 255XXXXXXXXX - PERSON FOUR. Total Charges TSh 380.(Fees TSh 380, Levy TSh 0), VAT TSh 58. TxnID: 27755640833. 14/08/23 14:55. New balance is TSh 481,801. Thank you for using Tigo Pesa.",
                 sender = "TIGOPESA(smsfp)",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("25000"),
                     currency = "TZS",
                     type = TransactionType.EXPENSE,
-                    merchant = "BENEDICTA MREMA",
+                    merchant = "PERSON FOUR",
                     balance = BigDecimal("481801"),
-                    reference = "27755640833"
+                    reference = "27755640833",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -370,7 +393,9 @@ class TanzaniaParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "DIAPERS AND WIPES SUPPLIERS",
                     balance = BigDecimal("467372"),
-                    reference = "63425443091"
+                    reference = "63425443091",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             ),
             ParserTestCase(
@@ -383,96 +408,14 @@ class TanzaniaParserTest {
                     type = TransactionType.INCOME,
                     merchant = "Selcom (TIPS Transfer)",
                     balance = BigDecimal("97000"),
-                    reference = "25693126312543"
+                    reference = "25693126312543",
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
             )
         )
 
         return ParserTestUtils.runTestSuite(parser, cases)
-    }
-
-    // ==========================================
-    // #682 — wallets must NOT mint a per-transaction account
-    // ==========================================
-
-    /**
-     * Tanzanian mobile-money wallets have no stable per-account number in their SMS — only
-     * counterparty phones, card-ending values, or TxnIDs that vary every transaction. Each of
-     * these parsers must therefore return accountLast4 == null so the app consolidates all
-     * activity into a single wallet account instead of one-per-transaction (#682). The shared
-     * runTestSuite skips null accountLast4 expectations, so these are asserted directly.
-     */
-    @TestFactory
-    fun `tz mobile-money wallets never emit a per-transaction account (#682)`(): List<DynamicTest> {
-        val mpesaTz = MPesaTanzaniaParser()
-        val selcom = SelcomPesaParser()
-        val mixx = MixxByYasParser()
-        val tigo = TigoPesaParser()
-
-        fun last4(p: BankParser, sender: String, msg: String): String? =
-            p.parse(msg, sender, 0L)?.accountLast4
-
-        val samples = listOf(
-            // --- M-Pesa Tanzania: received / sent / paid / withdraw ---
-            Triple("M-Pesa TZ received", "M-PESA",
-                "SGR1234567 Confirmed. You have received TZS 50,000.00 from JOHN DOE (255754XXXXXX) on 2025-05-12 at 10:30 AM. New M-Pesa balance is TZS 150,000.00."),
-            Triple("M-Pesa TZ sent", "M-PESA",
-                "SGR9876543 Confirmed. TZS 20,000.00 sent to JANE SMITH (255762XXXXXX) on 2025-05-12 at 11:45 AM. Transaction cost TZS 500.00. New M-Pesa balance is TZS 129,500.00."),
-            Triple("M-Pesa TZ paid (merchant id)", "M-PESA",
-                "SGR5544332 Confirmed. TZS 15,000.00 paid to SUPERMARKET X (Merchant ID: 556677) on 2025-05-13 at 08:20 PM. Transaction cost TZS 0.00. New M-Pesa balance is TZS 114,500.00."),
-            Triple("M-Pesa TZ sent for account (ref varies)", "M-Pesa",
-                "DFE9B1D5UM Confirmed. Tsh40,000.00 sent to TIPS-SELCOM MF for account 06XXXXXXXX on 14/6/26 at 7:20 pm Total fee Tsh2,000.00 (M-Pesa fee Tsh2,000.00 + Government Levy Tsh0.00). Balance is Tsh1,151.36."),
-            Triple("M-Pesa TZ withdraw (agent)", "M-Pesa",
-                "DFF9B1DPIJ Confirmed. On 15/6/26 at 8:08 pm Withdraw Tsh100,000.00 from 431836 - AGENT NAME OUTLET Total fee Tsh4,357.00 (M-Pesa fee Tsh3,650.00 + Government levy Tsh707.00). Balance is Tsh0.36. Your Songesha limit is Tsh4836")
-        )
-
-        val tests = mutableListOf<DynamicTest>()
-
-        for ((label, sender, msg) in samples) {
-            tests += DynamicTest.dynamicTest("$label -> accountLast4 null") {
-                Assertions.assertNull(last4(mpesaTz, sender, msg), "M-Pesa TZ should not emit an account for: $label")
-            }
-        }
-
-        // Selcom Pesa: received / sent / withdrawn (card) / paid (card) / bill.
-        val selcomSamples = listOf(
-            "0426JXCX Confirmed. You have received TZS 175,000.00 from MICHAEL EMIL LUYANGI - NMB (201100XXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00.",
-            "0426JXGC Accepted. You have sent TZS 50,000.00 to NURU ISSA - Mixx by Yas (Tigo Pesa) (25571XXXXXXX) on 2025-04-26 11:56. Total charges TZS 550.00 (Fee 424, VAT 84, Ex Duty 42). Updated balance is TZS 124,450.00.",
-            "10234C2WQ Confirmed. You have withdrawn TZS 200,000.00 at ATM - TEMEKE BRANCH using your card ending with 8318 on 2025-10-23 18:00. Total charges TZS 2,500.00. Updated balance is TZS 2,264,749.05.",
-            "0428KRRY Confirmed. You have paid TZS 8,900.00 to APPLECOMBILL using your card ending 1915 on 2025-04-28 11:36. Updated balance is TZS 1,650.00.",
-            "0426JXSG Accepted. You have sent TZS 80,000.00 to CATHERINE MINJA - Airtel Money (255694XXXXXX) for Taka April 2025 on 2025-04-26 12:10. Charge is FREE. Updated balance is TZS 550.00."
-        )
-        selcomSamples.forEachIndexed { i, msg ->
-            tests += DynamicTest.dynamicTest("Selcom sample #${i + 1} -> accountLast4 null") {
-                Assertions.assertNull(last4(selcom, "Selcom Pesa", msg), "Selcom should not emit an account")
-            }
-        }
-
-        // Mixx by Yas: inbound / outbound.
-        val mixxSamples = listOf(
-            "Transfer Successful. New balance is TSh 15,000. You have received TSh 15,000 from CRDB; JOHN DOE with TxnId: 26452334860211.",
-            "Money sent successfully to 255713XXXXXX. Amount TSh 52,000. New balance is TSh 10,000. TxnID: 12345678901"
-        )
-        mixxSamples.forEachIndexed { i, msg ->
-            tests += DynamicTest.dynamicTest("Mixx sample #${i + 1} -> accountLast4 null") {
-                Assertions.assertNull(last4(mixx, "MIXX BY YAS", msg), "Mixx by Yas should not emit an account")
-            }
-        }
-
-        // Tigo Pesa: cash-in / sent / paid / TIPS inbound.
-        val tigoSamples = listOf(
-            "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026.",
-            "You have sent TSh 25,000 with CashOut fee TSh 2,156 to 255713XXXXXX - BENEDICTA MREMA. TxnID: 27755640833. New balance is TSh 481,801.",
-            "You have paid TSh 131,000 to DIAPERS AND WIPES SUPPLIERS. Charges TSh 2,000. Trnx ID: 63425443091. Your New balance is TSh 467,372.",
-            "Transfer Successful. New balance is TSh 97,000. You have received TSh 97,000 from TIPS.Selcom_MFB.2.Tigo, with TxnId: 25693126312543."
-        )
-        tigoSamples.forEachIndexed { i, msg ->
-            tests += DynamicTest.dynamicTest("Tigo sample #${i + 1} -> accountLast4 null") {
-                Assertions.assertNull(last4(tigo, "TIGOPESA(smsfp)", msg), "Tigo Pesa should not emit an account")
-            }
-        }
-
-        return tests
     }
 
     // ==========================================
@@ -487,11 +430,13 @@ class TanzaniaParserTest {
                 bankName = "Selcom Pesa",
                 sender = "Selcom Pesa",
                 currency = "TZS",
-                message = "0426JXCX Confirmed. You have received TZS 175,000.00 from MICHAEL EMIL LUYANGI - NMB (201100XXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00.",
+                message = "0426JXCX Confirmed. You have received TZS 175,000.00 from PERSON ONE - NMB (201XXXXXXXX) on 2025-04-26 11:50. Updated balance is TZS 175,000.00.",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("175000.00"),
                     currency = "TZS",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 ),
                 shouldHandle = true
             ),
@@ -500,11 +445,13 @@ class TanzaniaParserTest {
                 bankName = "Tigo Pesa",
                 sender = "TIGOPESA(smsfp)",
                 currency = "TZS",
-                message = "Cash-In of TSh 100,000 from Agent - LUCY SUKUM is successful. New balance is TSh 100,000. TxnId: 13411949026.",
+                message = "Cash-In of TSh 100,000 from Agent - PERSON FIVE is successful. New balance is TSh 100,000. TxnId: 13411949026.",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("100000"),
                     currency = "TZS",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 ),
                 shouldHandle = true
             ),
@@ -520,11 +467,13 @@ class TanzaniaParserTest {
                 bankName = "Mixx by Yas",
                 sender = "MIXX BY YAS",
                 currency = "TZS",
-                message = "Transfer Successful. New balance is TSh 15,000. You have received TSh 15,000 from CRDB; JOHN DOE with TxnId: 26452334860211.",
+                message = "Transfer Successful. New balance is TSh 15,000. You have received TSh 15,000 from CRDB; PERSON ONE with TxnId: 26452334860211.",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("15000"),
                     currency = "TZS",
-                    type = TransactionType.INCOME
+                    type = TransactionType.INCOME,
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 ),
                 shouldHandle = true
             )

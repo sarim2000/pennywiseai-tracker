@@ -41,6 +41,13 @@ class MixxByYasParser : BankParser() {
      */
     override fun extractAccountLast4(message: String): String? = null
 
+    /**
+     * Flag this as a mobile wallet so the app records the SMS balance against the single
+     * consolidated wallet account (upsertWalletBalance) even though there is no per-account
+     * number — without this, dropping the account number would also drop balance tracking (#682).
+     */
+    override fun isMobileWallet(): Boolean = true
+
     override fun canHandle(sender: String): Boolean {
         // Normalize by stripping spaces, dashes and underscores so "MIXX BY YAS",
         // "MIXX-BY-YAS" and "MixxByYas" all collapse to MIXXBYYAS.

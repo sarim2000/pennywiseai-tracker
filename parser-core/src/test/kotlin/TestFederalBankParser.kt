@@ -227,6 +227,19 @@ class FederalBankParserTest {
             ),
 
             ParserTestCase(
+                name = "Scapia Federal Credit Card Transaction - earned you rewards variant",
+                message = "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card earned you 10% rewards! Not you? Call 18002961199. - Federal Bank",
+                sender = "TX-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2351.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "Amazon",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
                 name = "Debit Card Transaction - Masked Card",
                 message = "Rs 1500.00 debited via card XX**3456 at MERCHANT on 14-05-2025 15:30:45. Current Bal: Rs.250.75 -Federal Bank",
                 sender = "AD-FEDBNK",
@@ -437,5 +450,15 @@ class FederalBankParserTest {
         assertNull(paymentDueResult?.umn, "Payment due notifications don't have UMN")
     }
 
+    @Test
+    fun `Scapia txn message does not capture a fabricated reference`() {
+        val parser = FederalBankParser()
+        val message =
+            "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card earned you 10% rewards! Not you? Call 18002961199. - Federal Bank"
 
+        val parsed = parser.parse(message, "TX-FEDSCP-S", 0L)
+
+        assertNotNull(parsed, "Scapia rewards txn should parse")
+        assertNull(parsed?.reference, "The word after 'txn' must not be captured as a reference")
+    }
 }

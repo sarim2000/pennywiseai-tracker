@@ -537,6 +537,14 @@ class FederalBankParser : BaseIndianBankParser() {
             return false
         }
 
+        if (lowerMessage.contains("txn of") &&
+            (lowerMessage.contains("rewards") || lowerMessage.contains("was successful")) &&
+            !lowerMessage.contains("failed") &&
+            !lowerMessage.contains("declined")
+        ) {
+            return true
+        }
+
         // Federal Bank specific transaction keywords
         val federalKeywords = listOf(
             "sent via upi",
@@ -609,6 +617,10 @@ class FederalBankParser : BaseIndianBankParser() {
         }
 
         return null
+    }
+
+    override fun extractReference(message: String): String? {
+        return super.extractReference(message)?.takeIf { ref -> ref.any(Char::isDigit) }
     }
 
     override fun extractBalance(message: String): BigDecimal? {

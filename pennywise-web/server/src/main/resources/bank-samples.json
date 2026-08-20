@@ -803,6 +803,17 @@
       "reference": null,
       "balance": "2350000"
     },
+    "Pluxee": {
+      "sender": "AD-PLUXEE",
+      "message": "Rs. 40.00 spent from Pluxee  Meal wallet, card no.xx1234 on 17-08-2026 16:03:14 at NEW SHAKTHI  . Avl bal Rs.24342.81. Not you call 18002161234",
+      "currency": "INR",
+      "amount": "40.00",
+      "type": "EXPENSE",
+      "merchant": "NEW SHAKTHI",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": "24342.81"
+    },
     "Prime Commercial Bank": {
       "sender": "PRIME_ALERT",
       "message": "Dear Customer, NPR 9,876.00 is deposited in A/C XXX#5678 on 01/01/2026 05:55. Rmk: CASHDEP. Good Baln: NPR 54321.123.",

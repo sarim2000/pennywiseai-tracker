@@ -53,6 +53,7 @@ object BankParserFactory {
         IndusIndBankParser(),
         AMEXBankParser(),
         OneCardParser(),
+        PluxeeBankParser(),  // Pluxee (India) — prepaid meal-benefit card (rebrand of Sodexo); PLUXEE DLT sender
         UCOBankParser(),
         AUBankParser(),
         YesBankParser(),

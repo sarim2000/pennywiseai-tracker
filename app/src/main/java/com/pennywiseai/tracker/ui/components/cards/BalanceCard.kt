@@ -419,8 +419,9 @@ fun BalanceCard(
                                         Text(
                                             // Show the amount spent (outstanding) on the card, not
                                             // the remaining credit limit — for a credit card
-                                            // `balance` is the outstanding debt. (#684)
-                                            text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(card.balance, currency),
+                                            // `balance` is the outstanding debt. Format in the
+                                            // card's own currency (it may be unconverted). (#684)
+                                            text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(card.balance, card.currency),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -451,9 +452,15 @@ fun BalanceCard(
                                         "••••••"
                                     } else {
                                         // Net of credit-card spend: bank balances minus what's
-                                        // outstanding on the cards, rather than bank balances
-                                        // alone. (#684)
-                                        val net = totalBalance - creditCards.fold(BigDecimal.ZERO) { acc, c -> acc + c.balance }
+                                        // outstanding on the cards. Only subtract cards already in
+                                        // the total's currency — never sum across currencies
+                                        // (hard constraint #2). Cards left in a native currency
+                                        // (no rate) are excluded, like other unconverted balances,
+                                        // and flagged by the existing `isApproximate`. (#684)
+                                        val cardSpendInCurrency = creditCards
+                                            .filter { it.currency == currency }
+                                            .fold(BigDecimal.ZERO) { acc, c -> acc + c.balance }
+                                        val net = totalBalance - cardSpendInCurrency
                                         "${CurrencyFormatter.formatCurrency(net, currency)}${if (isApproximate) "*" else ""}"
                                     },
                                     style = MaterialTheme.typography.titleSmall,

@@ -8,6 +8,13 @@ transactions from bank SMS **entirely on-device**. The primary app is Android
 **This file is a router, not a manual.** Read the linked topic doc when a task
 touches its area. Everything under **Hard Constraints** is non-negotiable.
 
+**Apply judgment to feature/bug requests — an issue is input, not a spec.** When
+an issue lists several asks, evaluate each on its own merit: ship the clear wins,
+and leave out (with a short note on the issue/PR saying why) the parts that
+reshape a core figure/flow or aren't clearly worth it. Don't implement everything
+an issue lists by default — bias to the smallest change that solves the real
+complaint.
+
 ## Hard Constraints (never violate)
 1. **Money is always currency-tagged.** Format with
    `CurrencyFormatter.formatCurrency(amount, currencyCode)` (or the

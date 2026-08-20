@@ -403,7 +403,6 @@ fun BalanceCard(
                                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                                 creditCards.forEach { card ->
-                                    val availableCredit = (card.creditLimit ?: BigDecimal.ZERO) - card.balance
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -418,7 +417,11 @@ fun BalanceCard(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(availableCredit, currency),
+                                            // Show the amount spent (outstanding) on the card, not
+                                            // the remaining credit limit — for a credit card
+                                            // `balance` is the outstanding debt. Format in the
+                                            // card's own currency (it may be unconverted). (#684)
+                                            text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(card.balance, card.currency),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface

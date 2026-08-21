@@ -91,6 +91,22 @@ T&C. Ignore if paid""",
                     type = com.pennywiseai.parser.core.TransactionType.INCOME,
                     accountLast4 = "1111"
                 )
+            ),
+
+            // Credit-card transaction reversal — money returns to the card, so it
+            // reduces outstanding (INCOME). Like the refund above, the message has
+            // none of the standard debit/credit keywords. (#698)
+            ParserTestCase(
+                name = "Credit Card Transaction Reversed - Income",
+                message = "Transaction Reversed!On HDFC Bank CREDIT Card xx5555 Amt: Rs.862.16 By AMAZON                000 On 2026-08-21:05:20:26",
+                sender = "VM-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("862.16"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = "AMAZON",
+                    accountLast4 = "5555"
+                )
             )
         )
 

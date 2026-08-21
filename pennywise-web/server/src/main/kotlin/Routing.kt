@@ -33,6 +33,9 @@ fun Application.configureRouting() {
             AirtelPaymentsBankParser(), IPPBParser(), JioPaymentsBankParser(), JioPayParser(), JupiterBankParser(),
             HSBCBankParser(), SliceParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
             UtkarshBankParser(), DBSBankParser(), JuspayParser(),
+            // Pluxee (#685) — the web tester advertises a Pluxee sample, so the
+            // /htmx/parse registry must be able to parse it too.
+            PluxeeBankParser(),
             // Sri Lanka (#658) — the web tester advertises NDB samples, so the
             // /htmx/parse registry must be able to parse them too.
             NDBBankParser()

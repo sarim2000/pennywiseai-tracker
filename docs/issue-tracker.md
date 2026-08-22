@@ -1,5 +1,8 @@
 # Issue Tracker — Open Feature/Bug Backlog
 
+> **Scope note:** this file tracks the *forward-looking* backlog. Post-mortems
+> on fixed regressions live in [`../issues.md`](../issues.md).
+
 Ordered **easiest → hardest** by implementation effort, not priority. Effort is a
 rough estimate for this codebase (Compose + Room + Hilt + on-device LLM):
 **S** ≈ localized change, **M** ≈ schema + a few screens, **L** ≈ new sub-feature,

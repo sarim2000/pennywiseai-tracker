@@ -7,7 +7,9 @@ versions, and the rules you must follow when you change anything it touches.
 
 > TL;DR: every backup-serialized field **must have a Kotlin default value**.
 > That single rule is what makes old backups restorable forever. A CI test
-> (`BackupSchemaGuardTest`) enforces it for the wrapper models.
+> (`BackupSchemaGuardTest`) enforces it twice: once for the wrapper models, and
+> once against a pinned required-fields baseline for every Room entity — so an
+> entity that gains a new non-defaulted column fails CI too.
 
 ## Where it lives
 

@@ -25,16 +25,18 @@ Thank you for your interest in contributing to PennyWise AI! We welcome contribu
 
 To add support for a new bank:
 
-1. Create a new parser class in `/app/src/main/java/com/pennywiseai/tracker/data/parser/bank/`
-2. Extend the `BankParser` abstract class
-3. Implement required methods:
+1. Create a new parser class in `parser-core/src/main/kotlin/com/pennywiseai/parser/core/bank/`
+2. Extend the right base class: `BaseIndianBankParser` for Indian banks, `UAEBankParser` for UAE banks, `BaseIranianBankParser` / `BaseThailandBankParser` for those markets, plain `BankParser` otherwise
+3. Implement the required methods (`parse()` has a default implementation you only override when the bank needs custom parsing):
    ```kotlin
    override fun getBankName(): String
    override fun canHandle(sender: String): Boolean
-   override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction?
    ```
-4. Add your parser to `BankParserFactory.parsers` list
-5. Test with real SMS samples
+4. Register your parser in `BankParserFactory` — registration order matters, so place it **above** any broader parser whose `canHandle()` could also match your sender IDs
+5. Test with real SMS samples ([parser test conventions](docs/parser-test-standards.md))
+6. Run `./scripts/update-supported-banks.sh` so the generated bank list stays in sync (CI fails otherwise)
+
+Full walkthrough: [docs/adding-bank-parsers.md](docs/adding-bank-parsers.md)
 
 ### 💻 Code Contributions
 
@@ -68,8 +70,8 @@ To add support for a new bank:
 ### Prerequisites
 
 - Android Studio Ladybug or newer
-- JDK 11+
-- Android SDK (API 31+)
+- JDK 21
+- Android SDK (installed through Android Studio; compileSdk/targetSdk come from Gradle)
 
 ### Building the Project
 
@@ -90,16 +92,22 @@ cd pennywiseai-tracker
 
 ### Project Structure
 
+PennyWise is a multi-module project (`settings.gradle.kts` includes `:app`, `:parser-core`, `:shared`, and `:iosApp`; the tree below also shows non-module directories):
+
 ```
-app/
-├── src/main/java/com/pennywiseai/tracker/
-│   ├── data/
-│   │   ├── database/      # Room database
-│   │   ├── parser/        # SMS parsers
-│   │   └── repository/    # Data repositories
-│   ├── domain/            # Business logic
-│   └── ui/               # Compose UI
-└── build.gradle.kts
+app/                  # Android app (Compose UI, Room, Hilt)
+└── src/main/java/com/pennywiseai/tracker/
+    ├── data/             # Database, repositories, managers
+    ├── domain/           # Use cases and services
+    ├── presentation/     # Feature screens + ViewModels
+    ├── ui/               # Shared UI components, theme, remaining screens
+    ├── navigation/       # Navigation graph
+    ├── widget/ worker/ receiver/   # Widgets, WorkManager jobs, SMS receiver
+    └── billing/ backup/ core/ utils/
+parser-core/          # Kotlin Multiplatform bank parsers (shared with iOS)
+shared/               # Shared Kotlin code for the iOS app
+iosApp/               # Swift iOS app
+pennywise-web/        # Web deployment (Cloudflare Worker + Ktor server)
 ```
 
 ## Testing

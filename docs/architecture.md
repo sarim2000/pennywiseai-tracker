@@ -40,10 +40,9 @@ PennyWise follows modern Android architecture guidelines with MVVM pattern, Clea
 
 **Key Classes:**
 ```kotlin
-- HomeScreen.kt
-- TransactionListScreen.kt
-- HomeViewModel.kt
-- TransactionViewModel.kt
+- presentation/home/HomeScreen.kt
+- presentation/home/HomeViewModel.kt
+- ui/viewmodel/ThemeViewModel.kt
 - UiState data classes
 ```
 
@@ -60,10 +59,11 @@ PennyWise follows modern Android architecture guidelines with MVVM pattern, Clea
 
 **Key Classes:**
 ```kotlin
-- ExtractTransactionUseCase.kt
-- CategorizeTransactionUseCase.kt
-- DetectSubscriptionUseCase.kt
-- Transaction domain model
+- AddTransactionUseCase.kt
+- DeleteTransactionUseCase.kt
+- ApplyRulesToPastTransactionsUseCase.kt
+- MarkSubscriptionPaidUseCase.kt
+- domain/service/LlmService.kt (on-device AI interface)
 ```
 
 ### Data Layer (Data Sources)
@@ -82,31 +82,55 @@ PennyWise follows modern Android architecture guidelines with MVVM pattern, Clea
 ```kotlin
 - TransactionRepository.kt
 - TransactionDao.kt
-- SmsDataSource.kt
-- AICategorizationService.kt
-- BankNotificationListenerService.kt (notification-to-SMS parser bridge for whitelisted bank apps)
+- data/manager/SmsTransactionProcessor.kt (orchestrates SMS → parser → database)
+- data/repository/LlmRepository.kt (backs LlmService with the on-device model)
+- receiver/BankNotificationListenerService.kt (notification-to-SMS parser bridge for whitelisted bank apps)
 ```
+
+SMS parsing itself lives in the `parser-core` module (pure Kotlin, no Android
+dependencies). Parsers register in `BankParserFactory`, which dispatches each
+message to every candidate parser by content — see
+[adding-bank-parsers.md](adding-bank-parsers.md).
 
 ## Module Structure
 ```
 app/
-├── src/main/java/com/pennywise/
-│   ├── ui/                    # UI Layer
-│   │   ├── screens/
-│   │   ├── components/
-│   │   ├── theme/
-│   │   └── navigation/
-│   ├── domain/                # Domain Layer
+├── src/main/java/com/pennywiseai/tracker/
+│   ├── presentation/            # Feature screens + ViewModels (home, accounts,
+│   │   │                        #   add, transactions, budgetgroups, categories,
+│   │   │                        #   subscriptions, loans, groups, paywall, share,
+│   │   │                        #   statement, exchangerates, common; also a
+│   │   │                        #   navigation/ subpackage for feature routes)
+│   ├── ui/                      # Shared components, theme, ViewModels
+│   │   ├── components/          # Reusable Compose components
+│   │   ├── theme/               # Design system tokens
+│   │   ├── viewmodel/           # App-level ViewModels (theme, app lock, ...)
+│   │   └── screens/             # analytics, chat, onboarding, rules,
+│   │                            #   settings, unrecognized
+│   ├── navigation/              # Navigation graph
+│   ├── domain/                  # Business logic
 │   │   ├── model/
 │   │   ├── usecase/
-│   │   └── repository/
-│   ├── data/                  # Data Layer
-│   │   ├── database/
-│   │   ├── repository/
-│   │   ├── source/
+│   │   ├── service/             # LlmService and friends
+│   │   └── repository/          # Repository interfaces
+│   ├── data/                    # Data Layer
+│   │   ├── database/            # Room database, DAOs, entities
+│   │   ├── repository/          # Repository implementations
+│   │   ├── manager/             # SmsTransactionProcessor, sync managers
+│   │   ├── preferences/         # DataStore-backed settings
+│   │   ├── currency/ backup/ contacts/
 │   │   └── mapper/
-│   └── di/                    # Dependency Injection
-│       └── modules/
+│   ├── di/                      # Hilt modules (DatabaseModule, etc.)
+│   ├── receiver/                # SMS / notification entry points
+│   ├── worker/                  # WorkManager jobs (SMS scan retry, scheduled backups)
+│   ├── widget/                  # Home-screen widgets
+│   ├── billing/                 # Play Billing + FreeTierLimits
+│   ├── backup/ core/ initializer/ utils/
+└── build.gradle.kts             # Flavors: standard, fdroid
+parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
+shared/                          # KMP code shared with iOS
+iosApp/                          # Swift iOS app
+pennywise-web/                   # Web deployment (Cloudflare Worker + server/)
 ```
 
 ## Data Flow Example
@@ -115,11 +139,9 @@ User opens app
     ↓
 HomeScreen observes HomeViewModel.uiState
     ↓
-HomeViewModel calls GetTransactionsUseCase
+HomeViewModel collects flows from TransactionRepository
     ↓
-UseCase queries TransactionRepository
-    ↓
-Repository fetches from TransactionDao
+Repository queries TransactionDao
     ↓
 Data flows back up as StateFlow
     ↓
@@ -142,18 +164,21 @@ UI recomposes with new state
 ```kotlin
 data class HomeUiState(
     val transactions: List<Transaction> = emptyList(),
-    val monthlyTotal: Double = 0.0,
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 class HomeViewModel @Inject constructor(
-    private val getTransactionsUseCase: GetTransactionsUseCase
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 }
 ```
+
+The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
+(filters, balances, budget summaries); this trimmed version shows the shape.
+[state-management.md](state-management.md) has the full patterns.
 
 ### Navigation
 - **Navigation Compose** for type-safe navigation
@@ -197,7 +222,7 @@ class HomeViewModel @Inject constructor(
 ## Security & Privacy
 
 ### Data Protection
-- On-device processing only
+- Transaction parsing and AI processing run on-device
 - No network calls without consent
 - Encrypted preferences with DataStore
 

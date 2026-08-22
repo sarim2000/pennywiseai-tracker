@@ -4,7 +4,7 @@ This repository provides a shared Kotlin test harness for all SMS parser impleme
 
 ## 1. Organise tests with JUnit 5 Dynamic Tests
 
-* Each parser must expose a dedicated JUnit 5 test class (e.g. `class FabParserTest`).
+* Each parser must expose a dedicated JUnit 5 test class. Newer tests use `XxxParserTest.kt` under `src/test/kotlin/com/pennywiseai/parser/core/bank/`; many older tests sit at the test root with a `TestXxx` file prefix (the FAB suite is `TestFABParser.kt` containing `class FABParserTest`). Match whatever the file you're editing already uses.
 * Use `@TestFactory` instead of `@Test` for test suites that cover multiple scenarios.
 * Return `List<DynamicTest>` by leveraging `ParserTestUtils.runTestSuite` or `runFactoryTestSuite`.
 * This provides granular reporting where each test case appears as a separate result in the IDE and CI/CD logs.
@@ -17,6 +17,7 @@ This repository provides a shared Kotlin test harness for all SMS parser impleme
   * `SimpleTestCase`
   * `ParserTestUtils`
 * Use `ParserTestUtils.runTestSuite` for parser-specific assertions and `ParserTestUtils.runFactoryTestSuite` for sender lookups that delegate to `BankParserFactory`.
+* `runTestSuite` also accepts an optional `handleCases: List<Pair<String, Boolean>>` argument for asserting `canHandle()` outcomes next to the parsing assertions.
 
 ### Parser-specific tests
 
@@ -85,7 +86,7 @@ fun `factory resolves fab`(): List<DynamicTest> {
 1. Replace `@Test` with `@TestFactory`.
 2. Ensure the method returns `List<DynamicTest>`.
 3. Call `ParserTestUtils.runTestSuite` and return its result.
-4. Remove manual `println` or `printTestHeader` calls.
+4. Drop manual `println` reporting. `printTestHeader` survives as a no-op stub that many existing tests still call — it does nothing, so remove the calls only if you're already editing those lines.
 
 Following these standards keeps parser coverage consistent and guarantees that
 human-readable logs and JUnit tooling stay in sync.

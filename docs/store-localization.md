@@ -27,8 +27,9 @@ Translations land in sibling locale folders, e.g.
 `fastlane/metadata/android/hi-IN/title.txt`, ready for `fastlane supply`.
 
 The English → Play-folder mapping lives in [`crowdin.yml`](../crowdin.yml)
-(`languages_mapping`). Only Play-supported locale codes are mapped; Hindi and
-Arabic are active, others are commented in until you enable them.
+(`languages_mapping`). Eleven locale codes are active today: Hindi, Arabic,
+Thai, Swahili, Nepali, Russian, Belarusian, Czech, Persian, Amharic, and
+Spanish. Add or comment out entries in `languages_mapping` to change that set.
 
 ## One-time setup
 

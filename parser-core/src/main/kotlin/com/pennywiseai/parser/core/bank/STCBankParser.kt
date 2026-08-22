@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -7,11 +8,11 @@ import java.math.BigDecimal
  * Parser for STC Bank (Saudi Arabia).
  *
  * Handles English purchase / transfer formats such as:
- *   **4561 Purchase
- *   Via:4561
+ *   **0001 Purchase
+ *   Via:0001
  *   Amount: 3 SAR
- *   From: ABDULLAH SALEM MUEEN
- *   At: 26/07/25 21:58
+ *   From: SYNTHETIC MERCHANT
+ *   At: 01/01/30 00:00
  *   STC Bank
  *
  * Sender examples: STC Bank, STCBank, STC-Bank, STC
@@ -27,10 +28,20 @@ class STCBankParser : BankParser() {
         return normalized.contains("STCBANK") || normalized == "STC" || normalized == "STCPAY"
     }
 
+    override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
+        if (isGenericStcSender(sender) && isClearlyTelecomOnlyMessage(smsBody)) return null
+        return super.parse(smsBody, sender, timestamp)
+    }
+
     override fun extractAmount(message: String): BigDecimal? {
+        FinancialMessageFields.sarAmount(message, listOf("Amount"))?.let { return it }
+
+        RCS_PURCHASE_AMOUNT.find(message)?.let { return parseAmount(it.groupValues[1]) }
+        INLINE_AMOUNT.find(message)?.let { return parseAmount(it.groupValues[1]) }
+
         // "Amount: 3 SAR" or "Amount:3 SAR" or "Amount: 3.50 SAR"
         val amountPattern = Regex(
-            """Amount\s*:?\s*([0-9,]+(?:\.\d{1,2})?)\s*SAR""",
+            """\bAmount\s*:?\s*([0-9,]+(?:\.\d{1,2})?)\s*(?:SAR|SR)\b""",
             RegexOption.IGNORE_CASE
         )
         amountPattern.find(message)?.let { match ->
@@ -43,7 +54,7 @@ class STCBankParser : BankParser() {
 
         // "SAR 3.00" fallback
         val sarFirstPattern = Regex(
-            """SAR\s+([0-9,]+(?:\.\d{1,2})?)""",
+            """\b(?:SAR|SR)\s+([0-9,]+(?:\.\d{1,2})?)""",
             RegexOption.IGNORE_CASE
         )
         sarFirstPattern.find(message)?.let { match ->
@@ -60,12 +71,21 @@ class STCBankParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lower = message.lowercase()
         return when {
+            lower.contains("adding money to account") || lower.contains("wallet top") ||
+                (lower.contains("apple pay") && lower.contains("funding")) -> TransactionType.TRANSFER
+            lower.contains("refund") || lower.contains("reversal") || lower.contains("reverse transaction") -> TransactionType.INCOME
+            lower.contains("internal transfer") -> when (FinancialMessageFields.transferDirection(message)) {
+                FinancialMessageFields.TransferDirection.OUTGOING -> TransactionType.EXPENSE
+                FinancialMessageFields.TransferDirection.INCOMING -> TransactionType.INCOME
+                null -> TransactionType.TRANSFER
+            }
+            lower.contains("sarie") &&
+                (lower.contains("outward") || lower.contains("outgoing")) -> TransactionType.EXPENSE
             lower.contains("purchase") -> TransactionType.EXPENSE
             lower.contains("withdrawal") || lower.contains("withdraw") -> TransactionType.EXPENSE
             lower.contains("payment") -> TransactionType.EXPENSE
             lower.contains("debit") -> TransactionType.EXPENSE
             lower.contains("transfer out") || lower.contains("sent to") -> TransactionType.EXPENSE
-            lower.contains("refund") -> TransactionType.INCOME
             lower.contains("deposit") -> TransactionType.INCOME
             lower.contains("credit") && !lower.contains("credit card") -> TransactionType.INCOME
             lower.contains("received") -> TransactionType.INCOME
@@ -102,11 +122,11 @@ class STCBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // "**4561 Purchase" / "*4561 Purchase"
+        // "**0001 Purchase" / "*0001 Purchase"
         val starPattern = Regex("""\*+(\d{4})\b""")
         starPattern.find(message)?.let { return extractLast4Digits(it.groupValues[1]) }
 
-        // "Via:4561" / "Via: 4561"
+        // "Via:0001" / "Via: 0001"
         val viaPattern = Regex("""Via\s*:\s*(\d{4})""", RegexOption.IGNORE_CASE)
         viaPattern.find(message)?.let { return extractLast4Digits(it.groupValues[1]) }
 
@@ -123,11 +143,10 @@ class STCBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
 
-        if (lower.contains("otp") || lower.contains("verification code") ||
-            lower.contains("one time password")
-        ) {
-            return false
-        }
+        if (SaudiTransactionMessageGuards.isDeclinedOrFailed(message) ||
+            SaudiTransactionMessageGuards.isPromotionalOrOperationalNotice(message) ||
+            FinancialMessageSafety.isSecurityCode(message)
+        ) return false
 
         val keywords = listOf(
             "purchase",
@@ -139,8 +158,39 @@ class STCBankParser : BankParser() {
             "deposit",
             "debit",
             "credit",
-            "sar"
+            "sar", "sr"
         )
         return keywords.any { lower.contains(it) }
+    }
+
+    private fun parseAmount(raw: String): BigDecimal? = try {
+        BigDecimal(raw.replace(",", ""))
+    } catch (_: NumberFormatException) {
+        null
+    }
+
+    private fun isGenericStcSender(sender: String): Boolean =
+        sender.uppercase().replace(Regex("[\\s\\-_]"), "") == "STC"
+
+    private fun isClearlyTelecomOnlyMessage(message: String): Boolean {
+        val lower = message.lowercase()
+        val sawa = lower.contains("sawa")
+        val telecomContext = lower.contains("sawa balance") ||
+            lower.contains("mobile balance") || lower.contains("telecom balance") ||
+            lower.contains("recharge") || lower.contains("mobile service") ||
+            lower.contains("data package") || lower.contains("service credit")
+        return (lower.contains("vat refund") && (sawa || telecomContext)) ||
+            (sawa && telecomContext)
+    }
+
+    private companion object {
+        private val INLINE_AMOUNT = Regex(
+            """\bAmount\s*:?\s*([0-9][0-9,]*(?:\.\d{1,2})?)\s*(?:SAR|SR)\b""",
+            RegexOption.IGNORE_CASE
+        )
+        private val RCS_PURCHASE_AMOUNT = Regex(
+            """(?:online\s+)?purchase\s+transaction\s+amount\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s*(?:SAR|SR)\b""",
+            RegexOption.IGNORE_CASE
+        )
     }
 }

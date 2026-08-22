@@ -18,21 +18,21 @@ class D360BankParserTest {
                 name = "International online purchase (foreign amount, SAR conversion)",
                 message = """
                     International Online Purchase
-                    Amount: TRY 342.00 (SAR 27.51)
-                    Card: *1234 - VISA (Ecommerce)
+                    Amount: TRY 200.00 (SAR 12.34)
+                    Card: *0007 - VISA (Ecommerce)
                     Fee: SAR 0.00
-                    At: FEED ME
-                    Account number: *5678
+                    At: SYNTHETIC MERCHANT
+                    Account number: *0008
                     Country: Turkey
                     On: 2026-07-08 22:08
                 """.trimIndent(),
                 sender = "D360Bank",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("27.51"),
+                    amount = BigDecimal("12.34"),
                     currency = "SAR",
                     type = TransactionType.EXPENSE,
-                    merchant = "FEED ME",
-                    accountLast4 = "1234",
+                    merchant = "SYNTHETIC MERCHANT",
+                    accountLast4 = "0007",
                     isFromCard = true
                 ),
                 description = "Foreign purchase: record the parenthetical SAR amount, not the TRY figure or the Fee line."
@@ -41,19 +41,19 @@ class D360BankParserTest {
                 name = "International ATM withdrawal (foreign amount, SAR conversion)",
                 message = """
                     International ATM Withdrawal
-                    Amount: TRY 219.98 (SAR 17.71)
-                    Card: *4321 - VISA
+                    Amount: TRY 300.00 (SAR 23.45)
+                    Card: *0007 - VISA
                     Fee: 0.00
-                    At: CITY,TR
+                    At: SYNTHETIC ATM
                     Country: Turkey
                     On: 2026-07-08 15:33
                 """.trimIndent(),
                 sender = "D360BANK",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("17.71"),
+                    amount = BigDecimal("23.45"),
                     currency = "SAR",
                     type = TransactionType.EXPENSE,
-                    accountLast4 = "4321",
+                    accountLast4 = "0007",
                     isFromCard = true
                 ),
                 description = "ATM withdrawal is an expense; SAR conversion is preferred over the TRY amount."
@@ -61,36 +61,36 @@ class D360BankParserTest {
             ParserTestCase(
                 name = "Incoming transfer (local SAR)",
                 message = """
-                    Incoming Transfer: SAMPLE BANK
-                    Amount: SAR 250.00
-                    From: *1234
+                    Incoming Transfer: SYNTHETIC BANK
+                    Amount: SAR 45.67
+                    From: *0008
                     IBAN: SA00
                     at: 2026-07-08 18:14
                 """.trimIndent(),
                 sender = "D360BANK",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("250.00"),
+                    amount = BigDecimal("45.67"),
                     currency = "SAR",
                     type = TransactionType.INCOME,
-                    merchant = "SAMPLE BANK"
+                    merchant = "SYNTHETIC BANK"
                 ),
                 description = "Incoming transfer is income; merchant is the counterparty on the title line."
             ),
             ParserTestCase(
                 name = "Outgoing transfer (local SAR)",
                 message = """
-                    Outgoing Transfer: SAMPLE BANK
-                    Amount: SAR 500.00
-                    To: *9876
+                    Outgoing Transfer: SYNTHETIC BANK
+                    Amount: SAR 56.78
+                    To: *0008
                     IBAN: SA00
                     at: 2026-07-08 19:20
                 """.trimIndent(),
                 sender = "D360BANK",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("500.00"),
+                    amount = BigDecimal("56.78"),
                     currency = "SAR",
                     type = TransactionType.EXPENSE,
-                    merchant = "SAMPLE BANK"
+                    merchant = "SYNTHETIC BANK"
                 ),
                 description = "Outgoing transfer is an expense; the 'at:' datetime line must not be picked as merchant."
             ),
@@ -98,20 +98,20 @@ class D360BankParserTest {
                 name = "Merchant name containing a promo substring still parses",
                 message = """
                     International Online Purchase
-                    Amount: SAR 88.00
-                    Card: *1234 - VISA (Ecommerce)
+                    Amount: SAR 67.89
+                    Card: *0007 - VISA (Ecommerce)
                     Fee: SAR 0.00
-                    At: WHOLESALE MARKET
-                    Account number: *5678
+                    At: SYNTHETIC WHOLESALE MARKET
+                    Account number: *0008
                     Country: Saudi Arabia
                     On: 2026-07-08 12:00
                 """.trimIndent(),
                 sender = "D360BANK",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("88.00"),
+                    amount = BigDecimal("67.89"),
                     currency = "SAR",
                     type = TransactionType.EXPENSE,
-                    merchant = "WHOLESALE MARKET",
+                    merchant = "SYNTHETIC WHOLESALE MARKET",
                     isFromCard = true
                 ),
                 description = "'sale' inside 'WHOLESALE' must not trip the promo filter (word-boundary match)."
@@ -125,10 +125,48 @@ class D360BankParserTest {
             ),
             ParserTestCase(
                 name = "OTP is not a transaction",
-                message = "Your D360 Bank verification code is 123456. Do not share it with anyone.",
+                message = "Your D360 Bank verification code is <CODE>. Do not share it with anyone.",
                 sender = "D360BANK",
                 shouldParse = false,
                 description = "Verification codes must never be parsed as transactions."
+            ),
+            ParserTestCase(
+                name = "Number-last SAR settlement is preferred",
+                message = "International Online Purchase\nAmount: USD 200.00 (12.34 SAR)\nCard: *0007 - VISA\nFee: SAR 0.50\nAt: SYNTHETIC STORE",
+                sender = "D360BANK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.34"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SYNTHETIC STORE",
+                    accountLast4 = "0007",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Arabic PIN authentication is ignored",
+                message = "الرقم السري لتأكيد شراء عبر الانترنت: <CODE>\nAmount: SAR 12.34",
+                sender = "D360BANK",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Declined purchase is ignored",
+                message = "International Online Purchase Declined\nAmount: SAR 12.34\nCard: *0007",
+                sender = "D360BANK",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Refund for previously rejected purchase is accepted",
+                message = "Refund for previously rejected purchase\nAmount: SAR 14.56\nCard: *0007",
+                sender = "D360Bank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("14.56"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "0007",
+                    isFromCard = true
+                ),
+                description = "A successful refund must survive a reference to the earlier rejected purchase."
             )
         )
 

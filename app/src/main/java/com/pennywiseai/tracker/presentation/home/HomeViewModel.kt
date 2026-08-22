@@ -341,7 +341,8 @@ class HomeViewModel @Inject constructor(
             }
 
             val amount = if (isUnified && tx.currency != selectedCurrency) {
-                currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, selectedCurrency)
+                    ?: continue // never-rated pair — skip, don't face-value (#670)
             } else {
                 tx.amount
             }
@@ -708,11 +709,11 @@ class HomeViewModel @Inject constructor(
                 var borrowedTotal = BigDecimal.ZERO
                 for (loan in loansForTotals) {
                     val amount = if (isUnified) {
-                        currencyConversionService.convertAmount(
+                        currencyConversionService.convertAmountOrNull(
                             amount = loan.remainingAmount,
                             fromCurrency = loan.currency,
                             toCurrency = selectedCurrency
-                        )
+                        ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     } else {
                         loan.remainingAmount
                     }
@@ -797,16 +798,19 @@ class HomeViewModel @Inject constructor(
                     when (item) {
                         is HomeRecentItem.SingleTransaction -> {
                             val converted = if (!item.transaction.currency.equals(displayCurrency, ignoreCase = true))
-                                currencyConversionService.convertAmount(item.transaction.amount, item.transaction.currency, displayCurrency)
+                                currencyConversionService.convertAmountOrNull(item.transaction.amount, item.transaction.currency, displayCurrency)
                             else null
                             item.copy(convertedAmount = converted)
                         }
                         is HomeRecentItem.GroupItem -> {
                             val amounts = item.transactions
                                 .filter { !it.currency.equals(displayCurrency, ignoreCase = true) }
-                                .associate { tx ->
-                                    tx.id to currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                                .mapNotNull { tx ->
+                                    currencyConversionService
+                                        .convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                                        ?.let { tx.id to it }
                                 }
+                                .toMap()
                             item.copy(convertedAmounts = amounts)
                         }
                     }
@@ -831,9 +835,9 @@ class HomeViewModel @Inject constructor(
                 val totalAmount = if (isUnified) {
                     var total = java.math.BigDecimal.ZERO
                     for (sub in subscriptions) {
-                        total += currencyConversionService.convertAmount(
+                        total += currencyConversionService.convertAmountOrNull(
                             sub.amount, sub.currency, displayCurrency
-                        )
+                        ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
                 } else {
@@ -1212,7 +1216,8 @@ class HomeViewModel @Inject constructor(
                 var investmentTotal = BigDecimal.ZERO
 
                 for (tx in nonLoanTransactions) {
-                    val converted = currencyConversionService.convertAmount(tx.amount, tx.currency, selectedCurrency)
+                    val converted = currencyConversionService
+                        .convertAmountOrNull(tx.amount, tx.currency, selectedCurrency) ?: continue
                     when (tx.transactionType) {
                         com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT -> creditCardTotal += converted
                         com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER -> transferTotal += converted
@@ -1357,7 +1362,8 @@ class HomeViewModel @Inject constructor(
         var total = BigDecimal.ZERO
         for ((currency, amount) in byCurrency) {
             total += if (currency == selectedCurrency) amount
-            else currencyConversionService.convertAmount(amount, currency, selectedCurrency)
+            else currencyConversionService.convertAmountOrNull(amount, currency, selectedCurrency)
+                ?: continue // never-rated pair — skip, don't face-value (#670)
         }
         return total
     }
@@ -1376,9 +1382,12 @@ class HomeViewModel @Inject constructor(
                 totalIncome += breakdown.income
                 totalExpenses += breakdown.expenses
             } else {
-                totalTotal += currencyConversionService.convertAmount(breakdown.total, currency, targetCurrency)
-                totalIncome += currencyConversionService.convertAmount(breakdown.income, currency, targetCurrency)
-                totalExpenses += currencyConversionService.convertAmount(breakdown.expenses, currency, targetCurrency)
+                // One rate serves all three figures; if the pair has never had a
+                // rate, skip this currency's breakdown entirely (#670).
+                val rateTotal = currencyConversionService.convertAmountOrNull(breakdown.total, currency, targetCurrency) ?: continue
+                totalTotal += rateTotal
+                totalIncome += currencyConversionService.convertAmountOrNull(breakdown.income, currency, targetCurrency) ?: BigDecimal.ZERO
+                totalExpenses += currencyConversionService.convertAmountOrNull(breakdown.expenses, currency, targetCurrency) ?: BigDecimal.ZERO
             }
         }
 
@@ -1463,7 +1472,8 @@ class HomeViewModel @Inject constructor(
                 tx.budgetCategory != null
             ) continue
             totalIncome = totalIncome.add(
-                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    ?: continue // never-rated pair — skip, don't face-value (#670)
             )
         }
 
@@ -1473,10 +1483,10 @@ class HomeViewModel @Inject constructor(
         val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
             transactions = analyticsTransactions,
             convertSplit = { fromCurrency, amount ->
-                currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
             },
             convertIncome = { tx ->
-                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
             }
         )
 

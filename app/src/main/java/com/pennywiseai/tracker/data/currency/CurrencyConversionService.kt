@@ -51,7 +51,12 @@ class CurrencyConversionService @Inject constructor(
     private val failedRefreshCooldownMs = TimeConstants.MILLIS_PER_5_MINUTES
 
     /**
-     * Convert amount from one currency to another
+     * Convert amount from one currency to another. Falls back to the
+     * UNCONVERTED amount when no rate has ever been known for the pair — only
+     * acceptable for single-value display next to an explicit currency label.
+     * Aggregations must use [convertAmountOrNull] and skip instead: summing a
+     * face-value foreign amount into another currency's total is never right
+     * (#670, hard constraint 2).
      */
     suspend fun convertAmount(
         amount: BigDecimal,
@@ -59,16 +64,27 @@ class CurrencyConversionService @Inject constructor(
         toCurrency: String,
         forceRefresh: Boolean = false
     ): BigDecimal {
+        return convertAmountOrNull(amount, fromCurrency, toCurrency, forceRefresh) ?: amount
+    }
+
+    /**
+     * Like [convertAmount], but returns null when the pair has never had a
+     * rate (unsupported currency, or first launch while offline). With the
+     * any-age fallback in [getExchangeRate], a null here is rare and terminal
+     * — callers should leave the value out rather than misstate it.
+     */
+    suspend fun convertAmountOrNull(
+        amount: BigDecimal,
+        fromCurrency: String,
+        toCurrency: String,
+        forceRefresh: Boolean = false
+    ): BigDecimal? {
         if (fromCurrency.equals(toCurrency, ignoreCase = true)) {
             return amount
         }
 
-        val rate = getExchangeRate(fromCurrency, toCurrency, forceRefresh)
-        return if (rate != null) {
-            amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
-        } else {
-            amount // Return original amount if conversion fails
-        }
+        val rate = getExchangeRate(fromCurrency, toCurrency, forceRefresh) ?: return null
+        return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
     }
 
     /**
@@ -116,7 +132,14 @@ class CurrencyConversionService @Inject constructor(
         }
 
         // Fetch from API if not found, forced refresh, or rates are stale
-        return fetchAndCacheRate(fromCurrency, toCurrency)
+        fetchAndCacheRate(fromCurrency, toCurrency)?.let { return it }
+
+        // Last resort: the newest rate we EVER stored, however old — a stale
+        // conversion beats dropping the amount or counting it at face value.
+        // Past this point null means the pair has never had a rate at all.
+        return exchangeRateDao.getExchangeRateIgnoringExpiry(fromCurrency, toCurrency)
+            ?.rate
+            ?.also { updateCache(cacheKey, it) }
     }
 
     /**

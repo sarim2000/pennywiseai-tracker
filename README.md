@@ -2,9 +2,9 @@
 [![PennyWise AI Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
 [![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
 [![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
-[![Android](https://img.shields.io/badge/Android-12+-3DDC84)](https://developer.android.com/about/versions/12)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF)](https://kotlinlang.org/)
-[![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://developers.google.com/mediapipe)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84)](https://developer.android.com/about/versions/oreo/android-8.0)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF)](https://kotlinlang.org/)
+[![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://ai.google.dev/edge)
 [![Downloads](https://img.shields.io/badge/Downloads-100+-green)](https://play.google.com/store/apps/details?id=com.pennywiseai.tracker)
 [![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)
 [![GitHub release](https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/releases)
@@ -14,7 +14,7 @@
 
 ## PennyWise AI — Free & Open‑Source, private SMS‑powered expense tracker
 
-Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. 100% private, no cloud processing.
+Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. Parsing, storage, and AI all run on your phone.
 
 
 ⭐ **Star us on GitHub — join 300+ supporters!**
@@ -26,7 +26,7 @@ Turn bank SMS into a clean, searchable money timeline with on-device AI assistan
 
 ## Overview
 
-Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no cloud, no effort.
+Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no sign-ups, no effort.
 
 <a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">
   <img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" />
@@ -48,7 +48,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 **Key Differentiators**
 
-- **🔒 100% On-Device & Private** — All AI processing runs locally, no cloud, no servers, no tracking
+- **🔒 Private by Design** — All AI processing and transaction storage happen on your phone; no accounts, no analytics, no servers collecting your data
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
 - **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **PennyWise Pro** upgrade (unlimited rules, PDF statement imports, CSV export, account merge) supports the solo developer
 
@@ -197,7 +197,7 @@ More banks being added regularly! [Request your bank →](https://github.com/sar
 
 ## Privacy First
 
-All AI processing happens on your device using MediaPipe's Qwen 2.5 model — no cloud, no API calls, no data leaving your phone. There are no accounts to create, no sign-ups, no servers collecting your data. Your SMS and financial information stay entirely on your device. The entire codebase is open source (AGPL v3) so anyone can verify exactly what the app does.
+All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your transactions are parsed, stored, and analyzed locally; there are no accounts, no analytics SDKs, and no servers collecting your data. Two things do touch the network, both easy to verify in the source: multi-currency features can fetch exchange rates from `open.er-api.com`, and the "report a parsing problem" flow opens `pennywise.zynth.dev`, which immediately parses the pre-filled SMS text and sender ID server-side to generate a preview before you submit anything. Everything else stays on your phone. The entire codebase is open source (AGPL v3) so anyone can check each of these claims.
 
 ## Screenshots
 
@@ -262,18 +262,21 @@ All AI processing happens on your device using MediaPipe's Qwen 2.5 model — no
 git clone https://github.com/sarim2000/pennywiseai-tracker.git
 cd pennywiseai-tracker
 
+# Environment check + fast test gate (same compile/test tasks CI runs)
+./init.sh
+
 # Build APK
 ./gradlew assembleDebug
 
 # Install
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk
 ```
 
 ### Requirements
 
-- Android 12+ (API 31)
+- Android 8.0+ (API 26)
 - Android Studio Ladybug or newer
-- JDK 11
+- JDK 21
 
 ## Tech Stack
 
@@ -282,7 +285,7 @@ adb install app/build/outputs/apk/debug/app-debug.apk
   <img src="https://skillicons.dev/icons?i=hilt,room,coroutines" />
 </p>
 
-**Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • MediaPipe AI • Material Design 3
+**Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • Google AI Edge (on-device LLM) • Material Design 3
 
 ## Community & Support
 

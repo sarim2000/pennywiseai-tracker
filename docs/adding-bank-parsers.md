@@ -15,21 +15,34 @@ All parsers extend `BankParser`. But:
   mandate, subscription, and balance-update logic.
 - **UAE banks** MUST extend `UAEBankParser` for currency and transaction-type
   handling.
+- **Iranian banks** extend `BaseIranianBankParser` (Persian-digit amounts,
+  Iranian SMS shapes).
+- **Thai banks** extend `BaseThailandBankParser`.
 - Everything else extends `BankParser` directly.
 
 ## Key methods
 - `getBankName()` — the bank's display name.
 - `canHandle(sender: String)` — whether this parser handles SMS from a sender.
-- `parse(smsBody, sender, timestamp)` — returns `ParsedTransaction` or `null`.
+- `parse(smsBody, sender, timestamp)` — returns `ParsedTransaction` or `null`
+  (it's an `open fun` with a default implementation; override it only when the
+  bank needs custom parsing).
 
 ## Commonly overridden
 - `extractAmount()` — bank-specific amount patterns.
 - `extractMerchant()` — bank-specific merchant extraction.
 - `extractTransactionType()` — only for special cases.
+- `extractBalance()` — when the bank phrases balances differently from the
+  base-class defaults (`ICICIBankParser` is a worked example).
 
-## Registration
+## Registration — order matters
 Add the new parser to the `BankParserFactory.parsers` list in
 `parser-core/.../bank/BankParserFactory.kt`.
+
+The factory dispatches by content: for a matching sender, every candidate
+parser's `parse()` runs in list order until one returns a transaction. That
+makes registration order part of correctness — place your parser **above** any
+broader parser whose `canHandle()` could also claim your senders. The ordering
+comments inside the file explain existing precedence rules; keep them accurate.
 
 ## Return type & imports (parser-core)
 Use `ParsedTransaction` from parser-core:
@@ -55,3 +68,12 @@ The full list of supported banks and transaction patterns lives in
 [`docs/BANK_SUPPORT.md`](BANK_SUPPORT.md) and
 [`docs/supported-banks.json`](supported-banks.json) — the authoritative source,
 kept in sync with the parsers (do not maintain a hand-copied list elsewhere).
+
+After adding, removing, or renaming any parser, regenerate the docs:
+
+```bash
+./scripts/update-supported-banks.sh
+```
+
+`SupportedBanksDocTest` fails in CI when the generated files drift from the
+registry.

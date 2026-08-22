@@ -43,10 +43,11 @@ The bump keyword is the usual SemVer choice:
    the same structured notes it writes:
    - the store changelog `changelogs/<versionCode>.txt` + `default.txt`, and
    - `RELEASE_NOTES.md` for the GitHub release.
-3. Builds, renames, and (F-Droid) computes SHA256 for the standard + F-Droid
-   APKs.
+3. Builds, renames, and computes SHA256 for the standard + F-Droid APKs.
 4. Commits `chore(release): bump version to X [skip ci]`, tags `vX`, and pushes.
-5. Cuts the GitHub release with the APKs + `.sha256` attached.
+5. Cuts the GitHub release with the universal / arm64-v8a / armeabi-v7a / F-Droid
+   APKs + `.sha256` attached (x86 and x86_64 builds are produced and hashed but
+   kept local).
 
 If the script is interrupted, a trap reverts the version bump and changelog
 changes so you're left in a clean state.

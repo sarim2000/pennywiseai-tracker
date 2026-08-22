@@ -44,9 +44,10 @@ complaint.
    see `docs/adding-bank-parsers.md`.
 
 ## Verification — Definition of Done
-Run **`./init.sh`** before claiming a change is done — it runs exactly what CI
-(`.github/workflows/test.yml`) gates on, so "green here" means "green in CI".
-Scope it to what you touched:
+Run **`./init.sh`** before claiming a change is done — it runs the same
+compile/test gate CI applies (CI's App Compile job additionally assembles a
+debug APK, so a change that compiles but breaks assembly will still surface
+there). Scope it to what you touched:
 
 | Change | Command |
 |---|---|
@@ -55,15 +56,15 @@ Scope it to what you touched:
 | Everything | `./init.sh` (default) |
 | Runtime / UI | plus an on-device check (use the **emulator-verify** skill) |
 
-`init.sh` sets `JAVA_HOME` to a JDK 21 (Android Studio's JBR by default). Run
-the raw `./gradlew` tasks it wraps only if you need finer control. `./gradlew
-build` and `lint` are heavier and **not** part of the gate — don't use them to
-verify.
+`init.sh` sets `JAVA_HOME` to a JDK 21 (it tries `JAVA_HOME`, macOS `java_home`,
+Android Studio's JBR, then SDKMAN). Run the raw `./gradlew` tasks it wraps only
+if you need finer control. `./gradlew build` and `lint` are heavier and **not**
+part of the gate — don't use them to verify.
 
 ## Architecture at a glance
 - **Stack:** Kotlin · Jetpack Compose + Material 3 · MVVM + Clean Architecture ·
   StateFlow (unidirectional data flow) · Hilt DI · Room · WorkManager (background
-  SMS scanning) · MediaPipe LLM (Qwen 2.5) for on-device AI.
+  SMS scanning) · Google AI Edge LiteRT-LM (Qwen 2.5) for on-device AI.
 - **Modules:** `app` (Android) · `parser-core` (pure-Kotlin bank SMS parsers, no
   Android deps) · `shared` (KMP) · `iosApp` · `pennywise-web`.
 - **UI:** Material You dynamic color (Android 12+), full light/dark with semantic
@@ -83,7 +84,7 @@ verify.
 | Adding a bank parser | `docs/adding-bank-parsers.md` | New/changed parser in `parser-core` |
 | Parser tests | `docs/parser-test-standards.md` | Writing parser tests |
 | DB migrations | `docs/database-migrations.md` | Room schema changes |
-| Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (139 banks, 23 countries) |
+| Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (144 banks, 23 countries) |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
 
 **Subagents:** `backup-maintainer` (backup-serialized changes) ·
@@ -96,5 +97,6 @@ clean tree — run `./scripts/release.sh patch|minor|major --yes` (preview first
 with `--dry-run`). It commits/tags the current branch and pushes `main`, so the
 branch state matters.
 `scripts/release.sh` is the single source of truth — it bumps the version,
-generates changelogs + release notes, builds/signs the APKs, tags, pushes, and
-cuts the GitHub release. Full flag reference in `docs/RELEASE.md`.
+generates changelogs + release notes, builds the APKs (standard flavor signed;
+the F-Droid APK stays unsigned for IzzyOnDroid), tags, pushes, and cuts the
+GitHub release. Full flag reference in `docs/RELEASE.md`.

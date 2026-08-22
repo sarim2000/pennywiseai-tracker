@@ -7,11 +7,15 @@ PennyWise uses the modern Android state management approach with:
 - **Unidirectional Data Flow (UDF)** pattern
 - **State hoisting** for composable functions
 
+The snippets below are trimmed for reading. The real files are
+`data/preferences/UserPreferencesRepository.kt`, `ui/viewmodel/ThemeViewModel.kt`,
+and `PennyWiseApp.kt` — the patterns match, the field lists don't.
+
 ## Architecture
 
 ### 1. Data Layer (Repository)
 ```kotlin
-// UserPreferencesRepository.kt
+// data/preferences/UserPreferencesRepository.kt
 @Singleton
 class UserPreferencesRepository @Inject constructor(
     private val context: Context
@@ -36,7 +40,7 @@ class UserPreferencesRepository @Inject constructor(
 
 ### 2. ViewModel Layer
 ```kotlin
-// ThemeViewModel.kt
+// ui/viewmodel/ThemeViewModel.kt
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
     private val repository: UserPreferencesRepository
@@ -64,6 +68,10 @@ class ThemeViewModel @Inject constructor(
     }
 }
 ```
+
+The production `ThemeUiState` carries more than theme flags — theme style,
+accent color, AMOLED mode, app font, blur effects. `PennyWiseApp` forwards all
+of it into the `PennyWiseTheme(...)` call.
 
 ### 3. UI Layer (Composables)
 ```kotlin
@@ -165,6 +173,10 @@ data class HomeUiState(
     val error: String? = null
 )
 ```
+
+The production `HomeUiState` in `presentation/home/HomeViewModel.kt` is far
+bigger (filters, account balances, budget summaries, currency state). Keep new
+fields defaulted so existing `copy()` calls stay valid.
 
 ### 4. Single Source of Truth
 - Database: Room for transactions

@@ -37,6 +37,21 @@ class HDFCBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Reversal/refund format: "... By AMAZON        000 On 2026-08-21:..." —
+        // HDFC right-pads the merchant name with spaces before a trailing code,
+        // so capture up to that run of spaces (or " On "). (#698)
+        if (message.contains("reversed", ignoreCase = true) ||
+            message.contains("reversal", ignoreCase = true)
+        ) {
+            Regex("""\bBy\s+(.+?)(?:\s{2,}|\s+On\s)""", RegexOption.IGNORE_CASE)
+                .find(message)?.let { match ->
+                    val merchant = cleanMerchantName(match.groupValues[1].trim())
+                    if (merchant.isNotEmpty()) {
+                        return merchant
+                    }
+                }
+        }
+
         // Check for HDFC Bank Card debit transactions - "Spent Rs.xxx From HDFC Bank Card xxxx At [MERCHANT] On xxx"
         if (message.contains("From HDFC Bank Card", ignoreCase = true) &&
             message.contains(" At ", ignoreCase = true) &&
@@ -277,6 +292,11 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         return when {
+            // Reversals return money to the account — on a credit card this pays
+            // down the outstanding balance (INCOME semantics in BalanceCalculator),
+            // so classify it before the debit/expense keywords below. (#698)
+            lowerMessage.contains("reversed") || lowerMessage.contains("reversal") -> TransactionType.INCOME
+
             // Credit card transactions - ONLY if message contains CC or PCC indicators
             // Any transaction with BLOCK CC or BLOCK PCC is a credit card transaction
             lowerMessage.contains("block cc") || lowerMessage.contains("block pcc") -> TransactionType.CREDIT
@@ -509,7 +529,9 @@ class HDFCBankParser : BaseIndianBankParser() {
             "sent", // HDFC uses "Sent Rs.X From HDFC Bank"
             "deducted", // Add support for "deducted from" pattern
             "txn", // HDFC uses "Txn Rs.X" for card transactions
-            "refund" // "Refund initiated: Amt: Rs.X on HDFC Bank Credit Card ####"
+            "refund", // "Refund initiated: Amt: Rs.X on HDFC Bank Credit Card ####"
+            "reversed", // "Transaction Reversed!On HDFC Bank CREDIT Card ####" (#698)
+            "reversal"
         )
 
         return hdfcTransactionKeywords.any { lowerMessage.contains(it) }

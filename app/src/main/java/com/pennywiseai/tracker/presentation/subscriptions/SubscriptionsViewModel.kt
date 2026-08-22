@@ -70,9 +70,9 @@ class SubscriptionsViewModel @Inject constructor(
                 val totalMonthlyAmount = if (isUnified) {
                     var total = BigDecimal.ZERO
                     for (sub in subscriptions) {
-                        total += currencyConversionService.convertAmount(
+                        total += currencyConversionService.convertAmountOrNull(
                             sub.amount, sub.currency, displayCurrency
-                        )
+                        ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
                 } else {
@@ -88,9 +88,11 @@ class SubscriptionsViewModel @Inject constructor(
                     val map = mutableMapOf<Long, BigDecimal>()
                     for (sub in subscriptions) {
                         if (!sub.currency.equals(displayCurrency, ignoreCase = true)) {
-                            map[sub.id] = currencyConversionService.convertAmount(
+                            // Omit unconvertible subs; the row shows its native
+                            // amount + currency rather than a mislabeled figure (#670).
+                            currencyConversionService.convertAmountOrNull(
                                 sub.amount, sub.currency, displayCurrency
-                            )
+                            )?.let { map[sub.id] = it }
                         }
                     }
                     map

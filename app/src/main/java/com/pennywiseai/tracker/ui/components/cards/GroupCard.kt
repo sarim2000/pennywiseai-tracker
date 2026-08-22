@@ -43,7 +43,15 @@ fun GroupCard(
 
     val total = remember(transactions, convertedAmounts, displayCurrency) {
         transactions.fold(BigDecimal.ZERO) { acc, tx ->
-            val amount = convertedAmounts[tx.id] ?: tx.amount
+            // In unified mode a foreign txn missing from convertedAmounts has no
+            // known rate — leave it out rather than adding its face value (#670).
+            // Native mode (displayCurrency == null) and same-currency txns use tx.amount.
+            val amount = convertedAmounts[tx.id]
+                ?: if (displayCurrency != null && !tx.currency.equals(displayCurrency, ignoreCase = true)) {
+                    return@fold acc
+                } else {
+                    tx.amount
+                }
             when (tx.transactionType) {
                 TransactionType.EXPENSE, TransactionType.CREDIT -> acc - amount
                 TransactionType.INCOME -> acc + amount

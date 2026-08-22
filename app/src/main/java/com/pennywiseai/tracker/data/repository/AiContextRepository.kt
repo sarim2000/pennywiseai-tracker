@@ -71,11 +71,12 @@ class AiContextRepository @Inject constructor(
         
         // Process in a single pass
         transactions.forEach { transaction ->
-            val convertedAmount = currencyConversionService.convertAmount(
+            // Skip unconvertible amounts rather than counting face value (#670).
+            val convertedAmount = currencyConversionService.convertAmountOrNull(
                 amount = transaction.amount,
                 fromCurrency = transaction.currency,
                 toCurrency = baseCurrency
-            )
+            ) ?: return@forEach
             when (transaction.transactionType) {
                 TransactionType.INCOME -> totalIncome = totalIncome.add(convertedAmount)
                 TransactionType.EXPENSE -> totalExpense = totalExpense.add(convertedAmount)
@@ -105,17 +106,19 @@ class AiContextRepository @Inject constructor(
         return transactions
             .sortedByDescending { it.dateTime } // Most recent first
             .take(20) // Limit to 20 most recent
-            .map { transaction ->
+            .mapNotNull { transaction ->
                 val daysAgo = ChronoUnit.DAYS.between(
                     transaction.dateTime.toLocalDate(),
                     currentDate
                 ).toInt()
-                
-                val convertedAmount = currencyConversionService.convertAmount(
+
+                // Drop unconvertible amounts from the AI's view rather than feeding
+                // it a mislabeled face-value figure (#670).
+                val convertedAmount = currencyConversionService.convertAmountOrNull(
                     amount = transaction.amount,
                     fromCurrency = transaction.currency,
                     toCurrency = baseCurrency
-                )
+                ) ?: return@mapNotNull null
 
                 TransactionSummary(
                     merchantName = transaction.merchantName,
@@ -130,17 +133,17 @@ class AiContextRepository @Inject constructor(
     
     private suspend fun getActiveSubscriptions(currentDate: LocalDate, baseCurrency: String): List<SubscriptionSummary> {
         return subscriptionDao.getSubscriptionsByStateList(SubscriptionState.ACTIVE)
-            .map { subscription ->
+            .mapNotNull { subscription ->
                 val daysUntilPayment = ChronoUnit.DAYS.between(
                     currentDate,
                     subscription.nextPaymentDate
                 ).toInt()
-                
-                val convertedAmount = currencyConversionService.convertAmount(
+
+                val convertedAmount = currencyConversionService.convertAmountOrNull(
                     amount = subscription.amount,
                     fromCurrency = subscription.currency,
                     toCurrency = baseCurrency
-                )
+                ) ?: return@mapNotNull null
 
                 SubscriptionSummary(
                     merchantName = subscription.merchantName,
@@ -170,11 +173,11 @@ class AiContextRepository @Inject constructor(
             .filter { it.transactionType == TransactionType.EXPENSE }
             .forEach { transaction ->
                 val category = transaction.category ?: "Others"
-                val convertedAmount = currencyConversionService.convertAmount(
+                val convertedAmount = currencyConversionService.convertAmountOrNull(
                     amount = transaction.amount,
                     fromCurrency = transaction.currency,
                     toCurrency = baseCurrency
-                )
+                ) ?: return@forEach // skip unconvertible rather than face-value (#670)
                 categoryMap.getOrPut(category) { mutableListOf() }.add(convertedAmount)
                 totalExpense = totalExpense.add(convertedAmount)
             }
@@ -211,8 +214,8 @@ class AiContextRepository @Inject constructor(
         val expenses = transactions.filter { it.transactionType == TransactionType.EXPENSE }
         
         // Calculate average daily spending
-        val convertedAmounts = expenses.map {
-            currencyConversionService.convertAmount(
+        val convertedAmounts = expenses.mapNotNull {
+            currencyConversionService.convertAmountOrNull(
                 amount = it.amount,
                 fromCurrency = it.currency,
                 toCurrency = baseCurrency

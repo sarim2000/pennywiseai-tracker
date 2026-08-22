@@ -105,11 +105,12 @@ class LoansViewModel @Inject constructor(
         var lent = BigDecimal.ZERO
         var borrowed = BigDecimal.ZERO
         for (loan in loans) {
-            val converted = currencyConversionService.convertAmount(
+            // Skip unconvertible loans rather than counting face value (#670).
+            val converted = currencyConversionService.convertAmountOrNull(
                 amount = loan.remainingAmount,
                 fromCurrency = loan.currency,
                 toCurrency = targetCurrency
-            )
+            ) ?: continue
             when (loan.direction) {
                 LoanDirection.LENT -> lent += converted
                 LoanDirection.BORROWED -> borrowed += converted

@@ -222,7 +222,8 @@ class BudgetGroupsViewModel @Inject constructor(
 
                 if (inWindow && tx.transactionType == TransactionType.INCOME &&
                     !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
-                ) acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                ) currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    ?.let { acc + it } ?: acc
                 else acc
             }
 
@@ -296,16 +297,18 @@ class BudgetGroupsViewModel @Inject constructor(
                 val tx = txWithSplits.transaction
                 if (tx.loanId != null) return@fold acc
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
-                acc + currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                // Skip unconvertible amounts rather than counting them at face value (#670).
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    ?.let { acc + it } ?: acc
             }
         }
         val (categoryAmounts, _, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
             transactions = transactions,
             convertSplit = { fromCurrency, amount ->
-                currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
             },
             convertIncome = { tx ->
-                currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
             }
         )
         val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
@@ -403,10 +406,10 @@ class BudgetGroupsViewModel @Inject constructor(
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
                 convertSplit = { fromCurrency, amount ->
-                    currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                    currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                 },
                 convertIncome = { tx ->
-                    currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                    currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                 }
             )
             val days = displayedWindow.days.coerceAtLeast(1)
@@ -472,8 +475,11 @@ class BudgetGroupsViewModel @Inject constructor(
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
                 
-                val convertedAmount = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
-                
+                // Skip the whole txn if its currency has no rate — face value would
+                // corrupt the pace chart (#670). Splits share the currency, so if the
+                // total is unconvertible the per-category amounts are too.
+                val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
+
                 if (tx.transactionType.name in matchTypes) {
                     dailyAmounts[dayIndex] += convertedAmount
                 } else if (tx.transactionType !in com.pennywiseai.tracker.data.repository.BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
@@ -483,7 +489,8 @@ class BudgetGroupsViewModel @Inject constructor(
                         for ((cat, amount) in txWithSplits.getAmountByCategory()) {
                             val catName = cat.ifEmpty { "Others" }
                             if (catName in categoryNames) {
-                                dailyAmounts[dayIndex] += currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
+                                currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
+                                    ?.let { dailyAmounts[dayIndex] += it.toDouble() }
                             }
                         }
                     }
@@ -499,15 +506,16 @@ class BudgetGroupsViewModel @Inject constructor(
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
                     
-                val convertedAmount = currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency).toDouble()
-                
+                val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
+
                 if (categoryNames == null) {
                     dailyAmounts[dayIndex] -= convertedAmount
                 } else {
                     for ((cat, amount) in txWithSplits.getAmountByCategory()) {
                         val catName = cat.ifEmpty { "Others" }
                         if (catName in categoryNames) {
-                            dailyAmounts[dayIndex] -= currencyConversionService.convertAmount(amount, tx.currency, displayCurrency).toDouble()
+                            currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
+                                ?.let { dailyAmounts[dayIndex] -= it.toDouble() }
                         }
                     }
                 }

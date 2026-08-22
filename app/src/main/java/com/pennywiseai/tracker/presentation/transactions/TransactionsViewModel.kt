@@ -249,11 +249,14 @@ class TransactionsViewModel @Inject constructor(
                     transfer += totals.transfer
                     investment += totals.investment
                 } else {
-                    income += currencyConversionService.convertAmount(totals.income, cur, currency)
-                    expenses += currencyConversionService.convertAmount(totals.expenses, cur, currency)
-                    credit += currencyConversionService.convertAmount(totals.credit, cur, currency)
-                    transfer += currencyConversionService.convertAmount(totals.transfer, cur, currency)
-                    investment += currencyConversionService.convertAmount(totals.investment, cur, currency)
+                    // Skip unconvertible currency pairs (add nothing) rather than
+                    // counting face value (#670). The transactions still appear in
+                    // the list, so `count` below stays complete.
+                    income += currencyConversionService.convertAmountOrNull(totals.income, cur, currency) ?: BigDecimal.ZERO
+                    expenses += currencyConversionService.convertAmountOrNull(totals.expenses, cur, currency) ?: BigDecimal.ZERO
+                    credit += currencyConversionService.convertAmountOrNull(totals.credit, cur, currency) ?: BigDecimal.ZERO
+                    transfer += currencyConversionService.convertAmountOrNull(totals.transfer, cur, currency) ?: BigDecimal.ZERO
+                    investment += currencyConversionService.convertAmountOrNull(totals.investment, cur, currency) ?: BigDecimal.ZERO
                 }
                 count += totals.transactionCount
             }
@@ -872,9 +875,12 @@ class TransactionsViewModel @Inject constructor(
                     val converted = mutableMapOf<Long, BigDecimal>()
                     for (tx in transactions) {
                         if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
-                            converted[tx.id] = currencyConversionService.convertAmount(
+                            // Omit unconvertible rows from the map; the row then shows
+                            // its native amount + currency instead of a mislabeled
+                            // face-value figure in the display currency (#670).
+                            currencyConversionService.convertAmountOrNull(
                                 tx.amount, tx.currency, displayCurrency
-                            )
+                            )?.let { converted[tx.id] = it }
                         }
                     }
                     _convertedAmounts.value = converted

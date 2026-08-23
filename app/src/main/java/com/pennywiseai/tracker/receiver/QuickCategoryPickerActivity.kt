@@ -56,23 +56,6 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     // a second notification tap re-targets the picker at the new transaction.
     private val currentArgs = mutableStateOf<PickerArgs?>(null)
 
-    // Latest (transactionId, tags) the user selected in the sheet. Written once
-    // in onPause rather than on every edit, so concurrent replace-all writes can
-    // never leave a stale set. (#710)
-    @Volatile private var pendingTagWrite: Pair<Long, List<String>>? = null
-
-    private fun flushPendingTags() {
-        val (txnId, tags) = pendingTagWrite ?: return
-        pendingTagWrite = null
-        appScope.launch { tagRepository.setTagsForTransaction(txnId, tags) }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // Covers category-pick (finish), dismiss (finish), and backgrounding.
-        flushPendingTags()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -165,12 +148,12 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                 tagSuggestions = tagSuggestions,
                 initialTags = initialTags,
                 onTagsChanged = { newTags ->
-                    // Record the latest selection only; the actual write happens
-                    // once in onPause (covers category-pick, dismiss, and
-                    // backgrounding). Writing on every edit raced — an earlier
-                    // replace-all could land after a later one and persist a stale
-                    // set. One write of the final set can't race. (#696 / #710)
-                    pendingTagWrite = txn.id to newTags
+                    // Persist immediately so tagging works even if the user
+                    // dismisses without picking a category (#696). Enqueue rather
+                    // than write directly so rapid edits apply FIFO on a single
+                    // consumer — no reorder, and no loss when the picker retargets
+                    // to another transaction via onNewIntent. (#710)
+                    tagRepository.enqueueSetTags(txn.id, newTags)
                 }
             )
         }

@@ -6,6 +6,7 @@ import android.util.Log
 import com.pennywiseai.tracker.data.repository.BankNotificationRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.worker.BankNotificationRetryWorker
 import com.pennywiseai.tracker.data.mapper.toEntity
@@ -18,6 +19,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * Notification listener that ingests bank app notifications and routes them
@@ -80,16 +84,27 @@ class BankNotificationListenerService : NotificationListenerService() {
             }
 
             try {
-                // Cross-dedup: check if SMS already created this transaction.
-                // Resolve parsers exactly like the SMS processor, then compare
-                // content hashes — identical to the processor's own dedup.
+                // Two-layer cross-channel dedup. Layer 1: exact transaction
+                // hash (the same value the SMS path stores) — identical bodies
+                // dedup here. Layer 2: same bank + merchant + amount within a
+                // ±2-minute window — catches the same charge whose sender code
+                // or body text differs between the SMS and the notification.
                 val parsed = BankParserFactory.getParsers(senderAlias)
                     .firstNotNullOfOrNull { it.parse(body, senderAlias, timestamp) }
                 if (parsed != null) {
-                    val incomingHash = parsed.toEntity().transactionHash
-                    val existing = incomingHash?.let { transactionRepository.getTransactionByHash(it) }
-                    if (existing != null) {
-                        Log.d(TAG, "Notification matches existing transaction (hash dedup)")
+                    val incoming = parsed.toEntity()
+                    val hashMatch = incoming.transactionHash
+                        ?.let { transactionRepository.getTransactionByHash(it) } != null
+                    val eventTime = LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()
+                    )
+                    val nearby = transactionRepository.getTransactionByAmountAndDate(
+                        parsed.amount,
+                        eventTime.minusMinutes(2),
+                        eventTime.plusMinutes(2)
+                    )
+                    if (hashMatch || nearby.any { TransactionDeduplication.isSameCharge(it, incoming) }) {
+                        Log.d(TAG, "Notification matches existing transaction (dedup)")
                         notificationId?.let { notificationRepository.markProcessed(it, null) }
                         return@launch
                     }

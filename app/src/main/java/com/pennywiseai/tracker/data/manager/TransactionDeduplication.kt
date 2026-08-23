@@ -27,6 +27,19 @@ object TransactionDeduplication {
         return gap <= window
     }
 
+    // Notification-vs-SMS cross-channel check: the same charge can carry a
+    // different sender code and body text per channel, so content hashes
+    // diverge. Callers pre-filter candidates by amount and time window; bank
+    // and merchant identity decide. Merchant names are mapper-normalized on
+    // both sides, so raw vs title-case renders still compare equal.
+    fun isSameCharge(
+        existing: TransactionEntity,
+        incoming: TransactionEntity
+    ): Boolean {
+        if (existing.bankName != incoming.bankName) return false
+        return existing.merchantName.equals(incoming.merchantName, ignoreCase = true)
+    }
+
     fun shouldReplaceWithIncoming(
         existing: TransactionEntity,
         incoming: TransactionEntity

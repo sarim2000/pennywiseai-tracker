@@ -164,6 +164,30 @@ class TransactionDeduplicationTest {
         assertEquals(listOf(1L), TransactionDeduplication.duplicateIdsToDelete(transactions))
     }
 
+    @Test
+    fun `isSameCharge matches same bank and merchant across channels`() {
+        val smsStored = transaction(id = 1, merchantName = "Sample Merchant")
+        val notificationStored = transaction(id = 2, merchantName = "sample merchant")
+
+        assertTrue(TransactionDeduplication.isSameCharge(smsStored, notificationStored))
+    }
+
+    @Test
+    fun `isSameCharge ignores distinct merchants sharing bank and amount`() {
+        val first = transaction(id = 1, merchantName = "Coffee Co")
+        val second = transaction(id = 2, merchantName = "Grocery Co")
+
+        assertFalse(TransactionDeduplication.isSameCharge(first, second))
+    }
+
+    @Test
+    fun `isSameCharge ignores other banks`() {
+        val first = transaction(id = 1)
+        val second = transaction(id = 2, bankName = "State Bank of India")
+
+        assertFalse(TransactionDeduplication.isSameCharge(first, second))
+    }
+
     private fun transaction(
         id: Long,
         amount: BigDecimal = BigDecimal("15000.00"),
@@ -171,11 +195,12 @@ class TransactionDeduplicationTest {
         bankName: String = "South Indian Bank",
         reference: String = "111222333444",
         dateTime: LocalDateTime = baseTime,
-        balanceAfter: BigDecimal? = BigDecimal("34567.67")
+        balanceAfter: BigDecimal? = BigDecimal("34567.67"),
+        merchantName: String = "Sample Merchant"
     ): TransactionEntity = TransactionEntity(
         id = id,
         amount = amount,
-        merchantName = "Sample Merchant",
+        merchantName = merchantName,
         category = "Others",
         transactionType = TransactionType.INCOME,
         dateTime = dateTime,

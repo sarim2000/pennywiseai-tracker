@@ -98,6 +98,7 @@ fun SettingsScreen(
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
+    onNavigateToRecurring: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
@@ -544,6 +545,15 @@ fun SettingsScreen(
                     title = "Loans",
                     subtitle = "Track money lent and borrowed",
                     onClick = onNavigateToLoans,
+                    position = ListItemPosition.Middle
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.EventRepeat,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Recurring",
+                    subtitle = "Auto-add scheduled cash & manual transactions",
+                    onClick = onNavigateToRecurring,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(

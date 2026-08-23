@@ -76,6 +76,9 @@ data class BudgetHistory(
 object Loans
 
 @Serializable
+object RecurringTransactions
+
+@Serializable
 data class LoanDetail(val loanId: Long)
 
 @Serializable

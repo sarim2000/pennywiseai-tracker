@@ -134,6 +134,7 @@ class BackupImporter @Inject constructor(
                 // but tags live in their own table — clear both explicitly.
                 database.tagDao().deleteAllCrossRefs()
                 database.tagDao().deleteAllTags()
+                database.recurringTransactionDao().deleteAll()
                 // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
@@ -259,6 +260,13 @@ class BackupImporter @Inject constructor(
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
                     database.tagDao().insertCrossRef(ref)
+                }
+
+                // Recurring / scheduled manual transaction templates (#706).
+                // Standalone table (no foreign keys); ids are preserved in
+                // REPLACE_ALL like every other cleared table.
+                backup.database.recurringTransactions.insertEachCounting({ skippedRows++ }) { recurring ->
+                    database.recurringTransactionDao().insert(recurring)
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -411,6 +419,7 @@ class BackupImporter @Inject constructor(
                 importCardsWithMerge(backup.database.cards) { skippedRows++ }
                 importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
                 importSubscriptionsWithMerge(backup.database.subscriptions) { skippedRows++ }
+                importRecurringTransactionsWithMerge(backup.database.recurringTransactions) { skippedRows++ }
                 importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
                 importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
 
@@ -590,6 +599,28 @@ class BackupImporter @Inject constructor(
         }
     }
     
+    /**
+     * Import recurring / scheduled manual transaction templates with duplicate
+     * checking (#706). Dedup by (merchant, amount, frequency) so a repeat MERGE
+     * of the same backup doesn't stack duplicate templates; a fresh id is
+     * assigned so imported rows never collide with local ones.
+     */
+    private suspend fun importRecurringTransactionsWithMerge(
+        recurring: List<RecurringTransactionEntity>,
+        onSkip: () -> Unit
+    ) {
+        val existingKeys = database.recurringTransactionDao().getAll().first()
+            .map { "${it.merchantName}_${it.amount}_${it.frequency}" }
+            .toSet()
+
+        recurring.insertEachCounting(onSkip) { template ->
+            val key = "${template.merchantName}_${template.amount}_${template.frequency}"
+            if (!existingKeys.contains(key)) {
+                database.recurringTransactionDao().insert(template.copy(id = 0))
+            }
+        }
+    }
+
     /**
      * Import merchant mappings with merge
      */

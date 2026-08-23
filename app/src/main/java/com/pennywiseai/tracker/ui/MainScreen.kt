@@ -464,6 +464,11 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.Loans
                                 ) { launchSingleTop = true }
                             },
+                            onNavigateToRecurring = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.RecurringTransactions
+                                ) { launchSingleTop = true }
+                            },
                             onNavigateToExchangeRates = {
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.ExchangeRates

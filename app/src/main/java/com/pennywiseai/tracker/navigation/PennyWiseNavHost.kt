@@ -384,6 +384,19 @@ fun PennyWiseNavHost(
             )
         }
 
+        composable<RecurringTransactions>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.recurring.RecurringTransactionsScreen(
+                onNavigateBack = {
+                    navController.safePopBackStack()
+                }
+            )
+        }
+
         composable<LoanDetail>(
             enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
             exitTransition = { fadeOut(tween(200)) },

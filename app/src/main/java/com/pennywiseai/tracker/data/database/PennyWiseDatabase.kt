@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
 import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
+import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -48,6 +49,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -62,7 +64,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 58
+const val SCHEMA_VERSION = 59
 
 /**
  * The PennyWise Room database.
@@ -75,7 +77,7 @@ const val SCHEMA_VERSION = 58
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -152,6 +154,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun budgetSnapshotDao(): BudgetSnapshotDao
     abstract fun profileDao(): ProfileDao
     abstract fun tagDao(): TagDao
+    abstract fun recurringTransactionDao(): RecurringTransactionDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -598,6 +601,40 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the `recurring_transactions` table for user-defined recurring /
+         * scheduled manual (cash) transaction templates (#706). Purely additive
+         * — a new standalone table — but written as a manual migration so the
+         * exact column types / defaults match Room's generated identity for v59
+         * (schemas/.../59.json). Enums, dates and BigDecimal are TEXT; booleans
+         * and ints are INTEGER; nullable funding-account / day columns omit NOT
+         * NULL.
+         */
+        val MIGRATION_58_59 = object : Migration(58, 59) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `recurring_transactions` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`merchant_name` TEXT NOT NULL, " +
+                        "`amount` TEXT NOT NULL, " +
+                        "`currency` TEXT NOT NULL DEFAULT 'INR', " +
+                        "`category` TEXT NOT NULL DEFAULT 'Others', " +
+                        "`transaction_type` TEXT NOT NULL DEFAULT 'EXPENSE', " +
+                        "`frequency` TEXT NOT NULL DEFAULT 'MONTHLY', " +
+                        "`day_of_month` INTEGER, " +
+                        "`day_of_week` INTEGER, " +
+                        "`next_due_date` TEXT NOT NULL, " +
+                        "`is_active` INTEGER NOT NULL DEFAULT 1, " +
+                        "`account_last4` TEXT, " +
+                        "`bank_name` TEXT, " +
+                        "`note` TEXT, " +
+                        "`profile_id` INTEGER NOT NULL DEFAULT 1, " +
+                        "`created_at` TEXT NOT NULL, " +
+                        "`updated_at` TEXT NOT NULL)"
+                )
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -654,6 +691,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_53_54,
             MIGRATION_54_55,
             MIGRATION_57_58,
+            MIGRATION_58_59,
         )
     }
     

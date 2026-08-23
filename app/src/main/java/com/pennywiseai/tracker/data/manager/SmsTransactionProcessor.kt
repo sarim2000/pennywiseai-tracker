@@ -173,8 +173,8 @@ class SmsTransactionProcessor @Inject constructor(
             val rowId = if (matchedSubscription != null) {
                 // Atomicity: advance the billing cycle only if the charge row commits.
                 // Insert returning -1L (duplicate hash) or a throw must leave
-                // next_payment_date untouched. Reentrant: nested repository-level
-                // withTransaction calls join this outer transaction.
+                // next_payment_date untouched. Callees are DAO passthroughs; no
+                // nested transactions.
                 database.withTransaction {
                     val id = transactionRepository.insertTransaction(finalEntity)
                     if (id != -1L) {

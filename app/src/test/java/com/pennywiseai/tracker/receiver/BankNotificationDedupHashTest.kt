@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.receiver
 
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.data.mapper.toEntity
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -35,5 +36,14 @@ class BankNotificationDedupHashTest {
         val body = "Rs 500 spent at Coffee Co card x1234"
         assertEquals(tx(body, 1_700_000_000_000L).generateTransactionId(),
                      tx(body, 1_700_005_000_000L).generateTransactionId())
+    }
+
+    @Test
+    fun `toEntity mapper fills identical non-blank transactionHash for identical bodies`() {
+        val body = "Rs 500 spent at Coffee Co card x1234"
+        val first = tx(body, 1_700_000_000_000L).toEntity()
+        val second = tx(body, 1_700_005_000_000L).toEntity()
+        assertEquals(first.transactionHash, second.transactionHash)
+        kotlin.test.assertTrue(first.transactionHash.isNotBlank())
     }
 }

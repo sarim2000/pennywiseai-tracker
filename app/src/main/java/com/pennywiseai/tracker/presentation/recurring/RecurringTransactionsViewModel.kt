@@ -64,7 +64,6 @@ class RecurringTransactionsViewModel @Inject constructor(
     fun save(form: RecurringFormState) {
         viewModelScope.launch {
             val amount = form.amount.toBigDecimalOrNull() ?: return@launch
-            val nextDue = resolveNextDueDate(form)
             if (form.id == 0L) {
                 repository.insert(
                     RecurringTransactionEntity(
@@ -76,13 +75,20 @@ class RecurringTransactionsViewModel @Inject constructor(
                         frequency = form.frequency,
                         dayOfMonth = form.dayOfMonth,
                         dayOfWeek = form.dayOfWeek,
-                        nextDueDate = nextDue,
+                        nextDueDate = resolveNextDueDate(form),
                         isActive = form.isActive,
                         note = form.note.trim().ifBlank { null }
                     )
                 )
             } else {
                 val existing = repository.getById(form.id) ?: return@launch
+                // Only recompute the schedule when a cadence field actually changed;
+                // a metadata-only edit (amount, merchant, category, note, active) must
+                // keep the existing next due date rather than jumping it to today. (#706 Greptile)
+                val scheduleChanged = existing.frequency != form.frequency ||
+                    existing.dayOfMonth != form.dayOfMonth ||
+                    existing.dayOfWeek != form.dayOfWeek
+                val nextDue = if (scheduleChanged) resolveNextDueDate(form) else existing.nextDueDate
                 repository.update(
                     existing.copy(
                         merchantName = form.merchantName.trim(),

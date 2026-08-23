@@ -100,7 +100,7 @@ fun RecurringTransactionsScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + padding.calculateTopPadding(),
-                bottom = padding.calculateBottomPadding() + 88.dp
+                bottom = padding.calculateBottomPadding() + Dimensions.Component.fabBottomInset
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -371,7 +371,12 @@ private fun RecurringEditorDialog(
                         expanded = freqExpanded,
                         onDismissRequest = { freqExpanded = false }
                     ) {
-                        RecurringFrequency.entries.forEach { freq ->
+                        // Yearly needs a month anchor we don't model yet, so it's
+                        // left out of the picker for now (the enum stays for backup
+                        // compatibility). (#706 Greptile)
+                        RecurringFrequency.entries
+                            .filter { it != RecurringFrequency.YEARLY }
+                            .forEach { freq ->
                             DropdownMenuItem(
                                 text = { Text(freq.label()) },
                                 onClick = {

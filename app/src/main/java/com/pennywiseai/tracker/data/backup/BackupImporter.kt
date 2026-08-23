@@ -264,9 +264,13 @@ class BackupImporter @Inject constructor(
 
                 // Recurring / scheduled manual transaction templates (#706).
                 // Standalone table (no foreign keys); ids are preserved in
-                // REPLACE_ALL like every other cleared table.
+                // REPLACE_ALL like every other cleared table, but the source
+                // profile_id is remapped so materialized transactions land under
+                // the right local profile. (Greptile)
                 backup.database.recurringTransactions.insertEachCounting({ skippedRows++ }) { recurring ->
-                    database.recurringTransactionDao().insert(recurring)
+                    database.recurringTransactionDao().insert(
+                        recurring.copy(profileId = resolveProfileId(recurring.profileId) ?: recurring.profileId)
+                    )
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -419,7 +423,7 @@ class BackupImporter @Inject constructor(
                 importCardsWithMerge(backup.database.cards) { skippedRows++ }
                 importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
                 importSubscriptionsWithMerge(backup.database.subscriptions) { skippedRows++ }
-                importRecurringTransactionsWithMerge(backup.database.recurringTransactions) { skippedRows++ }
+                importRecurringTransactionsWithMerge(backup.database.recurringTransactions, { resolveProfileId(it) }) { skippedRows++ }
                 importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
                 importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
 
@@ -601,22 +605,39 @@ class BackupImporter @Inject constructor(
     
     /**
      * Import recurring / scheduled manual transaction templates with duplicate
-     * checking (#706). Dedup by (merchant, amount, frequency) so a repeat MERGE
-     * of the same backup doesn't stack duplicate templates; a fresh id is
-     * assigned so imported rows never collide with local ones.
+     * checking (#706). The dedup key covers every schedule-distinguishing field
+     * (merchant, amount, currency, category, type, frequency, day-of-month/week,
+     * profile), so a repeat MERGE of the same backup doesn't stack duplicates
+     * while genuinely distinct templates are never collapsed (Greptile). The
+     * source profile_id is remapped so materialized transactions land under the
+     * right local profile, and a fresh id avoids colliding with local rows.
      */
     private suspend fun importRecurringTransactionsWithMerge(
         recurring: List<RecurringTransactionEntity>,
+        resolveProfileId: (Long?) -> Long?,
         onSkip: () -> Unit
     ) {
-        val existingKeys = database.recurringTransactionDao().getAll().first()
-            .map { "${it.merchantName}_${it.amount}_${it.frequency}" }
-            .toSet()
+        fun keyOf(t: RecurringTransactionEntity, profileId: Long) = listOf(
+            t.merchantName,
+            t.amount.stripTrailingZeros().toPlainString(),
+            t.currency,
+            t.category,
+            t.transactionType,
+            t.frequency,
+            t.dayOfMonth,
+            t.dayOfWeek,
+            profileId
+        ).joinToString("|")
+
+        val seenKeys = database.recurringTransactionDao().getAll().first()
+            .map { keyOf(it, it.profileId) }
+            .toMutableSet()
 
         recurring.insertEachCounting(onSkip) { template ->
-            val key = "${template.merchantName}_${template.amount}_${template.frequency}"
-            if (!existingKeys.contains(key)) {
-                database.recurringTransactionDao().insert(template.copy(id = 0))
+            val mappedProfileId = resolveProfileId(template.profileId) ?: template.profileId
+            val key = keyOf(template, mappedProfileId)
+            if (seenKeys.add(key)) {
+                database.recurringTransactionDao().insert(template.copy(id = 0, profileId = mappedProfileId))
             }
         }
     }

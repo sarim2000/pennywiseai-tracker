@@ -105,6 +105,7 @@ object BankParserFactory {
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
+        StandardCharteredNigeriaParser(),  // Standard Chartered Bank Nigeria - must precede the India/Pakistan parser (shared sender)
         StandardCharteredBankParser(),  // Standard Chartered Bank (India and Pakistan)
         EquitasBankParser(),  // Equitas Small Finance Bank (India)
         TelebirrParser(),  // Telebirr (Ethiopia)
@@ -157,7 +158,9 @@ object BankParserFactory {
         KeystoneBankParser(),  // Keystone Bank (Nigeria)
         JaizBankParser(),  // Jaiz Bank (Nigeria)
         OpayBankParser(),  // Opay (Nigeria)
-        MoniepointParser()  // Moniepoint MFB (Nigeria)
+        MoniepointParser(),  // Moniepoint MFB (Nigeria)
+        GTBankParser(),  // Guaranty Trust Bank / GTBank (Nigeria)
+        VFDBankParser()  // VFD Microfinance Bank (Nigeria)
         // Add more bank parsers here as we implement them
     )
 

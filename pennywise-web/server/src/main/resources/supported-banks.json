@@ -1,5 +1,5 @@
 {
-  "totalBanks": 150,
+  "totalBanks": 153,
   "totalCountries": 23,
   "countries": [
     {
@@ -43,6 +43,14 @@
       "banks": ["Apollo", "Awash Bank", "Bank of Abyssinia", "Commercial Bank of Ethiopia", "Dashen Bank", "Siket Bank", "Telebirr", "ZamZam Bank", "Zemen Bank"]
     },
     {
+      "country": "Nigeria",
+      "flag": "🇳🇬",
+      "currency": "NGN",
+      "symbol": "₦",
+      "bankCount": 9,
+      "banks": ["Access Bank", "GTBank", "Jaiz Bank", "Keystone Bank", "Moniepoint", "Opay", "Standard Chartered Bank Nigeria", "VFD Microfinance Bank", "Zenith Bank"]
+    },
+    {
       "country": "Saudi Arabia",
       "flag": "🇸🇦",
       "currency": "SAR",
@@ -65,14 +73,6 @@
       "symbol": "﷼",
       "bankCount": 6,
       "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "Pasargad Bank", "blu Bank"]
-    },
-    {
-      "country": "Nigeria",
-      "flag": "🇳🇬",
-      "currency": "NGN",
-      "symbol": "₦",
-      "bankCount": 6,
-      "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Moniepoint", "Opay", "Zenith Bank"]
     },
     {
       "country": "UAE",

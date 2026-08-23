@@ -273,7 +273,7 @@ class BackupImporter @Inject constructor(
                     // give a fresh uid to any blank/legacy one.
                     database.recurringTransactionDao().insert(
                         recurring.copy(
-                            uid = recurring.uid.ifEmpty { java.util.UUID.randomUUID().toString() },
+                            uid = stableUid(recurring),
                             profileId = resolveProfileId(recurring.profileId) ?: 1L
                         )
                     )
@@ -618,6 +618,29 @@ class BackupImporter @Inject constructor(
      * source profile_id is remapped so materialized transactions land under the
      * right local profile, and a fresh id avoids colliding with local rows.
      */
+    /**
+     * A stable uid for a template: the real one, or — for a blank/legacy uid —
+     * a deterministic content-derived id so re-importing the same legacy row is
+     * idempotent (same content → same uid → deduped), while distinct legacy rows
+     * still get distinct uids. New templates always carry a real uid.
+     */
+    private fun stableUid(t: RecurringTransactionEntity): String = t.uid.ifEmpty {
+        "legacy:" + listOf(
+            t.merchantName,
+            t.amount.stripTrailingZeros().toPlainString(),
+            t.currency,
+            t.category,
+            t.transactionType,
+            t.frequency,
+            t.dayOfMonth,
+            t.dayOfWeek,
+            t.bankName,
+            t.accountLast4,
+            t.note,
+            t.profileId
+        ).joinToString("|")
+    }
+
     private suspend fun importRecurringTransactionsWithMerge(
         recurring: List<RecurringTransactionEntity>,
         resolveProfileId: (Long?) -> Long?,
@@ -632,7 +655,7 @@ class BackupImporter @Inject constructor(
             .map { it.uid }.filter { it.isNotEmpty() }.toMutableSet()
 
         recurring.insertEachCounting(onSkip) { template ->
-            val uid = template.uid.ifEmpty { java.util.UUID.randomUUID().toString() }
+            val uid = stableUid(template)
             if (seenUids.add(uid)) {
                 database.recurringTransactionDao().insert(
                     template.copy(

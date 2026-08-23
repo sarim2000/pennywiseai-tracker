@@ -276,7 +276,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun computeBreakdownByCurrency(
-        transactions: List<TransactionEntity>
+        transactions: List<TransactionEntity>,
+        countCreditAsExpense: Boolean = false
     ): Map<String, TransactionRepository.MonthlyBreakdown> {
         // "Exclude from analytics" transactions stay in history & account balances
         // but must not count toward the home card's income/spend figures — same as
@@ -303,7 +304,11 @@ class HomeViewModel @Inject constructor(
                 }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
             val rawExpenses = txs
-                .filter { it.transactionType == TransactionType.EXPENSE }
+                .filter {
+                    it.transactionType == TransactionType.EXPENSE ||
+                        // Fold credit-card spend into expenses when the user opted in (#705).
+                        (countCreditAsExpense && it.transactionType == TransactionType.CREDIT)
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
             val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
             TransactionRepository.MonthlyBreakdown(
@@ -392,9 +397,11 @@ class HomeViewModel @Inject constructor(
                     transactions to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                         .filter { it.loanId == null }
-                    computeBreakdownByCurrency(nonLoan)
+                }
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
+                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
@@ -591,9 +598,11 @@ class HomeViewModel @Inject constructor(
                     transactions to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                         .filter { it.loanId == null }
-                    computeBreakdownByCurrency(nonLoan)
+                }
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
+                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)

@@ -61,6 +61,7 @@ open class UserPreferencesRepository @Inject constructor(
         val APP_FONT = stringPreferencesKey("app_font")
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
+        val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -226,6 +227,18 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false
         }
 
+    /**
+     * When true, credit-card spend (TransactionType.CREDIT) is folded into the
+     * fixed "expenses / spent" totals (Home card, Transactions summary) instead
+     * of being kept as a separate figure. Default off. The filter-driven
+     * Analytics screen is unaffected — it already lets users select the Credit
+     * type to view card spend. (#705)
+     */
+    val countCreditCardAsExpense: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.COUNT_CREDIT_AS_EXPENSE] ?: false
+        }
+
     val numberFormatStyle: Flow<NumberFormatStyle> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.NUMBER_FORMAT_STYLE]?.let {
@@ -286,6 +299,12 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun setDeveloperModeEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setCountCreditCardAsExpense(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.COUNT_CREDIT_AS_EXPENSE] = enabled
         }
     }
     

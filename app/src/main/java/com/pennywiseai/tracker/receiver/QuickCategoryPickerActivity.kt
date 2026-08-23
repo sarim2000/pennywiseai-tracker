@@ -94,12 +94,18 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         // Tags for the inline tag section (#696): the txn's current tags seed
         // the field, and every known tag name feeds autocomplete.
         var initialTags by remember(args.transactionId) { mutableStateOf<List<String>>(emptyList()) }
+        var tagsLoaded by remember(args.transactionId) { mutableStateOf(false) }
         var tagSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(args.transactionId) {
             transaction = transactionRepository.getTransactionById(args.transactionId)
             transactionLoaded = true
+            // Load existing tags BEFORE the sheet renders (gated by tagsLoaded below).
+            // Otherwise the sheet's remember{} captures an empty list, and the first
+            // add/remove would replace-all with an incomplete set, deleting existing
+            // tag associations. (#710 Greptile)
             initialTags = tagRepository.getTagNamesForTransaction(args.transactionId)
+            tagsLoaded = true
         }
         LaunchedEffect(Unit) {
             categories = categoryRepository.getAllCategories().first()
@@ -118,7 +124,7 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         }
 
         val txn = transaction
-        if (txn != null && categories.isNotEmpty()) {
+        if (txn != null && categories.isNotEmpty() && tagsLoaded) {
             // Snapshot the args this composition is targeting so the callback
             // doesn't accidentally see an args update from onNewIntent mid-flight.
             val activeNotificationId = args.notificationId

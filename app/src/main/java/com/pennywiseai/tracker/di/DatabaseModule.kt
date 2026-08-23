@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
 import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
+import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TagDao
@@ -279,6 +280,12 @@ object DatabaseModule {
     @Singleton
     fun provideTagDao(database: PennyWiseDatabase): TagDao {
         return database.tagDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRecurringTransactionDao(database: PennyWiseDatabase): RecurringTransactionDao {
+        return database.recurringTransactionDao()
     }
 }
 

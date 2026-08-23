@@ -71,6 +71,7 @@ class BackupSchemaGuardTest {
         serializer<BudgetCategoryMonthSnapshotEntity>().descriptor,
         serializer<TagEntity>().descriptor,
         serializer<TransactionTagCrossRef>().descriptor,
+        serializer<RecurringTransactionEntity>().descriptor,
     )
 
     private fun SerialDescriptor.requiredFields(): List<String> =

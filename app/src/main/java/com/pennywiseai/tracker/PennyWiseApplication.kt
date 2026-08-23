@@ -75,6 +75,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
 
+        // Materialise recurring / scheduled manual (cash) transactions (#706):
+        // a daily periodic run plus a one-shot catch-up now, so a device that was
+        // off still creates anything that came due while it was down.
+        com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
+        com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose
         // contexts (widgets, workers) too, so we push the value into its @Volatile

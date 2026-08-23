@@ -1,5 +1,5 @@
 {
-  "totalBanks": 144,
+  "totalBanks": 147,
   "totalCountries": 23,
   "countries": [
     {
@@ -35,6 +35,14 @@
       "banks": ["ALECU", "AdelFi", "Altana Federal Credit Union", "Charles Schwab", "Chase", "Citi Bank", "Discover Card", "Huntington Bank", "Navy Federal Credit Union", "Old Hickory Credit Union"]
     },
     {
+      "country": "Nigeria",
+      "flag": "🇳🇬",
+      "currency": "NGN",
+      "symbol": "₦",
+      "bankCount": 8,
+      "banks": ["Access Bank", "GTBank", "Jaiz Bank", "Keystone Bank", "Opay", "Standard Chartered Bank Nigeria", "VFD Microfinance Bank", "Zenith Bank"]
+    },
+    {
       "country": "Saudi Arabia",
       "flag": "🇸🇦",
       "currency": "SAR",
@@ -65,14 +73,6 @@
       "symbol": "د.إ",
       "bankCount": 6,
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
-    },
-    {
-      "country": "Nigeria",
-      "flag": "🇳🇬",
-      "currency": "NGN",
-      "symbol": "₦",
-      "bankCount": 5,
-      "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Opay", "Zenith Bank"]
     },
     {
       "country": "Ethiopia",

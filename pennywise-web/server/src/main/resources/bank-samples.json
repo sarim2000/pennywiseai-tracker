@@ -935,6 +935,17 @@
       "reference": null,
       "balance": null
     },
+    "Standard Chartered Bank Nigeria": {
+      "sender": "StanChart",
+      "message": "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I, Date:2026-08-24, Bal:NGN1500000.00",
+      "currency": "NGN",
+      "amount": "1000.00",
+      "type": "INCOME",
+      "merchant": "ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": "1500000.00"
+    },
     "State Bank of India": {
       "sender": "SBI CARDS AND PAYMENT SERVICES",
       "message": "Rs.90.00 spent on your SBI Credit Card ending 5667 at SUPREMEGOURMET on 13/02/26.",

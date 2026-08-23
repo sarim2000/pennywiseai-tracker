@@ -742,6 +742,12 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
             preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] = true
+            // The cached AI system prompt embeds amounts already formatted in the old
+            // base currency. Without dropping it here the assistant keeps quoting the
+            // previous currency indefinitely: the only other refresh path is gated on
+            // an SMS scan actually saving a new transaction, so a user whose inbox is
+            // fully scanned would never see their currency change take effect.
+            preferences.remove(PreferencesKeys.SYSTEM_PROMPT)
         }
     }
 
@@ -759,7 +765,14 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun applyMainAccountCurrency(currency: String) {
         context.dataStore.edit { preferences ->
             if (preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] != true) {
+                val previous = preferences[PreferencesKeys.BASE_CURRENCY]
                 preferences[PreferencesKeys.BASE_CURRENCY] = currency
+                // Same staleness trap as updateBaseCurrency: drop the cached prompt so
+                // it is rebuilt against the new currency. Only when it actually changed,
+                // to avoid discarding a good prompt on every main-account recompute.
+                if (previous != currency) {
+                    preferences.remove(PreferencesKeys.SYSTEM_PROMPT)
+                }
             }
         }
     }

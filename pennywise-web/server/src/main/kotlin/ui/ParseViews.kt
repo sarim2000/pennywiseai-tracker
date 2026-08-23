@@ -234,34 +234,58 @@ object ParseViews {
                                 document.getElementById('reportModal').classList.add('show');
 
                                 // Display parsed data in the modal
-                                const parsedResultStr = document.getElementById('parsed_result').value;
                                 const parsedDetails = document.getElementById('parsedDetails');
 
-                                if (parsedResultStr) {
-                                    try {
-                                        const parsed = JSON.parse(parsedResultStr);
-                                        let html = '';
+                                const raw = document.getElementById('parsed_result').value;
+                                parsedDetails.textContent = '';
+                                if (!raw) {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'No transaction details detected';
+                                    parsedDetails.appendChild(p);
+                                    return;
+                                }
+                                let parsed;
+                                try {
+                                    parsed = JSON.parse(raw);
+                                } catch (e) {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'Error parsing transaction details';
+                                    parsedDetails.appendChild(p);
+                                    return;
+                                }
+                                if (!parsed || typeof parsed.amount !== 'number') {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'No transaction details detected';
+                                    parsedDetails.appendChild(p);
+                                    return;
+                                }
 
-                                        if (parsed.amount !== undefined) {
-                                            html += '<div class="info-row"><span class="info-label">Amount:</span><span class="info-value">' + (parsed.currency === 'INR' || !parsed.currency ? '₹' + parsed.amount.toLocaleString('en-IN') : parsed.currency + ' ' + parsed.amount.toLocaleString()) + '</span></div>';
-                                        }
-                                        if (parsed.type) {
-                                            html += '<div class="info-row"><span class="info-label">Type:</span><span class="info-value">' + parsed.type + '</span></div>';
-                                        }
-                                        if (parsed.merchant) {
-                                            html += '<div class="info-row"><span class="info-label">Merchant:</span><span class="info-value">' + parsed.merchant + '</span></div>';
-                                        }
+                                function addInfoRow(label, value) {
+                                    const row = document.createElement('div');
+                                    row.className = 'info-row';
+                                    const labelEl = document.createElement('span');
+                                    labelEl.className = 'info-label';
+                                    labelEl.textContent = label;
+                                    const valueEl = document.createElement('span');
+                                    valueEl.className = 'info-value';
+                                    valueEl.textContent = value;
+                                    row.appendChild(labelEl);
+                                    row.appendChild(valueEl);
+                                    parsedDetails.appendChild(row);
+                                }
 
-                                        if (html === '') {
-                                            html = '<p class="no-transaction">No transaction details detected</p>';
-                                        }
-
-                                        parsedDetails.innerHTML = html;
-                                    } catch (e) {
-                                        parsedDetails.innerHTML = '<p class="no-transaction">No transaction detected</p>';
-                                    }
-                                } else {
-                                    parsedDetails.innerHTML = '<p class="no-transaction">No transaction detected</p>';
+                                addInfoRow('Amount:',
+                                    parsed.currency === 'INR' || !parsed.currency
+                                        ? '₹' + parsed.amount.toLocaleString('en-IN')
+                                        : parsed.currency + ' ' + parsed.amount.toLocaleString());
+                                if (parsed.type) {
+                                    addInfoRow('Type:', parsed.type);
+                                }
+                                if (parsed.merchant) {
+                                    addInfoRow('Merchant:', parsed.merchant);
                                 }
                             }
 
@@ -297,6 +321,21 @@ object ParseViews {
                                     userNote: userNote || null
                                 };
 
+                                // Same wrapper structure the old innerHTML strings
+                                // produced, rebuilt as text nodes (SEC-001).
+                                function showStatus(text, success) {
+                                    const status = document.getElementById('reportStatus');
+                                    status.textContent = '';
+                                    const el = document.createElement('div');
+                                    if (success) {
+                                        el.className = 'success-msg';
+                                    } else {
+                                        el.style.color = '#ef4444';
+                                    }
+                                    el.textContent = text;
+                                    status.appendChild(el);
+                                }
+
                                 try {
                                     const response = await fetch('/api/report', {
                                         method: 'POST',
@@ -307,16 +346,13 @@ object ParseViews {
                                     const result = await response.json();
 
                                     if (result.success) {
-                                        document.getElementById('reportStatus').innerHTML =
-                                            '<div class="success-msg">Report submitted successfully! Thank you for your feedback.</div>';
+                                        showStatus('Report submitted successfully! Thank you for your feedback.', true);
                                         setTimeout(hideReportModal, 2000);
                                     } else {
-                                        document.getElementById('reportStatus').innerHTML =
-                                            '<div style="color: #ef4444;">Error: ' + result.message + '</div>';
+                                        showStatus('Error: ' + result.message, false);
                                     }
                                 } catch (error) {
-                                    document.getElementById('reportStatus').innerHTML =
-                                        '<div style="color: #ef4444;">Failed to submit report. Please try again.</div>';
+                                    showStatus('Failed to submit report. Please try again.', false);
                                 }
                             }
                         """ }

@@ -615,6 +615,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `recurring_transactions` (" +
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`uid` TEXT NOT NULL DEFAULT '', " +
                         "`merchant_name` TEXT NOT NULL, " +
                         "`amount` TEXT NOT NULL, " +
                         "`currency` TEXT NOT NULL DEFAULT 'INR', " +

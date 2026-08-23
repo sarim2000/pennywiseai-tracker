@@ -32,6 +32,15 @@ data class RecurringTransactionEntity(
     @ColumnInfo(name = "id")
     val id: Long = 0,
 
+    /**
+     * Stable synthetic identity assigned at creation and carried through
+     * backups. Backup restore dedups on this (not on mutable content), so a
+     * repeated restore of the same backup never duplicates a template, while
+     * genuinely distinct templates always have distinct uids. (#706)
+     */
+    @ColumnInfo(name = "uid", defaultValue = "")
+    val uid: String = java.util.UUID.randomUUID().toString(),
+
     @ColumnInfo(name = "merchant_name")
     val merchantName: String = "",
 

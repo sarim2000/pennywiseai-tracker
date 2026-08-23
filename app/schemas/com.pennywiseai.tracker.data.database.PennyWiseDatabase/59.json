@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 59,
-    "identityHash": "ca3a1823a465639a0204e825aa640a20",
+    "identityHash": "e545ff87f15ab20d71be747d330aeb4a",
     "entities": [
       {
         "tableName": "transactions",
@@ -1918,13 +1918,20 @@
       },
       {
         "tableName": "recurring_transactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `category` TEXT NOT NULL DEFAULT 'Others', `transaction_type` TEXT NOT NULL DEFAULT 'EXPENSE', `frequency` TEXT NOT NULL DEFAULT 'MONTHLY', `day_of_month` INTEGER, `day_of_week` INTEGER, `next_due_date` TEXT NOT NULL, `is_active` INTEGER NOT NULL DEFAULT 1, `account_last4` TEXT, `bank_name` TEXT, `note` TEXT, `profile_id` INTEGER NOT NULL DEFAULT 1, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uid` TEXT NOT NULL DEFAULT '', `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `category` TEXT NOT NULL DEFAULT 'Others', `transaction_type` TEXT NOT NULL DEFAULT 'EXPENSE', `frequency` TEXT NOT NULL DEFAULT 'MONTHLY', `day_of_month` INTEGER, `day_of_week` INTEGER, `next_due_date` TEXT NOT NULL, `is_active` INTEGER NOT NULL DEFAULT 1, `account_last4` TEXT, `bank_name` TEXT, `note` TEXT, `profile_id` INTEGER NOT NULL DEFAULT 1, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "merchantName",
@@ -2034,7 +2041,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ca3a1823a465639a0204e825aa640a20')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e545ff87f15ab20d71be747d330aeb4a')"
     ]
   }
 }

@@ -269,9 +269,13 @@ class BackupImporter @Inject constructor(
                 // the right local profile. (Greptile)
                 backup.database.recurringTransactions.insertEachCounting({ skippedRows++ }) { recurring ->
                     // Fall back to the default Personal profile (1) when the source
-                    // profile can't be mapped, rather than keeping a stale/invalid id.
+                    // profile can't be mapped, rather than keeping a stale/invalid id;
+                    // give a fresh uid to any blank/legacy one.
                     database.recurringTransactionDao().insert(
-                        recurring.copy(profileId = resolveProfileId(recurring.profileId) ?: 1L)
+                        recurring.copy(
+                            uid = recurring.uid.ifEmpty { java.util.UUID.randomUUID().toString() },
+                            profileId = resolveProfileId(recurring.profileId) ?: 1L
+                        )
                     )
                 }
 
@@ -619,34 +623,26 @@ class BackupImporter @Inject constructor(
         resolveProfileId: (Long?) -> Long?,
         onSkip: () -> Unit
     ) {
-        fun keyOf(t: RecurringTransactionEntity, profileId: Long) = listOf(
-            t.merchantName,
-            t.amount.stripTrailingZeros().toPlainString(),
-            t.currency,
-            t.category,
-            t.transactionType,
-            t.frequency,
-            t.dayOfMonth,
-            t.dayOfWeek,
-            t.bankName,
-            t.accountLast4,
-            t.note,
-            t.nextDueDate,
-            t.isActive,
-            profileId
-        ).joinToString("|")
-
-        val seenKeys = database.recurringTransactionDao().getAll().first()
-            .map { keyOf(it, it.profileId) }
-            .toMutableSet()
+        // Dedup on the stable [RecurringTransactionEntity.uid], not on mutable
+        // content: a repeated restore of the same backup can't duplicate a
+        // template (same uid), while genuinely distinct templates always have
+        // distinct uids and are always kept. A blank/legacy uid gets a fresh one
+        // so it still inserts.
+        val seenUids = database.recurringTransactionDao().getAll().first()
+            .map { it.uid }.filter { it.isNotEmpty() }.toMutableSet()
 
         recurring.insertEachCounting(onSkip) { template ->
-            // Fall back to the default Personal profile (1) when unmapped, so a
-            // template never restores under a stale/invalid profile id.
-            val mappedProfileId = resolveProfileId(template.profileId) ?: 1L
-            val key = keyOf(template, mappedProfileId)
-            if (seenKeys.add(key)) {
-                database.recurringTransactionDao().insert(template.copy(id = 0, profileId = mappedProfileId))
+            val uid = template.uid.ifEmpty { java.util.UUID.randomUUID().toString() }
+            if (seenUids.add(uid)) {
+                database.recurringTransactionDao().insert(
+                    template.copy(
+                        id = 0,
+                        uid = uid,
+                        // Fall back to the default Personal profile (1) when unmapped,
+                        // so a template never restores under a stale/invalid id.
+                        profileId = resolveProfileId(template.profileId) ?: 1L
+                    )
+                )
             }
         }
     }

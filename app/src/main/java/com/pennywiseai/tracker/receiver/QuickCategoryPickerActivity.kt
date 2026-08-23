@@ -52,10 +52,6 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     // closes immediately after the user picks.
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
-    // Serializes tag writes so rapid add/remove edits apply in order — otherwise
-    // an earlier replace-all could finish after a later one and leave stale tags
-    // (#710 Greptile). kotlinx Mutex grants in suspension order (FIFO).
-    private val tagWriteMutex = kotlinx.coroutines.sync.Mutex()
 
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.
@@ -182,5 +178,11 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         private const val TAG = "QuickCategoryPicker"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
+
+        // Static so tag writes serialize even across an activity recreation
+        // (config change / process restart) — the app-scoped write from a
+        // previous instance can otherwise still race the new one and leave
+        // stale tags. kotlinx Mutex grants in suspension order (FIFO). (#710)
+        private val tagWriteMutex = kotlinx.coroutines.sync.Mutex()
     }
 }

@@ -101,3 +101,6 @@ iosApp/fastlane/.env
 
 # fastlane run artifact (regenerated every run)
 iosApp/fastlane/report.xml
+
+# git worktrees (superpowers SDD)
+.worktrees/

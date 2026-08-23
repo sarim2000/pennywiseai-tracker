@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.di.ApplicationScope
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
@@ -44,10 +45,12 @@ class QuickCategoryPickerActivity : ComponentActivity() {
 
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var categoryRepository: CategoryRepository
+    @Inject lateinit var tagRepository: TagRepository
 
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
+
 
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.
@@ -89,14 +92,26 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         var transactionLoaded by remember(args.transactionId) { mutableStateOf(false) }
         var categories by remember { mutableStateOf<List<CategoryEntity>>(emptyList()) }
         var categoriesLoaded by remember { mutableStateOf(false) }
+        // Tags for the inline tag section (#696): the txn's current tags seed
+        // the field, and every known tag name feeds autocomplete.
+        var initialTags by remember(args.transactionId) { mutableStateOf<List<String>>(emptyList()) }
+        var tagsLoaded by remember(args.transactionId) { mutableStateOf(false) }
+        var tagSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(args.transactionId) {
             transaction = transactionRepository.getTransactionById(args.transactionId)
             transactionLoaded = true
+            // Load existing tags BEFORE the sheet renders (gated by tagsLoaded below).
+            // Otherwise the sheet's remember{} captures an empty list, and the first
+            // add/remove would replace-all with an incomplete set, deleting existing
+            // tag associations. (#710 Greptile)
+            initialTags = tagRepository.getTagNamesForTransaction(args.transactionId)
+            tagsLoaded = true
         }
         LaunchedEffect(Unit) {
             categories = categoryRepository.getAllCategories().first()
             categoriesLoaded = true
+            tagSuggestions = tagRepository.observeAllTagNames().first()
         }
 
         // Finish silently when the load resolves to nothing renderable.
@@ -110,7 +125,7 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         }
 
         val txn = transaction
-        if (txn != null && categories.isNotEmpty()) {
+        if (txn != null && categories.isNotEmpty() && tagsLoaded) {
             // Snapshot the args this composition is targeting so the callback
             // doesn't accidentally see an args update from onNewIntent mid-flight.
             val activeNotificationId = args.notificationId
@@ -129,7 +144,17 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                     }
                     finish()
                 },
-                onDismiss = { finish() }
+                onDismiss = { finish() },
+                tagSuggestions = tagSuggestions,
+                initialTags = initialTags,
+                onTagsChanged = { newTags ->
+                    // Persist immediately so tagging works even if the user
+                    // dismisses without picking a category (#696). Enqueue rather
+                    // than write directly so rapid edits apply FIFO on a single
+                    // consumer — no reorder, and no loss when the picker retargets
+                    // to another transaction via onNewIntent. (#710)
+                    tagRepository.enqueueSetTags(txn.id, newTags)
+                }
             )
         }
     }

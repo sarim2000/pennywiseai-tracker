@@ -163,6 +163,13 @@ class HomeViewModel @Inject constructor(
         loadUnifiedModePreferences()
         loadUserName()
         refreshSharePrompt()
+        // Mirror the "count card spend as expense" pref into UI state so the
+        // "Money in motion" card can hide its Credit chip when it's on (#705).
+        viewModelScope.launch {
+            userPreferencesRepository.countCreditCardAsExpense.collect { on ->
+                _uiState.value = _uiState.value.copy(countCreditCardAsExpense = on)
+            }
+        }
         // Load base currency FIRST so selectedCurrency is set before data loads
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
@@ -1610,6 +1617,10 @@ data class HomeUiState(
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val currentMonthLent: BigDecimal = BigDecimal.ZERO,
     val currentMonthCreditCard: BigDecimal = BigDecimal.ZERO,
+    // When true, credit-card spend is folded into "Spent this month" (#705), so
+    // the "Money in motion" card hides its Credit chip to avoid showing the same
+    // amount both inside and "outside" the cash flow.
+    val countCreditCardAsExpense: Boolean = false,
     val currentMonthTransfer: BigDecimal = BigDecimal.ZERO,
     val currentMonthInvestment: BigDecimal = BigDecimal.ZERO,
     val lastMonthTotal: BigDecimal = BigDecimal.ZERO,

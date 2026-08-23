@@ -512,7 +512,10 @@ fun HomeScreen(
                 ) {
                     CashFlowCard(
                         currency = uiState.selectedCurrency,
-                        creditCardSpend = uiState.currentMonthCreditCard,
+                        // When card spend counts as expense (#705) it's already in
+                        // "Spent this month", so drop it from this "outside cash flow"
+                        // card (a zero channel is filtered out) to avoid double-showing.
+                        creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
                         investments = uiState.currentMonthInvestment,
                         transfers = uiState.currentMonthTransfer,
                         isBalanceHidden = uiState.isBalanceHidden,

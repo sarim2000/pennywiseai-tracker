@@ -19,4 +19,7 @@ object FreeTierLimits {
 
     /** Max rows a free user can export to CSV per calendar month. Pro = unlimited. */
     const val MAX_CSV_EXPORT_ROWS_PER_MONTH = 100
+
+    /** Max recurring transaction templates a free user can create. Pro = unlimited. (#706) */
+    const val MAX_RECURRING_TEMPLATES = 1
 }

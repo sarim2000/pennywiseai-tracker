@@ -626,6 +626,8 @@ class BackupImporter @Inject constructor(
             t.frequency,
             t.dayOfMonth,
             t.dayOfWeek,
+            t.bankName,
+            t.accountLast4,
             profileId
         ).joinToString("|")
 

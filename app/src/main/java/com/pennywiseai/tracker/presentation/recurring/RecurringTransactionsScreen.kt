@@ -149,7 +149,6 @@ private fun RecurringFrequency.label(): String = when (this) {
     RecurringFrequency.DAILY -> "Daily"
     RecurringFrequency.WEEKLY -> "Weekly"
     RecurringFrequency.MONTHLY -> "Monthly"
-    RecurringFrequency.YEARLY -> "Yearly"
 }
 
 @Composable
@@ -371,12 +370,7 @@ private fun RecurringEditorDialog(
                         expanded = freqExpanded,
                         onDismissRequest = { freqExpanded = false }
                     ) {
-                        // Yearly needs a month anchor we don't model yet, so it's
-                        // left out of the picker for now (the enum stays for backup
-                        // compatibility). (#706 Greptile)
-                        RecurringFrequency.entries
-                            .filter { it != RecurringFrequency.YEARLY }
-                            .forEach { freq ->
+                        RecurringFrequency.entries.forEach { freq ->
                             DropdownMenuItem(
                                 text = { Text(freq.label()) },
                                 onClick = {
@@ -390,7 +384,7 @@ private fun RecurringEditorDialog(
 
                 // Day selector — depends on cadence
                 when (state.frequency) {
-                    RecurringFrequency.MONTHLY, RecurringFrequency.YEARLY -> {
+                    RecurringFrequency.MONTHLY -> {
                         OutlinedTextField(
                             value = state.dayOfMonth?.toString() ?: "",
                             onValueChange = { input ->

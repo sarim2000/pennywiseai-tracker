@@ -85,14 +85,9 @@ class RecurringTransactionsViewModel @Inject constructor(
                 // Only recompute the schedule when a cadence field actually changed;
                 // a metadata-only edit (amount, merchant, category, note, active) must
                 // keep the existing next due date rather than jumping it to today. (#706 Greptile)
-                // Yearly is never recomputed here: it's not offered in the picker, its
-                // month lives only in the existing nextDueDate, and resolveNextDueDate
-                // (today-anchored) would move it to the wrong month. Preserve it and
-                // let nextDueAfter advance it correctly. (Greptile)
-                val scheduleChanged = form.frequency != RecurringFrequency.YEARLY &&
-                    (existing.frequency != form.frequency ||
-                        existing.dayOfMonth != form.dayOfMonth ||
-                        existing.dayOfWeek != form.dayOfWeek)
+                val scheduleChanged = existing.frequency != form.frequency ||
+                    existing.dayOfMonth != form.dayOfMonth ||
+                    existing.dayOfWeek != form.dayOfWeek
                 val nextDue = if (scheduleChanged) resolveNextDueDate(form) else existing.nextDueDate
                 repository.update(
                     existing.copy(
@@ -138,7 +133,7 @@ class RecurringTransactionsViewModel @Inject constructor(
                 while (d.dayOfWeek.value != target) d = d.plusDays(1)
                 d
             }
-            RecurringFrequency.MONTHLY, RecurringFrequency.YEARLY -> {
+            RecurringFrequency.MONTHLY -> {
                 val dom = (form.dayOfMonth ?: today.dayOfMonth)
                     .coerceIn(1, today.lengthOfMonth())
                 val candidate = today.withDayOfMonth(dom)

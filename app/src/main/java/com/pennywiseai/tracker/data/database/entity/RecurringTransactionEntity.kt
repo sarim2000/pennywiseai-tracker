@@ -51,7 +51,7 @@ data class RecurringTransactionEntity(
     @ColumnInfo(name = "frequency", defaultValue = "MONTHLY")
     val frequency: RecurringFrequency = RecurringFrequency.MONTHLY,
 
-    /** Day-of-month (1..31) the charge lands on, for MONTHLY / YEARLY. */
+    /** Day-of-month (1..31) the charge lands on, for MONTHLY. */
     @ColumnInfo(name = "day_of_month")
     val dayOfMonth: Int? = null,
 
@@ -106,10 +106,6 @@ data class RecurringTransactionEntity(
             val ym = java.time.YearMonth.from(from).plusMonths(1)
             ym.atDay((dayOfMonth ?: from.dayOfMonth).coerceIn(1, ym.lengthOfMonth()))
         }
-        RecurringFrequency.YEARLY -> {
-            val ym = java.time.YearMonth.from(from).plusYears(1)
-            ym.atDay((dayOfMonth ?: from.dayOfMonth).coerceIn(1, ym.lengthOfMonth()))
-        }
     }
 }
 
@@ -122,19 +118,20 @@ data class RecurringTransactionEntity(
 enum class RecurringFrequency {
     DAILY,
     WEEKLY,
-    MONTHLY,
-    YEARLY;
+    MONTHLY;
+
+    // Note: a yearly cadence needs a month anchor we don't model yet, so it's
+    // intentionally not offered. Add it back with a month field when supported.
 
     /**
-     * The next occurrence strictly after [from]. Month/year cadences use real
-     * calendar arithmetic (`plusMonths` / `plusYears` already clamp to the last
-     * valid day of a shorter target month, so a day-31 template lands on Feb 28
-     * / 29 rather than throwing).
+     * The next occurrence strictly after [from]. The monthly cadence uses real
+     * calendar arithmetic (`plusMonths` already clamps to the last valid day of
+     * a shorter target month, so a day-31 template lands on Feb 28/29 rather
+     * than throwing). [nextDueAfter] re-anchors monthly to dayOfMonth.
      */
     fun advance(from: LocalDate): LocalDate = when (this) {
         DAILY -> from.plusDays(1)
         WEEKLY -> from.plusWeeks(1)
         MONTHLY -> from.plusMonths(1)
-        YEARLY -> from.plusYears(1)
     }
 }

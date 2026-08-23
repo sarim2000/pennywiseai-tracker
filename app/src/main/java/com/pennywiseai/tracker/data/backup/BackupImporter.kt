@@ -268,8 +268,10 @@ class BackupImporter @Inject constructor(
                 // profile_id is remapped so materialized transactions land under
                 // the right local profile. (Greptile)
                 backup.database.recurringTransactions.insertEachCounting({ skippedRows++ }) { recurring ->
+                    // Fall back to the default Personal profile (1) when the source
+                    // profile can't be mapped, rather than keeping a stale/invalid id.
                     database.recurringTransactionDao().insert(
-                        recurring.copy(profileId = resolveProfileId(recurring.profileId) ?: recurring.profileId)
+                        recurring.copy(profileId = resolveProfileId(recurring.profileId) ?: 1L)
                     )
                 }
 
@@ -636,7 +638,9 @@ class BackupImporter @Inject constructor(
             .toMutableSet()
 
         recurring.insertEachCounting(onSkip) { template ->
-            val mappedProfileId = resolveProfileId(template.profileId) ?: template.profileId
+            // Fall back to the default Personal profile (1) when unmapped, so a
+            // template never restores under a stale/invalid profile id.
+            val mappedProfileId = resolveProfileId(template.profileId) ?: 1L
             val key = keyOf(template, mappedProfileId)
             if (seenKeys.add(key)) {
                 database.recurringTransactionDao().insert(template.copy(id = 0, profileId = mappedProfileId))

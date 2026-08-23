@@ -51,11 +51,4 @@ class RecurringTransactionEntityTest {
         val t = template(RecurringFrequency.DAILY)
         assertEquals(LocalDate.of(2026, 3, 1), t.nextDueAfter(LocalDate.of(2026, 2, 28)))
     }
-
-    @Test
-    fun `yearly on Feb 29 clamps to Feb 28 in a non-leap year`() {
-        val t = template(RecurringFrequency.YEARLY, dayOfMonth = 29)
-        // 2028 is a leap year; the next year is not.
-        assertEquals(LocalDate.of(2029, 2, 28), t.nextDueAfter(LocalDate.of(2028, 2, 29)))
-    }
 }

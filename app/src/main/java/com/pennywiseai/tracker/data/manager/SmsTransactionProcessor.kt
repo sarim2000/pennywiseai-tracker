@@ -2,8 +2,10 @@ package com.pennywiseai.tracker.data.manager
 
 import android.content.Context
 import android.util.Log
+import androidx.room.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
@@ -40,7 +42,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val database: PennyWiseDatabase
 ) {
     companion object {
         private const val TAG = "SmsTransactionProcessor"
@@ -160,19 +163,31 @@ class SmsTransactionProcessor @Inject constructor(
                 entityWithRules.merchantName,
                 entityWithRules.amount
             )
-
             val finalEntity = if (matchedSubscription != null) {
-                Log.d(TAG, "Transaction matched to active subscription: ${matchedSubscription.merchantName}")
-                subscriptionRepository.updateNextPaymentDateAfterCharge(
-                    matchedSubscription.id,
-                    entityWithRules.dateTime.toLocalDate()
-                )
+                Log.d(TAG, "Matched subscription ${matchedSubscription.id}")
                 entityWithRules.copy(isRecurring = true)
             } else {
                 entityWithRules
             }
 
-            val rowId = transactionRepository.insertTransaction(finalEntity)
+            val rowId = if (matchedSubscription != null) {
+                // Atomicity: advance the billing cycle only if the charge row commits.
+                // Insert returning -1L (duplicate hash) or a throw must leave
+                // next_payment_date untouched. Reentrant: nested repository-level
+                // withTransaction calls join this outer transaction.
+                database.withTransaction {
+                    val id = transactionRepository.insertTransaction(finalEntity)
+                    if (id != -1L) {
+                        subscriptionRepository.updateNextPaymentDateAfterCharge(
+                            matchedSubscription.id,
+                            finalEntity.dateTime.toLocalDate()
+                        )
+                    }
+                    id
+                }
+            } else {
+                transactionRepository.insertTransaction(finalEntity)
+            }
             if (rowId != -1L) {
                 Log.d(TAG, "Saved new transaction with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
 

@@ -281,8 +281,12 @@ object ParseViews {
                                     parsed.currency === 'INR' || !parsed.currency
                                         ? '₹' + parsed.amount.toLocaleString('en-IN')
                                         : parsed.currency + ' ' + parsed.amount.toLocaleString());
-                                addInfoRow('Type:', parsed.type);
-                                addInfoRow('Merchant:', parsed.merchant);
+                                if (parsed.type) {
+                                    addInfoRow('Type:', parsed.type);
+                                }
+                                if (parsed.merchant) {
+                                    addInfoRow('Merchant:', parsed.merchant);
+                                }
                             }
 
                             function hideReportModal() {
@@ -317,6 +321,21 @@ object ParseViews {
                                     userNote: userNote || null
                                 };
 
+                                // Same wrapper structure the old innerHTML strings
+                                // produced, rebuilt as text nodes (SEC-001).
+                                function showStatus(text, success) {
+                                    const status = document.getElementById('reportStatus');
+                                    status.textContent = '';
+                                    const el = document.createElement('div');
+                                    if (success) {
+                                        el.className = 'success-msg';
+                                    } else {
+                                        el.style.color = '#ef4444';
+                                    }
+                                    el.textContent = text;
+                                    status.appendChild(el);
+                                }
+
                                 try {
                                     const response = await fetch('/api/report', {
                                         method: 'POST',
@@ -327,16 +346,13 @@ object ParseViews {
                                     const result = await response.json();
 
                                     if (result.success) {
-                                        document.getElementById('reportStatus').textContent =
-                                            '<div class="success-msg">Report submitted successfully! Thank you for your feedback.</div>';
+                                        showStatus('Report submitted successfully! Thank you for your feedback.', true);
                                         setTimeout(hideReportModal, 2000);
                                     } else {
-                                        document.getElementById('reportStatus').textContent =
-                                            '<div style="color: #ef4444;">Error: ' + result.message + '</div>';
+                                        showStatus('Error: ' + result.message, false);
                                     }
                                 } catch (error) {
-                                    document.getElementById('reportStatus').textContent =
-                                        '<div style="color: #ef4444;">Failed to submit report. Please try again.</div>';
+                                    showStatus('Failed to submit report. Please try again.', false);
                                 }
                             }
                         """ }

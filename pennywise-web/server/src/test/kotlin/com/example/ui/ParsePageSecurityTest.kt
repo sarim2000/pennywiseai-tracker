@@ -47,6 +47,10 @@ class ParsePageSecurityTest {
             html.contains("parsedDetails.textContent"),
             "dynamic fields must be written via textContent"
         )
+        assertTrue(
+            html.contains("if (parsed.type)") && html.contains("if (parsed.merchant)"),
+            "Type/Merchant rows must be guarded against absent fields"
+        )
     }
 
     @Test
@@ -58,7 +62,7 @@ class ParsePageSecurityTest {
             "server-controlled result.message interpolated into innerHTML"
         )
         assertTrue(
-            html.contains("reportStatus').textContent"),
+            html.contains("function showStatus") && html.contains("el.textContent = text"),
             "status messages must be written via textContent"
         )
     }

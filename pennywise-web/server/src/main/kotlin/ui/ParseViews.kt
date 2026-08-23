@@ -234,35 +234,55 @@ object ParseViews {
                                 document.getElementById('reportModal').classList.add('show');
 
                                 // Display parsed data in the modal
-                                const parsedResultStr = document.getElementById('parsed_result').value;
                                 const parsedDetails = document.getElementById('parsedDetails');
 
-                                if (parsedResultStr) {
-                                    try {
-                                        const parsed = JSON.parse(parsedResultStr);
-                                        let html = '';
-
-                                        if (parsed.amount !== undefined) {
-                                            html += '<div class="info-row"><span class="info-label">Amount:</span><span class="info-value">' + (parsed.currency === 'INR' || !parsed.currency ? '₹' + parsed.amount.toLocaleString('en-IN') : parsed.currency + ' ' + parsed.amount.toLocaleString()) + '</span></div>';
-                                        }
-                                        if (parsed.type) {
-                                            html += '<div class="info-row"><span class="info-label">Type:</span><span class="info-value">' + parsed.type + '</span></div>';
-                                        }
-                                        if (parsed.merchant) {
-                                            html += '<div class="info-row"><span class="info-label">Merchant:</span><span class="info-value">' + parsed.merchant + '</span></div>';
-                                        }
-
-                                        if (html === '') {
-                                            html = '<p class="no-transaction">No transaction details detected</p>';
-                                        }
-
-                                        parsedDetails.innerHTML = html;
-                                    } catch (e) {
-                                        parsedDetails.innerHTML = '<p class="no-transaction">No transaction detected</p>';
-                                    }
-                                } else {
-                                    parsedDetails.innerHTML = '<p class="no-transaction">No transaction detected</p>';
+                                const raw = document.getElementById('parsed_result').value;
+                                parsedDetails.textContent = '';
+                                if (!raw) {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'No transaction details detected';
+                                    parsedDetails.appendChild(p);
+                                    return;
                                 }
+                                let parsed;
+                                try {
+                                    parsed = JSON.parse(raw);
+                                } catch (e) {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'Error parsing transaction details';
+                                    parsedDetails.appendChild(p);
+                                    return;
+                                }
+                                if (!parsed || typeof parsed.amount !== 'number') {
+                                    const p = document.createElement('p');
+                                    p.className = 'no-transaction';
+                                    p.textContent = 'No transaction details detected';
+                                    parsedDetails.appendChild(p);
+                                    return;
+                                }
+
+                                function addInfoRow(label, value) {
+                                    const row = document.createElement('div');
+                                    row.className = 'info-row';
+                                    const labelEl = document.createElement('span');
+                                    labelEl.className = 'info-label';
+                                    labelEl.textContent = label;
+                                    const valueEl = document.createElement('span');
+                                    valueEl.className = 'info-value';
+                                    valueEl.textContent = value;
+                                    row.appendChild(labelEl);
+                                    row.appendChild(valueEl);
+                                    parsedDetails.appendChild(row);
+                                }
+
+                                addInfoRow('Amount:',
+                                    parsed.currency === 'INR' || !parsed.currency
+                                        ? '₹' + parsed.amount.toLocaleString('en-IN')
+                                        : parsed.currency + ' ' + parsed.amount.toLocaleString());
+                                addInfoRow('Type:', parsed.type);
+                                addInfoRow('Merchant:', parsed.merchant);
                             }
 
                             function hideReportModal() {
@@ -307,15 +327,15 @@ object ParseViews {
                                     const result = await response.json();
 
                                     if (result.success) {
-                                        document.getElementById('reportStatus').innerHTML =
+                                        document.getElementById('reportStatus').textContent =
                                             '<div class="success-msg">Report submitted successfully! Thank you for your feedback.</div>';
                                         setTimeout(hideReportModal, 2000);
                                     } else {
-                                        document.getElementById('reportStatus').innerHTML =
+                                        document.getElementById('reportStatus').textContent =
                                             '<div style="color: #ef4444;">Error: ' + result.message + '</div>';
                                     }
                                 } catch (error) {
-                                    document.getElementById('reportStatus').innerHTML =
+                                    document.getElementById('reportStatus').textContent =
                                         '<div style="color: #ef4444;">Failed to submit report. Please try again.</div>';
                                 }
                             }

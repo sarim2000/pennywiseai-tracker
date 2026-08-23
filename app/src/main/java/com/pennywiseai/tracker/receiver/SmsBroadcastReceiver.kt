@@ -42,6 +42,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
         const val CHANNEL_NAME = "Transaction Notifications"
+
+        // Category actions occupy slots 0..1; picker reserves slot 9.
+        // Codes are unique per (transactionId, slot): txId*10+slot cannot alias across
+        // transactions because take(2) bounds slot < 10. This numbering is used ONLY by
+        // ACTION_CHANGE_CATEGORY broadcasts — one filterEquals space; activity intents
+        // (content → MainActivity, picker → QuickCategoryPickerActivity) are separate
+        // components and keep their own lanes.
+        private const val CATEGORY_SLOT_BASE = 10
+        private const val PICKER_SLOT = 9
+
+        internal fun categoryRequestCode(transactionId: Long, slotIndex: Int): Int =
+            (transactionId * CATEGORY_SLOT_BASE + slotIndex).toInt()
+
+        internal fun pickerRequestCode(transactionId: Long): Int =
+            (transactionId * CATEGORY_SLOT_BASE + PICKER_SLOT).toInt()
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -238,7 +253,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
                 val categoryPendingIntent = PendingIntent.getBroadcast(
                     context,
-                    transactionId.toInt() + index + 1, // Unique request code
+                    categoryRequestCode(transactionId, index),
                     categoryIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
@@ -259,7 +274,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }
             val pickerPendingIntent = PendingIntent.getActivity(
                 context,
-                transactionId.toInt() + 100, // distinct request-code lane
+                pickerRequestCode(transactionId),
                 pickerIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )

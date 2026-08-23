@@ -103,15 +103,17 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 // identically. Refunds shrink categoryAmounts (floored at zero) and
                 // are excluded from totalIncome; Extra budget bumps the displayed
                 // category budget via categoryLimitBoosts and stays in income.
-                val convertSplit: suspend (String, BigDecimal) -> BigDecimal =
+                // Null = no rate for this pair; the aggregator leaves the row out
+                // rather than counting a face-value foreign amount (#670).
+                val convertSplit: suspend (String, BigDecimal) -> BigDecimal? =
                     { fromCurrency, amount ->
-                        currencyConversionService.convertAmount(amount, fromCurrency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                     }
                 val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
                     transactions = raw.allTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                     }
                 )
 
@@ -127,9 +129,11 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
                         tx.budgetCategory != null
                     ) continue
-                    totalIncome += currencyConversionService.convertAmount(
+                    // Skip unconvertible income so it doesn't inflate netSavings
+                    // at face value (#670).
+                    totalIncome += currencyConversionService.convertAmountOrNull(
                         tx.amount, tx.currency, displayCurrency
-                    )
+                    ) ?: continue
                 }
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
@@ -197,7 +201,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     transactions = raw.prevCycleTransactions,
                     convertSplit = convertSplit,
                     convertIncome = { tx ->
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, displayCurrency)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                     }
                 )
 
@@ -224,9 +228,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
                         tx.budgetCategory != null
                     ) continue
-                    prevIncome += currencyConversionService.convertAmount(
+                    prevIncome += currencyConversionService.convertAmountOrNull(
                         tx.amount, tx.currency, displayCurrency
-                    )
+                    ) ?: continue
                 }
 
                 val prevSavings = prevIncome - prevLimitSpent

@@ -348,13 +348,14 @@ class TransactionDetailViewModel @Inject constructor(
     private suspend fun calculateConvertedAmount(transaction: TransactionEntity) {
         val primaryCurrency = _primaryCurrency.value
         if (transaction.currency.isNotEmpty() && !transaction.currency.equals(primaryCurrency, ignoreCase = true)) {
-            // Convert the amount to the primary currency
-            val converted = currencyConversionService.convertAmount(
+            // Convert to the primary currency; null when no rate exists, so the
+            // detail screen shows no "≈" line rather than a misleading face
+            // value (#670).
+            _convertedAmount.value = currencyConversionService.convertAmountOrNull(
                 amount = transaction.amount,
                 fromCurrency = transaction.currency,
                 toCurrency = primaryCurrency
             )
-            _convertedAmount.value = converted
         } else {
             // No conversion needed if currencies are the same
             _convertedAmount.value = null

@@ -89,23 +89,25 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // transactions are opted out of every spend figure by the user, so they
             // must not count toward the widget's spend total either.
             val nonLoan = allTransactions.filter { it.loanId == null && !it.excludedFromAnalytics }
-            suspend fun inTarget(tx: com.pennywiseai.tracker.data.database.entity.TransactionEntity): BigDecimal =
+            // Null = no rate for this pair; the spend folds skip it rather than
+            // counting a face-value foreign amount (#670).
+            suspend fun inTarget(tx: com.pennywiseai.tracker.data.database.entity.TransactionEntity): BigDecimal? =
                 if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
-                    currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency)
+                    currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, targetCurrency)
                 } else {
                     tx.amount
                 }
 
             val grossSpent = nonLoan
                 .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
-                .fold(BigDecimal.ZERO) { acc, tx -> acc + inTarget(tx) }
+                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
             // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
             // shrinks the spend total (floored at zero) — matching the Home card and
             // the Transactions page, which were already net of refunds.
             val refundTotal = nonLoan
                 .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
-                .fold(BigDecimal.ZERO) { acc, tx -> acc + inTarget(tx) }
+                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
             val totalSpent = (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
 
@@ -114,11 +116,15 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             val recentItems = allTransactions
                 .take(MAX_ITEMS)
                 .map { tx ->
-                    val amount = if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
-                        currencyConversionService.convertAmount(tx.amount, tx.currency, targetCurrency)
+                    // If a foreign txn has no rate, show it in its native currency
+                    // rather than mislabeling a face value as targetCurrency (#670).
+                    val converted = if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, targetCurrency)
                     } else {
                         tx.amount
                     }
+                    val amount = converted ?: tx.amount
+                    val itemCurrency = if (converted != null) targetCurrency else tx.currency
                     val title = tx.merchantName.takeIf { it.isNotBlank() }
                         ?: tx.description?.takeIf { it.isNotBlank() }
                         ?: "Transaction"
@@ -132,7 +138,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                         title = title,
                         subtitle = subtitle,
                         amount = amount,
-                        currency = targetCurrency,
+                        currency = itemCurrency,
                         transactionType = tx.transactionType
                     )
                 }

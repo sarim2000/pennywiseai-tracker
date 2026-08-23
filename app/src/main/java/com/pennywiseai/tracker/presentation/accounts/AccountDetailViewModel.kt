@@ -97,11 +97,12 @@ class AccountDetailViewModel @Inject constructor(
 
                 filteredTransactions.forEach { transaction ->
                     val convertedAmount = if (transaction.currency != targetCurrency) {
-                        currencyConversionService.convertAmount(
+                        // Skip unconvertible rather than counting face value (#670).
+                        currencyConversionService.convertAmountOrNull(
                             amount = transaction.amount,
                             fromCurrency = transaction.currency,
                             toCurrency = targetCurrency
-                        ) ?: transaction.amount
+                        ) ?: return@forEach
                     } else {
                         transaction.amount
                     }

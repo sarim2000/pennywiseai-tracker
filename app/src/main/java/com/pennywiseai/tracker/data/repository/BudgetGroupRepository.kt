@@ -1094,8 +1094,8 @@ class BudgetGroupRepository @Inject constructor(
  */
 suspend fun aggregateBudgetCategorySpending(
     transactions: List<TransactionWithSplits>,
-    convertSplit: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal,
-    convertIncome: suspend (TransactionEntity) -> BigDecimal
+    convertSplit: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?,
+    convertIncome: suspend (TransactionEntity) -> BigDecimal?
 ): CategoryAggregation {
     val categoryAmounts = mutableMapOf<String, BigDecimal>()
     val typeAmounts = mutableMapOf<String, BigDecimal>()
@@ -1107,13 +1107,15 @@ suspend fun aggregateBudgetCategorySpending(
             // Route the whole amount to its type bucket, ignoring category —
             // so it counts only toward a type-tracking budget and never
             // contributes to a category (Spending) budget.
-            val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount)
+            // Null = the converter has no rate for this pair; leave the row out
+            // instead of counting a face-value foreign amount (#670).
+            val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount) ?: continue
             typeAmounts[type.name] = (typeAmounts[type.name] ?: BigDecimal.ZERO) + converted
             continue
         }
         for ((category, amount) in txWithSplits.getAmountByCategory()) {
             val categoryName = category.ifEmpty { "Others" }
-            val converted = convertSplit(fromCurrency, amount)
+            val converted = convertSplit(fromCurrency, amount) ?: continue
             categoryAmounts[categoryName] =
                 (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
         }
@@ -1125,7 +1127,7 @@ suspend fun aggregateBudgetCategorySpending(
         if (tx.transactionType != TransactionType.INCOME) continue
         val category = tx.budgetCategory ?: continue
         val impact = tx.budgetImpactType ?: continue
-        val amount = convertIncome(tx)
+        val amount = convertIncome(tx) ?: continue
         when (impact) {
             BudgetImpactType.DEDUCT_SPENT -> {
                 val current = categoryAmounts[category] ?: BigDecimal.ZERO

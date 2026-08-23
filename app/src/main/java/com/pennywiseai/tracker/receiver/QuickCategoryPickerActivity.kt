@@ -24,6 +24,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Translucent activity launched from the txn-alert notification's
@@ -50,6 +51,11 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
+
+    // Serializes tag writes so rapid add/remove edits apply in order — otherwise
+    // an earlier replace-all could finish after a later one and leave stale tags
+    // (#710 Greptile). kotlinx Mutex grants in suspension order (FIFO).
+    private val tagWriteMutex = kotlinx.coroutines.sync.Mutex()
 
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.
@@ -148,9 +154,12 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                 initialTags = initialTags,
                 onTagsChanged = { newTags ->
                     // Persist immediately so tagging works even if the user
-                    // dismisses without picking a category (#696).
+                    // dismisses without picking a category (#696). Serialize under
+                    // the mutex so concurrent edits apply in order (#710).
                     appScope.launch {
-                        tagRepository.setTagsForTransaction(txn.id, newTags)
+                        tagWriteMutex.withLock {
+                            tagRepository.setTagsForTransaction(txn.id, newTags)
+                        }
                     }
                 }
             )

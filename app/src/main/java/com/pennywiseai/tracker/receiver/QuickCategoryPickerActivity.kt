@@ -24,7 +24,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Translucent activity launched from the txn-alert notification's
@@ -56,6 +55,23 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.
     private val currentArgs = mutableStateOf<PickerArgs?>(null)
+
+    // Latest (transactionId, tags) the user selected in the sheet. Written once
+    // in onPause rather than on every edit, so concurrent replace-all writes can
+    // never leave a stale set. (#710)
+    @Volatile private var pendingTagWrite: Pair<Long, List<String>>? = null
+
+    private fun flushPendingTags() {
+        val (txnId, tags) = pendingTagWrite ?: return
+        pendingTagWrite = null
+        appScope.launch { tagRepository.setTagsForTransaction(txnId, tags) }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Covers category-pick (finish), dismiss (finish), and backgrounding.
+        flushPendingTags()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -149,14 +165,12 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                 tagSuggestions = tagSuggestions,
                 initialTags = initialTags,
                 onTagsChanged = { newTags ->
-                    // Persist immediately so tagging works even if the user
-                    // dismisses without picking a category (#696). Serialize under
-                    // the mutex so concurrent edits apply in order (#710).
-                    appScope.launch {
-                        tagWriteMutex.withLock {
-                            tagRepository.setTagsForTransaction(txn.id, newTags)
-                        }
-                    }
+                    // Record the latest selection only; the actual write happens
+                    // once in onPause (covers category-pick, dismiss, and
+                    // backgrounding). Writing on every edit raced — an earlier
+                    // replace-all could land after a later one and persist a stale
+                    // set. One write of the final set can't race. (#696 / #710)
+                    pendingTagWrite = txn.id to newTags
                 }
             )
         }
@@ -178,11 +192,5 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         private const val TAG = "QuickCategoryPicker"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
-
-        // Static so tag writes serialize even across an activity recreation
-        // (config change / process restart) — the app-scoped write from a
-        // previous instance can otherwise still race the new one and leave
-        // stale tags. kotlinx Mutex grants in suspension order (FIFO). (#710)
-        private val tagWriteMutex = kotlinx.coroutines.sync.Mutex()
     }
 }

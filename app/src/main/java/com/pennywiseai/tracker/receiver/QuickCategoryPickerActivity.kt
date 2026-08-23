@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.di.ApplicationScope
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
@@ -44,6 +45,7 @@ class QuickCategoryPickerActivity : ComponentActivity() {
 
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var categoryRepository: CategoryRepository
+    @Inject lateinit var tagRepository: TagRepository
 
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
@@ -89,14 +91,20 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         var transactionLoaded by remember(args.transactionId) { mutableStateOf(false) }
         var categories by remember { mutableStateOf<List<CategoryEntity>>(emptyList()) }
         var categoriesLoaded by remember { mutableStateOf(false) }
+        // Tags for the inline tag section (#696): the txn's current tags seed
+        // the field, and every known tag name feeds autocomplete.
+        var initialTags by remember(args.transactionId) { mutableStateOf<List<String>>(emptyList()) }
+        var tagSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(args.transactionId) {
             transaction = transactionRepository.getTransactionById(args.transactionId)
             transactionLoaded = true
+            initialTags = tagRepository.getTagNamesForTransaction(args.transactionId)
         }
         LaunchedEffect(Unit) {
             categories = categoryRepository.getAllCategories().first()
             categoriesLoaded = true
+            tagSuggestions = tagRepository.observeAllTagNames().first()
         }
 
         // Finish silently when the load resolves to nothing renderable.
@@ -129,7 +137,16 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                     }
                     finish()
                 },
-                onDismiss = { finish() }
+                onDismiss = { finish() },
+                tagSuggestions = tagSuggestions,
+                initialTags = initialTags,
+                onTagsChanged = { newTags ->
+                    // Persist immediately so tagging works even if the user
+                    // dismisses without picking a category (#696).
+                    appScope.launch {
+                        tagRepository.setTagsForTransaction(txn.id, newTags)
+                    }
+                }
             )
         }
     }

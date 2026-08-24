@@ -1,5 +1,5 @@
 {
-  "totalBanks": 144,
+  "totalBanks": 145,
   "totalCountries": 23,
   "countries": [
     {
@@ -67,20 +67,20 @@
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
     },
     {
+      "country": "Ethiopia",
+      "flag": "🇪🇹",
+      "currency": "ETB",
+      "symbol": "ብር",
+      "bankCount": 5,
+      "banks": ["Awash Bank", "Commercial Bank of Ethiopia", "Dashen Bank", "Telebirr", "Zemen Bank"]
+    },
+    {
       "country": "Nigeria",
       "flag": "🇳🇬",
       "currency": "NGN",
       "symbol": "₦",
       "bankCount": 5,
       "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Opay", "Zenith Bank"]
-    },
-    {
-      "country": "Ethiopia",
-      "flag": "🇪🇹",
-      "currency": "ETB",
-      "symbol": "ብር",
-      "bankCount": 4,
-      "banks": ["Commercial Bank of Ethiopia", "Dashen Bank", "Telebirr", "Zemen Bank"]
     },
     {
       "country": "Mozambique",

@@ -66,6 +66,17 @@
       "reference": null,
       "balance": null
     },
+    "Awash Bank": {
+      "sender": "Awash Bank",
+      "message": "Dear Customer, ETB 200 has been credited to your account from JOHN DOE on: 2026-08-09 09:33:35 with Txn ID: 000000000000001. Your available balance is now ETB 12,269.09. Receipt Link: https://example.com/r. Contact center 8980.",
+      "currency": "ETB",
+      "amount": "200.00",
+      "type": "INCOME",
+      "merchant": "JOHN DOE",
+      "accountLast4": null,
+      "reference": "000000000000001",
+      "balance": "12269.09"
+    },
     "Axis Bank": {
       "sender": "JD-AXISBK-S",
       "message": "INR 2000.00 debited from A/c no. XX589034 on AXIS BANK L 04-11-2025 16:06:39 IST. Avl bal: INR 98919.81. Not you? SMS BLOCKCARD XX0192 to +919951860002 - Axis Bank",

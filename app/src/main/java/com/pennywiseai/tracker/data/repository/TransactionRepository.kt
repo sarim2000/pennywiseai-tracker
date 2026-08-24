@@ -145,6 +145,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
+    /** A soft-deleted transaction from the same raw SMS, if any (#703). */
+    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity? =
+        transactionDao.getDeletedBySms(smsBody, smsSender)
+
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999
      * bind-variable limit (Room does not auto-chunk `IN (:list)`), so a large

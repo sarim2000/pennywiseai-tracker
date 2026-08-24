@@ -169,6 +169,24 @@ interface TransactionDao {
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
 
     /**
+     * A SOFT-DELETED transaction from the exact same SMS (raw sender + body).
+     * Used to keep deletion durable across app updates: the transaction_hash
+     * includes the parsed amount, so a parser change can shift it and let a
+     * re-scan re-insert a previously-deleted row. The raw SMS never changes, so
+     * matching on it lets the scanner skip resurrecting a deleted txn even when
+     * its hash no longer matches. (#703)
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 1 AND sms_body = :smsBody
+          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
+        LIMIT 1
+        """
+    )
+    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity?
+
+    /**
      * The subset of [hashes] that already exist (including soft-deleted rows).
      * One query for the whole batch — used by CSV import to dedup a whole file
      * without issuing a per-row lookup.

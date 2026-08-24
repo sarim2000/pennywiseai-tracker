@@ -38,7 +38,9 @@ fun Application.configureRouting() {
             PluxeeBankParser(),
             // Sri Lanka (#658) — the web tester advertises NDB samples, so the
             // /htmx/parse registry must be able to parse them too.
-            NDBBankParser()
+            NDBBankParser(),
+            // ZamZam Bank (Ethiopia) (#720)
+            ZamZamBankParser()
         )
     )
 

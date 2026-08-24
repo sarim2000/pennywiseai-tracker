@@ -276,4 +276,18 @@ interface AccountBalanceDao {
     /** Distinct account numbers that have balance rows for a given bank. */
     @Query("SELECT DISTINCT account_last4 FROM account_balances WHERE bank_name = :bankName")
     suspend fun getAccountLast4sForBank(bankName: String): List<String>
+
+    /**
+     * Count of balance rows still linked to a transaction (`transaction_id` non-null).
+     * A GPay phantom's residue rows were never linked (they were inserted with a null
+     * transaction_id on a hash-conflict IGNORE), so a positive count means this account
+     * carries balance history tied to real — possibly only soft-deleted — transactions
+     * and must NOT be treated as a phantom (#456).
+     */
+    @Query("""
+        SELECT COUNT(*) FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+        AND transaction_id IS NOT NULL
+    """)
+    suspend fun countTransactionLinkedBalances(bankName: String, accountLast4: String): Int
 }

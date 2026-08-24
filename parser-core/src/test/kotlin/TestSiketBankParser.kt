@@ -1,4 +1,5 @@
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.parser.core.bank.SiketBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
@@ -62,6 +63,8 @@ class SiketBankParserTest {
         val handleChecks = listOf(
             "Siket Bank" to true,
             "SIKETBANK" to true,
+            "SIKET" to true,
+            "AB-SIKET-S" to true,
             "DASHENBANK" to false,
             "UNKNOWN" to false
         )
@@ -71,6 +74,18 @@ class SiketBankParserTest {
             testCases = testCases,
             handleCases = handleChecks,
             suiteName = "Siket Bank Parser"
+        )
+    }
+
+    @Test
+    fun `factory routes Siket senders to SiketBankParser`() {
+        Assertions.assertTrue(
+            BankParserFactory.getParser("Siket Bank") is SiketBankParser,
+            "sender 'Siket Bank' should route to SiketBankParser"
+        )
+        Assertions.assertTrue(
+            BankParserFactory.getParser("AB-SIKET-S") is SiketBankParser,
+            "DLT sender 'AB-SIKET-S' should route to SiketBankParser"
         )
     }
 }

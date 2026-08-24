@@ -257,4 +257,23 @@ interface AccountBalanceDao {
         AND sms_source IS NOT NULL
     """)
     suspend fun countSmsSourcedBalances(bankName: String, accountLast4: String): Int
+
+    /**
+     * Count of balance rows for an account that represent an *independent* balance
+     * signal — anything not derived from a transaction (a balance-only SMS, a MANUAL
+     * override, an OPENING row, a card link). A phantom account left behind by GPay
+     * dedup has only orphaned `TRANSACTION`-source rows, so a zero here (combined with
+     * zero surviving transactions) marks it safe to delete without touching a real
+     * balance-tracked account (#456).
+     */
+    @Query("""
+        SELECT COUNT(*) FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+        AND (source_type IS NULL OR source_type != 'TRANSACTION')
+    """)
+    suspend fun countIndependentBalances(bankName: String, accountLast4: String): Int
+
+    /** Distinct account numbers that have balance rows for a given bank. */
+    @Query("SELECT DISTINCT account_last4 FROM account_balances WHERE bank_name = :bankName")
+    suspend fun getAccountLast4sForBank(bankName: String): List<String>
 }

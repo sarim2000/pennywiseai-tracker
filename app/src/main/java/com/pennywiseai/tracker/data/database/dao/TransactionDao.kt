@@ -148,6 +148,12 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
 
+    // Non-deleted transactions still attributed to a bank + account. Used to detect a
+    // phantom account left behind after GPay dedup — one with balance rows but no
+    // surviving transactions (#456).
+    @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0")
+    suspend fun countActiveTransactionsForAccount(bankName: String, accountLast4: String): Int
+
     @Query("UPDATE transactions SET profile_id = :profileId, updated_at = :updatedAt WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun setProfileForAccountTransactions(bankName: String, accountLast4: String, profileId: Long, updatedAt: LocalDateTime): Int
 

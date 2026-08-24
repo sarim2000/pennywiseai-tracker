@@ -161,6 +161,14 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4)
     }
 
+    suspend fun countIndependentBalances(bankName: String, accountLast4: String): Int {
+        return accountBalanceDao.countIndependentBalances(bankName, accountLast4)
+    }
+
+    suspend fun getAccountLast4sForBank(bankName: String): List<String> {
+        return accountBalanceDao.getAccountLast4sForBank(bankName)
+    }
+
     fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getBalancesFromDate(startDate)
     }

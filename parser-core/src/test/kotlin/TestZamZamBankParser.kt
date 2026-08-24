@@ -1,4 +1,5 @@
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.parser.core.bank.ZamZamBankParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
@@ -59,6 +60,18 @@ class ZamZamBankParserTest {
             testCases = testCases,
             handleCases = handleChecks,
             suiteName = "ZamZam Bank Parser"
+        )
+    }
+
+    @Test
+    fun `factory routes ZamZam senders to ZamZamBankParser`() {
+        Assertions.assertTrue(
+            BankParserFactory.getParser("ZamZam Bank") is ZamZamBankParser,
+            "sender 'ZamZam Bank' should route to ZamZamBankParser"
+        )
+        Assertions.assertTrue(
+            BankParserFactory.getParser("AB-ZAMZAM-S") is ZamZamBankParser,
+            "DLT sender 'AB-ZAMZAM-S' should route to ZamZamBankParser"
         )
     }
 }

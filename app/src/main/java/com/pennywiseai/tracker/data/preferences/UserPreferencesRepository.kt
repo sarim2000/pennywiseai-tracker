@@ -229,7 +229,7 @@ open class UserPreferencesRepository @Inject constructor(
 
     /**
      * When true, credit-card spend (TransactionType.CREDIT) is folded into the
-     * fixed "expenses / spent" totals (Home card, Transactions summary) instead
+     * fixed "expenses / spent" totals (Home card) instead
      * of being kept as a separate figure. Default off. The filter-driven
      * Analytics screen is unaffected — it already lets users select the Credit
      * type to view card spend. (#705)

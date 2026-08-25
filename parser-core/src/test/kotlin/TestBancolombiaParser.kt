@@ -14,6 +14,7 @@ import java.math.BigDecimal
 class TestBancolombiaParser {
 
     private val parser = BancolombiaParser()
+    private val fixedTimestamp = 1735689600000L // 2025-01-01T00:00:00Z
 
     @Test
     fun `test bank name`() {
@@ -40,10 +41,10 @@ class TestBancolombiaParser {
         val paymentMessage = "Pagaste $2.000.000 de tu tarjeta"
         val receiveMessage = "Recibiste $100.000,25 de Maria"
 
-        val transfer = parser.parse(transferMessage, "87400", System.currentTimeMillis())
-        val purchase = parser.parse(purchaseMessage, "87400", System.currentTimeMillis())
-        val payment = parser.parse(paymentMessage, "87400", System.currentTimeMillis())
-        val receive = parser.parse(receiveMessage, "87400", System.currentTimeMillis())
+        val transfer = parser.parse(transferMessage, "87400", fixedTimestamp)
+        val purchase = parser.parse(purchaseMessage, "87400", fixedTimestamp)
+        val payment = parser.parse(paymentMessage, "87400", fixedTimestamp)
+        val receive = parser.parse(receiveMessage, "87400", fixedTimestamp)
 
         assertEquals(TransactionType.EXPENSE, transfer?.type)
         assertEquals(TransactionType.EXPENSE, purchase?.type)
@@ -55,7 +56,7 @@ class TestBancolombiaParser {
     fun `test Colombian currency format parsing with thousand separators`() {
         // Test with dots as thousand separators
         val message1 = "Transferiste $1.000.000 a cuenta"
-        val parsed1 = parser.parse(message1, "87400", System.currentTimeMillis())
+        val parsed1 = parser.parse(message1, "87400", fixedTimestamp)
 
         assertNotNull(parsed1)
         assertEquals(BigDecimal("1000000"), parsed1?.amount)
@@ -66,7 +67,7 @@ class TestBancolombiaParser {
     fun `test Colombian currency format parsing with decimals`() {
         // Test with comma as decimal separator
         val message2 = "Compraste $500,50 en tienda"
-        val parsed2 = parser.parse(message2, "87400", System.currentTimeMillis())
+        val parsed2 = parser.parse(message2, "87400", fixedTimestamp)
 
         assertNotNull(parsed2)
         assertEquals(BigDecimal("500.50"), parsed2?.amount)
@@ -77,7 +78,7 @@ class TestBancolombiaParser {
     fun `test Colombian currency format parsing with both separators`() {
         // Test with both thousand separator (dot) and decimal separator (comma)
         val message3 = "Pagaste $1.000.000,75 de tarjeta credito"
-        val parsed3 = parser.parse(message3, "85540", System.currentTimeMillis())
+        val parsed3 = parser.parse(message3, "85540", fixedTimestamp)
 
         assertNotNull(parsed3)
         assertEquals(BigDecimal("1000000.75"), parsed3?.amount)
@@ -88,7 +89,7 @@ class TestBancolombiaParser {
     fun `test Colombian currency format parsing income transaction`() {
         // Test income with Colombian format
         val message4 = "Recibiste $2.500.000,00 transferencia de empresa"
-        val parsed4 = parser.parse(message4, "87400", System.currentTimeMillis())
+        val parsed4 = parser.parse(message4, "87400", fixedTimestamp)
 
         assertNotNull(parsed4)
         assertEquals(BigDecimal("2500000.00"), parsed4?.amount)
@@ -98,7 +99,7 @@ class TestBancolombiaParser {
     @Test
     fun `test amount without decimals`() {
         val message = "Transferiste $5000 a Pedro"
-        val parsed = parser.parse(message, "87400", System.currentTimeMillis())
+        val parsed = parser.parse(message, "87400", fixedTimestamp)
 
         assertNotNull(parsed)
         assertEquals(BigDecimal("5000"), parsed?.amount)
@@ -107,7 +108,7 @@ class TestBancolombiaParser {
     @Test
     fun `test small amounts with decimals`() {
         val message = "Compraste $25,99 en cafeteria"
-        val parsed = parser.parse(message, "85540", System.currentTimeMillis())
+        val parsed = parser.parse(message, "85540", fixedTimestamp)
 
         assertNotNull(parsed)
         assertEquals(BigDecimal("25.99"), parsed?.amount)
@@ -120,10 +121,10 @@ class TestBancolombiaParser {
         val payment = "Pagaste $2.000 tarjeta"
         val receive = "Recibiste $100.000 de empresa"
 
-        val parsedTransfer = parser.parse(transfer, "87400", System.currentTimeMillis())
-        val parsedPurchase = parser.parse(purchase, "87400", System.currentTimeMillis())
-        val parsedPayment = parser.parse(payment, "87400", System.currentTimeMillis())
-        val parsedReceive = parser.parse(receive, "87400", System.currentTimeMillis())
+        val parsedTransfer = parser.parse(transfer, "87400", fixedTimestamp)
+        val parsedPurchase = parser.parse(purchase, "87400", fixedTimestamp)
+        val parsedPayment = parser.parse(payment, "87400", fixedTimestamp)
+        val parsedReceive = parser.parse(receive, "87400", fixedTimestamp)
 
         assertEquals("Transferencia", parsedTransfer?.merchant)
         assertEquals("Compra", parsedPurchase?.merchant)
@@ -136,7 +137,7 @@ class TestBancolombiaParser {
         val balanceMessage = "Tu saldo es $50.000,00"
         val promoMessage = "Aprovecha nuestras ofertas"
 
-        assertNull(parser.parse(balanceMessage, "87400", System.currentTimeMillis()))
-        assertNull(parser.parse(promoMessage, "87400", System.currentTimeMillis()))
+        assertNull(parser.parse(balanceMessage, "87400", fixedTimestamp))
+        assertNull(parser.parse(promoMessage, "87400", fixedTimestamp))
     }
 }

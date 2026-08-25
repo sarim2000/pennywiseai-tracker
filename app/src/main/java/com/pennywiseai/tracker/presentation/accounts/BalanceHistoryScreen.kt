@@ -98,7 +98,7 @@ fun BalanceHistoryScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        items(balanceHistory) { balance ->
+                        items(balanceHistory, key = { it.id }) { balance ->
                             val isLatest = balance == balanceHistory.first()
                             val isOnlyRecord = balanceHistory.size == 1
                             val isExpanded = expandedSources.contains(balance.id)

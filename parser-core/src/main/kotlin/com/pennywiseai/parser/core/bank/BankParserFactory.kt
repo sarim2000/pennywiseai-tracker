@@ -151,7 +151,8 @@ object BankParserFactory {
         ZenithBankParser(),  // Zenith Bank (Nigeria)
         KeystoneBankParser(),  // Keystone Bank (Nigeria)
         JaizBankParser(),  // Jaiz Bank (Nigeria)
-        OpayBankParser()  // Opay (Nigeria)
+        OpayBankParser(),  // Opay (Nigeria)
+        MoniepointParser()  // Moniepoint MFB (Nigeria)
         // Add more bank parsers here as we implement them
     )
 

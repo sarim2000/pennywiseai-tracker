@@ -687,6 +687,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
 
+            // Durable deletion: skip re-inserting a transaction the user deleted,
+            // even when its hash shifted across an app/parser update (the hash
+            // includes the parsed amount). The raw SMS is stable, so a matching
+            // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
+            entity.smsBody?.let { body ->
+                if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                    return@coroutineScope SaveOutcome.SKIPPED
+                }
+            }
+
             if (isBlocked) {
                 stats.blocked.incrementAndGet()
                 return@coroutineScope SaveOutcome.SKIPPED

@@ -39,6 +39,12 @@ fun Application.configureRouting() {
             // Sri Lanka (#658) — the web tester advertises NDB samples, so the
             // /htmx/parse registry must be able to parse them too.
             NDBBankParser(),
+            // Ethiopia (#716) — Bank of Abyssinia.
+            BankOfAbyssiniaParser(),
+            // ZamZam Bank (Ethiopia) (#720)
+            ZamZamBankParser(),
+            // Siket Bank (Ethiopia, #717)
+            SiketBankParser(),
             // Awash Bank (Ethiopia) (#718)
             AwashBankParser()
         )

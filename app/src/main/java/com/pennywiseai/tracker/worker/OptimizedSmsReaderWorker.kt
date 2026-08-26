@@ -954,33 +954,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      * (transaction_id NULL) survive [deleteBalancesForTransaction] and surface as an
      * account with an inflated balance but no transactions.
      *
-     * Sweep the partner-bank accounts and delete any that is purely a residue. All must
-     * hold: no surviving transactions; every balance row transaction-derived (no
-     * balance-only / manual / opening signal to keep); and NO balance row still linked to
-     * a transaction id. That last guard is what separates a phantom (its rows were never
-     * linked — inserted with a null transaction_id on a hash-conflict IGNORE) from a real
-     * SBI account whose transactions the user merely soft-deleted (whose rows keep their
-     * transaction_id). A real account is protected on any of the three counts, so it is
-     * never touched. Also cleans phantoms that predate this fix, not just fresh ones.
+     * Sweep the partner-bank accounts and delete any that is purely a residue. The
+     * per-account qualification and delete run atomically in a single DB transaction
+     * (see [AccountBalanceRepository.deletePhantomGPayAccountIfQualifies]) so a
+     * concurrent real-time balance insert can't be erased between the check and the
+     * delete. Also cleans phantoms that predate this fix, not just fresh ones.
      */
     private suspend fun prunePhantomGPayAccounts() {
         val partnerBank = GPAY_PARTNER_BANK
         accountBalanceRepository.getAccountLast4sForBank(partnerBank).forEach { account ->
-            if (transactionRepository.countActiveTransactionsForAccount(partnerBank, account) > 0) {
-                return@forEach
+            val removed = accountBalanceRepository.deletePhantomGPayAccountIfQualifies(partnerBank, account)
+            if (removed > 0) {
+                Log.i(TAG, "Removed phantom GPay account ($removed orphaned balance rows)")
             }
-            if (accountBalanceRepository.getBalanceCountForAccount(partnerBank, account) == 0) {
-                return@forEach
-            }
-            if (accountBalanceRepository.countIndependentBalances(partnerBank, account) > 0) {
-                return@forEach
-            }
-            if (accountBalanceRepository.countTransactionLinkedBalances(partnerBank, account) > 0) {
-                return@forEach
-            }
-
-            val removed = accountBalanceRepository.deleteAccount(partnerBank, account)
-            Log.i(TAG, "Removed phantom GPay account ($removed orphaned balance rows)")
         }
     }
 

@@ -161,17 +161,30 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4)
     }
 
-    suspend fun countIndependentBalances(bankName: String, accountLast4: String): Int {
-        return accountBalanceDao.countIndependentBalances(bankName, accountLast4)
-    }
-
     suspend fun getAccountLast4sForBank(bankName: String): List<String> {
         return accountBalanceDao.getAccountLast4sForBank(bankName)
     }
 
-    suspend fun countTransactionLinkedBalances(bankName: String, accountLast4: String): Int {
-        return accountBalanceDao.countTransactionLinkedBalances(bankName, accountLast4)
-    }
+    /**
+     * Atomically remove a phantom GPay-residue account (#456). Re-checks the
+     * qualification and deletes inside ONE transaction, so a concurrent balance
+     * insert landing between the check and the delete can't be erased. Deletes only
+     * when, together: the account has no surviving transaction, it has balance rows,
+     * every row is transaction-derived (no independent balance-only/manual/opening
+     * signal), and NO row is still linked to a transaction id (a real account whose
+     * transactions were merely soft-deleted keeps its transaction_id). Returns the
+     * number of balance rows removed, or 0 if it no longer qualifies.
+     */
+    suspend fun deletePhantomGPayAccountIfQualifies(bankName: String, accountLast4: String): Int =
+        database.withTransaction {
+            when {
+                transactionDao.countActiveTransactionsForAccount(bankName, accountLast4) > 0 -> 0
+                accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4) == 0 -> 0
+                accountBalanceDao.countIndependentBalances(bankName, accountLast4) > 0 -> 0
+                accountBalanceDao.countTransactionLinkedBalances(bankName, accountLast4) > 0 -> 0
+                else -> accountBalanceDao.deleteAccount(bankName, accountLast4)
+            }
+        }
 
     fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getBalancesFromDate(startDate)

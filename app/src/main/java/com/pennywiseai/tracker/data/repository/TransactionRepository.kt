@@ -202,9 +202,6 @@ open class TransactionRepository @Inject constructor(
         return TransactionDeduplication.duplicateIdsToDelete(candidates)
     }
 
-    suspend fun countActiveTransactionsForAccount(bankName: String, accountLast4: String): Int =
-        transactionDao.countActiveTransactionsForAccount(bankName, accountLast4)
-    
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))
     }

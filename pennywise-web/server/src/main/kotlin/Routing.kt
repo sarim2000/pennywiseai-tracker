@@ -40,7 +40,9 @@ fun Application.configureRouting() {
             // /htmx/parse registry must be able to parse them too.
             NDBBankParser(),
             // Ethiopia (#716) — Bank of Abyssinia.
-            BankOfAbyssiniaParser()
+            BankOfAbyssiniaParser(),
+            // ZamZam Bank (Ethiopia) (#720)
+            ZamZamBankParser()
         )
     )
 

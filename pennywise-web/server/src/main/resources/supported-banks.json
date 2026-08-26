@@ -1,5 +1,5 @@
 {
-  "totalBanks": 145,
+  "totalBanks": 146,
   "totalCountries": 23,
   "countries": [
     {
@@ -51,6 +51,14 @@
       "banks": ["CRDB Bank", "Diamond Trust Bank", "M-Pesa Tanzania", "Mixx by Yas", "NMB Bank Tanzania", "Selcom Pesa", "Tigo Pesa"]
     },
     {
+      "country": "Ethiopia",
+      "flag": "🇪🇹",
+      "currency": "ETB",
+      "symbol": "ብር",
+      "bankCount": 6,
+      "banks": ["Bank of Abyssinia", "Commercial Bank of Ethiopia", "Dashen Bank", "Telebirr", "ZamZam Bank", "Zemen Bank"]
+    },
+    {
       "country": "Iran",
       "flag": "🇮🇷",
       "currency": "IRR",
@@ -65,14 +73,6 @@
       "symbol": "د.إ",
       "bankCount": 6,
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
-    },
-    {
-      "country": "Ethiopia",
-      "flag": "🇪🇹",
-      "currency": "ETB",
-      "symbol": "ብር",
-      "bankCount": 5,
-      "banks": ["Bank of Abyssinia", "Commercial Bank of Ethiopia", "Dashen Bank", "Telebirr", "Zemen Bank"]
     },
     {
       "country": "Nigeria",

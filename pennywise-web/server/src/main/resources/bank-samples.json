@@ -1012,6 +1012,17 @@
       "reference": null,
       "balance": null
     },
+    "ZamZam Bank": {
+      "sender": "ZamZam Bank",
+      "message": "Dear Customer, your account ****1234 has been credited by John Doe with ETB 5,000.00 on 2025-12-02. Your current balance is ETB 5,000.00. Thank you for banking with us!",
+      "currency": "ETB",
+      "amount": "5000.00",
+      "type": "INCOME",
+      "merchant": "John Doe",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": "5000.00"
+    },
     "Zemen Bank": {
       "sender": "Zemen Bank",
       "message": "Dear Customer your account 109xxxxxxxx7018 has been credited with ETB 10000 from telebirr wallet 251922222222 with reference 109TEIN260350016 on 4-Feb-2026. Your Current Balance is ETB 10823.37. Thank you for banking with Zemen Bank",

@@ -891,6 +891,17 @@
       "reference": "IN-670724040",
       "balance": null
     },
+    "Siket Bank": {
+      "sender": "Siket Bank",
+      "message": "Dear Siket Bank Family, Your Account 1****1234 has been Credited with ETB 30,000.00. Your Current Balance is ETB 577,453.30. Thank you for Banking with Siket Bank! For any queries call 8342.",
+      "currency": "ETB",
+      "amount": "30000.00",
+      "type": "INCOME",
+      "merchant": null,
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": "577453.30"
+    },
     "Slice": {
       "sender": "slice",
       "message": "Rs. 2,000 received in slice A/c xx2743 on 15-Jun-26 from NASIMUDDIN NAJAMUDDIN SHAIKH via UPI (Ref ID: 212756500000). Avl. Bal. Rs. 2,203.56 - slice",

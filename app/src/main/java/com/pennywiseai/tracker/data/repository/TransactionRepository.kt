@@ -205,7 +205,7 @@ open class TransactionRepository @Inject constructor(
         val candidates = transactionDao.findPotentialDuplicatesByReference()
         return TransactionDeduplication.duplicateIdsToDelete(candidates)
     }
-    
+
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
         transactionDao.updateTransaction(transaction.copy(isDeleted = false))
     }

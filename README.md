@@ -197,7 +197,17 @@ More banks being added regularly! [Request your bank →](https://github.com/sar
 
 ## Privacy First
 
-All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your transactions are parsed, stored, and analyzed locally; there are no accounts, no analytics SDKs, and no servers collecting your data. Two things do touch the network, both easy to verify in the source: multi-currency features can fetch exchange rates from `open.er-api.com`, and the "report a parsing problem" flow opens `pennywise.zynth.dev`, which immediately parses the pre-filled SMS text and sender ID server-side to generate a preview before you submit anything. Everything else stays on your phone. The entire codebase is open source (AGPL v3) so anyone can check each of these claims.
+All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your SMS and transactions are parsed, stored, and analyzed **locally** — there are no accounts, **no analytics, crash-reporting, or telemetry SDKs** (no Firebase / Crashlytics / Sentry / Google Analytics — verify in `app/build.gradle.kts`), and no PennyWise server ever receives your financial data. The whole codebase is open source (AGPL v3) so every claim below is checkable.
+
+### Network access — every outbound call the app can make
+
+1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, and In-App Review. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all three and is fully Google-free.**
+2. **Exchange rates** — fetched from `open.er-api.com` **only if you hold more than one currency** (single-currency and same-currency conversions make no call). The request contains just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
+3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
+4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text and sender pre-filled, which parses them server-side to show a preview before you submit. Nothing is sent unless you start this yourself.
+5. **Links** (Discord, GitHub, Play Store, backup docs) open your browser — no background data.
+
+Everything else stays on your phone.
 
 ## Screenshots
 

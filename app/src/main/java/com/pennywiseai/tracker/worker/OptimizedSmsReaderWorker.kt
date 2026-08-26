@@ -97,6 +97,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private const val UNRECOGNIZED_BATCH_SIZE   = 50
         private const val ETA_WINDOW_MS             = 2000L
 
+        // GPay P2P is parsed by SBIBankParser and attributed to this partner bank; it is
+        // the one dedup collapses and the only one that leaves a phantom account (#456).
+        // Matches SBIBankParser.getBankName() and the literal in TransactionDeduplication.
+        private const val GPAY_PARTNER_BANK         = "State Bank of India"
+
         private val SMS_PROJECTION = arrayOf(
             Telephony.Sms._ID,
             Telephony.Sms.ADDRESS,
@@ -687,6 +692,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
 
+            // Durable deletion: skip re-inserting a transaction the user deleted,
+            // even when its hash shifted across an app/parser update (the hash
+            // includes the parsed amount). The raw SMS is stable, so a matching
+            // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
+            entity.smsBody?.let { body ->
+                if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                    return@coroutineScope SaveOutcome.SKIPPED
+                }
+            }
+
             if (isBlocked) {
                 stats.blocked.incrementAndGet()
                 return@coroutineScope SaveOutcome.SKIPPED
@@ -937,7 +952,32 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             accountBalanceRepository.deleteBalancesForTransaction(id)
             ruleRepository.deleteRuleApplicationsForTransaction(id.toString())
         }
+
+        prunePhantomGPayAccounts()
         return duplicateIds.size
+    }
+
+    /**
+     * Remove the phantom account GPay dedup leaves behind (#456). GPay P2P is attributed
+     * to the partner bank ("State Bank of India"); once its transactions are deduped away
+     * against the real bank's SMS, balance rows that were never linked to a transaction
+     * (transaction_id NULL) survive [deleteBalancesForTransaction] and surface as an
+     * account with an inflated balance but no transactions.
+     *
+     * Sweep the partner-bank accounts and delete any that is purely a residue. The
+     * per-account qualification and delete run atomically in a single DB transaction
+     * (see [AccountBalanceRepository.deletePhantomGPayAccountIfQualifies]) so a
+     * concurrent real-time balance insert can't be erased between the check and the
+     * delete. Also cleans phantoms that predate this fix, not just fresh ones.
+     */
+    private suspend fun prunePhantomGPayAccounts() {
+        val partnerBank = GPAY_PARTNER_BANK
+        accountBalanceRepository.getAccountLast4sForBank(partnerBank).forEach { account ->
+            val removed = accountBalanceRepository.deletePhantomGPayAccountIfQualifies(partnerBank, account)
+            if (removed > 0) {
+                Log.i(TAG, "Removed phantom GPay account ($removed orphaned balance rows)")
+            }
+        }
     }
 
     // ─── Progress ─────────────────────────────────────────────────────────────

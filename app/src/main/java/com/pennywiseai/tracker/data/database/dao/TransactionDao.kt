@@ -148,6 +148,12 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
 
+    // Non-deleted transactions still attributed to a bank + account. Used to detect a
+    // phantom account left behind after GPay dedup — one with balance rows but no
+    // surviving transactions (#456).
+    @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0")
+    suspend fun countActiveTransactionsForAccount(bankName: String, accountLast4: String): Int
+
     @Query("UPDATE transactions SET profile_id = :profileId, updated_at = :updatedAt WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun setProfileForAccountTransactions(bankName: String, accountLast4: String, profileId: Long, updatedAt: LocalDateTime): Int
 
@@ -167,6 +173,24 @@ interface TransactionDao {
     // Method to check if transaction exists by hash (including deleted)
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
+
+    /**
+     * A SOFT-DELETED transaction from the exact same SMS (raw sender + body).
+     * Used to keep deletion durable across app updates: the transaction_hash
+     * includes the parsed amount, so a parser change can shift it and let a
+     * re-scan re-insert a previously-deleted row. The raw SMS never changes, so
+     * matching on it lets the scanner skip resurrecting a deleted txn even when
+     * its hash no longer matches. (#703)
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 1 AND sms_body = :smsBody
+          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
+        LIMIT 1
+        """
+    )
+    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity?
 
     /**
      * The subset of [hashes] that already exist (including soft-deleted rows).

@@ -178,6 +178,31 @@ class LlmRepository @Inject constructor(
         }
     }
 
+    /**
+     * Drops every cached copy of the AI system prompt after a base-currency change.
+     *
+     * The prompt embeds amounts already formatted in the old currency, and it is cached
+     * in three independent places:
+     *  1. the DataStore preference — cleared by the currency setters themselves;
+     *  2. the [ChatMessage] with `isSystemPrompt = true` persisted in chat history —
+     *     [ensureConversation] rebuilds the LLM session from *this* copy, never from
+     *     DataStore, so an existing chat would otherwise keep answering in the old
+     *     currency indefinitely;
+     *  3. the live LiteRT-LM conversation, which holds the prompt as its system
+     *     instruction and survives until explicitly closed.
+     *
+     * Clearing only (1) leaves an existing chat stale, so this drops (2) and (3) too.
+     * The next message rebuilds the prompt against the new currency.
+     *
+     * Chat history is cleared wholesale because the prior answers quote the old
+     * currency as well; keeping them would leave the transcript self-contradictory.
+     */
+    suspend fun invalidateSystemPrompt() {
+        llmService.closeConversation()
+        chatDao.deleteAllMessages()
+        Log.d(TAG, "System prompt invalidated after base currency change")
+    }
+
     suspend fun deleteAllMessages() {
         llmService.closeConversation()
         chatDao.deleteAllMessages()

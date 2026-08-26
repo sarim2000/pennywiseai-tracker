@@ -63,6 +63,7 @@ class OnBoardingViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val smsScanManager: SmsScanManager,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val llmRepository: com.pennywiseai.tracker.data.repository.LlmRepository,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -289,7 +290,11 @@ class OnBoardingViewModel @Inject constructor(
                         bankName = mainAccount.bankName
                     )
                     // Won't override a currency the user explicitly picked in Settings.
-                    userPreferencesRepository.applyMainAccountCurrency(currency)
+                    if (userPreferencesRepository.applyMainAccountCurrency(currency)) {
+                        // Drop the chat's own copy of the prompt too, not just the
+                        // DataStore one, so the assistant can't answer in the old currency.
+                        llmRepository.invalidateSystemPrompt()
+                    }
                 }
             }
             userPreferencesRepository.updateHasCompletedOnboarding(true)

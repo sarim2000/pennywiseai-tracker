@@ -762,7 +762,8 @@ open class UserPreferencesRepository @Inject constructor(
      * user hasn't explicitly chosen one via the Settings currency selector. The
      * explicit selector always wins.
      */
-    suspend fun applyMainAccountCurrency(currency: String) {
+    suspend fun applyMainAccountCurrency(currency: String): Boolean {
+        var changed = false
         context.dataStore.edit { preferences ->
             if (preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] != true) {
                 val previous = preferences[PreferencesKeys.BASE_CURRENCY]
@@ -772,9 +773,15 @@ open class UserPreferencesRepository @Inject constructor(
                 // to avoid discarding a good prompt on every main-account recompute.
                 if (previous != currency) {
                     preferences.remove(PreferencesKeys.SYSTEM_PROMPT)
+                    changed = true
                 }
             }
         }
+        // Reported so callers can invalidate the *other* two copies of the prompt (the
+        // one persisted in chat history and the live LLM conversation) only when the
+        // currency genuinely moved — clearing on every recompute would wipe the user's
+        // chat history for no reason. See LlmRepository.invalidateSystemPrompt().
+        return changed
     }
 
     // Balance Visibility

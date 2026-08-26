@@ -63,6 +63,7 @@ class SettingsViewModel @Inject constructor(
     private val folderBackupWriter: FolderBackupWriter,
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
+    private val llmRepository: com.pennywiseai.tracker.data.repository.LlmRepository,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -816,6 +817,9 @@ class SettingsViewModel @Inject constructor(
     fun updateBaseCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateBaseCurrency(currency)
+            // The setter above only clears the DataStore copy of the prompt; the chat's
+            // own persisted copy and the live conversation would keep the old currency.
+            llmRepository.invalidateSystemPrompt()
         }
     }
 
@@ -845,7 +849,9 @@ class SettingsViewModel @Inject constructor(
                 storedCurrency = account.currency,
                 bankName = account.bankName
             )
-            userPreferencesRepository.applyMainAccountCurrency(currency)
+            if (userPreferencesRepository.applyMainAccountCurrency(currency)) {
+                llmRepository.invalidateSystemPrompt()
+            }
         }
     }
 }

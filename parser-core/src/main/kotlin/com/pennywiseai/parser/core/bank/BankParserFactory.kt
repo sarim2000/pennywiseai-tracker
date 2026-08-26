@@ -113,6 +113,7 @@ object BankParserFactory {
         BankOfAbyssiniaParser(),  // Bank of Abyssinia (Ethiopia)
         ZamZamBankParser(),  // ZamZam Bank (Ethiopia)
         SiketBankParser(),  // Siket Bank (Ethiopia)
+        AwashBankParser(),  // Awash Bank (Ethiopia)
         FaysalBankParser(),  // Faysal Bank (Pakistan)
         MelliBankParser(),  // Melli Bank (Iran)
         MellatBankParser(), // Mellat Bank (Iran)

@@ -44,7 +44,9 @@ fun Application.configureRouting() {
             // ZamZam Bank (Ethiopia) (#720)
             ZamZamBankParser(),
             // Siket Bank (Ethiopia, #717)
-            SiketBankParser()
+            SiketBankParser(),
+            // Awash Bank (Ethiopia) (#718)
+            AwashBankParser()
         )
     )
 

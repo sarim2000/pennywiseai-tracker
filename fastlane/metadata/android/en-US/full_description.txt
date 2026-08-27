@@ -5,7 +5,7 @@ Reading bank SMS is how the app works — it is the entire product. Everything h
 
 ★ Automatic expense tracking
 • Every UPI payment, card swipe, ATM withdrawal and bank transfer becomes a categorized transaction
-• 149 banks and payment services across 23 countries, with multi-currency support
+• 150 banks and payment services across 23 countries, with multi-currency support
 • Works with any UPI app — it reads your bank's SMS, not the app
 • A clean, searchable spending timeline that stays up to date on its own
 

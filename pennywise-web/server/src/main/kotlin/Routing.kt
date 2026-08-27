@@ -46,7 +46,9 @@ fun Application.configureRouting() {
             // Siket Bank (Ethiopia, #717)
             SiketBankParser(),
             // Awash Bank (Ethiopia) (#718)
-            AwashBankParser()
+            AwashBankParser(),
+            // Apollo mobile wallet (Ethiopia) (#719)
+            ApolloParser()
         )
     )
 

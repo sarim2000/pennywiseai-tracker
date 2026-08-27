@@ -20,6 +20,11 @@ class ApolloParser : BankParser() {
 
     override fun getCurrency() = "ETB"  // Ethiopian Birr
 
+    // Apollo is a mobile wallet: route its running balance to the single
+    // service-level wallet account (upsertWalletBalance → WALLET_ACCOUNT_MARKER)
+    // rather than fabricating per-account balance rows from the masked account.
+    override fun isMobileWallet() = true
+
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase().trim()
         return upperSender == "APOLLO" ||

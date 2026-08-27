@@ -63,7 +63,7 @@ fun QuickCategoryPickerSheet(
         sheetState = sheetState
     ) {
         if (onTagsChanged != null) {
-            var tags by remember { mutableStateOf(initialTags) }
+            var tags by remember(initialTags) { mutableStateOf(initialTags) }
             TagInputField(
                 selectedTags = tags,
                 allTags = tagSuggestions,

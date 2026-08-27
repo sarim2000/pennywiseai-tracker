@@ -81,14 +81,6 @@ fun RecurringTransactionsScreen(
                     description = "Schedule cash or manual spend to be added automatically — rent, an allowance, a weekly cleaner."
                 )
             }
-            editing?.let { form ->
-                RecurringEditorDialog(
-                    form = form,
-                    categoryNames = categories.map { it.name },
-                    onDismiss = { editing = null },
-                    onSave = { viewModel.save(it); editing = null }
-                )
-            }
             return@PennyWiseScaffold
         }
 

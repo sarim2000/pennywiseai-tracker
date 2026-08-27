@@ -291,9 +291,9 @@ class OnBoardingViewModel @Inject constructor(
                     )
                     // Won't override a currency the user explicitly picked in Settings.
                     if (userPreferencesRepository.applyMainAccountCurrency(currency)) {
-                        // Drop the chat's own copy of the prompt too, not just the
+                        // Re-render the chat's own copy of the prompt too, not just the
                         // DataStore one, so the assistant can't answer in the old currency.
-                        llmRepository.invalidateSystemPrompt()
+                        llmRepository.refreshSystemPrompt()
                     }
                 }
             }

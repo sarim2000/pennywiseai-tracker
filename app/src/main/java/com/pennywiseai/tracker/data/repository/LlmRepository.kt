@@ -179,28 +179,68 @@ class LlmRepository @Inject constructor(
     }
 
     /**
-     * Drops every cached copy of the AI system prompt after a base-currency change.
+     * Re-renders the AI system prompt after a change to how money is displayed
+     * (currently a base-currency change), **without discarding the conversation**.
      *
-     * The prompt embeds amounts already formatted in the old currency, and it is cached
-     * in three independent places:
-     *  1. the DataStore preference — cleared by the currency setters themselves;
-     *  2. the [ChatMessage] with `isSystemPrompt = true` persisted in chat history —
-     *     [ensureConversation] rebuilds the LLM session from *this* copy, never from
-     *     DataStore, so an existing chat would otherwise keep answering in the old
-     *     currency indefinitely;
-     *  3. the live LiteRT-LM conversation, which holds the prompt as its system
-     *     instruction and survives until explicitly closed.
+     * The prompt is derived state: a snapshot of the user's finances formatted in the
+     * base currency. A currency change invalidates the *rendering*, not the chat, so
+     * this replaces the rendering and leaves every visible message in place.
      *
-     * Clearing only (1) leaves an existing chat stale, so this drops (2) and (3) too.
-     * The next message rebuilds the prompt against the new currency.
+     * All three cached copies have to move together, or the stale one wins:
+     *  1. the DataStore preference — dropped by the currency setters, rebuilt below;
+     *  2. the hidden `isSystemPrompt = true` row in chat history — [ensureConversation]
+     *     rebuilds the LLM session from *this* copy, never from DataStore, so an
+     *     existing chat would otherwise keep answering in the old currency;
+     *  3. the live LiteRT-LM conversation, whose `systemInstruction` is fixed at
+     *     construction and so can only be changed by rebuilding it.
      *
-     * Chat history is cleared wholesale because the prior answers quote the old
-     * currency as well; keeping them would leave the transcript self-contradictory.
+     * (3) is rebuilt by replaying the same history into a fresh conversation, so the
+     * model keeps full context of what was already said and simply continues under the
+     * new instruction. Only the hidden prompt row is deleted; `deleteSystemPromptMessages`
+     * cannot touch user-visible messages.
+     *
+     * No-ops when there is no chat yet — a new chat builds its prompt on first send.
      */
-    suspend fun invalidateSystemPrompt() {
+    suspend fun refreshSystemPrompt() {
+        val existing = chatDao.getAllMessagesForContext()
+        if (existing.isEmpty()) {
+            // Nothing to re-render; the next new chat picks up the new currency anyway.
+            llmService.closeConversation()
+            return
+        }
+
+        val newPrompt = buildSystemPrompt(aiContextRepository.getChatContext())
+        userPreferencesRepository.updateSystemPrompt(newPrompt)
+
+        // Swap the hidden prompt row, preserving its original position in the timeline
+        // so ordering by timestamp still puts it ahead of the conversation.
+        val oldTimestamp = existing.firstOrNull { it.isSystemPrompt }?.timestamp
+            ?: existing.first().timestamp
+        chatDao.deleteSystemPromptMessages()
+        chatDao.insertMessage(
+            ChatMessage(
+                message = newPrompt,
+                isUser = false,
+                timestamp = oldTimestamp,
+                isSystemPrompt = true
+            )
+        )
+
+        // The live conversation pins the old instruction, so rebuild it around the
+        // same visible history. ensureConversation() would also do this lazily on the
+        // next send; doing it here keeps the in-memory state honest immediately.
+        val history = chatDao.getAllMessagesForContext()
+            .filter { !it.isSystemPrompt }
+            .map { it.message to it.isUser }
         llmService.closeConversation()
-        chatDao.deleteAllMessages()
-        Log.d(TAG, "System prompt invalidated after base currency change")
+        val result = llmService.createConversation(newPrompt, history)
+        if (result.isFailure) {
+            // Leave no conversation rather than a stale one: ensureConversation() will
+            // recreate it from the (already updated) Room rows on the next message.
+            llmService.closeConversation()
+            Log.w(TAG, "Could not rebuild conversation after prompt refresh; will rebuild on next send")
+        }
+        Log.d(TAG, "System prompt re-rendered; ${history.size} messages preserved")
     }
 
     suspend fun deleteAllMessages() {

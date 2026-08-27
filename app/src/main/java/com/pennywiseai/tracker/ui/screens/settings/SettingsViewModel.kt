@@ -13,7 +13,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.Constants.Links
@@ -816,10 +818,16 @@ class SettingsViewModel @Inject constructor(
     
     fun updateBaseCurrency(currency: String) {
         viewModelScope.launch {
-            userPreferencesRepository.updateBaseCurrency(currency)
-            // The setter above only clears the DataStore copy of the prompt; the chat's
-            // own persisted copy and the live conversation would keep the old currency.
-            llmRepository.invalidateSystemPrompt()
+            // Re-render only when the currency actually moved. Re-picking the currency
+            // that is already active is a no-op, not a reason to rebuild the chat.
+            if (userPreferencesRepository.updateBaseCurrency(currency)) {
+                // NonCancellable: the durable currency write has already landed, so the
+                // prompt must be re-rendered to match even if the user leaves Settings
+                // and this scope is cancelled — otherwise the chat keeps the old currency.
+                withContext(NonCancellable) {
+                    llmRepository.refreshSystemPrompt()
+                }
+            }
         }
     }
 
@@ -850,7 +858,9 @@ class SettingsViewModel @Inject constructor(
                 bankName = account.bankName
             )
             if (userPreferencesRepository.applyMainAccountCurrency(currency)) {
-                llmRepository.invalidateSystemPrompt()
+                withContext(NonCancellable) {
+                    llmRepository.refreshSystemPrompt()
+                }
             }
         }
     }

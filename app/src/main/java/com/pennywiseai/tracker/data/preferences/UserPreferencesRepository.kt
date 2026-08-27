@@ -205,7 +205,7 @@ open class UserPreferencesRepository @Inject constructor(
             )
         }
 
-    val baseCurrency: Flow<String> = context.dataStore.data
+    open val baseCurrency: Flow<String> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
@@ -289,7 +289,7 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
     
-    suspend fun updateSystemPrompt(prompt: String) {
+    open suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt
         }
@@ -738,10 +738,13 @@ open class UserPreferencesRepository @Inject constructor(
      * Explicit base-currency choice from the Settings currency selector. Marks the
      * currency as user-set so the main account can no longer override it.
      */
-    suspend fun updateBaseCurrency(currency: String) {
+    suspend fun updateBaseCurrency(currency: String): Boolean {
+        var changed = false
         context.dataStore.edit { preferences ->
+            val previous = preferences[PreferencesKeys.BASE_CURRENCY]
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
             preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] = true
+            changed = previous != currency
             // The cached AI system prompt embeds amounts already formatted in the old
             // base currency. Without dropping it here the assistant keeps quoting the
             // previous currency indefinitely: the only other refresh path is gated on
@@ -749,6 +752,10 @@ open class UserPreferencesRepository @Inject constructor(
             // fully scanned would never see their currency change take effect.
             preferences.remove(PreferencesKeys.SYSTEM_PROMPT)
         }
+        // Reported so the caller re-renders the prompt only on a real change. The
+        // comparison happens inside the edit transaction, so it cannot race a
+        // concurrent write the way a separate read-then-write would.
+        return changed
     }
 
     suspend fun updateNumberFormatStyle(style: NumberFormatStyle) {
@@ -777,10 +784,10 @@ open class UserPreferencesRepository @Inject constructor(
                 }
             }
         }
-        // Reported so callers can invalidate the *other* two copies of the prompt (the
-        // one persisted in chat history and the live LLM conversation) only when the
-        // currency genuinely moved — clearing on every recompute would wipe the user's
-        // chat history for no reason. See LlmRepository.invalidateSystemPrompt().
+        // Reported so callers re-render the *other* two copies of the prompt (the one
+        // persisted in chat history and the live LLM conversation) only when the
+        // currency genuinely moved — rebuilding on every main-account recompute would
+        // be pure waste. See LlmRepository.refreshSystemPrompt().
         return changed
     }
 

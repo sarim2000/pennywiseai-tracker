@@ -27,6 +27,14 @@ interface ChatDao {
     
     @Query("DELETE FROM chat_messages WHERE timestamp < :before")
     suspend fun deleteMessagesBefore(before: Long)
+
+    /**
+     * Removes only the hidden system-prompt row(s), leaving every visible message intact.
+     * Used to re-render the prompt (e.g. after a base-currency change) without
+     * destroying the user's conversation.
+     */
+    @Query("DELETE FROM chat_messages WHERE isSystemPrompt = 1")
+    suspend fun deleteSystemPromptMessages()
     
     @Query("SELECT COUNT(*) FROM chat_messages")
     suspend fun getMessageCount(): Int

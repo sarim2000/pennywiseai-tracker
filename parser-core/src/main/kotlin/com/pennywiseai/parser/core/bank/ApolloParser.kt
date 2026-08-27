@@ -76,15 +76,13 @@ class ApolloParser : BankParser() {
         return null
     }
 
-    override fun extractAccountLast4(message: String): String? {
-        // "your account 1*34" — capture masked digits, take trailing digits.
-        val accountPattern = Regex("""account\s+([\d*]+)""", RegexOption.IGNORE_CASE)
-        accountPattern.find(message)?.let { match ->
-            extractLast4Digits(match.groupValues[1])?.let { return it }
-        }
-
-        return super.extractAccountLast4(message)
-    }
+    // Apollo consolidates to a single service-level wallet balance (see
+    // [isMobileWallet]). The balance routing only kicks in when there is no
+    // per-account number, so we deliberately do NOT extract the masked account —
+    // otherwise the balance would land in a fabricated per-account row instead of
+    // the wallet. (The masked "account 1*75" is the wallet's linked account, not a
+    // separate tracked account.)
+    override fun extractAccountLast4(message: String): String? = null
 
     override fun extractBalance(message: String): BigDecimal? {
         val balancePattern = Regex(

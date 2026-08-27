@@ -62,7 +62,7 @@
       "amount": "550.00",
       "type": "INCOME",
       "merchant": "John Doe",
-      "accountLast4": "134",
+      "accountLast4": null,
       "reference": null,
       "balance": "12357.73"
     },

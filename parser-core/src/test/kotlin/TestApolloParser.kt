@@ -29,7 +29,8 @@ class ApolloParserTest {
                     currency = "ETB",
                     type = TransactionType.INCOME,
                     merchant = "John Doe",
-                    accountLast4 = "134",
+                    // Mobile wallet: consolidated to the service-level balance, no per-account number.
+                    accountLast4 = null,
                     balance = BigDecimal("12357.73")
                 )
             ),
@@ -41,7 +42,7 @@ class ApolloParserTest {
                     amount = BigDecimal("7000.00"),
                     currency = "ETB",
                     type = TransactionType.EXPENSE,
-                    accountLast4 = "134",
+                    accountLast4 = null,
                     balance = BigDecimal("5595.43")
                 )
             )

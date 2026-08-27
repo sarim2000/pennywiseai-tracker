@@ -1,5 +1,5 @@
 {
-  "totalBanks": 148,
+  "totalBanks": 149,
   "totalCountries": 23,
   "countries": [
     {
@@ -67,20 +67,20 @@
       "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "Pasargad Bank", "blu Bank"]
     },
     {
+      "country": "Nigeria",
+      "flag": "🇳🇬",
+      "currency": "NGN",
+      "symbol": "₦",
+      "bankCount": 6,
+      "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Moniepoint", "Opay", "Zenith Bank"]
+    },
+    {
       "country": "UAE",
       "flag": "🇦🇪",
       "currency": "AED",
       "symbol": "د.إ",
       "bankCount": 6,
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
-    },
-    {
-      "country": "Nigeria",
-      "flag": "🇳🇬",
-      "currency": "NGN",
-      "symbol": "₦",
-      "bankCount": 5,
-      "banks": ["Access Bank", "Jaiz Bank", "Keystone Bank", "Opay", "Zenith Bank"]
     },
     {
       "country": "Mozambique",

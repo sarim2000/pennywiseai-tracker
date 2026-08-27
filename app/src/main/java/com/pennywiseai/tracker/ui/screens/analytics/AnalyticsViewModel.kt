@@ -363,6 +363,9 @@ class AnalyticsViewModel @Inject constructor(
                 val refundByAccount = mutableMapOf<String, BigDecimal>()
                 val refundByMerchant = mutableMapOf<String, BigDecimal>()
                 val refundByDay = mutableMapOf<LocalDate, BigDecimal>()
+                // Total refund value netted off the headline total. Used to explain the
+                // gap when the per-category floor leaves the bars summing above the total (#704).
+                var refundNettedTotal = BigDecimal.ZERO
                 if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
                     for (tw in allTransactionsWithSplits) {
                         val tx = tw.transaction
@@ -389,6 +392,7 @@ class AnalyticsViewModel @Inject constructor(
                         val existing = categoryAmounts[category] ?: BigDecimal.ZERO
                         categoryAmounts[category] = (existing - converted).coerceAtLeast(BigDecimal.ZERO)
                         totalSpending -= converted
+                        refundNettedTotal += converted
                         val accountKey = "${tx.bankName}_${tx.accountNumber}"
                         refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + converted
                         refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + converted
@@ -412,6 +416,15 @@ class AnalyticsViewModel @Inject constructor(
                         color = categoryColorMap[categoryName]
                     )
                 }.sortedByDescending { it.amount }
+
+                // When refunds over-net a category, its bar floors at zero while the full
+                // refund still comes off the total — so the bars can sum above the headline
+                // total. Surface the netted refund only when that actually happens, so the
+                // UI can explain why the "Spending by category" bars don't add up (#704).
+                val categorySum = categoryBreakdown.fold(BigDecimal.ZERO) { acc, c -> acc + c.amount }
+                val refundNettedFromTotal =
+                    if (refundNettedTotal > BigDecimal.ZERO && categorySum > totalSpending) refundNettedTotal
+                    else BigDecimal.ZERO
 
                 // Build tag breakdown from the many-to-many tag map. A
                 // transaction can carry several tags, and its full amount
@@ -548,6 +561,7 @@ class AnalyticsViewModel @Inject constructor(
                         filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency, refundByDay
                     ),
                     availableCategories = allCategoryNames,
+                    refundNettedFromTotal = refundNettedFromTotal,
                     accountBreakdown = accountBreakdown,
                     tagBreakdown = tagBreakdown
                 )
@@ -768,6 +782,10 @@ data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val spendingTrend: List<BalancePoint> = emptyList(),
     val availableCategories: List<String> = emptyList(),
+    // Refund value netted off the total when the per-category floor makes the
+    // "Spending by category" bars sum above the headline total (#704). Zero when
+    // the bars reconcile; the UI shows an explainer only when this is positive.
+    val refundNettedFromTotal: BigDecimal = BigDecimal.ZERO,
     val accountBreakdown: List<AccountBreakdownData> = emptyList(),
     val tagBreakdown: List<TagData> = emptyList()
 )

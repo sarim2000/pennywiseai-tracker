@@ -650,6 +650,87 @@ class BackupModelsTest {
     }
 
     /**
+     * #706 regression. An older backup predates the `recurring_transactions`
+     * table, so the key is absent — it must default to an empty list, not crash.
+     */
+    @Test
+    fun oldBackupMissingRecurringTransactions_defaultsToEmptyList() {
+        val json = """
+        {
+          "database": {
+            "merchant_mappings": [
+              { "merchantName": "xyz@upi", "category": "Food" }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val db = backupJson.decodeFromString<PennyWiseBackup>(json).database
+
+        assertTrue(db.recurringTransactions.isEmpty())
+    }
+
+    /**
+     * #706. A backup carrying recurring templates must round-trip every field,
+     * and a row missing newer keys must fall back to defaults rather than throw.
+     */
+    @Test
+    fun recurringTransactions_roundTripAndTolerateMissingFields() {
+        val json = """
+        {
+          "database": {
+            "recurring_transactions": [
+              {
+                "id": 5,
+                "merchantName": "Rent",
+                "amount": "1200.00",
+                "currency": "USD",
+                "category": "Bills",
+                "transactionType": "EXPENSE",
+                "frequency": "MONTHLY",
+                "dayOfMonth": 1,
+                "nextDueDate": "2026-09-01",
+                "isActive": true,
+                "note": "Landlord",
+                "profileId": 1,
+                "createdAt": "2026-08-01T10:00:00",
+                "updatedAt": "2026-08-01T10:00:00"
+              },
+              {
+                "merchantName": "Allowance"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val recurring = backupJson.decodeFromString<PennyWiseBackup>(json)
+            .database.recurringTransactions
+
+        assertEquals(2, recurring.size)
+
+        val full = recurring.first { it.merchantName == "Rent" }
+        assertEquals(java.math.BigDecimal("1200.00"), full.amount)
+        assertEquals("USD", full.currency)
+        assertEquals(
+            com.pennywiseai.tracker.data.database.entity.RecurringFrequency.MONTHLY,
+            full.frequency
+        )
+        assertEquals(1, full.dayOfMonth)
+        assertEquals(LocalDate.of(2026, 9, 1), full.nextDueDate)
+
+        // Minimal row: only the name provided → every other field defaults, no crash.
+        val minimal = recurring.first { it.merchantName == "Allowance" }
+        assertEquals("INR", minimal.currency)
+        assertEquals(
+            com.pennywiseai.tracker.data.database.entity.RecurringFrequency.MONTHLY,
+            minimal.frequency
+        )
+        assertTrue(minimal.isActive)
+        assertNotNull(minimal.nextDueDate)
+    }
+
+    /**
      * Forward compatibility (#415). A backup from a *newer* app carries keys
      * this version has never heard of — both unknown object keys and a whole
      * unknown table. They must be ignored, not rejected.

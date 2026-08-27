@@ -114,6 +114,9 @@ class SettingsViewModel @Inject constructor(
     val unifiedCurrencyMode = userPreferencesRepository.unifiedCurrencyMode
     val displayCurrency = userPreferencesRepository.displayCurrency
 
+    // Count credit-card spend toward the "Spent this month" total (#705)
+    val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense
+
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 
@@ -472,6 +475,13 @@ class SettingsViewModel @Inject constructor(
     fun setUnifiedCurrencyMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setUnifiedCurrencyMode(enabled)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        }
+    }
+
+    fun setCountCreditCardAsExpense(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setCountCreditCardAsExpense(enabled)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }

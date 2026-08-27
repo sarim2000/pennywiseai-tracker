@@ -134,6 +134,7 @@ class BackupImporter @Inject constructor(
                 // but tags live in their own table — clear both explicitly.
                 database.tagDao().deleteAllCrossRefs()
                 database.tagDao().deleteAllTags()
+                database.recurringTransactionDao().deleteAll()
                 // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
@@ -259,6 +260,23 @@ class BackupImporter @Inject constructor(
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
                     database.tagDao().insertCrossRef(ref)
+                }
+
+                // Recurring / scheduled manual transaction templates (#706).
+                // Standalone table (no foreign keys); ids are preserved in
+                // REPLACE_ALL like every other cleared table, but the source
+                // profile_id is remapped so materialized transactions land under
+                // the right local profile. (Greptile)
+                backup.database.recurringTransactions.insertEachCounting({ skippedRows++ }) { recurring ->
+                    // Fall back to the default Personal profile (1) when the source
+                    // profile can't be mapped, rather than keeping a stale/invalid id;
+                    // give a fresh uid to any blank/legacy one.
+                    database.recurringTransactionDao().insert(
+                        recurring.copy(
+                            uid = stableUid(recurring),
+                            profileId = resolveProfileId(recurring.profileId) ?: 1L
+                        )
+                    )
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -411,6 +429,7 @@ class BackupImporter @Inject constructor(
                 importCardsWithMerge(backup.database.cards) { skippedRows++ }
                 importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
                 importSubscriptionsWithMerge(backup.database.subscriptions) { skippedRows++ }
+                importRecurringTransactionsWithMerge(backup.database.recurringTransactions, { resolveProfileId(it) }) { skippedRows++ }
                 importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
                 importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
 
@@ -590,6 +609,67 @@ class BackupImporter @Inject constructor(
         }
     }
     
+    /**
+     * Import recurring / scheduled manual transaction templates with duplicate
+     * checking (#706). The dedup key covers every schedule-distinguishing field
+     * (merchant, amount, currency, category, type, frequency, day-of-month/week,
+     * profile), so a repeat MERGE of the same backup doesn't stack duplicates
+     * while genuinely distinct templates are never collapsed (Greptile). The
+     * source profile_id is remapped so materialized transactions land under the
+     * right local profile, and a fresh id avoids colliding with local rows.
+     */
+    /**
+     * A stable uid for a template: the real one, or — for a blank/legacy uid —
+     * a deterministic content-derived id so re-importing the same legacy row is
+     * idempotent (same content → same uid → deduped), while distinct legacy rows
+     * still get distinct uids. New templates always carry a real uid.
+     */
+    private fun stableUid(t: RecurringTransactionEntity): String = t.uid.ifEmpty {
+        "legacy:" + listOf(
+            t.merchantName,
+            t.amount.stripTrailingZeros().toPlainString(),
+            t.currency,
+            t.category,
+            t.transactionType,
+            t.frequency,
+            t.dayOfMonth,
+            t.dayOfWeek,
+            t.bankName,
+            t.accountLast4,
+            t.note,
+            t.profileId
+        ).joinToString("|")
+    }
+
+    private suspend fun importRecurringTransactionsWithMerge(
+        recurring: List<RecurringTransactionEntity>,
+        resolveProfileId: (Long?) -> Long?,
+        onSkip: () -> Unit
+    ) {
+        // Dedup on the stable [RecurringTransactionEntity.uid], not on mutable
+        // content: a repeated restore of the same backup can't duplicate a
+        // template (same uid), while genuinely distinct templates always have
+        // distinct uids and are always kept. A blank/legacy uid gets a fresh one
+        // so it still inserts.
+        val seenUids = database.recurringTransactionDao().getAll().first()
+            .map { it.uid }.filter { it.isNotEmpty() }.toMutableSet()
+
+        recurring.insertEachCounting(onSkip) { template ->
+            val uid = stableUid(template)
+            if (seenUids.add(uid)) {
+                database.recurringTransactionDao().insert(
+                    template.copy(
+                        id = 0,
+                        uid = uid,
+                        // Fall back to the default Personal profile (1) when unmapped,
+                        // so a template never restores under a stale/invalid id.
+                        profileId = resolveProfileId(template.profileId) ?: 1L
+                    )
+                )
+            }
+        }
+    }
+
     /**
      * Import merchant mappings with merge
      */

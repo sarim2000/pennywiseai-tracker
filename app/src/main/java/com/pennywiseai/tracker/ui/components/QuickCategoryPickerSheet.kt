@@ -10,12 +10,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -43,13 +48,48 @@ fun QuickCategoryPickerSheet(
     currentCategory: String,
     categories: List<CategoryEntity>,
     onCategorySelected: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    // Optional inline tagging (notification "More…" flow, #696). When
+    // [onTagsChanged] is non-null a Tags section is shown above the category
+    // list; each add/remove commits immediately, so the user can tag without
+    // also picking a category. In-app call sites omit these and see no change.
+    tagSuggestions: List<String> = emptyList(),
+    initialTags: List<String> = emptyList(),
+    onTagsChanged: ((List<String>) -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
+        if (onTagsChanged != null) {
+            var tags by remember { mutableStateOf(initialTags) }
+            TagInputField(
+                selectedTags = tags,
+                allTags = tagSuggestions,
+                onAddTag = { name ->
+                    if (name !in tags) {
+                        tags = tags + name
+                        onTagsChanged(tags)
+                    }
+                },
+                onRemoveTag = { name ->
+                    tags = tags - name
+                    onTagsChanged(tags)
+                },
+                modifier = Modifier.padding(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    bottom = Spacing.sm
+                )
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(
+                    horizontal = Dimensions.Padding.content,
+                    vertical = Spacing.xs
+                )
+            )
+        }
         Text(
             text = "Change category",
             style = MaterialTheme.typography.titleMedium,

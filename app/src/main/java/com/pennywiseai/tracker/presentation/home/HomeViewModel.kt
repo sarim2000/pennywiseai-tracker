@@ -163,6 +163,13 @@ class HomeViewModel @Inject constructor(
         loadUnifiedModePreferences()
         loadUserName()
         refreshSharePrompt()
+        // Mirror the "count card spend as expense" pref into UI state so the
+        // "Money in motion" card can hide its Credit chip when it's on (#705).
+        viewModelScope.launch {
+            userPreferencesRepository.countCreditCardAsExpense.collect { on ->
+                _uiState.value = _uiState.value.copy(countCreditCardAsExpense = on)
+            }
+        }
         // Load base currency FIRST so selectedCurrency is set before data loads
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
@@ -276,7 +283,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun computeBreakdownByCurrency(
-        transactions: List<TransactionEntity>
+        transactions: List<TransactionEntity>,
+        countCreditAsExpense: Boolean = false
     ): Map<String, TransactionRepository.MonthlyBreakdown> {
         // "Exclude from analytics" transactions stay in history & account balances
         // but must not count toward the home card's income/spend figures — same as
@@ -303,7 +311,11 @@ class HomeViewModel @Inject constructor(
                 }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
             val rawExpenses = txs
-                .filter { it.transactionType == TransactionType.EXPENSE }
+                .filter {
+                    it.transactionType == TransactionType.EXPENSE ||
+                        // Fold credit-card spend into expenses when the user opted in (#705).
+                        (countCreditAsExpense && it.transactionType == TransactionType.CREDIT)
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
             val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
             TransactionRepository.MonthlyBreakdown(
@@ -392,9 +404,11 @@ class HomeViewModel @Inject constructor(
                     transactions to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                         .filter { it.loanId == null }
-                    computeBreakdownByCurrency(nonLoan)
+                }
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
+                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
@@ -591,9 +605,11 @@ class HomeViewModel @Inject constructor(
                     transactions to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    val nonLoan = filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                         .filter { it.loanId == null }
-                    computeBreakdownByCurrency(nonLoan)
+                }
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
+                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
@@ -1601,6 +1617,10 @@ data class HomeUiState(
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val currentMonthLent: BigDecimal = BigDecimal.ZERO,
     val currentMonthCreditCard: BigDecimal = BigDecimal.ZERO,
+    // When true, credit-card spend is folded into "Spent this month" (#705), so
+    // the "Money in motion" card hides its Credit chip to avoid showing the same
+    // amount both inside and "outside" the cash flow.
+    val countCreditCardAsExpense: Boolean = false,
     val currentMonthTransfer: BigDecimal = BigDecimal.ZERO,
     val currentMonthInvestment: BigDecimal = BigDecimal.ZERO,
     val lastMonthTotal: BigDecimal = BigDecimal.ZERO,

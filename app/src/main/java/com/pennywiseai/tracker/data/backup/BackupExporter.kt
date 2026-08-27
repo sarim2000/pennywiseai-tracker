@@ -83,6 +83,7 @@ class BackupExporter @Inject constructor(
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
         val tags = database.tagDao().getAllTagsSync()
         val transactionTagCrossRefs = database.tagDao().getAllCrossRefs()
+        val recurringTransactions = database.recurringTransactionDao().getAll().first()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -144,6 +145,9 @@ class BackupExporter @Inject constructor(
         // the cross-refs point at transaction ids that only survive a FULL export.
         val exportedTags = tags
         val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) transactionTagCrossRefs else emptyList()
+        // Recurring templates carry raw merchant names + notes, so they're kept
+        // on FULL only — same treatment as loans / other relational tables.
+        val exportedRecurringTransactions = if (privacy == ExportPrivacy.FULL) recurringTransactions else emptyList()
 
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -170,6 +174,7 @@ class BackupExporter @Inject constructor(
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
                     totalMerchantAliases = merchantAliases.size,
+                    totalRecurringTransactions = exportedRecurringTransactions.size,
                     dateRange = dateRange
                 )
             ),
@@ -196,7 +201,8 @@ class BackupExporter @Inject constructor(
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
                 budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
                 tags = exportedTags,
-                transactionTagCrossRefs = exportedTransactionTagCrossRefs
+                transactionTagCrossRefs = exportedTransactionTagCrossRefs,
+                recurringTransactions = exportedRecurringTransactions
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

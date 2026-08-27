@@ -98,6 +98,7 @@ fun SettingsScreen(
     onNavigateToRules: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
+    onNavigateToRecurring: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
@@ -123,6 +124,7 @@ fun SettingsScreen(
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
+    val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
@@ -324,6 +326,16 @@ fun SettingsScreen(
                     title = "Exchange Rates",
                     subtitle = "View and customize rates",
                     onClick = onNavigateToExchangeRates,
+                    position = ListItemPosition.Middle
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.CreditCard,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Count card spend as expense",
+                    subtitle = "Include credit-card spend in \"Spent this month\"",
+                    checked = countCreditCardAsExpense,
+                    onCheckedChange = { settingsViewModel.setCountCreditCardAsExpense(it) },
                     position = ListItemPosition.Middle
                 )
                 SettingsDropdownItem(
@@ -544,6 +556,15 @@ fun SettingsScreen(
                     title = "Loans",
                     subtitle = "Track money lent and borrowed",
                     onClick = onNavigateToLoans,
+                    position = ListItemPosition.Middle
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.EventRepeat,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Recurring",
+                    subtitle = "Auto-add scheduled cash & manual transactions",
+                    onClick = onNavigateToRecurring,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(

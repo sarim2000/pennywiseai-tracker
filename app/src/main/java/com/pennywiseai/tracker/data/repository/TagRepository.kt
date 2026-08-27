@@ -5,8 +5,13 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,6 +25,32 @@ class TagRepository @Inject constructor(
     private val database: PennyWiseDatabase,
     private val tagDao: TagDao
 ) {
+
+    // Ordered, single-consumer queue for tag writes (#710). setTagsForTransaction
+    // is a replace-all, so concurrent callers (e.g. rapid edits in the quick
+    // picker) could otherwise land out of order and persist a stale set, or lose
+    // one transaction's edits when the caller retargets to another. Enqueuing
+    // preserves send order and a single consumer applies them FIFO.
+    private val tagWriteScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val tagWriteQueue = Channel<Pair<Long, List<String>>>(Channel.UNLIMITED)
+
+    init {
+        tagWriteScope.launch {
+            for ((transactionId, tagNames) in tagWriteQueue) {
+                runCatching { setTagsForTransaction(transactionId, tagNames) }
+            }
+        }
+    }
+
+    /**
+     * Enqueue a replace-all tag write applied in FIFO order on a single
+     * consumer, so rapid or interleaved calls can't reorder or lose data.
+     * Prefer this over calling [setTagsForTransaction] directly from UI that
+     * fires many quick edits.
+     */
+    fun enqueueSetTags(transactionId: Long, tagNames: List<String>) {
+        tagWriteQueue.trySend(transactionId to tagNames)
+    }
 
     fun observeAllTags(): Flow<List<TagEntity>> = tagDao.getAllTags()
 

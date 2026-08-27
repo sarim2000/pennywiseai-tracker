@@ -114,6 +114,7 @@ object BankParserFactory {
         ZamZamBankParser(),  // ZamZam Bank (Ethiopia)
         SiketBankParser(),  // Siket Bank (Ethiopia)
         AwashBankParser(),  // Awash Bank (Ethiopia)
+        ApolloParser(),  // Apollo mobile wallet (Ethiopia)
         FaysalBankParser(),  // Faysal Bank (Pakistan)
         MelliBankParser(),  // Melli Bank (Iran)
         MellatBankParser(), // Mellat Bank (Iran)

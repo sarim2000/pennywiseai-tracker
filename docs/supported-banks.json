@@ -1,5 +1,5 @@
 {
-  "totalBanks": 149,
+  "totalBanks": 150,
   "totalCountries": 23,
   "countries": [
     {
@@ -39,8 +39,8 @@
       "flag": "🇪🇹",
       "currency": "ETB",
       "symbol": "ብር",
-      "bankCount": 8,
-      "banks": ["Awash Bank", "Bank of Abyssinia", "Commercial Bank of Ethiopia", "Dashen Bank", "Siket Bank", "Telebirr", "ZamZam Bank", "Zemen Bank"]
+      "bankCount": 9,
+      "banks": ["Apollo", "Awash Bank", "Bank of Abyssinia", "Commercial Bank of Ethiopia", "Dashen Bank", "Siket Bank", "Telebirr", "ZamZam Bank", "Zemen Bank"]
     },
     {
       "country": "Saudi Arabia",

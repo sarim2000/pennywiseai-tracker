@@ -55,6 +55,17 @@
       "reference": "555555555555",
       "balance": null
     },
+    "Apollo": {
+      "sender": "apollo",
+      "message": "Dear John, your account 1*34 was credited with ETB 550.00 by John Doe. Available Balance: ETB 12,357.73. Receipt: [receipt link] For help, call 0000 (24/7 Toll-Free).",
+      "currency": "ETB",
+      "amount": "550.00",
+      "type": "INCOME",
+      "merchant": "John Doe",
+      "accountLast4": null,
+      "reference": null,
+      "balance": "12357.73"
+    },
     "Arab Bank": {
       "sender": "ArabBank",
       "message": "A Trx using Card XXXX2020 from PORKBUN COM for USD 9.84 ",

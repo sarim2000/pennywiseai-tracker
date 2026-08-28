@@ -30,7 +30,7 @@ class NigeriaEndToEndTest {
             """
             Acct:******4321
             Amt:NGN15,000.00 DR
-            Desc:OUTWARD TRANSFER TO OPAY - NGOZI PATIENCE OKAFOR
+            Desc:OUTWARD TRANSFER TO OPAY - JANE DOE
             Bal:NGN20,000.00
             Date:2026-08-23 9:36AM
             """.trimIndent(),
@@ -49,12 +49,12 @@ class NigeriaEndToEndTest {
         ),
         Case(
             "Standard Chartered Bank Nigeria", "StanChart",
-            "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:ADAEZE CHINWENDU OKAFOR, Date:2026-08-24, Bal:NGN1500000.00",
+            "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:JANE DOE, Date:2026-08-24, Bal:NGN1500000.00",
             "1000.00", TransactionType.INCOME, "1500000.00", "1234"
         ),
         Case(
             "Standard Chartered Bank Nigeria", "StanChart",
-            "Debit Alert! Acct:xxxxxx1234, Amt:NGN1000000.00, Desc:OKAFOR SAMUEL CHIDUBEM LENDING, Date:2026-08-14, Bal:NGN1400000.00",
+            "Debit Alert! Acct:xxxxxx1234, Amt:NGN1000000.00, Desc:JANE DOE LENDING, Date:2026-08-14, Bal:NGN1400000.00",
             "1000000.00", TransactionType.EXPENSE, "1400000.00", "1234"
         ),
         Case(
@@ -64,7 +64,7 @@ class NigeriaEndToEndTest {
             Amt: N11,000.00 DR
             Date: 11-MAY-2026 21:53:32
             Chgs: N25.00 (COMM VAT)
-            Desc: Fruits/ To GLORIA ONYEKA PETERS
+            Desc: Fruits/ To JANE DOE
             Balance:N30,000.00
             """.trimIndent(),
             "11000.00", TransactionType.EXPENSE, "30000.00", "901"
@@ -76,7 +76,7 @@ class NigeriaEndToEndTest {
             Amt: N197,500.00 CR
             Date: 29-APR-2026 16:43:56
             Chgs: N0.00 (COMM VAT)
-            Desc: Salary to Adaeze Chinwendu Okafor
+            Desc: Salary to Jane Doe
             Balance:N200,000.00
             """.trimIndent(),
             "150000.00".let { "197500.00" }, TransactionType.INCOME, "200000.00", "901"

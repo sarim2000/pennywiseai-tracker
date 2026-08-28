@@ -60,7 +60,7 @@ class VFDBankParserTest {
                     Amt: N11,000.00 DR
                     Date: 11-MAY-2026 21:53:32
                     Chgs: N25.00 (COMM VAT)
-                    Desc: Fruits/ To GLORIA ONYEKA PETERS
+                    Desc: Fruits/ To JANE DOE
                     Balance:N30,000.00
                 """.trimIndent(),
                 sender = "VFD",
@@ -68,7 +68,7 @@ class VFDBankParserTest {
                     amount = BigDecimal("11000.00"),
                     currency = "NGN",
                     type = TransactionType.EXPENSE,
-                    merchant = "Fruits/ To GLORIA ONYEKA PETERS",
+                    merchant = "Fruits/ To JANE DOE",
                     accountLast4 = "901",
                     balance = BigDecimal("30000.00")
                 )
@@ -80,7 +80,7 @@ class VFDBankParserTest {
                     Amt: N150,000.00 CR
                     Date: 29-APR-2026 16:43:56
                     Chgs: N0.00 (COMM VAT)
-                    Desc: Car Fuel Gas Wi-fi to Adaeze Chinwendu Okafor. 000000000000000000000000000000
+                    Desc: Car Fuel Gas Wi-fi to Jane Doe. 000000000000000000000000000000
                     Balance:N200,000.00
                 """.trimIndent(),
                 sender = "VFD",
@@ -88,7 +88,7 @@ class VFDBankParserTest {
                     amount = BigDecimal("150000.00"),
                     currency = "NGN",
                     type = TransactionType.INCOME,
-                    merchant = "Car Fuel Gas Wi-fi to Adaeze Chinwendu Okafor. 000000000000000000000000000000",
+                    merchant = "Car Fuel Gas Wi-fi to Jane Doe. 000000000000000000000000000000",
                     accountLast4 = "901",
                     balance = BigDecimal("200000.00")
                 )
@@ -121,7 +121,7 @@ class VFDBankParserTest {
             Amt: N11,000.00 DR
             Date: 11-MAY-2026 21:53:32
             Chgs: N25.00 (COMM VAT)
-            Desc: Fruits/ To GLORIA ONYEKA PETERS
+            Desc: Fruits/ To JANE DOE
             Balance:N30,000.00
         """.trimIndent()
 

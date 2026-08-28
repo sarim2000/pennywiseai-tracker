@@ -981,11 +981,11 @@
     },
     "Standard Chartered Bank Nigeria": {
       "sender": "StanChart",
-      "message": "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I, Date:2026-08-24, Bal:NGN1500000.00",
+      "message": "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:JANE DOE 100000000000000000000000000000TEST I, Date:2026-08-24, Bal:NGN1500000.00",
       "currency": "NGN",
       "amount": "1000.00",
       "type": "INCOME",
-      "merchant": "ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I",
+      "merchant": "JANE DOE 100000000000000000000000000000TEST I",
       "accountLast4": "1234",
       "reference": null,
       "balance": "1500000.00"

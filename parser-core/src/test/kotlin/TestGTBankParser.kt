@@ -18,7 +18,7 @@ class GTBankParserTest {
                 message = """
                     Acct:******4321
                     Amt:NGN15,000.00 DR
-                    Desc:OUTWARD TRANSFER TO OPAY - NGOZI PATIENCE OKAFOR
+                    Desc:OUTWARD TRANSFER TO OPAY - JANE DOE
                     Bal:NGN20,000.00
                     Date:2026-08-23 9:36AM
                 """.trimIndent(),
@@ -27,7 +27,7 @@ class GTBankParserTest {
                     amount = BigDecimal("15000.00"),
                     currency = "NGN",
                     type = TransactionType.EXPENSE,
-                    merchant = "OUTWARD TRANSFER TO OPAY - NGOZI PATIENCE OKAFOR",
+                    merchant = "OUTWARD TRANSFER TO OPAY - JANE DOE",
                     accountLast4 = "4321",
                     balance = BigDecimal("20000.00")
                 )
@@ -113,7 +113,7 @@ class GTBankParserTest {
                 message = """
                     Acct:******5678
                     Amt:NGN4,200.00 DR
-                    Desc:BREAD TO OPAY - HALIMA YETUNDE SALAMI
+                    Desc:BREAD TO OPAY - JOHN DOE
                     Bal:NGN400,000.00
                     Date:2026-08-11 10:25PM
                 """.trimIndent(),
@@ -122,7 +122,7 @@ class GTBankParserTest {
                     amount = BigDecimal("4200.00"),
                     currency = "NGN",
                     type = TransactionType.EXPENSE,
-                    merchant = "BREAD TO OPAY - HALIMA YETUNDE SALAMI",
+                    merchant = "BREAD TO OPAY - JOHN DOE",
                     accountLast4 = "5678",
                     balance = BigDecimal("400000.00")
                 )

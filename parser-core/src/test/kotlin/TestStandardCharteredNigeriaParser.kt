@@ -16,39 +16,39 @@ class StandardCharteredNigeriaParserTest {
         val testCases = listOf(
             ParserTestCase(
                 name = "Credit alert (INCOME)",
-                message = "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I, Date:2026-08-24, Bal:NGN1500000.00",
+                message = "Credit Alert! Acct:xxxxxx1234, Amt:NGN1000.00, Desc:JANE DOE 100000000000000000000000000000TEST I, Date:2026-08-24, Bal:NGN1500000.00",
                 sender = "StanChart",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1000.00"),
                     currency = "NGN",
                     type = TransactionType.INCOME,
-                    merchant = "ADAEZE CHINWENDU OKAFOR 100000000000000000000000000000TEST I",
+                    merchant = "JANE DOE 100000000000000000000000000000TEST I",
                     accountLast4 = "1234",
                     balance = BigDecimal("1500000.00")
                 )
             ),
             ParserTestCase(
                 name = "Large debit alert (EXPENSE)",
-                message = "Debit Alert! Acct:xxxxxx1234, Amt:NGN1000000.00, Desc:OKAFOR SAMUEL CHIDUBEM LENDING NG-013-000000-000000000-000000-, Date:2026-08-14, Bal:NGN1400000.00",
+                message = "Debit Alert! Acct:xxxxxx1234, Amt:NGN1000000.00, Desc:JANE DOE LENDING NG-013-000000-000000000-000000-, Date:2026-08-14, Bal:NGN1400000.00",
                 sender = "StanChart",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1000000.00"),
                     currency = "NGN",
                     type = TransactionType.EXPENSE,
-                    merchant = "OKAFOR SAMUEL CHIDUBEM LENDING NG-013-000000-000000000-000000-",
+                    merchant = "JANE DOE LENDING NG-013-000000-000000000-000000-",
                     accountLast4 = "1234",
                     balance = BigDecimal("1400000.00")
                 )
             ),
             ParserTestCase(
                 name = "Debit alert with trailing space in description",
-                message = "Debit Alert! Acct:xxxxxx1234, Amt:NGN15000.00, Desc:AMINA FOLASADE ADELEKE RICE NG-013-000000-000000000-000000-000 , Date:2026-08-06, Bal:NGN800000.00",
+                message = "Debit Alert! Acct:xxxxxx1234, Amt:NGN15000.00, Desc:JOHN DOE RICE NG-013-000000-000000000-000000-000 , Date:2026-08-06, Bal:NGN800000.00",
                 sender = "StanChart",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("15000.00"),
                     currency = "NGN",
                     type = TransactionType.EXPENSE,
-                    merchant = "AMINA FOLASADE ADELEKE RICE NG-013-000000-000000000-000000-000",
+                    merchant = "JOHN DOE RICE NG-013-000000-000000000-000000-000",
                     accountLast4 = "1234",
                     balance = BigDecimal("800000.00")
                 )

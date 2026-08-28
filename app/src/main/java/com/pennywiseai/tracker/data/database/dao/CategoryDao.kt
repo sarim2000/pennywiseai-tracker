@@ -15,7 +15,22 @@ interface CategoryDao {
     
     @Query("SELECT * FROM categories WHERE is_income = 1 ORDER BY display_order ASC, name ASC")
     fun getIncomeCategories(): Flow<List<CategoryEntity>>
-    
+
+    // Visible-only variants for the category PICKERS — hidden categories are kept
+    // in the DB (so existing transactions keep their category and still show in
+    // analytics) but excluded from selection (#736).
+    @Query("SELECT * FROM categories WHERE is_hidden = 0 ORDER BY display_order ASC, name ASC")
+    fun getVisibleCategories(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories WHERE is_income = 0 AND is_hidden = 0 ORDER BY display_order ASC, name ASC")
+    fun getVisibleExpenseCategories(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories WHERE is_income = 1 AND is_hidden = 0 ORDER BY display_order ASC, name ASC")
+    fun getVisibleIncomeCategories(): Flow<List<CategoryEntity>>
+
+    @Query("UPDATE categories SET is_hidden = :hidden WHERE id = :categoryId")
+    suspend fun setCategoryHidden(categoryId: Long, hidden: Boolean)
+
     @Query("SELECT * FROM categories WHERE id = :categoryId")
     suspend fun getCategoryById(categoryId: Long): CategoryEntity?
     

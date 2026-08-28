@@ -24,7 +24,24 @@ class CategoryRepository @Inject constructor(
     fun getIncomeCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getIncomeCategories()
     }
-    
+
+    // Visible-only variants for pickers — hidden categories are excluded (#736).
+    fun getVisibleCategories(): Flow<List<CategoryEntity>> {
+        return categoryDao.getVisibleCategories()
+    }
+
+    fun getVisibleExpenseCategories(): Flow<List<CategoryEntity>> {
+        return categoryDao.getVisibleExpenseCategories()
+    }
+
+    fun getVisibleIncomeCategories(): Flow<List<CategoryEntity>> {
+        return categoryDao.getVisibleIncomeCategories()
+    }
+
+    suspend fun setCategoryHidden(categoryId: Long, hidden: Boolean) {
+        categoryDao.setCategoryHidden(categoryId, hidden)
+    }
+
     suspend fun getCategoryById(categoryId: Long): CategoryEntity? {
         return categoryDao.getCategoryById(categoryId)
     }

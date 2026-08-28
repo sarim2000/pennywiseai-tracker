@@ -109,7 +109,7 @@ class QuickCategoryPickerActivity : ComponentActivity() {
             tagsLoaded = true
         }
         LaunchedEffect(Unit) {
-            categories = categoryRepository.getAllCategories().first()
+            categories = categoryRepository.getVisibleCategories().first()
             categoriesLoaded = true
             tagSuggestions = tagRepository.observeAllTagNames().first()
         }

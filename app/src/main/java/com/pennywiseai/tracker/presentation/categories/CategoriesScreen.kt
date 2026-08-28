@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -123,7 +124,8 @@ fun CategoriesScreen(
                     SwipeableCategoryItem(
                         category = category,
                         onEdit = { viewModel.showEditDialog(category) },
-                        onDelete = { viewModel.deleteCategory(category) }
+                        onDelete = { viewModel.deleteCategory(category) },
+                        onToggleHidden = { viewModel.setCategoryHidden(category, !category.isHidden) }
                     )
                 }
             }
@@ -141,7 +143,8 @@ fun CategoriesScreen(
                     SwipeableCategoryItem(
                         category = category,
                         onEdit = { viewModel.showEditDialog(category) },
-                        onDelete = { viewModel.deleteCategory(category) }
+                        onDelete = { viewModel.deleteCategory(category) },
+                        onToggleHidden = { viewModel.setCategoryHidden(category, !category.isHidden) }
                     )
                 }
             }
@@ -171,7 +174,8 @@ fun CategoriesScreen(
 private fun SwipeableCategoryItem(
     category: CategoryEntity,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleHidden: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
@@ -220,7 +224,8 @@ private fun SwipeableCategoryItem(
         content = {
             CategoryItem(
                 category = category,
-                onClick = if (!category.isSystem) onEdit else null
+                onClick = if (!category.isSystem) onEdit else null,
+                onToggleHidden = onToggleHidden
             )
         },
         enableDismissFromStartToEnd = false,
@@ -231,7 +236,8 @@ private fun SwipeableCategoryItem(
 @Composable
 private fun CategoryItem(
     category: CategoryEntity,
-    onClick: (() -> Unit)?
+    onClick: (() -> Unit)?,
+    onToggleHidden: () -> Unit = {}
 ) {
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
@@ -241,7 +247,9 @@ private fun CategoryItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
+                .padding(Dimensions.Padding.content)
+                // Dim a hidden category so it reads as "tucked away" in the manager.
+                .alpha(if (category.isHidden) 0.5f else 1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Category with colored dot
@@ -250,7 +258,18 @@ private fun CategoryItem(
                 showText = true,
                 modifier = Modifier.weight(1f)
             )
-            
+
+            // Hide / unhide toggle — available for every category, including
+            // system defaults (the whole point of #736).
+            IconButton(onClick = onToggleHidden) {
+                Icon(
+                    imageVector = if (category.isHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (category.isHidden) "Show category" else "Hide category",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
+
             // System badge
             if (category.isSystem) {
                 Surface(

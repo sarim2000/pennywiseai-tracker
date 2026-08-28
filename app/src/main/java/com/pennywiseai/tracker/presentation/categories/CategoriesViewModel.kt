@@ -118,6 +118,24 @@ class CategoriesViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Hide or unhide a category (#736). Unlike delete, this is allowed for system
+     * (default) categories — hiding is the safe way to tuck away an unused default:
+     * the row stays in the DB so existing transactions keep their category, it's just
+     * removed from the pickers.
+     */
+    fun setCategoryHidden(category: CategoryEntity, hidden: Boolean) {
+        viewModelScope.launch {
+            try {
+                categoryRepository.setCategoryHidden(category.id, hidden)
+                _snackbarMessage.value =
+                    if (hidden) "${category.name} hidden" else "${category.name} shown"
+            } catch (e: Exception) {
+                _snackbarMessage.value = "Error updating category: ${e.message}"
+            }
+        }
+    }
+
     fun clearSnackbarMessage() {
         _snackbarMessage.value = null
     }

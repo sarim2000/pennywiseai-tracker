@@ -442,6 +442,17 @@ fun AnalyticsScreen(
                             )
                         }
                     }
+
+                    // Explain why the bars can sum above the headline total: refunds are
+                    // netted in full off the total, but a category bar can't go negative (#704).
+                    if (uiState.refundNettedFromTotal > BigDecimal.ZERO) {
+                        Text(
+                            text = "Total is net of ${CurrencyFormatter.formatCurrency(uiState.refundNettedFromTotal, selectedCurrency)} in refunds. Category bars can't go below zero, so they may add up to more than the total shown.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.sm)
+                        )
+                    }
                 }
             }
         }

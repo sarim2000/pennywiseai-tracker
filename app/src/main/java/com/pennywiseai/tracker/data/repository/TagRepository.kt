@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +26,9 @@ class TagRepository @Inject constructor(
     private val database: PennyWiseDatabase,
     private val tagDao: TagDao
 ) {
+    private companion object {
+        const val TAG = "TagRepository"
+    }
 
     // Ordered, single-consumer queue for tag writes (#710). setTagsForTransaction
     // is a replace-all, so concurrent callers (e.g. rapid edits in the quick
@@ -38,6 +42,7 @@ class TagRepository @Inject constructor(
         tagWriteScope.launch {
             for ((transactionId, tagNames) in tagWriteQueue) {
                 runCatching { setTagsForTransaction(transactionId, tagNames) }
+                    .onFailure { e -> Log.e(TAG, "Queued tag write failed: txId=$transactionId", e) }
             }
         }
     }

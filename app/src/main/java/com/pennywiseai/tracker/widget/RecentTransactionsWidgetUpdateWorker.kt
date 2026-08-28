@@ -72,6 +72,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             val isUnifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
             val displayCurrency = userPreferencesRepository.displayCurrency.first()
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
             val targetCurrency = resolveTargetCurrency(isUnifiedMode, displayCurrency, baseCurrency)
 
             val now = LocalDate.now()
@@ -99,7 +100,11 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 }
 
             val grossSpent = nonLoan
-                .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
+                .filter {
+                    it.transactionType == TransactionType.EXPENSE ||
+                        (countCreditCardAsExpense && it.transactionType == TransactionType.CREDIT) ||
+                        it.transactionType == TransactionType.INVESTMENT
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
             // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it

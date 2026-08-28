@@ -791,8 +791,9 @@ class TransactionDetailViewModel @Inject constructor(
 
                 transactionRepository.updateTransaction(normalizedTransaction)
 
-                // Persist the edited tag set (create-or-select handled in repo).
-                tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
+                // Persist the edited tag set via the FIFO queue so ordering is
+                // preserved relative to quick-picker writes (BUG-011).
+                tagRepository.enqueueSetTags(normalizedTransaction.id, _editableTags.value)
 
                 // Reflect the edit on account balances (#636). One repository
                 // call owns every shape of change — type or amount edits on the

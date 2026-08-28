@@ -431,13 +431,13 @@
     },
     "HDFC Bank": {
       "sender": "HDFCBK",
-      "message": "Sent Rs.15000.00 From HDFC Bank A/C *1234 To TEST MERCHANT PVT LTD On 01/01/26 Ref 567890567890 Not You? Call 18005556789/SMS BLOCK UPI to 7305556789",
+      "message": "Rs.15000.00 debited from A/c XX5678 on 01-Feb-26 towards HDFC Credit Card bill payment (UPI Ref No 112233445566)",
       "currency": "INR",
       "amount": "15000.00",
-      "type": "EXPENSE",
-      "merchant": "TEST MERCHANT",
-      "accountLast4": "1234",
-      "reference": "567890567890",
+      "type": "TRANSFER",
+      "merchant": "HDFC Credit Card bill payment",
+      "accountLast4": "5678",
+      "reference": "112233445566",
       "balance": null
     },
     "HSBC Bank": {

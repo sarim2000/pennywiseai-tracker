@@ -107,6 +107,33 @@ T&C. Ignore if paid""",
                     merchant = "AMAZON",
                     accountLast4 = "5555"
                 )
+            ),
+
+            // Credit card bill payment — money leaves bank account, goes to card (TRANSFER)
+            ParserTestCase(
+                name = "Credit Card Bill Payment via NEFT - Transfer",
+                message = "Rs.25000.00 debited from A/c XX1234 on 15-Jan-26 towards your HDFC Credit Card bill payment (NEFT Ref No 987654321012)",
+                sender = "CP-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("25000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.TRANSFER,
+                    accountLast4 = "1234",
+                    reference = "987654321012"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Bill Payment via UPI - Transfer",
+                message = "Rs.15000.00 debited from A/c XX5678 on 01-Feb-26 towards HDFC Credit Card bill payment (UPI Ref No 112233445566)",
+                sender = "HDFCBK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.TRANSFER,
+                    accountLast4 = "5678",
+                    reference = "112233445566"
+                )
             )
         )
 

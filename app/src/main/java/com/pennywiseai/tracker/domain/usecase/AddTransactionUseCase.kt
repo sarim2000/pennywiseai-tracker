@@ -84,7 +84,10 @@ class AddTransactionUseCase @Inject constructor(
                 accountLast4 = accountLast4
             )
 
-            // Link tags (create-or-select handled in the repository)
+            // Link tags inside the transaction so the write is atomic: if
+            // setTagsForTransaction fails, the whole add rolls back rather than
+            // leaving a persisted-but-untagged transaction. Room's withTransaction
+            // is reentrant, so this joins the outer transaction.
             if (transactionId != -1L && tags.isNotEmpty()) {
                 tagRepository.setTagsForTransaction(transactionId, tags)
             }

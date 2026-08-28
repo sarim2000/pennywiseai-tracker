@@ -304,9 +304,9 @@ class HDFCBankParser : BaseIndianBankParser() {
             // Legacy pattern for older format that explicitly says "spent on card"
             lowerMessage.contains("spent on card") && !lowerMessage.contains("block dc") -> TransactionType.CREDIT
 
-            // Credit card bill payments (these are regular expenses from bank account)
-            lowerMessage.contains("payment") && lowerMessage.contains("credit card") -> TransactionType.EXPENSE
-            lowerMessage.contains("towards") && lowerMessage.contains("credit card") -> TransactionType.EXPENSE
+            // Credit card bill payments (money leaves bank account → transfer to card)
+            lowerMessage.contains("payment") && lowerMessage.contains("credit card") -> TransactionType.TRANSFER
+            lowerMessage.contains("towards") && lowerMessage.contains("credit card") -> TransactionType.TRANSFER
 
             // HDFC specific: "Sent Rs.X From HDFC Bank"
             lowerMessage.contains("sent") && lowerMessage.contains("from hdfc") -> TransactionType.EXPENSE

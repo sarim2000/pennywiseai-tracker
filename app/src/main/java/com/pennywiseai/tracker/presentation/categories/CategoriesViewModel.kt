@@ -118,6 +118,11 @@ class CategoriesViewModel @Inject constructor(
         }
     }
     
+    // Categories with a hide/unhide write in flight — guards against rapid repeated
+    // taps on the toggle firing duplicate/overlapping writes (the `hidden` argument is
+    // derived from possibly-stale UI state). Touched only from the main thread.
+    private val togglingCategoryIds = mutableSetOf<Long>()
+
     /**
      * Hide or unhide a category (#736). Unlike delete, this is allowed for system
      * (default) categories — hiding is the safe way to tuck away an unused default:
@@ -125,6 +130,8 @@ class CategoriesViewModel @Inject constructor(
      * removed from the pickers.
      */
     fun setCategoryHidden(category: CategoryEntity, hidden: Boolean) {
+        // Ignore a tap while this category's previous toggle is still running.
+        if (!togglingCategoryIds.add(category.id)) return
         viewModelScope.launch {
             try {
                 categoryRepository.setCategoryHidden(category.id, hidden)
@@ -132,6 +139,8 @@ class CategoriesViewModel @Inject constructor(
                     if (hidden) "${category.name} hidden" else "${category.name} shown"
             } catch (e: Exception) {
                 _snackbarMessage.value = "Error updating category: ${e.message}"
+            } finally {
+                togglingCategoryIds.remove(category.id)
             }
         }
     }

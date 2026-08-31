@@ -1,0 +1,1 @@
+Auto-seguimiento UPI y SMS bancarios Aplicación para llevar un control de gastos personales y administrar el presupuesto, sin necesidad de registrarse.

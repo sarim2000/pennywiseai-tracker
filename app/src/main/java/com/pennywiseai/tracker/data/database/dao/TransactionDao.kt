@@ -125,6 +125,14 @@ interface TransactionDao {
     suspend fun deleteAllTransactions()
 
     /**
+     * Every row in the table, soft-deleted ones included, so the "delete all"
+     * confirmation reports the same number of rows [deleteAllTransactions]
+     * will actually remove.
+     */
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun countAllTransactions(): Int
+
+    /**
      * Deletes only transactions that don't carry user-curated annotations
      * (no loan link, no group membership). Used by the full-rescan path so
      * rebuilding the SMS-derived view doesn't blow away loans + their

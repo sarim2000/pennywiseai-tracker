@@ -91,6 +91,24 @@ class SettingsViewModel @Inject constructor(
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
+    // "Delete all transactions": null while the confirmation isn't open, else the
+    // number of rows the delete would remove. Loaded when the dialog opens so the
+    // irreversible action states its real blast radius rather than a guess.
+    private val _deleteAllTransactionsCount = MutableStateFlow<Int?>(null)
+    val deleteAllTransactionsCount: StateFlow<Int?> = _deleteAllTransactionsCount.asStateFlow()
+
+    private val _isDeletingAllTransactions = MutableStateFlow(false)
+    val isDeletingAllTransactions: StateFlow<Boolean> = _isDeletingAllTransactions.asStateFlow()
+
+    // Kept separate from [importExportMessage] so the outcome isn't reported
+    // under that flow's "Backup Status" dialog.
+    private val _deleteAllTransactionsResult = MutableStateFlow<String?>(null)
+    val deleteAllTransactionsResult: StateFlow<String?> = _deleteAllTransactionsResult.asStateFlow()
+
+    fun clearDeleteAllTransactionsResult() {
+        _deleteAllTransactionsResult.value = null
+    }
+
     val scheduledFolderBackupEnabled = userPreferencesRepository.scheduledFolderBackupEnabled
     val scheduledFolderBackupLastTimestamp = userPreferencesRepository.scheduledFolderBackupLastTimestamp
 
@@ -476,6 +494,43 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setUnifiedCurrencyMode(enabled)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        }
+    }
+
+    /**
+     * Opens the "delete all transactions" confirmation, loading the row count
+     * it will report. Transactions only: accounts, budgets, loans, categories
+     * and rules are left alone, and the cascading foreign keys clear the
+     * splits / tags / rule-applications that hang off the deleted rows.
+     */
+    fun requestDeleteAllTransactions() {
+        viewModelScope.launch {
+            _deleteAllTransactionsCount.value = transactionRepository.countAllTransactions()
+        }
+    }
+
+    fun cancelDeleteAllTransactions() {
+        _deleteAllTransactionsCount.value = null
+    }
+
+    fun deleteAllTransactions() {
+        viewModelScope.launch {
+            _isDeletingAllTransactions.value = true
+            val deleted = _deleteAllTransactionsCount.value ?: 0
+            try {
+                transactionRepository.deleteAllTransactions()
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+                com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
+                _deleteAllTransactionsResult.value =
+                    if (deleted == 1) "1 transaction deleted."
+                    else "$deleted transactions deleted."
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Delete all transactions failed", e)
+                _deleteAllTransactionsResult.value = "Couldn't delete transactions: ${e.message}"
+            } finally {
+                _isDeletingAllTransactions.value = false
+                _deleteAllTransactionsCount.value = null
+            }
         }
     }
 

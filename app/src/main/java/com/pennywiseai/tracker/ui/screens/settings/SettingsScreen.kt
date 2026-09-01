@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
@@ -123,6 +124,9 @@ fun SettingsScreen(
     val budgetCycleStartDay by settingsViewModel.budgetCycleStartDay.collectAsStateWithLifecycle(initialValue = 1)
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
+    val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
+    val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
@@ -689,12 +693,21 @@ fun SettingsScreen(
                         else -> "Scan last $smsScanMonths months"
                     },
                     onClick = { showSmsScanDialog = true },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingText = when {
                         smsScanAllTime -> "All Time"
                         smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) } ?: "Custom"
                         else -> "$smsScanMonths mo"
                     }
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.DeleteForever,
+                    iconBgColor = red_light,
+                    iconTint = red_dark,
+                    title = "Delete All Transactions",
+                    subtitle = "Clear your transaction history — accounts and budgets stay",
+                    onClick = { settingsViewModel.requestDeleteAllTransactions() },
+                    position = ListItemPosition.Bottom
                 )
             }
 
@@ -1082,6 +1095,85 @@ fun SettingsScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    // Delete-all-transactions confirmation. Irreversible and unbatched, so it
+    // asks for the word DELETE rather than a single tap, names the exact number
+    // of rows, and points at Export Data first.
+    deleteAllTransactionsCount?.let { count ->
+        var confirmationText by rememberSaveable(count) { mutableStateOf("") }
+        val confirmed = confirmationText.trim().equals("DELETE", ignoreCase = false)
+
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDeletingAllTransactions) settingsViewModel.cancelDeleteAllTransactions()
+            },
+            icon = {
+                Icon(
+                    Icons.Default.DeleteForever,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("Delete all transactions?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text(
+                        if (count == 1) {
+                            "This permanently deletes your 1 transaction, along with its splits and tags. It cannot be undone."
+                        } else {
+                            "This permanently deletes all $count transactions, along with their splits and tags. It cannot be undone."
+                        }
+                    )
+                    Text(
+                        "Your accounts, budgets, loans, categories and rules are kept. " +
+                            "Export Data first if you might want this history back.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = confirmationText,
+                        onValueChange = { confirmationText = it },
+                        singleLine = true,
+                        enabled = !isDeletingAllTransactions,
+                        label = { Text("Type DELETE to confirm") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { settingsViewModel.deleteAllTransactions() },
+                    enabled = confirmed && !isDeletingAllTransactions,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(if (isDeletingAllTransactions) "Deleting…" else "Delete All")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { settingsViewModel.cancelDeleteAllTransactions() },
+                    enabled = !isDeletingAllTransactions
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    deleteAllTransactionsResult?.let { message ->
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.clearDeleteAllTransactionsResult() },
+            title = { Text("Transactions") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     // Show import/export message

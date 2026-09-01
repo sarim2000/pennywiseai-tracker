@@ -513,17 +513,54 @@ class SettingsViewModel @Inject constructor(
         _deleteAllTransactionsCount.value = null
     }
 
+    /**
+     * Deletes every transaction, then settles the account-balance ledger.
+     *
+     * Balances get different treatment per account kind, on purpose:
+     *
+     *  - **SMS-tracked accounts keep their last reported figure.** That number is
+     *    the bank's own word, not something derived from the local history, so
+     *    clearing the history shouldn't rewrite it. (Deleting a *single*
+     *    transaction does shift it, via
+     *    [AccountBalanceRepository.applyDeleteBalanceShift]. Replaying that for
+     *    every row would unwind every expense at once and leave the user staring
+     *    at an inflated balance right after asking to clear their history.)
+     *  - **Manual / cash accounts are recomputed.** Their balance *is defined* as
+     *    opening + Σ(transactions), so leaving it untouched would keep showing a
+     *    total for transactions that no longer exist. The opening row is
+     *    established *before* the delete — it is back-solved from the current
+     *    balance minus the transaction sum, which only works while those rows are
+     *    still there — and the recompute afterwards lands the account back on its
+     *    opening balance.
+     *
+     * The result message uses the delete's own affected-row count rather than
+     * the dialog's preview, so a row a background SMS scan wrote while the
+     * dialog was open is both deleted and reported.
+     */
     fun deleteAllTransactions() {
         viewModelScope.launch {
             _isDeletingAllTransactions.value = true
-            val deleted = _deleteAllTransactionsCount.value ?: 0
             try {
-                transactionRepository.deleteAllTransactions()
+                val accounts = accountBalanceRepository.getAllLatestBalances().first()
+                // Must run before the delete: the opening balance is back-solved
+                // from the transactions that are about to disappear.
+                accounts.forEach { account ->
+                    accountBalanceRepository.ensureManualOpening(account.bankName, account.accountLast4)
+                }
+
+                val deleted = transactionRepository.deleteAllTransactions()
+
+                accounts.forEach { account ->
+                    accountBalanceRepository.recomputeManualBalance(account.bankName, account.accountLast4)
+                }
+
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
-                _deleteAllTransactionsResult.value =
-                    if (deleted == 1) "1 transaction deleted."
-                    else "$deleted transactions deleted."
+                _deleteAllTransactionsResult.value = when (deleted) {
+                    0 -> "There were no transactions to delete."
+                    1 -> "1 transaction deleted."
+                    else -> "$deleted transactions deleted."
+                }
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Delete all transactions failed", e)
                 _deleteAllTransactionsResult.value = "Couldn't delete transactions: ${e.message}"

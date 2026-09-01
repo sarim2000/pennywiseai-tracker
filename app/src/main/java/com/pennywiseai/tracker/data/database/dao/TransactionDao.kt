@@ -121,16 +121,19 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE id = :transactionId")
     suspend fun deleteTransactionById(transactionId: Long)
     
+    /** @return the number of rows actually removed. */
     @Query("DELETE FROM transactions")
-    suspend fun deleteAllTransactions()
+    suspend fun deleteAllTransactions(): Int
 
     /**
      * Every row in the table, soft-deleted ones included, so the "delete all"
-     * confirmation reports the same number of rows [deleteAllTransactions]
-     * will actually remove.
+     * confirmation can preview how many rows it is about to remove. The result
+     * message uses [deleteAllTransactions]'s own return value instead, so a row
+     * written while the dialog was open is still reported accurately.
      */
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun countAllTransactions(): Int
+
 
     /**
      * Deletes only transactions that don't carry user-curated annotations

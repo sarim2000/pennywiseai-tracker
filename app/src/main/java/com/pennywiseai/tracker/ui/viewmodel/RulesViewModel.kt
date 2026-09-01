@@ -277,7 +277,7 @@ class RulesViewModel @Inject constructor(
                 toImport.forEach { ruleRepository.insertRule(it) }
 
                 val blocked = fresh.size - toImport.size
-                val skipped = decoded.invalid + decoded.duplicatedInFile
+                val skipped = decoded.duplicatedInFile
                 _sharingMessage.value = buildString {
                     append(
                         if (toImport.size == 1) "Imported 1 rule."
@@ -286,8 +286,8 @@ class RulesViewModel @Inject constructor(
                     if (duplicates > 0) append(" $duplicates already existed.")
                     if (skipped > 0) {
                         append(
-                            if (skipped == 1) " 1 entry in the file was unusable and was skipped."
-                            else " $skipped entries in the file were unusable and were skipped."
+                            if (skipped == 1) " 1 repeated name in the file was collapsed."
+                            else " $skipped repeated names in the file were collapsed."
                         )
                     }
                     if (blocked > 0) {

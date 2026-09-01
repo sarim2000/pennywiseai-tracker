@@ -91,29 +91,33 @@ object RuleSharingCodec {
     )
 
     /**
-     * What a file yielded: the rules worth importing, plus what was thrown away
-     * getting there. The counts are reported back to the user — a file that
-     * silently loses half its rules is worse than one that says so.
+     * What a file yielded: the rules to import, plus the repeats collapsed on the
+     * way. The count is reported back to the user — quietly importing fewer rules
+     * than the file listed is worse than saying so.
      */
     data class DecodedRuleSet(
         val rules: List<TransactionRule>,
-        /** Entries that wouldn't pass [TransactionRule.validate]. */
-        val invalid: Int,
         /** Entries dropped because an earlier entry in the same file had that name. */
         val duplicatedInFile: Int
     )
 
     /**
-     * Parses [text] into the rules it holds.
+     * Parses [text] into the rules it holds, all or nothing.
      *
-     * Entries that wouldn't pass [TransactionRule.validate] are dropped rather
-     * than inserted — the create screen would reject them too — and so are
-     * repeats of a name that already appeared earlier in the same file, which
-     * would otherwise land as two rules the user can't tell apart. Both are
-     * counted so the caller can say what happened.
+     * An entry that wouldn't pass [TransactionRule.validate] fails the whole
+     * file rather than being skipped: importing "most of" a shared rule set
+     * leaves the user with a half-applied config they didn't ask for and can't
+     * easily tell apart from the real thing. Better to reject it and let whoever
+     * exported it send a good file.
      *
-     * @throws IllegalArgumentException if the file isn't a rule set, holds no
-     *   usable rule, or was written by a newer format version.
+     * Repeats of a name that already appeared earlier in the same file are the
+     * one thing still collapsed rather than refused — the file is unambiguous
+     * about what the rule should be (the first one wins), and the count is
+     * reported.
+     *
+     * @throws IllegalArgumentException if the file isn't a rule set, holds an
+     *   unusable entry, holds no rule at all, or was written by a newer format
+     *   version.
      */
     fun decode(text: String): DecodedRuleSet {
         require(text.length <= MAX_FILE_BYTES) {
@@ -139,14 +143,17 @@ object RuleSharingCodec {
                 isSystemTemplate = false
             )
         }
-        val valid = mapped.filter { it.validate() }
-        val deduped = valid.distinctBy { it.name.lowercase() }
+        val invalid = mapped.count { !it.validate() }
+        require(invalid == 0) {
+            if (invalid == 1) "1 rule in this file is incomplete, so nothing was imported."
+            else "$invalid rules in this file are incomplete, so nothing was imported."
+        }
 
-        require(deduped.isNotEmpty()) { "No usable rules found in this file." }
+        val deduped = mapped.distinctBy { it.name.lowercase() }
+        require(deduped.isNotEmpty()) { "No rules found in this file." }
         return DecodedRuleSet(
             rules = deduped,
-            invalid = mapped.size - valid.size,
-            duplicatedInFile = valid.size - deduped.size
+            duplicatedInFile = mapped.size - deduped.size
         )
     }
 }

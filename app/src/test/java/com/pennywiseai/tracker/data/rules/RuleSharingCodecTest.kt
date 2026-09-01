@@ -117,7 +117,7 @@ class RuleSharingCodecTest {
     }
 
     @Test
-    fun `a file mixing usable and unusable rules reports what it dropped`() {
+    fun `one unusable entry fails the whole file, importing nothing`() {
         val text = """
             {"version":1,"rules":[
               {"name":"Zomato","conditions":[
@@ -128,11 +128,12 @@ class RuleSharingCodecTest {
             ]}
         """.trimIndent()
 
-        val decoded = RuleSharingCodec.decode(text)
-
-        assertEquals(listOf("Zomato"), decoded.rules.map { it.name })
-        assertEquals(1, decoded.invalid)
-        assertEquals(0, decoded.duplicatedInFile)
+        // The usable "Zomato" rule must NOT slip through on its own — a
+        // half-applied rule set is worse than a refused one.
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            RuleSharingCodec.decode(text)
+        }
+        assertTrue(error.message!!.contains("nothing was imported"))
     }
 
     @Test

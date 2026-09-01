@@ -11,9 +11,9 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
@@ -169,8 +169,8 @@ class TransactionsViewModel @Inject constructor(
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-        } else if (period == TimePeriod.THIS_MONTH) {
-            val (startDate, endDate) = getThisCycleRange()
+        } else if (period.followsBudgetCycle) {
+            val (startDate, endDate) = getCycleRange(period)
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
@@ -729,13 +729,13 @@ class TransactionsViewModel @Inject constructor(
             .transformLatest { _ ->
                 val period = selectedPeriod.value
                 val categories = categoriesFilter.value
-                // Always resolve a cycle range up-front; only THIS_MONTH consumes it
-                // today, but keeping a real Pair avoids nullable plumbing in the
-                // (non-suspend) filter helper.
-                val cycleRange = if (period == TimePeriod.THIS_MONTH) {
-                    getThisCycleRange()
+                // Always resolve a cycle range up-front; only the cycle-following
+                // periods consume it, but keeping a real Pair avoids nullable
+                // plumbing in the (non-suspend) filter helper.
+                val cycleRange = if (period.followsBudgetCycle) {
+                    getCycleRange(period)
                 } else {
-                    // Use a sentinel range — never read for non-THIS_MONTH branches.
+                    // Use a sentinel range — never read for other periods.
                     LocalDate.now() to LocalDate.now()
                 }
                 // Get all transactions without category filter applied
@@ -787,11 +787,11 @@ class TransactionsViewModel @Inject constructor(
                 val tag = _tagFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
-                // filter helper can reuse it for THIS_MONTH. Non-THIS_MONTH
-                // branches never read this — pass a sentinel pair to keep
+                // filter helper can reuse it for the cycle-following periods.
+                // Other periods never read this — pass a sentinel pair to keep
                 // the helper signature non-nullable.
-                val cycleRange = if (period == TimePeriod.THIS_MONTH) {
-                    getThisCycleRange()
+                val cycleRange = if (period.followsBudgetCycle) {
+                    getCycleRange(period)
                 } else {
                     LocalDate.now() to LocalDate.now()
                 }
@@ -975,14 +975,17 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
-     * The "This Month" range for the Transactions tab. Honours the user's
-     * configured budget cycle start day (e.g. 25th → 24th) so the transactions
-     * list, totals, and analytics agree on the same window.
+     * The "This Month" / "Last Month" range for the Transactions tab. Honours
+     * the user's configured budget cycle start day (e.g. 25th → 24th) so the
+     * transactions list, totals, and analytics agree on the same window — and
+     * so the two chips stay tiled with no unreachable days between them.
+     *
+     * Only ever called for a period where [TimePeriod.followsBudgetCycle] is
+     * true, so the non-null assertion cannot fire.
      */
-    private suspend fun getThisCycleRange(): Pair<LocalDate, LocalDate> {
+    private suspend fun getCycleRange(period: TimePeriod): Pair<LocalDate, LocalDate> {
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-        val (start, end) = BudgetCycle.currentCycle(LocalDate.now(), startDay)
-        return start to end
+        return getCycleAwareDateRange(period, startDay)!!
     }
 
     fun deleteTransaction(transaction: TransactionEntity) {
@@ -1308,7 +1311,7 @@ class TransactionsViewModel @Inject constructor(
                     }
                 }
             }
-            TimePeriod.THIS_MONTH -> {
+            TimePeriod.THIS_MONTH, TimePeriod.LAST_MONTH -> {
                 val (startDate, endDate) = cycleRange
                 val startDateTime = startDate.atStartOfDay()
                 val endDateTime = endDate.atTime(23, 59, 59)

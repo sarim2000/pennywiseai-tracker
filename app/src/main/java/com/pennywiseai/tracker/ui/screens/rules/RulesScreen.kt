@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -47,7 +50,18 @@ fun RulesScreen(
     val batchApplyResult by viewModel.batchApplyResult.collectAsStateWithLifecycle()
     val dryRunResult by viewModel.dryRunResult.collectAsStateWithLifecycle()
     val canCreateMoreRules by viewModel.canCreateMoreRules.collectAsStateWithLifecycle()
+    val sharingMessage by viewModel.sharingMessage.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    // Rule sharing (#741). CreateDocument/OpenDocument keep the file in the
+    // user's own storage — nothing leaves the device unless they share it.
+    val exportRulesLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(RuleSharingCodec.MIME_TYPE)
+    ) { uri -> uri?.let { viewModel.exportRules(it) } }
+    val importRulesLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { viewModel.importRules(it) } }
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
@@ -78,13 +92,51 @@ fun RulesScreen(
                     }
                 },
                 actionContent = {
-                    IconButton(
-                        onClick = { showResetDialog = true }
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Reset to defaults"
-                        )
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Export rules") },
+                                leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    if (RuleSharingCodec.exportable(rules).isEmpty()) {
+                                        viewModel.reportNothingToExport()
+                                    } else {
+                                        exportRulesLauncher.launch(
+                                            "pennywise-rules.${RuleSharingCodec.FILE_EXTENSION}"
+                                        )
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import rules") },
+                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    // Some file pickers don't offer JSON files under the
+                                    // strict MIME type, so accept anything and let the
+                                    // decoder reject what isn't a rule set.
+                                    importRulesLauncher.launch(arrayOf("*/*"))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Reset to defaults") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    showResetDialog = true
+                                }
+                            )
+                        }
                     }
                 },
                 hazeState = hazeState
@@ -102,6 +154,19 @@ fun RulesScreen(
             }
         }
     ) { paddingValues ->
+
+        sharingMessage?.let { message ->
+            AlertDialog(
+                onDismissRequest = { viewModel.clearSharingMessage() },
+                title = { Text("Smart Rules") },
+                text = { Text(message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearSharingMessage() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
 
         if (showResetDialog) {
             AlertDialog(

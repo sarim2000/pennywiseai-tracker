@@ -137,6 +137,16 @@ class HDFCBankParser : BaseIndianBankParser() {
             }
         }
 
+        if (message.contains("NetBanking", ignoreCase = true)) {
+            Regex("""to\s+(.+?)\s+via\s+HDFC\s+Bank\s+NetBanking""", RegexOption.IGNORE_CASE)
+                .find(message)?.let { match ->
+                    val merchant = cleanMerchantName(match.groupValues[1].trim())
+                    if (merchant.isNotEmpty()) {
+                        return merchant
+                    }
+                }
+        }
+
         // Try HDFC specific patterns
 
         // Pattern 0: NEFT/RTGS credit - "for NEFT Cr-IFSCCODE-COMPANY NAME-BENEFICIARY-REF"
@@ -307,6 +317,8 @@ class HDFCBankParser : BaseIndianBankParser() {
             // Credit card bill payments (these are regular expenses from bank account)
             lowerMessage.contains("payment") && lowerMessage.contains("credit card") -> TransactionType.EXPENSE
             lowerMessage.contains("towards") && lowerMessage.contains("credit card") -> TransactionType.EXPENSE
+
+            lowerMessage.contains("payment successful") -> TransactionType.EXPENSE
 
             // HDFC specific: "Sent Rs.X From HDFC Bank"
             lowerMessage.contains("sent") && lowerMessage.contains("from hdfc") -> TransactionType.EXPENSE
@@ -531,7 +543,8 @@ class HDFCBankParser : BaseIndianBankParser() {
             "txn", // HDFC uses "Txn Rs.X" for card transactions
             "refund", // "Refund initiated: Amt: Rs.X on HDFC Bank Credit Card ####"
             "reversed", // "Transaction Reversed!On HDFC Bank CREDIT Card ####" (#698)
-            "reversal"
+            "reversal",
+            "payment successful"
         )
 
         return hdfcTransactionKeywords.any { lowerMessage.contains(it) }

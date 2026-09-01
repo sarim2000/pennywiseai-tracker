@@ -107,6 +107,19 @@ T&C. Ignore if paid""",
                     merchant = "AMAZON",
                     accountLast4 = "5555"
                 )
+            ),
+
+            ParserTestCase(
+                name = "NetBanking Payment Successful - Expense",
+                message = "Payment Successful! Rs. 12345.67 from A/c ****4321 to ACMEPAYMENTS via HDFC Bank NetBanking. Not you?Call 18002586161",
+                sender = "VM-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12345.67"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    accountLast4 = "4321",
+                    merchant = "ACMEPAYMENTS"
+                )
             )
         )
 

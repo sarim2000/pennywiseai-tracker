@@ -56,6 +56,7 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
+    private val deleteAllTransactionsUseCase: com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
@@ -514,46 +515,16 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Deletes every transaction, then settles the account-balance ledger.
-     *
-     * Balances get different treatment per account kind, on purpose:
-     *
-     *  - **SMS-tracked accounts keep their last reported figure.** That number is
-     *    the bank's own word, not something derived from the local history, so
-     *    clearing the history shouldn't rewrite it. (Deleting a *single*
-     *    transaction does shift it, via
-     *    [AccountBalanceRepository.applyDeleteBalanceShift]. Replaying that for
-     *    every row would unwind every expense at once and leave the user staring
-     *    at an inflated balance right after asking to clear their history.)
-     *  - **Manual / cash accounts are recomputed.** Their balance *is defined* as
-     *    opening + Σ(transactions), so leaving it untouched would keep showing a
-     *    total for transactions that no longer exist. The opening row is
-     *    established *before* the delete — it is back-solved from the current
-     *    balance minus the transaction sum, which only works while those rows are
-     *    still there — and the recompute afterwards lands the account back on its
-     *    opening balance.
-     *
-     * The result message uses the delete's own affected-row count rather than
-     * the dialog's preview, so a row a background SMS scan wrote while the
-     * dialog was open is both deleted and reported.
+     * Clears the transaction history. The delete and the balance settlement that
+     * follows it are one database transaction inside
+     * [DeleteAllTransactionsUseCase] — see there for what happens to each kind of
+     * account's balance and why.
      */
     fun deleteAllTransactions() {
         viewModelScope.launch {
             _isDeletingAllTransactions.value = true
             try {
-                val accounts = accountBalanceRepository.getAllLatestBalances().first()
-                // Must run before the delete: the opening balance is back-solved
-                // from the transactions that are about to disappear.
-                accounts.forEach { account ->
-                    accountBalanceRepository.ensureManualOpening(account.bankName, account.accountLast4)
-                }
-
-                val deleted = transactionRepository.deleteAllTransactions()
-
-                accounts.forEach { account ->
-                    accountBalanceRepository.recomputeManualBalance(account.bankName, account.accountLast4)
-                }
-
+                val deleted = deleteAllTransactionsUseCase()
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
                 _deleteAllTransactionsResult.value = when (deleted) {

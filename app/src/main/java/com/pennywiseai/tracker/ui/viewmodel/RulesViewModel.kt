@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
@@ -181,6 +182,43 @@ class RulesViewModel @Inject constructor(
     }
 
     /**
+     * Reads [uri] as text, refusing anything past [RuleSharingCodec.MAX_FILE_BYTES].
+     *
+     * The import picker has to accept every MIME type (some file managers
+     * won't surface JSON under the strict one), so a mis-picked video could otherwise be
+     * pulled into memory whole. The size is checked up-front where the provider
+     * reports one, and the read is capped regardless for providers that don't.
+     */
+    private fun readBoundedText(uri: Uri): String {
+        val limit = RuleSharingCodec.MAX_FILE_BYTES
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+            ?.use { cursor ->
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (cursor.moveToFirst() && sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                    require(cursor.getLong(sizeIndex) <= limit) {
+                        "That file is too large to be a rules file."
+                    }
+                }
+            }
+
+        val input = context.contentResolver.openInputStream(uri)
+            ?: throw IllegalStateException("Couldn't open the file.")
+        return input.use { stream ->
+            // One byte past the limit so an over-long stream is detected rather
+            // than silently truncated into an unparseable fragment.
+            val bytes = ByteArray((limit + 1).toInt())
+            var read = 0
+            while (read < bytes.size) {
+                val n = stream.read(bytes, read, bytes.size - read)
+                if (n < 0) break
+                read += n
+            }
+            require(read <= limit) { "That file is too large to be a rules file." }
+            String(bytes, 0, read, Charsets.UTF_8)
+        }
+    }
+
+    /**
      * Writes the user's own rules to [uri] as a shareable JSON file. Built-in
      * templates are left out — see [RuleSharingCodec.exportable].
      */
@@ -222,17 +260,13 @@ class RulesViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val text = withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        input.readBytes().toString(Charsets.UTF_8)
-                    } ?: throw IllegalStateException("Couldn't open the file.")
-                }
-                val incoming = RuleSharingCodec.decode(text)
+                val text = withContext(Dispatchers.IO) { readBoundedText(uri) }
+                val decoded = RuleSharingCodec.decode(text)
 
                 val existing = ruleRepository.getAllRules().first()
                 val existingNames = existing.map { it.name.trim().lowercase() }.toSet()
-                val fresh = incoming.filterNot { it.name.trim().lowercase() in existingNames }
-                val duplicates = incoming.size - fresh.size
+                val fresh = decoded.rules.filterNot { it.name.trim().lowercase() in existingNames }
+                val duplicates = decoded.rules.size - fresh.size
 
                 val allowance = if (isProEntitled.value) {
                     fresh.size
@@ -243,12 +277,19 @@ class RulesViewModel @Inject constructor(
                 toImport.forEach { ruleRepository.insertRule(it) }
 
                 val blocked = fresh.size - toImport.size
+                val skipped = decoded.invalid + decoded.duplicatedInFile
                 _sharingMessage.value = buildString {
                     append(
                         if (toImport.size == 1) "Imported 1 rule."
                         else "Imported ${toImport.size} rules."
                     )
                     if (duplicates > 0) append(" $duplicates already existed.")
+                    if (skipped > 0) {
+                        append(
+                            if (skipped == 1) " 1 entry in the file was unusable and was skipped."
+                            else " $skipped entries in the file were unusable and were skipped."
+                        )
+                    }
                     if (blocked > 0) {
                         append(" $blocked more need Pro — you're at the free limit of ${FreeTierLimits.MAX_RULES}.")
                     }

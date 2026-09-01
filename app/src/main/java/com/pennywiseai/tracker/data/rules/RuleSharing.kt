@@ -59,6 +59,15 @@ object RuleSharingCodec {
     const val FILE_EXTENSION = "json"
 
     /**
+     * Largest file [decode] will look at. An exported rule set runs to a few
+     * hundred bytes per rule, so this holds thousands of them — while stopping
+     * a mis-picked video from being pulled into memory whole by a picker that
+     * has to accept every MIME type (see RulesScreen). A heap blow-up here would be an
+     * OutOfMemoryError, which the import's `catch (Exception)` would not catch.
+     */
+    const val MAX_FILE_BYTES = 1L * 1024 * 1024
+
+    /**
      * The exportable subset of [rules]: the user's own rules. Built-in
      * templates are excluded — every install already ships them, so sharing
      * them would only create duplicates on the other side.
@@ -82,14 +91,34 @@ object RuleSharingCodec {
     )
 
     /**
-     * Parses [text] into the rules it holds, keeping only entries that would
-     * pass [TransactionRule.validate] — a hand-edited or truncated file
-     * shouldn't be able to insert a rule the create screen would reject.
-     *
-     * @throws IllegalArgumentException if the file isn't a rule set, is empty,
-     *   or was written by a newer format version.
+     * What a file yielded: the rules worth importing, plus what was thrown away
+     * getting there. The counts are reported back to the user — a file that
+     * silently loses half its rules is worse than one that says so.
      */
-    fun decode(text: String): List<TransactionRule> {
+    data class DecodedRuleSet(
+        val rules: List<TransactionRule>,
+        /** Entries that wouldn't pass [TransactionRule.validate]. */
+        val invalid: Int,
+        /** Entries dropped because an earlier entry in the same file had that name. */
+        val duplicatedInFile: Int
+    )
+
+    /**
+     * Parses [text] into the rules it holds.
+     *
+     * Entries that wouldn't pass [TransactionRule.validate] are dropped rather
+     * than inserted — the create screen would reject them too — and so are
+     * repeats of a name that already appeared earlier in the same file, which
+     * would otherwise land as two rules the user can't tell apart. Both are
+     * counted so the caller can say what happened.
+     *
+     * @throws IllegalArgumentException if the file isn't a rule set, holds no
+     *   usable rule, or was written by a newer format version.
+     */
+    fun decode(text: String): DecodedRuleSet {
+        require(text.length <= MAX_FILE_BYTES) {
+            "That file is too large to be a rules file."
+        }
         val parsed = try {
             json.decodeFromString<SharedRuleSet>(text)
         } catch (e: Exception) {
@@ -98,20 +127,26 @@ object RuleSharingCodec {
         require(parsed.version <= SharedRuleSet.CURRENT_VERSION) {
             "This rules file was made by a newer version of PennyWise."
         }
-        val rules = parsed.rules
-            .map { shared ->
-                TransactionRule(
-                    name = shared.name.trim(),
-                    description = shared.description?.trim()?.takeIf { it.isNotBlank() },
-                    priority = shared.priority,
-                    conditions = shared.conditions,
-                    actions = shared.actions,
-                    isActive = shared.isActive,
-                    isSystemTemplate = false
-                )
-            }
-            .filter { it.validate() }
-        require(rules.isNotEmpty()) { "No usable rules found in this file." }
-        return rules
+
+        val mapped = parsed.rules.map { shared ->
+            TransactionRule(
+                name = shared.name.trim(),
+                description = shared.description?.trim()?.takeIf { it.isNotBlank() },
+                priority = shared.priority,
+                conditions = shared.conditions,
+                actions = shared.actions,
+                isActive = shared.isActive,
+                isSystemTemplate = false
+            )
+        }
+        val valid = mapped.filter { it.validate() }
+        val deduped = valid.distinctBy { it.name.lowercase() }
+
+        require(deduped.isNotEmpty()) { "No usable rules found in this file." }
+        return DecodedRuleSet(
+            rules = deduped,
+            invalid = mapped.size - valid.size,
+            duplicatedInFile = valid.size - deduped.size
+        )
     }
 }

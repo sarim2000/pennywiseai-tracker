@@ -48,8 +48,8 @@ class RuleSharingCodecTest {
 
         val decoded = RuleSharingCodec.decode(RuleSharingCodec.encode(listOf(original)))
 
-        assertEquals(1, decoded.size)
-        val imported = decoded.single()
+        assertEquals(1, decoded.rules.size)
+        val imported = decoded.rules.single()
         assertEquals(original.name, imported.name)
         assertEquals(original.description, imported.description)
         assertEquals(original.priority, imported.priority)
@@ -62,7 +62,7 @@ class RuleSharingCodecTest {
     fun `imported rules get fresh ids so a file can be applied twice`() {
         val original = rule("Zomato")
 
-        val imported = RuleSharingCodec.decode(RuleSharingCodec.encode(listOf(original))).single()
+        val imported = RuleSharingCodec.decode(RuleSharingCodec.encode(listOf(original))).rules.single()
 
         assertNotEquals(original.id, imported.id)
         assertEquals(false, imported.isSystemTemplate)
@@ -73,7 +73,7 @@ class RuleSharingCodecTest {
         val rules = listOf(rule("Zomato"), rule("Salary", isSystemTemplate = true))
 
         assertEquals(listOf("Zomato"), RuleSharingCodec.exportable(rules).map { it.name })
-        assertEquals(listOf("Zomato"), RuleSharingCodec.decode(RuleSharingCodec.encode(rules)).map { it.name })
+        assertEquals(listOf("Zomato"), RuleSharingCodec.decode(RuleSharingCodec.encode(rules)).rules.map { it.name })
     }
 
     @Test
@@ -113,6 +113,52 @@ class RuleSharingCodecTest {
             ]}
         """.trimIndent()
 
-        assertEquals(listOf("Zomato"), RuleSharingCodec.decode(text).map { it.name })
+        assertEquals(listOf("Zomato"), RuleSharingCodec.decode(text).rules.map { it.name })
+    }
+
+    @Test
+    fun `a file mixing usable and unusable rules reports what it dropped`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Zomato","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]},
+              {"name":"No actions","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Swiggy"}],"actions":[]}
+            ]}
+        """.trimIndent()
+
+        val decoded = RuleSharingCodec.decode(text)
+
+        assertEquals(listOf("Zomato"), decoded.rules.map { it.name })
+        assertEquals(1, decoded.invalid)
+        assertEquals(0, decoded.duplicatedInFile)
+    }
+
+    @Test
+    fun `a name repeated inside one file lands as a single rule`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Zomato","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]},
+              {"name":"zomato","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Others"}]}
+            ]}
+        """.trimIndent()
+
+        val decoded = RuleSharingCodec.decode(text)
+
+        assertEquals(1, decoded.rules.size)
+        assertEquals("Zomato", decoded.rules.single().name)
+        assertEquals(1, decoded.duplicatedInFile)
+    }
+
+    @Test
+    fun `an oversized file is refused before it is parsed`() {
+        val oversized = "x".repeat((RuleSharingCodec.MAX_FILE_BYTES + 1).toInt())
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(oversized) }
     }
 }

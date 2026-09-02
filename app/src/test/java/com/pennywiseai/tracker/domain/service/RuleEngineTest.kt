@@ -479,4 +479,101 @@ class RuleEngineTest {
             value = "Auto-Categorized"
         ))
     )
+
+    // --- AMOUNT equality is numeric, not textual ---
+
+    @Test
+    fun `amount equals matches a numerically equal value written differently`() {
+        // The field value is BigDecimal.toString() — "100.00" — so a rule typed
+        // as "100" used to string-compare and never fire.
+        val rule = TransactionRule(
+            name = "Exactly 100",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.AMOUNT,
+                    operator = ConditionOperator.EQUALS,
+                    value = "100"
+                )
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched")
+            )
+        )
+
+        val (result, applications) = engine.evaluateRules(
+            transaction(amount = BigDecimal("100.00")), null, listOf(rule)
+        )
+
+        assertEquals("Matched", result.category)
+        assertEquals(1, applications.size)
+    }
+
+    @Test
+    fun `amount equals still rejects a different number`() {
+        val rule = TransactionRule(
+            name = "Exactly 100",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.AMOUNT,
+                    operator = ConditionOperator.EQUALS,
+                    value = "100"
+                )
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched")
+            )
+        )
+
+        val (_, applications) = engine.evaluateRules(
+            transaction(amount = BigDecimal("101.00")), null, listOf(rule)
+        )
+
+        assertTrue(applications.isEmpty())
+    }
+
+    @Test
+    fun `amount not equals is numeric too`() {
+        val rule = TransactionRule(
+            name = "Anything but 100",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.AMOUNT,
+                    operator = ConditionOperator.NOT_EQUALS,
+                    value = "100"
+                )
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched")
+            )
+        )
+
+        val (_, applications) = engine.evaluateRules(
+            transaction(amount = BigDecimal("100.00")), null, listOf(rule)
+        )
+
+        assertTrue("100.00 must not count as 'not equal to 100'", applications.isEmpty())
+    }
+
+    @Test
+    fun `non-amount equality is still a plain text match`() {
+        val rule = TransactionRule(
+            name = "Merchant is Zomato",
+            conditions = listOf(
+                RuleCondition(
+                    field = TransactionField.MERCHANT,
+                    operator = ConditionOperator.EQUALS,
+                    value = "zomato"
+                )
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched")
+            )
+        )
+
+        val (result, _) = engine.evaluateRules(
+            transaction(merchantName = "Zomato"), null, listOf(rule)
+        )
+
+        assertEquals("Matched", result.category)
+    }
 }

@@ -47,7 +47,12 @@ data class RuleAction(
 ) {
     fun validate(): Boolean {
         return when (actionType) {
-            ActionType.SET -> value.isNotBlank()
+            // Setting TYPE needs a value the engine can parse back into a
+            // TransactionType: applyAction falls back to the transaction's
+            // existing type otherwise, so the rule silently does nothing.
+            ActionType.SET ->
+                if (field == TransactionField.TYPE) parseRuleTransactionType(value) != null
+                else value.isNotBlank()
             ActionType.APPEND, ActionType.PREPEND -> value.isNotBlank()
             ActionType.CLEAR -> true
             ActionType.ADD_TAG -> value.isNotBlank()

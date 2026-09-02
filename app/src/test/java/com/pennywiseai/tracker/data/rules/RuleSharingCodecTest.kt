@@ -292,4 +292,32 @@ class RuleSharingCodecTest {
 
         assertEquals(listOf("Block OTPs"), RuleSharingCodec.decode(text).rules.map { it.name })
     }
+
+    @Test
+    fun `a TYPE action whose value is not a transaction type fails the file`() {
+        // applyAction falls back to the transaction's existing type when the
+        // value won't parse, so the rule would silently do nothing.
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Bad type","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Salary"}],
+               "actions":[{"field":"TYPE","actionType":"SET","value":"banana"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `a valid TYPE action imports fine`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Mark as income","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Salary"}],
+               "actions":[{"field":"TYPE","actionType":"SET","value":"INCOME"}]}
+            ]}
+        """.trimIndent()
+
+        assertEquals(listOf("Mark as income"), RuleSharingCodec.decode(text).rules.map { it.name })
+    }
 }

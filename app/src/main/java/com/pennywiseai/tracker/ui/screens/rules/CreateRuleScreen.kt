@@ -60,58 +60,50 @@ private fun TransactionField.defaultConditionOperator(): ConditionOperator = whe
 }
 
 /**
- * Operators offered for a condition field, paired with their display label. The first entry is
- * the field's default (see [defaultConditionOperator]); every default must appear in its list.
+ * Operators offered for a condition field, paired with their display label.
+ *
+ * The set and its order come from [supportedOperators] so the picker and the
+ * rule importer can't drift apart; only the wording lives here, since the same
+ * operator reads differently per field ("<" for an amount, "before" for a time).
  */
 private fun conditionOperatorsForField(
     field: TransactionField
-): List<Pair<ConditionOperator, String>> = when (field) {
-    TransactionField.AMOUNT -> listOf(
-        ConditionOperator.LESS_THAN to "<",
-        ConditionOperator.GREATER_THAN to ">",
-        ConditionOperator.EQUALS to "="
-    )
-    TransactionField.TYPE -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.NOT_EQUALS to "is not"
-    )
-    TransactionField.TRANSACTION_TIME -> listOf(
-        ConditionOperator.LESS_THAN to "before",
-        ConditionOperator.GREATER_THAN to "after",
-        ConditionOperator.GREATER_THAN_OR_EQUAL to "at or after",
-        ConditionOperator.LESS_THAN_OR_EQUAL to "at or before",
-        ConditionOperator.EQUALS to "exactly at"
-    )
-    TransactionField.TRANSACTION_HOUR -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.LESS_THAN to "before",
-        ConditionOperator.GREATER_THAN to "after"
-    )
-    TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.IN to "is any of",
-        ConditionOperator.NOT_EQUALS to "is not"
-    )
-    TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.IN to "is any of",
-        ConditionOperator.LESS_THAN to "before",
-        ConditionOperator.GREATER_THAN to "after"
-    )
-    TransactionField.TRANSACTION_DATE -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.LESS_THAN to "before",
-        ConditionOperator.GREATER_THAN to "after"
-    )
-    TransactionField.ACCOUNT -> listOf(
-        ConditionOperator.EQUALS to "is",
-        ConditionOperator.NOT_EQUALS to "is not"
-    )
-    else -> listOf(
-        ConditionOperator.CONTAINS to "contains",
-        ConditionOperator.EQUALS to "equals",
-        ConditionOperator.STARTS_WITH to "starts with"
-    )
+): List<Pair<ConditionOperator, String>> =
+    supportedOperators(field).map { operator -> operator to operator.labelFor(field) }
+
+private fun ConditionOperator.labelFor(field: TransactionField): String = when (field) {
+    TransactionField.AMOUNT -> when (this) {
+        ConditionOperator.LESS_THAN -> "<"
+        ConditionOperator.GREATER_THAN -> ">"
+        else -> "="
+    }
+    TransactionField.TRANSACTION_TIME -> when (this) {
+        ConditionOperator.LESS_THAN -> "before"
+        ConditionOperator.GREATER_THAN -> "after"
+        ConditionOperator.GREATER_THAN_OR_EQUAL -> "at or after"
+        ConditionOperator.LESS_THAN_OR_EQUAL -> "at or before"
+        else -> "exactly at"
+    }
+    TransactionField.TRANSACTION_HOUR,
+    TransactionField.TRANSACTION_DAY_OF_MONTH,
+    TransactionField.TRANSACTION_DATE -> when (this) {
+        ConditionOperator.LESS_THAN -> "before"
+        ConditionOperator.GREATER_THAN -> "after"
+        ConditionOperator.IN -> "is any of"
+        else -> "is"
+    }
+    TransactionField.TYPE,
+    TransactionField.TRANSACTION_DAY_OF_WEEK,
+    TransactionField.ACCOUNT -> when (this) {
+        ConditionOperator.NOT_EQUALS -> "is not"
+        ConditionOperator.IN -> "is any of"
+        else -> "is"
+    }
+    else -> when (this) {
+        ConditionOperator.EQUALS -> "equals"
+        ConditionOperator.STARTS_WITH -> "starts with"
+        else -> "contains"
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

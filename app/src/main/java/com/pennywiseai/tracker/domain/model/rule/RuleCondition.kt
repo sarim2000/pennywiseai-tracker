@@ -55,6 +55,65 @@ fun isRuleApplicableToTransactionType(rule: TransactionRule, type: TransactionTy
     return typeConditions.any { matchesTransactionTypeCondition(it, type.name) }
 }
 
+/**
+ * The operators that mean anything for [field], in the order the rule editor
+ * offers them (the first is the field's default).
+ *
+ * This is the single source of truth for the pairing: the create screen builds
+ * its picker from it, and the rule importer checks arbitrary file content
+ * against it. A comparison like MERCHANT / GREATER_THAN can't be produced by the
+ * pickers, but a hand-written or hand-edited import file can carry one, and it
+ * would persist as a rule that never fires.
+ */
+fun supportedOperators(field: TransactionField): List<ConditionOperator> = when (field) {
+    TransactionField.AMOUNT -> listOf(
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN,
+        ConditionOperator.EQUALS
+    )
+    TransactionField.TYPE -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.NOT_EQUALS
+    )
+    TransactionField.TRANSACTION_TIME -> listOf(
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN,
+        ConditionOperator.GREATER_THAN_OR_EQUAL,
+        ConditionOperator.LESS_THAN_OR_EQUAL,
+        ConditionOperator.EQUALS
+    )
+    TransactionField.TRANSACTION_HOUR -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.IN,
+        ConditionOperator.NOT_EQUALS
+    )
+    TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.IN,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.TRANSACTION_DATE -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.ACCOUNT -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.NOT_EQUALS
+    )
+    else -> listOf(
+        ConditionOperator.CONTAINS,
+        ConditionOperator.EQUALS,
+        ConditionOperator.STARTS_WITH
+    )
+}
+
 @Serializable
 data class RuleCondition(
     val field: TransactionField,

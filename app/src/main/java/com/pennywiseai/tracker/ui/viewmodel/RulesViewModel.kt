@@ -274,7 +274,8 @@ class RulesViewModel @Inject constructor(
                     (FreeTierLimits.MAX_RULES - existing.size).coerceAtLeast(0)
                 }
                 val toImport = fresh.take(allowance)
-                toImport.forEach { ruleRepository.insertRule(it) }
+                // One insert, so a failure can't leave the set half-applied.
+                ruleRepository.insertRules(toImport)
 
                 val blocked = fresh.size - toImport.size
                 val skipped = decoded.duplicatedInFile

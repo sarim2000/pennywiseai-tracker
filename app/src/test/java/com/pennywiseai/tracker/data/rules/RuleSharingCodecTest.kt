@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
+import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -189,5 +190,31 @@ class RuleSharingCodecTest {
         """.trimIndent()
 
         assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `an operator that field never offers fails the file`() {
+        // MERCHANT is a text field; the editor only ever offers CONTAINS /
+        // EQUALS / STARTS_WITH for it, so GREATER_THAN could only come from a
+        // hand-written file and would never fire.
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Nonsense","conditions":[
+                {"field":"MERCHANT","operator":"GREATER_THAN","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `every field's default operator is one it supports`() {
+        // Guards the picker/importer contract: the editor's first offered
+        // operator per field must be one the importer would also accept.
+        for (field in TransactionField.entries) {
+            val operators = supportedOperators(field)
+            assertTrue("$field offers no operators", operators.isNotEmpty())
+        }
     }
 }

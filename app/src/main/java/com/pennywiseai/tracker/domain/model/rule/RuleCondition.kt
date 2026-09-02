@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.model.rule
 
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
@@ -124,12 +125,13 @@ data class RuleCondition(
     fun validate(): Boolean {
         return value.isNotBlank() && when (field) {
             TransactionField.AMOUNT -> {
+                // Every amount comparison is numeric — EQUALS included, which the
+                // editor offers as "=". It used to fall through to `true`, so an
+                // imported `AMOUNT = abc` was stored as a rule that never fires.
                 when (operator) {
-                    ConditionOperator.LESS_THAN,
-                    ConditionOperator.GREATER_THAN,
-                    ConditionOperator.LESS_THAN_OR_EQUAL,
-                    ConditionOperator.GREATER_THAN_OR_EQUAL -> value.toBigDecimalOrNull() != null
-                    else -> true
+                    ConditionOperator.IN, ConditionOperator.NOT_IN ->
+                        value.split(",").all { it.trim().toBigDecimalOrNull() != null }
+                    else -> value.toBigDecimalOrNull() != null
                 }
             }
             TransactionField.TRANSACTION_HOUR -> {
@@ -158,6 +160,10 @@ data class RuleCondition(
                 parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()
             }
             TransactionField.TYPE -> parseRuleTransactionType(value) != null
+            // Compared against LocalDate.toString() at evaluation time, so the
+            // value has to be an ISO date; anything else can never match.
+            TransactionField.TRANSACTION_DATE ->
+                runCatching { LocalDate.parse(value.trim()) }.isSuccess
             else -> true
         }
     }

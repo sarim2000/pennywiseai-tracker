@@ -217,4 +217,51 @@ class RuleSharingCodecTest {
             assertTrue("$field offers no operators", operators.isNotEmpty())
         }
     }
+
+    @Test
+    fun `a non-numeric amount equality fails the file`() {
+        // "=" is an operator the editor offers for AMOUNT, and it used to skip
+        // the numeric check entirely.
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Bad equals","conditions":[
+                {"field":"AMOUNT","operator":"EQUALS","value":"abc"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `a date that is not an ISO date fails the file`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Bad date","conditions":[
+                {"field":"TRANSACTION_DATE","operator":"EQUALS","value":"21-03-2026"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `a well-formed amount equality and ISO date import fine`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Exact amount","conditions":[
+                {"field":"AMOUNT","operator":"EQUALS","value":"499.50"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]},
+              {"name":"On a date","conditions":[
+                {"field":"TRANSACTION_DATE","operator":"EQUALS","value":"2026-03-21"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Travel"}]}
+            ]}
+        """.trimIndent()
+
+        assertEquals(
+            listOf("Exact amount", "On a date"),
+            RuleSharingCodec.decode(text).rules.map { it.name }
+        )
+    }
 }

@@ -104,11 +104,10 @@ object RuleSharingCodec {
     /**
      * Parses [text] into the rules it holds, all or nothing.
      *
-     * An entry that wouldn't pass [TransactionRule.validate] fails the whole
-     * file rather than being skipped: importing "most of" a shared rule set
-     * leaves the user with a half-applied config they didn't ask for and can't
-     * easily tell apart from the real thing. Better to reject it and let whoever
-     * exported it send a good file.
+     * An unusable entry fails the whole file rather than being skipped:
+     * importing "most of" a shared rule set leaves the user with a half-applied
+     * config they didn't ask for and can't easily tell apart from the real
+     * thing. Better to reject it and let whoever exported it send a good file.
      *
      * Repeats of a name that already appeared earlier in the same file are the
      * one thing still collapsed rather than refused — the file is unambiguous
@@ -119,6 +118,21 @@ object RuleSharingCodec {
      *   unusable entry, holds no rule at all, or was written by a newer format
      *   version.
      */
+    /**
+     * Whether a rule is usable in full.
+     *
+     * [TransactionRule.validate] only checks that the name, conditions and
+     * actions are present — it never asks the conditions and actions whether
+     * *they* are well-formed. That's fine for the create screen, which builds
+     * them from pickers, but an imported file is arbitrary text: a condition
+     * like AMOUNT / LESS_THAN / "abc" would sail through the shape check and be
+     * persisted as a rule that can never match. So each part is validated too.
+     */
+    private fun TransactionRule.isFullyValid(): Boolean =
+        validate() &&
+            conditions.all { it.validate() } &&
+            actions.all { it.validate() }
+
     fun decode(text: String): DecodedRuleSet {
         require(text.length <= MAX_FILE_BYTES) {
             "That file is too large to be a rules file."
@@ -143,7 +157,7 @@ object RuleSharingCodec {
                 isSystemTemplate = false
             )
         }
-        val invalid = mapped.count { !it.validate() }
+        val invalid = mapped.count { !it.isFullyValid() }
         require(invalid == 0) {
             if (invalid == 1) "1 rule in this file is incomplete, so nothing was imported."
             else "$invalid rules in this file are incomplete, so nothing was imported."

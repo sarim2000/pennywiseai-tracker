@@ -162,4 +162,32 @@ class RuleSharingCodecTest {
 
         assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(oversized) }
     }
+
+    @Test
+    fun `a condition whose value is malformed for its field fails the file`() {
+        // Shape-valid (name, one condition, one action) but the AMOUNT comparison
+        // is against text, so the rule could never match anything.
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Bad amount","conditions":[
+                {"field":"AMOUNT","operator":"LESS_THAN","value":"abc"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `an action with no value where one is required fails the file`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Empty set","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"  "}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
 }

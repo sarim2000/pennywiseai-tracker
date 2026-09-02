@@ -46,12 +46,31 @@ open class DeleteAllTransactionsUseCase @Inject constructor(
     internal open suspend fun <R> runInTransaction(block: suspend () -> R): R =
         database.withTransaction(block)
 
+    /** Outcome of a delete-all attempt. */
+    sealed interface Result {
+        /** [deleted] rows were removed. */
+        data class Deleted(val deleted: Int) : Result
+
+        /**
+         * Nothing was removed because the table no longer held [expected] rows.
+         * A background SMS scan committed while the confirmation was open, so the
+         * user would have been authorising a bigger delete than the one they were
+         * shown. They get to look at the new number and decide again.
+         */
+        data class CountChanged(val expected: Int, val actual: Int) : Result
+    }
+
     /**
-     * @return the number of transaction rows actually removed — the DELETE's own
-     *   affected-row count, so a row written after the confirmation dialog read
-     *   its preview count is still reported accurately.
+     * @param expectedCount the row count the confirmation dialog was showing when
+     *   the user confirmed. Re-checked inside the transaction so the delete either
+     *   removes exactly what was authorised or removes nothing at all.
      */
-    suspend operator fun invoke(): Int = runInTransaction {
+    suspend operator fun invoke(expectedCount: Int): Result = runInTransaction {
+        val actual = transactionRepository.countAllTransactions()
+        if (actual != expectedCount) {
+            return@runInTransaction Result.CountChanged(expectedCount, actual)
+        }
+
         val accounts = accountBalanceRepository.getAllLatestBalancesOnce()
 
         // Must run before the delete: a manual account's opening balance is
@@ -71,6 +90,6 @@ open class DeleteAllTransactionsUseCase @Inject constructor(
             accountBalanceRepository.recomputeManualBalance(account.bankName, account.accountLast4)
         }
 
-        deleted
+        Result.Deleted(deleted)
     }
 }

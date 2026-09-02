@@ -1143,7 +1143,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { settingsViewModel.deleteAllTransactions() },
+                    onClick = { settingsViewModel.deleteAllTransactions(count) },
                     enabled = confirmed && !isDeletingAllTransactions,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error

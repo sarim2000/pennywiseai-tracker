@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
@@ -60,7 +61,7 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
-    private val deleteAllTransactionsUseCase: com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase,
+    private val deleteAllTransactionsUseCase: DeleteAllTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
@@ -528,32 +529,47 @@ class SettingsViewModel @Inject constructor(
      * [DeleteAllTransactionsUseCase] — see there for what happens to each kind of
      * account's balance and why.
      */
-    fun deleteAllTransactions() {
+    private suspend fun onDeleteAllSucceeded(deleted: Int) {
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
+
+        // SMS ingestion runs independently and can commit a row straight after
+        // the delete's transaction commits. That isn't the delete failing — the
+        // authorised history did go — but reporting a clean sweep while rows
+        // exist would be a lie, so say what actually happened.
+        val arrived = transactionRepository.observeAllTransactionCount().first()
+        _deleteAllTransactionsResult.value = buildString {
+            append(
+                when (deleted) {
+                    0 -> "There were no transactions to delete."
+                    1 -> "1 transaction deleted."
+                    else -> "$deleted transactions deleted."
+                }
+            )
+            if (arrived > 0) {
+                append(
+                    if (arrived == 1) " 1 new transaction arrived while it ran."
+                    else " $arrived new transactions arrived while it ran."
+                )
+            }
+        }
+    }
+
+    fun deleteAllTransactions(expectedCount: Int) {
         viewModelScope.launch {
             _isDeletingAllTransactions.value = true
             try {
-                val deleted = deleteAllTransactionsUseCase()
-                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
-                com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
-
-                // SMS ingestion runs independently and can commit a row straight
-                // after the delete's transaction. That isn't the delete failing —
-                // the history did go — but reporting a clean sweep while rows
-                // exist would be a lie, so say what actually happened.
-                val arrived = transactionRepository.observeAllTransactionCount().first()
-                _deleteAllTransactionsResult.value = buildString {
-                    append(
-                        when (deleted) {
-                            0 -> "There were no transactions to delete."
-                            1 -> "1 transaction deleted."
-                            else -> "$deleted transactions deleted."
-                        }
-                    )
-                    if (arrived > 0) {
-                        append(
-                            if (arrived == 1) " 1 new transaction arrived while it ran."
-                            else " $arrived new transactions arrived while it ran."
-                        )
+                when (val result = deleteAllTransactionsUseCase(expectedCount)) {
+                    is DeleteAllTransactionsUseCase.Result.CountChanged -> {
+                        // Nothing was removed; the dialog stays open showing the
+                        // new (observed) figure so the user re-authorises it.
+                        _deleteAllTransactionsResult.value =
+                            "New transactions arrived while you were confirming, so nothing was deleted. " +
+                                "There are now ${result.actual}. Check the number and try again."
+                        return@launch
+                    }
+                    is DeleteAllTransactionsUseCase.Result.Deleted -> {
+                        onDeleteAllSucceeded(result.deleted)
                     }
                 }
             } catch (e: Exception) {

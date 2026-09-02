@@ -264,4 +264,32 @@ class RuleSharingCodecTest {
             RuleSharingCodec.decode(text).rules.map { it.name }
         )
     }
+
+    @Test
+    fun `an action the engine cannot carry out fails the file`() {
+        // APPEND is meaningless for CATEGORY — the engine's applyAction falls to
+        // its else branch and the rule silently does nothing.
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Dead action","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Zomato"}],
+               "actions":[{"field":"CATEGORY","actionType":"APPEND","value":"x"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `a BLOCK action imports on any field`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Block OTPs","conditions":[
+                {"field":"SMS_TEXT","operator":"CONTAINS","value":"OTP"}],
+               "actions":[{"field":"AMOUNT","actionType":"BLOCK","value":""}]}
+            ]}
+        """.trimIndent()
+
+        assertEquals(listOf("Block OTPs"), RuleSharingCodec.decode(text).rules.map { it.name })
+    }
 }

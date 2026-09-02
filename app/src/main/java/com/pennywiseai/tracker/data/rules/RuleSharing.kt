@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.rules
 
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
+import com.pennywiseai.tracker.domain.model.rule.isExecutable
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -130,12 +131,13 @@ object RuleSharingCodec {
      * GREATER_THAN, would sail through the shape check and be persisted as a
      * rule that can never match. So each part is validated too, and each
      * condition's operator is checked against [supportedOperators] — the same
-     * list the rule editor builds its picker from.
+     * list the rule editor builds its picker from — and each action against
+     * [isExecutable], so a rule the engine would silently no-op never lands.
      */
     private fun TransactionRule.isFullyValid(): Boolean =
         validate() &&
             conditions.all { it.validate() && it.operator in supportedOperators(it.field) } &&
-            actions.all { it.validate() }
+            actions.all { it.validate() && it.isExecutable() }
 
     fun decode(text: String): DecodedRuleSet {
         require(text.length <= MAX_FILE_BYTES) {

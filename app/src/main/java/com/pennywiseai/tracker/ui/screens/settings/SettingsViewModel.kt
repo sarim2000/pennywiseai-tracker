@@ -10,7 +10,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
@@ -49,6 +52,7 @@ import java.net.URLEncoder
 import java.io.File
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -93,10 +97,16 @@ class SettingsViewModel @Inject constructor(
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
     // "Delete all transactions": null while the confirmation isn't open, else the
-    // number of rows the delete would remove. Loaded when the dialog opens so the
-    // irreversible action states its real blast radius rather than a guess.
-    private val _deleteAllTransactionsCount = MutableStateFlow<Int?>(null)
-    val deleteAllTransactionsCount: StateFlow<Int?> = _deleteAllTransactionsCount.asStateFlow()
+    // number of rows the delete would remove — observed, not snapshotted, so the
+    // figure the user is consenting to stays the one the delete will act on even
+    // if a background scan writes a row while the dialog is up.
+    private val _deleteAllTransactionsRequested = MutableStateFlow(false)
+    val deleteAllTransactionsCount: StateFlow<Int?> = _deleteAllTransactionsRequested
+        .flatMapLatest { requested ->
+            if (requested) transactionRepository.observeAllTransactionCount().map { it as Int? }
+            else flowOf(null)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _isDeletingAllTransactions = MutableStateFlow(false)
     val isDeletingAllTransactions: StateFlow<Boolean> = _isDeletingAllTransactions.asStateFlow()
@@ -505,13 +515,11 @@ class SettingsViewModel @Inject constructor(
      * splits / tags / rule-applications that hang off the deleted rows.
      */
     fun requestDeleteAllTransactions() {
-        viewModelScope.launch {
-            _deleteAllTransactionsCount.value = transactionRepository.countAllTransactions()
-        }
+        _deleteAllTransactionsRequested.value = true
     }
 
     fun cancelDeleteAllTransactions() {
-        _deleteAllTransactionsCount.value = null
+        _deleteAllTransactionsRequested.value = false
     }
 
     /**
@@ -527,17 +535,33 @@ class SettingsViewModel @Inject constructor(
                 val deleted = deleteAllTransactionsUseCase()
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
-                _deleteAllTransactionsResult.value = when (deleted) {
-                    0 -> "There were no transactions to delete."
-                    1 -> "1 transaction deleted."
-                    else -> "$deleted transactions deleted."
+
+                // SMS ingestion runs independently and can commit a row straight
+                // after the delete's transaction. That isn't the delete failing —
+                // the history did go — but reporting a clean sweep while rows
+                // exist would be a lie, so say what actually happened.
+                val arrived = transactionRepository.observeAllTransactionCount().first()
+                _deleteAllTransactionsResult.value = buildString {
+                    append(
+                        when (deleted) {
+                            0 -> "There were no transactions to delete."
+                            1 -> "1 transaction deleted."
+                            else -> "$deleted transactions deleted."
+                        }
+                    )
+                    if (arrived > 0) {
+                        append(
+                            if (arrived == 1) " 1 new transaction arrived while it ran."
+                            else " $arrived new transactions arrived while it ran."
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Delete all transactions failed", e)
                 _deleteAllTransactionsResult.value = "Couldn't delete transactions: ${e.message}"
             } finally {
                 _isDeletingAllTransactions.value = false
-                _deleteAllTransactionsCount.value = null
+                _deleteAllTransactionsRequested.value = false
             }
         }
     }

@@ -126,13 +126,14 @@ interface TransactionDao {
     suspend fun deleteAllTransactions(): Int
 
     /**
-     * Every row in the table, soft-deleted ones included, so the "delete all"
-     * confirmation can preview how many rows it is about to remove. The result
-     * message uses [deleteAllTransactions]'s own return value instead, so a row
-     * written while the dialog was open is still reported accurately.
+     * Every row in the table, soft-deleted ones included, observed so the
+     * "delete all" confirmation keeps showing what it is actually about to
+     * remove — a background SMS scan writing a row while the dialog is open
+     * moves the number the user is consenting to, rather than leaving them
+     * looking at a stale one.
      */
     @Query("SELECT COUNT(*) FROM transactions")
-    suspend fun countAllTransactions(): Int
+    fun observeAllTransactionCount(): Flow<Int>
 
 
     /**

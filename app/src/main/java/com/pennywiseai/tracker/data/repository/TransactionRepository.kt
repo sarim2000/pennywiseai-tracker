@@ -138,9 +138,9 @@ open class TransactionRepository @Inject constructor(
     suspend fun deleteAllTransactions(): Int =
         transactionDao.deleteAllTransactions()
 
-    /** See [TransactionDao.countAllTransactions]. */
-    suspend fun countAllTransactions(): Int =
-        transactionDao.countAllTransactions()
+    /** See [TransactionDao.observeAllTransactionCount]. */
+    fun observeAllTransactionCount(): Flow<Int> =
+        transactionDao.observeAllTransactionCount()
 
     /** See [TransactionDao.deleteUncuratedTransactions]. */
     suspend fun deleteUncuratedTransactions() =

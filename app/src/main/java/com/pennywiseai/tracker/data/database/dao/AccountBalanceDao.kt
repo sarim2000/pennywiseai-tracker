@@ -57,6 +57,39 @@ interface AccountBalanceDao {
         ORDER BY ab1.balance DESC
     """)
     fun getAllLatestBalances(): Flow<List<AccountBalanceEntity>>
+
+    /**
+     * One-shot form of [getAllLatestBalances], for callers that need the account
+     * list *inside* a database transaction — collecting a Flow there would
+     * observe the very writes the transaction is making.
+     */
+    @Query("""
+        SELECT ab1.* FROM account_balances ab1
+        INNER JOIN (
+            SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
+            FROM account_balances
+            GROUP BY bank_name, account_last4
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
+        AND ab1.timestamp = ab2.max_timestamp
+        ORDER BY ab1.balance DESC
+    """)
+    suspend fun getAllLatestBalancesOnce(): List<AccountBalanceEntity>
+
+    /**
+     * Removes balance rows the app derived from a transaction — the signed delta
+     * snapshots written by `insertBalanceDelta`, which carry a `transaction_id`
+     * and no `sms_source`.
+     *
+     * Deliberately spares anything with an `sms_source`: a bank-reported balance
+     * is the bank's own word even though it arrived alongside a transaction, so a
+     * wipe of local history must not rewrite it.
+     *
+     * @return the number of rows removed.
+     */
+    @Query("DELETE FROM account_balances WHERE transaction_id IS NOT NULL AND sms_source IS NULL")
+    suspend fun deleteTransactionDerivedBalances(): Int
     
     @Query("SELECT * FROM account_balances ORDER BY timestamp DESC")
     fun getAllBalances(): Flow<List<AccountBalanceEntity>>

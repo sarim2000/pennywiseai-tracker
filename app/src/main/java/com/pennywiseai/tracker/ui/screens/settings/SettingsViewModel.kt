@@ -10,7 +10,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
@@ -33,6 +36,7 @@ import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
@@ -49,6 +53,7 @@ import java.net.URLEncoder
 import java.io.File
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -56,6 +61,7 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
+    private val deleteAllTransactionsUseCase: DeleteAllTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val backupExporter: BackupExporter,
     private val backupImporter: BackupImporter,
@@ -90,6 +96,30 @@ class SettingsViewModel @Inject constructor(
     
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
+
+    // "Delete all transactions": null while the confirmation isn't open, else the
+    // number of rows the delete would remove — observed, not snapshotted, so the
+    // figure the user is consenting to stays the one the delete will act on even
+    // if a background scan writes a row while the dialog is up.
+    private val _deleteAllTransactionsRequested = MutableStateFlow(false)
+    val deleteAllTransactionsCount: StateFlow<Int?> = _deleteAllTransactionsRequested
+        .flatMapLatest { requested ->
+            if (requested) transactionRepository.observeAllTransactionCount().map { it as Int? }
+            else flowOf(null)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _isDeletingAllTransactions = MutableStateFlow(false)
+    val isDeletingAllTransactions: StateFlow<Boolean> = _isDeletingAllTransactions.asStateFlow()
+
+    // Kept separate from [importExportMessage] so the outcome isn't reported
+    // under that flow's "Backup Status" dialog.
+    private val _deleteAllTransactionsResult = MutableStateFlow<String?>(null)
+    val deleteAllTransactionsResult: StateFlow<String?> = _deleteAllTransactionsResult.asStateFlow()
+
+    fun clearDeleteAllTransactionsResult() {
+        _deleteAllTransactionsResult.value = null
+    }
 
     val scheduledFolderBackupEnabled = userPreferencesRepository.scheduledFolderBackupEnabled
     val scheduledFolderBackupLastTimestamp = userPreferencesRepository.scheduledFolderBackupLastTimestamp
@@ -476,6 +506,79 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setUnifiedCurrencyMode(enabled)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        }
+    }
+
+    /**
+     * Opens the "delete all transactions" confirmation, loading the row count
+     * it will report. Transactions only: accounts, budgets, loans, categories
+     * and rules are left alone, and the cascading foreign keys clear the
+     * splits / tags / rule-applications that hang off the deleted rows.
+     */
+    fun requestDeleteAllTransactions() {
+        _deleteAllTransactionsRequested.value = true
+    }
+
+    fun cancelDeleteAllTransactions() {
+        _deleteAllTransactionsRequested.value = false
+    }
+
+    /**
+     * Clears the transaction history. The delete and the balance settlement that
+     * follows it are one database transaction inside
+     * [DeleteAllTransactionsUseCase] — see there for what happens to each kind of
+     * account's balance and why.
+     */
+    private suspend fun onDeleteAllSucceeded(deleted: Int) {
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
+
+        // SMS ingestion runs independently and can commit a row straight after
+        // the delete's transaction commits. That isn't the delete failing — the
+        // authorised history did go — but reporting a clean sweep while rows
+        // exist would be a lie, so say what actually happened.
+        val arrived = transactionRepository.observeAllTransactionCount().first()
+        _deleteAllTransactionsResult.value = buildString {
+            append(
+                when (deleted) {
+                    0 -> "There were no transactions to delete."
+                    1 -> "1 transaction deleted."
+                    else -> "$deleted transactions deleted."
+                }
+            )
+            if (arrived > 0) {
+                append(
+                    if (arrived == 1) " 1 new transaction arrived while it ran."
+                    else " $arrived new transactions arrived while it ran."
+                )
+            }
+        }
+    }
+
+    fun deleteAllTransactions(expectedCount: Int) {
+        viewModelScope.launch {
+            _isDeletingAllTransactions.value = true
+            try {
+                when (val result = deleteAllTransactionsUseCase(expectedCount)) {
+                    is DeleteAllTransactionsUseCase.Result.CountChanged -> {
+                        // Nothing was removed; the dialog stays open showing the
+                        // new (observed) figure so the user re-authorises it.
+                        _deleteAllTransactionsResult.value =
+                            "New transactions arrived while you were confirming, so nothing was deleted. " +
+                                "There are now ${result.actual}. Check the number and try again."
+                        return@launch
+                    }
+                    is DeleteAllTransactionsUseCase.Result.Deleted -> {
+                        onDeleteAllSucceeded(result.deleted)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Delete all transactions failed", e)
+                _deleteAllTransactionsResult.value = "Couldn't delete transactions: ${e.message}"
+            } finally {
+                _isDeletingAllTransactions.value = false
+                _deleteAllTransactionsRequested.value = false
+            }
         }
     }
 

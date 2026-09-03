@@ -134,8 +134,17 @@ open class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteAllTransactions() =
+    /** @return the number of rows actually removed. */
+    suspend fun deleteAllTransactions(): Int =
         transactionDao.deleteAllTransactions()
+
+    /** See [TransactionDao.observeAllTransactionCount]. */
+    fun observeAllTransactionCount(): Flow<Int> =
+        transactionDao.observeAllTransactionCount()
+
+    /** See [TransactionDao.countAllTransactions]. */
+    suspend fun countAllTransactions(): Int =
+        transactionDao.countAllTransactions()
 
     /** See [TransactionDao.deleteUncuratedTransactions]. */
     suspend fun deleteUncuratedTransactions() =

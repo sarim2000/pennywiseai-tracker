@@ -628,6 +628,31 @@ open class AccountBalanceRepository @Inject constructor(
         return sum
     }
 
+    /** One-shot account list; see [AccountBalanceDao.getAllLatestBalancesOnce]. */
+    suspend fun getAllLatestBalancesOnce(): List<AccountBalanceEntity> =
+        accountBalanceDao.getAllLatestBalancesOnce()
+
+    /**
+     * Drops the balance rows the app *derived* from transactions, after those
+     * transactions have been deleted wholesale.
+     *
+     * [insertBalanceDelta] snapshots a signed delta row (`sourceType`
+     * "TRANSACTION", `smsSource` null) every time a transaction lands on an
+     * SMS-tracked account — and on a manual credit card, which
+     * [recomputeManualBalance] can't own because its sum is income-positive and
+     * would invert a card's outstanding figure. Once the transactions are gone
+     * those rows are orphans that still hold the account's displayed balance at
+     * a total for history that no longer exists.
+     *
+     * Rows carrying an `sms_source` are left alone: those are balances the bank
+     * itself reported, not something computed from the local history, so
+     * clearing the history shouldn't rewrite them.
+     *
+     * @return the number of orphaned rows removed.
+     */
+    suspend fun deleteTransactionDerivedBalances(): Int =
+        accountBalanceDao.deleteTransactionDerivedBalances()
+
     /**
      * Ensures a manual account has an OPENING anchor, deriving it once so the
      * currently-displayed balance is preserved: opening = currentBalance − Σtxns.

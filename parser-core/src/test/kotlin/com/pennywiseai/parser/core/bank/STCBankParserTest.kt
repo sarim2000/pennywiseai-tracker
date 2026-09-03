@@ -97,15 +97,11 @@ class STCBankParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Refund for previously declined purchase is accepted",
+                name = "Refund naming a previously declined purchase is ignored",
                 message = "Refund for previously declined purchase\nAmount: 13.45 SAR\nFrom: SYNTHETIC MERCHANT",
                 sender = "STCBank",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("13.45"),
-                    currency = "SAR",
-                    type = TransactionType.INCOME,
-                    merchant = "SYNTHETIC MERCHANT"
-                )
+                shouldParse = false,
+                description = "Refund *of* a failed payment and a refund that itself failed are the same words reordered, so the guard treats any failure word as a failure. A dropped refund is recoverable; invented income is not."
             ),
             ParserTestCase(
                 name = "Refund that itself failed is ignored",
@@ -160,16 +156,11 @@ class STCBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
-                name = "Refund for a purchase declined earlier is accepted",
+                name = "Refund naming a purchase declined earlier is ignored",
                 message = "Refund for a purchase declined earlier\nAmount: 13.45 SAR\nFrom: SYNTHETIC MERCHANT",
                 sender = "STCBank",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("13.45"),
-                    currency = "SAR",
-                    type = TransactionType.INCOME,
-                    merchant = "SYNTHETIC MERCHANT"
-                ),
-                description = "Same reverse order, but the failure describes the purchase — the refund is real."
+                shouldParse = false,
+                description = "Refund *of* a failed payment and a refund that itself failed are the same words reordered, so the guard treats any failure word as a failure. A dropped refund is recoverable; invented income is not."
             ),
             ParserTestCase(
                 name = "Refund with a generic noun is ignored",

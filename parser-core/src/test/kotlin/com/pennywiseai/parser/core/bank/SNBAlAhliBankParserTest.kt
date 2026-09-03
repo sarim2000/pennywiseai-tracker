@@ -17,16 +17,11 @@ class SNBAlAhliBankParserTest {
     fun `snb alahli parser handles key paths`(): List<DynamicTest> {
         val cases = listOf(
             ParserTestCase(
-                name = "Refund of a previously rejected transfer is accepted",
+                name = "Refund naming a previously rejected transfer is ignored",
                 message = "استرجاع تحويل سابق مرفوض\nبـ12.34 SAR\nمن SYNTHETIC MERCHANT\nمدى *0007",
                 sender = "SNB",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("12.34"),
-                    currency = "SAR",
-                    type = TransactionType.INCOME
-                ),
-                description = "تحويل is as common as حوالة for a transfer; leaving it out of the " +
-                    "qualifier list would drop a genuine refund."
+                shouldParse = false,
+                description = "Refund *of* a failed payment and a refund that itself failed are the same words reordered, so the guard treats any failure word as a failure. A dropped refund is recoverable; invented income is not."
             ),
             ParserTestCase(
                 name = "Refund that was itself rejected is ignored",
@@ -83,17 +78,11 @@ class SNBAlAhliBankParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Refund for earlier declined purchase is accepted",
+                name = "Refund naming an earlier declined purchase is ignored",
                 message = "استرجاع عملية شراء سابقة مرفوضة\nبـ12.34 SAR\nمن SYNTHETIC MERCHANT\nمدى *0007",
                 sender = "SNB-AlAhli",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("12.34"),
-                    currency = "SAR",
-                    type = TransactionType.INCOME,
-                    merchant = "SYNTHETIC MERCHANT",
-                    accountLast4 = "0007",
-                    isFromCard = true
-                )
+                shouldParse = false,
+                description = "Refund *of* a failed payment and a refund that itself failed are the same words reordered, so the guard treats any failure word as a failure. A dropped refund is recoverable; invented income is not."
             ),
             ParserTestCase(
                 name = "Emergency cash correction returns funds",

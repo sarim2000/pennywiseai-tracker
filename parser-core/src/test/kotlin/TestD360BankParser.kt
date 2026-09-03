@@ -156,17 +156,11 @@ class D360BankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
-                name = "Refund for previously rejected purchase is accepted",
+                name = "Refund naming a previously rejected purchase is ignored",
                 message = "Refund for previously rejected purchase\nAmount: SAR 14.56\nCard: *0007",
                 sender = "D360Bank",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("14.56"),
-                    currency = "SAR",
-                    type = TransactionType.INCOME,
-                    accountLast4 = "0007",
-                    isFromCard = true
-                ),
-                description = "A successful refund must survive a reference to the earlier rejected purchase."
+                shouldParse = false,
+                description = "Refund *of* a failed payment and a refund that itself failed are the same words reordered, so the guard treats any failure word as a failure. A dropped refund is recoverable; invented income is not."
             )
         )
 

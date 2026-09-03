@@ -57,7 +57,10 @@ internal object SaudiTransactionMessageGuards {
 
     /**
      * A failure word sitting directly against a historical marker, in either
-     * order: "previously declined", "original failed", "declined earlier".
+     * order: "previously declined", "original failed", "declined earlier" —
+     * unless a credit noun follows it, because then the failure is describing
+     * *this* credit ("your previously declined refund") rather than an earlier
+     * payment ("refund for your previously declined purchase").
      *
      * Adjacency is the whole point. In "refund for your previously declined
      * purchase" the failure describes the earlier purchase; in "refund for your
@@ -66,7 +69,7 @@ internal object SaudiTransactionMessageGuards {
      * case and let a failed refund through as income.
      */
     private val HISTORICAL_FAILURE_MENTION = Regex(
-        """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)\s+(?:declined|failed|rejected)\b""" +
+        """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)\s+(?:declined|failed|rejected)\b(?!\s*(?:refund|reversal|cashback|correction))""" +
             """|\b(?:declined|failed|rejected)\s+(?:previous(?:ly)?|earlier|original|prior|former)\b""" +
             """|(?:سابقة|السابقة|الأصلية|سابق)\s+(?:مرفوضة|مرفوض|فاشلة)""" +
             """|(?:مرفوضة|مرفوض|فاشلة)\s+(?:سابقة|السابقة|الأصلية|سابق))"""

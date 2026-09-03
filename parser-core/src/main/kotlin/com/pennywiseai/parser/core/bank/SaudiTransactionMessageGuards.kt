@@ -98,7 +98,7 @@ internal object SaudiTransactionMessageGuards {
     // declined earlier" is the refund's own. Anything not named here is treated
     // as the credit itself, so an unrecognised phrasing fails closed.
     private const val EN_DEBIT_NOUNS = "purchase|payment|transfer|withdrawal|charge|debit|pos"
-    private const val AR_DEBIT_NOUNS = "شراء|حوالة|سداد|خصم|سحب|إيداع|مشتريات"
+    private const val AR_DEBIT_NOUNS = "شراء|حوالة|تحويل|سداد|خصم|سحب|إيداع|مشتريات"
 
     private val HISTORICAL_FAILURE_MENTION = Regex(
         """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)[ \t]+(?:declined|failed|rejected)[ \t]+(?:$EN_DEBIT_NOUNS)\b""" +

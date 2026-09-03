@@ -17,6 +17,18 @@ class SNBAlAhliBankParserTest {
     fun `snb alahli parser handles key paths`(): List<DynamicTest> {
         val cases = listOf(
             ParserTestCase(
+                name = "Refund of a previously rejected transfer is accepted",
+                message = "استرجاع تحويل سابق مرفوض\nبـ12.34 SAR\nمن SYNTHETIC MERCHANT\nمدى *0007",
+                sender = "SNB",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.34"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME
+                ),
+                description = "تحويل is as common as حوالة for a transfer; leaving it out of the " +
+                    "qualifier list would drop a genuine refund."
+            ),
+            ParserTestCase(
                 name = "Refund that was itself rejected is ignored",
                 message = "استرجاع سابق مرفوض\nبـ23.45 SAR\nمن SYNTHETIC MERCHANT\nمدى *0007",
                 sender = "SNB",

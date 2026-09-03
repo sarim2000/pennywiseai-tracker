@@ -17,6 +17,15 @@ class SNBAlAhliBankParserTest {
     fun `snb alahli parser handles key paths`(): List<DynamicTest> {
         val cases = listOf(
             ParserTestCase(
+                name = "Refund that was itself rejected is ignored",
+                message = "استرجاع سابق مرفوض\nبـ23.45 SAR\nمن SYNTHETIC MERCHANT\nمدى *0007",
+                sender = "SNB",
+                shouldParse = false,
+                description = "Arabic puts adjectives after the noun, so the word ahead of " +
+                    "سابق مرفوض says what was rejected. Here it is the refund itself, not an " +
+                    "earlier purchase as in the case above."
+            ),
+            ParserTestCase(
                 name = "POS purchase with Samsung Pay (Mada)",
                 message = "شراء نقاط بيع SamsungPay\nبـSAR 12.34\nمن SYNTHETIC STORE\nمدى *0007\nفي 00:00 01/01/30",
                 sender = "SNB-AlAhli",

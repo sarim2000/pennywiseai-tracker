@@ -31,6 +31,19 @@ interface CategoryDao {
     @Query("UPDATE categories SET is_hidden = :hidden WHERE id = :categoryId")
     suspend fun setCategoryHidden(categoryId: Long, hidden: Boolean)
 
+    /**
+     * Flips the flag in the database rather than writing a value the caller
+     * worked out beforehand.
+     *
+     * The UI can only ever hold a snapshot of the row: between a write landing
+     * and the Room Flow reaching Compose, a second tap would compute its "next"
+     * value from the pre-write state and write the same thing again, so a
+     * quick hide-then-show left the category hidden. Flipping in SQL has no such
+     * window.
+     */
+    @Query("UPDATE categories SET is_hidden = NOT is_hidden WHERE id = :categoryId")
+    suspend fun toggleCategoryHidden(categoryId: Long)
+
     @Query("SELECT * FROM categories WHERE id = :categoryId")
     suspend fun getCategoryById(categoryId: Long): CategoryEntity?
     

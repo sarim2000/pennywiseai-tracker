@@ -42,6 +42,16 @@ class CategoryRepository @Inject constructor(
         categoryDao.setCategoryHidden(categoryId, hidden)
     }
 
+    /**
+     * Flips a category's hidden flag and returns the row as it now stands.
+     * See [CategoryDao.toggleCategoryHidden] for why this isn't a read,
+     * flip and write from the caller.
+     */
+    suspend fun toggleCategoryHidden(categoryId: Long): CategoryEntity? {
+        categoryDao.toggleCategoryHidden(categoryId)
+        return categoryDao.getCategoryById(categoryId)
+    }
+
     suspend fun getCategoryById(categoryId: Long): CategoryEntity? {
         return categoryDao.getCategoryById(categoryId)
     }

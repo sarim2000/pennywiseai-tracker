@@ -125,7 +125,7 @@ fun CategoriesScreen(
                         category = category,
                         onEdit = { viewModel.showEditDialog(category) },
                         onDelete = { viewModel.deleteCategory(category) },
-                        onToggleHidden = { viewModel.setCategoryHidden(category, !category.isHidden) }
+                        onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
                     )
                 }
             }
@@ -144,7 +144,7 @@ fun CategoriesScreen(
                         category = category,
                         onEdit = { viewModel.showEditDialog(category) },
                         onDelete = { viewModel.deleteCategory(category) },
-                        onToggleHidden = { viewModel.setCategoryHidden(category, !category.isHidden) }
+                        onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
                     )
                 }
             }

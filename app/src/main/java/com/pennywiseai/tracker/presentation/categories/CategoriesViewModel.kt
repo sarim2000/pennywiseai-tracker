@@ -118,9 +118,8 @@ class CategoriesViewModel @Inject constructor(
         }
     }
     
-    // Categories with a hide/unhide write in flight — guards against rapid repeated
-    // taps on the toggle firing duplicate/overlapping writes (the `hidden` argument is
-    // derived from possibly-stale UI state). Touched only from the main thread.
+    // Categories with a hide/unhide write in flight, so a burst of taps doesn't
+    // queue up overlapping writes. Touched only from the main thread.
     private val togglingCategoryIds = mutableSetOf<Long>()
 
     /**
@@ -128,19 +127,27 @@ class CategoriesViewModel @Inject constructor(
      * (default) categories — hiding is the safe way to tuck away an unused default:
      * the row stays in the DB so existing transactions keep their category, it's just
      * removed from the pickers.
+     *
+     * Takes only the id: the new value is worked out by the database, not by the
+     * caller. The screen can only hold a snapshot of the row, and between a write
+     * landing and the Room Flow reaching Compose that snapshot is stale — a
+     * second tap in that window would ask for the same value again, so a quick
+     * hide-then-show left the category hidden.
      */
-    fun setCategoryHidden(category: CategoryEntity, hidden: Boolean) {
+    fun toggleCategoryHidden(categoryId: Long) {
         // Ignore a tap while this category's previous toggle is still running.
-        if (!togglingCategoryIds.add(category.id)) return
+        if (!togglingCategoryIds.add(categoryId)) return
         viewModelScope.launch {
             try {
-                categoryRepository.setCategoryHidden(category.id, hidden)
-                _snackbarMessage.value =
-                    if (hidden) "${category.name} hidden" else "${category.name} shown"
+                val updated = categoryRepository.toggleCategoryHidden(categoryId)
+                if (updated != null) {
+                    _snackbarMessage.value =
+                        if (updated.isHidden) "${updated.name} hidden" else "${updated.name} shown"
+                }
             } catch (e: Exception) {
                 _snackbarMessage.value = "Error updating category: ${e.message}"
             } finally {
-                togglingCategoryIds.remove(category.id)
+                togglingCategoryIds.remove(categoryId)
             }
         }
     }

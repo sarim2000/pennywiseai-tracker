@@ -108,6 +108,21 @@ class STCBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Refund that itself failed is ignored",
+                message = "Refund for your previous purchase failed\nAmount: 24.68 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false,
+                description = "The credit never landed. Naming an earlier transaction must not " +
+                    "excuse this message's own failure, or the refund is booked as income."
+            ),
+            ParserTestCase(
+                name = "Declined reversal of an original transaction is ignored",
+                message = "Reversal of the original transaction was declined\nAmount: 35.79 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false,
+                description = "Same shape with the failure word after the noun rather than before it."
+            ),
+            ParserTestCase(
                 name = "Generic STC recharge notice is ignored",
                 message = "Sawa recharge service credit\nAmount: 78.90 SAR\nCheck your Sawa balance",
                 sender = "stc",

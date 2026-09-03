@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.common
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -11,7 +12,14 @@ enum class TimePeriod(val label: String) {
     LAST_MONTH("Last Month"),
     CURRENT_FY("Current FY"),
     ALL("All Time"),
-    CUSTOM("Custom Range")
+    CUSTOM("Custom Range");
+
+    /**
+     * True for the two "month" periods, which resolve against the user's budget
+     * cycle rather than the calendar month. See [getCycleAwareDateRange].
+     */
+    val followsBudgetCycle: Boolean
+        get() = this == THIS_MONTH || this == LAST_MONTH
 }
 
 enum class TransactionTypeFilter(val label: String) {
@@ -57,6 +65,32 @@ fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate>? {
             null
         }
     }
+}
+
+/**
+ * The date range for [period], honouring the user's configured budget cycle
+ * start day (e.g. 25th → 24th) for the two "month" periods.
+ *
+ * "This Month" already followed the cycle everywhere; "Last Month" did not, so
+ * with any start day other than the 1st the two windows neither met nor
+ * overlapped and the days in between were unreachable from either chip (#740).
+ * Resolving both from [BudgetCycle] keeps them tiled: "Last Month" always ends
+ * the day before "This Month" starts.
+ *
+ * With the default start day of 1 this is identical to the calendar months
+ * [getDateRangeForPeriod] returns.
+ */
+fun getCycleAwareDateRange(
+    period: TimePeriod,
+    cycleStartDay: Int,
+    today: LocalDate = LocalDate.now()
+): Pair<LocalDate, LocalDate>? = when (period) {
+    TimePeriod.THIS_MONTH -> BudgetCycle.currentCycle(today, cycleStartDay)
+    TimePeriod.LAST_MONTH -> BudgetCycle.previousCycle(
+        BudgetCycle.currentCycle(today, cycleStartDay),
+        cycleStartDay
+    )
+    else -> getDateRangeForPeriod(period)
 }
 
 /**

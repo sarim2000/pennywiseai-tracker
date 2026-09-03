@@ -138,6 +138,14 @@ class STCBankParserTest {
                 description = "Same shape with 'reversal' as the credit noun."
             ),
             ParserTestCase(
+                name = "Refund reported as previously declined is ignored",
+                message = "Refund was previously declined\nAmount: 46.80 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false,
+                description = "The credit noun comes first and the failure phrase qualifies nothing, " +
+                    "so it is this refund that was declined."
+            ),
+            ParserTestCase(
                 name = "Generic STC recharge notice is ignored",
                 message = "Sawa recharge service credit\nAmount: 78.90 SAR\nCheck your Sawa balance",
                 sender = "stc",

@@ -10,10 +10,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
+import com.pennywiseai.tracker.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    // The hide/unhide write outlives this screen on purpose — see
+    // [toggleCategoryHidden].
+    @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
     
     // UI State
@@ -141,10 +146,15 @@ class CategoriesViewModel @Inject constructor(
      * Every tap flips the row exactly once. Taps on the same category queue
      * behind each other rather than being discarded, so two quick taps land as
      * two flips and the row ends up where the user's last tap asked for.
+     *
+     * Runs on the application scope, not [viewModelScope]: tapping twice and
+     * immediately leaving the screen would otherwise clear the ViewModel and
+     * cancel the queued second flip, persisting the opposite of what the user
+     * last asked for.
      */
     fun toggleCategoryHidden(categoryId: Long) {
         val lock = toggleLocks.getOrPut(categoryId) { Mutex() }
-        viewModelScope.launch {
+        applicationScope.launch {
             lock.withLock {
                 try {
                     val updated = categoryRepository.toggleCategoryHidden(categoryId)

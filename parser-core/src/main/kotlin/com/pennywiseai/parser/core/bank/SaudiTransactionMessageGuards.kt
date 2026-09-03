@@ -68,10 +68,15 @@ internal object SaudiTransactionMessageGuards {
     /**
      * A failure word sitting directly against a historical marker, in either
      * order: "previously declined", "original failed", "declined earlier" —
-     * and only when it qualifies some *other* noun — the one the failure
-     * actually describes. Which side that noun sits on depends on the word
-     * order: it trails "previously declined <noun>" and leads
-     * "<noun> declined earlier".
+     * and only when it qualifies a *named kind of payment* — the thing the
+     * failure actually describes. Which side that noun sits on depends on the
+     * word order: it trails "previously declined purchase" and leads "purchase
+     * declined earlier".
+     *
+     * The noun must come from a closed list of debit words. Accepting any
+     * non-credit word instead let generic ones through — "refund transaction
+     * declined earlier" is the refund's own transaction — so an unrecognised
+     * phrasing now fails closed and the credit is rejected rather than booked.
      *
      * That trailing noun is what makes the phrase historical. "Refund for your
      * previously declined purchase" qualifies the purchase, so the refund is
@@ -87,10 +92,19 @@ internal object SaudiTransactionMessageGuards {
      * message's own verb. Allowing words in between would swallow the second
      * case and let a failed refund through as income.
      */
+    // The kinds of payment a refund can legitimately be *about*. Deliberately a
+    // closed list of specific debit nouns: a generic one like "transaction" or
+    // "العملية" doesn't say whose transaction it was, and "refund transaction
+    // declined earlier" is the refund's own. Anything not named here is treated
+    // as the credit itself, so an unrecognised phrasing fails closed.
+    private const val EN_DEBIT_NOUNS = "purchase|payment|transfer|withdrawal|charge|debit|pos"
+    private const val AR_DEBIT_NOUNS = "شراء|حوالة|سداد|خصم|سحب|إيداع|مشتريات"
+
     private val HISTORICAL_FAILURE_MENTION = Regex(
-        """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)\s+(?:declined|failed|rejected)[ \t]+(?!refund|reversal|cashback|correction)(?=\w)""" +
-            """|\b(?!refund|reversal|cashback|correction)\w+[ \t]+(?:declined|failed|rejected)[ \t]+(?:previous(?:ly)?|earlier|original|prior|former)\b""" +
-            """|(?:^|(?<=[\s]))(?!استرجاع|مرتجع|إرجاع|تصحيح)\S+[ \t]+(?:سابقة|السابقة|الأصلية|سابق)[ \t]+(?:مرفوضة|مرفوض|فاشلة)""" +
-            """|(?:^|(?<=[\s]))(?!استرجاع|مرتجع|إرجاع|تصحيح)\S+[ \t]+(?:مرفوضة|مرفوض|فاشلة)[ \t]+(?:سابقة|السابقة|الأصلية|سابق))"""
+        """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)[ \t]+(?:declined|failed|rejected)[ \t]+(?:$EN_DEBIT_NOUNS)\b""" +
+            """|\b(?:$EN_DEBIT_NOUNS)[ \t]+(?:declined|failed|rejected)[ \t]+(?:previous(?:ly)?|earlier|original|prior|former)\b""" +
+            """|(?:$AR_DEBIT_NOUNS)[ \t]+(?:سابقة|السابقة|الأصلية|سابق)[ \t]+(?:مرفوضة|مرفوض|فاشلة)""" +
+            """|(?:$AR_DEBIT_NOUNS)[ \t]+(?:مرفوضة|مرفوض|فاشلة)[ \t]+(?:سابقة|السابقة|الأصلية|سابق))"""
     )
+
 }

@@ -172,6 +172,14 @@ class STCBankParserTest {
                 description = "Same reverse order, but the failure describes the purchase — the refund is real."
             ),
             ParserTestCase(
+                name = "Refund with a generic noun is ignored",
+                message = "Refund transaction declined earlier\nAmount: 24.68 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false,
+                description = "'transaction' doesn't say whose — here it is the refund's own, so the " +
+                    "qualifier has to name a kind of payment and an unrecognised phrasing fails closed."
+            ),
+            ParserTestCase(
                 name = "Generic STC recharge notice is ignored",
                 message = "Sawa recharge service credit\nAmount: 78.90 SAR\nCheck your Sawa balance",
                 sender = "stc",

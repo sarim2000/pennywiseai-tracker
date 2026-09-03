@@ -146,6 +146,32 @@ class STCBankParserTest {
                     "so it is this refund that was declined."
             ),
             ParserTestCase(
+                name = "Refund declined earlier is ignored",
+                message = "Refund declined earlier\nAmount: 24.68 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false,
+                description = "Reverse word order: the noun the failure describes now leads it, " +
+                    "and it is the refund itself."
+            ),
+            ParserTestCase(
+                name = "Reversal failed previously is ignored",
+                message = "Reversal failed previously\nAmount: 35.79 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Refund for a purchase declined earlier is accepted",
+                message = "Refund for a purchase declined earlier\nAmount: 13.45 SAR\nFrom: SYNTHETIC MERCHANT",
+                sender = "STCBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("13.45"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME,
+                    merchant = "SYNTHETIC MERCHANT"
+                ),
+                description = "Same reverse order, but the failure describes the purchase — the refund is real."
+            ),
+            ParserTestCase(
                 name = "Generic STC recharge notice is ignored",
                 message = "Sawa recharge service credit\nAmount: 78.90 SAR\nCheck your Sawa balance",
                 sender = "stc",

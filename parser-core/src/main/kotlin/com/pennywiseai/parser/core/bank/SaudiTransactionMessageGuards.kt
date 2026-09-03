@@ -58,7 +58,10 @@ internal object SaudiTransactionMessageGuards {
     /**
      * A failure word sitting directly against a historical marker, in either
      * order: "previously declined", "original failed", "declined earlier" —
-     * and only when it goes on to qualify some *other* noun.
+     * and only when it qualifies some *other* noun — the one the failure
+     * actually describes. Which side that noun sits on depends on the word
+     * order: it trails "previously declined <noun>" and leads
+     * "<noun> declined earlier".
      *
      * That trailing noun is what makes the phrase historical. "Refund for your
      * previously declined purchase" qualifies the purchase, so the refund is
@@ -76,7 +79,7 @@ internal object SaudiTransactionMessageGuards {
      */
     private val HISTORICAL_FAILURE_MENTION = Regex(
         """(?i)(?:\b(?:previous(?:ly)?|earlier|original|prior|former)\s+(?:declined|failed|rejected)[ \t]+(?!refund|reversal|cashback|correction)(?=\w)""" +
-            """|\b(?:declined|failed|rejected)\s+(?:previous(?:ly)?|earlier|original|prior|former)\b""" +
+            """|\b(?!refund|reversal|cashback|correction)\w+[ \t]+(?:declined|failed|rejected)[ \t]+(?:previous(?:ly)?|earlier|original|prior|former)\b""" +
             """|(?:سابقة|السابقة|الأصلية|سابق)\s+(?:مرفوضة|مرفوض|فاشلة)""" +
             """|(?:مرفوضة|مرفوض|فاشلة)\s+(?:سابقة|السابقة|الأصلية|سابق))"""
     )

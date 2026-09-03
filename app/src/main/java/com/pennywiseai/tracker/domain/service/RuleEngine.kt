@@ -131,10 +131,21 @@ class RuleEngine @Inject constructor() {
     ): Boolean {
         val fieldValue = getFieldValue(transaction, smsText, condition.field)
 
+        // AMOUNT is compared as a number, not as text. The field value is
+        // BigDecimal.toString(), so "100" or "100.0" would never string-match an
+        // amount stored as 100.00 — the editor offers "=" for amounts, so those
+        // rules simply never fired.
+        val amountEquality = condition.field == TransactionField.AMOUNT &&
+            condition.value.toBigDecimalOrNull() != null &&
+            fieldValue.toBigDecimalOrNull() != null
+
         return when (condition.operator) {
-            ConditionOperator.EQUALS -> fieldValue.equals(condition.value, ignoreCase = true)
+            ConditionOperator.EQUALS ->
+                if (amountEquality) compareNumeric(fieldValue, condition.value) == 0
+                else fieldValue.equals(condition.value, ignoreCase = true)
             ConditionOperator.NOT_EQUALS -> {
                 if (condition.field == TransactionField.ACCOUNT && fieldValue.isBlank()) false
+                else if (amountEquality) compareNumeric(fieldValue, condition.value) != 0
                 else !fieldValue.equals(condition.value, ignoreCase = true)
             }
             ConditionOperator.CONTAINS -> fieldValue.contains(condition.value, ignoreCase = true)

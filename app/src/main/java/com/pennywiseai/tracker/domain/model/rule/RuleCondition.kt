@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.model.rule
 
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
@@ -55,6 +56,65 @@ fun isRuleApplicableToTransactionType(rule: TransactionRule, type: TransactionTy
     return typeConditions.any { matchesTransactionTypeCondition(it, type.name) }
 }
 
+/**
+ * The operators that mean anything for [field], in the order the rule editor
+ * offers them (the first is the field's default).
+ *
+ * This is the single source of truth for the pairing: the create screen builds
+ * its picker from it, and the rule importer checks arbitrary file content
+ * against it. A comparison like MERCHANT / GREATER_THAN can't be produced by the
+ * pickers, but a hand-written or hand-edited import file can carry one, and it
+ * would persist as a rule that never fires.
+ */
+fun supportedOperators(field: TransactionField): List<ConditionOperator> = when (field) {
+    TransactionField.AMOUNT -> listOf(
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN,
+        ConditionOperator.EQUALS
+    )
+    TransactionField.TYPE -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.NOT_EQUALS
+    )
+    TransactionField.TRANSACTION_TIME -> listOf(
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN,
+        ConditionOperator.GREATER_THAN_OR_EQUAL,
+        ConditionOperator.LESS_THAN_OR_EQUAL,
+        ConditionOperator.EQUALS
+    )
+    TransactionField.TRANSACTION_HOUR -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.TRANSACTION_DAY_OF_WEEK -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.IN,
+        ConditionOperator.NOT_EQUALS
+    )
+    TransactionField.TRANSACTION_DAY_OF_MONTH -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.IN,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.TRANSACTION_DATE -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.LESS_THAN,
+        ConditionOperator.GREATER_THAN
+    )
+    TransactionField.ACCOUNT -> listOf(
+        ConditionOperator.EQUALS,
+        ConditionOperator.NOT_EQUALS
+    )
+    else -> listOf(
+        ConditionOperator.CONTAINS,
+        ConditionOperator.EQUALS,
+        ConditionOperator.STARTS_WITH
+    )
+}
+
 @Serializable
 data class RuleCondition(
     val field: TransactionField,
@@ -65,12 +125,13 @@ data class RuleCondition(
     fun validate(): Boolean {
         return value.isNotBlank() && when (field) {
             TransactionField.AMOUNT -> {
+                // Every amount comparison is numeric — EQUALS included, which the
+                // editor offers as "=". It used to fall through to `true`, so an
+                // imported `AMOUNT = abc` was stored as a rule that never fires.
                 when (operator) {
-                    ConditionOperator.LESS_THAN,
-                    ConditionOperator.GREATER_THAN,
-                    ConditionOperator.LESS_THAN_OR_EQUAL,
-                    ConditionOperator.GREATER_THAN_OR_EQUAL -> value.toBigDecimalOrNull() != null
-                    else -> true
+                    ConditionOperator.IN, ConditionOperator.NOT_IN ->
+                        value.split(",").all { it.trim().toBigDecimalOrNull() != null }
+                    else -> value.toBigDecimalOrNull() != null
                 }
             }
             TransactionField.TRANSACTION_HOUR -> {
@@ -99,6 +160,10 @@ data class RuleCondition(
                 parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()
             }
             TransactionField.TYPE -> parseRuleTransactionType(value) != null
+            // Compared against LocalDate.toString() at evaluation time, so the
+            // value has to be an ISO date; anything else can never match.
+            TransactionField.TRANSACTION_DATE ->
+                runCatching { LocalDate.parse(value.trim()) }.isSuccess
             else -> true
         }
     }

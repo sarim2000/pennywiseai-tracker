@@ -232,10 +232,11 @@ class TransactionDetailViewModel @Inject constructor(
         val transaction = editable ?: original
         transaction?.transactionType == TransactionType.INCOME
     }.flatMapLatest { isIncome ->
+        // Picker: hidden categories are excluded from selection (#736).
         if (isIncome) {
-            categoryRepository.getIncomeCategories()
+            categoryRepository.getVisibleIncomeCategories()
         } else {
-            categoryRepository.getExpenseCategories()
+            categoryRepository.getVisibleExpenseCategories()
         }
     }.stateIn(
         scope = viewModelScope,

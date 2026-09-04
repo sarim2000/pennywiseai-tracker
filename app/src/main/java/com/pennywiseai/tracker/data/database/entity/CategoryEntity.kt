@@ -29,7 +29,14 @@ data class CategoryEntity(
     
     @ColumnInfo(name = "is_income")
     val isIncome: Boolean = false,
-    
+
+    // Hidden categories are kept in the DB (so existing transactions keep their
+    // category and still show in analytics) but are filtered out of the category
+    // PICKERS. Lets users tuck away unused default categories (#736). Backup-safe:
+    // a default keeps old backups restorable (#414).
+    @ColumnInfo(name = "is_hidden", defaultValue = "0")
+    val isHidden: Boolean = false,
+
     @ColumnInfo(name = "display_order")
     val displayOrder: Int = 999,
     

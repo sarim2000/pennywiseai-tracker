@@ -9,8 +9,8 @@ import java.math.BigDecimal
  * Handles Arabic POS purchase, withdrawal and transfer formats such as:
  *   شراء نقاط بيع SamsungPay
  *   بـSAR 19.45
- *   من filwah al
- *   مدى *2342
+ *   من SYNTHETIC MERCHANT
+ *   مدى *0002
  *   في 07:53 03/04/26
  *
  * Sender examples: SNB-AlAhli, SNB, AlAhliBank, الأهلي
@@ -31,26 +31,16 @@ class SNBAlAhliBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern 1: "بـSAR 19.45" (POS purchase, card transaction)
-        val bPattern = Regex(
-            """بـ\s*SAR\s*([0-9,]+(?:\.\d{1,2})?)""",
-            RegexOption.IGNORE_CASE
+        val patterns = listOf(
+            Regex("""\(\s*(?:SAR|SR)\s*([0-9,]+(?:\.\d{1,2})?)\s*\)""", RegexOption.IGNORE_CASE),
+            Regex("""(?:بـ?|مبلغ)[ \t]*:?[ \t]*(?:SAR|SR)[ \t]*:?[ \t]*([0-9,]+(?:\.\d{1,2})?)\b""", RegexOption.IGNORE_CASE),
+            Regex("""(?:بـ?|مبلغ)[ \t]*:?[ \t]*([0-9,]+(?:\.\d{1,2})?)[ \t]*:?[ \t]*(?:SAR|SR)\b""", RegexOption.IGNORE_CASE),
+            Regex("""(?im)^\s*(?:SAR|SR)[ \t]*:?[ \t]*([0-9,]+(?:\.\d{1,2})?)\s*$""", RegexOption.IGNORE_CASE),
+            Regex("""(?im)^\s*([0-9][0-9,]*(?:\.\d{1,2})?)[ \t]*(?:SAR|SR)\s*$""", RegexOption.IGNORE_CASE)
         )
-        bPattern.find(message)?.let { return parseSarAmount(it.groupValues[1]) }
-
-        // Pattern 2: "مبلغ: SAR 100" or "مبلغ:SAR 100"
-        val amountPattern = Regex(
-            """مبلغ\s*:?\s*SAR\s*([0-9,]+(?:\.\d{1,2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        amountPattern.find(message)?.let { return parseSarAmount(it.groupValues[1]) }
-
-        // Pattern 3: "SAR 19.45" (loose fallback)
-        val looseSarPattern = Regex(
-            """SAR\s+([0-9,]+(?:\.\d{1,2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        looseSarPattern.find(message)?.let { return parseSarAmount(it.groupValues[1]) }
+        patterns.firstNotNullOfOrNull { pattern ->
+            pattern.find(message)?.let { parseSarAmount(it.groupValues[1]) }
+        }?.let { return it }
 
         return null
     }
@@ -66,7 +56,15 @@ class SNBAlAhliBankParser : BankParser() {
 
     override fun extractTransactionType(message: String): TransactionType? {
         return when {
+            message.contains("استرجاع") || message.contains("مرتجع") ||
+                message.contains("إرجاع") || message.contains("عكس العملية") ||
+                message.contains("اعادة شراء") || message.contains("إعادة شراء") -> TransactionType.INCOME
+            message.contains("تصحيح") && message.contains("سحب") &&
+                (message.contains("طوارئ") || message.contains("نقد")) -> TransactionType.INCOME
+            message.contains("سداد") &&
+                (message.contains("بطاقة") || message.contains("ائتمان")) -> TransactionType.TRANSFER
             message.contains("واردة") -> TransactionType.INCOME          // incoming transfer
+            message.contains("حوالة بين حساباتك") -> TransactionType.TRANSFER
             message.contains("إيداع") -> TransactionType.INCOME          // deposit
             message.contains("شراء") -> TransactionType.EXPENSE          // purchase
             message.contains("سحب") -> TransactionType.EXPENSE           // withdrawal
@@ -80,15 +78,12 @@ class SNBAlAhliBankParser : BankParser() {
     override fun extractMerchant(message: String, sender: String): String? {
         // For outgoing purchases/transfers, merchant follows "من" (from) on its own line.
         // For incoming transfers it is also "من" (sender), so we extract it the same way.
-        val fromPattern = Regex("""من\s+([^\n]+?)(?:\n|$)""")
-        fromPattern.find(message)?.let { match ->
+        val fromPattern = Regex("""(?:^|\n)من[ \t]*([^\n]+)""")
+        for (match in fromPattern.findAll(message)) {
             val raw = match.groupValues[1].trim()
-            if (raw.isNotBlank() && !raw.all { it == '*' || it.isDigit() }) {
-                val merchant = cleanMerchantName(raw)
-                if (isValidMerchantName(merchant)) {
-                    return merchant
-                }
-            }
+            if (raw.isBlank() || raw.all { it == '*' || it.isDigit() || it.isWhitespace() }) continue
+            val merchant = cleanMerchantName(raw.replaceFirst(Regex("""^(?:[0-9*]+)[ \t]*"""), "").trim())
+            if (isValidMerchantName(merchant)) return merchant
         }
 
         // "الى: NAME" (to: recipient) for outgoing transfers
@@ -109,11 +104,11 @@ class SNBAlAhliBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // "مدى *2342" or "مدى*2342" (Mada card)
-        val madaPattern = Regex("""مدى\s*\*+\s*(\d{3,4})""")
+        // "مدى *0002" or "مدى*0002" (Mada card)
+        val madaPattern = Regex("""\*?\s*مدى(?:\s*-\s*ابل)?\s*\*+\s*(\d{3,4})\*?""")
         madaPattern.find(message)?.let { return extractLast4Digits(it.groupValues[1]) }
 
-        // "بطاقة *2342" (card)
+        // "بطاقة *0002" (card)
         val cardPattern = Regex("""بطاقة\s*\*+\s*(\d{3,4})""")
         cardPattern.find(message)?.let { return extractLast4Digits(it.groupValues[1]) }
 
@@ -123,7 +118,7 @@ class SNBAlAhliBankParser : BankParser() {
     override fun extractBalance(message: String): BigDecimal? {
         // "الرصيد: SAR 1234.56" or "الرصيد المتاح: SAR 1234.56"
         val balancePattern = Regex(
-            """الرصيد(?:\s*المتاح)?\s*:?\s*SAR\s*([0-9,]+(?:\.\d{1,2})?)""",
+            """الرصيد(?:\s*المتاح)?\s*:?\s*(?:SAR|SR)\s*([0-9,]+(?:\.\d{1,2})?)""",
             RegexOption.IGNORE_CASE
         )
         balancePattern.find(message)?.let { return parseSarAmount(it.groupValues[1]) }
@@ -142,8 +137,10 @@ class SNBAlAhliBankParser : BankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
-        if (message.contains("رمز") || message.contains("OTP", ignoreCase = true) ||
-            message.contains("كلمة المرور")
+        if (SaudiTransactionMessageGuards.isDeclinedOrFailed(message) ||
+            SaudiTransactionMessageGuards.isPromotionalOrOperationalNotice(message) ||
+            FinancialMessageSafety.isSecurityCode(message) || message.contains("رمز") ||
+            message.contains("OTP", ignoreCase = true) || message.contains("كلمة المرور")
         ) {
             return false
         }
@@ -155,7 +152,7 @@ class SNBAlAhliBankParser : BankParser() {
             "خصم",       // deduction
             "سداد",      // payment
             "إيداع",     // deposit
-            "SAR"
+            "SAR", "SR"
         )
         return keywords.any { message.contains(it) }
     }

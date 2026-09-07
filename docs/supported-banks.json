@@ -1,6 +1,6 @@
 {
-  "totalBanks": 153,
-  "totalCountries": 23,
+  "totalBanks": 156,
+  "totalCountries": 24,
   "countries": [
     {
       "country": "India",
@@ -97,6 +97,14 @@
       "symbol": "Rs",
       "bankCount": 4,
       "banks": ["National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
+    },
+    {
+      "country": "El Salvador",
+      "flag": "🇸🇻",
+      "currency": "USD",
+      "symbol": "$",
+      "bankCount": 3,
+      "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
     },
     {
       "country": "Egypt",

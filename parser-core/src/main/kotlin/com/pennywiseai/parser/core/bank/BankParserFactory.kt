@@ -74,6 +74,11 @@ object BankParserFactory {
         MillenniumBimParser(),  // Millennium BIM (Mozambique)
         EverestBankParser(),  // Everest Bank (Nepal)
         BancolombiaParser(),  // Bancolombia (Colombia)
+        BancoCuscatlanParser(),  // Banco Cuscatlan (El Salvador)
+        BancoPromericaParser(),  // Banco Promerica (El Salvador) — must precede BancoAgricola: Promerica bodies
+        // mention Transfer365, and Agricola claims the shared "Transfer365" sender (it gates its own parse()
+        // on an "AGRICOLA" body marker, so a Transfer365-sender SMS from another bank falls through).
+        BancoAgricolaParser(),  // Banco Agricola (El Salvador) — senders "Agricola" and "Transfer365"
         MashreqBankParser(),  // Mashreq Bank (UAE)
         CharlesSchwabParser(),  // Charles Schwab (USA)
         NavyFederalParser(),  // Navy Federal Credit Union (USA)

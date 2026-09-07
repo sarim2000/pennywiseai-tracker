@@ -51,6 +51,15 @@ class SupportedBanksDocTest {
         "EUR" to CountryMeta("Eurozone", "🇪🇺", "€"),
     )
 
+    // A currency maps 1:1 to a country for every bank we support — except where a
+    // country is dollarised. El Salvador's banks quote USD, so they'd otherwise be
+    // published as United States banks; override those by bank name.
+    private val countryOverride = mapOf(
+        "Banco Cuscatlan" to CountryMeta("El Salvador", "🇸🇻", "$"),
+        "Banco Promerica" to CountryMeta("El Salvador", "🇸🇻", "$"),
+        "Banco Agricola" to CountryMeta("El Salvador", "🇸🇻", "$"),
+    )
+
     private data class CountryGroup(
         val currency: String,
         val meta: CountryMeta,
@@ -58,12 +67,14 @@ class SupportedBanksDocTest {
     )
 
     private fun buildGroups(): List<CountryGroup> {
-        val byCurrency = BankParserFactory.getAllParsers()
+        val banks = BankParserFactory.getAllParsers()
             .map { it.getBankName() to it.getCurrency() }
             .distinct()
-            .groupBy({ it.second }, { it.first })
 
-        val missing = byCurrency.keys.filterNot { currencyMeta.containsKey(it) }
+        val missing = banks
+            .filterNot { (name, currency) -> name in countryOverride || currency in currencyMeta }
+            .map { it.second }
+            .distinct()
         if (missing.isNotEmpty()) {
             throw IllegalStateException(
                 "No country mapping for currency code(s) $missing — add them to " +
@@ -71,10 +82,13 @@ class SupportedBanksDocTest {
             )
         }
 
-        return byCurrency.entries
-            .map { (currency, banks) ->
-                CountryGroup(currency, currencyMeta.getValue(currency), banks.distinct().sorted())
-            }
+        return banks
+            .groupBy(
+                { (name, currency) -> currency to (countryOverride[name] ?: currencyMeta.getValue(currency)) },
+                { it.first }
+            )
+            .entries
+            .map { (key, names) -> CountryGroup(key.first, key.second, names.distinct().sorted()) }
             // Most banks first, then alphabetical by country.
             .sortedWith(compareByDescending<CountryGroup> { it.banks.size }.thenBy { it.meta.country })
     }

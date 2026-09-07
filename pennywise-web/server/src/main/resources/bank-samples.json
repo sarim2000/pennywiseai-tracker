@@ -127,7 +127,7 @@
       "currency": "USD",
       "amount": "20.00",
       "type": "INCOME",
-      "merchant": "GIVEN NAME SURNAME",
+      "merchant": "ANOTHER BANK NAME",
       "accountLast4": null,
       "reference": null,
       "balance": null

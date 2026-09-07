@@ -26,7 +26,7 @@ class BancoAgricolaParserTest {
                     amount = BigDecimal("6.91"),
                     currency = "USD",
                     type = TransactionType.INCOME,
-                    merchant = "GIVEN NAME SURNAME",
+                    merchant = "ANOTHER BANK NAME",
                     isFromCard = false
                 )
             ),
@@ -38,7 +38,7 @@ class BancoAgricolaParserTest {
                     amount = BigDecimal("20.00"),
                     currency = "USD",
                     type = TransactionType.INCOME,
-                    merchant = "GIVEN NAME SURNAME",
+                    merchant = "ANOTHER BANK NAME",
                     isFromCard = false
                 )
             ),

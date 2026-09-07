@@ -21,6 +21,14 @@ abstract class BaseElSalvadorBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
         if (lower.contains("codigo") || lower.contains("clave") || lower.contains("otp")) return false
+        if (FinancialMessageSafety.isSecurityCode(message)) return false
+        if (FinancialMessageSafety.isOperationalOrPromotionalNotice(message)) return false
+        // A declined or merely *requested* payment moved no money. The samples say
+        // "ha sido aplicada exitosamente" for the successful case, which implies
+        // unsuccessful variants exist; treat any of these as not-a-transaction
+        // rather than booking an amount that never left the account.
+        if (FinancialMessageSafety.hasExplicitFailure(message, SPANISH_FAILURES)) return false
+        if (SPANISH_FAILURES.any { lower.contains(it) }) return false
         return extractTransactionType(message) != null
     }
 
@@ -40,12 +48,20 @@ abstract class BaseElSalvadorBankParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         PURCHASE.find(message)?.let { return it.groupValues[1].trim().trimEnd('.', ',') }
-        // Counterparty: the payer for money in ("de NAME por USD…"), the payee for money
-        // out ("a NAME por USD…"). The prefix is greedy so the connector closest to the
-        // amount wins ("Transferencia de Fondos a NAME por $ 26.00" -> NAME).
-        val counterparty =
-            if (extractTransactionType(message) == TransactionType.INCOME) FROM_PARTY else TO_PARTY
-        return counterparty.find(message)?.groupValues?.get(1)?.trim()
+
+        if (extractTransactionType(message) == TransactionType.INCOME) {
+            // Money in names the sender after "desde": "…por USD6.91 desde ANOTHER BANK".
+            //
+            // NOT the "de NAME" here — in "Abono a Cuenta de NAME" and "a cuenta
+            // corriente de NAME" that name is the *account holder*, i.e. the user
+            // themselves, so reading it as the counterparty labelled every incoming
+            // transfer with the recipient's own name. When no payer is named, none
+            // is reported.
+            return FROM_PARTY.find(message)?.groupValues?.get(1)?.trim()?.trimEnd('.', ',')
+        }
+        // Money out names the payee: "…a NAME por $ 26.00". The prefix is greedy so the
+        // connector closest to the amount wins ("Transferencia de Fondos a NAME" -> NAME).
+        return TO_PARTY.find(message)?.groupValues?.get(1)?.trim()
     }
 
     override fun extractAccountLast4(message: String): String? =
@@ -61,7 +77,12 @@ abstract class BaseElSalvadorBankParser : BankParser() {
             """por\s+(?:USD|US\$|\$)\s*[\d,.]+\s+en\s+(.+?)(?:\s+el\s+\d|\.\s|\.?$)""",
             RegexOption.IGNORE_CASE
         )
-        val FROM_PARTY = Regex(""".*\bde\s+(.+?)\s+por\s+(?:USD|US\$|\$)""", RegexOption.IGNORE_CASE)
+        val FROM_PARTY = Regex("""\bdesde\s+(.+?)(?:\s+el\s+\d|\.\s|\.?$)""", RegexOption.IGNORE_CASE)
+        val SPANISH_FAILURES = listOf(
+            "rechazada", "rechazado", "denegada", "denegado", "no aplicada", "no aplicado",
+            "fallida", "fallido", "no procesada", "no procesado", "sin exito", "no exitosa",
+            "solicitud de pago", "solicita un pago", "intento de"
+        )
         val TO_PARTY = Regex(""".*\ba\s+(.+?)\s+por\s+(?:USD|US\$|\$)""", RegexOption.IGNORE_CASE)
         val CARD = Regex("""tarjeta|\bTTA\b""", RegexOption.IGNORE_CASE)
     }

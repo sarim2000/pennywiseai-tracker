@@ -16,6 +16,21 @@ class BancoPromericaParserTest {
 
         val testCases = listOf(
             ParserTestCase(
+                name = "Rejected transfer is ignored",
+                message = "Su Op. Transfer365 de Transferencia de Fondos a GIVEN NAME SUR NAME por $ 26.00 ha sido rechazada",
+                sender = "Promerica",
+                shouldParse = false,
+                description = "The successful sample says \"aplicada exitosamente\", so unsuccessful " +
+                    "variants exist; no money moved, so nothing is recorded."
+            ),
+            ParserTestCase(
+                name = "Payment request is ignored",
+                message = "Ha recibido una solicitud de pago de GIVEN NAME por $ 15.00",
+                sender = "Promerica",
+                shouldParse = false,
+                description = "A request to pay is not a payment — \"recibido\" would otherwise read as income."
+            ),
+            ParserTestCase(
                 name = "Incoming Transfer365 credit",
                 message = "Ha recibido un abono Transferencia de Fondos a cuenta corriente de GIVEN NAME SURNAME por $ 80.00 a traves de Transfer365 el 15/07/2026 20:37:06",
                 sender = "Promerica",
@@ -23,7 +38,10 @@ class BancoPromericaParserTest {
                     amount = BigDecimal("80.00"),
                     currency = "USD",
                     type = TransactionType.INCOME,
-                    merchant = "GIVEN NAME SURNAME",
+                    // "de GIVEN NAME SURNAME" is whose current account was credited, not who
+                    // paid; this sample names no payer, so none is recorded.
+                    merchant = null,
+
                     isFromCard = false
                 )
             ),

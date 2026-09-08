@@ -10,6 +10,11 @@
     <string name="widget_name_add_transaction">Add Transaction</string>
     <string name="widget_description_add_transaction">Tap to quickly add a manual transaction without opening the app.</string>
 
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
+    <string name="tile_add_transaction">Add Transaction</string>
+    <string name="shortcut_add_transaction_short">Add</string>
+    <string name="shortcut_add_transaction_long">Add transaction</string>
+
     <!-- Developer's public donation address, shown in the "Support development"
          section on F-Droid builds (which have no Play billing). Intentionally
          public (a name-based UPI VPA, not a phone number). -->

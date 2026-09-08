@@ -1,0 +1,12 @@
+<!-- Quick-add glyph for the QS tile and the launcher shortcut. Solid black on
+     purpose: the tile tints it itself, and the launcher draws the shortcut on a
+     white badge (a white or theme-attr-tinted path disappears there). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M19,11H13V5H11V11H5V13H11V19H13V13H19Z" />
+</vector>

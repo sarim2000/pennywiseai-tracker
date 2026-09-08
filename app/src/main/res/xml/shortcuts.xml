@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Long-press the launcher icon -> "Add transaction". Resolved implicitly
+         through the pennywise://add filter on MainActivity so it keeps working
+         under the debug applicationId suffix. -->
+    <shortcut
+        android:shortcutId="add_transaction"
+        android:enabled="true"
+        android:icon="@drawable/ic_quick_add"
+        android:shortcutShortLabel="@string/shortcut_add_transaction_short"
+        android:shortcutLongLabel="@string/shortcut_add_transaction_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="pennywise://add" />
+    </shortcut>
+</shortcuts>

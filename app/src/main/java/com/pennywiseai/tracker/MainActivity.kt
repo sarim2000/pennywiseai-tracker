@@ -17,6 +17,15 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
+
+        /**
+         * Deep link that jumps straight to Add Transaction: `pennywise://add`.
+         * The single entry point every quick-add surface routes through — the
+         * QS tile, the launcher shortcut, and anything the user wires up
+         * themselves (Tasker, an OEM gesture, a Pixel Quick Tap macro).
+         */
+        const val DEEP_LINK_SCHEME = "pennywise"
+        const val DEEP_LINK_HOST_ADD = "add"
     }
 
     // Transaction ID to edit when launched from notification
@@ -63,8 +72,13 @@ class MainActivity : FragmentActivity() {
                 editTransactionId = transactionId
             }
         }
-        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = true
         }
+    }
+
+    private fun Intent?.isAddDeepLink(): Boolean {
+        val data = this?.data ?: return false
+        return data.scheme == DEEP_LINK_SCHEME && data.host == DEEP_LINK_HOST_ADD
     }
 }

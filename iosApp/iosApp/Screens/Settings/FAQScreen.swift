@@ -66,6 +66,24 @@ struct FAQScreen: View {
             }
 
             Section {
+                FAQCategoryView(
+                    icon: "hand.tap",
+                    iconColor: .orange,
+                    title: "Quick Add",
+                    items: [
+                        FAQItem(
+                            question: "Can I add an expense by tapping the back of my phone?",
+                            answer: "Yes. iOS Back Tap can run any shortcut, and PennyWise opens straight to Add Transaction from a link.\n\n1. Open the Shortcuts app and create a new shortcut\n2. Add the \"Open URLs\" action and enter pennywise://add\n3. Name it something like \"Add expense\"\n4. Go to Settings › Accessibility › Touch › Back Tap\n5. Choose Double Tap or Triple Tap, then pick your shortcut\n\nNow a double tap on the back of your phone opens the Add Transaction screen."
+                        ),
+                        FAQItem(
+                            question: "Can I trigger quick add from somewhere other than Back Tap?",
+                            answer: "Anything that runs a shortcut can open pennywise://add — put the shortcut on your Home Screen as an icon, in Control Center, or ask Siri for it by name. It works the same way from all of them."
+                        ),
+                    ]
+                )
+            }
+
+            Section {
                 VStack(spacing: AppSpacing.md) {
                     Text("Still Need Help?")
                         .font(AppTypography.headline)

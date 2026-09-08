@@ -18,6 +18,8 @@ enum AppTab: String, CaseIterable {
 }
 
 struct MainTabView: View {
+    @Binding var showQuickAdd: Bool
+
     @State private var selectedTab: AppTab = .home
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var appLockManager = AppLockManager.shared
@@ -70,6 +72,17 @@ struct MainTabView: View {
                     .tag(AppTab.settings)
                 }
                 .tint(themeManager.accentColor)
+                // Quick add from the pennywise://add deep link, so it works
+                // whichever tab is showing. Gated on the app lock: a sheet
+                // would otherwise draw over the lock screen.
+                .sheet(isPresented: Binding(
+                    get: { showQuickAdd && !appLockManager.isLocked },
+                    set: { showQuickAdd = $0 }
+                )) {
+                    NavigationStack {
+                        AddEditTransactionView(facade: PennyWiseSharedFacade.companion.shared)
+                    }
+                }
 
                 if appLockManager.isLocked {
                     LockScreenView()

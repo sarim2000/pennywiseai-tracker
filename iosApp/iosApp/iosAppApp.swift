@@ -6,10 +6,19 @@ struct iosAppApp: App {
     // "Open in PennyWise") — the quickest way to import a bank statement.
     @State private var externalImportResult: String?
 
+    // Set by the pennywise://add deep link. Back Tap can't reach an app
+    // directly, so the user points Settings > Accessibility > Touch > Back Tap
+    // at a Shortcut that opens this URL.
+    @State private var showQuickAdd = false
+
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            MainTabView(showQuickAdd: $showQuickAdd)
                 .onOpenURL { url in
+                    if url.scheme == "pennywise" {
+                        showQuickAdd = (url.host == "add")
+                        return
+                    }
                     guard url.isFileURL, url.pathExtension.lowercased() == "pdf" else { return }
                     externalImportResult = StatementImportService.importPDF(at: url)
                 }

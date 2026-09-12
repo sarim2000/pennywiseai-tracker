@@ -50,6 +50,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- pennywise://add — the single quick-add entry point. Used by the
+                 QS tile and the launcher shortcut, and open for the user to
+                 wire up themselves (Tasker, an OEM gesture, Quick Tap). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="pennywise" android:host="add" />
+            </intent-filter>
         </activity>
 
         <!-- Translucent picker launched from the "More categories…" txn-alert
@@ -62,6 +72,18 @@
             android:launchMode="singleTask"
             android:noHistory="true"
             android:theme="@style/Theme.PennyWise.Transparent" />
+
+        <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->
+        <service
+            android:name=".tile.QuickAddTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_quick_add"
+            android:label="@string/tile_add_transaction"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <!-- Disable default WorkManager initialization -->
         <provider

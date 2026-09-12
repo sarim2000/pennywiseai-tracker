@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import ir.ehsannarmani.compose_charts.PieChart
+import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.Pie
 
 @Composable
@@ -88,6 +89,9 @@ fun CategoryPieChart(
                 selectedScale = 1.1f,
                 scaleAnimEnterSpec = tween(400),
                 colorAnimEnterSpec = tween(500),
+                // The built-in label helper repeats the legend beside us, truncated to
+                // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
+                labelHelperProperties = LabelHelperProperties(enabled = false),
                 style = Pie.Style.Stroke(width = 12.dp)
             )
 

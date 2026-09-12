@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.tile
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.service.quicksettings.TileService
 import com.pennywiseai.tracker.MainActivity
@@ -18,7 +17,7 @@ class QuickAddTileService : TileService() {
     override fun onClick() {
         val intent = Intent(
             Intent.ACTION_VIEW,
-            Uri.parse("${MainActivity.DEEP_LINK_SCHEME}://${MainActivity.DEEP_LINK_HOST_ADD}"),
+            MainActivity.addDeepLink(),
             this,
             MainActivity::class.java
         ).apply {

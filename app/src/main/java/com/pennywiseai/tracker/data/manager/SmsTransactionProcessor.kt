@@ -194,9 +194,15 @@ class SmsTransactionProcessor @Inject constructor(
             if (rowId != -1L) {
                 Log.d(TAG, "Saved new transaction with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
 
-                // Save rule applications if any rules were applied
+                // Save rule applications if any rules were applied. The engine ran
+                // before the insert, so each application still carries the entity's
+                // placeholder id of 0 — remap to the real row id, as the SMS worker
+                // does, or the FK on rule_applications.transaction_id rejects the write
+                // and the throw skips the tag/balance/widget work below.
                 if (ruleApplications.isNotEmpty()) {
-                    ruleRepository.saveRuleApplications(ruleApplications)
+                    ruleRepository.saveRuleApplications(
+                        ruleApplications.map { it.copy(transactionId = rowId.toString()) }
+                    )
                     // ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748).
                     val existingTags = tagRepository.getTagNamesForTransaction(rowId)
                     val newTags = ruleApplications.applyTagActions(existingTags)

@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 data class BatchApplyResult(
     val totalProcessed: Int,
@@ -194,6 +195,10 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         maxSamples: Int = 20
     ): DryRunResult {
         val allTransactions = transactionRepository.getAllTransactionsList()
+        // One read for every transaction's tags rather than one query per row: the
+        // preview has to compare a tag rule against what is already there, or a
+        // transaction that already carries the tag is reported as an update.
+        val tagsByTransaction = tagRepository.observeTransactionTagNames().first()
         val diffs = mutableListOf<TransactionDiff>()
         var totalMatched = 0
         var totalWouldBlock = 0
@@ -220,7 +225,17 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 transaction, smsBody, listOf(rule)
             )
 
-            if (applications.isNotEmpty()) {
+            // A field change is a real change by construction (the engine only records
+            // one when the value differs). A tag action is recorded unconditionally,
+            // so diff it against the tags the row already has: adding a tag that is
+            // already present is not an update.
+            val existingTags = tagsByTransaction[transaction.id].orEmpty()
+            val newTags = applications.applyTagActions(existingTags)
+            val tagChanges = if (newTags === existingTags) emptyList() else {
+                (newTags - existingTags.toSet()).map { "+" + it } +
+                    (existingTags - newTags.toSet()).map { "-" + it }
+            }
+            if (updated != transaction || tagChanges.isNotEmpty()) {
                 totalMatched++
                 if (diffs.size < maxSamples) {
                     diffs.add(
@@ -228,9 +243,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                             original = transaction,
                             modified = updated,
                             isBlock = false,
-                            tagChanges = applications.flatMap { it.fieldsModified }
-                                .filter { it.field == TransactionField.TAGS }
-                                .map { (if (it.actionType == ActionType.ADD_TAG) "+" else "-") + it.newValue }
+                            tagChanges = tagChanges
                         )
                     )
                 }

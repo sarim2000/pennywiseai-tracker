@@ -1,7 +1,12 @@
 package com.pennywiseai.tracker.domain.usecase
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.RuleApplication
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -19,8 +24,16 @@ data class BatchApplyResult(
 class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val ruleRepository: RuleRepository,
-    private val ruleEngine: RuleEngine
+    private val ruleEngine: RuleEngine,
+    private val tagRepository: TagRepository
 ) {
+    /** ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748). */
+    private suspend fun persistTagActions(transactionId: Long, applications: List<RuleApplication>) {
+        val existingTags = tagRepository.getTagNamesForTransaction(transactionId)
+        val newTags = applications.applyTagActions(existingTags)
+        if (newTags !== existingTags) tagRepository.setTagsForTransaction(transactionId, newTags)
+    }
+
     /**
      * Apply a specific rule to all past transactions
      */
@@ -92,6 +105,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     if (ruleApplications.isNotEmpty()) {
                         transactionRepository.updateTransaction(updatedTransaction)
                         ruleRepository.saveRuleApplications(ruleApplications)
+                        persistTagActions(transaction.id, ruleApplications)
                         totalUpdated++
                     }
                 }
@@ -153,6 +167,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     if (ruleApplications.isNotEmpty()) {
                         transactionRepository.updateTransaction(updatedTransaction)
                         ruleRepository.saveRuleApplications(ruleApplications)
+                        persistTagActions(transaction.id, ruleApplications)
                         totalUpdated++
                     }
                 }
@@ -208,7 +223,16 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
             if (applications.isNotEmpty()) {
                 totalMatched++
                 if (diffs.size < maxSamples) {
-                    diffs.add(TransactionDiff(original = transaction, modified = updated, isBlock = false))
+                    diffs.add(
+                        TransactionDiff(
+                            original = transaction,
+                            modified = updated,
+                            isBlock = false,
+                            tagChanges = applications.flatMap { it.fieldsModified }
+                                .filter { it.field == TransactionField.TAGS }
+                                .map { (if (it.actionType == ActionType.ADD_TAG) "+" else "-") + it.newValue }
+                        )
+                    )
                 }
             }
         }
@@ -234,5 +258,7 @@ data class DryRunResult(
 data class TransactionDiff(
     val original: TransactionEntity,
     val modified: TransactionEntity?,
-    val isBlock: Boolean
+    val isBlock: Boolean,
+    /** Tag actions the rule would apply, as "+Name" / "-Name" (tags aren't on the entity). */
+    val tagChanges: List<String> = emptyList()
 )

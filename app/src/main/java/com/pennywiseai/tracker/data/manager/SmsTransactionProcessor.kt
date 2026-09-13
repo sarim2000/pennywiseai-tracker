@@ -18,7 +18,9 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
@@ -43,6 +45,7 @@ class SmsTransactionProcessor @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
+    private val tagRepository: TagRepository,
     private val database: PennyWiseDatabase
 ) {
     companion object {
@@ -194,6 +197,10 @@ class SmsTransactionProcessor @Inject constructor(
                 // Save rule applications if any rules were applied
                 if (ruleApplications.isNotEmpty()) {
                     ruleRepository.saveRuleApplications(ruleApplications)
+                    // ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748).
+                    val existingTags = tagRepository.getTagNamesForTransaction(rowId)
+                    val newTags = ruleApplications.applyTagActions(existingTags)
+                    if (newTags !== existingTags) tagRepository.setTagsForTransaction(rowId, newTags)
                 }
 
                 // Process balance updates

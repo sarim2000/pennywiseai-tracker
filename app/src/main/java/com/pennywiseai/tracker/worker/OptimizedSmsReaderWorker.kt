@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -72,6 +73,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
+    private val tagRepository: TagRepository,
     private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
 ) : CoroutineWorker(appContext, workerParams) {
 
@@ -766,6 +768,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         ruleRepository.saveRuleApplications(
             ruleApps.map { it.copy(transactionId = transactionId.toString()) }
         )
+        // ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748).
+        val existingTags = tagRepository.getTagNamesForTransaction(transactionId)
+        val newTags = ruleApps.applyTagActions(existingTags)
+        if (newTags !== existingTags) tagRepository.setTagsForTransaction(transactionId, newTags)
     }
 
     // ─── Balance update ───────────────────────────────────────────────────────

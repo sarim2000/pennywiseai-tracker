@@ -214,8 +214,57 @@ class RuleSharingCodecTest {
         // operator per field must be one the importer would also accept.
         for (field in TransactionField.entries) {
             val operators = supportedOperators(field)
-            assertTrue("$field offers no operators", operators.isNotEmpty())
+            if (field == TransactionField.TAGS) {
+                // Action-only: the engine has no tag value to compare against.
+                assertTrue("TAGS must not be offered as a condition", operators.isEmpty())
+            } else {
+                assertTrue("$field offers no operators", operators.isNotEmpty())
+            }
         }
+    }
+
+    @Test
+    fun `a tag action round-trips and imports`() {
+        val original = TransactionRule(
+            name = "Tag Swiggy",
+            conditions = listOf(
+                RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Swiggy")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, "Swiggy"),
+                RuleAction(TransactionField.TAGS, ActionType.REMOVE_TAG, "Untagged")
+            )
+        )
+
+        val imported = RuleSharingCodec.decode(RuleSharingCodec.encode(listOf(original))).rules.single()
+
+        assertEquals(original.actions, imported.actions)
+    }
+
+    @Test
+    fun `a TAGS condition fails the file`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Tag condition","conditions":[
+                {"field":"TAGS","operator":"CONTAINS","value":"Swiggy"}],
+               "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food & Dining"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
+    }
+
+    @Test
+    fun `ADD_TAG on a non-TAGS field fails the file`() {
+        val text = """
+            {"version":1,"rules":[
+              {"name":"Dead tag action","conditions":[
+                {"field":"MERCHANT","operator":"CONTAINS","value":"Swiggy"}],
+               "actions":[{"field":"CATEGORY","actionType":"ADD_TAG","value":"Swiggy"}]}
+            ]}
+        """.trimIndent()
+
+        assertThrows(IllegalArgumentException::class.java) { RuleSharingCodec.decode(text) }
     }
 
     @Test

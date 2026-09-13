@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -15,6 +16,10 @@ import java.time.LocalDateTime
  * agree: if the engine gains (or loses) the ability to apply some field/action
  * pair and this table isn't updated, imports would start rejecting rules that
  * work — or accepting rules that silently do nothing.
+ *
+ * "Carried out" means the entity changed, or — for [TransactionField.TAGS],
+ * which isn't a column — the run recorded a [FieldModification] on TAGS with
+ * that action type for the persisting site to apply via `applyTagActions`.
  */
 class RuleActionExecutabilityTest {
 
@@ -53,7 +58,7 @@ class RuleActionExecutabilityTest {
                     actionType = actionType,
                     value = probeValue(field, actionType)
                 )
-                val (result, _) = engine.evaluateRules(
+                val (result, applications) = engine.evaluateRules(
                     transaction = transaction,
                     smsText = null,
                     rules = listOf(
@@ -71,16 +76,83 @@ class RuleActionExecutabilityTest {
                     )
                 )
 
-                val engineChangedSomething = result != transaction
+                val recordedTagMod = applications.flatMap { it.fieldsModified }.any {
+                    it.field == TransactionField.TAGS && it.actionType == actionType
+                }
+                val engineCarriedOut = result != transaction || recordedTagMod
                 assertEquals(
                     "$field + $actionType: supportedActionTypes says " +
                         "${actionType in supportedActionTypes(field)} but the engine " +
-                        "${if (engineChangedSomething) "did" else "did not"} apply it",
+                        "${if (engineCarriedOut) "did" else "did not"} apply it",
                     actionType in supportedActionTypes(field),
-                    engineChangedSomething
+                    engineCarriedOut
                 )
             }
         }
+    }
+
+    private fun tagRule(vararg actions: RuleAction) = TransactionRule(
+        name = "tags",
+        conditions = listOf(
+            RuleCondition(
+                field = TransactionField.MERCHANT,
+                operator = ConditionOperator.CONTAINS,
+                value = "Zomato"
+            )
+        ),
+        actions = actions.toList()
+    )
+
+    @Test
+    fun `tag actions are recorded but leave the entity untouched`() {
+        val (result, applications) = engine.evaluateRules(
+            transaction, null,
+            listOf(
+                tagRule(
+                    RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, "Swiggy"),
+                    RuleAction(TransactionField.TAGS, ActionType.REMOVE_TAG, "Old")
+                )
+            )
+        )
+
+        assertEquals(transaction, result)
+        assertEquals(
+            listOf(
+                FieldModification(TransactionField.TAGS, null, "Swiggy", ActionType.ADD_TAG),
+                FieldModification(TransactionField.TAGS, null, "Old", ActionType.REMOVE_TAG)
+            ),
+            applications.single().fieldsModified
+        )
+    }
+
+    @Test
+    fun `applyTagActions merges case-insensitively and removes case-insensitively`() {
+        val (_, applications) = engine.evaluateRules(
+            transaction, null,
+            listOf(
+                tagRule(
+                    RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, "Swiggy"),
+                    RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, "food"),
+                    RuleAction(TransactionField.TAGS, ActionType.REMOVE_TAG, "OLD")
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("Food", "Work", "Swiggy"),
+            applications.applyTagActions(listOf("Food", "Old", "Work"))
+        )
+    }
+
+    @Test
+    fun `a rule that does not touch tags leaves the tag list identical`() {
+        val (_, applications) = engine.evaluateRules(
+            transaction, null,
+            listOf(tagRule(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Groceries")))
+        )
+        val existing = listOf("Food")
+
+        assertSame(existing, applications.applyTagActions(existing))
     }
 
     @Test

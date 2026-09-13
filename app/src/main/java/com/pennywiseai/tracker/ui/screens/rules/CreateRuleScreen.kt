@@ -634,6 +634,7 @@ fun CreateRuleScreen(
                                         TransactionField.TRANSACTION_DAY_OF_MONTH -> "day of month"
                                         TransactionField.TRANSACTION_DATE -> "date"
                                         TransactionField.ACCOUNT -> "account"
+                                        TransactionField.TAGS -> "tags"
                                     })
                                     append(" ")
                                     append(when(condition.operator) {
@@ -676,6 +677,9 @@ fun CreateRuleScreen(
                                     if (actionIndex > 0) append(", and ")
                                     if (action.actionType == ActionType.BLOCK) {
                                         append("block transaction")
+                                    } else if (action.field == TransactionField.TAGS) {
+                                        append(if (action.actionType == ActionType.ADD_TAG) "add tag " else "remove tag ")
+                                        append(action.value)
                                     } else {
                                         append(when(action.field) {
                                             TransactionField.CATEGORY -> "set category to "
@@ -1116,11 +1120,12 @@ private fun ActionEditor(
                 expanded = actionTypeDropdownExpanded,
                 onDismissRequest = { actionTypeDropdownExpanded = false }
             ) {
-                listOf(
-                    ActionType.BLOCK to "Block Transaction",
-                    ActionType.SET to "Set Field",
-                    ActionType.CLEAR to "Clear Field"
-                ).forEach { (type, label) ->
+                val fieldTypes = if (action.field == TransactionField.TAGS) {
+                    listOf(ActionType.ADD_TAG to "Add Tag", ActionType.REMOVE_TAG to "Remove Tag")
+                } else {
+                    listOf(ActionType.SET to "Set Field", ActionType.CLEAR to "Clear Field")
+                }
+                (listOf(ActionType.BLOCK to "Block Transaction") + fieldTypes).forEach { (type, label) ->
                     DropdownMenuItem(
                         text = { Text(label) },
                         onClick = {
@@ -1179,6 +1184,7 @@ private fun ActionEditor(
                         TransactionField.TYPE -> "Set Transaction Type"
                         TransactionField.NARRATION -> "Set Description"
                         TransactionField.BANK_NAME -> "Set Account"
+                        TransactionField.TAGS -> "Tags"
                         else -> "Set Field"
                     },
                     onValueChange = { },
@@ -1196,12 +1202,17 @@ private fun ActionEditor(
                         TransactionField.MERCHANT to "Set Merchant Name",
                         TransactionField.TYPE to "Set Transaction Type",
                         TransactionField.NARRATION to "Set Description",
-                        TransactionField.BANK_NAME to "Set Account"
+                        TransactionField.BANK_NAME to "Set Account",
+                        TransactionField.TAGS to "Tags"
                     ).forEach { (field, label) ->
                         DropdownMenuItem(
                             text = { Text(label) },
                             onClick = {
-                                onActionChange(action.copy(field = field, value = ""))
+                                // Keep the action type one the engine can carry out on the
+                                // new field (SET on TAGS, or ADD_TAG on CATEGORY, would be dead).
+                                val types = supportedActionTypes(field)
+                                val actionType = if (action.actionType in types) action.actionType else types.first()
+                                onActionChange(action.copy(field = field, actionType = actionType, value = ""))
                                 actionFieldDropdownExpanded = false
                             }
                         )
@@ -1320,6 +1331,17 @@ private fun ActionEditor(
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text("Account / Bank Name") },
                         placeholder = { Text("e.g., HDFC Bank") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                TransactionField.TAGS -> {
+                    TextField(
+                        value = action.value,
+                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        label = { Text("Tag Name") },
+                        placeholder = { Text("e.g., Swiggy") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )

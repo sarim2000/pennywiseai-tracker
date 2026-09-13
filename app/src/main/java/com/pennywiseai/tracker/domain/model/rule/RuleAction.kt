@@ -16,8 +16,11 @@ import kotlinx.serialization.Serializable
  * engine skips it in `applyActions` and handles it in `shouldBlockTransaction`),
  * so it is valid regardless of field and is checked separately.
  *
- * [ActionType.ADD_TAG] / [ActionType.REMOVE_TAG] are absent because nothing in
- * the app implements them — they exist only as labels in the rule editor.
+ * [ActionType.ADD_TAG] / [ActionType.REMOVE_TAG] are valid only on
+ * [TransactionField.TAGS]. Tags aren't a column on the transaction, so the
+ * engine doesn't change the entity for them — it records a
+ * [FieldModification] and every site that persists a rule-evaluated
+ * transaction applies it through `TagRepository` (see `applyTagActions`).
  */
 fun supportedActionTypes(field: TransactionField): Set<ActionType> = when (field) {
     TransactionField.CATEGORY -> setOf(ActionType.SET, ActionType.CLEAR)
@@ -30,6 +33,7 @@ fun supportedActionTypes(field: TransactionField): Set<ActionType> = when (field
     )
     TransactionField.TYPE -> setOf(ActionType.SET)
     TransactionField.BANK_NAME -> setOf(ActionType.SET, ActionType.CLEAR)
+    TransactionField.TAGS -> setOf(ActionType.ADD_TAG, ActionType.REMOVE_TAG)
     else -> emptySet()
 }
 

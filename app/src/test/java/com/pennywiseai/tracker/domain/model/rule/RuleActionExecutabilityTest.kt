@@ -162,4 +162,26 @@ class RuleActionExecutabilityTest {
             assert(action.isExecutable()) { "$field + BLOCK should be executable" }
         }
     }
+
+    @Test
+    fun `tagChanges lists named adds and removes, later action wins`() {
+        val apps = listOf(
+            RuleApplication(
+                ruleId = "r", ruleName = "r", transactionId = "1",
+                fieldsModified = listOf(
+                    FieldModification(TransactionField.TAGS, null, "Food", ActionType.ADD_TAG),
+                    FieldModification(TransactionField.TAGS, null, " ", ActionType.ADD_TAG),
+                    FieldModification(TransactionField.TAGS, null, "Old", ActionType.REMOVE_TAG),
+                    // A later REMOVE of a name added earlier wins, case-insensitively.
+                    FieldModification(TransactionField.TAGS, null, "food", ActionType.REMOVE_TAG),
+                    FieldModification(TransactionField.CATEGORY, "a", "b", ActionType.SET)
+                )
+            )
+        )
+
+        val (add, remove) = apps.tagChanges()
+
+        assertEquals(emptyList<String>(), add)
+        assertEquals(listOf("Old", "food"), remove)
+    }
 }

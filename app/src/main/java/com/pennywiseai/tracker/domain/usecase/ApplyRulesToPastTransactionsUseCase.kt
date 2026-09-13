@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.model.rule.applyTagActions
+import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -28,11 +29,14 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository
 ) {
-    /** ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748). */
-    private suspend fun persistTagActions(transactionId: Long, applications: List<RuleApplication>) {
-        val existingTags = tagRepository.getTagNamesForTransaction(transactionId)
-        val newTags = applications.applyTagActions(existingTags)
-        if (newTags !== existingTags) tagRepository.setTagsForTransaction(transactionId, newTags)
+    /**
+     * ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748).
+     * @return true when a tag was actually added or removed.
+     */
+    private suspend fun persistTagActions(transactionId: Long, applications: List<RuleApplication>): Boolean {
+        val (add, remove) = applications.tagChanges()
+        if (add.isEmpty() && remove.isEmpty()) return false
+        return tagRepository.applyTagChanges(transactionId, add, remove)
     }
 
     /**
@@ -102,11 +106,14 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                         activeRules
                     )
 
-                    // If transaction was modified, update it
-                    if (ruleApplications.isNotEmpty()) {
-                        transactionRepository.updateTransaction(updatedTransaction)
+                    // A field change is real by construction; a tag action is recorded
+                    // even when it changes nothing, so ask the tag write whether it did.
+                    // Otherwise the completion count disagrees with the preview.
+                    val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
+                    if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
+                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
+                    if (entityChanged || tagsChanged) {
                         ruleRepository.saveRuleApplications(ruleApplications)
-                        persistTagActions(transaction.id, ruleApplications)
                         totalUpdated++
                     }
                 }
@@ -164,11 +171,14 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                         listOf(rule)
                     )
 
-                    // If transaction was modified, update it
-                    if (ruleApplications.isNotEmpty()) {
-                        transactionRepository.updateTransaction(updatedTransaction)
+                    // A field change is real by construction; a tag action is recorded
+                    // even when it changes nothing, so ask the tag write whether it did.
+                    // Otherwise the completion count disagrees with the preview.
+                    val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
+                    if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
+                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
+                    if (entityChanged || tagsChanged) {
                         ruleRepository.saveRuleApplications(ruleApplications)
-                        persistTagActions(transaction.id, ruleApplications)
                         totalUpdated++
                     }
                 }

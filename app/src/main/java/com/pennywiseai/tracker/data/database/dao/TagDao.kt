@@ -35,8 +35,13 @@ interface TagDao {
 
     // ── Cross references ─────────────────────────────────────────────────
 
+    /** @return the new row id, or -1 when the transaction already carried the tag. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertCrossRef(ref: TransactionTagCrossRef)
+    suspend fun insertCrossRef(ref: TransactionTagCrossRef): Long
+
+    /** @return 1 when the pair existed and was removed, 0 when it didn't. */
+    @Query("DELETE FROM transaction_tag_cross_ref WHERE transaction_id = :transactionId AND tag_id = :tagId")
+    suspend fun deleteCrossRef(transactionId: Long, tagId: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCrossRefs(refs: List<TransactionTagCrossRef>)

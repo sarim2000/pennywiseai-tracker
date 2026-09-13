@@ -90,6 +90,37 @@ class TagRepository @Inject constructor(
     }
 
     /**
+     * Adds and removes specific tags on a transaction without touching the rest
+     * of its set.
+     *
+     * This is what a rule uses. Reading the current tags, editing that list and
+     * writing it back would race a manual tag edit made in between — the rule
+     * would then persist its stale snapshot and silently drop the user's change.
+     * Inserting and deleting only the named pairs (IGNORE on an existing pair)
+     * has no such window, and every step joins one database transaction.
+     *
+     * @return true when at least one tag was actually added or removed — false
+     *   for a no-op such as adding a tag already present, so callers don't
+     *   report an update that changed nothing.
+     */
+    suspend fun applyTagChanges(transactionId: Long, add: List<String>, remove: List<String>): Boolean =
+        database.withTransaction {
+            var changed = false
+            for (name in add) {
+                val tagId = getOrCreateTag(name)
+                if (tagId > 0L && tagDao.insertCrossRef(TransactionTagCrossRef(transactionId, tagId)) != -1L) {
+                    changed = true
+                }
+            }
+            for (name in remove) {
+                val tagId = tagDao.getTagByName(name.trim())?.id ?: continue
+                if (tagDao.deleteCrossRef(transactionId, tagId) > 0) changed = true
+            }
+            if (changed) tagDao.deleteOrphanTags()
+            changed
+        }
+
+    /**
      * Replaces the full set of tags on a transaction with [tagNames]
      * (deduplicated, case-insensitively). Creates any missing tags and prunes
      * tags that no longer reference any transaction.

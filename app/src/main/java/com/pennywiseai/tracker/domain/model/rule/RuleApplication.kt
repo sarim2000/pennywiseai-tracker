@@ -43,3 +43,23 @@ fun List<RuleApplication>.applyTagActions(existing: List<String>): List<String> 
     }
     return result
 }
+
+/**
+ * The tag names a run of rules asked to add and to remove, in order. A name in
+ * both lists is resolved by the later action, as [applyTagActions] does.
+ */
+fun List<RuleApplication>.tagChanges(): Pair<List<String>, List<String>> {
+    val add = linkedSetOf<String>()
+    val remove = linkedSetOf<String>()
+    for (mod in flatMap { it.fieldsModified }) {
+        if (mod.field != TransactionField.TAGS) continue
+        val name = mod.newValue?.trim().orEmpty()
+        if (name.isEmpty()) continue
+        when (mod.actionType) {
+            ActionType.ADD_TAG -> { remove.removeAll { it.equals(name, ignoreCase = true) }; add.add(name) }
+            ActionType.REMOVE_TAG -> { add.removeAll { it.equals(name, ignoreCase = true) }; remove.add(name) }
+            else -> {}
+        }
+    }
+    return add.toList() to remove.toList()
+}

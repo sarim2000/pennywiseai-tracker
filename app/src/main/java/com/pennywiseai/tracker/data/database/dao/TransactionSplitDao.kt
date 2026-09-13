@@ -20,6 +20,10 @@ interface TransactionSplitDao {
     @Query("SELECT * FROM transaction_splits WHERE transaction_id IN (:transactionIds)")
     suspend fun getSplitsForTransactions(transactionIds: List<Long>): List<TransactionSplitEntity>
 
+    /** Observed form of [getSplitsForTransactions], so a filter built on split categories re-runs when a split is edited. */
+    @Query("SELECT * FROM transaction_splits WHERE transaction_id IN (:transactionIds)")
+    fun observeSplitsForTransactions(transactionIds: List<Long>): Flow<List<TransactionSplitEntity>>
+
     @Transaction
     @Query("SELECT * FROM transactions WHERE id = :transactionId AND is_deleted = 0")
     fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?>

@@ -740,9 +740,17 @@ class TransactionsViewModel @Inject constructor(
                 }
                 // Get all transactions without category filter applied
                 getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL, cycleRange)
-                    .collect { transactions ->
-                        emit(transactions.map { it.category }.distinct().sorted())
+                    .flatMapLatest { transactions ->
+                        // Include split categories, not just each row's parent: a
+                        // category that exists only inside a split is still one the
+                        // user can filter on, and the auto-clear below must not
+                        // discard it (#749). Observed, so a split edit refreshes the chips.
+                        transactionSplitDao.observeSplitsForTransactions(transactions.map { it.id })
+                            .map { splits ->
+                                (transactions.map { it.category } + splits.map { it.category }).distinct().sorted()
+                            }
                     }
+                    .collect { emit(it) }
             }
             .onEach { categories ->
                 _availableCategories.value = categories
@@ -1241,43 +1249,30 @@ class TransactionsViewModel @Inject constructor(
         cycleRange: Pair<LocalDate, LocalDate>
     ): Flow<List<TransactionEntity>> {
         // Start with the base flow based on category filter
-        val baseFlow = if (category != null) {
-            transactionRepository.getTransactionsByCategory(category)
-        } else {
-            transactionRepository.getAllTransactions()
-        }
+        // A single category (the Analytics tap-through) is just the one-element case
+        // of the budget filter below, and has to share its split handling: a
+        // transaction split into Groceries + Dining keeps its parent category, so
+        // matching on `category` alone found nothing for either — and the
+        // available-categories auto-clear then dropped the filter and showed
+        // everything (#749).
+        val effectiveCategories = categories?.takeIf { it.isNotEmpty() }
+            ?: category?.let { listOf(it) }
+        val baseFlow = transactionRepository.getAllTransactions()
 
-        // Apply multiple categories filter (for budget navigation)
-        // This needs to consider split transactions - a transaction should be included
-        // if its main category OR any of its split categories match the budget's categories
-        val categoriesFilteredFlow = if (categories != null && categories.isNotEmpty()) {
+        // Apply the category filter. A transaction is included if its main category OR
+        // any of its split categories matches.
+        val categoriesFilteredFlow = if (effectiveCategories != null) {
             baseFlow.flatMapLatest { transactions ->
-                flow {
-                    // Get all transaction IDs
-                    val txIds = transactions.map { it.id }
-
-                    // Batch fetch all splits for these transactions (efficient single query)
-                    val allSplits = if (txIds.isNotEmpty()) {
-                        transactionSplitDao.getSplitsForTransactions(txIds)
-                    } else {
-                        emptyList()
-                    }
-
-                    // Group splits by transaction ID for quick lookup
-                    val splitsByTxId = allSplits.groupBy { it.transactionId }
-
-                    // Filter transactions
-                    val filtered = transactions.filter { tx ->
-                        // Check main category first (fast path)
-                        if (tx.category in categories) {
-                            true
-                        } else {
-                            // Check if any split category matches
-                            splitsByTxId[tx.id]?.any { it.category in categories } == true
+                // Observe the splits rather than snapshot them, so editing a split while
+                // this list is open re-evaluates the filter instead of leaving it stale.
+                transactionSplitDao.observeSplitsForTransactions(transactions.map { it.id })
+                    .map { allSplits ->
+                        val splitsByTxId = allSplits.groupBy { it.transactionId }
+                        transactions.filter { tx ->
+                            tx.category in effectiveCategories ||
+                                splitsByTxId[tx.id]?.any { it.category in effectiveCategories } == true
                         }
                     }
-                    emit(filtered)
-                }
             }
         } else {
             baseFlow

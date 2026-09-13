@@ -48,7 +48,9 @@ fun Application.configureRouting() {
             // Awash Bank (Ethiopia) (#718)
             AwashBankParser(),
             // Apollo mobile wallet (Ethiopia) (#719)
-            ApolloParser()
+            ApolloParser(),
+            // El Salvador (#755, #756, #757) — Spanish/USD parsers.
+            BancoCuscatlanParser(), BancoPromericaParser(), BancoAgricolaParser()
         )
     )
 

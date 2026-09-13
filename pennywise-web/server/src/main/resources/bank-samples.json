@@ -121,6 +121,39 @@
       "reference": null,
       "balance": null
     },
+    "Banco Agricola": {
+      "sender": "Transfer365",
+      "message": "B.AGRICOLA-TRANSFER365: ha recibido un Abono a Cuenta de GIVEN NAME SURNAME por USD20.00 desde ANOTHER BANK NAME",
+      "currency": "USD",
+      "amount": "20.00",
+      "type": "INCOME",
+      "merchant": "ANOTHER BANK NAME",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
+    },
+    "Banco Cuscatlan": {
+      "sender": "B.CUSCATLAN",
+      "message": "Alerta de consumo con Tarjeta de Debito con Cuenta B.CUSCATLAN 1234 por USD10.00 en PAYPAL *STEAM GAMES el 2026-07-22 23:03. Mas inf. 22122000",
+      "currency": "USD",
+      "amount": "10.00",
+      "type": "EXPENSE",
+      "merchant": "PAYPAL *STEAM GAMES",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": null
+    },
+    "Banco Promerica": {
+      "sender": "Promerica",
+      "message": "Promerica te informa que tu TTA *1234: ha realizado una compra por USD 2.50 en NAME OF THE STORE AND CITY. Consulta al 25135000",
+      "currency": "USD",
+      "amount": "2.50",
+      "type": "EXPENSE",
+      "merchant": "NAME OF THE STORE AND CITY",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": null
+    },
     "Bandhan Bank": {
       "sender": "BANDHAN",
       "message": "INR 1000.00 debited from A/c XXXXXXXXXX9876 towards UPI/DR/D111222333444/Store XYZ Value 20-NOV-2025 . Clear Bal is INR 15000.00. Bandhan Bank",

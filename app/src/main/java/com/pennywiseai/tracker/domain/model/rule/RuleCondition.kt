@@ -108,6 +108,9 @@ fun supportedOperators(field: TransactionField): List<ConditionOperator> = when 
         ConditionOperator.EQUALS,
         ConditionOperator.NOT_EQUALS
     )
+    // Action-only: the pure engine has no tag value to compare, so a TAGS
+    // condition can never fire and the importer refuses it.
+    TransactionField.TAGS -> emptyList()
     else -> listOf(
         ConditionOperator.CONTAINS,
         ConditionOperator.EQUALS,
@@ -187,7 +190,14 @@ enum class TransactionField {
      * Composite key "BankName||Last4" scoping rules to a specific account.
      * Supports only [ConditionOperator.EQUALS] and [ConditionOperator.NOT_EQUALS].
      */
-    ACCOUNT
+    ACCOUNT,
+    /**
+     * Action-only target for [ActionType.ADD_TAG] / [ActionType.REMOVE_TAG].
+     * Tags live in their own table, not on the transaction row, so the engine
+     * only records the modification and the persisting site applies it via
+     * `TagRepository` (see `applyTagActions`). Never valid as a condition.
+     */
+    TAGS
 }
 
 @Serializable

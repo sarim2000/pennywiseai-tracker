@@ -675,6 +675,12 @@ private fun BatchApplyDialog(
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
+                                                if (diff.tagChanges.isNotEmpty()) {
+                                                    Text(
+                                                        text = "Tags: ${diff.tagChanges.joinToString(", ")}",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
                                             }
                                         }
                                     }

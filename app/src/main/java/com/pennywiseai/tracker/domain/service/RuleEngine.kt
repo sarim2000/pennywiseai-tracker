@@ -198,6 +198,8 @@ class RuleEngine @Inject constructor() {
                 val last4 = transaction.accountNumber?.takeLast(4)
                 if (bank != null && last4 != null) "$bank||$last4" else ""
             }
+            // Tags aren't on the entity; the engine can't see them.
+            TransactionField.TAGS -> ""
         }
     }
 
@@ -219,6 +221,25 @@ class RuleEngine @Inject constructor() {
         for (action in actions) {
             // Skip BLOCK actions as they don't modify the transaction
             if (action.actionType == ActionType.BLOCK) {
+                continue
+            }
+
+            // Tags live in their own table, so the entity can't change here.
+            // Always record the modification; the persisting site applies it
+            // via TagRepository (see applyTagActions).
+            if (action.field == TransactionField.TAGS) {
+                val isTagAction = action.actionType == ActionType.ADD_TAG ||
+                    action.actionType == ActionType.REMOVE_TAG
+                if (isTagAction && action.value.isNotBlank()) {
+                    modifications.add(
+                        FieldModification(
+                            field = TransactionField.TAGS,
+                            oldValue = null,
+                            newValue = action.value.trim(),
+                            actionType = action.actionType
+                        )
+                    )
+                }
                 continue
             }
 

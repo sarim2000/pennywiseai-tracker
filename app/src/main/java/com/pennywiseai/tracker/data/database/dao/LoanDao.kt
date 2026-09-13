@@ -35,7 +35,10 @@ interface LoanDao {
     @Query("SELECT COUNT(*) FROM loans WHERE status = 'ACTIVE'")
     fun getActiveLoanCount(): Flow<Int>
 
-    @Query("SELECT DISTINCT person_name FROM loans ORDER BY updated_at DESC")
+    // Suggestions for "mark as loan", so only people you still have an open loan
+    // with. Settled ones piled up until the list was mostly names you were done
+    // with (#753); a settled person can still be typed in by hand.
+    @Query("SELECT DISTINCT person_name FROM loans WHERE status = 'ACTIVE' ORDER BY updated_at DESC")
     fun getRecentPersonNames(): Flow<List<String>>
 
     @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND status = 'ACTIVE' LIMIT 1")

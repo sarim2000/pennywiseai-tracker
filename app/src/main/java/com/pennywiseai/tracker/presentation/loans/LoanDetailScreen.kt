@@ -216,6 +216,18 @@ fun LoanDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
+                        // The note captured in "mark as loan" had no home until now
+                        // (#754) — it is the only place the user says what the loan
+                        // was for, so it sits with the amount rather than below the
+                        // transaction history.
+                        loan.note?.takeIf { it.isNotBlank() }?.let { note ->
+                            Text(
+                                text = note,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         // Progress bar
                         if (loan.status == LoanStatus.ACTIVE) {
                             LinearProgressIndicator(

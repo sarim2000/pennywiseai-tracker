@@ -741,7 +741,16 @@ class TransactionsViewModel @Inject constructor(
                 // Get all transactions without category filter applied
                 getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL, cycleRange)
                     .collect { transactions ->
-                        emit(transactions.map { it.category }.distinct().sorted())
+                        // Include split categories, not just each row's parent: a
+                        // category that exists only inside a split is still one the
+                        // user can filter on, and the auto-clear below must not
+                        // discard it (#749).
+                        val splitCategories = transactions.map { it.id }
+                            .takeIf { it.isNotEmpty() }
+                            ?.let { transactionSplitDao.getSplitsForTransactions(it) }
+                            ?.map { it.category }
+                            .orEmpty()
+                        emit((transactions.map { it.category } + splitCategories).distinct().sorted())
                     }
             }
             .onEach { categories ->
@@ -1241,16 +1250,19 @@ class TransactionsViewModel @Inject constructor(
         cycleRange: Pair<LocalDate, LocalDate>
     ): Flow<List<TransactionEntity>> {
         // Start with the base flow based on category filter
-        val baseFlow = if (category != null) {
-            transactionRepository.getTransactionsByCategory(category)
-        } else {
-            transactionRepository.getAllTransactions()
-        }
+        // A single category (the Analytics tap-through) is just the one-element case
+        // of the budget filter below, and has to share its split handling: a
+        // transaction split into Groceries + Dining keeps its parent category, so
+        // matching on `category` alone found nothing for either — and the
+        // available-categories auto-clear then dropped the filter and showed
+        // everything (#749).
+        val effectiveCategories = categories?.takeIf { it.isNotEmpty() }
+            ?: category?.let { listOf(it) }
+        val baseFlow = transactionRepository.getAllTransactions()
 
-        // Apply multiple categories filter (for budget navigation)
-        // This needs to consider split transactions - a transaction should be included
-        // if its main category OR any of its split categories match the budget's categories
-        val categoriesFilteredFlow = if (categories != null && categories.isNotEmpty()) {
+        // Apply the category filter. A transaction is included if its main category OR
+        // any of its split categories matches.
+        val categoriesFilteredFlow = if (effectiveCategories != null) {
             baseFlow.flatMapLatest { transactions ->
                 flow {
                     // Get all transaction IDs
@@ -1269,11 +1281,11 @@ class TransactionsViewModel @Inject constructor(
                     // Filter transactions
                     val filtered = transactions.filter { tx ->
                         // Check main category first (fast path)
-                        if (tx.category in categories) {
+                        if (tx.category in effectiveCategories) {
                             true
                         } else {
                             // Check if any split category matches
-                            splitsByTxId[tx.id]?.any { it.category in categories } == true
+                            splitsByTxId[tx.id]?.any { it.category in effectiveCategories } == true
                         }
                     }
                     emit(filtered)

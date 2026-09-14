@@ -121,8 +121,23 @@ class HomeViewModel @Inject constructor(
         userPreferencesRepository.homeSectionLayout
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeSectionLayout.DEFAULT)
 
-    fun updateHomeSectionLayout(layout: List<Pair<HomeSection, Boolean>>) {
-        viewModelScope.launch { userPreferencesRepository.updateHomeSectionLayout(layout) }
+    fun moveHomeSection(section: HomeSection, delta: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { layout ->
+                val from = layout.indexOfFirst { it.first == section }
+                val to = from + delta
+                if (from < 0 || to !in layout.indices) layout
+                else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
+            }
+        }
+    }
+
+    fun setHomeSectionVisible(section: HomeSection, visible: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { layout ->
+                layout.map { if (it.first == section) section to visible else it }
+            }
+        }
     }
 
     /**

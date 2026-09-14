@@ -867,9 +867,13 @@ open class UserPreferencesRepository @Inject constructor(
     val homeSectionLayout: Flow<List<Pair<HomeSection, Boolean>>> = context.dataStore.data
         .map { preferences -> HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS]) }
 
-    suspend fun updateHomeSectionLayout(layout: List<Pair<HomeSection, Boolean>>) {
+    /** Read-modify-write inside one `edit` so rapid taps can't clobber each other. */
+    suspend fun updateHomeSectionLayout(
+        transform: (List<Pair<HomeSection, Boolean>>) -> List<Pair<HomeSection, Boolean>>
+    ) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HOME_SECTIONS] = HomeSectionLayout.encode(layout)
+            val current = HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS])
+            preferences[PreferencesKeys.HOME_SECTIONS] = HomeSectionLayout.encode(transform(current))
         }
     }
 

@@ -21,6 +21,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -50,6 +52,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -154,7 +157,7 @@ fun HomeScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
-    val homeSectionLayout by viewModel.homeSectionLayout.collectAsState()
+    val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
@@ -1128,6 +1131,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
@@ -1247,6 +1251,7 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
@@ -1280,27 +1285,15 @@ fun HomeScreen(
                         )
                         IconButton(
                             enabled = i > 0,
-                            onClick = {
-                                viewModel.updateHomeSectionLayout(
-                                    homeSectionLayout.toMutableList().also { java.util.Collections.swap(it, i, i - 1) }
-                                )
-                            }
+                            onClick = { viewModel.moveHomeSection(section, -1) }
                         ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move ${section.label} up") }
                         IconButton(
                             enabled = i < homeSectionLayout.lastIndex,
-                            onClick = {
-                                viewModel.updateHomeSectionLayout(
-                                    homeSectionLayout.toMutableList().also { java.util.Collections.swap(it, i, i + 1) }
-                                )
-                            }
+                            onClick = { viewModel.moveHomeSection(section, +1) }
                         ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move ${section.label} down") }
                         Switch(
                             checked = isVisible,
-                            onCheckedChange = { on ->
-                                viewModel.updateHomeSectionLayout(
-                                    homeSectionLayout.toMutableList().also { it[i] = section to on }
-                                )
-                            }
+                            onCheckedChange = { on -> viewModel.setHomeSectionVisible(section, on) }
                         )
                     }
                 }

@@ -163,7 +163,7 @@ class TransactionsViewModel @Inject constructor(
     val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
     // Available currencies for the selected time period
-    val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange) { period, customRange ->
+    val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange, budgetCycleStartDay) { period, customRange, _ ->
         period to customRange
     }.flatMapLatest { (period, customRange) ->
         if (period == TimePeriod.ALL) {
@@ -727,6 +727,7 @@ class TransactionsViewModel @Inject constructor(
         // This drives the category chips row in the UI
         merge(
             selectedPeriod.map { "period" },
+            budgetCycleStartDay.map { "cycle" },
             categoriesFilter.map { "categories" },
             customDateRange.map { "customDate" }
         )
@@ -770,6 +771,7 @@ class TransactionsViewModel @Inject constructor(
         merge(
             searchQuery.debounce(300).map { "search" },
             selectedPeriod.map { "period" },
+            budgetCycleStartDay.map { "cycle" },
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
             transactionTypeFilter.map { "typeFilter" },

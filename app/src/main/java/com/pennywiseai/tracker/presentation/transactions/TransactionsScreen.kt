@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -123,7 +124,7 @@ fun TransactionsScreen(
     val sortOption by viewModel.sortOption.collectAsState()
     val availableCategories by viewModel.availableCategories.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
-    val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsState()
+    val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
     val convertedAmounts by viewModel.convertedAmounts.collectAsState()
     val selectedProfileId by viewModel.selectedProfileId.collectAsState()

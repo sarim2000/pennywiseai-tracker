@@ -23,6 +23,11 @@ data class CategoryEntity(
     
     @ColumnInfo(name = "color")
     val color: String,
+
+    // Optional emoji shown in place of the built-in icon (#760). Null = default
+    // icon. Nullable + defaulted so old backups restore (#414).
+    @ColumnInfo(name = "icon")
+    val icon: String? = null,
     
     @ColumnInfo(name = "is_system")
     val isSystem: Boolean = false,

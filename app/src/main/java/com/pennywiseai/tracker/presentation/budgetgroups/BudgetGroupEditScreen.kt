@@ -440,7 +440,7 @@ fun BudgetGroupEditScreen(
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .clip(CircleShape)
-                                                        .background(catInfo.color.copy(alpha = 0.15f)),
+                                                        .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     CategoryIcon(category = categoryName, size = 18.dp)
@@ -469,7 +469,7 @@ fun BudgetGroupEditScreen(
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .clip(CircleShape)
-                                                        .background(catInfo.color.copy(alpha = 0.15f)),
+                                                        .background(CategoryMapping.colorFor(option.displayName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     CategoryIcon(category = option.displayName, size = 18.dp)
@@ -756,7 +756,7 @@ private fun CategoryBudgetRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(categoryInfo.color.copy(alpha = 0.15f)),
+                .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             CategoryIcon(category = categoryName, size = 22.dp)

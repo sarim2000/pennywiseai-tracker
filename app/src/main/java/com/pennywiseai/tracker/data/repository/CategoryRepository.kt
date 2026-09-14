@@ -63,11 +63,13 @@ class CategoryRepository @Inject constructor(
     suspend fun createCategory(
         name: String,
         color: String,
-        isIncome: Boolean = false
+        isIncome: Boolean = false,
+        icon: String? = null
     ): Long {
         val category = CategoryEntity(
             name = name,
             color = color,
+            icon = icon,
             isSystem = false,
             isIncome = isIncome,
             displayOrder = 999

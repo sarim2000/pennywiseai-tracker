@@ -29,11 +29,18 @@ fun CategoryChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        // Colored dot indicator
-        CategoryDot(
-            color = category.color,
-            modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
-        )
+        // Emoji if the user picked one (#760), else the colored dot
+        val emoji = category.icon?.takeIf { it.isNotBlank() }
+        if (emoji != null) {
+            Box(modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)) {
+                EmojiGlyph(emoji, 16.dp)
+            }
+        } else {
+            CategoryDot(
+                color = category.color,
+                modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
+            )
+        }
 
         // Category name
         if (showText) {

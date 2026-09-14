@@ -172,7 +172,7 @@ fun AnalyticsSummaryCard(
                         Row(
                             modifier = Modifier
                                 .background(
-                                    color = categoryInfo.color.copy(alpha = 0.15f),
+                                    color = CategoryMapping.colorFor(topCategory).copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -182,7 +182,7 @@ fun AnalyticsSummaryCard(
                             CategoryIcon(
                                 category = topCategory,
                                 size = 16.dp,
-                                tint = categoryInfo.color
+                                tint = CategoryMapping.colorFor(topCategory)
                             )
                             Text(
                                 text = topCategory,

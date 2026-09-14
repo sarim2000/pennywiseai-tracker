@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
+import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -34,13 +35,14 @@ fun CategoryEditDialog(
     defaultIsIncome: Boolean = false,
     lockType: Boolean = false,
     onDismiss: () -> Unit,
-    onSave: (name: String, color: String, isIncome: Boolean) -> Unit,
+    onSave: (name: String, color: String, isIncome: Boolean, icon: String?) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     var name by remember { mutableStateOf(category?.name ?: "") }
     var isIncome by remember { mutableStateOf(category?.isIncome ?: defaultIsIncome) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
+    var emoji by remember { mutableStateOf(category?.icon ?: "") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -77,14 +79,14 @@ fun CategoryEditDialog(
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
 
@@ -119,6 +121,32 @@ fun CategoryEditDialog(
                     }
                 }
 
+                // Icon: one emoji from the keyboard's own picker (#760). Empty = default icon.
+                TextField(
+                    value = emoji,
+                    onValueChange = { emoji = lastEmoji(it) ?: emoji },
+                    label = { Text("Icon (emoji, optional)", fontWeight = FontWeight.SemiBold) },
+                    placeholder = { Text("Tap to pick an emoji") },
+                    singleLine = true,
+                    trailingIcon = if (emoji.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { emoji = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear icon")
+                            }
+                        }
+                    } else null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+
                 // Color Selection
                 Column {
                     Text(
@@ -149,7 +177,7 @@ fun CategoryEditDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
-                        // Show selected color
+                        // Show selected color (+ emoji if set)
                         Box(
                             modifier = Modifier
                                 .size(Dimensions.Icon.medium)
@@ -157,8 +185,11 @@ fun CategoryEditDialog(
                                 .background(
                                     try { Color(android.graphics.Color.parseColor(selectedColor)) }
                                     catch (e: Exception) { MaterialTheme.colorScheme.primary }
-                                )
-                        )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (emoji.isNotEmpty()) EmojiGlyph(emoji, Dimensions.Icon.small)
+                        }
                         Text(
                             text = name.ifBlank { "Category Name" },
                             style = MaterialTheme.typography.bodyLarge
@@ -180,7 +211,7 @@ fun CategoryEditDialog(
                     Button(
                         onClick = {
                             if (name.isNotBlank()) {
-                                onSave(name.trim(), selectedColor, isIncome)
+                                onSave(name.trim(), selectedColor, isIncome, emoji.ifBlank { null })
                             } else {
                                 nameError = "Category name is required"
                             }
@@ -241,4 +272,20 @@ fun CategoryEditDialog(
             }
         )
     }
+}
+
+/**
+ * The last user-perceived character of [text], or null if it isn't an emoji.
+ * A multi-codepoint emoji survives; a second one replaces it; plain letters
+ * and punctuation are rejected so the field can't save "c" as an icon.
+ */
+private fun lastEmoji(text: String): String? {
+    if (text.isEmpty()) return ""
+    val it = java.text.BreakIterator.getCharacterInstance()
+    it.setText(text)
+    val end = it.last()
+    val start = it.previous()
+    val grapheme = if (start < 0) text else text.substring(start, end)
+    // ponytail: "anything in the symbol/emoji planes" — no full emoji table.
+    return grapheme.takeIf { g -> g.codePoints().anyMatch { cp -> cp >= 0x2600 } }
 }

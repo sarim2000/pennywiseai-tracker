@@ -16,7 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.icons.BrandIcons
@@ -41,7 +43,11 @@ fun BrandIcon(
     val backgroundColor = if (category.isValidCategoryOverride()
         && iconResource !is IconResource.DrawableResource
     ) {
-        (iconResource as IconResource.VectorIcon).tint
+        when (iconResource) {
+            is IconResource.VectorIcon -> iconResource.tint
+            is IconResource.Emoji -> iconResource.tint
+            is IconResource.DrawableResource -> MaterialTheme.colorScheme.surfaceVariant
+        }
     } else {
         val brandColor = BrandIcons.getBrandColor(merchantName)
         brandColor?.let { Color(it.toColorInt()) }
@@ -81,6 +87,7 @@ fun BrandIcon(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+            is IconResource.Emoji -> EmojiGlyph(iconResource.emoji, size * 0.5f)
         }
     }
 }
@@ -125,14 +132,34 @@ fun CategoryIcon(
     size: Dp = 24.dp,
     tint: Color? = null
 ) {
+    CategoryMapping.emojiFor(category)?.let { emoji ->
+        Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+            EmojiGlyph(emoji, size * 0.8f)
+        }
+        return
+    }
     val categoryInfo = CategoryMapping.categories[category]
         ?: CategoryMapping.categories["Others"]!!
-    
+
     Icon(
         imageVector = categoryInfo.icon,
         contentDescription = category,
-        tint = tint ?: categoryInfo.color,
+        tint = tint ?: CategoryMapping.colorFor(category),
         modifier = modifier.size(size)
+    )
+}
+
+/** An emoji drawn at a font size that fills [box] like a glyph would (#760). */
+@Composable
+fun EmojiGlyph(emoji: String, box: Dp) {
+    val fontSize = with(LocalDensity.current) { box.toSp() }
+    Text(
+        text = emoji,
+        fontSize = fontSize,
+        lineHeight = fontSize,
+        maxLines = 1,
+        softWrap = false,
+        textAlign = TextAlign.Center
     )
 }
 

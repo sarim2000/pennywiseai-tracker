@@ -64,7 +64,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 60
+const val SCHEMA_VERSION = 61
 
 /**
  * The PennyWise Room database.
@@ -671,6 +671,13 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        // #760: optional emoji per category.
+        val MIGRATION_60_61 = object : Migration(60, 61) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `icon` TEXT")
+            }
+        }
+
         /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
@@ -701,6 +708,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_57_58,
             MIGRATION_58_59,
             MIGRATION_59_60,
+            MIGRATION_60_61,
         )
     }
     

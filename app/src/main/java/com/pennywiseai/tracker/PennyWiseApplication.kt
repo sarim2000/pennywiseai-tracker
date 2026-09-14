@@ -7,6 +7,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
+
+    @Inject
+    lateinit var categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository
 
     @Inject
     lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
@@ -88,6 +92,16 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             userPreferencesRepository.numberFormatStyle.collectLatest { style ->
                 CurrencyFormatter.numberFormatStyle = style
+            }
+        }
+
+        // Mirror user category styles (color + emoji, #760) into CategoryMapping so
+        // icon call sites outside ViewModels can render custom categories.
+        applicationScope.launch {
+            categoryRepository.getAllCategories().collectLatest { categories ->
+                val styles = categories.associate { it.name to CategoryMapping.UserStyle(it.color, it.icon) }
+                CategoryMapping.userStyles.keys.retainAll(styles.keys)
+                CategoryMapping.userStyles.putAll(styles)
             }
         }
     }

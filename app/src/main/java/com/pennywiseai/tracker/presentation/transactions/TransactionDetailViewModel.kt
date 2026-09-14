@@ -916,9 +916,15 @@ class TransactionDetailViewModel @Inject constructor(
                     )
                 }
 
-                // #752: persist the tags for future transactions from this merchant
+                // #752: persist the tags for future transactions from this merchant.
+                // The transaction is already saved at this point, so a rule failure
+                // is reported on its own rather than failing the whole save.
                 if (_applyTagsToAllFromMerchant.value) {
-                    upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
+                    try {
+                        upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
+                    } catch (e: Exception) {
+                        _errorMessage.value = "Saved, but couldn't create the tag rule: ${e.message}"
+                    }
                 }
 
                 // Update existing transactions if checkbox is checked

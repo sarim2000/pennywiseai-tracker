@@ -21,23 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
-private fun isLightColor(color: Color): Boolean {
-    val luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue)
-    return luminance > 0.5
-}
-
-// Preset colors for categories
-private val presetColors = listOf(
-    "#E53935", "#D81B60", "#8E24AA", "#5E35B1",
-    "#3949AB", "#1E88E5", "#039BE5", "#00ACC1",
-    "#00897B", "#43A047", "#7CB342", "#C0CA33",
-    "#FDD835", "#FFB300", "#FB8C00", "#F4511E",
-    "#6D4C41", "#757575", "#546E7A", "#1565C0"
-)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -140,41 +128,7 @@ fun CategoryEditDialog(
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        presetColors.forEach { colorHex ->
-                            val color = try {
-                                Color(android.graphics.Color.parseColor(colorHex))
-                            } catch (e: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            }
-                            val isSelected = selectedColor == colorHex
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                        } else Modifier
-                                    )
-                                    .clickable { selectedColor = colorHex },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isSelected) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    ColorSwatchRow(selected = selectedColor, onSelect = { selectedColor = it })
                 }
 
                 // Preview

@@ -43,6 +43,7 @@ data class TypeBucketOption(
 data class BudgetGroupEditUiState(
     val groupId: Long? = null,
     val name: String = "",
+    val color: String = "#1565C0",
     val overallAmount: String = "",
     val categories: List<CategoryBudgetItem> = emptyList(),
     val availableCategories: List<String> = emptyList(),
@@ -155,6 +156,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                     _uiState.value = BudgetGroupEditUiState(
                         groupId = groupId,
                         name = b.name,
+                        color = b.color,
                         overallAmount = if (b.limitAmount.compareTo(BigDecimal.ZERO) == 0) "" else b.limitAmount.toPlainString(),
                         categories = assignedCategories,
                         categorySpending = categorySpending,
@@ -241,6 +243,10 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     fun updateName(name: String) {
         _uiState.value = _uiState.value.copy(name = name)
+    }
+
+    fun updateColor(color: String) {
+        _uiState.value = _uiState.value.copy(color = color)
     }
 
     fun updateOverallAmount(amount: String) {
@@ -375,14 +381,12 @@ class BudgetGroupEditViewModel @Inject constructor(
             val buckets = state.categories.map {
                 BudgetBucketInput(name = it.categoryName, amount = it.amount, matchType = it.matchType)
             }
-            val defaultColor = "#1565C0"
-
             if (state.groupId != null && state.groupId > 0) {
                 budgetGroupRepository.updateGroup(
                     budgetId = state.groupId,
                     name = state.name,
                     groupType = BudgetGroupType.LIMIT,
-                    color = defaultColor,
+                    color = state.color,
                     buckets = buckets,
                     currency = state.currency,
                     limitAmount = overallAmount,
@@ -396,7 +400,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                 budgetGroupRepository.createGroup(
                     name = state.name,
                     groupType = BudgetGroupType.LIMIT,
-                    color = defaultColor,
+                    color = state.color,
                     buckets = buckets,
                     currency = state.currency,
                     limitAmount = overallAmount,

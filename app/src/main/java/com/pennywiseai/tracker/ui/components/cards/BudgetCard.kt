@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -79,6 +82,7 @@ fun BudgetCard(
                 modifier = Modifier.weight(1f)
             ) {
                 CadencePill(periodType = groupSpending.periodType)
+                BudgetColorDot(hex = groupSpending.group.budget.color)
                 Text(
                     text = groupSpending.group.budget.name,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -245,5 +249,16 @@ fun CadencePill(periodType: BudgetPeriodType) {
         modifier = Modifier
             .background(color = bg, shape = RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 2.dp)
+    )
+}
+
+/** The budget's own color (#763), sized to sit inline with its name. */
+@Composable
+fun BudgetColorDot(hex: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(10.dp)
+            .clip(CircleShape)
+            .background(hex.toColorOr(MaterialTheme.colorScheme.primary))
     )
 }

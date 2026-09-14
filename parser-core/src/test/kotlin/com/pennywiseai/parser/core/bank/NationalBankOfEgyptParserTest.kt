@@ -4,9 +4,8 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
+import com.pennywiseai.parser.core.test.SimpleTestCase
 import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -92,11 +91,27 @@ class NationalBankOfEgyptParserTest {
         return ParserTestUtils.runTestSuite(parser, cases, handleCases, "NBE Parser")
     }
 
-    @Test
-    fun `NBE sender routes through the factory`() {
-        assertTrue(
-            BankParserFactory.getParser("BanK-AlAhly") is NationalBankOfEgyptParser,
-            "BanK-AlAhly should route to NationalBankOfEgyptParser via the factory"
+    @TestFactory
+    fun `factory resolves NBE sender`(): List<DynamicTest> {
+        val cases = listOf(
+            SimpleTestCase(
+                bankName = "National Bank of Egypt",
+                sender = "BanK-AlAhly",
+                currency = "EGP",
+                message = "تم خصم 100.50 جم من بطاقة الائتمان رقم 1111 عند KASHIERFast يوم 09-10 الساعة 10:11 المتاح 9000.00 جم",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100.50"),
+                    currency = "EGP",
+                    type = TransactionType.EXPENSE,
+                    merchant = "KASHIERFast",
+                    accountLast4 = "1111",
+                    creditLimit = BigDecimal("9000.00"),
+                    isFromCard = true
+                ),
+                shouldHandle = true
+            )
         )
+
+        return ParserTestUtils.runFactoryTestSuite(cases, "NBE factory tests")
     }
 }

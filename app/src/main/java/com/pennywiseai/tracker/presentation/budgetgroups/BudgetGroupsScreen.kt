@@ -45,7 +45,8 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.BudgetColorDot
+import com.pennywiseai.tracker.ui.components.cards.tintedSurface
+import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
@@ -443,15 +444,20 @@ private fun BudgetCard(
         animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
     }
 
+    val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {
         pctUsed >= 90f -> MaterialTheme.colorScheme.error
         pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
+    // The bar wears the budget's own color while it's healthy; the pill and
+    // hero text stay semantic so a red budget at 36% doesn't read as danger.
+    val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
     PennyWiseCardV2(
         onClick = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        containerColor = budgetColor.tintedSurface()
     ) {
         Column(
             modifier = Modifier
@@ -466,10 +472,9 @@ private fun BudgetCard(
             // Row 1: Budget name + percentage pill + action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BudgetColorDot(hex = budget.color)
                 Text(
                     text = budget.name,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -584,14 +589,14 @@ private fun BudgetCard(
                         .fillMaxWidth()
                         .height(Dimensions.Component.progressBarHeight)
                         .clip(barShape)
-                        .background(statusColor.copy(alpha = 0.15f))
+                        .background(barColor.copy(alpha = 0.15f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction = animatedProgressState)
                             .fillMaxHeight()
                             .clip(barShape)
-                            .background(statusColor)
+                            .background(barColor)
                     )
                 }
 

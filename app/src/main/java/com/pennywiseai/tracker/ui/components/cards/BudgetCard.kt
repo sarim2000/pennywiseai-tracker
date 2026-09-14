@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,15 +59,20 @@ fun BudgetCard(
         animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
     }
 
+    val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {
         pctUsed >= 90f -> MaterialTheme.colorScheme.error
         pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
+    // The bar wears the budget's own color while it's healthy; the pill and
+    // hero text stay semantic so a red budget at 36% doesn't read as danger.
+    val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
     PennyWiseCardV2(
         modifier = modifier,
-        onClick = onClick
+        onClick = onClick,
+        containerColor = budgetColor.tintedSurface()
     ) {
         // Row 1: Cadence pill + budget name + percentage pill
         Row(
@@ -82,7 +86,6 @@ fun BudgetCard(
                 modifier = Modifier.weight(1f)
             ) {
                 CadencePill(periodType = groupSpending.periodType)
-                BudgetColorDot(hex = groupSpending.group.budget.color)
                 Text(
                     text = groupSpending.group.budget.name,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -127,7 +130,7 @@ fun BudgetCard(
                         .fillMaxWidth(fraction = animatedProgressState)
                         .fillMaxHeight()
                         .clip(barShape)
-                        .background(statusColor)
+                        .background(barColor)
                 )
             }
         }
@@ -252,13 +255,7 @@ fun CadencePill(periodType: BudgetPeriodType) {
     )
 }
 
-/** The budget's own color (#763), sized to sit inline with its name. */
+/** A whisper of the budget's color over the card surface (#763). */
 @Composable
-fun BudgetColorDot(hex: String, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(Dimensions.Component.legendDot)
-            .clip(CircleShape)
-            .background(hex.toColorOr(MaterialTheme.colorScheme.primary))
-    )
-}
+fun Color.tintedSurface(): Color =
+    copy(alpha = 0.10f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow)

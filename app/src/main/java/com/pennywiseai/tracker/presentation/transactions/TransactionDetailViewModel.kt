@@ -22,6 +22,12 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
+import com.pennywiseai.tracker.domain.model.rule.RuleAction
+import com.pennywiseai.tracker.domain.model.rule.RuleCondition
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -53,6 +59,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val receiptManager: ReceiptManager,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -102,6 +109,11 @@ class TransactionDetailViewModel @Inject constructor(
     
     private val _applyToAllFromMerchant = MutableStateFlow(false)
     val applyToAllFromMerchant: StateFlow<Boolean> = _applyToAllFromMerchant.asStateFlow()
+
+    // #752: "apply these tags to future transactions from this merchant" — saved
+    // as a rule (MERCHANT = name → ADD_TAG …) so the SMS paths handle it.
+    private val _applyTagsToAllFromMerchant = MutableStateFlow(false)
+    val applyTagsToAllFromMerchant: StateFlow<Boolean> = _applyTagsToAllFromMerchant.asStateFlow()
     
     private val _updateExistingTransactions = MutableStateFlow(false)
     val updateExistingTransactions: StateFlow<Boolean> = _updateExistingTransactions.asStateFlow()
@@ -405,6 +417,7 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTags.value = emptyList()
         _errorMessage.value = null
         _applyToAllFromMerchant.value = false
+        _applyTagsToAllFromMerchant.value = false
         _updateExistingTransactions.value = false
         _existingTransactionCount.value = 0
         _merchantAlias.value = ""
@@ -419,6 +432,46 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun toggleApplyToAllFromMerchant() {
         _applyToAllFromMerchant.value = !_applyToAllFromMerchant.value
+    }
+
+    fun toggleApplyTagsToAllFromMerchant() {
+        _applyTagsToAllFromMerchant.value = !_applyTagsToAllFromMerchant.value
+    }
+
+    /**
+     * Ensures a rule tagging future transactions from [merchantName]. The rule
+     * has a stable id derived from the merchant (not its editable name), so a
+     * user's own rule can't be clobbered; an existing rule only gains the
+     * missing ADD_TAG actions — its conditions, other actions and active flag
+     * are left as the user set them.
+     */
+    private suspend fun upsertMerchantTagRule(merchantName: String, tags: List<String>) {
+        if (tags.isEmpty()) return
+        val ruleId = "merchant-tags:" + merchantName.trim().lowercase()
+        val existing = ruleRepository.getRuleById(ruleId)
+        if (existing == null) {
+            ruleRepository.insertRule(
+                TransactionRule(
+                    id = ruleId,
+                    name = "Tags for $merchantName",
+                    description = "Created from a transaction: tag everything from $merchantName",
+                    conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.EQUALS, merchantName)),
+                    actions = tags.map { RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, it) }
+                )
+            )
+            return
+        }
+        val already = existing.actions
+            .filter { it.field == TransactionField.TAGS && it.actionType == ActionType.ADD_TAG }
+            .map { it.value.lowercase() }
+            .toSet()
+        val missing = tags.filter { it.lowercase() !in already }
+            .map { RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, it) }
+        if (missing.isNotEmpty()) {
+            ruleRepository.updateRule(
+                existing.copy(actions = existing.actions + missing, updatedAt = System.currentTimeMillis())
+            )
+        }
     }
 
     fun updateMerchantAlias(alias: String) {
@@ -863,6 +916,18 @@ class TransactionDetailViewModel @Inject constructor(
                     )
                 }
 
+                // #752: persist the tags for future transactions from this merchant.
+                // The transaction is already saved at this point, so a rule failure
+                // is reported on its own rather than failing the whole save.
+                var ruleError: String? = null
+                if (_applyTagsToAllFromMerchant.value) {
+                    try {
+                        upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
+                    } catch (e: Exception) {
+                        ruleError = "Saved, but couldn't create the tag rule: ${e.message}"
+                    }
+                }
+
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
                     transactionRepository.updateCategoryForMerchant(
@@ -904,8 +969,10 @@ class TransactionDetailViewModel @Inject constructor(
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 _isEditMode.value = false
                 _editableTransaction.value = null
-                _errorMessage.value = null
+                // Surfaces the partial failure (#752) instead of a clean "updated".
+                _errorMessage.value = ruleError
                 _applyToAllFromMerchant.value = false
+                _applyTagsToAllFromMerchant.value = false
                 _updateExistingTransactions.value = false
                 _existingTransactionCount.value = 0
                 _merchantAlias.value = trimmedAlias

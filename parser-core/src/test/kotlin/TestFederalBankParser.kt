@@ -467,14 +467,29 @@ class FederalBankParserTest {
         assertNull(paymentDueResult?.umn, "Payment due notifications don't have UMN")
     }
 
-    @Test
-    fun `FEDSMS senders route to Federal Bank through the factory`() {
-        listOf("AX-FEDSMS-S", "AD-FEDSMS-S").forEach { sender ->
-            Assertions.assertTrue(
-                com.pennywiseai.parser.core.bank.BankParserFactory.getParser(sender) is FederalBankParser,
-                "$sender should route to FederalBankParser via the factory"
+    @TestFactory
+    fun `factory resolves FEDSMS senders`(): List<DynamicTest> {
+        val message =
+            "Dear Customer, Rs.123 credited to your A/c XX1234 on 01JAN2026 12:00:00. BAL-Rs.1234.56-Federal Bank"
+        val cases = listOf("AX-FEDSMS-S", "AD-FEDSMS-S").map { sender ->
+            com.pennywiseai.parser.core.test.SimpleTestCase(
+                bankName = "Federal Bank",
+                sender = sender,
+                currency = "INR",
+                message = message,
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("123"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("1234.56"),
+                    isFromCard = false
+                ),
+                shouldHandle = true
             )
         }
+
+        return ParserTestUtils.runFactoryTestSuite(cases, "Federal Bank factory tests")
     }
 
     @Test

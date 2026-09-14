@@ -32,12 +32,25 @@ class DetectBalanceDiscrepancyUseCase @Inject constructor(
         val previous = history.firstOrNull { it.id != own?.id && it.timestamp < at } ?: return null
         if (previous.isCreditCard || previous.currency != tx.currency) return null
 
+        // A transfer row only records the FROM bank, so an incoming leg can't be
+        // tied to a bank. If another bank has an account with the same last four,
+        // a TO-leg match would be a guess — leave those transfers out and, since
+        // that could itself fake a gap, don't report at all for that account.
+        val sameLast4Elsewhere = accountBalanceRepository.getAllLatestBalancesOnce()
+            .any { it.accountLast4 == last4 && it.bankName != bank }
         // Same account, same currency (never sum across currencies), strictly after
-        // the snapshot and up to the reporting transaction. Transfers are matched by
-        // leg, so they're picked up by account number rather than bank name.
-        val effects = transactionRepository.getTransactionsBetweenDates(previous.timestamp, at).first()
+        // the snapshot and up to the reporting transaction.
+        val window = transactionRepository.getTransactionsBetweenDates(previous.timestamp, at).first()
             .filter { it.currency == tx.currency && it.dateTime > previous.timestamp && it.dateTime <= at }
-            .filter { (it.bankName == bank && it.accountNumber == last4) || it.fromAccount == last4 || it.toAccount == last4 }
+        val transfersIn = window.filter { it.transactionType == TransactionType.TRANSFER && it.toAccount == last4 && it.fromAccount != last4 }
+        if (sameLast4Elsewhere && transfersIn.isNotEmpty()) return null
+        val effects = window
+            .filter {
+                (it.bankName == bank && it.accountNumber == last4) ||
+                    (it.transactionType == TransactionType.TRANSFER && it.bankName == bank && it.fromAccount == last4) ||
+                    it in transfersIn
+            }
+            .distinct()
             .map { BalanceDiscrepancy.effectOn(it, last4) }
         return BalanceDiscrepancy.compute(previous.balance, effects, reported, tx.currency, since = previous.timestamp)
     }

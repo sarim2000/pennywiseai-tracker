@@ -35,6 +35,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -149,6 +152,7 @@ fun HomeScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
+    val homeSectionLayout by viewModel.homeSectionLayout.collectAsState()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
@@ -161,6 +165,7 @@ fun HomeScreen(
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
+    var showEditWidgetsSheet by remember { mutableStateOf(false) }
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
@@ -525,407 +530,424 @@ fun HomeScreen(
                 }
             }
 
-            // 2. Budget Carousel (50ms delay)
-            uiState.budgetSummary?.let { summary ->
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(50); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                        ) {
-                            SectionHeaderV2(
-                                title = "Budgets",
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                action = {
-                                    TextButton(onClick = onNavigateToBudgets) {
-                                        Text("View All")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
+            // 2–6. User-orderable sections (#770). Hidden ones are absent from the
+            // list entirely; the entrance stagger follows the *displayed* position so
+            // it survives reordering. Each branch keeps its own data guard.
+            val visibleSections = homeSectionLayout.filter { it.second }.map { it.first }
+            for ((index, section) in visibleSections.withIndex()) {
+                val delayMs = 50L * (index + 1)
+                when (section) {
+                    HomeSection.BUDGETS -> {
+                        // 2. Budget Carousel
+                        uiState.budgetSummary?.let { summary ->
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = "Budgets",
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToBudgets) {
+                                                    Text("View All")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
+                                        )
+                                        BudgetCarousel(
+                                            summary = summary,
+                                            onClick = onNavigateToBudgets,
+                                            onCreateBudget = onNavigateToBudgets,
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                         )
                                     }
                                 }
-                            )
-                            BudgetCarousel(
-                                summary = summary,
-                                onClick = onNavigateToBudgets,
-                                onCreateBudget = onNavigateToBudgets,
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 2.5. Loans Summary (75ms delay) — only when active loans exist
-            uiState.loanSummary?.let { summary ->
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(75); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                        ) {
-                            SectionHeaderV2(
-                                title = "Loans",
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                action = {
-                                    TextButton(onClick = onNavigateToLoans) {
-                                        Text("View All")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                    }
-                                }
-                            )
-                            Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                ActiveLoansSummaryCard(
-                                    loans = summary.activeLoans,
-                                    totalLentRemaining = summary.totalLentRemaining,
-                                    totalBorrowedRemaining = summary.totalBorrowedRemaining,
-                                    currency = uiState.selectedCurrency,
-                                    onClick = onNavigateToLoans
-                                )
                             }
                         }
                     }
-                }
-            }
-
-            // 2.5. Groups section (#664) — a horizontal rail of the user's
-            // transaction groups, absent entirely when none exist so Home
-            // stays uncluttered for everyone else. Discovery was the ask:
-            // groups only surfaced via Settings or a group card that happened
-            // to have recent activity.
-            if (groupSummaries.isNotEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(100); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                        ) {
-                            SectionHeaderV2(
-                                title = "Groups",
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                action = {
-                                    TextButton(onClick = onNavigateToTransactionGroups) {
-                                        Text("View All")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
+                    HomeSection.LOANS -> {
+                        // 2.5. Loans Summary — only when active loans exist
+                        uiState.loanSummary?.let { summary ->
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = "Loans",
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToLoans) {
+                                                    Text("View All")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
                                         )
+                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                            ActiveLoansSummaryCard(
+                                                loans = summary.activeLoans,
+                                                totalLentRemaining = summary.totalLentRemaining,
+                                                totalBorrowedRemaining = summary.totalBorrowedRemaining,
+                                                currency = uiState.selectedCurrency,
+                                                onClick = onNavigateToLoans
+                                            )
+                                        }
                                     }
                                 }
-                            )
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            }
+                        }
+                    }
+                    HomeSection.GROUPS -> {
+                        // 2.5. Groups section (#664) — a horizontal rail of the user's
+                        // transaction groups, absent entirely when none exist so Home
+                        // stays uncluttered for everyone else. Discovery was the ask:
+                        // groups only surfaced via Settings or a group card that happened
+                        // to have recent activity.
+                        if (groupSummaries.isNotEmpty()) {
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = "Groups",
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToTransactionGroups) {
+                                                    Text("View All")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
+                                        )
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                        ) {
+                                            items(groupSummaries, key = { it.group.id }) { summary ->
+                                                HomeGroupCard(
+                                                    summary = summary,
+                                                    onClick = { onGroupClick(summary.group.id) }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    HomeSection.RECENT_TRANSACTIONS -> {
+                        // 3. Recent Transactions Section
+                        item(key = section.name) {
+                            val visible = remember { mutableStateOf(hasAnimated) }
+                            LaunchedEffect(Unit) {
+                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                            }
+                            AnimatedVisibility(
+                                visible = visible.value,
+                                enter = fadeIn(tween(300)) + slideInVertically(
+                                    initialOffsetY = { slideOffsetPx },
+                                    animationSpec = tween(300)
+                                )
                             ) {
-                                items(groupSummaries, key = { it.group.id }) { summary ->
-                                    HomeGroupCard(
-                                        summary = summary,
-                                        onClick = { onGroupClick(summary.group.id) }
+                                Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                    SectionHeaderV2(
+                                        title = "Recent Transactions",
+                                        action = {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // Search button
+                                                IconButton(
+                                                    onClick = onNavigateToTransactionsWithSearch,
+                                                    modifier = Modifier.size(Dimensions.Component.iconButton)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Search,
+                                                        contentDescription = "Search transactions",
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+
+                                                // View All button
+                                                TextButton(onClick = onNavigateToTransactions) {
+                                                    Text("View All")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
+                                        }
                                     )
                                 }
                             }
                         }
-                    }
-                }
-            }
 
-            // 3. Recent Transactions Section (100ms delay)
-            item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(100); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                        SectionHeaderV2(
-                            title = "Recent Transactions",
-                            action = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Search button
-                                    IconButton(
-                                        onClick = onNavigateToTransactionsWithSearch,
-                                        modifier = Modifier.size(Dimensions.Component.iconButton)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = "Search transactions",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-
-                                    // View All button
-                                    TextButton(onClick = onNavigateToTransactions) {
-                                        Text("View All")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            if (uiState.isLoading) {
-                item {
-                    Column(
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                    ) {
-                        repeat(5) {
-                            TransactionItemSkeleton()
-                        }
-                    }
-                }
-            } else if (uiState.recentItems.isEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(150); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        PennyWiseEmptyState(
-                            icon = Icons.Default.Sync,
-                            headline = "No transactions yet",
-                            description = "Scan your SMS to get started — we'll find your transactions automatically",
-                            actionLabel = "Scan Now",
-                            onAction = { viewModel.scanSmsMessages() },
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            ghostContent = {
+                        if (uiState.isLoading) {
+                            item(key = "${section.name}_body") {
                                 Column(
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
                                 ) {
-                                    repeat(3) {
+                                    repeat(5) {
                                         TransactionItemSkeleton()
                                     }
                                 }
                             }
-                        )
-                    }
-                }
-            } else {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(150); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                        ) {
-                            val profileAccountKeys = remember(uiState.accountBalances) {
-                                buildProfileAccountKeys(uiState.accountBalances)
+                        } else if (uiState.recentItems.isEmpty()) {
+                            item(key = "${section.name}_body") {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    PennyWiseEmptyState(
+                                        icon = Icons.Default.Sync,
+                                        headline = "No transactions yet",
+                                        description = "Scan your SMS to get started — we'll find your transactions automatically",
+                                        actionLabel = "Scan Now",
+                                        onAction = { viewModel.scanSmsMessages() },
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        ghostContent = {
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
+                                            ) {
+                                                repeat(3) {
+                                                    TransactionItemSkeleton()
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
                             }
-                            uiState.recentItems.forEach { item ->
-                                when (item) {
-                                    is HomeRecentItem.SingleTransaction -> TransactionItem(
-                                        transaction = item.transaction,
-                                        convertedAmount = item.convertedAmount,
-                                        displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                        showTypeLabel = false,
-                                        profileAccountKeys = profileAccountKeys,
-                                        onClick = { onTransactionClick(item.transaction.id) }
+                        } else {
+                            item(key = "${section.name}_body") {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
                                     )
-                                    is HomeRecentItem.GroupItem -> GroupCard(
-                                        group = item.group,
-                                        transactions = item.transactions,
-                                        convertedAmounts = item.convertedAmounts,
-                                        displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                        onClick = { onGroupClick(item.group.id) }
-                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
+                                    ) {
+                                        val profileAccountKeys = remember(uiState.accountBalances) {
+                                            buildProfileAccountKeys(uiState.accountBalances)
+                                        }
+                                        uiState.recentItems.forEach { item ->
+                                            when (item) {
+                                                is HomeRecentItem.SingleTransaction -> TransactionItem(
+                                                    transaction = item.transaction,
+                                                    convertedAmount = item.convertedAmount,
+                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                                    showTypeLabel = false,
+                                                    profileAccountKeys = profileAccountKeys,
+                                                    onClick = { onTransactionClick(item.transaction.id) }
+                                                )
+                                                is HomeRecentItem.GroupItem -> GroupCard(
+                                                    group = item.group,
+                                                    transactions = item.transactions,
+                                                    convertedAmounts = item.convertedAmounts,
+                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                                    onClick = { onGroupClick(item.group.id) }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            }
-
-            // 4. Account Carousel (200ms delay)
-            if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(200); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                        ) {
-                            SectionHeaderV2(
-                                title = "Bank Accounts",
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                action = {
-                                    TextButton(onClick = onNavigateToManageAccounts) {
-                                        Text("Manage")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
+                    HomeSection.ACCOUNTS -> {
+                        // 4. Account Carousel
+                        if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = "Bank Accounts",
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToManageAccounts) {
+                                                    Text("Manage")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
+                                        )
+                                        AccountCarousel(
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            bankAccounts = uiState.accountBalances,
+                                            creditCards = uiState.creditCards,
+                                            onAccountClick = { bankName, accountLast4 ->
+                                                navController.navigate(
+                                                    com.pennywiseai.tracker.navigation.AccountDetail(
+                                                        bankName = bankName,
+                                                        accountLast4 = accountLast4
+                                                    )
+                                                ) { launchSingleTop = true }
+                                            },
+                                            isUnifiedMode = uiState.isUnifiedMode,
+                                            selectedCurrency = uiState.selectedCurrency,
+                                            blurEffects = blurEffects,
+                                            hazeState = hazeStateBanner
                                         )
                                     }
                                 }
-                            )
-                            AccountCarousel(
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                bankAccounts = uiState.accountBalances,
-                                creditCards = uiState.creditCards,
-                                onAccountClick = { bankName, accountLast4 ->
-                                    navController.navigate(
-                                        com.pennywiseai.tracker.navigation.AccountDetail(
-                                            bankName = bankName,
-                                            accountLast4 = accountLast4
-                                        )
-                                    ) { launchSingleTop = true }
-                                },
-                                isUnifiedMode = uiState.isUnifiedMode,
-                                selectedCurrency = uiState.selectedCurrency,
-                                blurEffects = blurEffects,
-                                hazeState = hazeStateBanner
-                            )
+                            }
                         }
                     }
-                }
-            }
-
-            // 5. Upcoming Subscriptions Alert (250ms delay)
-            if (uiState.upcomingSubscriptions.isNotEmpty()) {
-                item {
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay(250); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
-                        )
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                        ) {
-                            SectionHeaderV2(
-                                title = "Upcoming Subscriptions",
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                action = {
-                                    TextButton(onClick = onNavigateToSubscriptions) {
-                                        Text("View All")
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
+                    HomeSection.SUBSCRIPTIONS -> {
+                        // 5. Upcoming Subscriptions Alert
+                        if (uiState.upcomingSubscriptions.isNotEmpty()) {
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = "Upcoming Subscriptions",
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToSubscriptions) {
+                                                    Text("View All")
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
                                         )
+                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                            UpcomingSubscriptionsCard(
+                                                subscriptions = uiState.upcomingSubscriptions,
+                                                totalAmount = uiState.upcomingSubscriptionsTotal,
+                                                totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                                isUnified = uiState.isUnifiedMode,
+                                                currency = uiState.selectedCurrency,
+                                                onClick = onNavigateToSubscriptions,
+                                                blurEffects = blurEffects,
+                                                hazeState = hazeStateBanner
+                                            )
+                                        }
                                     }
                                 }
-                            )
-                            Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                UpcomingSubscriptionsCard(
-                                    subscriptions = uiState.upcomingSubscriptions,
-                                    totalAmount = uiState.upcomingSubscriptionsTotal,
-                                    totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
-                                    isUnified = uiState.isUnifiedMode,
-                                    currency = uiState.selectedCurrency,
-                                    onClick = onNavigateToSubscriptions,
-                                    blurEffects = blurEffects,
-                                    hazeState = hazeStateBanner
+                            }
+                        }
+                    }
+                    HomeSection.ACTIVITY -> {
+                        // 6. Heatmap Widget
+                        item(key = section.name) {
+                            val visible = remember { mutableStateOf(hasAnimated) }
+                            LaunchedEffect(Unit) {
+                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                            }
+                            AnimatedVisibility(
+                                visible = visible.value,
+                                enter = fadeIn(tween(300)) + slideInVertically(
+                                    initialOffsetY = { slideOffsetPx },
+                                    animationSpec = tween(300)
                                 )
+                            ) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                ) {
+                                    SectionHeaderV2(
+                                        title = "Activity",
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                    )
+                                    com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
+                                        transactionHeatmap = uiState.transactionHeatmap,
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner
+                                    )
+                                }
                             }
                         }
-                    }
-                }
-            }
-
-            // 6. Heatmap Widget (300ms delay)
-            item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(300); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
-                    )
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                    ) {
-                        SectionHeaderV2(
-                            title = "Activity",
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                        )
-                        com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
-                            transactionHeatmap = uiState.transactionHeatmap,
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            blurEffects = blurEffects,
-                            hazeState = hazeStateBanner
-                        )
                     }
                 }
             }
@@ -1142,6 +1164,17 @@ fun HomeScreen(
                     }
                 )
 
+                // Edit widgets (Middle) — reorder / hide Home sections (#770)
+                MenuListItem(
+                    headline = "Edit widgets",
+                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                    position = ListItemPosition.Middle,
+                    onClick = {
+                        showMenuSheet = false
+                        showEditWidgetsSheet = true
+                    }
+                )
+
                 // Join Discord (Middle)
                 MenuListItem(
                     headline = "Join Discord for feedback",
@@ -1199,6 +1232,78 @@ fun HomeScreen(
             }
         }
     }
+    }
+
+    // Edit widgets sheet (#770). Every change persists immediately — no Save.
+    if (showEditWidgetsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showEditWidgetsSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+            ) {
+                Text(
+                    text = "Edit widgets",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Reorder or hide sections on your home screen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(bottom = Spacing.sm)
+                        .fillMaxWidth()
+                )
+                homeSectionLayout.forEachIndexed { i, (section, isVisible) ->
+                    GroupedRow(
+                        position = ListItemPosition.from(i, homeSectionLayout.size),
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        Text(
+                            text = section.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isVisible) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            enabled = i > 0,
+                            onClick = {
+                                viewModel.updateHomeSectionLayout(
+                                    homeSectionLayout.toMutableList().also { java.util.Collections.swap(it, i, i - 1) }
+                                )
+                            }
+                        ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move ${section.label} up") }
+                        IconButton(
+                            enabled = i < homeSectionLayout.lastIndex,
+                            onClick = {
+                                viewModel.updateHomeSectionLayout(
+                                    homeSectionLayout.toMutableList().also { java.util.Collections.swap(it, i, i + 1) }
+                                )
+                            }
+                        ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move ${section.label} down") }
+                        Switch(
+                            checked = isVisible,
+                            onCheckedChange = { on ->
+                                viewModel.updateHomeSectionLayout(
+                                    homeSectionLayout.toMutableList().also { it[i] = section to on }
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 
     // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar

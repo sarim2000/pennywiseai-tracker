@@ -114,6 +114,15 @@ class HomeViewModel @Inject constructor(
         transactionGroupRepository.observeGroupSummaries()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Home section order + visibility (#770); default until DataStore emits. */
+    val homeSectionLayout: StateFlow<List<Pair<HomeSection, Boolean>>> =
+        userPreferencesRepository.homeSectionLayout
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeSectionLayout.DEFAULT)
+
+    fun updateHomeSectionLayout(layout: List<Pair<HomeSection, Boolean>>) {
+        viewModelScope.launch { userPreferencesRepository.updateHomeSectionLayout(layout) }
+    }
+
     /**
      * The user's current budget cycle window (start, end). Recomputed whenever
      * the start day pref changes — used everywhere the home surface used to

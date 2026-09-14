@@ -12,6 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.presentation.home.HomeSection
+import com.pennywiseai.tracker.presentation.home.HomeSectionLayout
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -141,6 +143,9 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
+
+        // Home screen section order / visibility (#770) — see HomeSectionLayout
+        val HOME_SECTIONS = stringPreferencesKey("home_sections")
 
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
@@ -855,6 +860,16 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun updateCoverStyle(style: CoverStyle) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.COVER_STYLE] = style.name
+        }
+    }
+
+    // Home sections (#770)
+    val homeSectionLayout: Flow<List<Pair<HomeSection, Boolean>>> = context.dataStore.data
+        .map { preferences -> HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS]) }
+
+    suspend fun updateHomeSectionLayout(layout: List<Pair<HomeSection, Boolean>>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HOME_SECTIONS] = HomeSectionLayout.encode(layout)
         }
     }
 

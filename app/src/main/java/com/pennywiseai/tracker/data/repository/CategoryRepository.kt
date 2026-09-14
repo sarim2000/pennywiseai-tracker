@@ -49,16 +49,8 @@ class CategoryRepository @Inject constructor(
      * See [CategoryDao.toggleCategoryHidden] for why this isn't a read,
      * flip and write from the caller.
      */
-    suspend fun toggleCategoryHidden(categoryId: Long): CategoryEntity? {
-        categoryDao.toggleCategoryHidden(categoryId)
-        val updated = categoryDao.getCategoryById(categoryId) ?: return null
-        // Keep the hierarchy consistent (#374): a hidden parent hides its
-        // children; un-hiding a child brings its parent back so it never
-        // renders as an indented orphan.
-        categoryDao.setChildrenHidden(categoryId, updated.isHidden)
-        if (!updated.isHidden) updated.parentId?.let { categoryDao.setCategoryHidden(it, false) }
-        return updated
-    }
+    suspend fun toggleCategoryHidden(categoryId: Long): CategoryEntity? =
+        categoryDao.toggleCategoryHiddenCascading(categoryId)
 
     suspend fun getCategoryById(categoryId: Long): CategoryEntity? {
         return categoryDao.getCategoryById(categoryId)

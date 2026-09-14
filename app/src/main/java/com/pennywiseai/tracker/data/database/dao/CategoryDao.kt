@@ -53,6 +53,20 @@ interface CategoryDao {
     @Query("UPDATE categories SET is_hidden = :hidden WHERE parent_id = :parentId")
     suspend fun setChildrenHidden(parentId: Long, hidden: Boolean)
 
+    /**
+     * Flips a category's hidden flag and cascades in one transaction (#374):
+     * a hidden parent hides its children; un-hiding a child restores its
+     * parent — so the hierarchy can never be committed half-way.
+     */
+    @Transaction
+    suspend fun toggleCategoryHiddenCascading(categoryId: Long): CategoryEntity? {
+        toggleCategoryHidden(categoryId)
+        val updated = getCategoryById(categoryId) ?: return null
+        setChildrenHidden(categoryId, updated.isHidden)
+        if (!updated.isHidden) updated.parentId?.let { setCategoryHidden(it, false) }
+        return updated
+    }
+
     /** Deleting a parent promotes its children to top level (#374). */
     @Query("UPDATE categories SET parent_id = NULL WHERE parent_id = :parentId")
     suspend fun detachChildren(parentId: Long)

@@ -468,6 +468,16 @@ class FederalBankParserTest {
     }
 
     @Test
+    fun `FEDSMS senders route to Federal Bank through the factory`() {
+        listOf("AX-FEDSMS-S", "AD-FEDSMS-S").forEach { sender ->
+            Assertions.assertTrue(
+                com.pennywiseai.parser.core.bank.BankParserFactory.getParser(sender) is FederalBankParser,
+                "$sender should route to FederalBankParser via the factory"
+            )
+        }
+    }
+
+    @Test
     fun `Scapia txn message does not capture a fabricated reference`() {
         val parser = FederalBankParser()
         val message =

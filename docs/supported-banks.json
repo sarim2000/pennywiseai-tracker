@@ -1,5 +1,5 @@
 {
-  "totalBanks": 156,
+  "totalBanks": 157,
   "totalCountries": 24,
   "countries": [
     {
@@ -99,20 +99,20 @@
       "banks": ["National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
     },
     {
+      "country": "Egypt",
+      "flag": "🇪🇬",
+      "currency": "EGP",
+      "symbol": "E£",
+      "bankCount": 3,
+      "banks": ["Arab Bank", "CIB Egypt", "National Bank of Egypt"]
+    },
+    {
       "country": "El Salvador",
       "flag": "🇸🇻",
       "currency": "USD",
       "symbol": "$",
       "bankCount": 3,
       "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
-    },
-    {
-      "country": "Egypt",
-      "flag": "🇪🇬",
-      "currency": "EGP",
-      "symbol": "E£",
-      "bankCount": 2,
-      "banks": ["Arab Bank", "CIB Egypt"]
     },
     {
       "country": "Eurozone",

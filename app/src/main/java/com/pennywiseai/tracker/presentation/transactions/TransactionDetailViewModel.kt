@@ -919,11 +919,12 @@ class TransactionDetailViewModel @Inject constructor(
                 // #752: persist the tags for future transactions from this merchant.
                 // The transaction is already saved at this point, so a rule failure
                 // is reported on its own rather than failing the whole save.
+                var ruleError: String? = null
                 if (_applyTagsToAllFromMerchant.value) {
                     try {
                         upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
                     } catch (e: Exception) {
-                        _errorMessage.value = "Saved, but couldn't create the tag rule: ${e.message}"
+                        ruleError = "Saved, but couldn't create the tag rule: ${e.message}"
                     }
                 }
 
@@ -968,7 +969,8 @@ class TransactionDetailViewModel @Inject constructor(
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 _isEditMode.value = false
                 _editableTransaction.value = null
-                _errorMessage.value = null
+                // Surfaces the partial failure (#752) instead of a clean "updated".
+                _errorMessage.value = ruleError
                 _applyToAllFromMerchant.value = false
                 _applyTagsToAllFromMerchant.value = false
                 _updateExistingTransactions.value = false

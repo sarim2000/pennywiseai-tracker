@@ -349,7 +349,7 @@ fun SubscriptionTabContent(
                                 text = {
                                     Text(
                                         category.name,
-                                        modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)
+                                        modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
                                     )
                                 },
                                 onClick = {

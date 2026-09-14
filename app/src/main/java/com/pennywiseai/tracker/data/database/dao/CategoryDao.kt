@@ -50,6 +50,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY display_order ASC, name ASC")
     suspend fun getAllCategoriesList(): List<CategoryEntity>
 
+    @Query("UPDATE categories SET is_hidden = :hidden WHERE parent_id = :parentId")
+    suspend fun setChildrenHidden(parentId: Long, hidden: Boolean)
+
     /** Deleting a parent promotes its children to top level (#374). */
     @Query("UPDATE categories SET parent_id = NULL WHERE parent_id = :parentId")
     suspend fun detachChildren(parentId: Long)

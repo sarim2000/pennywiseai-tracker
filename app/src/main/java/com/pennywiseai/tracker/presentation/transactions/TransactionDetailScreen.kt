@@ -1679,7 +1679,7 @@ private fun CategoryDropdown(
                     text = {
                         CategoryChip(
                             category = category,
-                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)
+                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
                         )
                     },
                     onClick = {

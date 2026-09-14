@@ -122,7 +122,7 @@ fun CategoriesScreen(
                     key = { it.id }
                 ) { category ->
                     // Sub-categories sit indented under their parent (#374).
-                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)) {
+                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)) {
                         SwipeableCategoryItem(
                             category = category,
                             onEdit = { viewModel.showEditDialog(category) },
@@ -143,7 +143,7 @@ fun CategoriesScreen(
                     items = incomeCategories,
                     key = { it.id }
                 ) { category ->
-                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)) {
+                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)) {
                         SwipeableCategoryItem(
                             category = category,
                             onEdit = { viewModel.showEditDialog(category) },

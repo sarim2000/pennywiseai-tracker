@@ -113,13 +113,17 @@ fun CategoryEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
+                            // A parent's type is fixed while it has children (#374): they'd
+                            // otherwise end up in the other section without it.
                             FilterChip(
+                                enabled = !hasChildren,
                                 selected = !isIncome,
                                 onClick = { isIncome = false; parentId = null },
                                 label = { Text("Expense") },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
+                                enabled = !hasChildren,
                                 selected = isIncome,
                                 onClick = { isIncome = true; parentId = null },
                                 label = { Text("Income") },

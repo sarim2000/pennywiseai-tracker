@@ -327,17 +327,23 @@ class BackupImporter @Inject constructor(
                 val existingTransactionHashes = existingTransactions.map { it.transactionHash }.toSet()
                 val existingHashToIdMap = existingTransactions.associateBy({ it.transactionHash }, { it.id })
 
-                val existingCategories = database.categoryDao()
-                    .getAllCategories().first()
-                    .map { it.name }
-                    .toSet()
+                val existingCategoryRows = database.categoryDao().getAllCategories().first()
+                val existingCategories = existingCategoryRows.map { it.name }.toSet()
 
-                // Import categories (merge by name)
-                backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
+                // Import categories (merge by name). Rows get new local IDs, so a
+                // sub-category's parent_id (#374) is remapped: parents go first and
+                // old id → local id is tracked (an existing same-name category counts).
+                val categoryIdMap = HashMap<Long, Long>()
+                existingCategoryRows.forEach { local ->
+                    backup.database.categories.firstOrNull { it.name == local.name }?.let { categoryIdMap[it.id] = local.id }
+                }
+                val (topLevel, children) = backup.database.categories.partition { it.parentId == null }
+                (topLevel + children).insertEachCounting({ skippedRows++ }) { category ->
                     if (!existingCategories.contains(category.name)) {
-                        // Generate new ID for imported category
-                        val newCategory = category.copy(id = 0)
-                        database.categoryDao().insertCategory(newCategory)
+                        // Generate new ID for imported category; parent remapped (or dropped if unknown)
+                        val newCategory = category.copy(id = 0, parentId = category.parentId?.let { categoryIdMap[it] })
+                        val newId = database.categoryDao().insertCategory(newCategory)
+                        categoryIdMap[category.id] = newId
                         importedCategories++
                     }
                 }

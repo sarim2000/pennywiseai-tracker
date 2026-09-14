@@ -44,6 +44,16 @@ class BudgetGroupRepository @Inject constructor(
         categoryDao.getAllCategoriesList().expandWithChildren(names)
 
     /**
+     * Rows to sum for a group total. A parent row already includes its
+     * children's spend, so a child listed alongside its parent is dropped here
+     * (not from the per-row display) to avoid counting it twice.
+     */
+    private fun List<BudgetCategoryEntity>.withoutCoveredChildren(parentOf: Map<String, String>): List<BudgetCategoryEntity> {
+        val names = map { it.categoryName }.toSet()
+        return filter { parentOf[it.categoryName] !in names }
+    }
+
+    /**
      * Resolves the actual [start, end] window for the budget cycle that begins
      * in the calendar month `(year, month)`, given the user's configurable
      * [startDay] (1..31). The end is the day before the next cycle's start,
@@ -701,7 +711,9 @@ class BudgetGroupRepository @Inject constructor(
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
         )
-        val catNames = expandWithChildren(group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet())
+        // Sum the configured rows (parent rows already include their children — #374).
+        val catNames = group.categories.withoutCoveredChildren(parentOf())
+            .filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
         val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
@@ -1046,7 +1058,8 @@ class BudgetGroupRepository @Inject constructor(
             } else {
                 catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
-            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val covered = group.categories.withoutCoveredChildren(parentOf()).map { it.categoryName }.toSet()
+            val totalActual = catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             val remaining = totalBudget - totalActual
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 percentOf(totalActual, totalBudget)

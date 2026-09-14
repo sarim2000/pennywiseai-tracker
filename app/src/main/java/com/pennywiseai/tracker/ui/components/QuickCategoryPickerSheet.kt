@@ -116,7 +116,7 @@ fun QuickCategoryPickerSheet(
                         .clickable { onCategorySelected(category.name) }
                         .padding(
                             // Sub-categories indent under their parent (#374)
-                            start = Dimensions.Padding.content + (if (category.parentId != null) Spacing.lg else 0.dp),
+                            start = Dimensions.Padding.content + (if (category.parentId != null) Spacing.lg else Spacing.none),
                             end = Dimensions.Padding.content,
                             top = Spacing.sm,
                             bottom = Spacing.sm

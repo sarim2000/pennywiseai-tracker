@@ -1387,7 +1387,7 @@ private fun EditableExtractedInfoCard(
         }
 
         // Split button
-        if (!showSplitEditor && transaction.transactionType == TransactionType.EXPENSE) {
+        if (!showSplitEditor && transaction.transactionType in TransactionDetailViewModel.SPLITTABLE_TYPES) {
             OutlinedButton(
                 onClick = { viewModel.enableSplitMode() },
                 modifier = Modifier.fillMaxWidth()

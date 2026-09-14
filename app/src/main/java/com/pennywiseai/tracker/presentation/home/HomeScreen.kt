@@ -1166,7 +1166,7 @@ fun HomeScreen(
                     }
                 )
 
-                // Edit widgets (Middle) — reorder / hide Home sections (#770)
+                // Edit home screen (Middle) — reorder / hide Home sections (#770)
                 MenuListItem(
                     headline = "Edit home screen",
                     icon = { Icon(Icons.Default.Tune, contentDescription = null) },
@@ -1236,7 +1236,7 @@ fun HomeScreen(
     }
     }
 
-    // Edit widgets sheet (#770). Every change persists immediately — no Save.
+    // Edit home screen sheet (#770). Every change persists immediately — no Save.
     if (showEditWidgetsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditWidgetsSheet = false },

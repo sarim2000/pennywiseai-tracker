@@ -1263,6 +1263,24 @@ private fun EditableTransactionHeader(
             onAddTag = { viewModel.addTag(it) },
             onRemoveTag = { viewModel.removeTag(it) }
         )
+        // #752: mirrors the category checkbox below — saved as a Smart Rule.
+        if (editTags.isNotEmpty()) {
+            val applyTagsToAll by viewModel.applyTagsToAllFromMerchant.collectAsStateWithLifecycle()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = applyTagsToAll,
+                    onCheckedChange = { viewModel.toggleApplyTagsToAllFromMerchant() }
+                )
+                Text(
+                    text = "Apply tags to all future from ${transaction.merchantName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
 
         // Transaction Type
         FlowRow(

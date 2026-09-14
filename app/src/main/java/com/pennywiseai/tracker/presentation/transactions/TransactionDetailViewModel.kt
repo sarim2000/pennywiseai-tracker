@@ -238,6 +238,8 @@ class TransactionDetailViewModel @Inject constructor(
     // Bank-reported balance vs. what the ledger predicts (#734/#135); null = consistent.
     private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?>(null)
     val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
+    private val _isAddingAdjustment = MutableStateFlow(false)
+    val isAddingAdjustment: StateFlow<Boolean> = _isAddingAdjustment.asStateFlow()
 
     private val _hasSplits = MutableStateFlow(false)
     val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
@@ -327,16 +329,24 @@ class TransactionDetailViewModel @Inject constructor(
     fun addBalanceAdjustment() {
         val tx = _transaction.value ?: return
         val d = _balanceDiscrepancy.value ?: return
+        // One adjustment per tap-burst: the flag disables the button, and the
+        // deterministic hash makes a racing second insert a no-op (IGNORE).
+        if (!_isAddingAdjustment.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
                 val delta = d.delta
+                // Just before the reporting transaction, but never at/before the
+                // snapshot the detector starts from — or it would fall outside the
+                // window and the mismatch would never clear.
+                val since = d.since
+                val at = tx.dateTime.minusSeconds(1).let { if (since != null && !it.isAfter(since)) tx.dateTime else it }
                 transactionRepository.insertTransaction(
                     TransactionEntity(
                         amount = delta.abs(),
                         merchantName = "Balance adjustment",
                         category = "Others",
                         transactionType = if (delta.signum() < 0) TransactionType.EXPENSE else TransactionType.INCOME,
-                        dateTime = tx.dateTime.minusSeconds(1),
+                        dateTime = at,
                         description = "Untracked amount so the app matches the bank's reported balance of " +
                             CurrencyFormatter.formatCurrency(d.reported, d.currency),
                         smsBody = null,
@@ -344,13 +354,15 @@ class TransactionDetailViewModel @Inject constructor(
                         smsSender = null,
                         accountNumber = tx.accountNumber,
                         balanceAfter = null,
-                        transactionHash = "manual_balance_adjustment_${tx.id}_${System.currentTimeMillis()}",
+                        transactionHash = "manual_balance_adjustment_${tx.id}",
                         currency = d.currency
                     )
                 )
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
             } catch (e: Exception) {
                 _errorMessage.value = "Couldn't add the adjustment: ${e.message}"
+            } finally {
+                _isAddingAdjustment.value = false
             }
         }
     }

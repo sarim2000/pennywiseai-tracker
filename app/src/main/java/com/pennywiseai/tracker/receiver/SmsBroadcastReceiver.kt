@@ -293,6 +293,22 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             )
             notificationBuilder.addAction(0, "More…", pickerPendingIntent)
 
+            // Account balances stay off the lock screen (#734): private visibility
+            // with a public version that carries no figures.
+            if (discrepancyLine != null) {
+                notificationBuilder
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPublicVersion(
+                        NotificationCompat.Builder(context, CHANNEL_ID)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setContentTitle("$typeEmoji New transaction")
+                            .setContentText("$bankName • balance needs a look")
+                            .setContentIntent(pendingIntent)
+                            .setAutoCancel(true)
+                            .build()
+                    )
+            }
+
             val notification = notificationBuilder.build()
             notificationManager.notify(notificationId, notification)
         } catch (e: Exception) {

@@ -32,9 +32,13 @@ class DetectBalanceDiscrepancyUseCase @Inject constructor(
         val previous = history.firstOrNull { it.id != own?.id && it.timestamp < at } ?: return null
         if (previous.isCreditCard || previous.currency != tx.currency) return null
 
-        val between = transactionRepository.getTransactionsBetweenDates(previous.timestamp, at).first()
-            .filter { it.bankName == bank && it.accountNumber == last4 && it.dateTime > previous.timestamp && it.dateTime <= at }
-            .map { it.transactionType to it.amount }
-        return BalanceDiscrepancy.compute(previous.balance, between, reported, tx.currency)
+        // Same account, same currency (never sum across currencies), strictly after
+        // the snapshot and up to the reporting transaction. Transfers are matched by
+        // leg, so they're picked up by account number rather than bank name.
+        val effects = transactionRepository.getTransactionsBetweenDates(previous.timestamp, at).first()
+            .filter { it.currency == tx.currency && it.dateTime > previous.timestamp && it.dateTime <= at }
+            .filter { (it.bankName == bank && it.accountNumber == last4) || it.fromAccount == last4 || it.toAccount == last4 }
+            .map { BalanceDiscrepancy.effectOn(it, last4) }
+        return BalanceDiscrepancy.compute(previous.balance, effects, reported, tx.currency, since = previous.timestamp)
     }
 }

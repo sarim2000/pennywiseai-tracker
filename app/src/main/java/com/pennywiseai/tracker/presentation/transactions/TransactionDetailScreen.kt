@@ -943,8 +943,10 @@ private fun TransactionReceipt(
                     value = "Off by ${CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)} · expected " +
                         CurrencyFormatter.formatCurrency(d.expected, d.currency)
                 )
+                val adding by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
                 TextButton(
                     onClick = { viewModel.addBalanceAdjustment() },
+                    enabled = !adding,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(

@@ -12,8 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
-import com.pennywiseai.tracker.presentation.home.HomeSection
-import com.pennywiseai.tracker.presentation.home.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeSection
+import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.home
 
+import com.pennywiseai.tracker.data.preferences.HomeSection
+import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel

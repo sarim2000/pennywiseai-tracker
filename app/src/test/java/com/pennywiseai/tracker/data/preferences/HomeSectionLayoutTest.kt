@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.home
+package com.pennywiseai.tracker.data.preferences
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.home
+package com.pennywiseai.tracker.data.preferences
 
 /**
  * The toggleable / reorderable sections of the Home screen (#770). Declaration

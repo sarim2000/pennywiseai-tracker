@@ -3,7 +3,9 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.hierarchical
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,28 +16,28 @@ class CategoryRepository @Inject constructor(
 ) {
     
     fun getAllCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getAllCategories()
+        return categoryDao.getAllCategories().map { it.hierarchical() }
     }
     
     fun getExpenseCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getExpenseCategories()
+        return categoryDao.getExpenseCategories().map { it.hierarchical() }
     }
     
     fun getIncomeCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getIncomeCategories()
+        return categoryDao.getIncomeCategories().map { it.hierarchical() }
     }
 
     // Visible-only variants for pickers — hidden categories are excluded (#736).
     fun getVisibleCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getVisibleCategories()
+        return categoryDao.getVisibleCategories().map { it.hierarchical() }
     }
 
     fun getVisibleExpenseCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getVisibleExpenseCategories()
+        return categoryDao.getVisibleExpenseCategories().map { it.hierarchical() }
     }
 
     fun getVisibleIncomeCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getVisibleIncomeCategories()
+        return categoryDao.getVisibleIncomeCategories().map { it.hierarchical() }
     }
 
     suspend fun setCategoryHidden(categoryId: Long, hidden: Boolean) {
@@ -47,10 +49,8 @@ class CategoryRepository @Inject constructor(
      * See [CategoryDao.toggleCategoryHidden] for why this isn't a read,
      * flip and write from the caller.
      */
-    suspend fun toggleCategoryHidden(categoryId: Long): CategoryEntity? {
-        categoryDao.toggleCategoryHidden(categoryId)
-        return categoryDao.getCategoryById(categoryId)
-    }
+    suspend fun toggleCategoryHidden(categoryId: Long): CategoryEntity? =
+        categoryDao.toggleCategoryHiddenCascading(categoryId)
 
     suspend fun getCategoryById(categoryId: Long): CategoryEntity? {
         return categoryDao.getCategoryById(categoryId)
@@ -64,12 +64,14 @@ class CategoryRepository @Inject constructor(
         name: String,
         color: String,
         isIncome: Boolean = false,
-        icon: String? = null
+        icon: String? = null,
+        parentId: Long? = null
     ): Long {
         val category = CategoryEntity(
             name = name,
             color = color,
             icon = icon,
+            parentId = parentId,
             isSystem = false,
             isIncome = isIncome,
             displayOrder = 999
@@ -87,6 +89,7 @@ class CategoryRepository @Inject constructor(
         // Only delete non-system categories
         val category = categoryDao.getCategoryById(categoryId)
         if (category != null && !category.isSystem) {
+            categoryDao.detachChildren(categoryId)
             categoryDao.deleteCategory(categoryId)
             return true
         }

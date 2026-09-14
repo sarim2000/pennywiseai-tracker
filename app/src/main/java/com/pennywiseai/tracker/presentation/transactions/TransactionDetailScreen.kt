@@ -1677,7 +1677,10 @@ private fun CategoryDropdown(
             categories.forEach { category ->
                 DropdownMenuItem(
                     text = {
-                        CategoryChip(category = category)
+                        CategoryChip(
+                            category = category,
+                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
+                        )
                     },
                     onClick = {
                         onCategorySelected(category.name)
@@ -1713,7 +1716,7 @@ private fun CategoryDropdown(
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, _, icon ->
+            onSave = { name, color, _, icon, _ ->
                 // Dismiss only once the category is actually created/selected, so a
                 // failure (e.g. same-name type conflict) keeps the dialog open with
                 // the user's input intact.

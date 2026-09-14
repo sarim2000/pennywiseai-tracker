@@ -121,12 +121,15 @@ fun CategoriesScreen(
                     items = expenseCategories,
                     key = { it.id }
                 ) { category ->
-                    SwipeableCategoryItem(
-                        category = category,
-                        onEdit = { viewModel.showEditDialog(category) },
-                        onDelete = { viewModel.deleteCategory(category) },
-                        onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
-                    )
+                    // Sub-categories sit indented under their parent (#374).
+                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)) {
+                        SwipeableCategoryItem(
+                            category = category,
+                            onEdit = { viewModel.showEditDialog(category) },
+                            onDelete = { viewModel.deleteCategory(category) },
+                            onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
+                        )
+                    }
                 }
             }
 
@@ -140,12 +143,14 @@ fun CategoriesScreen(
                     items = incomeCategories,
                     key = { it.id }
                 ) { category ->
-                    SwipeableCategoryItem(
-                        category = category,
-                        onEdit = { viewModel.showEditDialog(category) },
-                        onDelete = { viewModel.deleteCategory(category) },
-                        onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
-                    )
+                    Box(modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)) {
+                        SwipeableCategoryItem(
+                            category = category,
+                            onEdit = { viewModel.showEditDialog(category) },
+                            onDelete = { viewModel.deleteCategory(category) },
+                            onToggleHidden = { viewModel.toggleCategoryHidden(category.id) }
+                        )
+                    }
                 }
             }
         }
@@ -155,9 +160,10 @@ fun CategoriesScreen(
     if (showAddEditDialog) {
         CategoryEditDialog(
             category = editingCategory,
+            parentOptions = categories,
             onDismiss = { viewModel.hideDialog() },
-            onSave = { name, color, isIncome, icon ->
-                viewModel.saveCategory(name, color, isIncome, icon)
+            onSave = { name, color, isIncome, icon, parentId ->
+                viewModel.saveCategory(name, color, isIncome, icon, parentId)
             },
             onDelete = editingCategory?.let { cat ->
                 {

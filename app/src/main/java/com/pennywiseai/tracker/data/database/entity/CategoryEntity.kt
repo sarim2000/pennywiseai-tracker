@@ -28,6 +28,12 @@ data class CategoryEntity(
     // icon. Nullable + defaulted so old backups restore (#414).
     @ColumnInfo(name = "icon")
     val icon: String? = null,
+
+    // Sub-categories (#374): id of the top-level parent, or null for a
+    // top-level category. One level deep by construction (the editor only
+    // offers top-level parents). Nullable + defaulted so old backups restore.
+    @ColumnInfo(name = "parent_id")
+    val parentId: Long? = null,
     
     @ColumnInfo(name = "is_system")
     val isSystem: Boolean = false,
@@ -53,3 +59,24 @@ data class CategoryEntity(
     @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
+
+/** Top-level categories in their order, each followed by its children in theirs. */
+fun List<CategoryEntity>.hierarchical(): List<CategoryEntity> {
+    val ids = mapTo(HashSet()) { it.id }
+    val children = filter { it.parentId != null && it.parentId in ids }.groupBy { it.parentId!! }
+    return flatMap { c -> if (c.parentId != null && c.parentId in ids) emptyList() else listOf(c) + children[c.id].orEmpty() }
+}
+
+/** child name → parent name, for rolling sub-categories up into their parent. */
+fun List<CategoryEntity>.parentNameOf(): Map<String, String> {
+    val byId = associateBy { it.id }
+    return mapNotNull { c -> c.parentId?.let { byId[it] }?.let { c.name to it.name } }.toMap()
+}
+
+/** [names] plus every child of a named parent — a filter on "Food" includes "Coffee". */
+fun List<CategoryEntity>.expandWithChildren(names: Collection<String>): Set<String> {
+    val byName = associateBy { it.name }
+    val parentIds = names.mapNotNull { byName[it]?.takeIf { c -> c.parentId == null }?.id }.toSet()
+    return names.toSet() + filter { it.parentId in parentIds }.map { it.name }
+}
+

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -34,12 +35,19 @@ fun CategoryEditDialog(
     category: CategoryEntity? = null,
     defaultIsIncome: Boolean = false,
     lockType: Boolean = false,
+    // Candidate parents for the "Parent category" picker (#374); empty hides it.
+    parentOptions: List<CategoryEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (name: String, color: String, isIncome: Boolean, icon: String?) -> Unit,
+    onSave: (name: String, color: String, isIncome: Boolean, icon: String?, parentId: Long?) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     var name by remember { mutableStateOf(category?.name ?: "") }
     var isIncome by remember { mutableStateOf(category?.isIncome ?: defaultIsIncome) }
+    var parentId by remember { mutableStateOf(category?.parentId) }
+    // Only top-level categories of the same type can be parents (one level deep).
+    val parentCandidates = parentOptions.filter { it.parentId == null && it.isIncome == isIncome && it.id != category?.id }
+    // A category with children can't itself become a child.
+    val hasChildren = category != null && parentOptions.any { it.parentId == category.id }
     var nameError by remember { mutableStateOf<String?>(null) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
     var emoji by remember { mutableStateOf(category?.icon ?: "") }
@@ -105,18 +113,55 @@ fun CategoryEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
+                            // A parent's type is fixed while it has children (#374): they'd
+                            // otherwise end up in the other section without it.
                             FilterChip(
+                                enabled = !hasChildren,
                                 selected = !isIncome,
-                                onClick = { isIncome = false },
+                                onClick = { isIncome = false; parentId = null },
                                 label = { Text("Expense") },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
+                                enabled = !hasChildren,
                                 selected = isIncome,
-                                onClick = { isIncome = true },
+                                onClick = { isIncome = true; parentId = null },
                                 label = { Text("Income") },
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                    }
+                }
+
+                // Parent category (#374) — optional, one level deep.
+                if (parentCandidates.isNotEmpty() && !hasChildren) {
+                    var parentMenu by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = parentMenu, onExpandedChange = { parentMenu = it }) {
+                        TextField(
+                            value = parentCandidates.firstOrNull { it.id == parentId }?.name ?: "None",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Parent category (optional)", fontWeight = FontWeight.SemiBold) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentMenu) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            shape = MaterialTheme.shapes.large,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = parentMenu, onDismissRequest = { parentMenu = false }) {
+                            DropdownMenuItem(text = { Text("None") }, onClick = { parentId = null; parentMenu = false })
+                            parentCandidates.forEach { p ->
+                                DropdownMenuItem(
+                                    text = { CategoryChip(category = p) },
+                                    onClick = { parentId = p.id; parentMenu = false }
+                                )
+                            }
                         }
                     }
                 }
@@ -211,7 +256,7 @@ fun CategoryEditDialog(
                     Button(
                         onClick = {
                             if (name.isNotBlank()) {
-                                onSave(name.trim(), selectedColor, isIncome, emoji.ifBlank { null })
+                                onSave(name.trim(), selectedColor, isIncome, emoji.ifBlank { null }, parentId)
                             } else {
                                 nameError = "Category name is required"
                             }

@@ -11,6 +11,8 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.database.entity.expandWithChildren
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.flow.Flow
@@ -32,8 +34,25 @@ import javax.inject.Singleton
 class BudgetGroupRepository @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionSplitDao: TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
+    // Sub-categories (#374): spend rolls up into the parent, and a budget on a
+    // parent covers its children.
+    private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+    private suspend fun expandWithChildren(names: Set<String>): Set<String> =
+        categoryDao.getAllCategoriesList().expandWithChildren(names)
+
+    /**
+     * Rows to sum for a group total. A parent row already includes its
+     * children's spend, so a child listed alongside its parent is dropped here
+     * (not from the per-row display) to avoid counting it twice.
+     */
+    private fun List<BudgetCategoryEntity>.withoutCoveredChildren(parentOf: Map<String, String>): List<BudgetCategoryEntity> {
+        val names = map { it.categoryName }.toSet()
+        return filter { parentOf[it.categoryName] !in names }
+    }
+
     /**
      * Resolves the actual [start, end] window for the budget cycle that begins
      * in the calendar month `(year, month)`, given the user's configurable
@@ -687,11 +706,14 @@ class BudgetGroupRepository @Inject constructor(
     ): BigDecimal {
         if (group.categories.isEmpty()) return sumExpensesForWindow(transactions)
         val (categoryAmounts, _, typeAmounts) = aggregateBudgetCategorySpending(
+            parentOf = parentOf(),
             transactions = transactions,
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
         )
-        val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        // Sum the configured rows (parent rows already include their children — #374).
+        val catNames = group.categories.withoutCoveredChildren(parentOf())
+            .filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
         val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
@@ -801,6 +823,7 @@ class BudgetGroupRepository @Inject constructor(
             currency
         ).first().filter { !it.transaction.excludedFromAnalytics }
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            parentOf = parentOf(),
             transactions = txs,
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
@@ -892,6 +915,7 @@ class BudgetGroupRepository @Inject constructor(
         }
 
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            parentOf = parentOf(),
             transactions = displayTxs,
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
@@ -1034,7 +1058,8 @@ class BudgetGroupRepository @Inject constructor(
             } else {
                 catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
-            val totalActual = catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val covered = group.categories.withoutCoveredChildren(parentOf()).map { it.categoryName }.toSet()
+            val totalActual = catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             val remaining = totalBudget - totalActual
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
                 percentOf(totalActual, totalBudget)
@@ -1042,7 +1067,7 @@ class BudgetGroupRepository @Inject constructor(
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
-            val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+            val catNames = expandWithChildren(group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet())
             val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
             val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, totalBudget)
             BudgetGroupSpending(
@@ -1095,7 +1120,9 @@ class BudgetGroupRepository @Inject constructor(
 suspend fun aggregateBudgetCategorySpending(
     transactions: List<TransactionWithSplits>,
     convertSplit: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?,
-    convertIncome: suspend (TransactionEntity) -> BigDecimal?
+    convertIncome: suspend (TransactionEntity) -> BigDecimal?,
+    // child name → parent name; a sub-category's spend is also credited to its parent (#374)
+    parentOf: Map<String, String> = emptyMap()
 ): CategoryAggregation {
     val categoryAmounts = mutableMapOf<String, BigDecimal>()
     val typeAmounts = mutableMapOf<String, BigDecimal>()
@@ -1118,6 +1145,9 @@ suspend fun aggregateBudgetCategorySpending(
             val converted = convertSplit(fromCurrency, amount) ?: continue
             categoryAmounts[categoryName] =
                 (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
+            parentOf[categoryName]?.let { parent ->
+                categoryAmounts[parent] = (categoryAmounts[parent] ?: BigDecimal.ZERO) + converted
+            }
         }
     }
 
@@ -1132,6 +1162,10 @@ suspend fun aggregateBudgetCategorySpending(
             BudgetImpactType.DEDUCT_SPENT -> {
                 val current = categoryAmounts[category] ?: BigDecimal.ZERO
                 categoryAmounts[category] = (current - amount).coerceAtLeast(BigDecimal.ZERO)
+                parentOf[category]?.let { parent ->
+                    val p = categoryAmounts[parent] ?: BigDecimal.ZERO
+                    categoryAmounts[parent] = (p - amount).coerceAtLeast(BigDecimal.ZERO)
+                }
             }
             BudgetImpactType.ADD_TO_LIMIT -> {
                 categoryLimitBoosts[category] =

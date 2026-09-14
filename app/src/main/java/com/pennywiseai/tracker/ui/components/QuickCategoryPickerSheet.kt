@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -114,8 +115,11 @@ fun QuickCategoryPickerSheet(
                         .fillMaxWidth()
                         .clickable { onCategorySelected(category.name) }
                         .padding(
-                            horizontal = Dimensions.Padding.content,
-                            vertical = Spacing.sm
+                            // Sub-categories indent under their parent (#374)
+                            start = Dimensions.Padding.content + (if (category.parentId != null) Spacing.lg else Spacing.none),
+                            end = Dimensions.Padding.content,
+                            top = Spacing.sm,
+                            bottom = Spacing.sm
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md)

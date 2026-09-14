@@ -19,6 +19,8 @@ import com.pennywiseai.tracker.presentation.common.AccountOption
 import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.data.database.entity.expandWithChildren
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
@@ -58,6 +60,17 @@ class AnalyticsViewModel @Inject constructor(
     private val categoryColors: Flow<Map<String, String>> =
         categoryRepository.getAllCategories()
             .map { cats -> cats.associate { it.name to it.color } }
+
+    // Colors plus the sub-category → parent map (#374): Analytics rolls each
+    // sub-category into its parent, and a parent filter includes its children.
+    private class CategoryIndex(
+        val colors: Map<String, String>,
+        val parentOf: Map<String, String>,
+        val all: List<com.pennywiseai.tracker.data.database.entity.CategoryEntity>
+    )
+    private val categoryIndex: Flow<CategoryIndex> =
+        categoryRepository.getAllCategories()
+            .map { cats -> CategoryIndex(cats.associate { it.name to it.color }, cats.parentNameOf(), cats) }
 
     // Profile filter — reuses the global Home profile selection so the two stay in sync.
     val selectedProfileId: StateFlow<Long?> = userPreferencesRepository.selectedProfileId
@@ -176,12 +189,14 @@ class AnalyticsViewModel @Inject constructor(
         )
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
-    }.combine(categoryColors) { (fs, balances), colors ->
-        Triple(fs, balances, colors)
+    }.combine(categoryIndex) { (fs, balances), index ->
+        Triple(fs, balances, index)
     }.combine(tagRepository.observeTransactionTagNames()) { triple, tagMap ->
         triple to tagMap
     }.flatMapLatest { (triple, tagMap) ->
-        val (filterState, balances, categoryColorMap) = triple
+        val (filterState, balances, catIndex) = triple
+        val categoryColorMap = catIndex.colors
+        val parentOf = catIndex.parentOf
         // Determine date range based on selected period. The two "month"
         // periods are special: they follow the user's custom budget cycle
         // (e.g. 25th → 24th) instead of the calendar month, so the analytics
@@ -307,11 +322,13 @@ class AnalyticsViewModel @Inject constructor(
                     .sorted()
 
                 // Apply category filter
-                val categoryFilteredWithSplits = filterState.categoryFilter?.let { cat ->
+                // A parent category filter includes its sub-categories (#374).
+                val categoryFilterSet = filterState.categoryFilter?.let { catIndex.all.expandWithChildren(listOf(it)) }
+                val categoryFilteredWithSplits = categoryFilterSet?.let { set ->
                     filteredTransactionsWithSplits.filter { txWithSplits ->
                         txWithSplits.getAmountByCategory().keys
                             .map { it.ifEmpty { "Others" } }
-                            .contains(cat)
+                            .any { it in set }
                     }
                 } ?: filteredTransactionsWithSplits
 
@@ -344,7 +361,8 @@ class AnalyticsViewModel @Inject constructor(
                 for (txWithSplits in categoryFilteredWithSplits) {
                     val fromCurrency = txWithSplits.transaction.currency
                     txWithSplits.getAmountByCategory().forEach { (category, amount) ->
-                        val categoryName = category.ifEmpty { "Others" }
+                        // Sub-categories roll up into their parent row (#374).
+                        val categoryName = category.ifEmpty { "Others" }.let { parentOf[it] ?: it }
                         val converted = if (isUnified) {
                             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                                 ?: return@forEach // never-rated pair — skip, don't face-value (#670)
@@ -379,9 +397,10 @@ class AnalyticsViewModel @Inject constructor(
                         if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
                             tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
                         ) continue
-                        val category = (tx.budgetCategory ?: "").ifEmpty { "Others" }
+                        val rawCategory = (tx.budgetCategory ?: "").ifEmpty { "Others" }
                         // Respect an active category filter.
-                        if (filterState.categoryFilter != null && filterState.categoryFilter != category) continue
+                        if (categoryFilterSet != null && rawCategory !in categoryFilterSet) continue
+                        val category = parentOf[rawCategory] ?: rawCategory
                         val converted = if (isUnified) {
                             currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
                                 ?: continue // never-rated pair — skip, don't face-value (#670)

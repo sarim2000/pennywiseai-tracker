@@ -439,28 +439,39 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     /**
-     * Upserts the rule "Tags for <merchant>": MERCHANT = merchant → ADD_TAG per
-     * tag. One rule per merchant, found by name, so re-saving merges rather than
-     * duplicating. Visible/editable in Smart Rules like any other rule.
+     * Ensures a rule tagging future transactions from [merchantName]. The rule
+     * has a stable id derived from the merchant (not its editable name), so a
+     * user's own rule can't be clobbered; an existing rule only gains the
+     * missing ADD_TAG actions — its conditions, other actions and active flag
+     * are left as the user set them.
      */
     private suspend fun upsertMerchantTagRule(merchantName: String, tags: List<String>) {
         if (tags.isEmpty()) return
-        val ruleName = "Tags for $merchantName"
-        val existing = ruleRepository.getAllRules().first().firstOrNull { it.name == ruleName }
-        val actions = (existing?.actions.orEmpty().filter { it.actionType == ActionType.ADD_TAG }.map { it.value } + tags)
-            .distinctBy { it.lowercase() }
+        val ruleId = "merchant-tags:" + merchantName.trim().lowercase()
+        val existing = ruleRepository.getRuleById(ruleId)
+        if (existing == null) {
+            ruleRepository.insertRule(
+                TransactionRule(
+                    id = ruleId,
+                    name = "Tags for $merchantName",
+                    description = "Created from a transaction: tag everything from $merchantName",
+                    conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.EQUALS, merchantName)),
+                    actions = tags.map { RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, it) }
+                )
+            )
+            return
+        }
+        val already = existing.actions
+            .filter { it.field == TransactionField.TAGS && it.actionType == ActionType.ADD_TAG }
+            .map { it.value.lowercase() }
+            .toSet()
+        val missing = tags.filter { it.lowercase() !in already }
             .map { RuleAction(TransactionField.TAGS, ActionType.ADD_TAG, it) }
-        val rule = TransactionRule(
-            id = existing?.id ?: java.util.UUID.randomUUID().toString(),
-            name = ruleName,
-            description = "Created from a transaction: tag everything from $merchantName",
-            priority = existing?.priority ?: 100,
-            conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.EQUALS, merchantName)),
-            actions = actions,
-            isActive = true,
-            createdAt = existing?.createdAt ?: System.currentTimeMillis()
-        )
-        if (existing == null) ruleRepository.insertRule(rule) else ruleRepository.updateRule(rule)
+        if (missing.isNotEmpty()) {
+            ruleRepository.updateRule(
+                existing.copy(actions = existing.actions + missing, updatedAt = System.currentTimeMillis())
+            )
+        }
     }
 
     fun updateMerchantAlias(alias: String) {

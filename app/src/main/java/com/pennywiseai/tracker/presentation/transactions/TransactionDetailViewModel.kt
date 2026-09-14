@@ -486,7 +486,7 @@ class TransactionDetailViewModel @Inject constructor(
      * uses this to keep the add-category dialog open on failure so the user's typed
      * name/color aren't lost and they can correct them in place.
      */
-    fun createAndSelectCategory(name: String, color: String, onResult: (Boolean) -> Unit = {}) {
+    fun createAndSelectCategory(name: String, color: String, icon: String? = null, onResult: (Boolean) -> Unit = {}) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) { onResult(false); return }
         val isIncome = (_editableTransaction.value ?: _transaction.value)
@@ -505,7 +505,7 @@ class TransactionDetailViewModel @Inject constructor(
                     return@launch
                 }
                 if (existing == null) {
-                    categoryRepository.createCategory(trimmed, color, isIncome)
+                    categoryRepository.createCategory(trimmed, color, isIncome, icon)
                 }
                 updateCategory(trimmed)
                 onResult(true)

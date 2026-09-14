@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SportsMartialArts
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
@@ -56,6 +57,19 @@ object CategoryMapping {
         val fallbackIcon: ImageVector = Icons.Default.Category
     )
 
+    /** What the user set on a CategoryEntity: its color and optional emoji (#760). */
+    data class UserStyle(val colorHex: String, val emoji: String?)
+
+    /**
+     * Name → user style, mirrored from the categories table by
+     * [com.pennywiseai.tracker.PennyWiseApplication] so the many non-ViewModel
+     * icon call sites (BrandIcon, CategoryIcon, IconProvider) can resolve a
+     * custom category without plumbing a map through every screen.
+     */
+    val userStyles = mutableStateMapOf<String, UserStyle>()
+
+    fun emojiFor(name: String): String? = userStyles[name]?.emoji?.takeIf { it.isNotBlank() }
+
     /**
      * Resolves the display color for a category. Prefers the user's assigned color
      * ([overrideHex], e.g. "#4CAF50" from CategoryEntity), then the built-in palette,
@@ -66,7 +80,9 @@ object CategoryMapping {
             runCatching { Color(android.graphics.Color.parseColor(overrideHex)) }
                 .getOrNull()?.let { return it }
         }
-        return categories[name]?.color ?: Color.Gray
+        return categories[name]?.color
+            ?: userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
+            ?: Color.Gray
     }
 
     val categories = mapOf(
@@ -224,6 +240,7 @@ object IconProvider {
         }
 
         val category = CategoryMapping.getCategory(merchantName)
+        CategoryMapping.emojiFor(category)?.let { return IconResource.Emoji(it, CategoryMapping.colorFor(category)) }
         val categoryInfo = CategoryMapping.categories[category]
             ?: CategoryMapping.categories["Others"]!!
 
@@ -254,15 +271,20 @@ object IconProvider {
             return IconResource.DrawableResource(iconRes)
         }
 
-        val effectiveCategory = if (category.isValidCategoryOverride()) category
+        val effectiveCategory = if (category.isValidCategoryOverride()) category!!
             else CategoryMapping.getCategory(merchantName)
 
+        CategoryMapping.emojiFor(effectiveCategory)?.let {
+            return IconResource.Emoji(it, CategoryMapping.colorFor(effectiveCategory))
+        }
         val categoryInfo = CategoryMapping.categories[effectiveCategory]
             ?: CategoryMapping.categories["Others"]!!
 
         return IconResource.VectorIcon(
             icon = categoryInfo.icon,
-            tint = categoryInfo.color
+            // A user category keeps its own color; unknown names fall back to Others'.
+            tint = if (effectiveCategory in CategoryMapping.userStyles) CategoryMapping.colorFor(effectiveCategory)
+                else categoryInfo.color
         )
     }
 }
@@ -273,6 +295,8 @@ object IconProvider {
 sealed class IconResource {
     data class DrawableResource(val resId: Int) : IconResource()
     data class VectorIcon(val icon: ImageVector, val tint: Color) : IconResource()
+    /** A user-picked emoji for a custom category (#760); [tint] is the category color. */
+    data class Emoji(val emoji: String, val tint: Color) : IconResource()
 }
 
 /**

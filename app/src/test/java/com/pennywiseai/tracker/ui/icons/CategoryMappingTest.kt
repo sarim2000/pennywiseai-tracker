@@ -153,6 +153,27 @@ class CategoryMappingTest {
         assertEquals(othersInfo.icon, iconResult.icon)
         assertEquals(othersInfo.color, iconResult.tint)
     }
+
+    // #760: a user category with an emoji renders that emoji; without one it
+    // keeps the default vector icon but in the user's color.
+    @Test
+    fun testGetTransactionIcon_userEmojiCategory() {
+        try {
+            CategoryMapping.userStyles["Pets"] = CategoryMapping.UserStyle("#E53935", "\uD83D\uDC36")
+            CategoryMapping.userStyles["Plants"] = CategoryMapping.UserStyle("#43A047", null)
+
+            val emoji = IconProvider.getTransactionIcon("Unknown Shop", "Pets")
+            assertTrue(emoji is IconResource.Emoji, "Expected Emoji but got $emoji")
+            assertEquals("\uD83D\uDC36", (emoji as IconResource.Emoji).emoji)
+
+            val vector = IconProvider.getTransactionIcon("Unknown Shop", "Plants") as IconResource.VectorIcon
+            assertEquals(CategoryMapping.categories["Others"]!!.icon, vector.icon)
+            assertEquals(CategoryMapping.colorFor("Plants", "#43A047"), vector.tint)
+        } finally {
+            CategoryMapping.userStyles.clear()
+        }
+    }
+
 }
 
 // Helper function to test categorization

@@ -1695,11 +1695,11 @@ private fun CategoryDropdown(
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, _ ->
+            onSave = { name, color, _, icon ->
                 // Dismiss only once the category is actually created/selected, so a
                 // failure (e.g. same-name type conflict) keeps the dialog open with
                 // the user's input intact.
-                viewModel.createAndSelectCategory(name, color) { success ->
+                viewModel.createAndSelectCategory(name, color, icon) { success ->
                     if (success) showAddDialog = false
                 }
             }

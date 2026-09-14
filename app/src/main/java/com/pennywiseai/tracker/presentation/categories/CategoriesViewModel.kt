@@ -66,7 +66,8 @@ class CategoriesViewModel @Inject constructor(
     fun saveCategory(
         name: String,
         color: String,
-        isIncome: Boolean
+        isIncome: Boolean,
+        icon: String? = null
     ) {
         viewModelScope.launch {
             try {
@@ -78,7 +79,8 @@ class CategoriesViewModel @Inject constructor(
                         editingCat.copy(
                             name = name,
                             color = color,
-                            isIncome = isIncome
+                            isIncome = isIncome,
+                            icon = icon
                         )
                     )
                     _snackbarMessage.value = "Category updated successfully"
@@ -93,7 +95,8 @@ class CategoriesViewModel @Inject constructor(
                     categoryRepository.createCategory(
                         name = name,
                         color = color,
-                        isIncome = isIncome
+                        isIncome = isIncome,
+                        icon = icon
                     )
                     _snackbarMessage.value = "Category created successfully"
                 }

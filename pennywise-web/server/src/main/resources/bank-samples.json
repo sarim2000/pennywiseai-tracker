@@ -792,6 +792,17 @@
       "reference": "MTXN0000517374-130",
       "balance": null
     },
+    "National Bank of Egypt": {
+      "sender": "BanK-AlAhly",
+      "message": "تم خصم 200 EGP من بطاقة الخصم المباشر رقم2222 عندNBE ATM546 يوم03/09/26 الساعة21:13 المتاح800.00EGP للمزيد اتصل ب 10000",
+      "currency": "EGP",
+      "amount": "200",
+      "type": "EXPENSE",
+      "merchant": "NBE ATM546",
+      "accountLast4": "2222",
+      "reference": null,
+      "balance": "800.00"
+    },
     "National Development Bank": {
       "sender": "NDB ALERT",
       "message": "LKR 12,724.00 debited from AC XXXXXXXX7497 as POS TXN on 30 Jul 2026 22:28 at COLOMBAY COLOMBO 2. Avl Bal 2,582.08 Call 94112448888 for info",

@@ -196,7 +196,9 @@ class AnalyticsViewModel @Inject constructor(
     }.flatMapLatest { (triple, tagMap) ->
         val (filterState, balances, catIndex) = triple
         val categoryColorMap = catIndex.colors
-        val parentOf = catIndex.parentOf
+        // Roll sub-categories into their parent — except when the user filtered
+        // on a sub-category itself: then the row should be that leaf, not its parent.
+        val parentOf = if (filterState.categoryFilter in catIndex.parentOf) emptyMap() else catIndex.parentOf
         // Determine date range based on selected period. The two "month"
         // periods are special: they follow the user's custom budget cycle
         // (e.g. 25th → 24th) instead of the calendar month, so the analytics

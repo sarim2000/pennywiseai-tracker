@@ -166,6 +166,11 @@ class CategoryMappingTest {
             assertTrue(emoji is IconResource.Emoji, "Expected Emoji but got $emoji")
             assertEquals("\uD83D\uDC36", (emoji as IconResource.Emoji).emoji)
 
+            // An explicit emoji category outranks a recognised brand logo.
+            val branded = IconProvider.getTransactionIcon("Starbucks", "Pets")
+            assertTrue(branded is IconResource.Emoji, "Expected Emoji over brand logo but got $branded")
+            assertTrue(IconProvider.getTransactionIcon("Starbucks", null) is IconResource.DrawableResource)
+
             val vector = IconProvider.getTransactionIcon("Unknown Shop", "Plants") as IconResource.VectorIcon
             assertEquals(CategoryMapping.categories["Others"]!!.icon, vector.icon)
             assertEquals(CategoryMapping.colorFor("Plants", "#43A047"), vector.tint)

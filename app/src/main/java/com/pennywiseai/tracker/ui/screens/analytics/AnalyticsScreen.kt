@@ -990,13 +990,13 @@ private fun CategoryListItem(
                 modifier = Modifier
                     .size(Dimensions.Icon.avatar)
                     .clip(CircleShape)
-                    .background(categoryInfo.color.copy(alpha = 0.1f)),
+                    .background(CategoryMapping.colorFor(category.name).copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 CategoryIcon(
                     category = category.name,
                     size = Dimensions.Icon.medium,
-                    tint = categoryInfo.color
+                    tint = CategoryMapping.colorFor(category.name)
                 )
             }
         },

@@ -267,6 +267,12 @@ object IconProvider {
      * 4. If still not found, use default icon
      */
     fun getTransactionIcon(merchantName: String, category: String?): IconResource {
+        // A user's explicit category emoji outranks the auto-detected brand logo (#760).
+        if (category.isValidCategoryOverride()) {
+            CategoryMapping.emojiFor(category!!)?.let {
+                return IconResource.Emoji(it, CategoryMapping.colorFor(category))
+            }
+        }
         BrandIcons.getIconResource(merchantName)?.let { iconRes ->
             return IconResource.DrawableResource(iconRes)
         }

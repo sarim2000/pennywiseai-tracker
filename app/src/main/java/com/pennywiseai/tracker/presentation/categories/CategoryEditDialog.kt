@@ -79,14 +79,14 @@ fun CategoryEditDialog(
                     supportingText = nameError?.let { { Text(it) } },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
 
@@ -124,7 +124,7 @@ fun CategoryEditDialog(
                 // Icon: one emoji from the keyboard's own picker (#760). Empty = default icon.
                 TextField(
                     value = emoji,
-                    onValueChange = { emoji = lastGrapheme(it) },
+                    onValueChange = { emoji = lastEmoji(it) ?: emoji },
                     label = { Text("Icon (emoji, optional)", fontWeight = FontWeight.SemiBold) },
                     placeholder = { Text("Tap to pick an emoji") },
                     singleLine = true,
@@ -136,14 +136,14 @@ fun CategoryEditDialog(
                         }
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
 
@@ -188,7 +188,7 @@ fun CategoryEditDialog(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (emoji.isNotEmpty()) EmojiGlyph(emoji, Dimensions.Icon.medium * 0.7f)
+                            if (emoji.isNotEmpty()) EmojiGlyph(emoji, Dimensions.Icon.small)
                         }
                         Text(
                             text = name.ifBlank { "Category Name" },
@@ -274,12 +274,18 @@ fun CategoryEditDialog(
     }
 }
 
-/** Keeps only the last user-perceived character, so a multi-codepoint emoji survives but a second one replaces it. */
-private fun lastGrapheme(text: String): String {
+/**
+ * The last user-perceived character of [text], or null if it isn't an emoji.
+ * A multi-codepoint emoji survives; a second one replaces it; plain letters
+ * and punctuation are rejected so the field can't save "c" as an icon.
+ */
+private fun lastEmoji(text: String): String? {
     if (text.isEmpty()) return ""
     val it = java.text.BreakIterator.getCharacterInstance()
     it.setText(text)
     val end = it.last()
     val start = it.previous()
-    return if (start < 0) text else text.substring(start, end)
+    val grapheme = if (start < 0) text else text.substring(start, end)
+    // ponytail: "anything in the symbol/emoji planes" — no full emoji table.
+    return grapheme.takeIf { g -> g.codePoints().anyMatch { cp -> cp >= 0x2600 } }
 }

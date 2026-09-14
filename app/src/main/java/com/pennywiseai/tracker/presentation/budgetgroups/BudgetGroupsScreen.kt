@@ -749,13 +749,13 @@ private fun BudgetCard(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(categoryInfo.color.copy(alpha = 0.12f)),
+                                    .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CategoryIcon(
                                     category = catSpending.categoryName,
                                     size = 18.dp,
-                                    tint = categoryInfo.color
+                                    tint = CategoryMapping.colorFor(catSpending.categoryName)
                                 )
                             }
 

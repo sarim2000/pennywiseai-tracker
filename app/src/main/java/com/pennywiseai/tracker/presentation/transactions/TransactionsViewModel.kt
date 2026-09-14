@@ -85,6 +85,10 @@ class TransactionsViewModel @Inject constructor(
     
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
+
+    /** Drives the period chip's date label (#686). */
+    val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
     
     private val _categoryFilter = MutableStateFlow<String?>(null)
     val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()

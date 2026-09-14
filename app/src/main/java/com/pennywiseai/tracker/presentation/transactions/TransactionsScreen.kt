@@ -65,6 +65,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.profileIcon
@@ -122,6 +123,7 @@ fun TransactionsScreen(
     val sortOption by viewModel.sortOption.collectAsState()
     val availableCategories by viewModel.availableCategories.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsState()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsState()
     val convertedAmounts by viewModel.convertedAmounts.collectAsState()
     val selectedProfileId by viewModel.selectedProfileId.collectAsState()
@@ -199,6 +201,9 @@ fun TransactionsScreen(
     val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
+    }
+    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel) {
+        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel)
     }
     
     // Apply initial filters only once when screen is first created
@@ -407,6 +412,7 @@ fun TransactionsScreen(
             categoryFilter = categoryFilter,
             selectedPeriod = selectedPeriod,
             customRangeLabel = customRangeLabel,
+            periodChipLabel = periodChipLabel,
             transactionTypeFilter = transactionTypeFilter,
             categoryLabel = categoryFilter ?: categoriesFilter?.joinToString(", "),
             hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
@@ -1016,6 +1022,7 @@ private fun TransactionFilterHeader(
     categoryFilter: String?,
     selectedPeriod: TimePeriod,
     customRangeLabel: String?,
+    periodChipLabel: String,
     transactionTypeFilter: TransactionTypeFilter,
     categoryLabel: String?,
     hasCategoryFilter: Boolean,
@@ -1153,11 +1160,7 @@ private fun TransactionFilterHeader(
                     Box {
                         ExpressiveFilterChip(
                             selected = true,
-                            text = if (selectedPeriod == TimePeriod.CUSTOM && customRangeLabel != null) {
-                                customRangeLabel
-                            } else {
-                                selectedPeriod.label
-                            },
+                            text = periodChipLabel,
                             icon = Icons.Default.CalendarMonth,
                             onClick = onPeriodClick
                         )

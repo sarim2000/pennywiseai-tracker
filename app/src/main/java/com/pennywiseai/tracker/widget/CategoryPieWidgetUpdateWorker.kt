@@ -97,13 +97,17 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val (cycleStart, _) = BudgetCycle.currentCycle(now, startDay)
 
+            // Card purchases count when the user opted in (same switch Home uses),
+            // so a split credit purchase lands in the pie like it does in-app (#750).
+            val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
             val expenses = transactionRepository
                 .getTransactionsWithSplitsFiltered(cycleStart, now)
                 .first()
                 // Same exclusions as Home/Analytics/other widgets: loan-linked
                 // rows are the Loans feature's, excluded rows are the user's call.
                 .filter {
-                    it.transaction.transactionType == TransactionType.EXPENSE &&
+                    (it.transaction.transactionType == TransactionType.EXPENSE ||
+                        (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT)) &&
                         it.transaction.loanId == null &&
                         !it.transaction.excludedFromAnalytics
                 }

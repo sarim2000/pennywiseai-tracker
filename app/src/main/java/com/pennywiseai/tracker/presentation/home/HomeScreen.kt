@@ -1168,7 +1168,7 @@ fun HomeScreen(
 
                 // Edit widgets (Middle) — reorder / hide Home sections (#770)
                 MenuListItem(
-                    headline = "Edit widgets",
+                    headline = "Edit home screen",
                     icon = { Icon(Icons.Default.Tune, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
@@ -1251,7 +1251,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
                 Text(
-                    text = "Edit widgets",
+                    text = "Edit home screen",
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()

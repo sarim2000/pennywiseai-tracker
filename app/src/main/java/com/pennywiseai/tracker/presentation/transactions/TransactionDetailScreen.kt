@@ -932,6 +932,28 @@ private fun TransactionReceipt(
                 )
             }
 
+            // Bank balance vs. ledger prediction (#734/#135): surface the gap and
+            // offer to record it as an untracked transaction.
+            val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
+            discrepancy?.let { d ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                DetailInfoRow(
+                    icon = Icons.Default.Warning,
+                    label = "Balance mismatch",
+                    value = "Off by ${CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)} · expected " +
+                        CurrencyFormatter.formatCurrency(d.expected, d.currency)
+                )
+                TextButton(
+                    onClick = { viewModel.addBalanceAdjustment() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (d.delta.signum() < 0) "Add ${CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)} untracked expense"
+                        else "Add ${CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)} untracked income"
+                    )
+                }
+            }
+
             // Reference number (prefer extracted reference, fallback to SMS sender)
             val referenceValue = transaction.reference ?: transaction.smsSender
             referenceValue?.let {

@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
@@ -60,6 +61,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val receiptManager: ReceiptManager,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
+    private val detectBalanceDiscrepancy: com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -233,6 +235,10 @@ class TransactionDetailViewModel @Inject constructor(
     private val _showSplitEditor = MutableStateFlow(false)
     val showSplitEditor: StateFlow<Boolean> = _showSplitEditor.asStateFlow()
 
+    // Bank-reported balance vs. what the ledger predicts (#734/#135); null = consistent.
+    private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?>(null)
+    val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
+
     private val _hasSplits = MutableStateFlow(false)
     val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
     
@@ -307,6 +313,44 @@ class TransactionDetailViewModel @Inject constructor(
                 _budgetImpactType.value = it.budgetImpactType
                 _budgetCategory.value = it.budgetCategory
                 loadAccountProfileId(it)
+                _balanceDiscrepancy.value = runCatching { detectBalanceDiscrepancy.execute(it) }.getOrNull()
+            }
+        }
+    }
+
+    /**
+     * Records the untracked amount behind a balance mismatch as a manual
+     * transaction dated just before this one, on the same account (#734).
+     * No balance row is written: the bank's reported balance already includes
+     * it, so the ledger must not move — the adjustment only explains the gap.
+     */
+    fun addBalanceAdjustment() {
+        val tx = _transaction.value ?: return
+        val d = _balanceDiscrepancy.value ?: return
+        viewModelScope.launch {
+            try {
+                val delta = d.delta
+                transactionRepository.insertTransaction(
+                    TransactionEntity(
+                        amount = delta.abs(),
+                        merchantName = "Balance adjustment",
+                        category = "Others",
+                        transactionType = if (delta.signum() < 0) TransactionType.EXPENSE else TransactionType.INCOME,
+                        dateTime = tx.dateTime.minusSeconds(1),
+                        description = "Untracked amount so the app matches the bank's reported balance of " +
+                            CurrencyFormatter.formatCurrency(d.reported, d.currency),
+                        smsBody = null,
+                        bankName = tx.bankName,
+                        smsSender = null,
+                        accountNumber = tx.accountNumber,
+                        balanceAfter = null,
+                        transactionHash = "manual_balance_adjustment_${tx.id}_${System.currentTimeMillis()}",
+                        currency = d.currency
+                    )
+                )
+                _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
+            } catch (e: Exception) {
+                _errorMessage.value = "Couldn't add the adjustment: ${e.message}"
             }
         }
     }

@@ -257,7 +257,7 @@ fun CadencePill(periodType: BudgetPeriodType) {
 fun BudgetColorDot(hex: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(10.dp)
+            .size(Dimensions.Component.legendDot)
             .clip(CircleShape)
             .background(hex.toColorOr(MaterialTheme.colorScheme.primary))
     )

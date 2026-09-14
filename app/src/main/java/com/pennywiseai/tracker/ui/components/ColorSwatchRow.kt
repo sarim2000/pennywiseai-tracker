@@ -38,7 +38,11 @@ fun String.toColorOr(fallback: Color): Color =
 private fun isLightColor(color: Color): Boolean =
     (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) > 0.5
 
-/** A wrapping row of [PRESET_COLORS] circles; the selected one carries a check. */
+/**
+ * A wrapping row of [PRESET_COLORS] circles; the selected one carries a check.
+ * A stored color outside the palette (e.g. smart-default budgets) is appended
+ * so it still shows as selected.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ColorSwatchRow(
@@ -48,31 +52,40 @@ fun ColorSwatchRow(
 ) {
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        PRESET_COLORS.forEach { colorHex ->
+        val colors = if (selected in PRESET_COLORS || selected.isBlank()) PRESET_COLORS else PRESET_COLORS + selected
+        colors.forEach { colorHex ->
             val color = colorHex.toColorOr(MaterialTheme.colorScheme.primary)
             val isSelected = selected == colorHex
+            // 48dp hit area around a 36dp visual circle.
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(Dimensions.Component.minTouchTarget)
                     .clip(CircleShape)
-                    .background(color)
-                    .then(
-                        if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                        else Modifier
-                    )
                     .clickable { onSelect(colorHex) },
                 contentAlignment = Alignment.Center
             ) {
-                if (isSelected) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                        .then(
+                            if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            else Modifier
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                    }
                 }
             }
         }

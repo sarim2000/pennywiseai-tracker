@@ -43,6 +43,7 @@ import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
@@ -209,6 +210,15 @@ fun BudgetGroupEditScreen(
                     onNameDone = { isEditingName = false },
                     onAmountDone = { isEditingAmount = false }
                 )
+            }
+
+            // Color (#763) — shown as a dot next to the name wherever the budget appears.
+            item {
+                SectionHeaderV2(title = "Color")
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                    ColorSwatchRow(selected = uiState.color, onSelect = { viewModel.updateColor(it) })
+                }
             }
 
             // Budget Period — three cadences:
@@ -623,17 +633,30 @@ private fun BudgetHeaderCard(
                         }
                     )
                 } else {
-                    Text(
-                        text = name.ifEmpty { "Budget name" },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (name.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = Modifier
                             .clickable { onNameTap() }
                             .padding(vertical = Spacing.xs)
-                    )
+                    ) {
+                        Text(
+                            text = name.ifEmpty { "Budget name" },
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (name.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        // Affordance: the name looked static, so users never found it (#763)
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit name",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                    }
                 }
             }
 

@@ -674,9 +674,9 @@ class TransactionDetailViewModel @Inject constructor(
     fun enableSplitMode() {
         val transaction = _editableTransaction.value ?: _transaction.value ?: return
 
-        // Only allow splits for expenses
-        if (transaction.transactionType != TransactionType.EXPENSE) {
-            _errorMessage.value = "Splits are only available for expenses"
+        // Splits are for spends: account expenses and credit-card purchases (#750).
+        if (transaction.transactionType !in SPLITTABLE_TYPES) {
+            _errorMessage.value = "Splits are only available for expenses and card purchases"
             return
         }
 
@@ -1189,4 +1189,9 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+
+    companion object {
+        /** Types a transaction can be split across categories (#750). */
+        val SPLITTABLE_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
+    }
 }

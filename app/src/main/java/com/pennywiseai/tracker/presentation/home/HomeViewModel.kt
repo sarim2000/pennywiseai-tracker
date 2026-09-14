@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.home
 
+import com.pennywiseai.tracker.data.preferences.HomeSection
+import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
@@ -113,6 +115,30 @@ class HomeViewModel @Inject constructor(
     val groupSummaries: StateFlow<List<com.pennywiseai.tracker.data.repository.GroupSummary>> =
         transactionGroupRepository.observeGroupSummaries()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Home section order + visibility (#770); default until DataStore emits. */
+    val homeSectionLayout: StateFlow<List<Pair<HomeSection, Boolean>>> =
+        userPreferencesRepository.homeSectionLayout
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeSectionLayout.DEFAULT)
+
+    fun moveHomeSection(section: HomeSection, delta: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { layout ->
+                val from = layout.indexOfFirst { it.first == section }
+                val to = from + delta
+                if (from < 0 || to !in layout.indices) layout
+                else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
+            }
+        }
+    }
+
+    fun setHomeSectionVisible(section: HomeSection, visible: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { layout ->
+                layout.map { if (it.first == section) section to visible else it }
+            }
+        }
+    }
 
     /**
      * The user's current budget cycle window (start, end). Recomputed whenever

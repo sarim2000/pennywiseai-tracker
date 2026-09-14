@@ -46,6 +46,13 @@ interface CategoryDao {
 
     @Query("SELECT * FROM categories WHERE id = :categoryId")
     suspend fun getCategoryById(categoryId: Long): CategoryEntity?
+
+    @Query("SELECT * FROM categories ORDER BY display_order ASC, name ASC")
+    suspend fun getAllCategoriesList(): List<CategoryEntity>
+
+    /** Deleting a parent promotes its children to top level (#374). */
+    @Query("UPDATE categories SET parent_id = NULL WHERE parent_id = :parentId")
+    suspend fun detachChildren(parentId: Long)
     
     @Query("SELECT * FROM categories WHERE name = :categoryName LIMIT 1")
     suspend fun getCategoryByName(categoryName: String): CategoryEntity?

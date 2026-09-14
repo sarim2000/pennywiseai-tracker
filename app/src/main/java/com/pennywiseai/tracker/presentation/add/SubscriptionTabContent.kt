@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
@@ -345,7 +346,12 @@ fun SubscriptionTabContent(
                     ) {
                         categories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category.name) },
+                                text = {
+                                    Text(
+                                        category.name,
+                                        modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)
+                                    )
+                                },
                                 onClick = {
                                     viewModel.updateSubscriptionCategory(category.name)
                                     showCategoryMenu = false

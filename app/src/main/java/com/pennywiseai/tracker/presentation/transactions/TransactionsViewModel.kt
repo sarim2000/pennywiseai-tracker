@@ -7,6 +7,8 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.expandWithChildren
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
@@ -752,7 +754,11 @@ class TransactionsViewModel @Inject constructor(
                         // discard it (#749). Observed, so a split edit refreshes the chips.
                         transactionSplitDao.observeSplitsForTransactions(transactions.map { it.id })
                             .map { splits ->
-                                (transactions.map { it.category } + splits.map { it.category }).distinct().sorted()
+                                // Parents of present sub-categories are filterable too (#374),
+                                // and the auto-clear below must not drop them.
+                                val present = (transactions.map { it.category } + splits.map { it.category }).distinct()
+                                val parentOf = this@TransactionsViewModel.categories.value.values.toList().parentNameOf()
+                                (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
                             }
                     }
                     .collect { emit(it) }
@@ -784,6 +790,7 @@ class TransactionsViewModel @Inject constructor(
             sortOption.map { "sort" },
             customDateRange.map { "customDate" },
             transactionTagsMap.map { "tags" },
+            categories.map { "categoryIndex" },
             merchantAliases.map { "aliases" }
         )
             .transformLatest { trigger ->
@@ -1261,8 +1268,9 @@ class TransactionsViewModel @Inject constructor(
         // matching on `category` alone found nothing for either — and the
         // available-categories auto-clear then dropped the filter and showed
         // everything (#749).
-        val effectiveCategories = categories?.takeIf { it.isNotEmpty() }
-            ?: category?.let { listOf(it) }
+        // A parent category includes its sub-categories (#374).
+        val effectiveCategories = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
+            ?.let { this.categories.value.values.toList().expandWithChildren(it) }
         val baseFlow = transactionRepository.getAllTransactions()
 
         // Apply the category filter. A transaction is included if its main category OR

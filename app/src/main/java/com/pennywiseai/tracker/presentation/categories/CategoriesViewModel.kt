@@ -67,7 +67,8 @@ class CategoriesViewModel @Inject constructor(
         name: String,
         color: String,
         isIncome: Boolean,
-        icon: String? = null
+        icon: String? = null,
+        parentId: Long? = null
     ) {
         viewModelScope.launch {
             try {
@@ -80,7 +81,8 @@ class CategoriesViewModel @Inject constructor(
                             name = name,
                             color = color,
                             isIncome = isIncome,
-                            icon = icon
+                            icon = icon,
+                            parentId = parentId
                         )
                     )
                     _snackbarMessage.value = "Category updated successfully"
@@ -96,7 +98,8 @@ class CategoriesViewModel @Inject constructor(
                         name = name,
                         color = color,
                         isIncome = isIncome,
-                        icon = icon
+                        icon = icon,
+                        parentId = parentId
                     )
                     _snackbarMessage.value = "Category created successfully"
                 }

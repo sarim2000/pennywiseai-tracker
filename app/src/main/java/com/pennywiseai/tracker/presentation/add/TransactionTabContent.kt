@@ -491,7 +491,12 @@ fun TransactionTabContent(
                         ) {
                             categories.forEach { category ->
                                 DropdownMenuItem(
-                                    text = { Text(category.name) },
+                                    text = {
+                                        Text(
+                                            category.name,
+                                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else 0.dp)
+                                        )
+                                    },
                                     onClick = {
                                         viewModel.updateTransactionCategory(category.name)
                                         showCategoryMenu = false

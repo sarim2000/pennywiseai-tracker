@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -91,6 +92,22 @@ fun getCycleAwareDateRange(
         cycleStartDay
     )
     else -> getDateRangeForPeriod(period)
+}
+
+/**
+ * Chip text for a period. A cycle-following period on a non-calendar cycle
+ * shows its resolved dates ("Sep 11 - Oct 10") — a bare "This Month" made
+ * the chart look truncated at the cycle boundary (#686).
+ */
+fun TimePeriod.chipLabel(
+    cycleStartDay: Int,
+    customRangeLabel: String?,
+    today: LocalDate = LocalDate.now()
+): String = when {
+    this == TimePeriod.CUSTOM && customRangeLabel != null -> customRangeLabel
+    followsBudgetCycle && cycleStartDay != 1 ->
+        DateRangeUtils.formatDateRange(getCycleAwareDateRange(this, cycleStartDay, today)) ?: label
+    else -> label
 }
 
 /**

@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
@@ -81,6 +82,7 @@ fun AnalyticsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
+    val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsStateWithLifecycle()
     val isUnifiedMode by viewModel.isUnifiedMode.collectAsStateWithLifecycle()
     val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
     val categoryFilter by viewModel.categoryFilter.collectAsStateWithLifecycle()
@@ -110,6 +112,9 @@ fun AnalyticsScreen(
     val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
+    }
+    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel) {
+        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel)
     }
     // Carry the custom range through drill-down navigation so the Transactions
     // screen (and its CSV export) shows exactly the slice being viewed here.
@@ -164,6 +169,7 @@ fun AnalyticsScreen(
             AnalyticsFilterBar(
                 selectedPeriod = selectedPeriod,
                 customRangeLabel = customRangeLabel,
+                periodChipLabel = periodChipLabel,
                 timePeriods = timePeriods,
                 transactionTypeFilter = transactionTypeFilter,
                 selectedCurrency = selectedCurrency,
@@ -648,6 +654,7 @@ private fun TagBreakdownLockedCard(onClick: () -> Unit) {
 private fun AnalyticsFilterBar(
     selectedPeriod: TimePeriod,
     customRangeLabel: String?,
+    periodChipLabel: String,
     timePeriods: List<TimePeriod>,
     transactionTypeFilter: TransactionTypeFilter,
     selectedCurrency: String,
@@ -743,11 +750,7 @@ private fun AnalyticsFilterBar(
                         selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null
                     ),
                     selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null,
-                    text = if (selectedPeriod == TimePeriod.CUSTOM && customRangeLabel != null) {
-                        customRangeLabel
-                    } else {
-                        selectedPeriod.label
-                    },
+                    text = periodChipLabel,
                     icon = Icons.Default.CalendarMonth,
                     onClick = onPeriodClick
                 )

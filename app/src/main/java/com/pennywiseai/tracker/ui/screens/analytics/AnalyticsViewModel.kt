@@ -72,6 +72,10 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
+
+    /** Drives the period chip's date label (#686). */
+    val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
     
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
@@ -150,7 +154,9 @@ class AnalyticsViewModel @Inject constructor(
     // Reactive UI state that automatically updates when any filter changes
     // Uses flatMapLatest to cancel previous data loads when filters change (prevents race conditions)
     val uiState: StateFlow<AnalyticsUiState> = combine(
-        _selectedPeriod,
+        // Re-emit the period when the cycle start day changes so the data
+        // reloads along with the chip label (#686).
+        combine(_selectedPeriod, budgetCycleStartDay) { period, _ -> period },
         customDateRange,
         _transactionTypeFilter,
         _selectedCurrency,

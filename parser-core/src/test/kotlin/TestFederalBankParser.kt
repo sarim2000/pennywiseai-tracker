@@ -376,6 +376,21 @@ class FederalBankParserTest {
                     balance = BigDecimal("7517.94"),
                     isFromCard = false
                 )
+            ),
+
+            // New FEDSMS sender (#761)
+            ParserTestCase(
+                name = "Credit from FEDSMS sender",
+                message = "Dear Customer, Rs.123 credited to your A/c XX1234 on 01JAN2026 12:00:00. BAL-Rs.1234.56-Federal Bank",
+                sender = "AX-FEDSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("123"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("1234.56"),
+                    isFromCard = false
+                )
             )
         )
 
@@ -383,6 +398,8 @@ class FederalBankParserTest {
             "AD-FEDBNK" to true,
             "JM-FEDBNK" to true,
             "AX-FEDBNK-S" to true,
+            "AX-FEDSMS-S" to true,
+            "AD-FEDSMS-S" to true,
             "ADCBAlert" to false,
             "SBI" to false,
             "" to false

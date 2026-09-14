@@ -14,7 +14,7 @@ import java.math.BigDecimal
  * - ATM withdrawals
  * - NEFT/IMPS transfers
  *
- * Sender patterns: AD-FEDBNK-S, JM-FEDBNK-S, etc.
+ * Sender patterns: AD-FEDBNK-S, JM-FEDBNK-S, AX-FEDSMS-S, etc.
  */
 class FederalBankParser : BaseIndianBankParser() {
 
@@ -25,6 +25,7 @@ class FederalBankParser : BaseIndianBankParser() {
         return normalizedSender.contains("FEDBNK") ||
                 normalizedSender.contains("FEDERAL") ||
                 normalizedSender.contains("FEDFIB") ||
+                normalizedSender.contains("FEDSMS") ||
                 normalizedSender.contains("FEDSCP") ||
                 // DLT patterns for transactions (-S suffix)
                 normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||

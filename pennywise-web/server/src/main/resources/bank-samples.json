@@ -794,14 +794,14 @@
     },
     "National Bank of Egypt": {
       "sender": "BanK-AlAhly",
-      "message": "تم خصم 5000 EGP من بطاقة الخصم المباشر رقم3444 عندNBE ATM546 يوم03/09/26 الساعة21:13 المتاح3904.34EGP للمزيد اتصل ب ١٩٦٢٣",
+      "message": "تم خصم 200 EGP من بطاقة الخصم المباشر رقم2222 عندNBE ATM546 يوم03/09/26 الساعة21:13 المتاح800.00EGP للمزيد اتصل ب 10000",
       "currency": "EGP",
-      "amount": "5000",
+      "amount": "200",
       "type": "EXPENSE",
       "merchant": "NBE ATM546",
-      "accountLast4": "3444",
+      "accountLast4": "2222",
       "reference": null,
-      "balance": "3904.34"
+      "balance": "800.00"
     },
     "National Development Bank": {
       "sender": "NDB ALERT",

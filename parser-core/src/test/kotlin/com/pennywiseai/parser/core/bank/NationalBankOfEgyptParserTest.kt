@@ -5,6 +5,8 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -17,16 +19,16 @@ class NationalBankOfEgyptParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Credit card spend, جم currency (EXPENSE, available limit)",
-                message = "تم خصم 220.8 جم من بطاقة الائتمان رقم 9888 عند KASHIERFast " +
-                    "يوم 09-10 الساعة 10:11 المتاح 26032.76 جم للمزيد اتصل ب 19623.",
+                message = "تم خصم 100.50 جم من بطاقة الائتمان رقم 1111 عند KASHIERFast " +
+                    "يوم 09-10 الساعة 10:11 المتاح 9000.00 جم للمزيد اتصل ب 10000.",
                 sender = "BanK-AlAhly",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("220.8"),
+                    amount = BigDecimal("100.50"),
                     currency = "EGP",
                     type = TransactionType.EXPENSE,
                     merchant = "KASHIERFast",
-                    accountLast4 = "9888",
-                    creditLimit = BigDecimal("26032.76"),
+                    accountLast4 = "1111",
+                    creditLimit = BigDecimal("9000.00"),
                     isFromCard = true
                 )
             ),
@@ -34,45 +36,45 @@ class NationalBankOfEgyptParserTest {
                 name = "Debit card ATM withdrawal, no spaces, EGP token (EXPENSE, balance)",
                 // Kept as one literal on purpose: BankSamplesDocTest harvests the
                 // message literal and cannot follow a concatenation.
-                message = "تم خصم 5000 EGP من بطاقة الخصم المباشر رقم3444 عندNBE ATM546 يوم03/09/26 الساعة21:13 المتاح3904.34EGP للمزيد اتصل ب ١٩٦٢٣",
+                message = "تم خصم 200 EGP من بطاقة الخصم المباشر رقم2222 عندNBE ATM546 يوم03/09/26 الساعة21:13 المتاح800.00EGP للمزيد اتصل ب 10000",
                 sender = "BanK-AlAhly",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("5000"),
+                    amount = BigDecimal("200"),
                     currency = "EGP",
                     type = TransactionType.EXPENSE,
                     merchant = "NBE ATM546",
-                    accountLast4 = "3444",
-                    balance = BigDecimal("3904.34"),
+                    accountLast4 = "2222",
+                    balance = BigDecimal("800.00"),
                     isFromCard = true
                 )
             ),
             ParserTestCase(
                 name = "Credit card spend, multi-word merchant (EXPENSE, available limit)",
-                message = "تم خصم 1332 جم من بطاقة الائتمان رقم 9999 عند ASWAK FATHALLA " +
-                    "يوم 08-31 الساعة 21:20 المتاح 28720.51 جم للمزيد اتصل ب 19623.",
+                message = "تم خصم 300 جم من بطاقة الائتمان رقم 3333 عند ASWAK FATHALLA " +
+                    "يوم 08-31 الساعة 21:20 المتاح 7000.00 جم للمزيد اتصل ب 10000.",
                 sender = "BanK-AlAhly",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("1332"),
+                    amount = BigDecimal("300"),
                     currency = "EGP",
                     type = TransactionType.EXPENSE,
                     merchant = "ASWAK FATHALLA",
-                    accountLast4 = "9999",
-                    creditLimit = BigDecimal("28720.51"),
+                    accountLast4 = "3333",
+                    creditLimit = BigDecimal("7000.00"),
                     isFromCard = true
                 )
             ),
             ParserTestCase(
                 name = "Instant transfer received (INCOME, not a card)",
-                message = "تم إضافة تحويل لحظي لحسابكم رقم 4144 بمبلغ 120.00 جم من محمد محمد " +
-                    "رقم مرجعي 499601593024 يوم 09-10 الساعة 20:11 للمزيد اتصل بـ 19623",
+                message = "تم إضافة تحويل لحظي لحسابكم رقم 4444 بمبلغ 400.00 جم من محمد محمد " +
+                    "رقم مرجعي 123456789012 يوم 09-10 الساعة 20:11 للمزيد اتصل بـ 10000",
                 sender = "BanK-AlAhly",
                 expected = ExpectedTransaction(
-                    amount = BigDecimal("120.00"),
+                    amount = BigDecimal("400.00"),
                     currency = "EGP",
                     type = TransactionType.INCOME,
                     merchant = "محمد محمد",
-                    reference = "499601593024",
-                    accountLast4 = "4144",
+                    reference = "123456789012",
+                    accountLast4 = "4444",
                     isFromCard = false
                 )
             )
@@ -88,5 +90,13 @@ class NationalBankOfEgyptParserTest {
         )
 
         return ParserTestUtils.runTestSuite(parser, cases, handleCases, "NBE Parser")
+    }
+
+    @Test
+    fun `NBE sender routes through the factory`() {
+        assertTrue(
+            BankParserFactory.getParser("BanK-AlAhly") is NationalBankOfEgyptParser,
+            "BanK-AlAhly should route to NationalBankOfEgyptParser via the factory"
+        )
     }
 }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -34,7 +35,10 @@ class ChatViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val llmRepository: LlmRepository,
     private val modelRepository: ModelRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase,
+    private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository
 ) : ViewModel() {
 
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -153,6 +157,66 @@ class ChatViewModel @Inject constructor(
         )
     }
     
+    // Transaction the model proposed; shown as a confirm card (#170). Nothing
+    // is written until the user taps Add.
+    val pendingAction: StateFlow<com.pennywiseai.tracker.data.model.PendingChatAction?> = llmRepository.pendingAction
+
+    val baseCurrency: StateFlow<String> = userPreferencesRepository.baseCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
+
+    fun dismissPendingAction() = llmRepository.clearPendingAction()
+
+    fun confirmPendingAction() {
+        val action = pendingAction.value ?: return
+        viewModelScope.launch {
+            try {
+                val currency = userPreferencesRepository.baseCurrency.first()
+                val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+                when (action) {
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
+                        deleteTransactionUseCase(action.transaction)
+                        llmRepository.clearPendingAction()
+                        llmRepository.appendAssistantMessage("Deleted ${fmt(action.transaction.amount)} at ${action.transaction.merchantName}.")
+                        return@launch
+                    }
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
+                        action.newCategory?.let { transactionRepository.updateCategory(action.transaction.id, it) }
+                        action.newMerchant?.let { m ->
+                            val current = transactionRepository.getTransactionById(action.transaction.id) ?: action.transaction
+                            transactionRepository.updateTransaction(current.copy(merchantName = m, updatedAt = java.time.LocalDateTime.now()))
+                        }
+                        llmRepository.clearPendingAction()
+                        llmRepository.appendAssistantMessage(
+                            "Updated ${fmt(action.transaction.amount)} at ${action.newMerchant ?: action.transaction.merchantName}" +
+                                (action.newCategory?.let { " → $it" } ?: "") + "."
+                        )
+                        return@launch
+                    }
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> Unit
+                }
+                val draft = action.draft
+                addTransactionUseCase.execute(
+                    amount = draft.amount,
+                    merchant = draft.merchant,
+                    category = draft.category,
+                    type = draft.type,
+                    date = java.time.LocalDateTime.now(),
+                    notes = "Added from chat: \"${draft.sourceText}\"",
+                    bankName = draft.bankName,
+                    accountLast4 = draft.accountLast4,
+                    currency = currency
+                )
+                llmRepository.clearPendingAction()
+                llmRepository.appendAssistantMessage(
+                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} " +
+                        "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Couldn't apply that: ${e.message}")
+            }
+        }
+    }
+
     fun sendMessage(message: String) {
         if (message.isBlank() || _uiState.value.isLoading) return
         

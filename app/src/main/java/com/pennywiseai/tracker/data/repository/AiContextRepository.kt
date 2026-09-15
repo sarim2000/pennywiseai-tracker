@@ -155,7 +155,14 @@ class AiContextRepository @Inject constructor(
             .take(10) // Limit to 10 subscriptions
     }
     
-    private suspend fun getTopCategories(currentDate: LocalDate, baseCurrency: String): List<CategorySpending> {
+    /** This month's spend in one category, for the chat's lookup tool (#170). Null = nothing found. */
+    suspend fun getCategorySpending(category: String): CategorySpending? {
+        val baseCurrency = userPreferencesRepository.baseCurrency.first()
+        return getTopCategories(LocalDate.now(), baseCurrency, limit = Int.MAX_VALUE)
+            .firstOrNull { it.category.equals(category, ignoreCase = true) }
+    }
+
+    private suspend fun getTopCategories(currentDate: LocalDate, baseCurrency: String, limit: Int = 5): List<CategorySpending> {
         val yearMonth = YearMonth.from(currentDate)
         val startOfMonth = yearMonth.atDay(1)
         val endOfMonth = yearMonth.atEndOfMonth()
@@ -198,7 +205,7 @@ class AiContextRepository @Inject constructor(
             )
         }
             .sortedByDescending { it.amount }
-            .take(5) // Top 5 categories
+            .take(limit)
     }
     
     private suspend fun getQuickStats(currentDate: LocalDate, baseCurrency: String): QuickStats {

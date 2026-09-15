@@ -10,6 +10,10 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.tool
+import com.pennywiseai.tracker.domain.service.LlmEvent
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.transform
 import com.pennywiseai.tracker.domain.service.LlmService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +52,8 @@ class LlmServiceImpl @Inject constructor(
 
     override suspend fun createConversation(
         systemPrompt: String,
-        history: List<Pair<String, Boolean>>
+        history: List<Pair<String, Boolean>>,
+        withTools: Boolean
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val currentEngine = engine ?: return@withContext Result.failure(
@@ -65,6 +70,10 @@ class LlmServiceImpl @Inject constructor(
             val conversationConfig = ConversationConfig(
                 systemInstruction = Contents.of(systemPrompt),
                 initialMessages = initialMessages,
+                // Tool calls are surfaced, never auto-executed (#170): every
+                // mutation goes through the user first.
+                tools = if (withTools) listOf(tool(PennyWiseTools())) else emptyList(),
+                automaticToolCalling = false,
                 samplerConfig = SamplerConfig(
                     topK = 10,
                     topP = 0.95,
@@ -81,7 +90,10 @@ class LlmServiceImpl @Inject constructor(
         }
     }
 
-    override fun sendMessage(message: String): Flow<String> {
+    override fun sendMessage(message: String): Flow<String> =
+        sendMessageEvents(message).mapNotNull { (it as? LlmEvent.Text)?.delta }
+
+    override fun sendMessageEvents(message: String): Flow<LlmEvent> {
         val activeConversation = conversation
             ?: throw IllegalStateException("No active conversation")
 
@@ -92,10 +104,12 @@ class LlmServiceImpl @Inject constructor(
                 Log.e(TAG, "Error during streaming response", e)
                 throw e
             }
-            .map { message ->
-                message.contents.contents
+            .transform { chunk ->
+                val text = chunk.contents.contents
                     .filterIsInstance<com.google.ai.edge.litertlm.Content.Text>()
                     .joinToString("") { it.text }
+                if (text.isNotEmpty()) emit(LlmEvent.Text(text))
+                chunk.toolCalls.forEach { emit(LlmEvent.ToolCall(it.name, it.arguments)) }
             }
             .flowOn(Dispatchers.IO)
     }

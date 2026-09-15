@@ -733,7 +733,6 @@ fun DeveloperInfoCard(
     }
 }
 
-@Composable
 private val THINKING_LINES = listOf(
     "Reading that…",
     "Working it out…",

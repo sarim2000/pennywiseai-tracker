@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -34,7 +35,8 @@ class ChatViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val llmRepository: LlmRepository,
     private val modelRepository: ModelRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 ) : ViewModel() {
 
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -153,6 +155,42 @@ class ChatViewModel @Inject constructor(
         )
     }
     
+    // Transaction the model proposed; shown as a confirm card (#170). Nothing
+    // is written until the user taps Add.
+    val pendingTransaction: StateFlow<com.pennywiseai.tracker.data.model.TransactionDraft?> = llmRepository.pendingTransaction
+
+    val baseCurrency: StateFlow<String> = userPreferencesRepository.baseCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
+
+    fun dismissPendingTransaction() = llmRepository.clearPendingTransaction()
+
+    fun confirmPendingTransaction() {
+        val draft = pendingTransaction.value ?: return
+        viewModelScope.launch {
+            try {
+                val currency = userPreferencesRepository.baseCurrency.first()
+                addTransactionUseCase.execute(
+                    amount = draft.amount,
+                    merchant = draft.merchant,
+                    category = draft.category,
+                    type = draft.type,
+                    date = java.time.LocalDateTime.now(),
+                    notes = "Added from chat: \"${draft.sourceText}\"",
+                    bankName = draft.bankName,
+                    accountLast4 = draft.accountLast4,
+                    currency = currency
+                )
+                llmRepository.clearPendingTransaction()
+                llmRepository.appendAssistantMessage(
+                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} " +
+                        "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Couldn't add the transaction: ${e.message}")
+            }
+        }
+    }
+
     fun sendMessage(message: String) {
         if (message.isBlank() || _uiState.value.isLoading) return
         

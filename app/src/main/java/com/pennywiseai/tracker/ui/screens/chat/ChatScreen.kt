@@ -53,6 +53,8 @@ fun ChatScreen(
     val modelState by viewModel.modelState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
+    val pendingTransaction by viewModel.pendingTransaction.collectAsStateWithLifecycle()
+    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -391,6 +393,18 @@ fun ChatScreen(
 
                             items(messages) { message ->
                                 ChatMessageItem(message = message)
+                            }
+
+                            // A transaction the model proposed — the user confirms it (#170)
+                            pendingTransaction?.let { draft ->
+                                item {
+                                    PendingTransactionCard(
+                                        draft = draft,
+                                        currency = baseCurrency,
+                                        onConfirm = { viewModel.confirmPendingTransaction() },
+                                        onDismiss = { viewModel.dismissPendingTransaction() }
+                                    )
+                                }
                             }
 
                             // Show streaming response if available
@@ -881,6 +895,46 @@ private fun ChatEmptyState(
                         )
                     }
                 )
+            }
+        }
+    }
+}
+
+/** Confirm card for a transaction the AI proposed (#170). Add writes it; Cancel drops it. */
+@Composable
+private fun PendingTransactionCard(
+    draft: com.pennywiseai.tracker.data.model.TransactionDraft,
+    currency: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    PennyWiseCardV2(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                text = if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "Add income?" else "Add expense?",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} · ${draft.merchant}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "${draft.category} · ${draft.accountLabel} · today",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("Add") }
             }
         }
     }

@@ -53,7 +53,7 @@ fun ChatScreen(
     val modelState by viewModel.modelState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
-    val pendingTransaction by viewModel.pendingTransaction.collectAsStateWithLifecycle()
+    val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
     val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
@@ -398,13 +398,13 @@ fun ChatScreen(
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
-                            pendingTransaction?.let { draft ->
+                            pendingAction?.let { action ->
                                 item {
-                                    PendingTransactionCard(
-                                        draft = draft,
+                                    PendingActionCard(
+                                        action = action,
                                         currency = baseCurrency,
-                                        onConfirm = { viewModel.confirmPendingTransaction() },
-                                        onDismiss = { viewModel.dismissPendingTransaction() }
+                                        onConfirm = { viewModel.confirmPendingAction() },
+                                        onDismiss = { viewModel.dismissPendingAction() }
                                     )
                                 }
                             }
@@ -922,41 +922,50 @@ private fun ChatEmptyState(
     }
 }
 
-/** Confirm card for a transaction the AI proposed (#170). Add writes it; Cancel drops it. */
+/** Confirm card for an action the AI proposed (#170): add, delete or update. Nothing happens without the tap. */
 @Composable
-private fun PendingTransactionCard(
-    draft: com.pennywiseai.tracker.data.model.TransactionDraft,
+private fun PendingActionCard(
+    action: com.pennywiseai.tracker.data.model.PendingChatAction,
     currency: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+    val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
+    val (title, headline, detail, button) = when (action) {
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
+            val d = action.draft
+            listOf(if (d.type == income) "Add income?" else "Add expense?", "${fmt(d.amount)} · ${d.merchant}", "${d.category} · ${d.accountLabel} · today", "Add")
+        }
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
+            val t = action.transaction
+            listOf("Delete this transaction?", "${fmt(t.amount)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}", "Delete")
+        }
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
+            val t = action.transaction
+            val changes = listOfNotNull(action.newMerchant?.let { "merchant → $it" }, action.newCategory?.let { "category → $it" }).joinToString(", ")
+            listOf("Update this transaction?", "${fmt(t.amount)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}\n$changes", "Update")
+        }
+    }
+    val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
+        )
     ) {
+        val fg = if (isDelete) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(
-                text = if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "Add income?" else "Add expense?",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Text(
-                text = "${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} · ${draft.merchant}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Text(
-                text = "${draft.category} · ${draft.accountLabel} · today",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
+            Text(text = title, style = MaterialTheme.typography.labelMedium, color = fg)
+            Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
+            Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("Add") }
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+                ) { Text(button) }
             }
         }
     }

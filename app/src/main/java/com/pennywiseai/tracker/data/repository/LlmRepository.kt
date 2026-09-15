@@ -9,6 +9,9 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.data.model.TransactionDraft
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.model.TransactionFinder
+import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,15 +34,16 @@ class LlmRepository @Inject constructor(
     private val aiContextRepository: AiContextRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val categoryRepository: CategoryRepository,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val transactionRepository: TransactionRepository
 ) {
 
     // A transaction the model proposed via the add_transaction tool (#170),
     // waiting for the user's confirmation on the chat screen. Never auto-saved.
-    private val _pendingTransaction = MutableStateFlow<TransactionDraft?>(null)
-    val pendingTransaction: StateFlow<TransactionDraft?> = _pendingTransaction.asStateFlow()
+    private val _pendingAction = MutableStateFlow<PendingChatAction?>(null)
+    val pendingAction: StateFlow<PendingChatAction?> = _pendingAction.asStateFlow()
 
-    fun clearPendingTransaction() { _pendingTransaction.value = null }
+    fun clearPendingAction() { _pendingAction.value = null }
 
     /** Adds an assistant line to the history (e.g. "Added ₹120 at Starbucks"). */
     suspend fun appendAssistantMessage(text: String) {
@@ -152,6 +156,12 @@ class LlmRepository @Inject constructor(
             if (responseBuilder.isNotEmpty()) { responseBuilder.append("\n"); emit("\n") }
             responseBuilder.append(line); emit(line)
         }
+        // A small model sometimes narrates a change instead of calling the tool.
+        // Nothing happened — say so, or the user walks away believing it did.
+        if (toolCalls.isEmpty() && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
+            val note = "\n(Nothing was changed — I can only add, update or delete through a confirmation card. Try: \"change the tea to Groceries\" or \"delete the tea from today\".)"
+            responseBuilder.append(note); emit(note)
+        }
 
         // Save the complete AI response
         val finalResponse = responseBuilder.toString()
@@ -227,7 +237,25 @@ class LlmRepository @Inject constructor(
      * Resolves one tool call into a line for the chat. Returns null when there's
      * nothing to say (the transaction card carries its own text).
      */
-    private suspend fun handleToolCall(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
+    private suspend fun handleToolCall(call: LlmEvent.ToolCall, userMessage: String): String? {
+        if (com.pennywiseai.tracker.BuildConfig.DEBUG) Log.d(TAG, "tool call ${call.name} ${call.arguments.keys}")
+        return handleToolCallInner(call, userMessage)
+    }
+
+    /** LiteRT-LM snake_cases parameter names (daysAgo → days_ago); accept either. */
+    private fun Map<String, Any?>.arg(camel: String): Any? =
+        this[camel] ?: this[camel.replace(Regex("([A-Z])")) { "_" + it.value.lowercase() }]
+
+    /** Category the user named, tolerant of "Food", "food and dining", "FOOD & DINING". */
+    private fun matchCategory(wanted: String, categories: List<com.pennywiseai.tracker.data.database.entity.CategoryEntity>): String? {
+        val norm = { x: String -> x.lowercase().replace("&", "and").replace(Regex("[^a-z0-9]+"), " ").trim() }
+        val w = norm(wanted); if (w.isEmpty()) return null
+        return categories.firstOrNull { norm(it.name) == w }?.name
+            ?: categories.firstOrNull { norm(it.name).startsWith(w) || w.startsWith(norm(it.name)) }?.name
+            ?: categories.firstOrNull { norm(it.name).split(" ").first() == w.split(" ").first() }?.name
+    }
+
+    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
         PennyWiseTools.ADD_TRANSACTION -> {
             val draft = TransactionDraft.fromToolArgs(
                 args = call.arguments,
@@ -239,10 +267,33 @@ class LlmRepository @Inject constructor(
             if (draft == null) {
                 "I couldn't work out the amount. Try something like \"coffee 120 at Starbucks\"."
             } else {
-                _pendingTransaction.value = draft
+                _pendingAction.value = PendingChatAction.Add(draft)
                 val currency = userPreferencesRepository.baseCurrency.first()
                 "Here's what I'll add — confirm below:\n${CurrencyFormatter.formatCurrency(draft.amount, currency)} " +
                     "${if (draft.type == TransactionType.INCOME) "from" else "at"} ${draft.merchant} · ${draft.category} · ${draft.accountLabel}"
+            }
+        }
+        PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
+            val target = findTransaction(call.arguments)
+            val currency = userPreferencesRepository.baseCurrency.first()
+            if (target == null) {
+                "I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount."
+            } else if (call.name == PennyWiseTools.DELETE_TRANSACTION) {
+                _pendingAction.value = PendingChatAction.Delete(target)
+                "Delete this one? Confirm below:\n${describe(target, currency)}"
+            } else {
+                val newCategory = (call.arguments.arg("newCategory") as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { wanted ->
+                    matchCategory(wanted, categoryRepository.getVisibleCategories().first())
+                }?.takeIf { it != target.category }
+                val newMerchant = (call.arguments.arg("newMerchant") as? String)?.trim()
+                    ?.takeIf { it.isNotEmpty() && !it.equals(target.merchantName, ignoreCase = true) }
+                if (newCategory == null && newMerchant == null) {
+                    "What should I change it to? Say a category from your list or a new merchant name."
+                } else {
+                    _pendingAction.value = PendingChatAction.Update(target, newCategory, newMerchant)
+                    "Update this one? Confirm below:\n${describe(target, currency)} → " +
+                        listOfNotNull(newMerchant?.let { "merchant $it" }, newCategory?.let { "category $it" }).joinToString(", ")
+                }
             }
         }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
@@ -254,6 +305,19 @@ class LlmRepository @Inject constructor(
         }
         else -> null
     }
+
+    private suspend fun findTransaction(args: Map<String, Any?>): TransactionEntity? {
+        val words = (args["merchant"] as? String).orEmpty()
+        val amount = (args["amount"] as? Number)?.toDouble()?.takeIf { it > 0 }?.let { BigDecimal.valueOf(it) }
+        val daysAgo = (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
+        val now = java.time.LocalDateTime.now()
+        val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
+        return TransactionFinder.findBest(recent, words, amount, daysAgo)
+    }
+
+    private fun describe(tx: TransactionEntity, currency: String): String =
+        "${CurrencyFormatter.formatCurrency(tx.amount, currency)} ${if (tx.transactionType == TransactionType.INCOME) "from" else "at"} ${tx.merchantName} · ${tx.category} · " +
+            tx.dateTime.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
 
     /**
      * Thin system prompt (#170): who the assistant is, the month at a glance,
@@ -278,7 +342,8 @@ class LlmRepository @Inject constructor(
 
         When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
         When the user asks how much they spent on something, call spendingByCategory.
-        Otherwise answer briefly and helpfully. Never invent transactions or figures.
+        If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
+        Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 
         Expense categories: $expense
         Income categories: $income
@@ -313,7 +378,8 @@ class LlmRepository @Inject constructor(
     }
 
     companion object {
-        private const val PROMPT_MARKER = "[PennyWise tools v2]"
+        private const val PROMPT_MARKER = "[PennyWise tools v5]"
+        private val CLAIMS_A_CHANGE = Regex("\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b", RegexOption.IGNORE_CASE)
         private const val TAG = "LlmRepository"
     }
 }

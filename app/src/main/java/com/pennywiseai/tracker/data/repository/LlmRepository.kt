@@ -300,23 +300,15 @@ class LlmRepository @Inject constructor(
     suspend fun getFormattedContextForDisplay(): String {
         val chatContext = aiContextRepository.getChatContext()
         val monthSummary = chatContext.monthSummary
-        val recentCount = minOf(chatContext.recentTransactions.size, 10)
-        val activeSubs = chatContext.activeSubscriptions
+        val currency = userPreferencesRepository.baseCurrency.first()
 
         return """
-        Hi! I'm PennyWise AI, your financial assistant.
+        Hi! I'm PennyWise AI.
 
-        I have access to:
-        • Your last 2 weeks of transactions ($recentCount recent ones)
-        • This month's summary (${monthSummary.transactionCount} total transactions)
-        • Monthly income and expenses
-        • Top spending categories
-        • Active subscriptions (${activeSubs.size} services)
-        • Daily spending averages
+        Tell me what you spent and I'll add it after you confirm — e.g. "coffee 120 at Starbucks" or "got 50000 salary". Ask "how much on groceries this month?" for a total.
 
-        I can help you understand your spending, find savings, and answer questions about your recent finances.
-
-        What would you like to know?
+        This month so far: ${monthSummary.transactionCount} transactions, ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency)} spent.
+        Nothing is saved without your tap.
         """.trimIndent()
     }
 

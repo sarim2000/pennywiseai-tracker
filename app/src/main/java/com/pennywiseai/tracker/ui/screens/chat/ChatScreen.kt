@@ -482,7 +482,7 @@ fun ChatScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .focusRequester(focusRequester),
-                                    placeholder = { Text("Ask about your expenses...") },
+                                    placeholder = { Text("Ask, or tell me what you spent…") },
                                     enabled = !uiState.isLoading,
                                     maxLines = 3,
                                     shape = MaterialTheme.shapes.extraLarge
@@ -844,10 +844,10 @@ private fun ChatEmptyState(
     onPromptClick: (String) -> Unit
 ) {
     val examplePrompts = listOf(
-        "What did I spend on food this month?",
-        "My biggest expense?",
-        "Am I over budget?",
-        "Compare this month to last month"
+        "coffee 120 at Starbucks",
+        "got 50000 salary today",
+        "How much on groceries this month?",
+        "How much have I spent this month?"
     )
 
     Column(
@@ -865,7 +865,7 @@ private fun ChatEmptyState(
         )
 
         Text(
-            text = "Ask about your spending",
+            text = "Add a spend or ask about it",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )

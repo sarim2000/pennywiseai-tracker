@@ -422,7 +422,10 @@ fun ChatScreen(
                             } else if (uiState.isLoading) {
                                 // Show typing indicator while waiting for response
                                 item {
-                                    TypingIndicator()
+                                    // One status line per request, picked when the wait starts,
+                                    // so a tool call's silent few seconds don't look like a hang.
+                                    val status = remember(uiState.isLoading) { THINKING_LINES.random() }
+                                    TypingIndicator(status = status)
                                 }
                             }
                         }
@@ -731,8 +734,18 @@ fun DeveloperInfoCard(
 }
 
 @Composable
+private val THINKING_LINES = listOf(
+    "Reading that…",
+    "Working it out…",
+    "Checking your transactions…",
+    "Crunching the numbers…",
+    "One moment…"
+)
+
+@Composable
 fun TypingIndicator(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    status: String? = null
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -775,6 +788,14 @@ fun TypingIndicator(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
                                 shape = RoundedCornerShape(50)
                             )
+                    )
+                }
+                if (status != null) {
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }

@@ -254,7 +254,9 @@ fun ChatScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Download to continue chatting",
+                                        // 1.6 GB via the system Download Manager; some phones (Samsung
+                                        // with Data saver) won't start it on mobile data.
+                                        text = "1.6 GB · use Wi-Fi",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }

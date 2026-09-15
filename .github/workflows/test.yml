@@ -32,6 +32,10 @@ jobs:
         distribution: 'temurin'
 
     - uses: android-actions/setup-android@v3
+      with:
+        # The action's default list includes the retired 'tools' package, which
+        # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
+        packages: platform-tools
 
     - uses: gradle/actions/setup-gradle@v4
 
@@ -60,6 +64,10 @@ jobs:
         distribution: 'temurin'
 
     - uses: android-actions/setup-android@v3
+      with:
+        # The action's default list includes the retired 'tools' package, which
+        # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
+        packages: platform-tools
 
     - uses: gradle/actions/setup-gradle@v4
 
@@ -105,6 +113,10 @@ jobs:
         distribution: 'temurin'
 
     - uses: android-actions/setup-android@v3
+      with:
+        # The action's default list includes the retired 'tools' package, which
+        # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
+        packages: platform-tools
 
     - uses: gradle/actions/setup-gradle@v4
 

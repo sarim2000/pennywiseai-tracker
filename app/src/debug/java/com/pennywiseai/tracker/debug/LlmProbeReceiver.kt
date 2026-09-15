@@ -26,10 +26,11 @@ import java.io.File
  * android.permission.DUMP, which adb shell holds and third-party apps can't:
  *   adb shell am broadcast -n <pkg>/com.pennywiseai.tracker.debug.LlmProbeReceiver \
  *       -a LLM_PROBE --es system "<system prompt>" --es text "<user text>" \
- *       [--ef temp 0.1] [--es model /abs/path.litertlm] [--ez echo true]
- * Logs "LlmProbe: RESULT …" with timings. The prompt and reply are logged only
- * with --ez echo true — keep real SMS / personal data out of logcat.
- * One probe at a time; a second broadcast waits for the first.
+ *       [--ef temp 0.1] [--es model /abs/path.litertlm]
+ * Logs "LlmProbe: RESULT …" with timings only. The reply is written to the
+ * app's private cache (llm_probe_reply.txt — read it with `run-as <pkg> cat
+ * cache/llm_probe_reply.txt`), never to logcat, so prompt contents stay off
+ * the shared log. One probe at a time; a second broadcast waits for the first.
  */
 class LlmProbeReceiver : BroadcastReceiver() {
     companion object {
@@ -43,7 +44,6 @@ class LlmProbeReceiver : BroadcastReceiver() {
         val system = intent.getStringExtra("system") ?: ""
         val text = intent.getStringExtra("text") ?: return
         val temp = intent.getFloatExtra("temp", 0.1f).toDouble()
-        val echo = intent.getBooleanExtra("echo", false)
         // Optional: absolute path of another .litertlm to probe (e.g. a smaller model).
         val modelPath = intent.getStringExtra("model")
             ?: File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME).absolutePath
@@ -68,11 +68,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
                             .joinToString("") { m -> m.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text } }
                     }
                     val t1 = System.currentTimeMillis()
+                    File(context.cacheDir, "llm_probe_reply.txt").writeText(reply)
                     Log.i(TAG, "RESULT model=${File(modelPath).name} load=${tLoad - t0}ms gen=${t1 - tLoad}ms chars=${reply.length}")
-                    if (echo) {
-                        Log.i(TAG, "TEXT " + text.replace("\n", " "))
-                        Log.i(TAG, "REPLY " + reply.replace("\n", "\\n"))
-                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "FAILED: ${e.javaClass.simpleName}: ${e.message}")

@@ -933,7 +933,9 @@ private fun PendingActionCard(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    // A new draft is in the base currency; an existing row is shown in its own.
     val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+    val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
     val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
     val (title, headline, detail, button) = when (action) {
         is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
@@ -942,12 +944,12 @@ private fun PendingActionCard(
         }
         is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
             val t = action.transaction
-            listOf("Delete this transaction?", "${fmt(t.amount)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}", "Delete")
+            listOf("Delete this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}", "Delete")
         }
         is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
             val t = action.transaction
             val changes = listOfNotNull(action.newMerchant?.let { "merchant → $it" }, action.newCategory?.let { "category → $it" }).joinToString(", ")
-            listOf("Update this transaction?", "${fmt(t.amount)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}\n$changes", "Update")
+            listOf("Update this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}\n$changes", "Update")
         }
     }
     val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete

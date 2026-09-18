@@ -188,7 +188,8 @@ class ChatViewModel @Inject constructor(
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
                         deleteTransactionUseCase(action.transaction)
                         llmRepository.clearPendingAction()
-                        llmRepository.appendAssistantMessage("Deleted ${fmt(action.transaction.amount)} at ${action.transaction.merchantName}.")
+                        val t = action.transaction
+                        llmRepository.appendAssistantMessage("Deleted ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${t.merchantName}.")
                         return@launch
                     }
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
@@ -198,8 +199,9 @@ class ChatViewModel @Inject constructor(
                             transactionRepository.updateTransaction(current.copy(merchantName = m, updatedAt = java.time.LocalDateTime.now()))
                         }
                         llmRepository.clearPendingAction()
+                        val t = action.transaction
                         llmRepository.appendAssistantMessage(
-                            "Updated ${fmt(action.transaction.amount)} at ${action.newMerchant ?: action.transaction.merchantName}" +
+                            "Updated ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${action.newMerchant ?: t.merchantName}" +
                                 (action.newCategory?.let { " → $it" } ?: "") + "."
                         )
                         return@launch

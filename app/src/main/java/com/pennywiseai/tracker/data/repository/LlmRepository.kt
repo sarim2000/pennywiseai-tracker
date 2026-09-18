@@ -275,12 +275,11 @@ class LlmRepository @Inject constructor(
         }
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
             val target = findTransaction(call.arguments)
-            val currency = userPreferencesRepository.baseCurrency.first()
             if (target == null) {
                 "I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount."
             } else if (call.name == PennyWiseTools.DELETE_TRANSACTION) {
                 _pendingAction.value = PendingChatAction.Delete(target)
-                "Delete this one? Confirm below:\n${describe(target, currency)}"
+                "Delete this one? Confirm below:\n${describe(target)}"
             } else {
                 val newCategory = (call.arguments.arg("newCategory") as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { wanted ->
                     matchCategory(wanted, categoryRepository.getVisibleCategories().first())
@@ -291,7 +290,7 @@ class LlmRepository @Inject constructor(
                     "What should I change it to? Say a category from your list or a new merchant name."
                 } else {
                     _pendingAction.value = PendingChatAction.Update(target, newCategory, newMerchant)
-                    "Update this one? Confirm below:\n${describe(target, currency)} → " +
+                    "Update this one? Confirm below:\n${describe(target)} → " +
                         listOfNotNull(newMerchant?.let { "merchant $it" }, newCategory?.let { "category $it" }).joinToString(", ")
                 }
             }
@@ -321,8 +320,9 @@ class LlmRepository @Inject constructor(
         return TransactionFinder.findBest(recent, words, amount, daysAgo)
     }
 
-    private fun describe(tx: TransactionEntity, currency: String): String =
-        "${CurrencyFormatter.formatCurrency(tx.amount, currency)} ${if (tx.transactionType == TransactionType.INCOME) "from" else "at"} ${tx.merchantName} · ${tx.category} · " +
+    /** An existing row is shown in ITS currency, never relabelled with the base one. */
+    private fun describe(tx: TransactionEntity): String =
+        "${CurrencyFormatter.formatCurrency(tx.amount, tx.currency)} ${if (tx.transactionType == TransactionType.INCOME) "from" else "at"} ${tx.merchantName} · ${tx.category} · " +
             tx.dateTime.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
 
     /**

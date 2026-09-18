@@ -49,7 +49,8 @@ class PennyTools : ToolSet {
         @ToolParam(description = "Shop, service or person the money went to or came from") merchant: String,
         @ToolParam(description = "One of the known category names") category: String,
         @ToolParam(description = "EXPENSE or INCOME") type: String,
-        @ToolParam(description = "Bank, card or cash the user mentioned, or empty") account: String
+        @ToolParam(description = "Bank, card or cash the user mentioned, or empty") account: String,
+        @ToolParam(description = "ISO currency code of the amount, e.g. INR; the user's default when not mentioned") currency: String
     ): String = "recorded"
 
     @Tool(description = "Total the user spent in a category this month")

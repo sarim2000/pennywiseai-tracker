@@ -296,6 +296,12 @@ class LlmRepository @Inject constructor(
                 }
             }
         }
+        PennyWiseTools.MONTH_SUMMARY -> {
+            val m = aiContextRepository.getChatContext().monthSummary
+            val currency = userPreferencesRepository.baseCurrency.first()
+            "This month: ${CurrencyFormatter.formatCurrency(m.totalExpense, currency)} spent, " +
+                "${CurrencyFormatter.formatCurrency(m.totalIncome, currency)} received, ${m.transactionCount} transactions."
+        }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val category = (call.arguments["category"] as? String)?.trim().orEmpty()
             val currency = userPreferencesRepository.baseCurrency.first()
@@ -341,7 +347,7 @@ class LlmRepository @Inject constructor(
         This month so far: ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency)} spent, ${CurrencyFormatter.formatCurrency(monthSummary.totalIncome, currency)} income, ${monthSummary.transactionCount} transactions.
 
         When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
-        When the user asks how much they spent on something, call spendingByCategory.
+        When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
         If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
         Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 
@@ -378,7 +384,7 @@ class LlmRepository @Inject constructor(
     }
 
     companion object {
-        private const val PROMPT_MARKER = "[PennyWise tools v5]"
+        private const val PROMPT_MARKER = "[PennyWise tools v6]"
         private val CLAIMS_A_CHANGE = Regex("\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b", RegexOption.IGNORE_CASE)
         private const val TAG = "LlmRepository"
     }

@@ -37,6 +37,9 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "The new merchant name, or empty to keep it") newMerchant: String
     ): String = ""
 
+    @Tool(description = "Look up this month's totals: money spent, money received and number of transactions.")
+    fun monthSummary(): String = ""
+
     @Tool(description = "Look up how much the user has spent in a category this month.")
     fun spendingByCategory(
         @ToolParam(description = "One of the known category names") category: String
@@ -47,5 +50,6 @@ class PennyWiseTools : ToolSet {
         const val SPENDING_BY_CATEGORY = "spending_by_category"
         const val DELETE_TRANSACTION = "delete_transaction"
         const val UPDATE_TRANSACTION = "update_transaction"
+        const val MONTH_SUMMARY = "month_summary"
     }
 }

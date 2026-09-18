@@ -164,10 +164,22 @@ class ChatViewModel @Inject constructor(
     val baseCurrency: StateFlow<String> = userPreferencesRepository.baseCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
 
+    private val _isConfirming = MutableStateFlow(false)
+    val isConfirming: StateFlow<Boolean> = _isConfirming.asStateFlow()
+
     fun dismissPendingAction() = llmRepository.clearPendingAction()
+
+    /** A card belongs to the conversation that produced it: leaving the screen drops it. */
+    override fun onCleared() {
+        llmRepository.clearPendingAction()
+        super.onCleared()
+    }
 
     fun confirmPendingAction() {
         val action = pendingAction.value ?: return
+        // One write per card: the flag disables the buttons, and a racing second
+        // tap returns here before it can launch a second write.
+        if (!_isConfirming.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
                 val currency = userPreferencesRepository.baseCurrency.first()
@@ -213,13 +225,17 @@ class ChatViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Couldn't apply that: ${e.message}")
+            } finally {
+                _isConfirming.value = false
             }
         }
     }
 
     fun sendMessage(message: String) {
         if (message.isBlank() || _uiState.value.isLoading) return
-        
+        // A new message supersedes any card still waiting from the last one.
+        llmRepository.clearPendingAction()
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -271,6 +287,7 @@ class ChatViewModel @Inject constructor(
     }
     
     fun clearChat() {
+        llmRepository.clearPendingAction()
         viewModelScope.launch {
             llmRepository.deleteAllMessages()
             _uiState.value = _uiState.value.copy(

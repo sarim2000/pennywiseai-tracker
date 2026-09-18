@@ -54,6 +54,7 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
+    val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
     val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
@@ -403,6 +404,7 @@ fun ChatScreen(
                                     PendingActionCard(
                                         action = action,
                                         currency = baseCurrency,
+                                        enabled = !isConfirming,
                                         onConfirm = { viewModel.confirmPendingAction() },
                                         onDismiss = { viewModel.dismissPendingAction() }
                                     )
@@ -927,6 +929,7 @@ private fun ChatEmptyState(
 private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
     currency: String,
+    enabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -960,9 +963,10 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text("Cancel") }
                 Button(
                     onClick = onConfirm,
+                    enabled = enabled,
                     modifier = Modifier.weight(1f),
                     colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
                 ) { Text(button) }

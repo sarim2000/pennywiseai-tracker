@@ -55,6 +55,27 @@ class TransactionDraftTest {
     }
 
     @Test
+    fun `no verb at all - the model's INCOME counts only with an income-only category`() {
+        assertEquals(TransactionType.INCOME, draft(mapOf("amount" to 5000.0, "merchant" to "client", "category" to "Salary", "type" to "INCOME", "account" to ""), "5000 from client via neft")!!.type)
+        assertEquals(TransactionType.EXPENSE, draft(mapOf("amount" to 90.0, "merchant" to "ice cream", "category" to "Others", "type" to "INCOME", "account" to ""), "ice cream 90")!!.type)
+    }
+
+    @Test
+    fun `a spend verb beats an income word in the same sentence`() {
+        val d = draft(mapOf("amount" to 18000.0, "merchant" to "landlord", "category" to "Others", "type" to "INCOME", "account" to ""), "spent my salary on rent 18000")!!
+        assertEquals(TransactionType.EXPENSE, d.type)
+        assertEquals(TransactionType.EXPENSE, draft(mapOf("amount" to 300.0, "merchant" to "x", "category" to "", "type" to "INCOME", "account" to ""), "paid 300 using cashback")!!.type)
+    }
+
+    @Test
+    fun `an ambiguous account is left unlinked`() {
+        val two = accounts + AccountBalanceEntity(bankName = "HDFC Bank", accountLast4 = "9999", balance = BigDecimal.TEN, timestamp = LocalDateTime.now())
+        val d = TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "category" to "", "type" to "", "account" to "hdfc"), "x 1", cats, two) { null }!!
+        assertNull(d.bankName)
+        assertEquals("No account (say which — last 4 digits)", d.accountLabel)
+    }
+
+    @Test
     fun `no usable amount means no draft`() {
         assertNull(draft(mapOf("amount" to 0, "merchant" to "x"), "x"))
         assertNull(draft(mapOf("merchant" to "x"), "x"))

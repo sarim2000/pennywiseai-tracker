@@ -39,6 +39,12 @@ class TransactionFinderTest {
     }
 
     @Test
+    fun `a stated amount or day that matches nothing returns nothing`() {
+        assertNull(TransactionFinder.findBest(txs, "starbucks", BigDecimal("999"), null, today))   // no Starbucks at 999
+        assertNull(TransactionFinder.findBest(txs, "starbucks", null, 3, today))                   // none 3 days ago
+    }
+
+    @Test
     fun `no overlap means nothing`() {
         assertNull(TransactionFinder.findBest(txs, "netflix", null, null, today))
     }

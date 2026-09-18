@@ -54,7 +54,7 @@ class PennyTools : ToolSet {
     ): String = "recorded"
 
     @Tool(description = "Total the user spent in a category this month")
-    fun spendingByCategory(@ToolParam(description = "Category name") category: String): String = "1234"
+    fun spendingByCategory(@ToolParam(description = "Category name") category: String): String = "1234 INR"
 }
 
 class LlmProbeReceiver : BroadcastReceiver() {
@@ -78,6 +78,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 lock.withLock {
+                    // Clear the previous reply first so a failure can't be read as this probe's result.
+                    File(context.cacheDir, "llm_probe_reply.txt").delete()
                     val t0 = System.currentTimeMillis()
                     val eng = engine?.takeIf { enginePath == modelPath } ?: run {
                         engine?.close(); engine = null; enginePath = null

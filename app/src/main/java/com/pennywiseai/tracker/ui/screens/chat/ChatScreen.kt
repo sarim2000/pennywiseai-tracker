@@ -53,6 +53,9 @@ fun ChatScreen(
     val modelState by viewModel.modelState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
+    val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
+    val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
+    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -252,7 +255,9 @@ fun ChatScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Download to continue chatting",
+                                        // 1.6 GB via the system Download Manager; some phones (Samsung
+                                        // with Data saver) won't start it on mobile data.
+                                        text = "1.6 GB · use Wi-Fi",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -393,6 +398,19 @@ fun ChatScreen(
                                 ChatMessageItem(message = message)
                             }
 
+                            // A transaction the model proposed — the user confirms it (#170)
+                            pendingAction?.let { action ->
+                                item {
+                                    PendingActionCard(
+                                        action = action,
+                                        currency = baseCurrency,
+                                        enabled = !isConfirming,
+                                        onConfirm = { viewModel.confirmPendingAction() },
+                                        onDismiss = { viewModel.dismissPendingAction() }
+                                    )
+                                }
+                            }
+
                             // Show streaming response if available
                             if (currentResponse.isNotEmpty()) {
                                 item {
@@ -408,7 +426,10 @@ fun ChatScreen(
                             } else if (uiState.isLoading) {
                                 // Show typing indicator while waiting for response
                                 item {
-                                    TypingIndicator()
+                                    // One status line per request, picked when the wait starts,
+                                    // so a tool call's silent few seconds don't look like a hang.
+                                    val status = remember(uiState.isLoading) { THINKING_LINES.random() }
+                                    TypingIndicator(status = status)
                                 }
                             }
                         }
@@ -468,7 +489,7 @@ fun ChatScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .focusRequester(focusRequester),
-                                    placeholder = { Text("Ask about your expenses...") },
+                                    placeholder = { Text("Ask, or tell me what you spent…") },
                                     enabled = !uiState.isLoading,
                                     maxLines = 3,
                                     shape = MaterialTheme.shapes.extraLarge
@@ -716,9 +737,18 @@ fun DeveloperInfoCard(
     }
 }
 
+private val THINKING_LINES = listOf(
+    "Reading that…",
+    "Working it out…",
+    "Checking your transactions…",
+    "Crunching the numbers…",
+    "One moment…"
+)
+
 @Composable
 fun TypingIndicator(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    status: String? = null
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -761,6 +791,14 @@ fun TypingIndicator(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
                                 shape = RoundedCornerShape(50)
                             )
+                    )
+                }
+                if (status != null) {
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
@@ -830,10 +868,10 @@ private fun ChatEmptyState(
     onPromptClick: (String) -> Unit
 ) {
     val examplePrompts = listOf(
-        "What did I spend on food this month?",
-        "My biggest expense?",
-        "Am I over budget?",
-        "Compare this month to last month"
+        "coffee 120 at Starbucks",
+        "got 50000 salary today",
+        "How much on groceries this month?",
+        "How much have I spent this month?"
     )
 
     Column(
@@ -851,7 +889,7 @@ private fun ChatEmptyState(
         )
 
         Text(
-            text = "Ask about your spending",
+            text = "Add a spend or ask about it",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -881,6 +919,59 @@ private fun ChatEmptyState(
                         )
                     }
                 )
+            }
+        }
+    }
+}
+
+/** Confirm card for an action the AI proposed (#170): add, delete or update. Nothing happens without the tap. */
+@Composable
+private fun PendingActionCard(
+    action: com.pennywiseai.tracker.data.model.PendingChatAction,
+    currency: String,
+    enabled: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    // A new draft is in the base currency; an existing row is shown in its own.
+    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+    val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
+    val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
+    val (title, headline, detail, button) = when (action) {
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
+            val d = action.draft
+            listOf(if (d.type == income) "Add income?" else "Add expense?", "${fmt(d.amount)} · ${d.merchant}", "${d.category} · ${d.accountLabel} · today", "Add")
+        }
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
+            val t = action.transaction
+            listOf("Delete this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}", "Delete")
+        }
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
+            val t = action.transaction
+            val changes = listOfNotNull(action.newMerchant?.let { "merchant → $it" }, action.newCategory?.let { "category → $it" }).joinToString(", ")
+            listOf("Update this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}\n$changes", "Update")
+        }
+    }
+    val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
+    PennyWiseCardV2(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        val fg = if (isDelete) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(text = title, style = MaterialTheme.typography.labelMedium, color = fg)
+            Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
+            Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = onConfirm,
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f),
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+                ) { Text(button) }
             }
         }
     }

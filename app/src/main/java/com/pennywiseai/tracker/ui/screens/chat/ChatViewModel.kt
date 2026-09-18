@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -34,7 +35,10 @@ class ChatViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val llmRepository: LlmRepository,
     private val modelRepository: ModelRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase,
+    private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase,
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository
 ) : ViewModel() {
 
     private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -153,9 +157,87 @@ class ChatViewModel @Inject constructor(
         )
     }
     
+    // Transaction the model proposed; shown as a confirm card (#170). Nothing
+    // is written until the user taps Add.
+    val pendingAction: StateFlow<com.pennywiseai.tracker.data.model.PendingChatAction?> = llmRepository.pendingAction
+
+    val baseCurrency: StateFlow<String> = userPreferencesRepository.baseCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
+
+    private val _isConfirming = MutableStateFlow(false)
+    val isConfirming: StateFlow<Boolean> = _isConfirming.asStateFlow()
+
+    fun dismissPendingAction() = llmRepository.clearPendingAction()
+
+    /** A card belongs to the conversation that produced it: leaving the screen drops it. */
+    override fun onCleared() {
+        llmRepository.clearPendingAction()
+        super.onCleared()
+    }
+
+    fun confirmPendingAction() {
+        val action = pendingAction.value ?: return
+        // One write per card: the flag disables the buttons, and a racing second
+        // tap returns here before it can launch a second write.
+        if (!_isConfirming.compareAndSet(expect = false, update = true)) return
+        viewModelScope.launch {
+            try {
+                val currency = userPreferencesRepository.baseCurrency.first()
+                val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+                when (action) {
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
+                        deleteTransactionUseCase(action.transaction)
+                        llmRepository.clearPendingAction()
+                        val t = action.transaction
+                        llmRepository.appendAssistantMessage("Deleted ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${t.merchantName}.")
+                        return@launch
+                    }
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
+                        action.newCategory?.let { transactionRepository.updateCategory(action.transaction.id, it) }
+                        action.newMerchant?.let { m ->
+                            val current = transactionRepository.getTransactionById(action.transaction.id) ?: action.transaction
+                            transactionRepository.updateTransaction(current.copy(merchantName = m, updatedAt = java.time.LocalDateTime.now()))
+                        }
+                        llmRepository.clearPendingAction()
+                        val t = action.transaction
+                        llmRepository.appendAssistantMessage(
+                            "Updated ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${action.newMerchant ?: t.merchantName}" +
+                                (action.newCategory?.let { " → $it" } ?: "") + "."
+                        )
+                        return@launch
+                    }
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> Unit
+                }
+                val draft = action.draft
+                addTransactionUseCase.execute(
+                    amount = draft.amount,
+                    merchant = draft.merchant,
+                    category = draft.category,
+                    type = draft.type,
+                    date = java.time.LocalDateTime.now(),
+                    notes = "Added from chat: \"${draft.sourceText}\"",
+                    bankName = draft.bankName,
+                    accountLast4 = draft.accountLast4,
+                    currency = currency
+                )
+                llmRepository.clearPendingAction()
+                llmRepository.appendAssistantMessage(
+                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} " +
+                        "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Couldn't apply that: ${e.message}")
+            } finally {
+                _isConfirming.value = false
+            }
+        }
+    }
+
     fun sendMessage(message: String) {
         if (message.isBlank() || _uiState.value.isLoading) return
-        
+        // A new message supersedes any card still waiting from the last one.
+        llmRepository.clearPendingAction()
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -207,6 +289,7 @@ class ChatViewModel @Inject constructor(
     }
     
     fun clearChat() {
+        llmRepository.clearPendingAction()
         viewModelScope.launch {
             llmRepository.deleteAllMessages()
             _uiState.value = _uiState.value.copy(

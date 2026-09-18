@@ -128,6 +128,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
                     Log.i(TAG, "RESULT model=${File(modelPath).name} load=${tLoad - t0}ms gen=${t1 - tLoad}ms chars=${reply.length}")
                 }
             } catch (e: Exception) {
+                // Never let a failed probe be read as the previous reply.
+                File(context.cacheDir, "llm_probe_reply.txt").delete()
                 Log.e(TAG, "FAILED: ${e.javaClass.simpleName}: ${e.message}")
             } finally {
                 pending.finish()

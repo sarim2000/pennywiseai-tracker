@@ -115,6 +115,7 @@ fun TransactionsScreen(
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val categoryFilter by viewModel.categoryFilter.collectAsState()
     val categoriesFilter by viewModel.categoriesFilter.collectAsState()
+    val categoriesFromBudget by viewModel.categoriesFromBudget.collectAsStateWithLifecycle()
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
@@ -415,8 +416,12 @@ fun TransactionsScreen(
             customRangeLabel = customRangeLabel,
             periodChipLabel = periodChipLabel,
             transactionTypeFilter = transactionTypeFilter,
-            categoryLabel = categoryFilter ?: categoriesFilter?.joinToString(", "),
+            categoryLabel = categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories),
             hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
+            selectedCategories = categoriesFilter?.toSet()
+                ?: categoryFilter?.let { setOf(it) }
+                ?: availableCategories.toSet(),
+            onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
             selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.name ?: "Profile",
             hasProfileFilter = selectedProfileId != null,
             hasAnyActiveFilter = hasAnyActiveFilter,
@@ -464,7 +469,9 @@ fun TransactionsScreen(
             onMoreFiltersDismiss = { showMoreFiltersMenu = false },
             onCategorySelected = { category ->
                 if (category == null) {
+                    // "All categories" clears both the single and the ticked-list filter
                     viewModel.clearCategoryFilter()
+                    viewModel.clearCategoriesFilter()
                 } else {
                     viewModel.setCategoryFilter(category)
                 }
@@ -581,7 +588,7 @@ fun TransactionsScreen(
                     }
 
                     // Show info banner when viewing budget transactions
-                    if (categoriesFilter != null) {
+                    if (categoriesFromBudget) {
                         item {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -1059,6 +1066,8 @@ private fun TransactionFilterHeader(
     onMoreFiltersClick: () -> Unit,
     onMoreFiltersDismiss: () -> Unit,
     onCategorySelected: (String?) -> Unit,
+    selectedCategories: Set<String>,
+    onCategoryToggled: (String) -> Unit,
     onProfileSelected: (Long?) -> Unit,
     onAccountClick: () -> Unit,
     onAccountDismiss: () -> Unit,
@@ -1250,20 +1259,21 @@ private fun TransactionFilterHeader(
                                 },
                                 onClick = { onCategorySelected(null) }
                             )
+                            // Tick/untick to include or exclude (#786); the menu stays
+                            // open so several can be changed in one go.
                             availableCategories.forEach { category ->
                                 DropdownMenuItem(
                                     text = { Text(category, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
-                                        if (categoryFilter == category) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            CategoryIcon(
-                                                category = category,
-                                                size = Dimensions.Icon.small
-                                            )
-                                        }
+                                        Checkbox(
+                                            checked = category in selectedCategories,
+                                            onCheckedChange = null
+                                        )
                                     },
-                                    onClick = { onCategorySelected(category) }
+                                    trailingIcon = {
+                                        CategoryIcon(category = category, size = Dimensions.Icon.small)
+                                    },
+                                    onClick = { onCategoryToggled(category) }
                                 )
                             }
                             if (profiles.isNotEmpty()) {
@@ -1516,3 +1526,19 @@ private val DATE_MARKER_WIDTH = Spacing.xs
 /** Height of that marker — set to the cap height of the header text so the two
  *  read as one unit rather than a bar next to a label. */
 private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs
+
+/** "All categories", one name, "All except X, Y", or "N categories" (#786). */
+private fun categoryFilterLabel(
+    single: String?,
+    selected: List<String>?,
+    available: List<String>
+): String? {
+    if (single != null) return single
+    if (selected == null) return null
+    val excluded = available - selected.toSet()
+    return when {
+        selected.size == 1 -> selected.first()
+        excluded.size in 1..2 && selected.size >= 2 -> "All except ${excluded.joinToString(", ")}"
+        else -> "${selected.size} categories"
+    }
+}

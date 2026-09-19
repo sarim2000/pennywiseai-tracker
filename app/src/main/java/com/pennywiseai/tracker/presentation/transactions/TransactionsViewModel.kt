@@ -99,6 +99,11 @@ class TransactionsViewModel @Inject constructor(
     private val _categoriesFilter = MutableStateFlow<List<String>?>(null)
     val categoriesFilter: StateFlow<List<String>?> = _categoriesFilter.asStateFlow()
 
+    // True only when the multi-category filter came from a budget drill-down —
+    // the "totals may differ" banner is about budgets, not the user's own picks (#786).
+    private val _categoriesFromBudget = MutableStateFlow(false)
+    val categoriesFromBudget: StateFlow<Boolean> = _categoriesFromBudget.asStateFlow()
+
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
@@ -1232,6 +1237,7 @@ class TransactionsViewModel @Inject constructor(
 
             if (categoryList.isNotEmpty()) {
                 _categoriesFilter.value = categoryList
+                _categoriesFromBudget.value = true
             }
         }
     }
@@ -1241,6 +1247,27 @@ class TransactionsViewModel @Inject constructor(
      */
     fun clearCategoriesFilter() {
         _categoriesFilter.value = null
+        _categoriesFromBudget.value = false
+    }
+
+    /**
+     * Include/exclude one category in the list filter (#786). The effective
+     * selection starts as "everything available"; unticking narrows it, and
+     * ticking the last one back returns to no filter. An empty selection is
+     * never stored — it would show nothing and read as a broken list.
+     */
+    fun toggleCategory(category: String, available: List<String>) {
+        val current = _categoriesFilter.value
+            ?: _categoryFilter.value?.let { listOf(it) }
+            ?: available
+        val next = if (category in current) current - category else current + category
+        _categoryFilter.value = null
+        _categoriesFromBudget.value = false
+        _categoriesFilter.value = when {
+            next.isEmpty() -> null
+            next.toSet() == available.toSet() -> null
+            else -> next.filter { it in available }
+        }
     }
 
     private fun filterByProfile(

@@ -115,7 +115,7 @@ fun TransactionsScreen(
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val categoryFilter by viewModel.categoryFilter.collectAsState()
     val categoriesFilter by viewModel.categoriesFilter.collectAsState()
-    val categoriesFromBudget by viewModel.categoriesFromBudget.collectAsState()
+    val categoriesFromBudget by viewModel.categoriesFromBudget.collectAsStateWithLifecycle()
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
@@ -469,7 +469,9 @@ fun TransactionsScreen(
             onMoreFiltersDismiss = { showMoreFiltersMenu = false },
             onCategorySelected = { category ->
                 if (category == null) {
+                    // "All categories" clears both the single and the ticked-list filter
                     viewModel.clearCategoryFilter()
+                    viewModel.clearCategoriesFilter()
                 } else {
                     viewModel.setCategoryFilter(category)
                 }

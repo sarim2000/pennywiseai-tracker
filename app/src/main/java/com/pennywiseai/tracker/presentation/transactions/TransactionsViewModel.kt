@@ -740,7 +740,9 @@ class TransactionsViewModel @Inject constructor(
         )
             .transformLatest { _ ->
                 val period = selectedPeriod.value
-                val categories = categoriesFilter.value
+                // A budget drill-down scopes the options to its categories; the user's
+                // own ticks must not — an unticked category has to stay tickable (#786).
+                val categories = categoriesFilter.value.takeIf { _categoriesFromBudget.value }
                 // Always resolve a cycle range up-front; only the cycle-following
                 // periods consume it, but keeping a real Pair avoids nullable
                 // plumbing in the (non-suspend) filter helper.

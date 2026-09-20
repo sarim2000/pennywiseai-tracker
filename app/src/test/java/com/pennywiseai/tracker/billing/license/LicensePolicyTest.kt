@@ -12,14 +12,14 @@ class LicensePolicyTest {
 
     @Test
     fun `fresh license grants pro and is not due`() {
-        val validated = now - 2 * day
+        val validated = now - day / 2
         assertTrue(LicensePolicy.grantsPro(validated, now))
         assertFalse(LicensePolicy.isDue(validated, now))
     }
 
     @Test
-    fun `after 30 days a recheck is due but pro stays on`() {
-        val validated = now - 31 * day
+    fun `after a day a recheck is due but pro stays on`() {
+        val validated = now - 2 * day
         assertTrue(LicensePolicy.isDue(validated, now))
         assertTrue(LicensePolicy.grantsPro(validated, now))
     }

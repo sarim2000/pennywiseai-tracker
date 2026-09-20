@@ -89,14 +89,36 @@ abstract class BankParser {
      * Checks if the message is a transaction message (not OTP, promotional, etc.)
      */
     protected open fun isTransactionMessage(message: String): Boolean {
+        if (isNonTransactionMessage(message)) return false
+
+        // Must contain transaction keywords
+        val transactionKeywords = listOf(
+            "debited", "credited", "withdrawn", "deposited",
+            "spent", "received", "transferred", "paid"
+        )
+
+        return message.lowercase().let { lower -> transactionKeywords.any { lower.contains(it) } }
+    }
+
+    /**
+     * Messages that carry an amount but are never a transaction: OTPs, promos,
+     * payment requests and due/reminder notices.
+     *
+     * Subclasses that need their own keyword list should call this instead of
+     * re-listing these checks — copies drifted out of sync and let reminders
+     * through as real spends.
+     */
+    protected fun isNonTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
         // Skip OTP messages
         if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
+            // Hyphenated "One-Time Password" (Amex SafeKey) used to slip through
+            // and got booked as a card spend.
+            lowerMessage.contains(Regex("""one[-\s]?time password""")) ||
             lowerMessage.contains("verification code")
         ) {
-            return false
+            return true
         }
 
         // Skip promotional messages
@@ -105,7 +127,7 @@ abstract class BankParser {
             lowerMessage.contains("cashback offer") ||
             lowerMessage.contains("win ")
         ) {
-            return false
+            return true
         }
 
         // Skip payment request messages (common across banks)
@@ -116,12 +138,34 @@ abstract class BankParser {
             lowerMessage.contains("requests rs") ||
             lowerMessage.contains("ignore if already paid")
         ) {
-            return false
+            return true
         }
 
         // Skip merchant payment acknowledgments
         if (lowerMessage.contains("have received payment")) {
-            return false
+            return true
+        }
+
+        // Skip IPO/ASBA fund blocking — the money is earmarked, not debited.
+        // ("Your ASBA application ... value of Rs X is blocked in your ... account")
+        if (lowerMessage.contains("asba") ||
+            lowerMessage.contains("is blocked in your")
+        ) {
+            return true
+        }
+
+        // Skip gift/e-voucher notices — no money moves in the account.
+        if (lowerMessage.contains("e-voucher") || lowerMessage.contains("evoucher")) {
+            return true
+        }
+
+        // Skip auto-debit intimations ("INR X for <merchant> will be auto-debited
+        // ... by <date>"). These announce a future debit; the real debit arrives
+        // as its own SMS, so booking them doubled the spend.
+        if (lowerMessage.contains("will be auto-debited") ||
+            lowerMessage.contains("will be auto debited")
+        ) {
+            return true
         }
 
         // Skip payment reminder/due messages
@@ -133,16 +177,10 @@ abstract class BankParser {
             lowerMessage.contains("ignore if paid") ||
             (lowerMessage.contains("pls pay") && lowerMessage.contains("min of"))
         ) {
-            return false
+            return true
         }
 
-        // Must contain transaction keywords
-        val transactionKeywords = listOf(
-            "debited", "credited", "withdrawn", "deposited",
-            "spent", "received", "transferred", "paid"
-        )
-
-        return transactionKeywords.any { lowerMessage.contains(it) }
+        return false
     }
 
     /**

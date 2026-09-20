@@ -16,7 +16,10 @@ import java.util.concurrent.TimeUnit
  * a revoked license.
  */
 object LicensePolicy {
-    val REVALIDATE_AFTER_MS: Long = TimeUnit.DAYS.toMillis(30)
+    // Daily, not monthly: manually issued keys can carry short expiries (a
+    // 7-day trial), and a revoked/expired key should drop within a day of
+    // the phone being online. The offline grace below is unchanged.
+    val REVALIDATE_AFTER_MS: Long = TimeUnit.DAYS.toMillis(1)
     val EXPIRE_AFTER_MS: Long = TimeUnit.DAYS.toMillis(60)
 
     /** True when the last successful validation is old enough — or the clock moved backwards. */

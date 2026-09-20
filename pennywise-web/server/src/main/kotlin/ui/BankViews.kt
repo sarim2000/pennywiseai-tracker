@@ -614,6 +614,7 @@ object BankViews {
             // "/" and "/tools/parse" render the same page; only the canonical one is
             // listed, otherwise the two compete with each other for the same query.
             add("/" to "1.0")
+            add("/pro" to "1.0")
             add("/banks" to "0.9")
             SupportedBanks.countries.forEach {
                 add("/banks/country/${SupportedBanks.countrySlug(it.country)}" to "0.7")

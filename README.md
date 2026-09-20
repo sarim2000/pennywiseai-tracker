@@ -304,7 +304,7 @@ adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.ap
 
 Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, duplicate-account merge and scheduled daily backups. It's how a solo developer keeps adding banks and features.
 
-**Buy it on the website: [pennywise.zynth.dev/pro](https://pennywise.zynth.dev/pro)** — ₹2,000 lifetime, ₹699/year or ₹149/month, GST included, cards and UPI accepted. You get a license key by email; in the app open **Settings → PennyWise Pro → Have a license key?** and paste it. One phone at a time; restoring a PennyWise backup on a new phone carries Pro over, and the key dialog has a "Move to this device" option for everything else.
+**Buy it on the website: [pennywise.zynth.dev/pro](https://pennywise.zynth.dev/pro)** — ₹2,000 lifetime, ₹699/year or ₹149/month, GST included, cards and UPI accepted. You get a license key by email; in the app open **Settings → PennyWise Pro → Have a license key?** and paste it. One phone at a time; restoring a full PennyWise backup on a new phone carries Pro over, and the key dialog offers "Move to this device" for everything else (Play build 2.20.0+).
 
 - **Google Play**: in-app purchase is currently unavailable (payments-profile verification on Google's side). Existing Play purchases keep working; new buyers use the website key.
 - **F-Droid / IzzyOnDroid**: every Pro feature is already unlocked, free. Buying a key there is purely a way to support the project (and it works on the Play build too).

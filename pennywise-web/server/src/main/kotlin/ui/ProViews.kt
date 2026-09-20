@@ -91,7 +91,7 @@ object ProViews {
                     h2 { +"How it works" }
                     ol(classes = "steps") {
                         li { b { +"Pay" }; +" — pick a plan above and check out." }
-                        li { b { +"Get your key" }; +" — it's on the confirmation page and in your email within a minute." }
+                        li { b { +"Get your key" }; +" — it arrives by email within a minute (check spam if not)." }
                         li {
                             b { +"Activate" }
                             +" — in the app open "

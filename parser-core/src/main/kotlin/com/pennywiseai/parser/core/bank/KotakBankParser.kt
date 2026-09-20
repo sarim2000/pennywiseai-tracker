@@ -319,36 +319,13 @@ class KotakBankParser : BankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
+        // Shared skip-list (OTP, promos, payment requests, due reminders). This
+        // override used to re-list those checks and had drifted — the reminder
+        // block was missing, so "Payment of INR X ... is due on ..." was booked
+        // as an expense.
+        if (isNonTransactionMessage(message)) return false
+
         val lowerMessage = message.lowercase()
-
-        // Skip fraud warning links
-        if (lowerMessage.contains("not you") && lowerMessage.contains("fraud")) {
-            // This is still a transaction message, just with fraud warning
-            // Continue processing
-        }
-
-        // Skip OTP and promotional messages
-        if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code") ||
-            lowerMessage.contains("offer") ||
-            lowerMessage.contains("discount") ||
-            lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")
-        ) {
-            return false
-        }
-
-        // Skip payment request messages
-        if (lowerMessage.contains("has requested") ||
-            lowerMessage.contains("payment request") ||
-            lowerMessage.contains("collect request") ||
-            lowerMessage.contains("requesting payment") ||
-            lowerMessage.contains("requests rs") ||
-            lowerMessage.contains("ignore if already paid")
-        ) {
-            return false
-        }
 
         // Kotak specific transaction keywords
         val kotakTransactionKeywords = listOf(

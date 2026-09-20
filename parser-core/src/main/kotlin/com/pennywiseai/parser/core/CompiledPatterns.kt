@@ -2,9 +2,13 @@ package com.pennywiseai.parser.core
 
 object CompiledPatterns {
     object Amount {
-        val RS_PATTERN = Regex("""Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        val INR_PATTERN = Regex("""INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        val RUPEE_SYMBOL_PATTERN = Regex("""₹\s*([0-9,]+(?:\.\d{2})?)""")
+        // Banks sometimes print an amount with no leading digit ("Rs..6 Credited",
+        // "USD .28 spent"), so the integer part is optional. Without this the
+        // pattern skipped the real amount and matched a later balance/limit.
+        private const val NUM = """(?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2})"""
+        val RS_PATTERN = Regex("""Rs\.?\s*($NUM)""", RegexOption.IGNORE_CASE)
+        val INR_PATTERN = Regex("""INR\s*($NUM)""", RegexOption.IGNORE_CASE)
+        val RUPEE_SYMBOL_PATTERN = Regex("""₹\s*($NUM)""")
         val ALL_PATTERNS = listOf(RS_PATTERN, INR_PATTERN, RUPEE_SYMBOL_PATTERN)
     }
 

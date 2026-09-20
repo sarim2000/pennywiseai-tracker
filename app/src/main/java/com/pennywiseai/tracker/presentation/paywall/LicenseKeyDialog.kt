@@ -20,12 +20,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
  * Paste-a-key dialog. Copy is intentionally silent about where keys are
  * sold (Play anti-steering); the website and the key email do that job.
+ *
+ * When the key is already active elsewhere and this build has a move
+ * endpoint, the dialog asks for the purchase email as ownership proof and
+ * offers "Move to this device".
  */
 @Composable
 internal fun LicenseKeyDialog(
@@ -33,11 +38,13 @@ internal fun LicenseKeyDialog(
     error: String?,
     canMove: Boolean,
     onActivate: (String) -> Unit,
-    onMoveHere: (String) -> Unit,
+    onMoveHere: (key: String, email: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var key by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
     val canSubmit = key.isNotBlank() && !isActivating
+    val canMoveNow = canSubmit && email.contains('@')
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -61,16 +68,35 @@ internal fun LicenseKeyDialog(
                     supportingText = error?.let { { Text(it) } },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
-                        imeAction = ImeAction.Done,
+                        imeAction = if (canMove) ImeAction.Next else ImeAction.Done,
                     ),
                 )
+                if (canMove) {
+                    Spacer(Modifier.height(Spacing.sm))
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !isActivating,
+                        label = { Text("Purchase email") },
+                        supportingText = { Text("Confirms you own the key before it leaves the other device.") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done,
+                        ),
+                    )
+                }
             }
         },
         confirmButton = {
             if (isActivating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.Component.progressIndicatorSize),
+                    strokeWidth = Spacing.xxs,
+                )
             } else if (canMove) {
-                TextButton(onClick = { onMoveHere(key) }) { Text("Move to this device") }
+                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow) { Text("Move to this device") }
             } else {
                 TextButton(onClick = { onActivate(key) }, enabled = canSubmit) { Text("Activate") }
             }

@@ -73,12 +73,11 @@ class LicenseClient @Inject constructor() {
             contentType(ContentType.Application.Json)
             setBody(ValidateRequest(key, instanceId))
         }
-        val code = response.status.value
-        when {
-            code == 200 -> if (response.body<ValidateResponse>().valid) ValidateResult.Valid else ValidateResult.Invalid
-            // 4xx means Dodo answered and rejected the key — a verdict, not a blip.
-            code in 400..499 -> ValidateResult.Invalid
-            else -> ValidateResult.Error("HTTP $code")
+        // Only a 200 carries a verdict. Anything else (429, 5xx, gateway
+        // errors) is retryable and must not revoke a stored license.
+        when (response.status.value) {
+            200 -> if (response.body<ValidateResponse>().valid) ValidateResult.Valid else ValidateResult.Invalid
+            else -> ValidateResult.Error("HTTP ${response.status.value}")
         }
     } catch (e: Exception) {
         ValidateResult.Error(e.message ?: "network")
@@ -96,15 +95,17 @@ class LicenseClient @Inject constructor() {
 
     /**
      * Asks our move endpoint (a tiny Cloudflare Worker holding the Dodo API
-     * key) to free every activation on [key]. Returns false when the endpoint
-     * isn't configured for this build or the request fails.
+     * key) to free every activation on [key]. The Worker only acts when
+     * [email] matches the key's purchaser, so a leaked key string alone
+     * can't evict the owner. Returns false when the endpoint isn't
+     * configured for this build or the request fails.
      */
-    suspend fun requestMove(key: String): Boolean {
+    suspend fun requestMove(key: String, email: String): Boolean {
         if (BuildConfig.LICENSE_MOVE_URL.isBlank()) return false
         return try {
             client.post(BuildConfig.LICENSE_MOVE_URL) {
                 contentType(ContentType.Application.Json)
-                setBody(MoveRequest(key))
+                setBody(MoveRequest(key, email))
             }.status.isSuccessCode()
         } catch (e: Exception) {
             false
@@ -116,7 +117,7 @@ class LicenseClient @Inject constructor() {
     @Serializable private data class ActivateRequest(val license_key: String, val name: String)
     @Serializable private data class ValidateRequest(val license_key: String, val license_key_instance_id: String?)
     @Serializable private data class DeactivateRequest(val license_key: String, val license_key_instance_id: String)
-    @Serializable private data class MoveRequest(val license_key: String)
+    @Serializable private data class MoveRequest(val license_key: String, val email: String)
 
     @Serializable
     private data class ActivateResponse(

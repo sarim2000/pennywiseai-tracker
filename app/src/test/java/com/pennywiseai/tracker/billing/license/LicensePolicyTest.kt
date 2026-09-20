@@ -34,4 +34,11 @@ class LicensePolicyTest {
     fun `never validated grants nothing`() {
         assertFalse(LicensePolicy.grantsPro(0L, now))
     }
+
+    @Test
+    fun `clock rolled back before the last validation grants nothing and forces a recheck`() {
+        val validated = now + 5 * day
+        assertFalse(LicensePolicy.grantsPro(validated, now))
+        assertTrue(LicensePolicy.isDue(validated, now))
+    }
 }

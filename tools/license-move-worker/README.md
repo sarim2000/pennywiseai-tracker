@@ -1,7 +1,8 @@
 # License move Worker
 
 Frees a Dodo license key's activation so PennyWise Pro can move to a new phone
-(activation limit is 1 per key). See `worker.js` header for the contract.
+(activation limit is 1 per key). The caller must supply the purchase email as
+ownership proof. See `worker.js` header for the contract.
 
 ```bash
 cd tools/license-move-worker

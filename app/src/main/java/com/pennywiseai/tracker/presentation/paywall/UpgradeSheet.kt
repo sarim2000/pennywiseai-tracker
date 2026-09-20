@@ -681,7 +681,7 @@ private fun TrustRow(
         // anti-steering rule forbids pointing users off-Play from inside the app.
         TextButton(
             onClick = onLicenseKey,
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
         ) {
             Text(
                 text = "Have a license key?",

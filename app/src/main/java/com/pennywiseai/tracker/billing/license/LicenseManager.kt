@@ -6,14 +6,18 @@ import com.pennywiseai.tracker.data.preferences.StoredLicense
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,9 +28,10 @@ import javax.inject.Singleton
  * simply never offers the field there.
  *
  * Activation limit is 1 per key (set on the Dodo product). Moving to a new
- * phone either comes free with a backup restore (key + instance travel in
- * the backup) or via [moveHere], which asks our Worker to free the old
- * activation before re-activating.
+ * phone happens either through a backup restore — which *transfers* the
+ * activation (deactivates the instance carried in the backup, activates
+ * afresh here), so two restores of one backup can't both hold Pro — or via
+ * [moveHere], which asks our Worker to free the old activation first.
  */
 @Singleton
 class LicenseManager @Inject constructor(
@@ -46,20 +51,93 @@ class LicenseManager @Inject constructor(
     val license: StateFlow<StoredLicense?> = preferences.storedLicense
         .stateIn(scope, SharingStarted.Eagerly, null)
 
+    /**
+     * Re-evaluates the policy on a slow ticker as well as on every DataStore
+     * change, so a process that stays alive across the 30/60-day boundaries
+     * still re-checks and, if need be, lapses. The tick also drives the
+     * background revalidation.
+     */
+    private val ticker = flow {
+        while (true) {
+            emit(Unit)
+            delay(TICK_MS)
+        }
+    }.onEach { scope.launch { revalidateIfDue() } }
+
     /** True while the stored key is within [LicensePolicy]'s window. */
-    val isLicensed: StateFlow<Boolean> = preferences.storedLicense
-        .map { it != null && LicensePolicy.grantsPro(it.validatedAt, System.currentTimeMillis()) }
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    val isLicensed: StateFlow<Boolean> =
+        combine(preferences.storedLicense, ticker) { license, _ ->
+            license != null && LicensePolicy.grantsPro(license.validatedAt, System.currentTimeMillis())
+        }.stateIn(scope, SharingStarted.Eagerly, false)
 
     private val mutex = Mutex()
-
-    init {
-        scope.launch { revalidateIfDue() }
-    }
 
     suspend fun activate(rawKey: String): ActivationOutcome = mutex.withLock {
         val key = rawKey.trim()
         if (key.isEmpty()) return ActivationOutcome.InvalidKey
+        activateLocked(key)
+    }
+
+    /** Frees the key's other activation through the move endpoint, then activates here. */
+    suspend fun moveHere(rawKey: String, email: String): ActivationOutcome {
+        if (!client.requestMove(rawKey.trim(), email.trim())) return ActivationOutcome.Offline
+        return activate(rawKey)
+    }
+
+    /** Deactivates on Dodo (best effort) and forgets the key locally. */
+    suspend fun remove() = mutex.withLock {
+        val current = preferences.storedLicense.first() ?: return@withLock
+        current.instanceId?.let { client.deactivate(current.key, it) }
+        preferences.setStoredLicense(null)
+    }
+
+    /**
+     * Backup restore path. Only writes DataStore synchronously (the importer
+     * runs inside a Room transaction); the network work — release the
+     * instance the backup came from, then activate this device — happens
+     * on the application scope afterwards. Until that succeeds the stored
+     * license has no instance and grants nothing.
+     */
+    suspend fun restore(key: String, previousInstanceId: String?) {
+        if (key.isBlank()) return
+        mutex.withLock {
+            preferences.setStoredLicense(
+                StoredLicense(key, instanceId = null, validatedAt = 0L, productName = null),
+            )
+        }
+        scope.launch {
+            previousInstanceId?.let { client.deactivate(key, it) }
+            revalidate(force = true)
+        }
+    }
+
+    suspend fun revalidateIfDue() = revalidate(force = false)
+
+    private suspend fun revalidate(force: Boolean) = mutex.withLock {
+        val current = preferences.storedLicense.first() ?: return@withLock
+        // A key without an instance is a pending adoption (restore): bind it to
+        // this device. Dodo enforces the activation limit for us.
+        if (current.instanceId == null) {
+            if (activateLocked(current.key) != ActivationOutcome.Offline &&
+                preferences.storedLicense.first()?.instanceId == null
+            ) {
+                preferences.setStoredLicense(null) // invalid or held by another device
+            }
+            return@withLock
+        }
+        val now = System.currentTimeMillis()
+        if (!force && !LicensePolicy.isDue(current.validatedAt, now)) return@withLock
+        when (client.validate(current.key, current.instanceId)) {
+            LicenseClient.ValidateResult.Valid -> preferences.setStoredLicense(current.copy(validatedAt = now))
+            LicenseClient.ValidateResult.Invalid -> {
+                Log.i(TAG, "License no longer valid; clearing")
+                preferences.setStoredLicense(null)
+            }
+            is LicenseClient.ValidateResult.Error -> Unit // keep cached state; LicensePolicy handles expiry
+        }
+    }
+
+    private suspend fun activateLocked(key: String): ActivationOutcome =
         when (val result = client.activate(key, deviceName())) {
             is LicenseClient.ActivateResult.Activated -> {
                 preferences.setStoredLicense(
@@ -76,55 +154,12 @@ class LicenseManager @Inject constructor(
             LicenseClient.ActivateResult.LimitReached -> ActivationOutcome.ActiveElsewhere
             is LicenseClient.ActivateResult.Error -> ActivationOutcome.Offline
         }
-    }
-
-    /** Frees the key's other activation through the move endpoint, then activates here. */
-    suspend fun moveHere(rawKey: String): ActivationOutcome {
-        if (!client.requestMove(rawKey.trim())) return ActivationOutcome.Offline
-        return activate(rawKey)
-    }
-
-    /** Deactivates on Dodo (best effort) and forgets the key locally. */
-    suspend fun remove() = mutex.withLock {
-        val current = preferences.storedLicense.first() ?: return@withLock
-        current.instanceId?.let { client.deactivate(current.key, it) }
-        preferences.setStoredLicense(null)
-    }
-
-    /**
-     * Backup restore path: adopt a key + instance from another install and
-     * confirm it with Dodo. On a definitive "invalid" the key is dropped;
-     * when offline it's kept with a zero timestamp, so Pro only lights up
-     * once a validation succeeds.
-     */
-    suspend fun restore(key: String, instanceId: String?) {
-        if (key.isBlank()) return
-        mutex.withLock {
-            preferences.setStoredLicense(StoredLicense(key, instanceId, validatedAt = 0L, productName = null))
-        }
-        revalidate(force = true)
-    }
-
-    suspend fun revalidateIfDue() = revalidate(force = false)
-
-    private suspend fun revalidate(force: Boolean) = mutex.withLock {
-        val current = preferences.storedLicense.first() ?: return@withLock
-        val now = System.currentTimeMillis()
-        if (!force && !LicensePolicy.isDue(current.validatedAt, now)) return@withLock
-        when (client.validate(current.key, current.instanceId)) {
-            LicenseClient.ValidateResult.Valid -> preferences.setStoredLicense(current.copy(validatedAt = now))
-            LicenseClient.ValidateResult.Invalid -> {
-                Log.i(TAG, "License no longer valid; clearing")
-                preferences.setStoredLicense(null)
-            }
-            is LicenseClient.ValidateResult.Error -> Unit // keep cached state; LicensePolicy handles expiry
-        }
-    }
 
     private fun deviceName(): String =
         "${Build.MANUFACTURER} ${Build.MODEL}".trim().ifEmpty { "Android" }
 
     private companion object {
         const val TAG = "LicenseManager"
+        val TICK_MS: Long = TimeUnit.MINUTES.toMillis(15)
     }
 }

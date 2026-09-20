@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -82,13 +83,10 @@ class UpgradeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            licenseManager.license.collect { license ->
-                _state.update {
-                    it.copy(
-                        isLicensed = license != null && licenseManager.isLicensed.value,
-                        licenseProductName = license?.productName,
-                    )
-                }
+            combine(licenseManager.license, licenseManager.isLicensed) { license, licensed ->
+                license?.productName to licensed
+            }.collect { (productName, licensed) ->
+                _state.update { it.copy(isLicensed = licensed, licenseProductName = productName) }
             }
         }
 
@@ -108,7 +106,7 @@ class UpgradeViewModel @Inject constructor(
 
     fun onActivateLicense(key: String) = runLicense { licenseManager.activate(key) }
 
-    fun onMoveLicenseHere(key: String) = runLicense { licenseManager.moveHere(key) }
+    fun onMoveLicenseHere(key: String, email: String) = runLicense { licenseManager.moveHere(key, email) }
 
     fun onRemoveLicense() {
         viewModelScope.launch {

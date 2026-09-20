@@ -17,6 +17,7 @@ import com.example.ui.BankViews
 import com.example.ui.BankViews.respondBankPage
 import com.example.ui.BankViews.respondBanksIndex
 import com.example.ui.BankViews.respondCountryPage
+import com.example.ui.ProViews.respondProPage
 
 fun Application.configureRouting() {
     install(CORS) {
@@ -60,6 +61,7 @@ fun Application.configureRouting() {
 
         // Serve HTMX page at root
         get("/") { call.respondParsePage() }
+        get("/pro") { call.respondProPage() }
         get("/tools/parse") { call.respondParsePage() }
 
         // Long-tail landing pages, one per supported bank/country. Generated from the

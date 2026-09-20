@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.example.ui.SharedComponents.commonHead
 import com.example.ui.SharedComponents.commonStyles
 import com.example.ui.SharedComponents.siteHeader
+import com.example.ui.SharedComponents.proBanner
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
@@ -67,6 +68,7 @@ object ParseViews {
                 siteHeader(currentPage = "parse")
 
                 div(classes = "container") {
+                    proBanner()
                     h1 { +"SMS Parser Tool" }
                     p(classes = "muted") { +"Test bank SMS parsing with instant feedback. Report issues to help improve accuracy." }
 

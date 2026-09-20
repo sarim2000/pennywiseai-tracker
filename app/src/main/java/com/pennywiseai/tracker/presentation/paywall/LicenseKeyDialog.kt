@@ -63,11 +63,12 @@ internal fun LicenseKeyDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isActivating,
-                    placeholder = { Text("XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX") },
+                    // Dodo keys are lowercase UUIDs; don't shout-case the keyboard.
+                    placeholder = { Text("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") },
                     isError = error != null,
                     supportingText = error?.let { { Text(it) } },
                     keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
+                        capitalization = KeyboardCapitalization.None,
                         imeAction = if (canMove) ImeAction.Next else ImeAction.Done,
                     ),
                 )

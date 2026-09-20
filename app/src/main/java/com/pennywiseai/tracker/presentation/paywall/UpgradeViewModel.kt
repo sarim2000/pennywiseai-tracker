@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,8 +77,15 @@ class UpgradeViewModel @Inject constructor(
         viewModelScope.launch {
             entitlementGate.isProEntitled
                 .drop(1)
-                .filter { it }
-                .collect { _state.update { ui -> ui.copy(showCelebration = true) } }
+                .collect { entitled ->
+                    // Keep the sheet's member/upgrade variant in step with the
+                    // gate. The ViewModel outlives the sheet (Activity-scoped),
+                    // so a value captured once at init went stale after a
+                    // license activation or a Play refresh landed.
+                    _state.update { ui ->
+                        ui.copy(isAlreadyEntitled = entitled, showCelebration = ui.showCelebration || entitled)
+                    }
+                }
         }
 
         viewModelScope.launch {

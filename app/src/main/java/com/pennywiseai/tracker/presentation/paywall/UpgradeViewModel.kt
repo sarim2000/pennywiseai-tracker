@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,17 +74,20 @@ class UpgradeViewModel @Inject constructor(
         // The actual sheet dismiss is gated on [didBecomePro] which the
         // UI flips after the celebration timer (or a Continue tap).
         viewModelScope.launch {
-            entitlementGate.isProEntitled
-                .drop(1)
-                .collect { entitled ->
-                    // Keep the sheet's member/upgrade variant in step with the
-                    // gate. The ViewModel outlives the sheet (Activity-scoped),
-                    // so a value captured once at init went stale after a
-                    // license activation or a Play refresh landed.
-                    _state.update { ui ->
-                        ui.copy(isAlreadyEntitled = entitled, showCelebration = ui.showCelebration || entitled)
-                    }
+            // Keep the sheet's member/upgrade variant in step with the gate.
+            // The ViewModel outlives the sheet (Activity-scoped), so a value
+            // captured once at init went stale after a license activation or
+            // a Play refresh landed. Celebrate only on a false→true edge,
+            // judged against the last value we handled — not drop(1), which
+            // would lose an update that raced the constructor.
+            var last = initialEntitled
+            entitlementGate.isProEntitled.collect { entitled ->
+                val becamePro = entitled && !last
+                last = entitled
+                _state.update { ui ->
+                    ui.copy(isAlreadyEntitled = entitled, showCelebration = ui.showCelebration || becamePro)
                 }
+            }
         }
 
         viewModelScope.launch {

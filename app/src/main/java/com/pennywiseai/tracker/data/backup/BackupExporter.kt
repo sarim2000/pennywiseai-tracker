@@ -91,6 +91,14 @@ class BackupExporter @Inject constructor(
         val firstLaunchTime = userPreferencesRepository.getFirstLaunchTime().first()
         val hasShownReviewPrompt = userPreferencesRepository.getHasShownReviewPrompt().first()
         val lastReviewPromptTime = userPreferencesRepository.getLastReviewPromptTime().first()
+        // The license is a bearer credential: it only rides along in FULL
+        // exports (the user's own restore file), never in masked/anonymous
+        // ones meant for sharing.
+        val storedLicense = if (privacy == ExportPrivacy.FULL) {
+            userPreferencesRepository.storedLicense.first()
+        } else {
+            null
+        }
         val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first()
         val lastScanPeriod = userPreferencesRepository.getLastScanPeriod().first()
         val smsScanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
@@ -225,7 +233,9 @@ class BackupExporter @Inject constructor(
                     hasShownScanTutorial = prefs.hasShownScanTutorial,
                     firstLaunchTime = firstLaunchTime,
                     hasShownReviewPrompt = hasShownReviewPrompt,
-                    lastReviewPromptTime = lastReviewPromptTime
+                    lastReviewPromptTime = lastReviewPromptTime,
+                    licenseKey = storedLicense?.key,
+                    licenseInstanceId = storedLicense?.instanceId
                 )
             )
         )

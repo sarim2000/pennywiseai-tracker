@@ -127,6 +127,19 @@ fun UpgradeSheet(
             onPurchase = { product -> activity?.let { viewModel.onPurchase(it, product) } },
             onRestore = viewModel::onRestore,
             onCelebrationComplete = viewModel::markCelebrationComplete,
+            onShowLicenseDialog = viewModel::onShowLicenseDialog,
+            onRemoveLicense = viewModel::onRemoveLicense,
+        )
+    }
+
+    if (state.showLicenseDialog) {
+        LicenseKeyDialog(
+            isActivating = state.isActivating,
+            error = state.licenseError,
+            canMove = state.licenseCanMove,
+            onActivate = viewModel::onActivateLicense,
+            onMoveHere = viewModel::onMoveLicenseHere,
+            onDismiss = viewModel::onDismissLicenseDialog,
         )
     }
 }
@@ -138,6 +151,8 @@ private fun UpgradeSheetContent(
     onPurchase: (ProProduct?) -> Unit,
     onRestore: () -> Unit,
     onCelebrationComplete: () -> Unit,
+    onShowLicenseDialog: () -> Unit,
+    onRemoveLicense: () -> Unit,
 ) {
     // Celebration takes the whole sheet — even members shouldn't see the
     // status card when a fresh purchase has just landed.
@@ -155,15 +170,20 @@ private fun UpgradeSheetContent(
         BrandHeader(isMember = state.isAlreadyEntitled)
         Spacer(Modifier.height(Spacing.lg))
         if (state.isAlreadyEntitled) {
-            MemberCard()
+            MemberCard(licenseProductName = state.licenseProductName.takeIf { state.isLicensed })
             Spacer(Modifier.height(Spacing.md))
-            ManageRow(onRestore = onRestore)
+            ManageRow(
+                isLicensed = state.isLicensed,
+                onRestore = onRestore,
+                onRemoveLicense = onRemoveLicense,
+            )
         } else {
             UpgradeBody(
                 state = state,
                 onSelectKey = onSelectKey,
                 onPurchase = onPurchase,
                 onRestore = onRestore,
+                onLicenseKey = onShowLicenseDialog,
             )
         }
     }
@@ -225,6 +245,7 @@ private fun UpgradeBody(
     onSelectKey: (String) -> Unit,
     onPurchase: (ProProduct?) -> Unit,
     onRestore: () -> Unit,
+    onLicenseKey: () -> Unit,
 ) {
     val merged = remember(state.products) { mergedPlans(state.products) }
 
@@ -270,6 +291,7 @@ private fun UpgradeBody(
     TrustRow(
         liveCatalogEmpty = state.products.isEmpty() && !state.isLoading,
         onRestore = onRestore,
+        onLicenseKey = onLicenseKey,
     )
 }
 
@@ -622,6 +644,7 @@ private fun IncludesBlock() {
 private fun TrustRow(
     liveCatalogEmpty: Boolean,
     onRestore: () -> Unit,
+    onLicenseKey: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -653,6 +676,19 @@ private fun TrustRow(
                     fontWeight = FontWeight.Medium,
                 )
             }
+        }
+        // Deliberately neutral: no hint of where keys come from. Play's
+        // anti-steering rule forbids pointing users off-Play from inside the app.
+        TextButton(
+            onClick = onLicenseKey,
+            contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
+        ) {
+            Text(
+                text = "Have a license key?",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+            )
         }
         if (liveCatalogEmpty) {
             Spacer(Modifier.height(Spacing.xs))
@@ -812,7 +848,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun MemberCard() {
+private fun MemberCard(licenseProductName: String?) {
     Surface(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -836,6 +872,15 @@ private fun MemberCard() {
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
+            if (licenseProductName != null) {
+                Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    text = "Via license key · $licenseProductName",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(Spacing.md))
             IncludesBlock()
         }
@@ -843,7 +888,11 @@ private fun MemberCard() {
 }
 
 @Composable
-private fun ManageRow(onRestore: () -> Unit) {
+private fun ManageRow(
+    isLicensed: Boolean,
+    onRestore: () -> Unit,
+    onRemoveLicense: () -> Unit,
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     Row(
         modifier = Modifier
@@ -851,7 +900,18 @@ private fun ManageRow(onRestore: () -> Unit) {
             .padding(horizontal = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.Center,
     ) {
-        TextButton(
+        if (isLicensed) {
+            // Frees the one allowed activation so the key can be used on
+            // another phone. Play subscribers get the Play manage link instead.
+            TextButton(onClick = onRemoveLicense) {
+                Text(
+                    text = "Remove license key",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        } else TextButton(
             onClick = {
                 runCatching {
                     val intent = android.content.Intent(

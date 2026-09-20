@@ -8,14 +8,15 @@ import com.pennywiseai.tracker.billing.EntitlementSource
 import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.billing.license.LicenseManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ class UpgradeViewModel @Inject constructor(
     private val entitlementSource: EntitlementSource,
     private val purchaseLauncher: PurchaseLauncher,
     private val entitlementGate: EntitlementGate,
+    private val licenseManager: LicenseManager,
 ) : ViewModel() {
 
     private val initialEntitled = entitlementGate.isProEntitled.value
@@ -72,14 +74,80 @@ class UpgradeViewModel @Inject constructor(
         // The actual sheet dismiss is gated on [didBecomePro] which the
         // UI flips after the celebration timer (or a Continue tap).
         viewModelScope.launch {
-            entitlementGate.isProEntitled
-                .drop(1)
-                .filter { it }
-                .collect { _state.update { ui -> ui.copy(showCelebration = true) } }
+            // Keep the sheet's member/upgrade variant in step with the gate.
+            // The ViewModel outlives the sheet (Activity-scoped), so a value
+            // captured once at init went stale after a license activation or
+            // a Play refresh landed. Celebrate only on a false→true edge,
+            // judged against the last value we handled — not drop(1), which
+            // would lose an update that raced the constructor.
+            var last = initialEntitled
+            entitlementGate.isProEntitled.collect { entitled ->
+                val becamePro = entitled && !last
+                last = entitled
+                _state.update { ui ->
+                    ui.copy(isAlreadyEntitled = entitled, showCelebration = ui.showCelebration || becamePro)
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            combine(licenseManager.license, licenseManager.isLicensed) { license, licensed ->
+                license?.productName to licensed
+            }.collect { (productName, licensed) ->
+                _state.update { it.copy(isLicensed = licensed, licenseProductName = productName) }
+            }
         }
 
         refresh()
     }
+
+    // region: license key
+
+    fun onShowLicenseDialog() {
+        _state.update { it.copy(showLicenseDialog = true, licenseError = null, licenseCanMove = false) }
+    }
+
+    fun onDismissLicenseDialog() {
+        if (_state.value.isActivating) return
+        _state.update { it.copy(showLicenseDialog = false, licenseError = null, licenseCanMove = false) }
+    }
+
+    fun onActivateLicense(key: String) = runLicense { licenseManager.activate(key) }
+
+    fun onMoveLicenseHere(key: String, email: String) = runLicense { licenseManager.moveHere(key, email) }
+
+    fun onRemoveLicense() {
+        viewModelScope.launch {
+            _state.update { it.copy(isActivating = true) }
+            licenseManager.remove()
+            _state.update { it.copy(isActivating = false) }
+        }
+    }
+
+    private fun runLicense(action: suspend () -> LicenseManager.ActivationOutcome) {
+        viewModelScope.launch {
+            _state.update { it.copy(isActivating = true, licenseError = null, licenseCanMove = false) }
+            val outcome = action()
+            _state.update { ui ->
+                when (outcome) {
+                    LicenseManager.ActivationOutcome.Activated ->
+                        ui.copy(isActivating = false, showLicenseDialog = false)
+                    LicenseManager.ActivationOutcome.InvalidKey ->
+                        ui.copy(isActivating = false, licenseError = "That key isn't valid. Check for typos and try again.")
+                    LicenseManager.ActivationOutcome.ActiveElsewhere ->
+                        ui.copy(
+                            isActivating = false,
+                            licenseError = "This key is already active on another device.",
+                            licenseCanMove = BuildConfig.LICENSE_MOVE_URL.isNotBlank(),
+                        )
+                    LicenseManager.ActivationOutcome.Offline ->
+                        ui.copy(isActivating = false, licenseError = "Couldn't reach the license server. Check your connection and try again.")
+                }
+            }
+        }
+    }
+
+    // endregion
 
     /**
      * Called by the UI when the celebration view finishes — either the

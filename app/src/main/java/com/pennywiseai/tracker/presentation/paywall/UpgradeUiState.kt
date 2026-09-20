@@ -36,6 +36,15 @@ data class UpgradeUiState(
      * time the sheet opens.
      */
     val showCelebration: Boolean = false,
+    /** Website license (Dodo key) currently activated on this device, if any. */
+    val licenseProductName: String? = null,
+    val isLicensed: Boolean = false,
+    /** License-key entry dialog. */
+    val showLicenseDialog: Boolean = false,
+    val isActivating: Boolean = false,
+    val licenseError: String? = null,
+    /** Key is active on another phone; offer "Move to this device" (needs the move endpoint). */
+    val licenseCanMove: Boolean = false,
 )
 
 /** One-shot UI events emitted by [UpgradeViewModel]. */

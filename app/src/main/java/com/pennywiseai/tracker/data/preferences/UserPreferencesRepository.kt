@@ -100,6 +100,13 @@ open class UserPreferencesRepository @Inject constructor(
         // while the BillingClient connects.
         val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
 
+        // Website-sold Pro (Dodo license key). Key + activation instance are
+        // what Dodo needs to validate; validated_at drives the offline policy.
+        val LICENSE_KEY = stringPreferencesKey("license_key")
+        val LICENSE_INSTANCE_ID = stringPreferencesKey("license_instance_id")
+        val LICENSE_VALIDATED_AT = longPreferencesKey("license_validated_at")
+        val LICENSE_PRODUCT_NAME = stringPreferencesKey("license_product_name")
+
         // F-Droid support nudge — epoch-day of the last contextual "Support
         // development" prompt, so it stays frequency-capped.
         val SUPPORT_NUDGE_LAST_SHOWN_DAY = longPreferencesKey("support_nudge_last_shown_epoch_day")
@@ -643,6 +650,36 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Stored website license (Dodo). Null [StoredLicense.key] means none. */
+    val storedLicense: Flow<StoredLicense?> = context.dataStore.data.map { p ->
+        p[PreferencesKeys.LICENSE_KEY]?.let { key ->
+            StoredLicense(
+                key = key,
+                instanceId = p[PreferencesKeys.LICENSE_INSTANCE_ID],
+                validatedAt = p[PreferencesKeys.LICENSE_VALIDATED_AT] ?: 0L,
+                productName = p[PreferencesKeys.LICENSE_PRODUCT_NAME],
+            )
+        }
+    }
+
+    suspend fun setStoredLicense(license: StoredLicense?) {
+        context.dataStore.edit { p ->
+            if (license == null) {
+                p.remove(PreferencesKeys.LICENSE_KEY)
+                p.remove(PreferencesKeys.LICENSE_INSTANCE_ID)
+                p.remove(PreferencesKeys.LICENSE_VALIDATED_AT)
+                p.remove(PreferencesKeys.LICENSE_PRODUCT_NAME)
+            } else {
+                p[PreferencesKeys.LICENSE_KEY] = license.key
+                license.instanceId?.let { p[PreferencesKeys.LICENSE_INSTANCE_ID] = it }
+                    ?: p.remove(PreferencesKeys.LICENSE_INSTANCE_ID)
+                p[PreferencesKeys.LICENSE_VALIDATED_AT] = license.validatedAt
+                license.productName?.let { p[PreferencesKeys.LICENSE_PRODUCT_NAME] = it }
+                    ?: p.remove(PreferencesKeys.LICENSE_PRODUCT_NAME)
+            }
+        }
+    }
+
     /** Epoch-day the contextual F-Droid support nudge was last shown (0 = never). */
     val supportNudgeLastShownDay: Flow<Long> = context.dataStore.data
         .map { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L }
@@ -984,4 +1021,12 @@ data class UserPreferences(
     val selectedProfileId: Long? = null,
     /** Day of the month (1..31) the budget cycle starts on. 1 = calendar month. */
     val budgetCycleStartDay: Int = 1
+)
+
+/** A website-sold Pro license as persisted in DataStore. */
+data class StoredLicense(
+    val key: String,
+    val instanceId: String?,
+    val validatedAt: Long,
+    val productName: String?,
 )

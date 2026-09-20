@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
+import com.pennywiseai.tracker.billing.license.LicenseManager
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,8 @@ import javax.inject.Singleton
 class BackupImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val licenseManager: LicenseManager
 ) {
     
     /**
@@ -830,6 +832,14 @@ class BackupImporter @Inject constructor(
         userPreferencesRepository.updateHasShownReviewPrompt(preferences.app.hasShownReviewPrompt)
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
+        }
+
+        // A license in the backup only overrides when this install has none —
+        // never clobber a key the user already activated here.
+        preferences.app.licenseKey?.let { key ->
+            if (userPreferencesRepository.storedLicense.first() == null) {
+                licenseManager.restore(key, preferences.app.licenseInstanceId)
+            }
         }
     }
 }

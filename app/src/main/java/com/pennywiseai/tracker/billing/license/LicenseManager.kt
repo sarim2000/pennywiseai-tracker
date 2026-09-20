@@ -93,10 +93,13 @@ class LicenseManager @Inject constructor(
 
     /**
      * Backup restore path. Only writes DataStore synchronously (the importer
-     * runs inside a Room transaction); the network work — release the
-     * instance the backup came from, then activate this device — happens
-     * on the application scope afterwards. Until that succeeds the stored
-     * license has no instance and grants nothing.
+     * runs inside a Room transaction); the network work happens on the
+     * application scope afterwards. Order matters: we try to activate this
+     * device *first* and only release the instance the backup came from if
+     * Dodo says the limit is reached — so a transient failure never leaves
+     * the old phone revoked with nothing activated here. Until activation
+     * succeeds the stored license has no instance and grants nothing; the
+     * ticker keeps retrying a pending adoption.
      */
     suspend fun restore(key: String, previousInstanceId: String?) {
         if (key.isBlank()) return
@@ -106,8 +109,12 @@ class LicenseManager @Inject constructor(
             )
         }
         scope.launch {
-            previousInstanceId?.let { client.deactivate(key, it) }
-            revalidate(force = true)
+            val first = mutex.withLock { activateLocked(key) }
+            if (first == ActivationOutcome.ActiveElsewhere && previousInstanceId != null) {
+                if (client.deactivate(key, previousInstanceId)) revalidate(force = true)
+            } else if (first == ActivationOutcome.InvalidKey) {
+                mutex.withLock { preferences.setStoredLicense(null) }
+            }
         }
     }
 

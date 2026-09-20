@@ -19,7 +19,7 @@ class LicensePolicyTest {
 
     @Test
     fun `after a day a recheck is due but pro stays on`() {
-        val validated = now - 2 * day
+        val validated = now - day
         assertTrue(LicensePolicy.isDue(validated, now))
         assertTrue(LicensePolicy.grantsPro(validated, now))
     }

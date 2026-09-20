@@ -332,13 +332,13 @@
     },
     "City Union Bank": {
       "sender": "JX-CUBANK-S",
-      "message": "Your a/c no. XXXXXXXX5501 is credited for Rs.5000.00 on 03-05-2026 and debited from a/c no. XXXXXXXX4577 (UPI Ref no 612304540358) -CUB",
+      "message": "Your a/c no. XXXXXXXX5555 is credited for Rs.5000.00 on 03-05-2026 and debited from a/c no. XXXXXXXX6666 (UPI Ref no 123456789012) -CUB",
       "currency": "INR",
       "amount": "5000.00",
       "type": "INCOME",
-      "merchant": "UPI Transfer from A/C XX4577",
-      "accountLast4": "5501",
-      "reference": "612304540358",
+      "merchant": "UPI Transfer from A/C XX6666",
+      "accountLast4": "5555",
+      "reference": "123456789012",
       "balance": null
     },
     "Commercial Bank of Ethiopia": {

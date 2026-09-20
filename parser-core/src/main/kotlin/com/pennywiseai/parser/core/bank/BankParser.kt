@@ -154,8 +154,17 @@ abstract class BankParser {
             return true
         }
 
-        // Skip gift/e-voucher notices — no money moves in the account.
-        if (lowerMessage.contains("e-voucher") || lowerMessage.contains("evoucher")) {
+        // Skip reward/gift voucher DELIVERY notices — no money moves in the
+        // account. Deliberately narrow: buying a voucher is a real expense, so
+        // anything carrying a debit verb still parses.
+        if ((lowerMessage.contains("e-voucher") || lowerMessage.contains("evoucher")) &&
+            (lowerMessage.contains("received") ||
+                lowerMessage.contains("reward") ||
+                lowerMessage.contains("redemption")) &&
+            !lowerMessage.contains("spent") &&
+            !lowerMessage.contains("debited") &&
+            !lowerMessage.contains("charged")
+        ) {
             return true
         }
 

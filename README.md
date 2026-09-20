@@ -50,7 +50,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 - **🔒 Private by Design** — All AI processing and transaction storage happen on your phone; no accounts, no analytics, no servers collecting your data
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
-- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **PennyWise Pro** upgrade (unlimited rules, PDF statement imports, CSV export, account merge) supports the solo developer
+- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade (unlimited rules, PDF statement imports, CSV export, account merge, scheduled backups) supports the solo developer
 
 **Core Features**
 
@@ -299,6 +299,15 @@ adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.ap
 </p>
 
 **Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • Google AI Edge (on-device LLM) • Material Design 3
+
+## PennyWise Pro
+
+Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, duplicate-account merge and scheduled daily backups. It's how a solo developer keeps adding banks and features.
+
+**Buy it on the website: [pennywise.zynth.dev/pro](https://pennywise.zynth.dev/pro)** — ₹2,000 lifetime, ₹699/year or ₹149/month, GST included, cards and UPI accepted. You get a license key by email; in the app open **Settings → PennyWise Pro → Have a license key?** and paste it. One phone at a time; restoring a PennyWise backup on a new phone carries Pro over, and the key dialog has a "Move to this device" option for everything else.
+
+- **Google Play**: in-app purchase is currently unavailable (payments-profile verification on Google's side). Existing Play purchases keep working; new buyers use the website key.
+- **F-Droid / IzzyOnDroid**: every Pro feature is already unlocked, free. Buying a key there is purely a way to support the project (and it works on the Play build too).
 
 ## Community & Support
 

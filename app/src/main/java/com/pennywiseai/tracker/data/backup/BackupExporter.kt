@@ -91,6 +91,7 @@ class BackupExporter @Inject constructor(
         val firstLaunchTime = userPreferencesRepository.getFirstLaunchTime().first()
         val hasShownReviewPrompt = userPreferencesRepository.getHasShownReviewPrompt().first()
         val lastReviewPromptTime = userPreferencesRepository.getLastReviewPromptTime().first()
+        val storedLicense = userPreferencesRepository.storedLicense.first()
         val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first()
         val lastScanPeriod = userPreferencesRepository.getLastScanPeriod().first()
         val smsScanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
@@ -225,7 +226,9 @@ class BackupExporter @Inject constructor(
                     hasShownScanTutorial = prefs.hasShownScanTutorial,
                     firstLaunchTime = firstLaunchTime,
                     hasShownReviewPrompt = hasShownReviewPrompt,
-                    lastReviewPromptTime = lastReviewPromptTime
+                    lastReviewPromptTime = lastReviewPromptTime,
+                    licenseKey = storedLicense?.key,
+                    licenseInstanceId = storedLicense?.instanceId
                 )
             )
         )

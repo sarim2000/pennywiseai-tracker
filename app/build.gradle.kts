@@ -33,9 +33,14 @@ android {
 
             val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
+            // Cloudflare Worker that frees a license key's activation so it
+            // can move to a new phone. Empty = "Move to this device" hidden.
+            val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
+            buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
         } else {
             // Fallback empty key for CI/CD builds
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
+            buildConfigField("String", "LICENSE_MOVE_URL", "\"\"")
         }
     }
 

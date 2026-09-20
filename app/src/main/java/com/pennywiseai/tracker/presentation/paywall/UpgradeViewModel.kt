@@ -8,6 +8,8 @@ import com.pennywiseai.tracker.billing.EntitlementSource
 import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.billing.license.LicenseManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +38,7 @@ class UpgradeViewModel @Inject constructor(
     private val entitlementSource: EntitlementSource,
     private val purchaseLauncher: PurchaseLauncher,
     private val entitlementGate: EntitlementGate,
+    private val licenseManager: LicenseManager,
 ) : ViewModel() {
 
     private val initialEntitled = entitlementGate.isProEntitled.value
@@ -78,8 +81,67 @@ class UpgradeViewModel @Inject constructor(
                 .collect { _state.update { ui -> ui.copy(showCelebration = true) } }
         }
 
+        viewModelScope.launch {
+            licenseManager.license.collect { license ->
+                _state.update {
+                    it.copy(
+                        isLicensed = license != null && licenseManager.isLicensed.value,
+                        licenseProductName = license?.productName,
+                    )
+                }
+            }
+        }
+
         refresh()
     }
+
+    // region: license key
+
+    fun onShowLicenseDialog() {
+        _state.update { it.copy(showLicenseDialog = true, licenseError = null, licenseCanMove = false) }
+    }
+
+    fun onDismissLicenseDialog() {
+        if (_state.value.isActivating) return
+        _state.update { it.copy(showLicenseDialog = false, licenseError = null, licenseCanMove = false) }
+    }
+
+    fun onActivateLicense(key: String) = runLicense { licenseManager.activate(key) }
+
+    fun onMoveLicenseHere(key: String) = runLicense { licenseManager.moveHere(key) }
+
+    fun onRemoveLicense() {
+        viewModelScope.launch {
+            _state.update { it.copy(isActivating = true) }
+            licenseManager.remove()
+            _state.update { it.copy(isActivating = false) }
+        }
+    }
+
+    private fun runLicense(action: suspend () -> LicenseManager.ActivationOutcome) {
+        viewModelScope.launch {
+            _state.update { it.copy(isActivating = true, licenseError = null, licenseCanMove = false) }
+            val outcome = action()
+            _state.update { ui ->
+                when (outcome) {
+                    LicenseManager.ActivationOutcome.Activated ->
+                        ui.copy(isActivating = false, showLicenseDialog = false)
+                    LicenseManager.ActivationOutcome.InvalidKey ->
+                        ui.copy(isActivating = false, licenseError = "That key isn't valid. Check for typos and try again.")
+                    LicenseManager.ActivationOutcome.ActiveElsewhere ->
+                        ui.copy(
+                            isActivating = false,
+                            licenseError = "This key is already active on another device.",
+                            licenseCanMove = BuildConfig.LICENSE_MOVE_URL.isNotBlank(),
+                        )
+                    LicenseManager.ActivationOutcome.Offline ->
+                        ui.copy(isActivating = false, licenseError = "Couldn't reach the license server. Check your connection and try again.")
+                }
+            }
+        }
+    }
+
+    // endregion
 
     /**
      * Called by the UI when the celebration view finishes — either the

@@ -68,9 +68,9 @@ class BankRoutesTest {
     @Test
     fun `sitemap advertises every page and nothing that 404s`() = routingOnly {
         val sitemap = client.get("/sitemap.xml").bodyAsText()
-        // "/" + "/banks", then one page per country and per bank. "/tools/parse" is an
-        // alias of "/" and is deliberately absent so the two don't compete.
-        val expected = 2 + SupportedBanks.countries.size + SupportedBanks.banks.size
+        // "/" + "/pro" + "/banks", then one page per country and per bank. "/tools/parse"
+        // is an alias of "/" and is deliberately absent so the two don't compete.
+        val expected = 3 + SupportedBanks.countries.size + SupportedBanks.banks.size
         assertEquals(expected, Regex("<loc>").findAll(sitemap).count(), "sitemap URL count")
 
         val paths = Regex("<loc>https://pennywise\\.zynth\\.dev(.*?)</loc>")

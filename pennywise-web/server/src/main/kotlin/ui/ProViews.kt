@@ -29,7 +29,7 @@ object ProViews {
     // Live Dodo product IDs — see memory/dodo-products-and-pricing.
     val plans = listOf(
         Plan("Monthly", "₹149", "per month", "Cancel any time from the email receipt.", "pdt_0NnzfnwsufJtgQ3kP5z6O"),
-        Plan("Annual", "₹699", "per year", "Two months free versus monthly.", "pdt_0NnzfRt53BXBEu7jThl0l"),
+        Plan("Annual", "₹699", "per year", "Under ₹60 a month — 61% less than paying monthly.", "pdt_0NnzfRt53BXBEu7jThl0l"),
         Plan("Lifetime", "₹2,000", "once", "Pay once. Every future Pro feature included.", "pdt_0Nnzf26RZJeP6eTyc2GCl", featured = true),
     )
 
@@ -41,7 +41,6 @@ object ProViews {
         "Unlimited CSV export",
         "Merge duplicate accounts",
         "Scheduled daily backups to a folder",
-        "On-device AI chat over your transactions",
     )
 
     suspend fun ApplicationCall.respondProPage() {
@@ -150,6 +149,7 @@ object ProViews {
         .plan a.btn { text-align: center; }
         .fine { font-size: 13px; }
         .includes { list-style: none; padding: 0 !important; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 18px; }
+        /* Only features the app actually gates — see FreeTierLimits / EntitlementGate. */
         .includes li { padding-left: 22px; position: relative; }
         .includes li::before { content: "✓"; color: var(--mint); position: absolute; left: 0; font-weight: 700; }
         .steps li { margin: 12px 0; }

@@ -686,6 +686,7 @@ fun CreateRuleScreen(
                                             TransactionField.MERCHANT -> "merchant"
                                             TransactionField.TYPE -> "type"
                                             TransactionField.NARRATION -> "description"
+                                            TransactionField.BANK_NAME -> "account"
                                             else -> "field"
                                         }
                                         // Show user-friendly labels for transaction types in actions too

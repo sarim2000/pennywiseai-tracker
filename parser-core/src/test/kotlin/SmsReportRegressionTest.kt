@@ -116,6 +116,37 @@ class SmsReportRegressionTest {
                     type = TransactionType.INCOME
                 )
             )
+            ,
+            SimpleTestCase(
+                description = "Kotak NEFT credit names the sender and keeps the UTR",
+                bankName = "Kotak Bank",
+                sender = "VM-KOTAKB-S",
+                currency = "INR",
+                message = "Rs. 5000 credited to your Kotak Bank a/c XX1111 via NEFT from beneficiary John Doe. UTR Ref. HDFCH00000000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "John Doe",
+                    reference = "HDFCH00000000000",
+                    accountLast4 = "1111"
+                )
+            ),
+            SimpleTestCase(
+                description = "Slice NEFT credit keeps the ref, not the word \"No\"",
+                bankName = "Slice",
+                sender = "VM-SLICEIT-S",
+                currency = "INR",
+                message = "Rs. 5000 received in a/c XX1111 from Person Name on 22-Sep-26 (NEFT Ref No. IDFB0000A0000000). - slice",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Person Name",
+                    reference = "IDFB0000A0000000",
+                    accountLast4 = "1111"
+                )
+            )
         )
 
         return ParserTestUtils.runFactoryTestSuite(cases, "SMS report regressions")

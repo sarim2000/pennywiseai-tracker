@@ -29,7 +29,4 @@
     <string name="support_copied_toast">UPI ID copied</string>
     <string name="support_no_upi_app">No UPI app found. Copy the UPI ID instead.</string>
     <string name="support_nudge_body">Enjoying PennyWise? Support development 💛</string>
-    <string name="support_dialog_body_web">Outside India, or want something back for it? A Pro key from the website supports the same work — and unlocks the Play Store build if you ever switch to it.</string>
-    <string name="support_get_pro_web">Get a Pro key on the web</string>
-    <string name="support_no_browser">No browser found.</string>
 </resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  F-Droid only. These strings name where Pro is sold, so they must never be
+  packaged into the Play build — Play's Payments policy forbids that build
+  from carrying a purchase link, and a runtime `if` still ships the text.
+-->
+<resources>
+    <string name="support_dialog_body_web">Outside India, or want something back for it? A Pro key from the website supports the same work — and unlocks the Play Store build if you ever switch to it.</string>
+    <string name="support_get_pro_web">Get a Pro key on the web</string>
+    <string name="support_no_browser">No browser found.</string>
+</resources>

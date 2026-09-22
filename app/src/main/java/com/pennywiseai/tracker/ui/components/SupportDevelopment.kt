@@ -31,9 +31,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -60,7 +57,6 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
     val clipboard = LocalClipboardManager.current
     val copiedMsg = stringResource(R.string.support_copied_toast)
     val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
-    val noBrowserMsg = stringResource(R.string.support_no_browser)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -72,23 +68,8 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                     stringResource(R.string.support_dialog_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                if (BuildConfig.IS_FDROID_BUILD) {
-                    Text(
-                        stringResource(R.string.support_dialog_body_web),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    TextButton(
-                        onClick = {
-                            if (openUrl(context, PRO_PAGE_URL, noBrowserMsg)) onDismiss()
-                        },
-                        contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.support_get_pro_web),
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                }
+                // F-Droid only: the real one lives in that source set.
+                SupportWebOption(onOpened = onDismiss)
                 // Show the VPA so a user without a UPI app (or who'd rather pay
                 // from their bank app) can copy it manually.
                 Row(
@@ -200,19 +181,4 @@ fun launchUpiPayment(
         Toast.makeText(context, noUpiAppMessage, Toast.LENGTH_LONG).show()
         false
     }
-}
-
-/** The page that sells Pro. F-Droid builds only — see the dialog's note. */
-private val PRO_PAGE_URL = "${Constants.Links.WEB_PARSER_URL}/pro"
-
-/**
- * Opens [url] in the user's browser.
- * @return true if something handled it; false (with a toast) if nothing did.
- */
-private fun openUrl(context: Context, url: String, noBrowserMessage: String): Boolean = try {
-    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-    true
-} catch (e: ActivityNotFoundException) {
-    Toast.makeText(context, noBrowserMessage, Toast.LENGTH_LONG).show()
-    false
 }

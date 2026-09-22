@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -124,7 +126,7 @@ fun CategoryPieChart(
         ) {
             items(chartData.sortedByDescending { it.data }) { pie ->
                 PieLegendItem(
-                    label = pie.label ?: "Unknown",
+                    label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                     value = pie.data,
                     color = pie.color,
                     isSelected = pie.selected,
@@ -192,7 +194,7 @@ private fun PieLegendItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "($percentage%)",
+                    text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

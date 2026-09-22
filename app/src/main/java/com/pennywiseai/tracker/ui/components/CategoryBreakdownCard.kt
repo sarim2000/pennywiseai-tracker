@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -37,7 +39,7 @@ fun CategoryBreakdownCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Text(
-                text = "Spending by Category",
+                text = stringResource(R.string.analytics_spending_by_category),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -106,7 +108,7 @@ private fun CategoryBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${category.percentage.toInt()}%",
+                    text = stringResource(R.string.analytics_percent, category.percentage.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

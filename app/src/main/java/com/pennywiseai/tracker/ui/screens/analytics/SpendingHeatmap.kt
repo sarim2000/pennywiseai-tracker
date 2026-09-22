@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import java.time.format.TextStyle
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -44,7 +46,10 @@ fun SpendingHeatmap(
 
     val scrollState = rememberScrollState()
 
-    val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val locale = LocalConfiguration.current.locales[0]
+    val dayLabels = remember(locale) {
+        DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, locale) }
+    }
     val gapSize = 4.dp
     val dayLabelColumnWidth = 24.dp
     val minCellSize = 20.dp

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.share
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -101,7 +103,7 @@ fun ShareCardSheet(
             )
 
             Text(
-                text = "No amounts are included.",
+                text = stringResource(R.string.share_sheet_no_amounts),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -124,11 +126,11 @@ fun ShareCardSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Default.Share, contentDescription = null)
-                Text("Share", modifier = Modifier.padding(start = Spacing.sm))
+                Text(stringResource(R.string.share_sheet_share), modifier = Modifier.padding(start = Spacing.sm))
             }
 
             TextButton(onClick = { showCustomise = !showCustomise }) {
-                Text(if (showCustomise) "Done" else "Customise")
+                Text(if (showCustomise) stringResource(R.string.share_sheet_done) else stringResource(R.string.share_sheet_customise))
             }
 
             AnimatedVisibility(visible = showCustomise) {
@@ -140,7 +142,7 @@ fun ShareCardSheet(
                     // figure, so offering three independent toggles would imply a stacked
                     // layout that no longer exists.
                     Text(
-                        text = "Show",
+                        text = stringResource(R.string.share_sheet_show),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(bottom = Spacing.xs),
                     )
@@ -154,7 +156,7 @@ fun ShareCardSheet(
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.TRANSACTIONS) }
                             },
-                            label = { Text("Transactions") },
+                            label = { Text(stringResource(R.string.share_sheet_transactions)) },
                         )
                         FilterChip(
                             selected = effectiveHero == ShareHero.SUBSCRIPTIONS,
@@ -165,13 +167,12 @@ fun ShareCardSheet(
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.SUBSCRIPTIONS) }
                             },
-                            label = { Text("Subscriptions") },
+                            label = { Text(stringResource(R.string.share_sheet_subscriptions)) },
                         )
                     }
                     if (!hasSubscriptions) {
                         Text(
-                            text = "No subscriptions detected yet — PennyWise finds these " +
-                                "from recurring payments in your SMS.",
+                            text = stringResource(R.string.share_sheet_no_subscriptions),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.xs),
@@ -179,7 +180,7 @@ fun ShareCardSheet(
                     }
 
                     Text(
-                        text = "Period",
+                        text = stringResource(R.string.share_sheet_period),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
                     )
@@ -189,21 +190,21 @@ fun ShareCardSheet(
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.THIS_MONTH) }
                             },
-                            label = { Text("This month") },
+                            label = { Text(stringResource(R.string.share_sheet_this_month)) },
                         )
                         FilterChip(
                             selected = config.period == SharePeriod.LAST_MONTH,
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.LAST_MONTH) }
                             },
-                            label = { Text("Last month") },
+                            label = { Text(stringResource(R.string.share_sheet_last_month)) },
                         )
                         FilterChip(
                             selected = config.period == SharePeriod.ALL_TIME,
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.ALL_TIME) }
                             },
-                            label = { Text("All time") },
+                            label = { Text(stringResource(R.string.share_sheet_all_time)) },
                         )
                     }
                 }

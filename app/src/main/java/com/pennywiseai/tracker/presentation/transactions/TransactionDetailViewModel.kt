@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
@@ -106,8 +108,8 @@ class TransactionDetailViewModel @Inject constructor(
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
     
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _errorMessage = MutableStateFlow<UiText?>(null)
+    val errorMessage: StateFlow<UiText?> = _errorMessage.asStateFlow()
     
     private val _applyToAllFromMerchant = MutableStateFlow(false)
     val applyToAllFromMerchant: StateFlow<Boolean> = _applyToAllFromMerchant.asStateFlow()
@@ -360,7 +362,7 @@ class TransactionDetailViewModel @Inject constructor(
                 )
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
             } catch (e: Exception) {
-                _errorMessage.value = "Couldn't add the adjustment: ${e.message}"
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_add_adjustment, listOf(e.message.toString()))
             } finally {
                 _isAddingAdjustment.value = false
             }
@@ -553,7 +555,7 @@ class TransactionDetailViewModel @Inject constructor(
             }
             _errorMessage.value = null
         } else if (amountStr.isNotEmpty()) {
-            _errorMessage.value = "Amount must be a positive number"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive_number)
         }
     }
     
@@ -607,9 +609,11 @@ class TransactionDetailViewModel @Inject constructor(
                     // A category with this name already exists but for the other
                     // type; selecting it would filter it out of the picker and
                     // blank the chip. Surface it instead of silently misbehaving.
-                    val existingType = if (existing.isIncome) "income" else "expense"
-                    _errorMessage.value =
-                        "A category named \"$trimmed\" already exists as $existingType"
+                    _errorMessage.value = UiText.Res(
+                        if (existing.isIncome) R.string.txn_detail_error_category_exists_income
+                        else R.string.txn_detail_error_category_exists_expense,
+                        listOf(trimmed)
+                    )
                     onResult(false)
                     return@launch
                 }
@@ -619,7 +623,7 @@ class TransactionDetailViewModel @Inject constructor(
                 updateCategory(trimmed)
                 onResult(true)
             } catch (e: Exception) {
-                _errorMessage.value = "Couldn't create category: ${e.message}"
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_create_category, listOf(e.message.toString()))
                 onResult(false)
             }
         }
@@ -732,7 +736,7 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Splits are for spends: account expenses and credit-card purchases (#750).
         if (transaction.transactionType !in SPLITTABLE_TYPES) {
-            _errorMessage.value = "Splits are only available for expenses and card purchases"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_unavailable)
             return
         }
 
@@ -778,13 +782,13 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Minimum 2 splits required
         if (currentSplits.size < 2) {
-            _errorMessage.value = "At least 2 splits are required"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_min)
             return false
         }
 
         // All splits must have positive amounts
         if (currentSplits.any { it.amount <= BigDecimal.ZERO }) {
-            _errorMessage.value = "All split amounts must be positive"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_positive)
             return false
         }
 
@@ -794,7 +798,7 @@ class TransactionDetailViewModel @Inject constructor(
         val tolerance = BigDecimal("0.01")
 
         if (difference > tolerance) {
-            _errorMessage.value = "Split amounts must equal the transaction total"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_total)
             return false
         }
 
@@ -814,12 +818,12 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
-            _errorMessage.value = "Merchant name is required"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
             return
         }
 
         if (toSave.amount <= BigDecimal.ZERO) {
-            _errorMessage.value = "Amount must be positive"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive)
             return
         }
 
@@ -835,7 +839,7 @@ class TransactionDetailViewModel @Inject constructor(
             toSave.fromAccount != null &&
             toSave.toAccount != null &&
             toSave.fromAccount == toSave.toAccount) {
-            _errorMessage.value = "Source and destination accounts must be different"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_same_accounts)
             return
         }
 
@@ -975,12 +979,12 @@ class TransactionDetailViewModel @Inject constructor(
                 // #752: persist the tags for future transactions from this merchant.
                 // The transaction is already saved at this point, so a rule failure
                 // is reported on its own rather than failing the whole save.
-                var ruleError: String? = null
+                var ruleError: UiText? = null
                 if (_applyTagsToAllFromMerchant.value) {
                     try {
                         upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
                     } catch (e: Exception) {
-                        ruleError = "Saved, but couldn't create the tag rule: ${e.message}"
+                        ruleError = UiText.Res(R.string.txn_detail_error_tag_rule, listOf(e.message.toString()))
                     }
                 }
 
@@ -1036,7 +1040,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _budgetImpactType.value = normalizedTransaction.budgetImpactType
                 _budgetCategory.value = normalizedTransaction.budgetCategory
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to save changes: ${e.message}"
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
             } finally {
                 _isSaving.value = false
             }
@@ -1053,7 +1057,7 @@ class TransactionDetailViewModel @Inject constructor(
     
     private fun validateMerchantName(name: String) {
         if (name.isBlank()) {
-            _errorMessage.value = "Merchant name is required"
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
         } else {
             _errorMessage.value = null
         }
@@ -1106,7 +1110,7 @@ class TransactionDetailViewModel @Inject constructor(
                     _deleteSuccess.value = true
                     com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 } catch (e: Exception) {
-                    _errorMessage.value = "Failed to delete transaction"
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_delete)
                 } finally {
                     _isDeleting.value = false
                 }
@@ -1226,7 +1230,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _loan.value = loanRepository.getLoanById(loanId)
                 _showMarkAsLoanSheet.value = false
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to create loan: ${e.message}"
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_create_loan, listOf(e.message.toString()))
             }
         }
     }
@@ -1240,7 +1244,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 _loan.value = null
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to unlink loan: ${e.message}"
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_unlink_loan, listOf(e.message.toString()))
             }
         }
     }

@@ -22,11 +22,14 @@
     <string name="support_payee_name" translatable="false">PennyWise</string>
     <string name="support_title">Support development</string>
     <string name="support_subtitle">Built by a solo dev — a small tip keeps it going 🦉</string>
-    <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. If it\'s useful to you, a small UPI tip helps keep it going 🦉</string>
+    <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. Everything is already unlocked in this build. If it\'s useful to you, a tip keeps it going 🦉</string>
     <string name="support_pay_via_upi">Pay via UPI</string>
     <string name="support_close">Close</string>
     <string name="support_copy_upi_id">Copy UPI ID</string>
     <string name="support_copied_toast">UPI ID copied</string>
     <string name="support_no_upi_app">No UPI app found. Copy the UPI ID instead.</string>
     <string name="support_nudge_body">Enjoying PennyWise? Support development 💛</string>
+    <string name="support_dialog_body_web">Outside India, or want something back for it? A Pro key from the website supports the same work — and unlocks the Play Store build if you ever switch to it.</string>
+    <string name="support_get_pro_web">Get a Pro key on the web</string>
+    <string name="support_no_browser">No browser found.</string>
 </resources>

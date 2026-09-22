@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
@@ -252,8 +253,7 @@ private fun UpgradeBody(
     Spacer(Modifier.height(Spacing.lg))
 
     // The only call to action left. Pro is not sold through this app, so the
-    // sheet shows what Pro does and takes a key — it never quotes a price,
-    // launches a checkout, or points anywhere to buy one.
+    // sheet shows what Pro does and takes a key — it never quotes a price.
     Button(
         onClick = onLicenseKey,
         modifier = Modifier
@@ -272,7 +272,27 @@ private fun UpgradeBody(
             fontWeight = FontWeight.SemiBold,
         )
     }
-    Spacer(Modifier.height(Spacing.lg))
+    Spacer(Modifier.height(Spacing.md))
+
+    // Plain text, deliberately: no hyperlink, no button, no webview. Play's
+    // Payments policy FAQ allows a consumption-only app (one that sells
+    // nothing in-app, which is what this sheet now is) to name where its
+    // products are sold, "without direct links" — its own example being
+    // "Go to our website to upgrade your subscription to Premium". Making
+    // this tappable is the one thing that rule forbids. Selectable so it can
+    // be long-pressed and copied.
+    SelectionContainer {
+        Text(
+            text = "PennyWise Pro is available at ${Constants.Links.WEB_PARSER_URL.removePrefix("https://")}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content),
+        )
+    }
+    Spacer(Modifier.height(Spacing.md))
 
     TrustRow(
         isRestoring = state.isPurchasing,

@@ -1,22 +1,13 @@
 package com.pennywiseai.tracker.presentation.paywall
 
-import com.pennywiseai.tracker.billing.ProProduct
-
 /**
  * Immutable UI state for the upgrade sheet. ViewModel emits this; Compose
  * renders it. No business logic lives here.
  */
 data class UpgradeUiState(
-    val products: List<ProProduct> = emptyList(),
-    /**
-     * Unique key of the currently-selected plan — uses [ProProduct.key]
-     * (e.g. `pro_lifetime` or `pro_subscription#monthly`). Distinguishes
-     * subscription base plans, which share an SKU.
-     */
-    val selectedKey: String? = null,
-    /** Initial product/entitlement load in flight. Drives the skeleton view. */
+    /** Initial entitlement load in flight. */
     val isLoading: Boolean = true,
-    /** `launchBillingFlow` in flight. Disables the CTA + shows spinner. */
+    /** A Restore is in flight. */
     val isPurchasing: Boolean = false,
     /** Surfaced as snackbar; cleared by [UpgradeViewModel.onErrorDismissed]. */
     val errorMessage: String? = null,
@@ -29,7 +20,7 @@ data class UpgradeUiState(
     val isAlreadyEntitled: Boolean = false,
     /**
      * Set when entitlement TRANSITIONS from false to true mid-sheet (i.e.
-     * a fresh purchase or a restore-purchases finding an entitlement).
+     * a license key activated, or Restore finding a Play entitlement).
      * The UI swaps to a celebration view; the actual dismiss is fired
      * through [UpgradeViewModel.events] (one-shot Channel) — NOT via
      * sticky state, so a stale VM doesn't re-trigger dismiss the next

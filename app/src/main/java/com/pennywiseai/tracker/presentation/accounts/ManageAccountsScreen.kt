@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -77,11 +80,11 @@ fun ManageAccountsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Accounts",
+                title = stringResource(R.string.manage_accounts_title),
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
@@ -93,7 +96,7 @@ fun ManageAccountsScreen(
                             if (isProEntitled) showMergeSheet = true
                             else showUpgradeSheet = true
                         }) {
-                            Icon(Icons.Default.Merge, contentDescription = "Merge accounts")
+                            Icon(Icons.Default.Merge, contentDescription = stringResource(R.string.merge_accounts_title))
                         }
                     }
                 },
@@ -105,7 +108,7 @@ fun ManageAccountsScreen(
                 onClick = onNavigateToAddAccount,
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Account")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_account_title))
             }
         }
     ) { paddingValues ->
@@ -120,8 +123,8 @@ fun ManageAccountsScreen(
             ) {
                 PennyWiseEmptyState(
                     icon = Icons.Default.AccountBalance,
-                    headline = "No Accounts",
-                    description = "Add your first bank account to start tracking."
+                    headline = stringResource(R.string.manage_accounts_empty_title),
+                    description = stringResource(R.string.manage_accounts_empty_description)
                 )
             }
         } else {
@@ -162,7 +165,7 @@ fun ManageAccountsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
-                                    text = message,
+                                    text = message.asString(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -202,7 +205,7 @@ fun ManageAccountsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
-                                    text = message,
+                                    text = message.asString(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -229,7 +232,7 @@ fun ManageAccountsScreen(
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
-                        SectionHeaderV2(title = "Bank Accounts")
+                        SectionHeaderV2(title = stringResource(R.string.manage_accounts_section_bank))
                     }
 
                     items(visibleRegularAccounts) { account ->
@@ -276,7 +279,7 @@ fun ManageAccountsScreen(
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeaderV2(title = "Unlinked Cards")
+                        SectionHeaderV2(title = stringResource(R.string.manage_accounts_section_unlinked_cards))
                     }
                     
                     items(uiState.orphanedCards) { card ->
@@ -300,7 +303,7 @@ fun ManageAccountsScreen(
                 if (visibleCreditCards.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
-                        SectionHeaderV2(title = "Credit Cards")
+                        SectionHeaderV2(title = stringResource(R.string.manage_accounts_section_credit_cards))
                     }
 
                     items(visibleCreditCards) { card ->
@@ -363,7 +366,7 @@ fun ManageAccountsScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Hidden Accounts (${hiddenRegularAccounts.size + hiddenCreditCards.size})",
+                                        text = stringResource(R.string.manage_accounts_hidden_header, hiddenRegularAccounts.size + hiddenCreditCards.size),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -371,7 +374,7 @@ fun ManageAccountsScreen(
                                 }
                                 Icon(
                                     if (showHiddenAccounts) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = if (showHiddenAccounts) "Collapse" else "Expand",
+                                    contentDescription = if (showHiddenAccounts) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -575,21 +578,20 @@ fun ManageAccountsScreen(
     pendingProfileReassign?.let { pending ->
         AlertDialog(
             onDismissRequest = { viewModel.dismissPendingProfileReassign() },
-            title = { Text("Move existing transactions?") },
+            title = { Text(stringResource(R.string.manage_accounts_reassign_title)) },
             text = {
                 Text(
-                    "${pending.transactionCount} transaction(s) from this account are set to a " +
-                        "different profile. Move them to the new profile too?"
+                    pluralStringResource(R.plurals.manage_accounts_reassign_message, pending.transactionCount, pending.transactionCount)
                 )
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.applyPendingProfileReassign() }) {
-                    Text("Move them")
+                    Text(stringResource(R.string.manage_accounts_reassign_move))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissPendingProfileReassign() }) {
-                    Text("Keep as is")
+                    Text(stringResource(R.string.manage_accounts_reassign_keep))
                 }
             }
         )
@@ -671,7 +673,7 @@ private fun CreditCardItem(
                             if (isHidden) {
                                 Icon(
                                     Icons.Default.VisibilityOff,
-                                    contentDescription = "Hidden",
+                                    contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -699,7 +701,7 @@ private fun CreditCardItem(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Outstanding",
+                        text = stringResource(R.string.manage_accounts_outstanding),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -721,7 +723,7 @@ private fun CreditCardItem(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Available",
+                        text = stringResource(R.string.manage_accounts_available),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -739,7 +741,7 @@ private fun CreditCardItem(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Credit Limit",
+                        text = stringResource(R.string.manage_accounts_credit_limit),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -753,7 +755,7 @@ private fun CreditCardItem(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "($utilization% used)",
+                            text = stringResource(R.string.manage_accounts_utilization_used, utilization),
                             style = MaterialTheme.typography.bodySmall,
                             color = utilizationColor,
                             fontWeight = FontWeight.Medium
@@ -780,7 +782,7 @@ private fun CreditCardItem(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(if (isManualAccount) "Edit" else "Update")
+                    Text(if (isManualAccount) stringResource(R.string.manage_accounts_action_edit) else stringResource(R.string.manage_accounts_action_update))
                 }
 
                 // Overflow menu
@@ -788,7 +790,7 @@ private fun CreditCardItem(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "More options"
+                            contentDescription = stringResource(R.string.manage_accounts_more_options)
                         )
                     }
                     DropdownMenu(
@@ -796,7 +798,7 @@ private fun CreditCardItem(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("History") },
+                            text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
                             onClick = {
                                 showMenu = false
                                 onViewHistory()
@@ -809,7 +811,7 @@ private fun CreditCardItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (isHidden) "Show" else "Hide") },
+                            text = { Text(if (isHidden) stringResource(R.string.manage_accounts_menu_show) else stringResource(R.string.manage_accounts_menu_hide)) },
                             onClick = {
                                 showMenu = false
                                 onToggleVisibility()
@@ -824,8 +826,8 @@ private fun CreditCardItem(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    if (card.statementDay != null) "Statement date: ${card.statementDay}"
-                                    else "Set statement date"
+                                    if (card.statementDay != null) stringResource(R.string.manage_accounts_menu_statement_date, card.statementDay)
+                                    else stringResource(R.string.manage_accounts_menu_set_statement_date)
                                 )
                             },
                             onClick = {
@@ -840,7 +842,7 @@ private fun CreditCardItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.accounts_action_delete)) },
                             onClick = {
                                 showMenu = false
                                 onDeleteAccount()
@@ -885,11 +887,11 @@ private fun StatementDayPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Statement date") },
+        title = { Text(stringResource(R.string.manage_accounts_statement_dialog_title)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Day of month when your credit card statement closes",
+                    text = stringResource(R.string.manage_accounts_statement_dialog_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -902,7 +904,7 @@ private fun StatementDayPickerDialog(
                     IconButton(
                         onClick = { if (selectedDay > 1) selectedDay-- }
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                        Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
                     }
                     Text(
                         text = "$selectedDay",
@@ -912,24 +914,24 @@ private fun StatementDayPickerDialog(
                     IconButton(
                         onClick = { if (selectedDay < 28) selectedDay++ }
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedDay) }) {
-                Text("Save")
+                Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
             if (currentDay != null) {
                 TextButton(onClick = { onConfirm(null) }) {
-                    Text("Clear")
+                    Text(stringResource(R.string.manage_accounts_action_clear))
                 }
             } else {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
         }
@@ -1017,7 +1019,7 @@ private fun AccountItem(
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
-                                        text = "Business",
+                                        text = stringResource(R.string.manage_accounts_business_badge),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -1027,7 +1029,7 @@ private fun AccountItem(
                             if (isHidden) {
                                 Icon(
                                     Icons.Default.VisibilityOff,
-                                    contentDescription = "Hidden",
+                                    contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1072,7 +1074,7 @@ private fun AccountItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (isLowBalance) "Low balance" else "Balance",
+                        text = if (isLowBalance) stringResource(R.string.manage_accounts_low_balance) else stringResource(R.string.manage_accounts_balance),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isLowBalance) FontWeight.Medium else null,
                         color = if (isLowBalance) {
@@ -1090,7 +1092,7 @@ private fun AccountItem(
                     modifier = Modifier.padding(top = Spacing.sm)
                 ) {
                     Text(
-                        text = "Linked Cards",
+                        text = stringResource(R.string.manage_accounts_linked_cards),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.xs)
@@ -1131,7 +1133,7 @@ private fun AccountItem(
                                             )
                                             if (!card.isActive) {
                                                 Text(
-                                                    text = "(Inactive)",
+                                                    text = stringResource(R.string.manage_accounts_card_inactive),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error
                                                 )
@@ -1140,7 +1142,7 @@ private fun AccountItem(
                                         // Show last transaction date if available
                                         if (card.lastBalanceDate != null) {
                                             Text(
-                                                text = "Updated: ${card.lastBalanceDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"))}",
+                                                text = stringResource(R.string.manage_accounts_card_updated, card.lastBalanceDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"))),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1153,7 +1155,7 @@ private fun AccountItem(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LinkOff,
-                                        contentDescription = "Unlink card",
+                                        contentDescription = stringResource(R.string.manage_accounts_unlink_card),
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1182,7 +1184,7 @@ private fun AccountItem(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(if (isManualAccount) "Edit" else "Update Balance")
+                    Text(if (isManualAccount) stringResource(R.string.manage_accounts_action_edit) else stringResource(R.string.manage_accounts_update_balance))
                 }
 
                 // Overflow menu
@@ -1190,7 +1192,7 @@ private fun AccountItem(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "More options"
+                            contentDescription = stringResource(R.string.manage_accounts_more_options)
                         )
                     }
                     DropdownMenu(
@@ -1198,7 +1200,7 @@ private fun AccountItem(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("History") },
+                            text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
                             onClick = {
                                 showMenu = false
                                 onViewHistory()
@@ -1211,7 +1213,7 @@ private fun AccountItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (isHidden) "Show" else "Hide") },
+                            text = { Text(if (isHidden) stringResource(R.string.manage_accounts_menu_show) else stringResource(R.string.manage_accounts_menu_hide)) },
                             onClick = {
                                 showMenu = false
                                 onToggleVisibility()
@@ -1224,7 +1226,7 @@ private fun AccountItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (account.profileId == ProfileEntity.BUSINESS_ID) "Mark as Personal" else "Mark as Business") },
+                            text = { Text(if (account.profileId == ProfileEntity.BUSINESS_ID) stringResource(R.string.manage_accounts_menu_mark_personal) else stringResource(R.string.manage_accounts_menu_mark_business)) },
                             onClick = {
                                 showMenu = false
                                 val newProfileId = if (account.profileId == ProfileEntity.BUSINESS_ID)
@@ -1239,7 +1241,7 @@ private fun AccountItem(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(if (account.alias.isNullOrBlank()) "Set alias" else "Rename") },
+                            text = { Text(if (account.alias.isNullOrBlank()) stringResource(R.string.manage_accounts_menu_set_alias) else stringResource(R.string.manage_accounts_menu_rename)) },
                             onClick = {
                                 showMenu = false
                                 showAliasDialog = true
@@ -1256,7 +1258,7 @@ private fun AccountItem(
                         // don't apply (matches the isLowBalance exclusion above).
                         if (!account.isCreditCard) {
                             DropdownMenuItem(
-                                text = { Text(if (account.lowBalanceThreshold == null) "Low-balance alert" else "Edit low-balance alert") },
+                                text = { Text(if (account.lowBalanceThreshold == null) stringResource(R.string.manage_accounts_low_balance_alert) else stringResource(R.string.manage_accounts_menu_edit_low_balance_alert)) },
                                 onClick = {
                                     showMenu = false
                                     showThresholdDialog = true
@@ -1270,7 +1272,7 @@ private fun AccountItem(
                             )
                         }
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.accounts_action_delete)) },
                             onClick = {
                                 showMenu = false
                                 onDeleteAccount()
@@ -1336,7 +1338,7 @@ private fun LowBalanceThresholdDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Low-balance alert") },
+        title = { Text(stringResource(R.string.manage_accounts_low_balance_alert)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
@@ -1345,15 +1347,14 @@ private fun LowBalanceThresholdDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Flag this account when its balance is at or below this amount. " +
-                        "Current balance: ${CurrencyFormatter.formatCurrency(currentBalance, currency)}",
+                    text = stringResource(R.string.manage_accounts_low_balance_alert_description, CurrencyFormatter.formatCurrency(currentBalance, currency)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Threshold ($currency)") },
+                    label = { Text(stringResource(R.string.manage_accounts_threshold_label, currency)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1364,14 +1365,14 @@ private fun LowBalanceThresholdDialog(
             TextButton(
                 onClick = { onConfirm(parsed) },
                 enabled = parsed != null && parsed >= BigDecimal.ZERO
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (currentThreshold != null) {
-                    TextButton(onClick = { onConfirm(null) }) { Text("Clear") }
+                    TextButton(onClick = { onConfirm(null) }) { Text(stringResource(R.string.manage_accounts_action_clear)) }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.accounts_action_cancel)) }
             }
         }
     )
@@ -1389,7 +1390,7 @@ private fun AccountAliasDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename account") },
+        title = { Text(stringResource(R.string.manage_accounts_rename_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
@@ -1400,13 +1401,13 @@ private fun AccountAliasDialog(
                 OutlinedTextField(
                     value = aliasText,
                     onValueChange = { aliasText = it },
-                    label = { Text("Alias") },
-                    placeholder = { Text("e.g. Salary account") },
+                    label = { Text(stringResource(R.string.manage_accounts_alias_label)) },
+                    placeholder = { Text(stringResource(R.string.manage_accounts_alias_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Leave blank to clear the alias.",
+                    text = stringResource(R.string.manage_accounts_alias_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1414,12 +1415,12 @@ private fun AccountAliasDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }) {
-                Text("Save")
+                Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )
@@ -1440,7 +1441,7 @@ private fun UpdateBalanceDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Update Balance")
+                Text(stringResource(R.string.manage_accounts_update_balance))
                 Text(
                     text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
                     style = MaterialTheme.typography.bodyMedium,
@@ -1457,7 +1458,7 @@ private fun UpdateBalanceDialog(
                         isValid = text.isNotBlank() && text.toDoubleOrNull() != null
                     }
                 },
-                label = { Text("New Balance") },
+                label = { Text(stringResource(R.string.manage_accounts_new_balance)) },
                 placeholder = { Text("0.00") },
                 leadingIcon = {
                     Text(
@@ -1482,12 +1483,12 @@ private fun UpdateBalanceDialog(
                 },
                 enabled = isValid
             ) {
-                Text("Update")
+                Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )
@@ -1518,7 +1519,7 @@ private fun UpdateCreditCardDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Update Credit Card")
+                Text(stringResource(R.string.manage_accounts_update_credit_card))
                 Text(
                     text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
                     style = MaterialTheme.typography.bodyMedium,
@@ -1537,7 +1538,7 @@ private fun UpdateCreditCardDialog(
                             outstandingText = text
                         }
                     },
-                    label = { Text("Outstanding Balance") },
+                    label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
                     placeholder = { Text("0.00") },
                     leadingIcon = {
                         Text(
@@ -1547,7 +1548,7 @@ private fun UpdateCreditCardDialog(
                         )
                     },
                     supportingText = {
-                        Text("Amount currently owed on the card")
+                        Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal
@@ -1563,7 +1564,7 @@ private fun UpdateCreditCardDialog(
                             limitText = text
                         }
                     },
-                    label = { Text("Credit Limit") },
+                    label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
                     placeholder = { Text("50000.00") },
                     leadingIcon = {
                         Text(
@@ -1573,7 +1574,7 @@ private fun UpdateCreditCardDialog(
                         )
                     },
                     supportingText = {
-                        Text("Total credit limit of the card")
+                        Text(stringResource(R.string.manage_accounts_credit_limit_hint))
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal
@@ -1604,7 +1605,7 @@ private fun UpdateCreditCardDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Available Credit:",
+                                    text = stringResource(R.string.manage_accounts_available_credit_label),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -1620,7 +1621,7 @@ private fun UpdateCreditCardDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Utilization:",
+                                    text = stringResource(R.string.manage_accounts_utilization_label),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -1649,12 +1650,12 @@ private fun UpdateCreditCardDialog(
                 },
                 enabled = isValid
             ) {
-                Text("Update")
+                Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )
@@ -1702,14 +1703,14 @@ private fun OrphanedCardItem(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "${if (card.cardType == com.pennywiseai.tracker.data.database.entity.CardType.CREDIT) "Credit" else "Debit"} Card (Unlinked)",
+                        text = if (card.cardType == com.pennywiseai.tracker.data.database.entity.CardType.CREDIT) stringResource(R.string.manage_accounts_unlinked_credit_card) else stringResource(R.string.manage_accounts_unlinked_debit_card),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     // Show last known balance if available
                     if (card.lastBalance != null) {
                         Text(
-                            text = "Last Balance: ${CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)}",
+                            text = stringResource(R.string.manage_accounts_last_balance, CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1718,9 +1719,9 @@ private fun OrphanedCardItem(
                     if (card.lastBalanceSource != null) {
                         Text(
                             text = if (expandedSource) {
-                                "SMS: ${card.lastBalanceSource}"
+                                stringResource(R.string.manage_accounts_card_sms, card.lastBalanceSource)
                             } else {
-                                "SMS: ${card.lastBalanceSource.take(80)}... (tap to expand)"
+                                stringResource(R.string.manage_accounts_card_sms_truncated, card.lastBalanceSource.take(80))
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1747,7 +1748,7 @@ private fun OrphanedCardItem(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Link")
+                    Text(stringResource(R.string.manage_accounts_action_link))
                 }
 
                 OutlinedButton(
@@ -1760,7 +1761,7 @@ private fun OrphanedCardItem(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Edit")
+                    Text(stringResource(R.string.manage_accounts_action_edit))
                 }
 
                 OutlinedButton(
@@ -1776,7 +1777,7 @@ private fun OrphanedCardItem(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Delete")
+                    Text(stringResource(R.string.accounts_action_delete))
                 }
             }
         }
@@ -1823,7 +1824,7 @@ private fun EditCardDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit card") },
+        title = { Text(stringResource(R.string.manage_accounts_edit_card_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -1836,20 +1837,20 @@ private fun EditCardDialog(
                 OutlinedTextField(
                     value = bankName,
                     onValueChange = { bankName = it },
-                    label = { Text("Bank") },
+                    label = { Text(stringResource(R.string.manage_accounts_bank_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
-                        text = "Card type",
+                        text = stringResource(R.string.manage_accounts_card_type_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                         val options = listOf(
-                            com.pennywiseai.tracker.data.database.entity.CardType.DEBIT to "Debit",
-                            com.pennywiseai.tracker.data.database.entity.CardType.CREDIT to "Credit"
+                            com.pennywiseai.tracker.data.database.entity.CardType.DEBIT to stringResource(R.string.manage_accounts_card_type_debit),
+                            com.pennywiseai.tracker.data.database.entity.CardType.CREDIT to stringResource(R.string.manage_accounts_card_type_credit)
                         )
                         options.forEachIndexed { index, (type, label) ->
                             SegmentedButton(
@@ -1863,7 +1864,7 @@ private fun EditCardDialog(
                 OutlinedTextField(
                     value = nickname,
                     onValueChange = { nickname = it },
-                    label = { Text("Nickname (optional)") },
+                    label = { Text(stringResource(R.string.manage_accounts_nickname_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1875,10 +1876,10 @@ private fun EditCardDialog(
                     onConfirm(bankName, cardType, nickname.ifBlank { null })
                 },
                 enabled = bankName.isNotBlank()
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.accounts_action_cancel)) }
         }
     )
 }
@@ -1897,7 +1898,7 @@ private fun LinkCardDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Link Card to Account")
+                Text(stringResource(R.string.manage_accounts_link_card_title))
                 Text(
                     text = "${card.bankName} ••${card.cardLast4}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -1911,13 +1912,13 @@ private fun LinkCardDialog(
             ) {
                 if (accounts.isEmpty()) {
                     Text(
-                        text = "No ${card.bankName} accounts found. Add an account first.",
+                        text = stringResource(R.string.manage_accounts_link_no_accounts, card.bankName),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     Text(
-                        text = "Select an account to link this card to:",
+                        text = stringResource(R.string.manage_accounts_link_select_account),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     accounts.forEach { account ->
@@ -1979,12 +1980,12 @@ private fun LinkCardDialog(
                 onClick = { selectedAccount?.let(onConfirm) },
                 enabled = selectedAccount != null
             ) {
-                Text("Link")
+                Text(stringResource(R.string.manage_accounts_action_link))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )
@@ -2007,14 +2008,14 @@ private fun DeleteAccountConfirmDialog(
             )
         },
         title = {
-            Text("Delete Account?")
+            Text(stringResource(R.string.manage_accounts_delete_title))
         },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Text(
-                    text = "Are you sure you want to delete this account?",
+                    text = stringResource(R.string.manage_accounts_delete_message),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Card(
@@ -2041,7 +2042,7 @@ private fun DeleteAccountConfirmDialog(
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Account ending in $accountLast4",
+                                text = stringResource(R.string.manage_accounts_account_ending_in, accountLast4),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2049,7 +2050,7 @@ private fun DeleteAccountConfirmDialog(
                     }
                 }
                 Text(
-                    text = "This will permanently delete all balance history for this account. Any linked cards will be unlinked. This action cannot be undone.",
+                    text = stringResource(R.string.manage_accounts_delete_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -2062,12 +2063,12 @@ private fun DeleteAccountConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text(stringResource(R.string.accounts_action_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )
@@ -2110,9 +2111,9 @@ private fun EditAccountDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Edit Account")
+                Text(stringResource(R.string.manage_accounts_edit_account_title))
                 Text(
-                    text = if (account.isCreditCard) "Credit Card" else "Bank Account",
+                    text = if (account.isCreditCard) stringResource(R.string.manage_accounts_type_credit_card) else stringResource(R.string.manage_accounts_type_bank_account),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2126,7 +2127,7 @@ private fun EditAccountDialog(
                 TextField(
                     value = bankNameText,
                     onValueChange = { bankNameText = it },
-                    label = { Text("Bank Name") },
+                    label = { Text(stringResource(R.string.manage_accounts_bank_name_label)) },
                     leadingIcon = {
                         Icon(
                             if (account.isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
@@ -2141,7 +2142,7 @@ private fun EditAccountDialog(
                 TextField(
                     value = AccountBalanceEntity.accountLabel("", account.accountLast4).trim(),
                     onValueChange = {},
-                    label = { Text("Account Number") },
+                    label = { Text(stringResource(R.string.manage_accounts_account_number_label)) },
                     enabled = false,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -2155,7 +2156,7 @@ private fun EditAccountDialog(
                         disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = "Read-only")
+                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
                     },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -2179,7 +2180,7 @@ private fun EditAccountDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Currency",
+                                text = stringResource(R.string.add_account_currency_label),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2215,7 +2216,7 @@ private fun EditAccountDialog(
                                 balanceText = text
                             }
                         },
-                        label = { Text("Outstanding Balance") },
+                        label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
                         placeholder = { Text("0.00") },
                         leadingIcon = {
                             Text(
@@ -2225,7 +2226,7 @@ private fun EditAccountDialog(
                             )
                         },
                         supportingText = {
-                            Text("Amount currently owed on the card")
+                            Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
@@ -2242,7 +2243,7 @@ private fun EditAccountDialog(
                                 creditLimitText = text
                             }
                         },
-                        label = { Text("Credit Limit") },
+                        label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
                         placeholder = { Text("50000.00") },
                         leadingIcon = {
                             Text(
@@ -2252,7 +2253,7 @@ private fun EditAccountDialog(
                             )
                         },
                         supportingText = {
-                            Text("Total credit limit of the card")
+                            Text(stringResource(R.string.manage_accounts_credit_limit_hint))
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
@@ -2279,7 +2280,7 @@ private fun EditAccountDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Available Credit:",
+                                    text = stringResource(R.string.manage_accounts_available_credit_label),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -2301,7 +2302,7 @@ private fun EditAccountDialog(
                                 balanceText = text
                             }
                         },
-                        label = { Text("Account Balance") },
+                        label = { Text(stringResource(R.string.manage_accounts_account_balance_label)) },
                         placeholder = { Text("0.00") },
                         leadingIcon = {
                             Text(
@@ -2330,12 +2331,12 @@ private fun EditAccountDialog(
                 },
                 enabled = isValid
             ) {
-                Text("Save")
+                Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.accounts_action_cancel))
             }
         }
     )

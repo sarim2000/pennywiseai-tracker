@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,7 +41,7 @@ fun UnifiedAccountsCard(
         Column {
             // Header
             Text(
-                text = "Accounts Overview",
+                text = stringResource(R.string.accounts_overview_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -58,7 +61,7 @@ fun UnifiedAccountsCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountBalance,
-                        contentDescription = "Bank Balance",
+                        contentDescription = stringResource(R.string.accounts_overview_bank_balance),
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -71,9 +74,9 @@ fun UnifiedAccountsCard(
                     )
                     Text(
                         text = if (bankAccounts.isNotEmpty()) {
-                            "Bank Balance • ${bankAccounts.size}"
+                            stringResource(R.string.accounts_overview_bank_balance_count, bankAccounts.size)
                         } else {
-                            "Bank Balance"
+                            stringResource(R.string.accounts_overview_bank_balance)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -95,7 +98,7 @@ fun UnifiedAccountsCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.CreditCard,
-                        contentDescription = "Available Credit",
+                        contentDescription = stringResource(R.string.accounts_overview_available_credit),
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.secondary
                     )
@@ -108,9 +111,9 @@ fun UnifiedAccountsCard(
                     )
                     Text(
                         text = if (creditCards.isNotEmpty()) {
-                            "Available Credit • ${creditCards.size}"
+                            stringResource(R.string.accounts_overview_available_credit_count, creditCards.size)
                         } else {
-                            "Available Credit"
+                            stringResource(R.string.accounts_overview_available_credit)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -138,7 +141,7 @@ fun UnifiedAccountsCard(
                                 bankName = account.bankName,
                                 accountLast4 = account.accountLast4,
                                 formattedAmount = CurrencyFormatter.formatCurrency(account.balance, selectedCurrency),
-                                subtitle = "Balance",
+                                subtitle = stringResource(R.string.accounts_overview_balance),
                                 isCredit = false,
                                 onClick = { onAccountClick(account.bankName, account.accountLast4) }
                             )
@@ -166,8 +169,8 @@ fun UnifiedAccountsCard(
                                     val utilization = if (card.creditLimit != null && card.creditLimit > BigDecimal.ZERO) {
                                         ((card.balance.toDouble() / card.creditLimit.toDouble()) * 100).toInt()
                                     } else 0
-                                    "Used: ${CurrencyFormatter.formatCurrency(card.balance, selectedCurrency)} ($utilization%)"
-                                } else "Available Limit",
+                                    stringResource(R.string.accounts_overview_used, CurrencyFormatter.formatCurrency(card.balance, selectedCurrency), utilization)
+                                } else stringResource(R.string.accounts_overview_available_limit),
                                 isCredit = true,
                                 onClick = { onAccountClick(card.bankName, card.accountLast4) },
                                 subtitleColor = if (card.balance > BigDecimal.ZERO) {
@@ -192,7 +195,7 @@ fun UnifiedAccountsCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = if (showAllAccounts) "Show Less" else "View All $totalAccounts Accounts",
+                            text = if (showAllAccounts) stringResource(R.string.accounts_overview_show_less) else pluralStringResource(R.plurals.accounts_overview_view_all, totalAccounts, totalAccounts),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

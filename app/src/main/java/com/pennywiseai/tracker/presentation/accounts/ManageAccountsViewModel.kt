@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,8 +30,8 @@ data class ManageAccountsUiState(
     val linkedCards: Map<String, List<CardEntity>> = emptyMap(), // accountLast4 -> List of cards
     val orphanedCards: List<CardEntity> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val successMessage: String? = null,
+    val errorMessage: UiText? = null,
+    val successMessage: UiText? = null,
     // F-Droid-only contextual support nudge after a merge (a Pro-equivalent
     // power feature); persists past the transient successMessage until dismissed.
     val showSupportNudge: Boolean = false
@@ -43,7 +45,7 @@ data class AccountFormState(
     val accountType: AccountType = AccountType.SAVINGS,
     val currency: String = "INR",
     val isValid: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: UiText? = null
 )
 
 enum class AccountType {
@@ -215,7 +217,7 @@ class ManageAccountsViewModel @Inject constructor(
             )
             
             if (existingAccount != null) {
-                _formState.update { it.copy(errorMessage = "Account already exists") }
+                _formState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_account_exists)) }
                 return@launch
             }
             
@@ -412,16 +414,16 @@ class ManageAccountsViewModel @Inject constructor(
                         android.util.Log.d("ManageAccountsViewModel", "Balance copied to account. Insert ID: $insertedId")
                         
                         // Show success message with balance
-                        val message = "Card linked successfully. Balance updated to ${CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)}"
+                        val message = UiText.Res(R.string.manage_accounts_msg_card_linked_balance, listOf(CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)))
                         _uiState.update { it.copy(successMessage = message) }
                     } catch (e: Exception) {
                         android.util.Log.e("ManageAccountsViewModel", "Failed to copy balance: ${e.message}", e)
                         // Still show success for linking, but note the balance issue
-                        _uiState.update { it.copy(successMessage = "Card linked successfully (balance update failed)") }
+                        _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_linked_balance_failed)) }
                     }
                 } else {
                     // No balance to copy, just show link success
-                    _uiState.update { it.copy(successMessage = "Card linked successfully") }
+                    _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_linked)) }
                 }
                 
                 // Clear message after delay
@@ -433,7 +435,7 @@ class ManageAccountsViewModel @Inject constructor(
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to link card", e)
                 _uiState.update { 
-                    it.copy(errorMessage = "Failed to link card: ${e.message}")
+                    it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_link_card_failed, listOf("${e.message}")))
                 }
             }
         }
@@ -451,7 +453,7 @@ class ManageAccountsViewModel @Inject constructor(
             try {
                 android.util.Log.d("ManageAccountsViewModel", "Deleting card with ID: $cardId")
                 cardRepository.deleteCard(cardId)
-                _uiState.update { it.copy(successMessage = "Card deleted successfully") }
+                _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_deleted)) }
                 
                 // Clear message after delay
                 delay(2000)
@@ -461,7 +463,7 @@ class ManageAccountsViewModel @Inject constructor(
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to delete card", e)
                 _uiState.update { 
-                    it.copy(errorMessage = "Failed to delete card: ${e.message}")
+                    it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_card_failed, listOf("${e.message}")))
                 }
             }
         }
@@ -498,7 +500,7 @@ class ManageAccountsViewModel @Inject constructor(
                     // dialog opening and Save. Surface it so the user isn't
                     // left wondering why nothing happened.
                     _uiState.update {
-                        it.copy(errorMessage = "Card no longer exists — it may have been deleted.")
+                        it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_card_missing))
                     }
                     return@launch
                 }
@@ -511,14 +513,14 @@ class ManageAccountsViewModel @Inject constructor(
                         nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
                     )
                 )
-                _uiState.update { it.copy(successMessage = "Card updated") }
+                _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
                 loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
                 _uiState.update {
-                    it.copy(errorMessage = "Failed to update card: ${e.message}")
+                    it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_update_card_failed, listOf("${e.message}")))
                 }
             }
         }
@@ -545,7 +547,7 @@ class ManageAccountsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         hiddenAccounts = hidden,
-                        successMessage = "Account deleted successfully ($deletedCount balance records removed)"
+                        successMessage = UiText.Plural(R.plurals.manage_accounts_msg_account_deleted, deletedCount)
                     )
                 }
 
@@ -556,7 +558,7 @@ class ManageAccountsViewModel @Inject constructor(
                 loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(errorMessage = "Failed to delete account: ${e.message}")
+                    it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_account_failed, listOf("${e.message}")))
                 }
             }
         }
@@ -588,18 +590,18 @@ class ManageAccountsViewModel @Inject constructor(
                 val sameAccount = source.bankName.equals(target.bankName, ignoreCase = true) &&
                     source.accountLast4 == target.accountLast4
                 if (sameAccount) {
-                    _uiState.update { it.copy(errorMessage = "Source and target are the same account") }
+                    _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_same_account)) }
                     return@launch
                 }
                 if (!source.currency.equals(target.currency, ignoreCase = true)) {
                     _uiState.update {
-                        it.copy(errorMessage = "Currencies don't match (${source.currency} vs ${target.currency})")
+                        it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_currency_mismatch, listOf(source.currency, target.currency)))
                     }
                     return@launch
                 }
                 if (source.isCreditCard != target.isCreditCard) {
                     _uiState.update {
-                        it.copy(errorMessage = "Can't merge a credit card with a regular account")
+                        it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_card_mismatch))
                     }
                     return@launch
                 }
@@ -655,7 +657,7 @@ class ManageAccountsViewModel @Inject constructor(
                     userPreferencesRepository.claimSupportNudge()
                 _uiState.update {
                     it.copy(
-                        successMessage = "Merged $moved transactions into ${AccountBalanceEntity.accountLabel(target.bankName, target.accountLast4)}",
+                        successMessage = UiText.Plural(R.plurals.manage_accounts_msg_merged, moved, listOf(moved, AccountBalanceEntity.accountLabel(target.bankName, target.accountLast4))),
                         showSupportNudge = it.showSupportNudge || nudge
                     )
                 }
@@ -663,7 +665,7 @@ class ManageAccountsViewModel @Inject constructor(
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Merge failed: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_failed, listOf("${e.message}"))) }
             }
         }
     }
@@ -694,7 +696,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to set account profile", e)
-                _uiState.update { it.copy(errorMessage = "Failed to update account profile: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_update_profile_failed, listOf("${e.message}"))) }
             }
         }
     }
@@ -710,7 +712,7 @@ class ManageAccountsViewModel @Inject constructor(
                 accountBalanceRepository.setAccountAlias(bankName, accountLast4, normalized)
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to set account alias", e)
-                _uiState.update { it.copy(errorMessage = "Failed to rename account: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_rename_failed, listOf("${e.message}"))) }
             }
         }
     }
@@ -722,7 +724,7 @@ class ManageAccountsViewModel @Inject constructor(
                 accountBalanceRepository.setLowBalanceThreshold(bankName, accountLast4, threshold)
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to set low-balance threshold", e)
-                _uiState.update { it.copy(errorMessage = "Failed to set alert: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_set_alert_failed, listOf("${e.message}"))) }
             }
         }
     }
@@ -734,7 +736,7 @@ class ManageAccountsViewModel @Inject constructor(
                 transactionRepository.setProfileForAccountTransactions(p.bankName, p.accountLast4, p.profileId)
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to reassign account transactions", e)
-                _uiState.update { it.copy(errorMessage = "Failed to move transactions: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_move_failed, listOf("${e.message}"))) }
             } finally {
                 // Always clear the prompt so the dialog can't get stuck open if
                 // the update throws.
@@ -816,7 +818,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 _uiState.update {
-                    it.copy(successMessage = "Account updated successfully")
+                    it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_account_updated))
                 }
 
                 // Clear message after delay
@@ -825,7 +827,7 @@ class ManageAccountsViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(errorMessage = "Failed to update account: ${e.message}")
+                    it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_update_account_failed, listOf("${e.message}")))
                 }
             }
         }

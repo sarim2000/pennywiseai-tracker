@@ -146,10 +146,6 @@ class UpgradeViewModel @Inject constructor(
         }
     }
 
-    fun onErrorDismissed() {
-        _state.update { it.copy(errorMessage = null) }
-    }
-
     private fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }

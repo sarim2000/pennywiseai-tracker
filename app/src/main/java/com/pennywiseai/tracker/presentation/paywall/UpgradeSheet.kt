@@ -12,6 +12,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -177,6 +179,7 @@ private fun UpgradeSheetContent(
             )
         } else {
             UpgradeBody(
+                state = state,
                 onRestore = onRestore,
                 onLicenseKey = onShowLicenseDialog,
                 onHelp = onHelp,
@@ -237,6 +240,7 @@ private fun BrandHeader(isMember: Boolean) {
 
 @Composable
 private fun UpgradeBody(
+    state: UpgradeUiState,
     onRestore: () -> Unit,
     onLicenseKey: () -> Unit,
     onHelp: () -> Unit,
@@ -270,7 +274,26 @@ private fun UpgradeBody(
     }
     Spacer(Modifier.height(Spacing.lg))
 
-    TrustRow(onRestore = onRestore, onHelp = onHelp)
+    TrustRow(
+        isRestoring = state.isPurchasing,
+        onRestore = onRestore,
+        onHelp = onHelp,
+    )
+
+    // Restore is the only thing here that can fail, and it fails silently
+    // otherwise: the error used to ride along with the purchase CTA.
+    state.errorMessage?.let { message ->
+        Spacer(Modifier.height(Spacing.sm))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content),
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -376,36 +399,39 @@ private fun IncludesBlock() {
 // Trust row + fallback disclosure
 // ─────────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TrustRow(
+    isRestoring: Boolean,
     onRestore: () -> Unit,
     onHelp: () -> Unit,
 ) {
-    Row(
+    // FlowRow, not Row: at large accessibility font sizes these three items
+    // don't fit one line on a narrow screen, and Restore must stay reachable.
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Dimensions.Padding.content),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = "On-device data",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Dot()
         TextButton(
             onClick = onRestore,
+            enabled = !isRestoring,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
         ) {
             Text(
-                text = "Restore",
+                text = if (isRestoring) "Restoring…" else "Restore",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
             )
         }
-        Dot()
         TextButton(
             onClick = onHelp,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
@@ -418,15 +444,6 @@ private fun TrustRow(
             )
         }
     }
-}
-
-@Composable
-private fun Dot() {
-    Text(
-        text = " · ",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────

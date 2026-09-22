@@ -9,7 +9,7 @@ data class UpgradeUiState(
     val isLoading: Boolean = true,
     /** A Restore is in flight. */
     val isPurchasing: Boolean = false,
-    /** Surfaced as snackbar; cleared by [UpgradeViewModel.onErrorDismissed]. */
+/** Why the last Restore failed. Shown under the sheet; cleared when one starts. */
     val errorMessage: String? = null,
     /**
      * True when the user already owned a Pro SKU at the moment the sheet

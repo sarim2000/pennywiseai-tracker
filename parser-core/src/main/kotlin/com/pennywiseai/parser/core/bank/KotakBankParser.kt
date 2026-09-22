@@ -46,8 +46,10 @@ class KotakBankParser : BankParser() {
         // beneficiary <Name>. UTR Ref. <utr>" — the counterparty is the sender,
         // and the clause ends at a full stop rather than the "on/at/Ref" the
         // generic FROM_PATTERN expects.
+        // Stop at the trailer clause rather than at the first period — names carry
+        // their own ("Mr. John Doe") and would otherwise truncate to "Mr".
         val neftFromPattern = Regex(
-            """via\s+NEFT\s+from\s+(?:beneficiary\s+)?([^.\n]+?)(?:\.|\s+UTR|$)""",
+            """via\s+NEFT\s+from\s+(?:beneficiary\s+)?(.+?)\s*(?:\.\s*(?:UTR|Ref|Avl|Bal|Not|Call|Info)\b|\.?\s*$)""",
             RegexOption.IGNORE_CASE
         )
         neftFromPattern.find(message)?.let { match ->

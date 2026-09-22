@@ -133,6 +133,21 @@ class SmsReportRegressionTest {
                 )
             ),
             SimpleTestCase(
+                description = "Kotak NEFT beneficiary keeps the periods inside a name",
+                bankName = "Kotak Bank",
+                sender = "VM-KOTAKB-S",
+                currency = "INR",
+                message = "Rs. 5000 credited to your Kotak Bank a/c XX1111 via NEFT from beneficiary Mr. John Doe. UTR Ref. HDFCH00000000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Mr. John Doe",
+                    reference = "HDFCH00000000000",
+                    accountLast4 = "1111"
+                )
+            ),
+            SimpleTestCase(
                 description = "Slice NEFT credit keeps the ref, not the word \"No\"",
                 bankName = "Slice",
                 sender = "VM-SLICEIT-S",

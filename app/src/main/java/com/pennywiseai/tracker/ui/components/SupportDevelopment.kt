@@ -39,10 +39,15 @@ import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 
 /**
- * The "Support development" UPI tip-jar dialog. Shared so both the Settings
- * entry and contextual F-Droid nudges present an identical ask. F-Droid builds
- * have everything unlocked (no Pro to sell), so this is a donation prompt —
- * never a gate.
+ * The "Support development" tip-jar dialog. Shared so both the Settings entry
+ * and contextual F-Droid nudges present an identical ask. F-Droid builds have
+ * everything unlocked (no Pro to sell), so this is a donation prompt — never a
+ * gate.
+ *
+ * Two ways to give: a UPI tip, and — F-Droid only — buying a Pro key on the
+ * website, which is the only option open to anyone without UPI. The web route
+ * is gated on the flavour rather than just left unreachable, because Play's
+ * Payments policy forbids the Play build from carrying a link like this.
  */
 @Composable
 fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
@@ -63,6 +68,8 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                     stringResource(R.string.support_dialog_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
+                // F-Droid only: the real one lives in that source set.
+                SupportWebOption(onOpened = onDismiss)
                 // Show the VPA so a user without a UPI app (or who'd rather pay
                 // from their bank app) can copy it manually.
                 Row(

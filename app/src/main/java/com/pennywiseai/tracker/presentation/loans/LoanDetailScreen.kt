@@ -68,7 +68,6 @@ fun LoanDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = loan?.personName ?: "Loan",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

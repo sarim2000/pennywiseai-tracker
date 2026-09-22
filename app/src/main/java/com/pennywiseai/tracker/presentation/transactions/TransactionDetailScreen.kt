@@ -213,7 +213,6 @@ fun TransactionDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = if (isEditMode) "Edit Transaction" else "Transaction Details",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = {
                         if (isEditMode) {

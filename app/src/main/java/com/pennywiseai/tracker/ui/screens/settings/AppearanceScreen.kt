@@ -174,7 +174,6 @@ fun AppearanceScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = { NavigationContent(onNavigateBack) }
             )
         }

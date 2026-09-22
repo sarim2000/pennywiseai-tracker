@@ -62,7 +62,6 @@ fun BalanceHistoryScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Balance History",
                 hasBackButton = true,
-                hasActionButton = false,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

@@ -54,7 +54,6 @@ fun AddAccountScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Add Account",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

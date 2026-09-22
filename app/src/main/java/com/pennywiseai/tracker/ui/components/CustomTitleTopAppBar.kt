@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -72,7 +73,6 @@ fun CustomTitleTopAppBar(
     title: String,
     isHomeScreen: Boolean = false,
     hasBackButton: Boolean = false,
-    hasActionButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
     extraInfoCard: @Composable () -> Unit = {},
@@ -107,7 +107,6 @@ fun CustomTitleTopAppBar(
         title = title,
         isHomeScreen = isHomeScreen,
         hasBackButton = hasBackButton,
-        hasActionButton = hasActionButton,
         actionContent = actionContent,
         navigationContent = navigationContent,
         userName = userName,
@@ -118,47 +117,6 @@ fun CustomTitleTopAppBar(
         hazeState = hazeState,
         blurEffects = blurEffects
     )
-}
-
-@Composable
-private fun Modifier.animatedOffsetModifier(
-    hasBackButton: Boolean,
-    hasActionButton: Boolean = false,
-    isHomeScreen: Boolean = false,
-): Modifier {
-    val targetOffsetX = when {
-        hasBackButton && hasActionButton -> 0.dp
-        isHomeScreen -> 0.dp
-        hasBackButton -> (-26).dp
-        else -> 0.dp
-    }
-
-    val density = LocalDensity.current
-    val targetOffsetXPx = with(density) { targetOffsetX.toPx() }
-
-    val transition = updateTransition(
-        targetState = Triple(hasBackButton, false, targetOffsetXPx),
-        label = "offsetTransition"
-    )
-
-    val animatedOffsetX by transition.animateFloat(
-        transitionSpec = {
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            )
-        },
-        label = "offsetX"
-    ) { (_, _, offset) -> offset }
-
-    return this
-        .fillMaxWidth()
-        .layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                placeable.placeRelative(x = animatedOffsetX.toInt(), y = 0)
-            }
-        }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
@@ -284,7 +242,6 @@ private fun RegularTopAppBar(
     title: String,
     isHomeScreen: Boolean,
     hasBackButton: Boolean = false,
-    hasActionButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
     userName: String = "",
@@ -299,120 +256,149 @@ private fun RegularTopAppBar(
         enter = fadeIn(),
         exit = fadeOut()
     ) {
-        TopAppBar(
-            title = {
-                if (isHomeScreen) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = Spacing.xs)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(Dimensions.Icon.large)
-                                .clip(CircleShape)
-                                .background(
-                                    if (profileBackgroundColor != 0) Color(profileBackgroundColor)
-                                    else MaterialTheme.colorScheme.primaryContainer
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-                            if (avatarResId != null) {
-                                Image(
-                                    painter = painterResource(id = avatarResId),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else if (profileImageUri != null) {
-                                AsyncImage(
-                                    model = profileImageUri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                val initials = remember(userName) {
-                                    val parts = userName.trim().split("\\s+".toRegex())
-                                    if (parts.size >= 2) {
-                                        "${parts.first().first()}${parts.last().first()}".uppercase()
-                                    } else {
-                                        userName.trim().take(2).uppercase()
-                                    }
-                                }
-                                Text(
-                                    text = initials,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(Spacing.smd))
-                        Text(
-                            text = userName.ifBlank { "PennyWise" },
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Start,
+        val barColors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent
+        )
+        val navigationIcon: @Composable () -> Unit = {
+            BlurredAnimatedVisibility(
+                visible = hasBackButton,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                navigationContent()
+            }
+        }
+        val barModifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (blurEffects) Modifier.hazeEffect(
+                    state = hazeState,
+                    block = fun HazeEffectScope.() {
+                        style = HazeDefaults.style(
+                            backgroundColor = Color.Transparent,
+                            blurRadius = 10.dp,
+                            noiseFactor = -1f,
                         )
+                        progressive =
+                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
                     }
-                } else {
+                ) else Modifier
+            )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        Color.Transparent
+                    )
+                )
+            )
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .alpha(collapsedFraction)
+
+        if (isHomeScreen) {
+            // Home's "title" is an avatar next to a name — it belongs at the
+            // start, so this one stays a plain (start-aligned) app bar.
+            TopAppBar(
+                title = {
+                    HomeBarTitle(
+                        userName = userName,
+                        profileImageUri = profileImageUri,
+                        profileBackgroundColor = profileBackgroundColor,
+                    )
+                },
+                colors = barColors,
+                navigationIcon = navigationIcon,
+                actions = { actionContent() },
+                scrollBehavior = scrollBehaviorSmall,
+                windowInsets = WindowInsets(0.dp),
+                modifier = barModifier
+            )
+        } else {
+            // CenterAlignedTopAppBar centres against the *bar*, not against
+            // whatever is left over beside the navigation icon. This used to
+            // be a hand-rolled -26dp nudge applied only when the caller
+            // claimed to have no action button — so the nine screens that
+            // claimed an action button while rendering none ended up with the
+            // title visibly off to the right.
+            CenterAlignedTopAppBar(
+                title = {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.animatedOffsetModifier(
-                            hasBackButton = hasBackButton,
-                            hasActionButton = hasActionButton,
-                            isHomeScreen = isHomeScreen,
-                        )
                     )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent
-            ),
-            navigationIcon = {
-                BlurredAnimatedVisibility(
-                    visible = hasBackButton,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
-                ) {
-                    navigationContent()
-                }
-            },
-            actions = {
-                actionContent()
-            },
-            scrollBehavior = scrollBehaviorSmall,
-            windowInsets = WindowInsets(0.dp),
-            modifier = modifier
-                .fillMaxWidth()
-                .then(
-                    if (blurEffects) Modifier.hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                blurRadius = 10.dp,
-                                noiseFactor = -1f,
-                            )
-                            progressive =
-                                HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                        }
-                    ) else Modifier
-                )
+                },
+                colors = barColors,
+                navigationIcon = navigationIcon,
+                actions = { actionContent() },
+                scrollBehavior = scrollBehaviorSmall,
+                windowInsets = WindowInsets(0.dp),
+                modifier = barModifier
+            )
+        }
+    }
+}
+
+/** Home's start-aligned title: avatar plus the user's name. */
+@Composable
+private fun HomeBarTitle(
+    userName: String,
+    profileImageUri: String?,
+    profileBackgroundColor: Int,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = Spacing.xs)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Icon.large)
+                .clip(CircleShape)
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            Color.Transparent
-                        )
-                    )
+                    if (profileBackgroundColor != 0) Color(profileBackgroundColor)
+                    else MaterialTheme.colorScheme.primaryContainer
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
+            if (avatarResId != null) {
+                Image(
+                    painter = painterResource(id = avatarResId),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .alpha(collapsedFraction)
+            } else if (profileImageUri != null) {
+                AsyncImage(
+                    model = profileImageUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                val initials = remember(userName) {
+                    val parts = userName.trim().split("\\s+".toRegex())
+                    if (parts.size >= 2) {
+                        "${parts.first().first()}${parts.last().first()}".uppercase()
+                    } else {
+                        userName.trim().take(2).uppercase()
+                    }
+                }
+                Text(
+                    text = initials,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(Spacing.smd))
+        Text(
+            text = userName.ifBlank { "PennyWise" },
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Start,
         )
     }
 }

@@ -79,7 +79,6 @@ fun ManageAccountsScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Accounts",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

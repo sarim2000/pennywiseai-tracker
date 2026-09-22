@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
@@ -293,8 +294,26 @@ fun SettingsScreen(
                     title = "Appearance",
                     subtitle = "Theme, colors, fonts & navigation",
                     onClick = onNavigateToAppearance,
-                    position = ListItemPosition.Single
+                    position = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ListItemPosition.Top else ListItemPosition.Single
                 )
+                // Per-app language is a system screen on Android 13+; older
+                // versions follow the device language.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    SettingsNavItem(
+                        icon = Icons.Default.Language,
+                        iconBgColor = orange_light,
+                        iconTint = orange_dark,
+                        title = stringResource(R.string.settings_language_title),
+                        subtitle = stringResource(R.string.settings_language_subtitle),
+                        onClick = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_LOCALE_SETTINGS)
+                                    .setData(Uri.fromParts("package", context.packageName, null))
+                            )
+                        },
+                        position = ListItemPosition.Bottom
+                    )
+                }
             }
 
             // ── Currency ──

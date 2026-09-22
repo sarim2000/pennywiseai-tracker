@@ -29,4 +29,8 @@
     <string name="support_copied_toast">UPI ID copied</string>
     <string name="support_no_upi_app">No UPI app found. Copy the UPI ID instead.</string>
     <string name="support_nudge_body">Enjoying PennyWise? Support development 💛</string>
+
+    <!-- Settings → Personalization -->
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_subtitle">Choose the app language</string>
 </resources>

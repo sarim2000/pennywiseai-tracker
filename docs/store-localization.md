@@ -1,15 +1,25 @@
 # Store Listing Localization (Crowdin)
 
-PennyWise localizes its **Google Play store listing** (not yet the in-app UI)
-with [Crowdin](https://crowdin.com) under an open-source license. This lets the
+PennyWise localizes its **Google Play store listing** and, progressively, the
+**in-app UI** with [Crowdin](https://crowdin.com) under an open-source license. This lets the
 listing appear in a user's language, which lifts store-listing conversion in
 non-English markets.
 
 **Why store copy first:** the install base is ~87% India, with the Gulf
 (UAE + Saudi) as the next cluster — so **Hindi is the priority, Arabic second.**
-The app UI itself still has hardcoded strings, so only the store metadata is
-wired into Crowdin for now. Extracting Compose strings into resources is a
-separate, larger effort tracked elsewhere.
+## In-app strings
+
+Every `app/src/main/res/values/strings*.xml` is a Crowdin source; translations
+land in `values-<android code>/` with the same file name. The UI is being moved
+from hardcoded Compose literals into resources one area at a time — each area
+gets its own `strings_<area>.xml` (e.g. `strings_settings.xml`) so extraction
+PRs don't collide. Untranslated strings are skipped on download; Android falls
+back to English per string, so partial languages are safe to ship.
+
+`generateLocaleConfig` turns each `values-<lang>/` folder into a supported
+locale, so Android 13+ lists PennyWise under **Settings → App languages** (the
+in-app *Settings → Language* row opens that screen). Android 12 and below
+follow the device language.
 
 ## What gets translated
 

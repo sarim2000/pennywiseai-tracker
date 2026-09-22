@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">Back</string>
+
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">Cancel</string>
+    <string name="settings_action_ok">OK</string>
+    <string name="settings_action_done">Done</string>
+
+    <!-- PennyWise Pro -->
+    <string name="settings_pro_section">PennyWise Pro</string>
+    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <string name="settings_pro_title_upgrade">Upgrade to PennyWise Pro</string>
+    <string name="settings_pro_subtitle_active">Active · all power features unlocked</string>
+    <string name="settings_pro_subtitle_upgrade">Unlimited rules, statements, exports, and more</string>
+
+    <!-- Personalization -->
+    <string name="settings_personalization_section">Personalization</string>
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_subtitle">Theme, colors, fonts &amp; navigation</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_subtitle">Choose the app language</string>
+
+    <!-- Currency -->
+    <string name="settings_currency_section">Currency</string>
+    <string name="settings_unified_currency_title">Unified Currency Mode</string>
+    <string name="settings_unified_currency_subtitle">Convert all transactions to display currency</string>
+    <string name="settings_display_currency_title">Display Currency</string>
+    <string name="settings_display_currency_subtitle">All amounts shown in this currency</string>
+    <string name="settings_exchange_rates_title">Exchange Rates</string>
+    <string name="settings_exchange_rates_subtitle">View and customize rates</string>
+    <string name="settings_card_spend_as_expense_title">Count card spend as expense</string>
+    <string name="settings_card_spend_as_expense_subtitle">Include credit-card spend in \"Spent this month\"</string>
+    <string name="settings_default_currency_title">Default Currency</string>
+    <string name="settings_default_currency_subtitle">Currency used for conversions</string>
+    <string name="settings_main_account_title">Main Account</string>
+    <string name="settings_main_account_subtitle">Sets your default currency</string>
+    <string name="settings_main_account_not_set">Not set</string>
+    <string name="settings_currency_field_label">Currency</string>
+    <string name="settings_number_format_title">Number Format</string>
+    <string name="settings_number_format_subtitle">How large amounts are grouped</string>
+    <string name="settings_number_format_auto">Auto</string>
+    <string name="settings_number_format_indian">Indian</string>
+    <string name="settings_number_format_international">International</string>
+    <string name="settings_number_format_auto_example">Matches each currency (₹1,50,000 · $150,000)</string>
+    <string name="settings_number_format_indian_example">1,50,000 (lakh / crore)</string>
+    <string name="settings_number_format_international_example">150,000 (thousand / million)</string>
+
+    <!-- Budget -->
+    <string name="settings_budget_section">Budget</string>
+    <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
+    <string name="settings_budget_cycle_subtitle">Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th</string>
+    <string name="settings_budget_cycle_dialog_body">Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.</string>
+
+    <!-- Contacts -->
+    <string name="settings_contacts_section">Contacts</string>
+    <string name="settings_contacts_vpa_title">Replace UPI VPAs with contact names</string>
+    <string name="settings_contacts_vpa_subtitle">Show \'John Doe\' instead of \'9876543210@paytm\'. Needs contacts permission.</string>
+
+    <!-- Security -->
+    <string name="settings_security_section">Security</string>
+    <string name="settings_app_lock_title">App Lock</string>
+    <string name="settings_app_lock_subtitle">Protect your data with biometric authentication</string>
+    <string name="settings_lock_timeout_title">Lock Timeout</string>
+    <string name="settings_lock_timeout_immediately_subtitle">Lock immediately</string>
+    <plurals name="settings_lock_timeout_after_minutes">
+        <item quantity="one">After %1$d minute</item>
+        <item quantity="other">After %1$d minutes</item>
+    </plurals>
+    <string name="settings_lock_timeout_dialog_body">Choose when to lock the app after it goes to background</string>
+    <string name="settings_lock_timeout_option_immediately">Immediately</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+
+    <!-- Data Management -->
+    <string name="settings_data_section">Data Management</string>
+    <string name="settings_manage_accounts_title">Manage Accounts</string>
+    <string name="settings_manage_accounts_subtitle">View and manage your bank accounts</string>
+    <string name="settings_categories_title">Categories</string>
+    <string name="settings_categories_subtitle">Manage expense and income categories</string>
+    <string name="settings_smart_rules_title">Smart Rules</string>
+    <string name="settings_smart_rules_subtitle">Automatic transaction categorization</string>
+    <string name="settings_budgets_title">Budgets</string>
+    <string name="settings_budgets_subtitle">Track spending limits by category</string>
+    <string name="settings_loans_title">Loans</string>
+    <string name="settings_loans_subtitle">Track money lent and borrowed</string>
+    <string name="settings_recurring_title">Recurring</string>
+    <string name="settings_recurring_subtitle">Auto-add scheduled cash &amp; manual transactions</string>
+    <string name="settings_transaction_groups_title">Transaction Groups</string>
+    <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
+    <string name="settings_export_data_title">Export Data</string>
+    <string name="settings_export_data_subtitle">Backup all data to a file</string>
+    <string name="settings_folder_backup_title">Automatic Folder Backup</string>
+    <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
+    <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
+    <string name="settings_folder_backup_subtitle_disabled">Save a backup to a folder every day at 2:00 AM</string>
+    <string name="settings_backup_now_title">Back Up Now</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_backup_now_last_backup">Last backup: %1$s</string>
+    <string name="settings_backup_now_subtitle">Run a backup to your folder now</string>
+    <string name="settings_change_backup_folder_title">Change Backup Folder</string>
+    <string name="settings_change_backup_folder_subtitle">Pick a different folder for automatic backups</string>
+    <string name="settings_import_data_title">Import Data</string>
+    <string name="settings_import_data_subtitle">Restore data from backup</string>
+    <string name="settings_import_csv_title">Import Transactions (CSV)</string>
+    <string name="settings_import_csv_subtitle">Import from a PennyWise CSV export</string>
+    <string name="settings_import_statement_title">Import Statement</string>
+    <string name="settings_import_statement_subtitle">Import from GPay, PhonePe, Paytm</string>
+    <string name="settings_unrecognized_sms_title">Unrecognized SMS</string>
+    <string name="settings_unrecognized_sms_subtitle">View and report unsupported bank messages</string>
+    <string name="settings_delete_all_title">Delete All Transactions</string>
+    <string name="settings_delete_all_subtitle">Clear your transaction history — accounts and budgets stay</string>
+
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">SMS Scan Period</string>
+    <string name="settings_sms_scan_subtitle_all_time">Scan all SMS messages</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_subtitle_from_date">Scan from %1$s to today</string>
+    <string name="settings_sms_scan_subtitle_custom">Scan from a custom start date to today</string>
+    <plurals name="settings_sms_scan_subtitle_months">
+        <item quantity="one">Scan last %1$d month</item>
+        <item quantity="other">Scan last %1$d months</item>
+    </plurals>
+    <string name="settings_sms_scan_all_time">All Time</string>
+    <string name="settings_sms_scan_custom_short">Custom</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <plurals name="settings_sms_scan_months_short">
+        <item quantity="one">%1$d mo</item>
+        <item quantity="other">%1$d mo</item>
+    </plurals>
+    <string name="settings_sms_scan_dialog_body">Choose how far back to scan SMS messages for transactions</string>
+    <string name="settings_sms_scan_option_custom">Custom date</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_option_custom_with_date">Custom date (%1$s)</string>
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+    <plurals name="settings_sms_scan_option_years">
+        <item quantity="one">%1$d year</item>
+        <item quantity="other">%1$d years</item>
+    </plurals>
+
+    <!-- Data Management → Delete all transactions dialog -->
+    <string name="settings_delete_all_dialog_title">Delete all transactions?</string>
+    <plurals name="settings_delete_all_dialog_body">
+        <item quantity="one">This permanently deletes your %1$d transaction, along with its splits and tags. It cannot be undone.</item>
+        <item quantity="other">This permanently deletes all %1$d transactions, along with their splits and tags. It cannot be undone.</item>
+    </plurals>
+    <string name="settings_delete_all_dialog_kept">Your accounts, budgets, loans, categories and rules are kept. Export Data first if you might want this history back.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_type_to_confirm">Type %1$s to confirm</string>
+    <string name="settings_delete_all_dialog_deleting">Deleting…</string>
+    <string name="settings_delete_all_dialog_confirm">Delete All</string>
+    <string name="settings_delete_all_result_title">Transactions</string>
+    <string name="settings_delete_all_result_none">There were no transactions to delete.</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="one">%1$d transaction deleted.</item>
+        <item quantity="other">%1$d transactions deleted.</item>
+    </plurals>
+    <plurals name="settings_delete_all_result_arrived">
+        <item quantity="one">%1$d new transaction arrived while it ran.</item>
+        <item quantity="other">%1$d new transactions arrived while it ran.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <string name="settings_delete_all_result_count_changed">New transactions arrived while you were confirming, so nothing was deleted. There are now %1$d. Check the number and try again.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_delete_all_result_error">Couldn\'t delete transactions: %1$s</string>
+
+    <!-- Data Management → Backup / import status -->
+    <string name="settings_backup_status_title">Backup Status</string>
+    <string name="settings_backup_created_choose">Backup created successfully! Choose where to save it.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_export_failed">Export failed: %1$s</string>
+    <string name="settings_export_error">Export error: %1$s</string>
+    <string name="settings_backup_saved">Backup saved successfully!</string>
+    <string name="settings_backup_save_failed">Failed to save backup: %1$s</string>
+    <string name="settings_importing_backup">Importing backup...</string>
+    <string name="settings_import_backup_success">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates.</string>
+    <string name="settings_import_backup_success_with_skipped_rows">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported.</string>
+    <string name="settings_import_failed">Import failed: %1$s</string>
+    <string name="settings_import_error">Import error: %1$s</string>
+    <string name="settings_importing_transactions">Importing transactions...</string>
+    <string name="settings_import_csv_success">Imported %1$d transactions, skipped %2$d duplicates</string>
+    <string name="settings_import_csv_success_with_failed_rows">Imported %1$d transactions, skipped %2$d duplicates, %3$d rows could not be parsed</string>
+    <string name="settings_folder_backup_disabled">Automatic folder backup disabled</string>
+    <string name="settings_folder_access_failed">Could not access the selected folder: %1$s</string>
+    <string name="settings_folder_select_first">Select a backup folder first</string>
+    <string name="settings_folder_not_writable">Cannot write to the selected backup folder</string>
+    <string name="settings_folder_backup_saved">Backup saved to folder</string>
+    <string name="settings_folder_backup_enabled">Automatic folder backup enabled. Backups run daily at 2:00 AM.</string>
+
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_title">Save Backup</string>
+    <string name="settings_save_backup_created">Backup created successfully!</string>
+    <string name="settings_save_backup_choose">Choose how you want to save it:</string>
+    <string name="settings_save_backup_to_files">Save to Files</string>
+    <string name="settings_save_backup_share">Share</string>
+    <string name="settings_share_backup_subject">PennyWise Backup</string>
+    <string name="settings_share_backup_chooser">Share Backup</string>
+
+    <!-- Notifications -->
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_notification_access_title">Bank Notification Access</string>
+    <string name="settings_notification_access_enabled">Enabled</string>
+    <string name="settings_notification_access_disabled">Tap to enable bank app notifications</string>
+    <string name="settings_notification_access_on">On</string>
+    <string name="settings_notification_access_off">Off</string>
+
+    <!-- AI Features -->
+    <string name="settings_ai_section">AI Features</string>
+    <string name="settings_ai_chat_title">AI Chat Assistant</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_not_downloaded">Download AI model (%1$d MB)</string>
+    <string name="settings_ai_status_downloading">Downloading AI model...</string>
+    <string name="settings_ai_status_paused">Download interrupted</string>
+    <string name="settings_ai_status_completed">AI model ready for chat</string>
+    <string name="settings_ai_status_failed">Download failed</string>
+    <string name="settings_ai_status_insufficient_space">Not enough storage space</string>
+    <string name="settings_ai_download">Download</string>
+    <string name="settings_ai_retry">Retry</string>
+    <string name="settings_ai_downloaded">Downloaded</string>
+    <string name="settings_ai_delete">Delete</string>
+    <string name="settings_ai_error">Error</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_cancel_download">Cancel Download</string>
+    <string name="settings_ai_info">Chat with AI about your expenses and get financial insights. All conversations stay private on your device.</string>
+    <string name="settings_ai_download_notification_title">AI Chat Model</string>
+    <string name="settings_ai_download_notification_description">Downloading AI chat assistant for PennyWise</string>
+
+    <!-- Developer -->
+    <string name="settings_developer_section">Developer</string>
+    <string name="settings_developer_mode_title">Developer Mode</string>
+    <string name="settings_developer_mode_subtitle">Show technical information in chat</string>
+
+    <!-- Support & Community -->
+    <string name="settings_support_section">Support &amp; Community</string>
+    <string name="settings_help_faq_title">Help &amp; FAQ</string>
+    <string name="settings_help_faq_subtitle">Frequently asked questions and help</string>
+    <string name="settings_report_issue_title">Report an Issue</string>
+    <string name="settings_report_issue_subtitle">Submit bug reports on GitHub</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <string name="settings_app_version">PennyWise v%1$s</string>
+
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_back">Back</string>
+
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">System</string>
+    <string name="appearance_mode_light">Light</string>
+    <string name="appearance_mode_dark">Dark</string>
+
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">Dynamic</string>
+    <string name="appearance_style_dynamic_subtitle">Wallpaper Colors</string>
+    <string name="appearance_style_default">Default</string>
+    <string name="appearance_style_default_subtitle">Rose Pine Colors</string>
+
+    <!-- Toggles -->
+    <string name="appearance_amoled_title">AMOLED Black</string>
+    <string name="appearance_amoled_subtitle">Use pure black background for deeper contrast</string>
+    <string name="appearance_blur_title">Blur Effects</string>
+    <string name="appearance_blur_subtitle">Enable glassmorphism blur effects in UI components</string>
+
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">Navigation</string>
+    <string name="appearance_nav_floating">Floating</string>
+    <string name="appearance_nav_floating_subtitle">Modern &amp; Sleek</string>
+    <string name="appearance_nav_normal">Normal</string>
+    <string name="appearance_nav_normal_subtitle">Standard M3</string>
+
+    <!-- Cover style -->
+    <string name="appearance_cover_section">Cover Style</string>
+    <string name="appearance_cover_none">None</string>
+    <string name="appearance_cover_selected">Selected</string>
+
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">Fonts</string>
+    <string name="appearance_font_default">Default</string>
+    <string name="appearance_font_default_subtitle">System</string>
+    <string name="appearance_font_sn_pro_subtitle">Modern Mono</string>
+
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">FAQ</string>
+    <string name="faq_back">Back</string>
+    <string name="faq_collapse">Collapse</string>
+    <string name="faq_expand">Expand</string>
+
+    <!-- Transaction Types -->
+    <string name="faq_transaction_types_section">Transaction Types</string>
+    <string name="faq_wallet_credit_question">Why are wallet transactions marked as Credit?</string>
+    <string name="faq_wallet_credit_answer">Wallet transactions (Amazon Pay, Paytm, etc.) are marked as Credit because they\'re charged to your bank account or credit card first, not direct bank debits. This helps track the actual payment method used.</string>
+    <string name="faq_transaction_types_question">What\'s the difference between the 5 transaction types?</string>
+    <string name="faq_transaction_types_answer">• Expense: Money going out of your account (debits, purchases, bill payments)\n• Income: Money coming into your account (salary, refunds, cashback)\n• Investment: Mutual funds, stocks, SIPs, trading accounts\n• Credit: Credit card transactions and wallet payments (money you\'ll pay later)\n• Transfer: Money moved between your own accounts (self-transfers)</string>
+    <string name="faq_transfer_vs_expense_question">When should I use Transfer vs Expense?</string>
+    <string name="faq_transfer_vs_expense_answer">Use Transfer when moving money between your own accounts (e.g., savings to checking). These don\'t affect your net worth. Use Expense for actual spending.</string>
+
+    <!-- SMS Parsing -->
+    <string name="faq_sms_parsing_section">SMS Parsing</string>
+    <string name="faq_sms_not_detected_question">Why aren\'t my bank SMS being detected?</string>
+    <string name="faq_sms_not_detected_answer">Check if your bank is supported in our list. If not, report it via GitHub. Ensure SMS permissions are granted and the sender format matches standard bank SMS patterns.</string>
+    <string name="faq_unrecognized_sms_question">What happens to unrecognized SMS?</string>
+    <string name="faq_unrecognized_sms_answer">They\'re saved in \'Unrecognized Messages\' where you can manually review them or report them to help us improve parsing.</string>
+    <string name="faq_duplicates_question">Why are some transactions duplicated?</string>
+    <string name="faq_duplicates_answer">Some banks send multiple SMS for the same transaction. The app tries to detect duplicates, but you can manually delete any that slip through.</string>
+
+    <!-- Privacy & Data -->
+    <string name="faq_privacy_section">Privacy &amp; Data</string>
+    <string name="faq_data_secure_question">Is my financial data secure?</string>
+    <string name="faq_data_secure_answer">Yes! All data stays on your device. We don\'t have servers or cloud storage. The AI model runs locally for complete privacy.</string>
+    <string name="faq_backup_question">Can I backup my data?</string>
+    <string name="faq_backup_answer">Currently, data is stored locally only. Export/backup features are planned for future updates.</string>
+    <string name="faq_data_access_question">What data does the app access?</string>
+    <string name="faq_data_access_answer">Only SMS messages from known bank senders. We don\'t read personal messages or access other app data.</string>
+
+    <!-- AI Features -->
+    <string name="faq_ai_section">AI Features</string>
+    <string name="faq_ai_download_question">Why do I need to download the AI model?</string>
+    <string name="faq_ai_download_answer">The 750MB model enables on-device chat about your expenses without sending data to any server, ensuring complete privacy.</string>
+    <string name="faq_ai_ask_question">What can I ask the AI assistant?</string>
+    <string name="faq_ai_ask_answer">You can ask about spending patterns, budget advice, transaction summaries, and general financial questions based on your data.</string>
+
+    <!-- Account Management -->
+    <string name="faq_accounts_section">Account Management</string>
+    <string name="faq_manual_accounts_question">What are manual accounts?</string>
+    <string name="faq_manual_accounts_answer">Manual accounts let you track cash, investments, or accounts from unsupported banks. You update balances manually.</string>
+    <string name="faq_multiple_accounts_question">How do I track multiple accounts from the same bank?</string>
+    <string name="faq_multiple_accounts_answer">The app automatically detects different accounts based on the last 4 digits shown in SMS.</string>
+
+    <!-- Still need help -->
+    <string name="faq_still_need_help_section">Still Need Help?</string>
+    <string name="faq_report_issue_title">Report an Issue</string>
+    <string name="faq_report_issue_subtitle">Submit bug reports, bank requests, or feature improvements on GitHub</string>
+</resources>

@@ -21,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -32,12 +35,12 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
 data class FAQItem(
-    val question: String,
-    val answer: String
+    @StringRes val question: Int,
+    @StringRes val answer: Int
 )
 
 data class FAQCategory(
-    val title: String,
+    @StringRes val title: Int,
     val icon: @Composable () -> Unit,
     val items: List<FAQItem>
 )
@@ -53,88 +56,84 @@ fun FAQScreen(
     val faqCategories = remember {
         listOf(
             FAQCategory(
-                title = "Transaction Types",
+                title = R.string.faq_transaction_types_section,
                 icon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
                 items = listOf(
                     FAQItem(
-                        question = "Why are wallet transactions marked as Credit?",
-                        answer = "Wallet transactions (Amazon Pay, Paytm, etc.) are marked as Credit because they're charged to your bank account or credit card first, not direct bank debits. This helps track the actual payment method used."
+                        question = R.string.faq_wallet_credit_question,
+                        answer = R.string.faq_wallet_credit_answer
                     ),
                     FAQItem(
-                        question = "What's the difference between the 5 transaction types?",
-                        answer = """• Expense: Money going out of your account (debits, purchases, bill payments)
-• Income: Money coming into your account (salary, refunds, cashback)
-• Investment: Mutual funds, stocks, SIPs, trading accounts
-• Credit: Credit card transactions and wallet payments (money you'll pay later)
-• Transfer: Money moved between your own accounts (self-transfers)"""
+                        question = R.string.faq_transaction_types_question,
+                        answer = R.string.faq_transaction_types_answer
                     ),
                     FAQItem(
-                        question = "When should I use Transfer vs Expense?",
-                        answer = "Use Transfer when moving money between your own accounts (e.g., savings to checking). These don't affect your net worth. Use Expense for actual spending."
+                        question = R.string.faq_transfer_vs_expense_question,
+                        answer = R.string.faq_transfer_vs_expense_answer
                     )
                 )
             ),
             FAQCategory(
-                title = "SMS Parsing",
+                title = R.string.faq_sms_parsing_section,
                 icon = { Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null) },
                 items = listOf(
                     FAQItem(
-                        question = "Why aren't my bank SMS being detected?",
-                        answer = "Check if your bank is supported in our list. If not, report it via GitHub. Ensure SMS permissions are granted and the sender format matches standard bank SMS patterns."
+                        question = R.string.faq_sms_not_detected_question,
+                        answer = R.string.faq_sms_not_detected_answer
                     ),
                     FAQItem(
-                        question = "What happens to unrecognized SMS?",
-                        answer = "They're saved in 'Unrecognized Messages' where you can manually review them or report them to help us improve parsing."
+                        question = R.string.faq_unrecognized_sms_question,
+                        answer = R.string.faq_unrecognized_sms_answer
                     ),
                     FAQItem(
-                        question = "Why are some transactions duplicated?",
-                        answer = "Some banks send multiple SMS for the same transaction. The app tries to detect duplicates, but you can manually delete any that slip through."
+                        question = R.string.faq_duplicates_question,
+                        answer = R.string.faq_duplicates_answer
                     )
                 )
             ),
             FAQCategory(
-                title = "Privacy & Data",
+                title = R.string.faq_privacy_section,
                 icon = { Icon(Icons.Default.Security, contentDescription = null) },
                 items = listOf(
                     FAQItem(
-                        question = "Is my financial data secure?",
-                        answer = "Yes! All data stays on your device. We don't have servers or cloud storage. The AI model runs locally for complete privacy."
+                        question = R.string.faq_data_secure_question,
+                        answer = R.string.faq_data_secure_answer
                     ),
                     FAQItem(
-                        question = "Can I backup my data?",
-                        answer = "Currently, data is stored locally only. Export/backup features are planned for future updates."
+                        question = R.string.faq_backup_question,
+                        answer = R.string.faq_backup_answer
                     ),
                     FAQItem(
-                        question = "What data does the app access?",
-                        answer = "Only SMS messages from known bank senders. We don't read personal messages or access other app data."
+                        question = R.string.faq_data_access_question,
+                        answer = R.string.faq_data_access_answer
                     )
                 )
             ),
             FAQCategory(
-                title = "AI Features",
+                title = R.string.faq_ai_section,
                 icon = { Icon(Icons.Default.Psychology, contentDescription = null) },
                 items = listOf(
                     FAQItem(
-                        question = "Why do I need to download the AI model?",
-                        answer = "The 750MB model enables on-device chat about your expenses without sending data to any server, ensuring complete privacy."
+                        question = R.string.faq_ai_download_question,
+                        answer = R.string.faq_ai_download_answer
                     ),
                     FAQItem(
-                        question = "What can I ask the AI assistant?",
-                        answer = "You can ask about spending patterns, budget advice, transaction summaries, and general financial questions based on your data."
+                        question = R.string.faq_ai_ask_question,
+                        answer = R.string.faq_ai_ask_answer
                     )
                 )
             ),
             FAQCategory(
-                title = "Account Management",
+                title = R.string.faq_accounts_section,
                 icon = { Icon(Icons.Default.AccountBalance, contentDescription = null) },
                 items = listOf(
                     FAQItem(
-                        question = "What are manual accounts?",
-                        answer = "Manual accounts let you track cash, investments, or accounts from unsupported banks. You update balances manually."
+                        question = R.string.faq_manual_accounts_question,
+                        answer = R.string.faq_manual_accounts_answer
                     ),
                     FAQItem(
-                        question = "How do I track multiple accounts from the same bank?",
-                        answer = "The app automatically detects different accounts based on the last 4 digits shown in SMS."
+                        question = R.string.faq_multiple_accounts_question,
+                        answer = R.string.faq_multiple_accounts_answer
                     )
                 )
             )
@@ -154,11 +153,11 @@ fun FAQScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "FAQ",
+                title = stringResource(R.string.faq_title),
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.faq_back))
                     }
                 },
                 hazeState = hazeState
@@ -178,7 +177,7 @@ fun FAQScreen(
         ) {
             // FAQ Categories
             faqCategories.forEachIndexed { categoryIndex, category ->
-                SectionHeaderV2(title = category.title)
+                SectionHeaderV2(title = stringResource(category.title))
                 
                 PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth()
@@ -220,7 +219,7 @@ fun FAQScreen(
                                         }
                                         
                                         Text(
-                                            text = faqItem.question,
+                                            text = stringResource(faqItem.question),
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Medium,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -229,7 +228,7 @@ fun FAQScreen(
                                     
                                     Icon(
                                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                        contentDescription = if (isExpanded) stringResource(R.string.faq_collapse) else stringResource(R.string.faq_expand),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -245,7 +244,7 @@ fun FAQScreen(
                                     ) {
                                         Spacer(modifier = Modifier.width(24.dp))
                                         Text(
-                                            text = faqItem.answer,
+                                            text = stringResource(faqItem.answer),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(top = Spacing.sm)
@@ -265,7 +264,7 @@ fun FAQScreen(
             }
             
             // Still need help section
-            SectionHeaderV2(title = "Still Need Help?")
+            SectionHeaderV2(title = stringResource(R.string.faq_still_need_help_section))
             
             PennyWiseCardV2(
                 modifier = Modifier
@@ -294,12 +293,12 @@ fun FAQScreen(
                         )
                         Column {
                             Text(
-                                text = "Report an Issue",
+                                text = stringResource(R.string.faq_report_issue_title),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Submit bug reports, bank requests, or feature improvements on GitHub",
+                                text = stringResource(R.string.faq_report_issue_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

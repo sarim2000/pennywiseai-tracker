@@ -103,7 +103,7 @@ open class AccountBalanceRepository @Inject constructor(
                 transactionId = transactionId,
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
-                accountType = existing?.accountType,
+                accountType = BalanceCalculator.preservedAccountType(existing),
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
@@ -134,7 +134,7 @@ open class AccountBalanceRepository @Inject constructor(
             transactionId = null,
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
-            accountType = existing?.accountType,
+            accountType = BalanceCalculator.preservedAccountType(existing),
             currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existing?.alias,

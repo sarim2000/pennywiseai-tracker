@@ -73,7 +73,6 @@ fun ImportStatementScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Import Statement",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     Box(
                         modifier = Modifier

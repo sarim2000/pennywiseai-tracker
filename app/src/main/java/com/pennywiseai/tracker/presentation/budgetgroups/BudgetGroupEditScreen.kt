@@ -97,7 +97,6 @@ fun BudgetGroupEditScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = if (isEditing) "Edit Budget" else "New Budget",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

@@ -68,7 +68,6 @@ fun AccountDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = AccountBalanceEntity.accountLabel(uiState.bankName, uiState.accountLast4),
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

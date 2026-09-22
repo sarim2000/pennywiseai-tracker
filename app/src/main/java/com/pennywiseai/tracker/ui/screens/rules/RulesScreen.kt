@@ -82,7 +82,6 @@ fun RulesScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "Smart Rules",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(

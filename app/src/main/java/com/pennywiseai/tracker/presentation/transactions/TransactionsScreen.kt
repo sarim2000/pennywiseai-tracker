@@ -310,7 +310,6 @@ fun TransactionsScreen(
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = "${selectedIds.size} selected",
                     hasBackButton = true,
-                    hasActionButton = true,
                     navigationContent = {
                         IconButton(onClick = { viewModel.clearSelection() }) {
                             Icon(Icons.Default.Close, contentDescription = "Exit selection")

@@ -64,7 +64,6 @@ fun TransactionGroupDetailScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = group?.name ?: "Group",
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

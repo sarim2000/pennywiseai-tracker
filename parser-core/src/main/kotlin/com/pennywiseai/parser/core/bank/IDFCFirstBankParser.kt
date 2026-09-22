@@ -129,20 +129,9 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
-        // Skip OTP messages
-        if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")
-        ) {
-            return false
-        }
-
-        // Skip promotional messages
-        if (lowerMessage.contains("offer") ||
-            lowerMessage.contains("discount") ||
-            lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")
-        ) {
+        // Shared skip-list (OTP, promos, payment requests, reminders, IPO
+        // blocking, e-vouchers). This used to be a local copy that drifted.
+        if (isNonTransactionMessage(message)) {
             return false
         }
 

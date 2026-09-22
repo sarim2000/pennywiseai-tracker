@@ -681,18 +681,25 @@ fun CreateRuleScreen(
                                         append(if (action.actionType == ActionType.ADD_TAG) "add tag " else "remove tag ")
                                         append(action.value)
                                     } else {
-                                        append(when(action.field) {
-                                            TransactionField.CATEGORY -> "set category to "
-                                            TransactionField.MERCHANT -> "set merchant to "
-                                            TransactionField.TYPE -> "set type to "
-                                            TransactionField.NARRATION -> "set description to "
-                                            else -> "set field to "
-                                        })
+                                        val fieldName = when (action.field) {
+                                            TransactionField.CATEGORY -> "category"
+                                            TransactionField.MERCHANT -> "merchant"
+                                            TransactionField.TYPE -> "type"
+                                            TransactionField.NARRATION -> "description"
+                                            TransactionField.BANK_NAME -> "account"
+                                            else -> "field"
+                                        }
                                         // Show user-friendly labels for transaction types in actions too
-                                        if (action.field == TransactionField.TYPE) {
-                                            append(ruleTransactionTypeLabel(action.value))
+                                        val displayValue = if (action.field == TransactionField.TYPE) {
+                                            ruleTransactionTypeLabel(action.value)
                                         } else {
-                                            append(action.value)
+                                            action.value
+                                        }
+                                        when (action.actionType) {
+                                            ActionType.APPEND -> append("append $displayValue to $fieldName")
+                                            ActionType.PREPEND -> append("prepend $displayValue to $fieldName")
+                                            ActionType.CLEAR -> append("clear $fieldName")
+                                            else -> append("set $fieldName to $displayValue")
                                         }
                                     }
                                 }
@@ -1083,6 +1090,16 @@ private fun LogicalOperatorToggle(
     }
 }
 
+private fun actionTypeLabel(type: ActionType): String = when (type) {
+    ActionType.BLOCK -> "Block Transaction"
+    ActionType.SET -> "Set Field"
+    ActionType.APPEND -> "Append to Field"
+    ActionType.PREPEND -> "Prepend to Field"
+    ActionType.CLEAR -> "Clear Field"
+    ActionType.ADD_TAG -> "Add Tag"
+    ActionType.REMOVE_TAG -> "Remove Tag"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActionEditor(
@@ -1101,15 +1118,7 @@ private fun ActionEditor(
             onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
         ) {
             TextField(
-                value = when(action.actionType) {
-                    ActionType.BLOCK -> "Block Transaction"
-                    ActionType.SET -> "Set Field"
-                    ActionType.APPEND -> "Append to Field"
-                    ActionType.PREPEND -> "Prepend to Field"
-                    ActionType.CLEAR -> "Clear Field"
-                    ActionType.ADD_TAG -> "Add Tag"
-                    ActionType.REMOVE_TAG -> "Remove Tag"
-                },
+                value = actionTypeLabel(action.actionType),
                 onValueChange = { },
                 readOnly = true,
                 label = { Text("Action Type") },
@@ -1120,11 +1129,11 @@ private fun ActionEditor(
                 expanded = actionTypeDropdownExpanded,
                 onDismissRequest = { actionTypeDropdownExpanded = false }
             ) {
-                val fieldTypes = if (action.field == TransactionField.TAGS) {
-                    listOf(ActionType.ADD_TAG to "Add Tag", ActionType.REMOVE_TAG to "Remove Tag")
-                } else {
-                    listOf(ActionType.SET to "Set Field", ActionType.CLEAR to "Clear Field")
-                }
+                // Offer exactly what the engine can carry out on this field. The
+                // list used to be hardcoded to Set/Clear, which hid the Append and
+                // Prepend actions the engine has always supported on merchant and
+                // description (#747).
+                val fieldTypes = supportedActionTypes(action.field).map { it to actionTypeLabel(it) }
                 (listOf(ActionType.BLOCK to "Block Transaction") + fieldTypes).forEach { (type, label) ->
                     DropdownMenuItem(
                         text = { Text(label) },
@@ -1179,13 +1188,13 @@ private fun ActionEditor(
             ) {
                 TextField(
                     value = when(action.field) {
-                        TransactionField.CATEGORY -> "Set Category"
-                        TransactionField.MERCHANT -> "Set Merchant Name"
-                        TransactionField.TYPE -> "Set Transaction Type"
-                        TransactionField.NARRATION -> "Set Description"
-                        TransactionField.BANK_NAME -> "Set Account"
+                        TransactionField.CATEGORY -> "Category"
+                        TransactionField.MERCHANT -> "Merchant Name"
+                        TransactionField.TYPE -> "Transaction Type"
+                        TransactionField.NARRATION -> "Description"
+                        TransactionField.BANK_NAME -> "Account"
                         TransactionField.TAGS -> "Tags"
-                        else -> "Set Field"
+                        else -> "Field"
                     },
                     onValueChange = { },
                     readOnly = true,
@@ -1198,11 +1207,11 @@ private fun ActionEditor(
                     onDismissRequest = { actionFieldDropdownExpanded = false }
                 ) {
                     listOf(
-                        TransactionField.CATEGORY to "Set Category",
-                        TransactionField.MERCHANT to "Set Merchant Name",
-                        TransactionField.TYPE to "Set Transaction Type",
-                        TransactionField.NARRATION to "Set Description",
-                        TransactionField.BANK_NAME to "Set Account",
+                        TransactionField.CATEGORY to "Category",
+                        TransactionField.MERCHANT to "Merchant Name",
+                        TransactionField.TYPE to "Transaction Type",
+                        TransactionField.NARRATION to "Description",
+                        TransactionField.BANK_NAME to "Account",
                         TransactionField.TAGS to "Tags"
                     ).forEach { (field, label) ->
                         DropdownMenuItem(

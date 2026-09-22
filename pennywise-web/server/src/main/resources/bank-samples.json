@@ -330,6 +330,17 @@
       "reference": "cIPS/NP2603250066636",
       "balance": "153520.04"
     },
+    "City Union Bank": {
+      "sender": "JX-CUBANK-S",
+      "message": "Your a/c no. XXXXXXXX5555 is credited for Rs.5000.00 on 03-05-2026 and debited from a/c no. XXXXXXXX6666 (UPI Ref no 123456789012) -CUB",
+      "currency": "INR",
+      "amount": "5000.00",
+      "type": "INCOME",
+      "merchant": "UPI Transfer from A/C XX6666",
+      "accountLast4": "5555",
+      "reference": "123456789012",
+      "balance": null
+    },
     "Commercial Bank of Ethiopia": {
       "sender": "CBEBANK",
       "message": "Dear Customer your Account 1*********1234 has been Credited with ETB 5,000.00 from Salary Payment, on 15/09/2025 at 09:00:00 with Ref No ABC123456 Your Current Balance is ETB 8,000.00. Thank you for Banking with CBE!",

@@ -110,6 +110,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // en-XA / ar-XB pseudo-locales: untranslated (hardcoded) text stands
+            // out as plain English, and RTL layout bugs show up without a translation.
+            isPseudoLocalesEnabled = true
         }
         release {
             isMinifyEnabled = true

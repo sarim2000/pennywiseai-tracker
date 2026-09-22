@@ -58,6 +58,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -140,7 +142,7 @@ fun UpgradeSheet(
     if (state.showLicenseDialog) {
         LicenseKeyDialog(
             isActivating = state.isActivating,
-            error = state.licenseError,
+            error = state.licenseError?.asString(),
             canMove = state.licenseCanMove,
             onActivate = viewModel::onActivateLicense,
             onMoveHere = viewModel::onMoveLicenseHere,
@@ -220,16 +222,16 @@ private fun BrandHeader(isMember: Boolean) {
         Spacer(Modifier.width(Spacing.md))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "PennyWise Pro",
+                text = stringResource(R.string.upgrade_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = if (isMember) {
-                    "All Pro capabilities active"
+                    stringResource(R.string.upgrade_subtitle_member)
                 } else {
-                    "Everything unlocked with a license key"
+                    stringResource(R.string.upgrade_subtitle_upgrade)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -270,7 +272,7 @@ private fun UpgradeBody(
         ),
     ) {
         Text(
-            text = "Enter license key",
+            text = stringResource(R.string.upgrade_enter_license_key),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -298,7 +300,7 @@ private fun UpgradeBody(
     state.errorMessage?.let { message ->
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            text = message,
+            text = message.asString(),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
@@ -333,7 +335,7 @@ private fun SupportNote() {
             modifier = Modifier.size(Dimensions.Icon.medium),
         )
         Text(
-            text = "Built by a solo dev — Pro funds what's next. Thank you.",
+            text = stringResource(R.string.upgrade_support_note),
             style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF3A2B00),
         )
@@ -387,7 +389,7 @@ private fun ProAvailableLine() {
     ) {
         SelectionContainer {
             Text(
-                text = "PennyWise Pro is available at $domain",
+                text = stringResource(R.string.upgrade_available_at, domain),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -402,7 +404,7 @@ private fun ProAvailableLine() {
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
         ) {
             Text(
-                text = if (copied) "Copied" else "Copy address",
+                text = stringResource(if (copied) R.string.upgrade_copied else R.string.upgrade_copy_address),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -418,10 +420,10 @@ private const val COPIED_LABEL_MS = 2_000L
 // ─────────────────────────────────────────────────────────────────────────
 
 private val PRO_FEATURES = listOf(
-    "Unlimited custom rules",
-    "Unlimited PDF statement imports",
-    "Unlimited CSV export",
-    "Merge duplicate accounts",
+    R.string.upgrade_feature_rules,
+    R.string.upgrade_feature_statements,
+    R.string.upgrade_feature_csv,
+    R.string.upgrade_feature_merge_accounts,
 )
 
 @Composable
@@ -432,7 +434,7 @@ private fun IncludesBlock() {
             .padding(horizontal = Dimensions.Padding.content),
     ) {
         Text(
-            text = "Includes",
+            text = stringResource(R.string.upgrade_includes),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
@@ -452,7 +454,7 @@ private fun IncludesBlock() {
                 )
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
-                    text = feature,
+                    text = stringResource(feature),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -487,7 +489,7 @@ private fun TrustRow(
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
         ) {
             Text(
-                text = if (isRestoring) "Restoring…" else "Restore",
+                text = stringResource(if (isRestoring) R.string.upgrade_restoring else R.string.upgrade_restore),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -498,7 +500,7 @@ private fun TrustRow(
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
         ) {
             Text(
-                text = "Get help",
+                text = stringResource(R.string.upgrade_get_help),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -574,10 +576,10 @@ private fun CelebrationContent(onContinue: () -> Unit) {
             modifier = Modifier.graphicsLayer { alpha = contentAlpha },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            EyebrowChip(text = "WELCOME", isAccent = true)
+            EyebrowChip(text = stringResource(R.string.upgrade_welcome_eyebrow), isAccent = true)
             Spacer(Modifier.height(Spacing.md))
             Text(
-                text = "You're a Pro member",
+                text = stringResource(R.string.upgrade_celebration_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -585,7 +587,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
             )
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                text = "Thank you for backing PennyWise — every feature on the list is now yours.",
+                text = stringResource(R.string.upgrade_celebration_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -609,7 +611,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
                         )
                         Spacer(Modifier.width(Spacing.sm))
                         Text(
-                            text = feature,
+                            text = stringResource(feature),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -630,7 +632,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
                 ),
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.upgrade_continue),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -659,10 +661,10 @@ private fun MemberCard(licenseProductName: String?) {
             ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            EyebrowChip(text = "ACTIVE", isAccent = true)
+            EyebrowChip(text = stringResource(R.string.upgrade_active_eyebrow), isAccent = true)
             Spacer(Modifier.height(Spacing.md))
             Text(
-                text = "All Pro features unlocked",
+                text = stringResource(R.string.upgrade_active_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -671,7 +673,7 @@ private fun MemberCard(licenseProductName: String?) {
             if (licenseProductName != null) {
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    text = "Via license key · $licenseProductName",
+                    text = stringResource(R.string.upgrade_via_license_key, licenseProductName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -701,7 +703,7 @@ private fun ManageRow(
             // another phone. Play subscribers get the Play manage link instead.
             TextButton(onClick = onRemoveLicense) {
                 Text(
-                    text = "Remove license key",
+                    text = stringResource(R.string.upgrade_remove_license_key),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
@@ -722,7 +724,7 @@ private fun ManageRow(
             },
         ) {
             Text(
-                text = "Manage subscription",
+                text = stringResource(R.string.upgrade_manage_subscription),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -730,7 +732,7 @@ private fun ManageRow(
         }
         TextButton(onClick = onRestore) {
             Text(
-                text = "Restore",
+                text = stringResource(R.string.upgrade_restore),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,

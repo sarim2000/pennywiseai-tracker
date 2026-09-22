@@ -510,7 +510,7 @@ fun SettingsScreen(
                     subtitle = if (appLockUiState.canUseBiometric) {
                         stringResource(R.string.settings_app_lock_subtitle)
                     } else {
-                        appLockUiState.biometricCapability.getErrorMessage()
+                        appLockUiState.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty()
                     },
                     checked = appLockUiState.isLockEnabled,
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },

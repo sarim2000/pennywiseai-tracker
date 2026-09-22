@@ -6,6 +6,8 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
 import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.billing.license.LicenseManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -110,15 +112,15 @@ class UpgradeViewModel @Inject constructor(
                     LicenseManager.ActivationOutcome.Activated ->
                         ui.copy(isActivating = false, showLicenseDialog = false)
                     LicenseManager.ActivationOutcome.InvalidKey ->
-                        ui.copy(isActivating = false, licenseError = "That key isn't valid. Check for typos and try again.")
+                        ui.copy(isActivating = false, licenseError = UiText.Res(R.string.upgrade_license_error_invalid))
                     LicenseManager.ActivationOutcome.ActiveElsewhere ->
                         ui.copy(
                             isActivating = false,
-                            licenseError = "This key is already active on another device.",
+                            licenseError = UiText.Res(R.string.upgrade_license_error_active_elsewhere),
                             licenseCanMove = BuildConfig.LICENSE_MOVE_URL.isNotBlank(),
                         )
                     LicenseManager.ActivationOutcome.Offline ->
-                        ui.copy(isActivating = false, licenseError = "Couldn't reach the license server. Check your connection and try again.")
+                        ui.copy(isActivating = false, licenseError = UiText.Res(R.string.upgrade_license_error_offline))
                 }
             }
         }
@@ -163,7 +165,7 @@ class UpgradeViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     isPurchasing = false,
-                    errorMessage = "Couldn't reach Play Store. Try again later.",
+                    errorMessage = UiText.Res(R.string.upgrade_error_play_unavailable),
                 )
             }
             else -> _state.update { it.copy(isLoading = false, isPurchasing = false) }

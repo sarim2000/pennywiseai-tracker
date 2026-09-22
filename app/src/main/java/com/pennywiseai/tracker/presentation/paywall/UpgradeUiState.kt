@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import com.pennywiseai.tracker.ui.UiText
+
 /**
  * Immutable UI state for the upgrade sheet. ViewModel emits this; Compose
  * renders it. No business logic lives here.
@@ -10,7 +12,7 @@ data class UpgradeUiState(
     /** A Restore is in flight. */
     val isPurchasing: Boolean = false,
 /** Why the last Restore failed. Shown under the sheet; cleared when one starts. */
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     /**
      * True when the user already owned a Pro SKU at the moment the sheet
      * opened. Drives the "Active" content variant (status + manage-subscription
@@ -33,7 +35,7 @@ data class UpgradeUiState(
     /** License-key entry dialog. */
     val showLicenseDialog: Boolean = false,
     val isActivating: Boolean = false,
-    val licenseError: String? = null,
+    val licenseError: UiText? = null,
     /** Key is active on another phone; offer "Move to this device" (needs the move endpoint). */
     val licenseCanMove: Boolean = false,
 )

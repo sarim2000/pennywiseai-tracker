@@ -18,6 +18,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,11 +50,11 @@ internal fun LicenseKeyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Activate license key") },
+        title = { Text(stringResource(R.string.upgrade_license_dialog_title)) },
         text = {
             Column {
                 Text(
-                    text = "Paste the key from your purchase email. Pro activates on this device right away.",
+                    text = stringResource(R.string.upgrade_license_dialog_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -80,8 +82,8 @@ internal fun LicenseKeyDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !isActivating,
-                        label = { Text("Purchase email") },
-                        supportingText = { Text("Confirms you own the key before it leaves the other device.") },
+                        label = { Text(stringResource(R.string.upgrade_license_email_label)) },
+                        supportingText = { Text(stringResource(R.string.upgrade_license_email_supporting)) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Done,
@@ -97,13 +99,13 @@ internal fun LicenseKeyDialog(
                     strokeWidth = Spacing.xxs,
                 )
             } else if (canMove) {
-                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow) { Text("Move to this device") }
+                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow) { Text(stringResource(R.string.upgrade_license_move_here)) }
             } else {
-                TextButton(onClick = { onActivate(key) }, enabled = canSubmit) { Text("Activate") }
+                TextButton(onClick = { onActivate(key) }, enabled = canSubmit) { Text(stringResource(R.string.upgrade_license_activate)) }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isActivating) { Text("Cancel") }
+            TextButton(onClick = onDismiss, enabled = !isActivating) { Text(stringResource(R.string.upgrade_cancel)) }
         },
     )
 }

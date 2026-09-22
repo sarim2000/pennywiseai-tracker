@@ -297,7 +297,7 @@ private fun SupportNote() {
             modifier = Modifier.size(Dimensions.Icon.medium),
         )
         Text(
-            text = "Built by a solo dev — your upgrade funds what's next. Thank you.",
+            text = "Built by a solo dev — Pro funds what's next. Thank you.",
             style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF3A2B00),
         )

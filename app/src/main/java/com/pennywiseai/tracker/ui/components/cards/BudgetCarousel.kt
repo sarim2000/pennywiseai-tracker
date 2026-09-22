@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,14 +70,14 @@ fun BudgetCarousel(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Set a budget to track your spending",
+                        stringResource(R.string.budget_carousel_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(Spacing.xs))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "Create Budget",
+                            stringResource(R.string.budget_carousel_create),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )

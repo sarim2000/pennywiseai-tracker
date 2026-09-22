@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,28 +69,24 @@ fun GreetingCard(
     cycleEnd: LocalDate? = null
 ) {
     val today = LocalDate.now()
-    val subtitle = remember(today, cycleEnd) {
-        val now = today
+    val (daysLeft, hour) = remember(today, cycleEnd) {
         // Prefer the cycle's end over the calendar month's end so the
         // "X days left" hint lines up with the budget / spending windows.
-        val lastDay = cycleEnd ?: now.withDayOfMonth(now.lengthOfMonth())
-        val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
-        val rawMonth = now.month.name.lowercase()
-        val monthName = if (rawMonth.isEmpty()) rawMonth else rawMonth.substring(0, 1).uppercase() + rawMonth.substring(1)
-
-        when {
-            daysLeft == 0L -> "Last day of $monthName"
-            daysLeft <= 7 -> "$daysLeft days left in $monthName"
-            else -> {
-                val hour = LocalTime.now().hour
-                when (hour) {
-                    in 5..11 -> "Good morning"
-                    in 12..16 -> "Good afternoon"
-                    in 17..21 -> "Good evening"
-                    else -> "Good night"
-                }
+        val lastDay = cycleEnd ?: today.withDayOfMonth(today.lengthOfMonth())
+        ChronoUnit.DAYS.between(today, lastDay).toInt() to LocalTime.now().hour
+    }
+    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+    val subtitle = when {
+        daysLeft == 0 -> stringResource(R.string.greeting_last_day_of_month, monthName)
+        daysLeft <= 7 -> pluralStringResource(R.plurals.greeting_days_left_in_month, daysLeft, daysLeft, monthName)
+        else -> stringResource(
+            when (hour) {
+                in 5..11 -> R.string.greeting_good_morning
+                in 12..16 -> R.string.greeting_good_afternoon
+                in 17..21 -> R.string.greeting_good_evening
+                else -> R.string.greeting_good_night
             }
-        }
+        )
     }
 
     val avatarBackground = if (profileBackgroundColor != 0) {
@@ -177,7 +176,7 @@ fun GreetingCard(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = userName.ifBlank { "User" },
+                text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
@@ -202,7 +201,7 @@ fun GreetingCard(
                 ) {
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
-                        contentDescription = "Profile filter",
+                        contentDescription = stringResource(R.string.greeting_profile_filter),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -223,7 +222,7 @@ fun GreetingCard(
         ) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,
-                contentDescription = "More options",
+                contentDescription = stringResource(R.string.greeting_more_options),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

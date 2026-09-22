@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Home screen ══ -->
+    <string name="home_transaction_deleted">Transaction deleted</string>
+    <string name="home_undo">Undo</string>
+    <string name="home_upgrade_pro">Upgrade to PennyWise Pro</string>
+    <string name="home_profile_filter">Profile filter</string>
+    <string name="home_more_options">More options</string>
+    <string name="home_view_all">View All</string>
+    <string name="home_view">View</string>
+    <string name="home_manage">Manage</string>
+    <string name="home_search_transactions">Search transactions</string>
+    <string name="home_cancel">Cancel</string>
+    <string name="home_close">Close</string>
+
+    <!-- Home sections (headers + edit-home sheet) -->
+    <string name="home_section_budgets">Budgets</string>
+    <string name="home_section_loans">Loans</string>
+    <string name="home_section_groups">Groups</string>
+    <string name="home_section_recent_transactions">Recent Transactions</string>
+    <string name="home_section_accounts">Bank Accounts</string>
+    <string name="home_section_subscriptions">Upcoming Subscriptions</string>
+    <string name="home_section_activity">Activity</string>
+
+    <!-- Empty state -->
+    <string name="home_empty_headline">No transactions yet</string>
+    <string name="home_empty_description">Scan your SMS to get started — we\'ll find your transactions automatically</string>
+    <string name="home_empty_action">Scan Now</string>
+
+    <!-- FABs + full resync -->
+    <string name="home_fab_add">Add Transaction or Subscription</string>
+    <string name="home_fab_sync">Sync SMS (long press for full resync)</string>
+    <string name="home_fab_sync_hint">Hold for full resync</string>
+    <string name="home_resync_title">Full Resync</string>
+    <string name="home_resync_message">This will reprocess all SMS messages from scratch. Use this to fix issues caused by updated bank parsers.\n\nYour loans, grouped transactions, and merchant mappings are preserved.\n\nThis may take a few seconds depending on your message history.</string>
+    <string name="home_resync_confirm">Resync All</string>
+
+    <!-- More options sheet -->
+    <string name="home_menu_title">More Options</string>
+    <string name="home_menu_monthly_recap">Monthly recap</string>
+    <string name="home_menu_settings">Settings</string>
+    <string name="home_menu_edit_home">Edit home screen</string>
+    <string name="home_menu_discord">Join Discord for feedback</string>
+    <string name="home_menu_rate">Rate on Play Store</string>
+    <string name="home_version">v%1$s</string>
+
+    <!-- Edit home screen sheet -->
+    <string name="home_edit_title">Edit home screen</string>
+    <string name="home_edit_description">Reorder or hide sections on your home screen.</string>
+    <string name="home_edit_move_up">Move %1$s up</string>
+    <string name="home_edit_move_down">Move %1$s down</string>
+
+    <!-- Calculation breakdown dialog -->
+    <string name="home_breakdown_title">Calculation Breakdown</string>
+    <!-- Month name, then day range, e.g. "March 1-15" -->
+    <string name="home_breakdown_period">%1$s 1-%2$d</string>
+    <string name="home_breakdown_formula">Formula: Income - Expenses = Net Worth\nGreen (+) = Savings | Red (-) = Overspending</string>
+    <string name="home_breakdown_income">Income</string>
+    <string name="home_breakdown_expenses">Expenses</string>
+    <string name="home_breakdown_net_worth">Net Worth</string>
+
+    <!-- Subscriptions + loans summary cards -->
+    <plurals name="home_active_subscriptions">
+        <item quantity="one">%1$d active subscription</item>
+        <item quantity="other">%1$d active subscriptions</item>
+    </plurals>
+    <string name="home_subscriptions_monthly_total">Monthly total: %1$s</string>
+    <plurals name="home_active_loans">
+        <item quantity="one">%1$d active loan</item>
+        <item quantity="other">%1$d active loans</item>
+    </plurals>
+    <string name="home_loans_owed_to_you">%1$s owed to you</string>
+    <string name="home_loans_you_owe">You owe %1$s</string>
+
+    <!-- ══ Greeting card (home header) ══ -->
+    <string name="greeting_last_day_of_month">Last day of %1$s</string>
+    <plurals name="greeting_days_left_in_month">
+        <item quantity="one">%1$d day left in %2$s</item>
+        <item quantity="other">%1$d days left in %2$s</item>
+    </plurals>
+    <string name="greeting_good_morning">Good morning</string>
+    <string name="greeting_good_afternoon">Good afternoon</string>
+    <string name="greeting_good_evening">Good evening</string>
+    <string name="greeting_good_night">Good night</string>
+    <string name="greeting_default_user_name">User</string>
+    <string name="greeting_profile_filter">Profile filter</string>
+    <string name="greeting_more_options">More options</string>
+
+    <!-- ══ Bottom navigation ══ -->
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_chat">Chat</string>
+
+    <!-- ══ Shared components ══ -->
+    <string name="expandable_list_view_less">View Less</string>
+    <string name="expandable_list_view_all_more">View All (%1$d more)</string>
+    <string name="error_state_retry">Retry</string>
+    <string name="color_swatch_selected">Selected</string>
+    <string name="profile_filter_all_accounts">All Accounts</string>
+    <string name="whats_new_got_it">Got it</string>
+
+    <!-- Spotlight tutorial -->
+    <string name="spotlight_scan_sms">Tap here to scan your SMS messages for transactions</string>
+    <string name="spotlight_tap_to_dismiss">Tap anywhere to dismiss</string>
+
+    <!-- Transaction type filter (short labels) -->
+    <string name="type_filter_all">All</string>
+    <string name="type_filter_income">Income</string>
+    <string name="type_filter_expense">Expense</string>
+    <string name="type_filter_credit">Credit</string>
+    <string name="type_filter_transfer">Transfer</string>
+    <string name="type_filter_investment">Invest</string>
+
+    <!-- ══ SMS scan progress dialog ══ -->
+    <string name="sms_scan_title">Scanning SMS Messages</string>
+    <string name="sms_scan_cancel">Cancel Scan</string>
+    <string name="sms_scan_done">Done</string>
+    <string name="sms_scan_close">Close</string>
+    <string name="sms_scan_all_processed">All messages processed!</string>
+    <plurals name="sms_scan_processed_of">
+        <item quantity="one">Processed %1$d of %2$d message</item>
+        <item quantity="other">Processed %1$d of %2$d messages</item>
+    </plurals>
+    <plurals name="sms_scan_transactions_parsed">
+        <item quantity="one">%1$d transaction parsed</item>
+        <item quantity="other">%1$d transactions parsed</item>
+    </plurals>
+    <string name="sms_scan_saved">%1$d saved</string>
+    <!-- %1$s is a duration such as "2m 5s" -->
+    <string name="sms_scan_time_left">~%1$s left</string>
+    <string name="sms_scan_batch">Batch %1$d of %2$d</string>
+    <string name="sms_scan_processing">Processing...</string>
+    <string name="sms_scan_completed">Scan completed successfully!</string>
+    <string name="sms_scan_failed">Scan failed. Please try again.</string>
+    <string name="sms_scan_cancelled">Scan cancelled</string>
+    <string name="sms_scan_starting">Starting scan...</string>
+    <string name="sms_scan_indicator">Scanning SMS: %1$d/%2$d</string>
+    <!-- Short elapsed/remaining durations -->
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
+
+    <!-- ══ Shared cards ══ -->
+    <string name="balance_show">Show balance</string>
+    <string name="balance_hide">Hide balance</string>
+    <string name="card_collapse">Collapse</string>
+    <string name="card_expand">Expand</string>
+
+    <!-- Account carousel -->
+    <string name="account_card_type_credit">Credit</string>
+    <string name="account_card_type_savings">Savings</string>
+    <string name="account_card_low_balance">Low balance</string>
+    <string name="account_card_outstanding">Outstanding</string>
+    <string name="account_card_balance">Balance</string>
+
+    <!-- Balance / spending card -->
+    <string name="balance_card_change_more">%1$d%% more vs last month</string>
+    <string name="balance_card_change_less">%1$d%% less vs last month</string>
+    <!-- %1$s is a formatted (or masked) amount -->
+    <string name="balance_card_balance">Balance: %1$s</string>
+    <plurals name="balance_card_account_count">
+        <item quantity="one">" · %1$d account"</item>
+        <item quantity="other">" · %1$d accounts"</item>
+    </plurals>
+    <string name="balance_card_last_month_amount">Last month: %1$s</string>
+    <string name="balance_card_this_month">This month</string>
+    <string name="balance_card_last_month">Last month</string>
+    <string name="balance_card_accounts">Accounts</string>
+    <string name="balance_card_credit_cards">Credit Cards</string>
+    <string name="balance_card_total">Total</string>
+    <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
+    <string name="balance_card_spent_this_month">Spent this month</string>
+    <string name="balance_card_change_currency">Change currency</string>
+
+    <!-- Budget card -->
+    <string name="budget_card_percent">%1$d%%</string>
+    <string name="budget_card_over_budget">%1$s over budget</string>
+    <string name="budget_card_remaining">%1$s remaining</string>
+    <string name="budget_card_finished">Finished</string>
+    <string name="budget_card_tracking_all">Tracking all expenses</string>
+    <!-- %1$s is a weekday name -->
+    <string name="budget_card_resets_today_weekday">Resets today · %1$s renew</string>
+    <plurals name="budget_card_resets_in_weekday">
+        <item quantity="one">Resets in %1$d day · %2$s renew</item>
+        <item quantity="other">Resets in %1$d days · %2$s renew</item>
+    </plurals>
+    <!-- %1$d is the day of month the budget starts on -->
+    <string name="budget_card_resets_today_day">Resets today · day %1$d</string>
+    <plurals name="budget_card_resets_in_day">
+        <item quantity="one">Resets in %1$d day · day %2$d</item>
+        <item quantity="other">Resets in %1$d days · day %2$d</item>
+    </plurals>
+    <string name="budget_card_over_by">Over by %1$s</string>
+    <!-- %1$s is a date range -->
+    <plurals name="budget_card_runs_days_remaining">
+        <item quantity="one">Runs %1$s · %2$d day remaining</item>
+        <item quantity="other">Runs %1$s · %2$d days remaining</item>
+    </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="one">%1$d day remaining</item>
+        <item quantity="other">%1$d days remaining</item>
+    </plurals>
+    <string name="budget_card_spent_of">Spent %1$s of %2$s</string>
+    <string name="budget_cadence_weekly">Weekly</string>
+    <string name="budget_cadence_monthly">Monthly</string>
+    <string name="budget_cadence_one_time">One-time</string>
+    <string name="budget_carousel_empty">Set a budget to track your spending</string>
+    <string name="budget_carousel_create">Create Budget</string>
+
+    <!-- Group cards -->
+    <plurals name="group_card_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="group_card_no_transactions">No transactions yet</string>
+    <plurals name="group_card_transaction_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
+    <!-- Transaction count · latest date -->
+    <string name="group_card_subtitle">%1$s · %2$s</string>
+
+    <!-- Cash flow card -->
+    <string name="cash_flow_title">Money in motion</string>
+    <string name="cash_flow_subtitle">Channels outside your net cash flow this month</string>
+    <string name="cash_flow_credit">Credit</string>
+    <string name="cash_flow_invested">Invested</string>
+    <string name="cash_flow_transferred">Transferred</string>
+
+    <!-- Transaction row -->
+    <string name="txn_item_tag_credit">Credit</string>
+    <string name="txn_item_tag_transfer">Transfer</string>
+    <string name="txn_item_tag_investment">Investment</string>
+    <string name="txn_item_tag_recurring">Recurring</string>
+    <string name="txn_item_tag_business">Business</string>
+    <string name="txn_item_tag_excluded">Excluded</string>
+    <string name="txn_item_balance_after">Bal %1$s</string>
+    <!-- %1$s is the last 4 digits of the other account -->
+    <string name="txn_item_transfer_to">Transfer → %1$s</string>
+    <string name="txn_item_transfer_from">Transfer from %1$s</string>
+
+    <!-- ══ Home-screen widgets ══ -->
+    <!-- Add transaction widget -->
+    <string name="widget_add_content_description">Add transaction</string>
+    <string name="widget_add_title">Add</string>
+    <string name="widget_add_subtitle">Transaction</string>
+
+    <!-- Budget widget -->
+    <string name="widget_budget_title">Monthly Budget</string>
+    <string name="widget_budget_tap_to_set_up">Tap to set up</string>
+    <string name="widget_budget_percent_used">%1$d%% used</string>
+    <string name="widget_budget_of_limit">of %1$s</string>
+    <string name="widget_budget_left">%1$s left</string>
+    <string name="widget_budget_over">%1$s over</string>
+    <string name="widget_budget_per_day">%1$s/day</string>
+    <string name="widget_budget_saved">Saved %1$s</string>
+    <string name="widget_budget_overspent">Over %1$s</string>
+
+    <!-- Spending pie widget -->
+    <string name="widget_pie_title">Spending</string>
+    <string name="widget_pie_content_description">Spending by category</string>
+    <string name="widget_pie_percent">%1$d%%</string>
+    <string name="widget_pie_empty">No spending yet this month</string>
+    <!-- Slice that groups the smallest categories -->
+    <string name="widget_pie_other">Other</string>
+
+    <!-- Recent transactions widget -->
+    <string name="widget_recent_title">Recent Transactions</string>
+    <string name="widget_recent_add">Add Transaction</string>
+    <string name="widget_recent_total_spend">Total spend this month</string>
+    <string name="widget_recent_empty">No transactions yet</string>
+    <string name="widget_recent_empty_hint">Tap + to add manually</string>
+    <string name="widget_recent_fallback_title">Transaction</string>
+
+    <!-- ══ Notifications ══ -->
+    <!-- SMS scan progress (foreground worker) -->
+    <string name="notif_sms_scan_channel_name">SMS Scan</string>
+    <string name="notif_sms_scan_title">Scanning transactions…</string>
+    <string name="notif_sms_scan_progress">Processed %1$d / %2$d</string>
+    <string name="notif_sms_scan_reading">Reading SMS…</string>
+
+    <!-- New transaction notification -->
+    <string name="notif_txn_channel_name">Transaction Notifications</string>
+    <string name="notif_txn_channel_description">Notifications for new transactions</string>
+    <string name="notif_txn_unknown_merchant">Unknown</string>
+    <string name="notif_txn_unknown_bank">Bank</string>
+    <!-- Category • bank name -->
+    <string name="notif_txn_category_bank">%1$s • %2$s</string>
+    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
+    <string name="notif_txn_balance_discrepancy">⚠ Balance off by %1$s — expected %2$s, bank says %3$s</string>
+    <string name="notif_txn_action_more">More…</string>
+    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
+    <string name="notif_txn_public_title">%1$s New transaction</string>
+    <string name="notif_txn_public_text">%1$s • balance needs a look</string>
+
+    <!-- Balance chart legend -->
+    <string name="balance_chart_label">Balance Trend</string>
+
+</resources>

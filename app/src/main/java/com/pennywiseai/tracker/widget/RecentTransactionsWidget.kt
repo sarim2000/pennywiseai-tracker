@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import androidx.glance.LocalContext
 import android.content.Context
 import android.os.Build
 import android.content.Intent
@@ -115,7 +116,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
-                text = "Recent Transactions",
+                text = LocalContext.current.getString(R.string.widget_recent_title),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 14.sp,
@@ -137,7 +138,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 ) {
                     Image(
                         provider = ImageProvider(R.drawable.ic_widget_add),
-                        contentDescription = "Add Transaction",
+                        contentDescription = LocalContext.current.getString(R.string.widget_recent_add),
                         modifier = GlanceModifier.size(20.dp)
                     )
                 }
@@ -151,7 +152,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             modifier = GlanceModifier.fillMaxWidth()
         ) {
             Text(
-                text = "Total spend this month",
+                text = LocalContext.current.getString(R.string.widget_recent_total_spend),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 13.sp
@@ -242,7 +243,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "No transactions yet",
+                text = LocalContext.current.getString(R.string.widget_recent_empty),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 13.sp
@@ -250,7 +251,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             )
             Spacer(modifier = GlanceModifier.height(2.dp))
             Text(
-                text = "Tap + to add manually",
+                text = LocalContext.current.getString(R.string.widget_recent_empty_hint),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 12.sp

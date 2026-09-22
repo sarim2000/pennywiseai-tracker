@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.annotation.StringRes
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,9 +61,9 @@ fun CashFlowCard(
 ) {
     val channels = remember(creditCardSpend, investments, transfers) {
         listOf(
-            ChannelSlot("Credit", creditCardSpend),
-            ChannelSlot("Invested", investments),
-            ChannelSlot("Transferred", transfers)
+            ChannelSlot(R.string.cash_flow_credit, creditCardSpend),
+            ChannelSlot(R.string.cash_flow_invested, investments),
+            ChannelSlot(R.string.cash_flow_transferred, transfers)
         ).filter { it.amount.signum() != 0 }
     }
     if (channels.isEmpty()) return
@@ -75,13 +78,13 @@ fun CashFlowCard(
         onClick = onToggleBalanceVisibility
     ) {
         Text(
-            text = "Money in motion",
+            text = stringResource(R.string.cash_flow_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Channels outside your net cash flow this month",
+            text = stringResource(R.string.cash_flow_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -95,13 +98,13 @@ fun CashFlowCard(
         ) {
             for (ch in channels) {
                 val dotColor = when (ch.label) {
-                    "Credit" -> MaterialTheme.colorScheme.credit
-                    "Invested" -> MaterialTheme.colorScheme.investment
-                    "Transferred" -> MaterialTheme.colorScheme.transfer
+                    R.string.cash_flow_credit -> MaterialTheme.colorScheme.credit
+                    R.string.cash_flow_invested -> MaterialTheme.colorScheme.investment
+                    R.string.cash_flow_transferred -> MaterialTheme.colorScheme.transfer
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 ChannelChip(
-                    label = ch.label,
+                    label = stringResource(ch.label),
                     amount = ch.amount,
                     currency = currency,
                     dotColor = dotColor,
@@ -153,4 +156,4 @@ private fun ChannelChip(
     }
 }
 
-private data class ChannelSlot(val label: String, val amount: BigDecimal)
+private data class ChannelSlot(@StringRes val label: Int, val amount: BigDecimal)

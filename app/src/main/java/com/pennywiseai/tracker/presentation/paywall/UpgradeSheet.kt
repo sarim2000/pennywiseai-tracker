@@ -60,6 +60,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -72,6 +74,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -274,24 +277,14 @@ private fun UpgradeBody(
     }
     Spacer(Modifier.height(Spacing.md))
 
-    // Plain text, deliberately: no hyperlink, no button, no webview. Play's
-    // Payments policy FAQ allows a consumption-only app (one that sells
-    // nothing in-app, which is what this sheet now is) to name where its
-    // products are sold, "without direct links" — its own example being
-    // "Go to our website to upgrade your subscription to Premium". Making
-    // this tappable is the one thing that rule forbids. Selectable so it can
-    // be long-pressed and copied.
-    SelectionContainer {
-        Text(
-            text = "PennyWise Pro is available at ${Constants.Links.WEB_PARSER_URL.removePrefix("https://")}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content),
-        )
-    }
+    // Plain text, deliberately: no hyperlink, no button that navigates, no
+    // webview. Play's Payments policy FAQ allows a consumption-only app (one
+    // that sells nothing in-app, which is what this sheet now is) to name
+    // where its products are sold "without direct links" — its own example
+    // being "Go to our website to upgrade your subscription to Premium".
+    // Copy puts that same text on the clipboard; the user opens their own
+    // browser. Nothing here navigates anywhere, which is what the rule bans.
+    ProAvailableLine()
     Spacer(Modifier.height(Spacing.md))
 
     TrustRow(
@@ -366,6 +359,59 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
         )
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Where Pro is sold — text plus a clipboard copy. Never a link.
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProAvailableLine() {
+    val domain = remember { Constants.Links.WEB_PARSER_URL.removePrefix("https://") }
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(COPIED_LABEL_MS)
+            copied = false
+        }
+    }
+
+    // A column, not a row: the sentence plus the action don't share a line at
+    // larger font sizes, and a stranded button reads as a layout bug.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SelectionContainer {
+            Text(
+                text = "PennyWise Pro is available at $domain",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+        TextButton(
+            onClick = {
+                // Exactly the text shown above — the user pastes it themselves.
+                clipboard.setText(AnnotatedString(domain))
+                copied = true
+            },
+            contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
+        ) {
+            Text(
+                text = if (copied) "Copied" else "Copy address",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+private const val COPIED_LABEL_MS = 2_000L
 
 // ─────────────────────────────────────────────────────────────────────────
 // Includes — checklist of unlocked features. Reassures post-decision.

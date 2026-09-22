@@ -415,11 +415,6 @@ private fun TrustRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = "On-device data",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         TextButton(
             onClick = onRestore,
             enabled = !isRestoring,

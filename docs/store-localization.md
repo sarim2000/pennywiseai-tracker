@@ -21,6 +21,11 @@ locale, so Android 13+ lists PennyWise under **Settings → App languages** (the
 in-app *Settings → Language* row opens that screen). Android 12 and below
 follow the device language.
 
+**Checking a screen for hardcoded text:** debug builds enable pseudo-locales.
+`adb shell cmd locale set-app-locales com.pennywiseai.tracker.debug --locales en-XA`
+renders every extracted string as `[Šéţţîñĝš one two]`; anything still plain
+English is hardcoded. `ar-XB` checks RTL. Reset with `--locales ""`.
+
 ## What gets translated
 
 The fastlane / Triple-T "supply" metadata under

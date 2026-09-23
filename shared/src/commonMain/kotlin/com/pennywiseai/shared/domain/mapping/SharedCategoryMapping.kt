@@ -588,7 +588,10 @@ object SharedCategoryMapping {
         "boots_4287 c.world 3 fbangkok th",
         "healthcare",
         "medihelp",
-        "union chemists"
+        "union chemists",
+        // Kept in step with SHOPPING_EXCLUDE — a merchant we pull out of
+        // Shopping for being clinical has to land somewhere (#678).
+        "chemist", "chemists", "diagnostic", "diagnostics"
     )
 
     private val INVESTMENT = setOf(

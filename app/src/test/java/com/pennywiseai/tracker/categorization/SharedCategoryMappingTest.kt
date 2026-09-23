@@ -58,6 +58,16 @@ class SharedCategoryMappingTest {
     }
 
     @Test
+    fun `a chemist or lab pulled out of Shopping lands in Healthcare`() {
+        // Every word in SHOPPING_EXCLUDE must be a Healthcare keyword too,
+        // or excluding it just drops the merchant into Others.
+        assertCategory("Healthcare", "SHARMA CHEMIST MART")
+        assertCategory("Healthcare", "GUPTA CHEMISTS")
+        assertCategory("Healthcare", "THYROCARE DIAGNOSTIC CENTRE")
+        assertCategory("Healthcare", "LAL PATH DIAGNOSTICS")
+    }
+
+    @Test
     fun `Zoom is not a grocery store`() {
         // "zoom" is a UAE convenience brand, but the bare word took the
         // video-conferencing subscription with it.

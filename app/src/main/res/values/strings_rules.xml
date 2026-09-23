@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ App lock ══ -->
+    <string name="applock_prompt_title">Unlock PennyWise</string>
+    <string name="applock_prompt_subtitle">Authenticate to access your expense data</string>
+    <string name="applock_prompt_description">Use your biometric credential or device PIN</string>
+    <string name="applock_icon_cd">App Locked</string>
+    <string name="applock_title">PennyWise is Locked</string>
+    <string name="applock_subtitle">Authenticate to access your expense data</string>
+    <string name="applock_unlock">Unlock</string>
+    <string name="applock_biometric_unavailable">Biometric authentication unavailable</string>
+    <string name="applock_unavailable_hint">Please disable app lock in device settings or set up biometric authentication.</string>
+    <string name="applock_protected_immediate">Your data is protected with immediate locking</string>
+    <plurals name="applock_protected_timeout">
+        <item quantity="one">Your data is protected with %1$d minute timeout</item>
+        <item quantity="other">Your data is protected with %1$d minute timeout</item>
+    </plurals>
+    <string name="applock_auth_failed">Authentication failed. Please try again.</string>
+
+    <!-- Biometric capability errors (also shown in Settings) -->
+    <string name="biometric_error_no_hardware">This device doesn\'t have biometric hardware</string>
+    <string name="biometric_error_hw_unavailable">Biometric hardware is currently unavailable</string>
+    <string name="biometric_error_none_enrolled">No biometric credentials enrolled. Please set up fingerprint or face unlock in device settings</string>
+    <string name="biometric_error_security_update">Security update required for biometric authentication</string>
+    <string name="biometric_error_unsupported">Biometric authentication is not supported on this device</string>
+    <string name="biometric_error_unknown">Unknown biometric status</string>
+    <!-- ══ SMS permission screen ══ -->
+    <string name="permission_title">Enable Automatic Transaction Detection</string>
+    <string name="permission_description">PennyWise can automatically detect and categorize your bank transactions from SMS messages, saving you time and effort.</string>
+    <string name="permission_privacy_title">Your Privacy Matters</string>
+    <string name="permission_privacy_points">• Only transaction messages are processed\n• All data stays on your device\n• No personal messages are read\n• You can revoke access anytime in Settings</string>
+    <string name="permission_notification_title">Enable Bank Notification Access</string>
+    <string name="permission_notification_description">Allow PennyWise to read transaction notifications from supported banking apps. This helps capture purchases when SMS is delayed or unavailable.</string>
+    <string name="permission_notification_enabled">Notification access enabled</string>
+    <string name="permission_notification_open_settings">Open Notification Access Settings</string>
+    <string name="permission_rationale">Without SMS access, you\'ll need to manually add all your transactions. We only read bank transaction messages, not personal conversations.</string>
+    <string name="permission_enable_button">Enable Automatic Detection</string>
+    <!-- ══ Unrecognized SMS ══ -->
+    <string name="unrecognized_title">Unrecognized SMS</string>
+    <string name="unrecognized_back">Back</string>
+    <string name="unrecognized_header_title">Unrecognized Bank Messages</string>
+    <string name="unrecognized_header_body">These messages from potential banks couldn\'t be automatically parsed. Help improve PennyWise by reporting them so we can add support for more banks.</string>
+    <string name="unrecognized_show_reported">Show Reported</string>
+    <plurals name="unrecognized_new_count">
+        <item quantity="one">%1$d new</item>
+        <item quantity="other">%1$d new</item>
+    </plurals>
+    <plurals name="unrecognized_reported_count">
+        <item quantity="one">%1$d reported</item>
+        <item quantity="other">%1$d reported</item>
+    </plurals>
+    <string name="unrecognized_empty_title">All messages recognized</string>
+    <string name="unrecognized_empty_body">No unrecognized bank messages found</string>
+    <string name="unrecognized_delete_title">Delete Message</string>
+    <string name="unrecognized_delete_body">Are you sure you want to delete this unrecognized message? This action cannot be undone.</string>
+    <string name="unrecognized_delete">Delete</string>
+    <string name="unrecognized_cancel">Cancel</string>
+    <string name="unrecognized_reported_badge">Reported</string>
+    <string name="unrecognized_report">Report</string>
+    <!-- ══ Import statement ══ -->
+    <string name="import_statement_title">Import Statement</string>
+    <string name="import_statement_back">Back</string>
+    <string name="import_statement_description">Import transactions from Google Pay, PhonePe, Paytm, or slice PDF statements. Duplicates are automatically detected and skipped.</string>
+    <string name="import_statement_select_pdf">Select PDF Statement</string>
+    <string name="import_statement_loading_title">Importing transactions...</string>
+    <string name="import_statement_loading_body">Parsing PDF and checking for duplicates</string>
+    <string name="import_statement_complete">Import Complete</string>
+    <string name="import_statement_result_imported">Transactions imported</string>
+    <string name="import_statement_result_enriched">Transactions enriched</string>
+    <string name="import_statement_result_total_parsed">Total parsed from PDF</string>
+    <string name="import_statement_result_duplicates">Duplicates skipped: %1$d</string>
+    <string name="import_statement_result_exact">Exact re-imports</string>
+    <string name="import_statement_result_by_reference">By UPI reference</string>
+    <string name="import_statement_result_by_amount_date">By amount &amp; date</string>
+    <string name="import_statement_import_another">Import Another</string>
+    <string name="import_statement_done">Done</string>
+    <string name="import_statement_failed">Import Failed</string>
+    <string name="import_statement_try_again">Try Again</string>
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
+    <string name="upgrade_title">PennyWise Pro</string>
+    <string name="upgrade_subtitle_member">All Pro capabilities active</string>
+    <string name="upgrade_subtitle_upgrade">Everything unlocked with a license key</string>
+    <string name="upgrade_enter_license_key">Enter license key</string>
+    <string name="upgrade_support_note">Built by a solo dev — Pro funds what\'s next. Thank you.</string>
+    <string name="upgrade_available_at">PennyWise Pro is available at %1$s</string>
+    <string name="upgrade_copied">Copied</string>
+    <string name="upgrade_copy_address">Copy address</string>
+    <string name="upgrade_includes">Includes</string>
+    <string name="upgrade_feature_rules">Unlimited custom rules</string>
+    <string name="upgrade_feature_statements">Unlimited PDF statement imports</string>
+    <string name="upgrade_feature_csv">Unlimited CSV export</string>
+    <string name="upgrade_feature_merge_accounts">Merge duplicate accounts</string>
+    <string name="upgrade_restoring">Restoring…</string>
+    <string name="upgrade_restore">Restore</string>
+    <string name="upgrade_get_help">Get help</string>
+    <string name="upgrade_welcome_eyebrow">WELCOME</string>
+    <string name="upgrade_celebration_title">You\'re a Pro member</string>
+    <string name="upgrade_celebration_body">Thank you for backing PennyWise — every feature on the list is now yours.</string>
+    <string name="upgrade_continue">Continue</string>
+    <string name="upgrade_active_eyebrow">ACTIVE</string>
+    <string name="upgrade_active_title">All Pro features unlocked</string>
+    <string name="upgrade_via_license_key">Via license key · %1$s</string>
+    <string name="upgrade_remove_license_key">Remove license key</string>
+    <string name="upgrade_manage_subscription">Manage subscription</string>
+    <string name="upgrade_error_play_unavailable">Couldn\'t reach Play Store. Try again later.</string>
+    <string name="upgrade_cancel">Cancel</string>
+
+    <!-- License key dialog -->
+    <string name="upgrade_license_dialog_title">Activate license key</string>
+    <string name="upgrade_license_dialog_body">Paste the key from your purchase email. Pro activates on this device right away.</string>
+    <string name="upgrade_license_email_label">Purchase email</string>
+    <string name="upgrade_license_email_supporting">Confirms you own the key before it leaves the other device.</string>
+    <string name="upgrade_license_move_here">Move to this device</string>
+    <string name="upgrade_license_activate">Activate</string>
+    <string name="upgrade_license_error_invalid">That key isn\'t valid. Check for typos and try again.</string>
+    <string name="upgrade_license_error_active_elsewhere">This key is already active on another device.</string>
+    <string name="upgrade_license_error_offline">Couldn\'t reach the license server. Check your connection and try again.</string>
+    <!-- ══ Onboarding ══ -->
+    <string name="onboarding_logo_cd">PennyWise</string>
+    <string name="onboarding_welcome_title">Welcome to PennyWise</string>
+    <string name="onboarding_welcome_body">Your AI-powered expense tracker that automatically detects transactions from SMS messages.</string>
+    <string name="onboarding_setup_heading">What you\'ll set up:</string>
+    <string name="onboarding_setup_steps">1. Your profile\n2. SMS permissions for auto-detection\n3. Initial transaction scan\n4. Your main bank account</string>
+    <string name="onboarding_name_title">What should we call you?</string>
+    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_avatar_title">Choose an avatar</string>
+    <string name="onboarding_avatar_cd">Avatar %1$d</string>
+    <string name="onboarding_photo_selected_cd">Photo selected</string>
+    <string name="onboarding_background_color_title">Pick a background color</string>
+    <string name="onboarding_selected_cd">Selected</string>
+    <string name="onboarding_permission_title">Enable Automatic Detection</string>
+    <string name="onboarding_permission_body">PennyWise can automatically detect and categorize your bank transactions from SMS messages.</string>
+    <string name="onboarding_permission_granted">Permissions granted! Tap Continue to proceed.</string>
+    <string name="onboarding_enable_permissions">Enable Permissions</string>
+    <string name="onboarding_scan_in_progress">Scanning your messages...</string>
+    <plurals name="onboarding_scan_processed">
+        <item quantity="one">%1$d / %2$d message processed</item>
+        <item quantity="other">%1$d / %2$d messages processed</item>
+    </plurals>
+    <plurals name="onboarding_scan_found">
+        <item quantity="one">%1$d transaction found</item>
+        <item quantity="other">%1$d transactions found</item>
+    </plurals>
+    <string name="onboarding_scan_remaining">~%1$ds remaining</string>
+    <string name="onboarding_scan_preparing">Preparing scan...</string>
+    <string name="onboarding_scan_complete">Scan Complete!</string>
+    <plurals name="onboarding_scan_saved">
+        <item quantity="one">%1$d transaction saved from %2$d messages</item>
+        <item quantity="other">%1$d transactions saved from %2$d messages</item>
+    </plurals>
+    <string name="onboarding_scan_none_found">No transactions found. You can add them manually later.</string>
+    <string name="onboarding_scan_title">Scan Your Messages</string>
+    <string name="onboarding_scan_body">We\'ll scan your SMS messages to find bank transactions and set up your accounts automatically.</string>
+    <string name="onboarding_all_set">You\'re all set!</string>
+    <string name="onboarding_no_accounts">No accounts were detected yet. You can set up your main account later in Settings.</string>
+    <string name="onboarding_main_account_title">Select Your Main Account</string>
+    <string name="onboarding_main_account_body">Choose the account you use most often. This will be shown on your home screen.</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_save_continue">Save &amp; Continue</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_start_scanning">Start Scanning</string>
+    <string name="onboarding_finish">Finish</string>
+    <!-- ══ Chat (PennyWise AI) ══ -->
+    <string name="chat_title">PennyWise AI</string>
+    <string name="chat_downloading_model">Downloading Model...</string>
+    <string name="chat_model_required_title">AI Model Required</string>
+    <string name="chat_model_required_body">Download the AI model to start chatting</string>
+    <string name="chat_download_progress">%1$d MB / %2$d MB</string>
+    <string name="chat_download_with_size">Download (%1$d MB)</string>
+    <string name="chat_download">Download</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_settings">Settings</string>
+    <string name="chat_model_required_short">Model Required</string>
+    <string name="chat_model_size_hint">1.6 GB · use Wi-Fi</string>
+    <string name="chat_initializing_model">Initializing AI Model...</string>
+    <string name="chat_initializing_hint">This may take a few seconds</string>
+    <string name="chat_clear_chat">Clear Chat</string>
+    <string name="chat_clear">Clear</string>
+    <string name="chat_dismiss">Dismiss</string>
+    <string name="chat_input_placeholder">Ask, or tell me what you spent…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_memory_almost_full">Chat memory almost full! Clear chat to continue.</string>
+    <string name="chat_memory_warning">Chat memory is %1$d%% full. Consider clearing soon.</string>
+    <string name="chat_memory_usage">Chat memory is %1$d%% full.</string>
+    <plurals name="chat_stats_model_messages">
+        <item quantity="one">Qwen 2.5 1.5B • %1$d message</item>
+        <item quantity="other">Qwen 2.5 1.5B • %1$d messages</item>
+    </plurals>
+    <string name="chat_stats_tokens">%1$s tokens</string>
+    <string name="chat_stats_tokens_of_max">%1$s / %2$s tokens</string>
+    <string name="chat_stats_system_tokens">System: %1$s</string>
+    <string name="chat_context_usage">Context Usage</string>
+    <string name="chat_context_percent">%1$d%%</string>
+    <string name="chat_collapse">Collapse</string>
+    <string name="chat_expand">Expand</string>
+    <string name="chat_thinking_reading">Reading that…</string>
+    <string name="chat_thinking_working">Working it out…</string>
+    <string name="chat_thinking_checking">Checking your transactions…</string>
+    <string name="chat_thinking_crunching">Crunching the numbers…</string>
+    <string name="chat_thinking_one_moment">One moment…</string>
+    <string name="chat_empty_title">Add a spend or ask about it</string>
+    <string name="chat_empty_body">Try one of these prompts</string>
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
+    <string name="chat_example_prompt_coffee">coffee 120 at Starbucks</string>
+    <string name="chat_example_prompt_salary">got 50000 salary today</string>
+    <string name="chat_example_prompt_groceries">How much on groceries this month?</string>
+    <string name="chat_example_prompt_spent">How much have I spent this month?</string>
+
+    <!-- Chat confirm card for an AI-proposed action -->
+    <string name="chat_action_add_income">Add income?</string>
+    <string name="chat_action_add_expense">Add expense?</string>
+    <string name="chat_action_add_detail">%1$s · %2$s · today</string>
+    <string name="chat_action_add">Add</string>
+    <string name="chat_action_delete_title">Delete this transaction?</string>
+    <string name="chat_action_delete">Delete</string>
+    <string name="chat_action_update_title">Update this transaction?</string>
+    <string name="chat_action_update">Update</string>
+    <string name="chat_action_change_merchant">merchant → %1$s</string>
+    <string name="chat_action_change_category">category → %1$s</string>
+
+    <!-- Chat errors -->
+    <string name="chat_error_apply_failed">Couldn\'t apply that: %1$s</string>
+    <string name="chat_error_memory_full">Chat memory is full. Please clear the chat to continue.</string>
+    <string name="chat_error_model_downloading">Model is downloading. Please wait.</string>
+    <string name="chat_error_model_not_downloaded">AI model not downloaded. Go to Settings to download.</string>
+    <string name="chat_error_generate_failed">Failed to generate response</string>
+    <string name="chat_error_send_failed">Failed to send message</string>
+    <string name="chat_error_no_storage">Not enough storage space for download</string>
+    <string name="chat_error_download_unavailable">AI model download is not available in this build.</string>
+    <string name="chat_error_download_start_failed">Failed to start download. Please try again.</string>
+    <string name="chat_error_integrity_failed">Downloaded model failed its integrity check and was removed. Please try downloading again.</string>
+    <string name="chat_error_download_failed">Download failed. Please try again.</string>
+    <string name="chat_download_notification_title">AI Chat Model</string>
+    <string name="chat_download_notification_description">Downloading AI chat assistant for PennyWise</string>
+    <!-- ══ Smart Rules list ══ -->
+    <string name="rules_title">Smart Rules</string>
+    <string name="rules_navigate_back">Navigate back</string>
+    <string name="rules_more_options">More options</string>
+    <string name="rules_menu_export">Export rules</string>
+    <string name="rules_menu_import">Import rules</string>
+    <string name="rules_menu_reset">Reset to defaults</string>
+    <string name="rules_create_cd">Create Rule</string>
+    <string name="rules_ok">OK</string>
+    <string name="rules_cancel">Cancel</string>
+    <string name="rules_close">Close</string>
+    <string name="rules_reset_title">Reset Rules</string>
+    <string name="rules_reset_body">Reset all rules to default settings? Your custom settings will be lost.</string>
+    <string name="rules_reset">Reset</string>
+    <string name="rules_auto_categorization_title">Automatic Categorization</string>
+    <string name="rules_auto_categorization_body">Enable rules to automatically categorize your transactions based on patterns</string>
+    <string name="rules_group_daily">Daily Expenses</string>
+    <string name="rules_group_income">Income &amp; Cashback</string>
+    <string name="rules_group_recurring">Recurring Payments</string>
+    <string name="rules_group_banking">Banking &amp; Investments</string>
+    <string name="rules_group_healthcare">Healthcare</string>
+    <string name="rules_group_other">Other</string>
+    <string name="rules_footer_info">Rules are applied automatically to new transactions. Higher priority rules run first.</string>
+    <string name="rules_summary_small_payments">Amount &lt; 200</string>
+    <string name="rules_summary_upi_cashback">Amount &lt; 10 from NPCI</string>
+    <string name="rules_summary_salary">Credits with salary keywords</string>
+    <string name="rules_summary_rent">Payments with rent keywords</string>
+    <string name="rules_summary_emi">EMI/loan keywords</string>
+    <string name="rules_summary_investment">Mutual funds, stocks keywords</string>
+    <string name="rules_summary_subscription">Netflix, Spotify, etc.</string>
+    <string name="rules_summary_fuel">Petrol pump transactions</string>
+    <string name="rules_summary_healthcare">Hospital, pharmacy keywords</string>
+    <string name="rules_summary_transfer">Self transfers, contra</string>
+    <string name="rules_priority_badge">Priority: %1$d</string>
+    <string name="rules_more_actions">More actions</string>
+    <string name="rules_menu_edit">Edit Rule</string>
+    <string name="rules_menu_duplicate">Duplicate Rule</string>
+    <string name="rules_menu_apply_past">Apply to Past Transactions</string>
+    <string name="rules_delete_title">Delete Rule</string>
+    <string name="rules_delete_body">Delete \"%1$s\"? This action cannot be undone.</string>
+    <string name="rules_delete">Delete</string>
+
+    <!-- Rule sharing (export / import) results -->
+    <string name="rules_export_nothing">You don\'t have any custom rules to export yet.</string>
+    <plurals name="rules_exported">
+        <item quantity="one">Exported %1$d rule.</item>
+        <item quantity="other">Exported %1$d rules.</item>
+    </plurals>
+    <string name="rules_export_failed">Export failed: %1$s</string>
+    <plurals name="rules_imported">
+        <item quantity="one">Imported %1$d rule.</item>
+        <item quantity="other">Imported %1$d rules.</item>
+    </plurals>
+    <plurals name="rules_import_already_existed">
+        <item quantity="one">%1$d already existed.</item>
+        <item quantity="other">%1$d already existed.</item>
+    </plurals>
+    <plurals name="rules_import_collapsed">
+        <item quantity="one">%1$d repeated name in the file was collapsed.</item>
+        <item quantity="other">%1$d repeated names in the file were collapsed.</item>
+    </plurals>
+    <plurals name="rules_import_blocked_by_limit">
+        <item quantity="one">%1$d more need Pro — you\'re at the free limit of %2$d.</item>
+        <item quantity="other">%1$d more need Pro — you\'re at the free limit of %2$d.</item>
+    </plurals>
+    <string name="rules_import_failed">Import failed.</string>
+
+    <!-- Apply rule to past transactions -->
+    <string name="rules_batch_applying">Applying Rule...</string>
+    <string name="rules_batch_previewing">Previewing...</string>
+    <string name="rules_batch_preview_title">Preview: %1$s</string>
+    <string name="rules_batch_title">Apply Rule to Past Transactions</string>
+    <string name="rules_batch_scanning">Scanning transactions...</string>
+    <string name="rules_batch_no_matches">No transactions match this rule (scanned %1$d).</string>
+    <plurals name="rules_batch_scanned">
+        <item quantity="one">Scanned %1$d transaction:</item>
+        <item quantity="other">Scanned %1$d transactions:</item>
+    </plurals>
+    <string name="rules_batch_would_update">%1$d would be updated</string>
+    <string name="rules_batch_would_block">%1$d would be blocked</string>
+    <string name="rules_batch_sample_changes">Sample changes:</string>
+    <string name="rules_batch_sample_blocked">Would be blocked</string>
+    <string name="rules_batch_change_category">Category: %1$s → %2$s</string>
+    <string name="rules_batch_change_merchant">Merchant: %1$s → %2$s</string>
+    <string name="rules_batch_change_type">Type: %1$s → %2$s</string>
+    <string name="rules_batch_change_description">Description: %1$s → %2$s</string>
+    <string name="rules_batch_none">(none)</string>
+    <string name="rules_batch_change_tags">Tags: %1$s</string>
+    <string name="rules_batch_and_more">...and %1$d more</string>
+    <string name="rules_batch_confirm">Apply \"%1$s\" to existing transactions?</string>
+    <string name="rules_batch_preview_hint">Use Preview to see what would change before applying.</string>
+    <plurals name="rules_batch_processing">
+        <item quantity="one">Processing %1$d of %2$d transaction</item>
+        <item quantity="other">Processing %1$d of %2$d transactions</item>
+    </plurals>
+    <string name="rules_batch_completed">Completed</string>
+    <string name="rules_batch_result_processed">Transactions processed: %1$d</string>
+    <string name="rules_batch_result_updated">Transactions updated: %1$d</string>
+    <string name="rules_batch_result_blocked">Transactions blocked: %1$d</string>
+    <string name="rules_batch_result_errors">Errors: %1$d</string>
+    <string name="rules_batch_apply_uncategorized">Uncategorized</string>
+    <string name="rules_batch_apply_all">Apply All</string>
+    <string name="rules_batch_preview">Preview</string>
+    <!-- ══ Create / edit rule ══ -->
+    <string name="rules_create_title">Create Rule</string>
+    <string name="rules_edit_title">Edit Rule</string>
+    <string name="rules_save">Save</string>
+    <string name="rules_quick_templates">Quick Templates</string>
+    <string name="rules_preset_block_otps">Block OTPs</string>
+    <string name="rules_preset_block_small">Block Small Amounts</string>
+    <string name="rules_preset_small_food">Small amounts → Food</string>
+    <string name="rules_preset_standardize_merchant">Standardize Merchant</string>
+    <string name="rules_preset_mark_income">Mark as Income</string>
+    <string name="rules_preset_daily_investment">Daily Investment</string>
+    <string name="rules_name_label">Rule Name</string>
+    <string name="rules_name_placeholder">e.g., Food expenses under 200</string>
+    <string name="rules_description_label">Description (Optional)</string>
+    <string name="rules_description_placeholder">What does this rule do?</string>
+    <string name="rules_when">When</string>
+    <string name="rules_then">Then</string>
+    <string name="rules_add_condition">Add Condition</string>
+    <string name="rules_condition">Condition</string>
+    <string name="rules_remove_condition">Remove condition</string>
+    <string name="rules_add_action">Add Action</string>
+    <string name="rules_action">Action</string>
+    <string name="rules_action_numbered">Action %1$d</string>
+    <string name="rules_remove_action">Remove action</string>
+    <string name="rules_logical_and">AND</string>
+    <string name="rules_logical_or">OR</string>
+    <string name="rules_block_confirm_title">Block transaction?</string>
+    <string name="rules_block_confirm_body">Blocking stops a matching transaction from being saved, so this rule\'s other actions won\'t run. Remove the other actions and keep only Block?</string>
+    <string name="rules_block_confirm_action">Block &amp; remove</string>
+    <string name="rules_block_explainer">Transactions matching this rule will be blocked and not saved</string>
+
+    <!-- Rule fields (pickers) -->
+    <string name="rules_field_label">Field</string>
+    <string name="rules_field_amount">Amount</string>
+    <string name="rules_field_transaction_type">Transaction Type</string>
+    <string name="rules_field_category">Category</string>
+    <string name="rules_field_merchant">Merchant</string>
+    <string name="rules_field_merchant_name">Merchant Name</string>
+    <string name="rules_field_sms_text">SMS Text</string>
+    <string name="rules_field_bank_name">Bank Name</string>
+    <string name="rules_field_time_of_day">Time of Day</string>
+    <string name="rules_field_hour">Hour</string>
+    <string name="rules_field_day_of_week">Day of Week</string>
+    <string name="rules_field_day_of_month">Day of Month</string>
+    <string name="rules_field_date">Date</string>
+    <string name="rules_field_account">Account</string>
+    <string name="rules_field_description">Description</string>
+    <string name="rules_field_tags">Tags</string>
+
+    <!-- Rule operators (condition chips) -->
+    <string name="rules_op_less_than_symbol" translatable="false">&lt;</string>
+    <string name="rules_op_greater_than_symbol" translatable="false">&gt;</string>
+    <string name="rules_op_equals_symbol" translatable="false">=</string>
+    <string name="rules_op_before">before</string>
+    <string name="rules_op_after">after</string>
+    <string name="rules_op_at_or_after">at or after</string>
+    <string name="rules_op_at_or_before">at or before</string>
+    <string name="rules_op_exactly_at">exactly at</string>
+    <string name="rules_op_is_any_of">is any of</string>
+    <string name="rules_op_is">is</string>
+    <string name="rules_op_is_not">is not</string>
+    <string name="rules_op_equals">equals</string>
+    <string name="rules_op_starts_with">starts with</string>
+    <string name="rules_op_contains">contains</string>
+
+    <!-- Transaction type labels (stored value stays the enum name) -->
+    <string name="rules_type_income">Income</string>
+    <string name="rules_type_expense">Expense</string>
+    <string name="rules_type_credit">Credit</string>
+    <string name="rules_type_transfer">Transfer</string>
+    <string name="rules_type_investment">Investment</string>
+    <string name="rules_select_transaction_type">Select transaction type:</string>
+
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
+    <string name="rules_day_mon">Mon</string>
+    <string name="rules_day_tue">Tue</string>
+    <string name="rules_day_wed">Wed</string>
+    <string name="rules_day_thu">Thu</string>
+    <string name="rules_day_fri">Fri</string>
+    <string name="rules_day_sat">Sat</string>
+    <string name="rules_day_sun">Sun</string>
+
+    <!-- Condition value inputs -->
+    <string name="rules_day_of_month_label">Day (1-31)</string>
+    <string name="rules_day_of_month_placeholder">e.g., 1</string>
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
+    <string name="rules_time_label">Time (HH:mm)</string>
+    <string name="rules_time_placeholder">Tap to select time</string>
+    <string name="rules_pick_time">Pick time</string>
+    <string name="rules_hour_label">Hour (0-23)</string>
+    <string name="rules_hour_placeholder">e.g., 9</string>
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
+    <string name="rules_date_label">Date (yyyy-MM-dd)</string>
+    <string name="rules_date_placeholder">e.g., 2026-03-21</string>
+    <string name="rules_select_account">Select an account</string>
+    <string name="rules_account_type_credit">Credit</string>
+    <string name="rules_no_accounts">No accounts found. Add an account first.</string>
+    <string name="rules_value_label">Value</string>
+    <string name="rules_value_placeholder_amount">e.g., 200</string>
+    <string name="rules_value_placeholder_merchant">e.g., Swiggy</string>
+    <string name="rules_value_placeholder_sms_text">e.g., salary</string>
+    <string name="rules_value_placeholder_category">e.g., Food &amp; Dining</string>
+    <string name="rules_value_placeholder_bank">e.g., HDFC Bank</string>
+    <string name="rules_value_placeholder_generic">Enter value</string>
+
+    <!-- Action editor -->
+    <string name="rules_action_type_label">Action Type</string>
+    <string name="rules_action_type_block">Block Transaction</string>
+    <string name="rules_action_type_set">Set Field</string>
+    <string name="rules_action_type_append">Append to Field</string>
+    <string name="rules_action_type_prepend">Prepend to Field</string>
+    <string name="rules_action_type_clear">Clear Field</string>
+    <string name="rules_action_type_add_tag">Add Tag</string>
+    <string name="rules_action_type_remove_tag">Remove Tag</string>
+    <string name="rules_category_name_label">Category Name</string>
+    <string name="rules_category_name_placeholder">e.g., Rent</string>
+    <string name="rules_merchant_placeholder">e.g., Amazon</string>
+    <string name="rules_description_value_placeholder">e.g., Monthly subscription payment</string>
+    <string name="rules_account_bank_label">Account / Bank Name</string>
+    <string name="rules_tag_name_label">Tag Name</string>
+
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
+    <string name="rules_preview_title">Rule Preview</string>
+    <string name="rules_preview_sentence">When %1$s, %2$s</string>
+    <string name="rules_preview_conditions_and">%1$s AND %2$s</string>
+    <string name="rules_preview_actions_and">%1$s, and %2$s</string>
+    <!-- field, operator, value -->
+    <string name="rules_preview_condition">%1$s %2$s %3$s</string>
+    <string name="rules_preview_field_amount">amount</string>
+    <string name="rules_preview_field_type">type</string>
+    <string name="rules_preview_field_category">category</string>
+    <string name="rules_preview_field_merchant">merchant</string>
+    <string name="rules_preview_field_description">description</string>
+    <string name="rules_preview_field_sms_text">SMS text</string>
+    <string name="rules_preview_field_bank">bank</string>
+    <string name="rules_preview_field_time">time</string>
+    <string name="rules_preview_field_hour">hour</string>
+    <string name="rules_preview_field_day_of_week">day of week</string>
+    <string name="rules_preview_field_day_of_month">day of month</string>
+    <string name="rules_preview_field_date">date</string>
+    <string name="rules_preview_field_account">account</string>
+    <string name="rules_preview_field_tags">tags</string>
+    <string name="rules_preview_field_generic">field</string>
+    <string name="rules_preview_op_before">is before</string>
+    <string name="rules_preview_op_after">is after</string>
+    <string name="rules_preview_op_at_or_before">is at or before</string>
+    <string name="rules_preview_op_at_or_after">is at or after</string>
+    <string name="rules_preview_op_is">is</string>
+    <string name="rules_preview_op_contains">contains</string>
+    <string name="rules_preview_op_starts_with">starts with</string>
+    <string name="rules_preview_op_is_any_of">is any of</string>
+    <string name="rules_preview_op_is_not">is not</string>
+    <string name="rules_preview_op_matches">matches</string>
+    <string name="rules_preview_action_block">block transaction</string>
+    <string name="rules_preview_action_add_tag">add tag %1$s</string>
+    <string name="rules_preview_action_remove_tag">remove tag %1$s</string>
+    <!-- value, field -->
+    <string name="rules_preview_action_append">append %1$s to %2$s</string>
+    <string name="rules_preview_action_prepend">prepend %1$s to %2$s</string>
+    <string name="rules_preview_action_clear">clear %1$s</string>
+    <!-- field, value -->
+    <string name="rules_preview_action_set">set %1$s to %2$s</string>
+</resources>

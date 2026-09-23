@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -80,13 +83,13 @@ fun RulesScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Smart Rules",
+                title = stringResource(R.string.rules_title),
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Navigate back"
+                            contentDescription = stringResource(R.string.rules_navigate_back)
                         )
                     }
                 },
@@ -95,7 +98,7 @@ fun RulesScreen(
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                contentDescription = "More options"
+                                contentDescription = stringResource(R.string.rules_more_options)
                             )
                         }
                         DropdownMenu(
@@ -103,7 +106,7 @@ fun RulesScreen(
                             onDismissRequest = { showOverflowMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Export rules") },
+                                text = { Text(stringResource(R.string.rules_menu_export)) },
                                 leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -117,7 +120,7 @@ fun RulesScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Import rules") },
+                                text = { Text(stringResource(R.string.rules_menu_import)) },
                                 leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -128,7 +131,7 @@ fun RulesScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Reset to defaults") },
+                                text = { Text(stringResource(R.string.rules_menu_reset)) },
                                 leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -149,7 +152,7 @@ fun RulesScreen(
                 },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Rule")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rules_create_cd))
             }
         }
     ) { paddingValues ->
@@ -157,11 +160,11 @@ fun RulesScreen(
         sharingMessage?.let { message ->
             AlertDialog(
                 onDismissRequest = { viewModel.clearSharingMessage() },
-                title = { Text("Smart Rules") },
-                text = { Text(message) },
+                title = { Text(stringResource(R.string.rules_title)) },
+                text = { Text(message.map { it.asString() }.joinToString(" ")) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.clearSharingMessage() }) {
-                        Text("OK")
+                        Text(stringResource(R.string.rules_ok))
                     }
                 }
             )
@@ -170,8 +173,8 @@ fun RulesScreen(
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
-                title = { Text("Reset Rules") },
-                text = { Text("Reset all rules to default settings? Your custom settings will be lost.") },
+                title = { Text(stringResource(R.string.rules_reset_title)) },
+                text = { Text(stringResource(R.string.rules_reset_body)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -179,12 +182,12 @@ fun RulesScreen(
                             showResetDialog = false
                         }
                     ) {
-                        Text("Reset")
+                        Text(stringResource(R.string.rules_reset))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showResetDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.rules_cancel))
                     }
                 }
             )
@@ -237,13 +240,13 @@ fun RulesScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Automatic Categorization",
+                                    text = stringResource(R.string.rules_auto_categorization_title),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = "Enable rules to automatically categorize your transactions based on patterns",
+                                    text = stringResource(R.string.rules_auto_categorization_body),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -257,27 +260,27 @@ fun RulesScreen(
                     val groupedRules = rules.groupBy { rule ->
                         when {
                             rule.name.contains("Food", ignoreCase = true) ||
-                            rule.name.contains("Fuel", ignoreCase = true) -> "Daily Expenses"
+                            rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
 
                             rule.name.contains("Salary", ignoreCase = true) ||
-                            rule.name.contains("Cashback", ignoreCase = true) -> "Income & Cashback"
+                            rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
 
                             rule.name.contains("Rent", ignoreCase = true) ||
                             rule.name.contains("EMI", ignoreCase = true) ||
-                            rule.name.contains("Subscription", ignoreCase = true) -> "Recurring Payments"
+                            rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
 
                             rule.name.contains("Investment", ignoreCase = true) ||
-                            rule.name.contains("Transfer", ignoreCase = true) -> "Banking & Investments"
+                            rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
 
-                            rule.name.contains("Healthcare", ignoreCase = true) -> "Healthcare"
+                            rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
 
-                            else -> "Other"
+                            else -> R.string.rules_group_other
                         }
                     }
 
                     groupedRules.forEach { (category, categoryRules) ->
                         if (categoryRules.isNotEmpty()) {
-                            SectionHeaderV2(title = category)
+                            SectionHeaderV2(title = stringResource(category))
 
                             categoryRules.forEach { rule ->
                                 RuleCard(
@@ -308,7 +311,7 @@ fun RulesScreen(
                 item {
                     Spacer(modifier = Modifier.height(Spacing.lg))
                     Text(
-                        text = "Rules are applied automatically to new transactions. Higher priority rules run first.",
+                        text = stringResource(R.string.rules_footer_info),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.md)
@@ -390,16 +393,16 @@ private fun RuleCard(
 
                 // Show simple condition summary
                 val conditionSummary = when {
-                    rule.name.contains("Small Payments", ignoreCase = true) -> "Amount < 200"
-                    rule.name.contains("UPI Cashback", ignoreCase = true) -> "Amount < 10 from NPCI"
-                    rule.name.contains("Salary", ignoreCase = true) -> "Credits with salary keywords"
-                    rule.name.contains("Rent", ignoreCase = true) -> "Payments with rent keywords"
-                    rule.name.contains("EMI", ignoreCase = true) -> "EMI/loan keywords"
-                    rule.name.contains("Investment", ignoreCase = true) -> "Mutual funds, stocks keywords"
-                    rule.name.contains("Subscription", ignoreCase = true) -> "Netflix, Spotify, etc."
-                    rule.name.contains("Fuel", ignoreCase = true) -> "Petrol pump transactions"
-                    rule.name.contains("Healthcare", ignoreCase = true) -> "Hospital, pharmacy keywords"
-                    rule.name.contains("Transfer", ignoreCase = true) -> "Self transfers, contra"
+                    rule.name.contains("Small Payments", ignoreCase = true) -> stringResource(R.string.rules_summary_small_payments)
+                    rule.name.contains("UPI Cashback", ignoreCase = true) -> stringResource(R.string.rules_summary_upi_cashback)
+                    rule.name.contains("Salary", ignoreCase = true) -> stringResource(R.string.rules_summary_salary)
+                    rule.name.contains("Rent", ignoreCase = true) -> stringResource(R.string.rules_summary_rent)
+                    rule.name.contains("EMI", ignoreCase = true) -> stringResource(R.string.rules_summary_emi)
+                    rule.name.contains("Investment", ignoreCase = true) -> stringResource(R.string.rules_summary_investment)
+                    rule.name.contains("Subscription", ignoreCase = true) -> stringResource(R.string.rules_summary_subscription)
+                    rule.name.contains("Fuel", ignoreCase = true) -> stringResource(R.string.rules_summary_fuel)
+                    rule.name.contains("Healthcare", ignoreCase = true) -> stringResource(R.string.rules_summary_healthcare)
+                    rule.name.contains("Transfer", ignoreCase = true) -> stringResource(R.string.rules_summary_transfer)
                     else -> null
                 }
 
@@ -428,7 +431,7 @@ private fun RuleCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
-                            text = "Priority: ${rule.priority}",
+                            text = stringResource(R.string.rules_priority_badge, rule.priority),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -447,7 +450,7 @@ private fun RuleCard(
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                contentDescription = "More actions"
+                                contentDescription = stringResource(R.string.rules_more_actions)
                             )
                         }
 
@@ -457,7 +460,7 @@ private fun RuleCard(
                         ) {
                             // Edit rule
                             DropdownMenuItem(
-                                text = { Text("Edit Rule") },
+                                text = { Text(stringResource(R.string.rules_menu_edit)) },
                                 leadingIcon = {
                                     Icon(Icons.Default.Edit, contentDescription = null)
                                 },
@@ -469,7 +472,7 @@ private fun RuleCard(
 
                             // Duplicate rule (opens the editor prefilled as a new rule)
                             DropdownMenuItem(
-                                text = { Text("Duplicate Rule") },
+                                text = { Text(stringResource(R.string.rules_menu_duplicate)) },
                                 leadingIcon = {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null)
                                 },
@@ -481,7 +484,7 @@ private fun RuleCard(
 
                             // Apply to past transactions
                             DropdownMenuItem(
-                                text = { Text("Apply to Past Transactions") },
+                                text = { Text(stringResource(R.string.rules_menu_apply_past)) },
                                 leadingIcon = {
                                     Icon(Icons.Default.History, contentDescription = null)
                                 },
@@ -494,7 +497,7 @@ private fun RuleCard(
                             // Only show delete for custom rules
                             if (!rule.isSystemTemplate) {
                                 DropdownMenuItem(
-                                    text = { Text("Delete Rule") },
+                                    text = { Text(stringResource(R.string.rules_delete_title)) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Default.Delete,
@@ -523,8 +526,8 @@ private fun RuleCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Rule") },
-            text = { Text("Delete \"${rule.name}\"? This action cannot be undone.") },
+            title = { Text(stringResource(R.string.rules_delete_title)) },
+            text = { Text(stringResource(R.string.rules_delete_body, rule.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -535,12 +538,12 @@ private fun RuleCard(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.rules_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.rules_cancel))
                 }
             }
         )
@@ -560,11 +563,10 @@ private fun BatchApplyDialog(
     onApplyToUncategorized: () -> Unit
 ) {
     val title = when {
-        progress != null -> "Applying Rule..."
-        isLoading && dryRunResult == null -> "Previewing..."
-        dryRunResult != null && result == null -> "Preview: ${rule.name}"
-        result != null -> "Apply Rule to Past Transactions"
-        else -> "Apply Rule to Past Transactions"
+        progress != null -> stringResource(R.string.rules_batch_applying)
+        isLoading && dryRunResult == null -> stringResource(R.string.rules_batch_previewing)
+        dryRunResult != null && result == null -> stringResource(R.string.rules_batch_preview_title, rule.name)
+        else -> stringResource(R.string.rules_batch_title)
     }
 
     AlertDialog(
@@ -586,7 +588,7 @@ private fun BatchApplyDialog(
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                            Text("Scanning transactions...", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
 
@@ -594,24 +596,24 @@ private fun BatchApplyDialog(
                     dryRunResult != null && result == null && progress == null -> {
                         if (dryRunResult.totalMatched == 0) {
                             Text(
-                                text = "No transactions match this rule (scanned ${dryRunResult.totalScanned}).",
+                                text = stringResource(R.string.rules_batch_no_matches, dryRunResult.totalScanned),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         } else {
                             Text(
-                                text = "Scanned ${dryRunResult.totalScanned} transactions:",
+                                text = pluralStringResource(R.plurals.rules_batch_scanned, dryRunResult.totalScanned, dryRunResult.totalScanned),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${dryRunResult.totalWouldUpdate} would be updated",
+                                text = stringResource(R.string.rules_batch_would_update, dryRunResult.totalWouldUpdate),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
                             if (dryRunResult.totalWouldBlock > 0) {
                                 Text(
-                                    text = "${dryRunResult.totalWouldBlock} would be blocked",
+                                    text = stringResource(R.string.rules_batch_would_block, dryRunResult.totalWouldBlock),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Medium
@@ -621,7 +623,7 @@ private fun BatchApplyDialog(
                             if (dryRunResult.samples.isNotEmpty()) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
                                 Text(
-                                    text = "Sample changes:",
+                                    text = stringResource(R.string.rules_batch_sample_changes),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -644,7 +646,7 @@ private fun BatchApplyDialog(
                                             )
                                             if (diff.isBlock) {
                                                 Text(
-                                                    text = "Would be blocked",
+                                                    text = stringResource(R.string.rules_batch_sample_blocked),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error
                                                 )
@@ -652,31 +654,35 @@ private fun BatchApplyDialog(
                                                 val mod = diff.modified
                                                 if (orig.category != mod.category) {
                                                     Text(
-                                                        text = "Category: ${orig.category} \u2192 ${mod.category}",
+                                                        text = stringResource(R.string.rules_batch_change_category, orig.category, mod.category),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
                                                 if (orig.merchantName != mod.merchantName) {
                                                     Text(
-                                                        text = "Merchant: ${orig.merchantName} \u2192 ${mod.merchantName}",
+                                                        text = stringResource(R.string.rules_batch_change_merchant, orig.merchantName, mod.merchantName),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
                                                 if (orig.transactionType != mod.transactionType) {
                                                     Text(
-                                                        text = "Type: ${orig.transactionType} \u2192 ${mod.transactionType}",
+                                                        text = stringResource(R.string.rules_batch_change_type, orig.transactionType, mod.transactionType),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
                                                 if (orig.description != mod.description) {
                                                     Text(
-                                                        text = "Description: ${orig.description ?: "(none)"} \u2192 ${mod.description ?: "(none)"}",
+                                                        text = stringResource(
+                                                            R.string.rules_batch_change_description,
+                                                            orig.description ?: stringResource(R.string.rules_batch_none),
+                                                            mod.description ?: stringResource(R.string.rules_batch_none)
+                                                        ),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
                                                 if (diff.tagChanges.isNotEmpty()) {
                                                     Text(
-                                                        text = "Tags: ${diff.tagChanges.joinToString(", ")}",
+                                                        text = stringResource(R.string.rules_batch_change_tags, diff.tagChanges.joinToString(", ")),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
@@ -686,7 +692,7 @@ private fun BatchApplyDialog(
                                 }
                                 if (dryRunResult.totalMatched > 5) {
                                     Text(
-                                        text = "...and ${dryRunResult.totalMatched - 5} more",
+                                        text = stringResource(R.string.rules_batch_and_more, dryRunResult.totalMatched - 5),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -698,11 +704,11 @@ private fun BatchApplyDialog(
                     // Initial state — show options with preview button
                     progress == null && result == null -> {
                         Text(
-                            text = "Apply \"${rule.name}\" to existing transactions?",
+                            text = stringResource(R.string.rules_batch_confirm, rule.name),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Use Preview to see what would change before applying.",
+                            text = stringResource(R.string.rules_batch_preview_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -716,7 +722,7 @@ private fun BatchApplyDialog(
                         ) {
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
-                                text = "Processing ${progress.first} of ${progress.second} transactions",
+                                text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -740,7 +746,7 @@ private fun BatchApplyDialog(
                                         MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    text = "Completed",
+                                    text = stringResource(R.string.rules_batch_completed),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -749,18 +755,18 @@ private fun BatchApplyDialog(
                             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
 
                             Text(
-                                text = "Transactions processed: ${result.totalProcessed}",
+                                text = stringResource(R.string.rules_batch_result_processed, result.totalProcessed),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
-                                text = "Transactions updated: ${result.totalUpdated}",
+                                text = stringResource(R.string.rules_batch_result_updated, result.totalUpdated),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
                             )
                             if (result.totalDeleted > 0) {
                                 Text(
-                                    text = "Transactions blocked: ${result.totalDeleted}",
+                                    text = stringResource(R.string.rules_batch_result_blocked, result.totalDeleted),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.tertiary,
                                     fontWeight = FontWeight.Medium
@@ -768,7 +774,7 @@ private fun BatchApplyDialog(
                             }
                             if (result.errors.isNotEmpty()) {
                                 Text(
-                                    text = "Errors: ${result.errors.size}",
+                                    text = stringResource(R.string.rules_batch_result_errors, result.errors.size),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error
                                 )
@@ -789,10 +795,10 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text("Cancel") }
+                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
                         if (dryRunResult.totalMatched > 0) {
-                            TextButton(onClick = onApplyToUncategorized) { Text("Uncategorized") }
-                            TextButton(onClick = onApplyToAll) { Text("Apply All") }
+                            TextButton(onClick = onApplyToUncategorized) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
+                            TextButton(onClick = onApplyToAll) { Text(stringResource(R.string.rules_batch_apply_all)) }
                         }
                     }
                 }
@@ -803,18 +809,18 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text("Cancel") }
+                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
                         OutlinedButton(onClick = onPreview) {
                             Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Preview")
+                            Text(stringResource(R.string.rules_batch_preview))
                         }
                     }
                 }
 
                 // Done — close button
                 result != null -> {
-                    TextButton(onClick = onDismiss) { Text("Close") }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_close)) }
                 }
             }
         }

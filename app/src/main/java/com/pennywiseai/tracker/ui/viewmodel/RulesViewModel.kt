@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.billing.FreeTierLimits
@@ -17,6 +18,7 @@ import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCas
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.domain.usecase.InitializeRuleTemplatesUseCase
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -57,8 +59,9 @@ class RulesViewModel @Inject constructor(
     val dryRunResult: StateFlow<DryRunResult?> = _dryRunResult.asStateFlow()
 
     // Outcome of the last export/import, shown once and then cleared (#741).
-    private val _sharingMessage = MutableStateFlow<String?>(null)
-    val sharingMessage: StateFlow<String?> = _sharingMessage.asStateFlow()
+    /** Sentences shown together in the sharing result dialog; null when there is none. */
+    private val _sharingMessage = MutableStateFlow<List<UiText>?>(null)
+    val sharingMessage: StateFlow<List<UiText>?> = _sharingMessage.asStateFlow()
 
     fun clearSharingMessage() {
         _sharingMessage.value = null
@@ -69,7 +72,7 @@ class RulesViewModel @Inject constructor(
      * never opens just to leave an empty file behind.
      */
     fun reportNothingToExport() {
-        _sharingMessage.value = "You don't have any custom rules to export yet."
+        _sharingMessage.value = listOf(UiText.Res(R.string.rules_export_nothing))
     }
 
     val rules: StateFlow<List<TransactionRule>> = ruleRepository.getAllRules()
@@ -228,7 +231,7 @@ class RulesViewModel @Inject constructor(
                 val all = ruleRepository.getAllRules().first()
                 val exportable = RuleSharingCodec.exportable(all)
                 if (exportable.isEmpty()) {
-                    _sharingMessage.value = "You don't have any custom rules to export yet."
+                    _sharingMessage.value = listOf(UiText.Res(R.string.rules_export_nothing))
                     return@launch
                 }
                 val text = RuleSharingCodec.encode(all)
@@ -237,13 +240,9 @@ class RulesViewModel @Inject constructor(
                         out.write(text.toByteArray())
                     } ?: throw IllegalStateException("Couldn't open the file for writing.")
                 }
-                _sharingMessage.value = if (exportable.size == 1) {
-                    "Exported 1 rule."
-                } else {
-                    "Exported ${exportable.size} rules."
-                }
+                _sharingMessage.value = listOf(UiText.Plural(R.plurals.rules_exported, exportable.size))
             } catch (e: Exception) {
-                _sharingMessage.value = "Export failed: ${e.message}"
+                _sharingMessage.value = listOf(UiText.Res(R.string.rules_export_failed, listOf(e.message.orEmpty())))
             }
         }
     }
@@ -279,24 +278,22 @@ class RulesViewModel @Inject constructor(
 
                 val blocked = fresh.size - toImport.size
                 val skipped = decoded.duplicatedInFile
-                _sharingMessage.value = buildString {
-                    append(
-                        if (toImport.size == 1) "Imported 1 rule."
-                        else "Imported ${toImport.size} rules."
-                    )
-                    if (duplicates > 0) append(" $duplicates already existed.")
-                    if (skipped > 0) {
-                        append(
-                            if (skipped == 1) " 1 repeated name in the file was collapsed."
-                            else " $skipped repeated names in the file were collapsed."
-                        )
-                    }
+                _sharingMessage.value = buildList {
+                    add(UiText.Plural(R.plurals.rules_imported, toImport.size))
+                    if (duplicates > 0) add(UiText.Plural(R.plurals.rules_import_already_existed, duplicates))
+                    if (skipped > 0) add(UiText.Plural(R.plurals.rules_import_collapsed, skipped))
                     if (blocked > 0) {
-                        append(" $blocked more need Pro — you're at the free limit of ${FreeTierLimits.MAX_RULES}.")
+                        add(
+                            UiText.Plural(
+                                R.plurals.rules_import_blocked_by_limit,
+                                blocked,
+                                listOf(blocked, FreeTierLimits.MAX_RULES)
+                            )
+                        )
                     }
                 }
             } catch (e: Exception) {
-                _sharingMessage.value = e.message ?: "Import failed."
+                _sharingMessage.value = listOf(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.rules_import_failed))
             } finally {
                 _isLoading.value = false
             }

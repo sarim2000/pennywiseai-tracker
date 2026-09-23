@@ -18,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -71,7 +73,7 @@ fun ImportStatementScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Import Statement",
+                title = stringResource(R.string.import_statement_title),
                 hasBackButton = true,
                 navigationContent = {
                     Box(
@@ -93,7 +95,7 @@ fun ImportStatementScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = stringResource(R.string.import_statement_back),
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         }
@@ -169,14 +171,14 @@ private fun IdleContent(onSelectPdf: () -> Unit) {
     Spacer(modifier = Modifier.height(Spacing.md))
 
     Text(
-        text = "Import Statement",
+        text = stringResource(R.string.import_statement_title),
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
     )
 
     Text(
-        text = "Import transactions from Google Pay, PhonePe, Paytm, or slice PDF statements. Duplicates are automatically detected and skipped.",
+        text = stringResource(R.string.import_statement_description),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -198,7 +200,7 @@ private fun IdleContent(onSelectPdf: () -> Unit) {
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
-        Text("Select PDF Statement")
+        Text(stringResource(R.string.import_statement_select_pdf))
     }
 }
 
@@ -214,13 +216,13 @@ private fun LoadingContent() {
     Spacer(modifier = Modifier.height(Spacing.md))
 
     Text(
-        text = "Importing transactions...",
+        text = stringResource(R.string.import_statement_loading_title),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 
     Text(
-        text = "Parsing PDF and checking for duplicates",
+        text = stringResource(R.string.import_statement_loading_body),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -246,7 +248,7 @@ private fun SuccessContent(
     Spacer(modifier = Modifier.height(Spacing.md))
 
     Text(
-        text = "Import Complete",
+        text = stringResource(R.string.import_statement_complete),
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
@@ -265,21 +267,21 @@ private fun SuccessContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             ResultRow(
-                label = "Transactions imported",
+                label = stringResource(R.string.import_statement_result_imported),
                 value = "${result.imported}",
                 isHighlighted = true
             )
 
             if (result.enriched > 0) {
                 ResultRow(
-                    label = "Transactions enriched",
+                    label = stringResource(R.string.import_statement_result_enriched),
                     value = "${result.enriched}",
                     isHighlighted = true
                 )
             }
 
             ResultRow(
-                label = "Total parsed from PDF",
+                label = stringResource(R.string.import_statement_result_total_parsed),
                 value = "${result.totalParsed}"
             )
 
@@ -287,7 +289,7 @@ private fun SuccessContent(
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
 
                 Text(
-                    text = "Duplicates skipped: ${result.skippedDuplicates}",
+                    text = stringResource(R.string.import_statement_result_duplicates, result.skippedDuplicates),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -295,21 +297,21 @@ private fun SuccessContent(
 
                 if (result.skippedByHash > 0) {
                     ResultRow(
-                        label = "Exact re-imports",
+                        label = stringResource(R.string.import_statement_result_exact),
                         value = "${result.skippedByHash}",
                         indent = true
                     )
                 }
                 if (result.skippedByReference > 0) {
                     ResultRow(
-                        label = "By UPI reference",
+                        label = stringResource(R.string.import_statement_result_by_reference),
                         value = "${result.skippedByReference}",
                         indent = true
                     )
                 }
                 if (result.skippedByAmountDate > 0) {
                     ResultRow(
-                        label = "By amount & date",
+                        label = stringResource(R.string.import_statement_result_by_amount_date),
                         value = "${result.skippedByAmountDate}",
                         indent = true
                     )
@@ -338,7 +340,7 @@ private fun SuccessContent(
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
-        Text("Import Another")
+        Text(stringResource(R.string.import_statement_import_another))
     }
 
     OutlinedButton(
@@ -348,7 +350,7 @@ private fun SuccessContent(
             .height(Dimensions.Component.buttonHeight),
         shape = RoundedCornerShape(Dimensions.CornerRadius.large)
     ) {
-        Text("Done")
+        Text(stringResource(R.string.import_statement_done))
     }
 }
 
@@ -398,7 +400,7 @@ private fun ErrorContent(
     Spacer(modifier = Modifier.height(Spacing.md))
 
     Text(
-        text = "Import Failed",
+        text = stringResource(R.string.import_statement_failed),
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
@@ -427,6 +429,6 @@ private fun ErrorContent(
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
-        Text("Try Again")
+        Text(stringResource(R.string.import_statement_try_again))
     }
 }

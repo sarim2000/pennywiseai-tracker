@@ -20,6 +20,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -90,7 +93,7 @@ fun ChatScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "PennyWise AI",
+                title = stringResource(R.string.chat_title),
                 hazeState = hazeState
             )
         }
@@ -129,11 +132,11 @@ fun ChatScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = if (isDownloading) "Downloading Model..." else "AI Model Required",
+                                    text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                                 Text(
-                                    text = if (isDownloading) "${downloadedMB} MB / ${totalMB} MB" else "Download the AI model to start chatting",
+                                    text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -154,7 +157,7 @@ fun ChatScreen(
                                             modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.chat_cancel))
                                     }
                                 } else {
                                     Button(onClick = { viewModel.startModelDownload() }) {
@@ -164,11 +167,11 @@ fun ChatScreen(
                                             modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Download (${totalMB} MB)")
+                                        Text(stringResource(R.string.chat_download_with_size, totalMB))
                                     }
                                 }
                                 TextButton(onClick = onNavigateToSettings) {
-                                    Text("Settings")
+                                    Text(stringResource(R.string.chat_settings))
                                 }
                             }
                         }
@@ -215,12 +218,12 @@ fun ChatScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "Downloading Model...",
+                                            text = stringResource(R.string.chat_downloading_model),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "${downloadedMB} MB / ${totalMB} MB",
+                                            text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
@@ -228,7 +231,7 @@ fun ChatScreen(
                                         onClick = { viewModel.cancelDownload() },
                                         modifier = Modifier.padding(start = Spacing.sm)
                                     ) {
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.chat_cancel))
                                     }
                                 }
                                 LinearProgressIndicator(
@@ -250,14 +253,14 @@ fun ChatScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Model Required",
+                                        text = stringResource(R.string.chat_model_required_short),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         // 1.6 GB via the system Download Manager; some phones (Samsung
                                         // with Data saver) won't start it on mobile data.
-                                        text = "1.6 GB · use Wi-Fi",
+                                        text = stringResource(R.string.chat_model_size_hint),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -271,7 +274,7 @@ fun ChatScreen(
                                         modifier = Modifier.size(Dimensions.Icon.small)
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Download")
+                                    Text(stringResource(R.string.chat_download))
                                 }
                             }
                         }
@@ -293,11 +296,11 @@ fun ChatScreen(
                         ) {
                             CircularProgressIndicator()
                             Text(
-                                text = "Initializing AI Model...",
+                                text = stringResource(R.string.chat_initializing_model),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                text = "This may take a few seconds",
+                                text = stringResource(R.string.chat_initializing_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -360,7 +363,7 @@ fun ChatScreen(
                                             modifier = Modifier.size(Dimensions.Icon.small)
                                         )
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Clear Chat")
+                                        Text(stringResource(R.string.chat_clear_chat))
                                     }
                                 }
                             }
@@ -429,7 +432,7 @@ fun ChatScreen(
                                     // One status line per request, picked when the wait starts,
                                     // so a tool call's silent few seconds don't look like a hang.
                                     val status = remember(uiState.isLoading) { THINKING_LINES.random() }
-                                    TypingIndicator(status = status)
+                                    TypingIndicator(status = stringResource(status))
                                 }
                             }
                         }
@@ -455,7 +458,7 @@ fun ChatScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = uiState.error ?: "",
+                                        text = uiState.error?.asString().orEmpty(),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.weight(1f)
@@ -463,7 +466,7 @@ fun ChatScreen(
                                     IconButton(onClick = { viewModel.clearError() }) {
                                         Icon(
                                             Icons.Default.Close,
-                                            contentDescription = "Dismiss",
+                                            contentDescription = stringResource(R.string.chat_dismiss),
                                             tint = MaterialTheme.colorScheme.onErrorContainer
                                         )
                                     }
@@ -489,7 +492,7 @@ fun ChatScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .focusRequester(focusRequester),
-                                    placeholder = { Text("Ask, or tell me what you spent…") },
+                                    placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
                                     enabled = !uiState.isLoading,
                                     maxLines = 3,
                                     shape = MaterialTheme.shapes.extraLarge
@@ -515,7 +518,7 @@ fun ChatScreen(
                                     } else {
                                         Icon(
                                             Icons.AutoMirrored.Filled.Send,
-                                            contentDescription = "Send"
+                                            contentDescription = stringResource(R.string.chat_send)
                                         )
                                     }
                                 }
@@ -555,9 +558,9 @@ fun TokenLimitWarning(
     }
     
     val message = when {
-        usagePercent >= 95 -> "Chat memory almost full! Clear chat to continue."
-        usagePercent >= 90 -> "Chat memory is ${usagePercent}% full. Consider clearing soon."
-        else -> "Chat memory is ${usagePercent}% full."
+        usagePercent >= 95 -> stringResource(R.string.chat_memory_almost_full)
+        usagePercent >= 90 -> stringResource(R.string.chat_memory_warning, usagePercent)
+        else -> stringResource(R.string.chat_memory_usage, usagePercent)
     }
     
     Surface(
@@ -596,7 +599,7 @@ fun TokenLimitWarning(
                         contentColor = contentColor
                     )
                 ) {
-                    Text("Clear", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -644,7 +647,7 @@ fun DeveloperInfoCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Qwen 2.5 1.5B • ${chatStats.messageCount} messages",
+                        text = pluralStringResource(R.plurals.chat_stats_model_messages, chatStats.messageCount, chatStats.messageCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -655,14 +658,14 @@ fun DeveloperInfoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${TokenUtils.formatNumber(chatStats.estimatedTokens)} tokens",
+                        text = stringResource(R.string.chat_stats_tokens, TokenUtils.formatNumber(chatStats.estimatedTokens)),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
                         color = usageColor
                     )
                     Icon(
                         if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        contentDescription = stringResource(if (isExpanded) R.string.chat_collapse else R.string.chat_expand),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -692,12 +695,12 @@ fun DeveloperInfoCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Context Usage",
+                            text = stringResource(R.string.chat_context_usage),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${chatStats.contextUsagePercent}%",
+                            text = stringResource(R.string.chat_context_percent, chatStats.contextUsagePercent),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                             color = usageColor
@@ -720,13 +723,13 @@ fun DeveloperInfoCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "${TokenUtils.formatNumber(chatStats.estimatedTokens)} / ${TokenUtils.formatNumber(chatStats.maxTokens)} tokens",
+                            text = stringResource(R.string.chat_stats_tokens_of_max, TokenUtils.formatNumber(chatStats.estimatedTokens), TokenUtils.formatNumber(chatStats.maxTokens)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (chatStats.systemPromptTokens > 0) {
                             Text(
-                                text = "System: ${TokenUtils.formatNumber(chatStats.systemPromptTokens)}",
+                                text = stringResource(R.string.chat_stats_system_tokens, TokenUtils.formatNumber(chatStats.systemPromptTokens)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -738,11 +741,11 @@ fun DeveloperInfoCard(
 }
 
 private val THINKING_LINES = listOf(
-    "Reading that…",
-    "Working it out…",
-    "Checking your transactions…",
-    "Crunching the numbers…",
-    "One moment…"
+    R.string.chat_thinking_reading,
+    R.string.chat_thinking_working,
+    R.string.chat_thinking_checking,
+    R.string.chat_thinking_crunching,
+    R.string.chat_thinking_one_moment
 )
 
 @Composable
@@ -868,10 +871,10 @@ private fun ChatEmptyState(
     onPromptClick: (String) -> Unit
 ) {
     val examplePrompts = listOf(
-        "coffee 120 at Starbucks",
-        "got 50000 salary today",
-        "How much on groceries this month?",
-        "How much have I spent this month?"
+        stringResource(R.string.chat_example_prompt_coffee),
+        stringResource(R.string.chat_example_prompt_salary),
+        stringResource(R.string.chat_example_prompt_groceries),
+        stringResource(R.string.chat_example_prompt_spent)
     )
 
     Column(
@@ -889,13 +892,13 @@ private fun ChatEmptyState(
         )
 
         Text(
-            text = "Add a spend or ask about it",
+            text = stringResource(R.string.chat_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
 
         Text(
-            text = "Try one of these prompts",
+            text = stringResource(R.string.chat_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -940,16 +943,34 @@ private fun PendingActionCard(
     val (title, headline, detail, button) = when (action) {
         is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
             val d = action.draft
-            listOf(if (d.type == income) "Add income?" else "Add expense?", "${fmt(d.amount)} · ${d.merchant}", "${d.category} · ${d.accountLabel} · today", "Add")
+            listOf(
+                stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
+                "${fmt(d.amount)} · ${d.merchant}",
+                stringResource(R.string.chat_action_add_detail, d.category, d.accountLabel),
+                stringResource(R.string.chat_action_add)
+            )
         }
         is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
             val t = action.transaction
-            listOf("Delete this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}", "Delete")
+            listOf(
+                stringResource(R.string.chat_action_delete_title),
+                "${own(t)} · ${t.merchantName}",
+                "${t.category} · ${t.dateTime.toLocalDate()}",
+                stringResource(R.string.chat_action_delete)
+            )
         }
         is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
             val t = action.transaction
-            val changes = listOfNotNull(action.newMerchant?.let { "merchant → $it" }, action.newCategory?.let { "category → $it" }).joinToString(", ")
-            listOf("Update this transaction?", "${own(t)} · ${t.merchantName}", "${t.category} · ${t.dateTime.toLocalDate()}\n$changes", "Update")
+            val changes = listOfNotNull(
+                action.newMerchant?.let { stringResource(R.string.chat_action_change_merchant, it) },
+                action.newCategory?.let { stringResource(R.string.chat_action_change_category, it) }
+            ).joinToString(", ")
+            listOf(
+                stringResource(R.string.chat_action_update_title),
+                "${own(t)} · ${t.merchantName}",
+                "${t.category} · ${t.dateTime.toLocalDate()}\n$changes",
+                stringResource(R.string.chat_action_update)
+            )
         }
     }
     val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
@@ -965,7 +986,7 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,

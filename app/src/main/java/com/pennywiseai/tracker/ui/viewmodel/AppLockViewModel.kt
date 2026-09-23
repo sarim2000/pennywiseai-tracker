@@ -3,9 +3,11 @@ package com.pennywiseai.tracker.ui.viewmodel
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.domain.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.security.BiometricCapability
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -82,14 +84,14 @@ class AppLockViewModel @Inject constructor(
      * Called when authentication fails
      */
     fun onAuthenticationError(errorMessage: String) {
-        _uiState.update { it.copy(authenticationError = errorMessage) }
+        _uiState.update { it.copy(authenticationError = UiText.Plain(errorMessage)) }
     }
 
     /**
      * Called when authentication fails (wrong fingerprint, etc.)
      */
     fun onAuthenticationFailed() {
-        _uiState.update { it.copy(authenticationError = "Authentication failed. Please try again.") }
+        _uiState.update { it.copy(authenticationError = UiText.Res(R.string.applock_auth_failed)) }
     }
 
     /**
@@ -157,6 +159,6 @@ data class AppLockUiState(
     val timeoutMinutes: Int = 1,
     val canUseBiometric: Boolean = false,
     val biometricCapability: BiometricCapability = BiometricCapability.Unknown,
-    val authenticationError: String? = null,
+    val authenticationError: UiText? = null,
     val authenticationSucceeded: Boolean = false
 )

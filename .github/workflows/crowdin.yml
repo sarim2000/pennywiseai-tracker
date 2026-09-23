@@ -17,6 +17,12 @@ on:
     - cron: '0 6 * * 1'   # Mondays 06:00 UTC — pull fresh translations
   workflow_dispatch:
 
+# One sync at a time: back-to-back merges otherwise race on Crowdin's
+# translation build ("Another build is currently in progress" / 429).
+concurrency:
+  group: crowdin-sync
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write

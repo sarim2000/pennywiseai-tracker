@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
@@ -326,7 +329,7 @@ class TransactionsViewModel @Inject constructor(
     )
 
     /** One-shot snackbar payload for a bulk action; cleared by the UI after showing. */
-    data class BulkSnack(val message: String, val undo: (() -> Unit)? = null)
+    data class BulkSnack(val message: UiText, val undo: (() -> Unit)? = null)
     private val _bulkSnack = MutableStateFlow<BulkSnack?>(null)
     val bulkSnack: StateFlow<BulkSnack?> = _bulkSnack.asStateFlow()
     fun consumeBulkSnack() { _bulkSnack.value = null }
@@ -372,7 +375,7 @@ class TransactionsViewModel @Inject constructor(
             refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} updated to \"$newCategory\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_category_updated, previous.size, listOf(previous.size, newCategory)),
                 undo = {
                     viewModelScope.launch {
                         previous.forEach { (id, oldCategory) ->
@@ -422,7 +425,7 @@ class TransactionsViewModel @Inject constructor(
     fun bulkMarkAsTransfer() {
         val ids = _selectedIds.value.toList()
         if (ids.size != 2) {
-            _bulkSnack.value = BulkSnack("Select exactly 2 transactions to mark as a transfer")
+            _bulkSnack.value = BulkSnack(UiText.Res(R.string.txn_list_bulk_transfer_need_two))
             return
         }
         val all = _uiState.value.transactions
@@ -431,7 +434,7 @@ class TransactionsViewModel @Inject constructor(
         val hasExpense = listOf(a, b).any { it.transactionType == TransactionType.EXPENSE }
         val hasIncome = listOf(a, b).any { it.transactionType == TransactionType.INCOME }
         if (!(hasExpense && hasIncome)) {
-            _bulkSnack.value = BulkSnack("Pick one outgoing (expense) and one incoming (income) transaction")
+            _bulkSnack.value = BulkSnack(UiText.Res(R.string.txn_list_bulk_transfer_need_pair))
             return
         }
         clearSelection()
@@ -475,7 +478,7 @@ class TransactionsViewModel @Inject constructor(
             )
             refreshWidgets()
             _bulkSnack.value = BulkSnack(
-                message = "Marked as transfer",
+                message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
                 undo = {
                     viewModelScope.launch {
                         val current = _uiState.value.transactions
@@ -512,7 +515,7 @@ class TransactionsViewModel @Inject constructor(
             refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${snapshot.size} deleted",
+                message = UiText.Plural(R.plurals.txn_list_bulk_deleted, snapshot.size),
                 undo = {
                     viewModelScope.launch {
                         restoreTransactionUseCase(snapshot)
@@ -549,7 +552,7 @@ class TransactionsViewModel @Inject constructor(
             }
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} added to \"$groupName\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_added_to_group, previous.size, listOf(previous.size, groupName)),
                 undo = { restoreGroupMembership(previous) }
             )
         }
@@ -573,7 +576,7 @@ class TransactionsViewModel @Inject constructor(
             }
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} added to \"${name.trim()}\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_added_to_group, previous.size, listOf(previous.size, name.trim())),
                 undo = {
                     viewModelScope.launch {
                         restoreGroupMembership(previous).join()
@@ -1557,20 +1560,20 @@ data class FilterParams(
     val typeFilter: TransactionTypeFilter
 )
 
-enum class DateGroup(val label: String) {
-    TODAY("Today"),
-    YESTERDAY("Yesterday"),
-    THIS_WEEK("This Week"),
-    EARLIER("Earlier")
+enum class DateGroup(@StringRes val labelRes: Int) {
+    TODAY(R.string.txn_list_group_today),
+    YESTERDAY(R.string.txn_list_group_yesterday),
+    THIS_WEEK(R.string.txn_list_group_this_week),
+    EARLIER(R.string.txn_list_group_earlier)
 }
 
-enum class SortOption(val label: String) {
-    DATE_NEWEST("Newest First"),
-    DATE_OLDEST("Oldest First"),
-    AMOUNT_HIGHEST("Highest Amount"),
-    AMOUNT_LOWEST("Lowest Amount"),
-    MERCHANT_AZ("Merchant (A-Z)"),
-    MERCHANT_ZA("Merchant (Z-A)")
+enum class SortOption(@StringRes val labelRes: Int) {
+    DATE_NEWEST(R.string.txn_list_sort_newest),
+    DATE_OLDEST(R.string.txn_list_sort_oldest),
+    AMOUNT_HIGHEST(R.string.txn_list_sort_amount_highest),
+    AMOUNT_LOWEST(R.string.txn_list_sort_amount_lowest),
+    MERCHANT_AZ(R.string.txn_list_sort_merchant_az),
+    MERCHANT_ZA(R.string.txn_list_sort_merchant_za)
 }
 
 data class FilteredTotals(

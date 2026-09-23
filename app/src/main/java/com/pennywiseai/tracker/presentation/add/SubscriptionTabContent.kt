@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -96,7 +98,7 @@ fun SubscriptionTabContent(
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
-                            text = errorMessage,
+                            text = errorMessage.asString(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -119,7 +121,7 @@ fun SubscriptionTabContent(
                         )
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    label = { Text("Expense") }
+                    label = { Text(stringResource(R.string.add_sub_direction_expense)) }
                 )
                 SegmentedButton(
                     selected = isIncome,
@@ -129,7 +131,7 @@ fun SubscriptionTabContent(
                         )
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    label = { Text("Income") }
+                    label = { Text(stringResource(R.string.add_sub_direction_income)) }
                 )
             }
 
@@ -150,9 +152,9 @@ fun SubscriptionTabContent(
                     )
                     Text(
                         text = if (isIncome)
-                            "Track recurring income (wallet top-ups, allowance). A transaction is auto-created on each scheduled date."
+                            stringResource(R.string.add_sub_info_income)
                         else
-                            "Track recurring expenses. You'll need to add transactions manually each month.",
+                            stringResource(R.string.add_sub_info_expense),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -199,11 +201,11 @@ fun SubscriptionTabContent(
                 TextField(
                     value = uiState.amount,
                     onValueChange = viewModel::updateSubscriptionAmount,
-                    label = { Text("Amount *", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_field_amount), fontWeight = FontWeight.SemiBold) },
                     textStyle = MaterialTheme.typography.headlineSmall,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = uiState.amountError != null,
-                    supportingText = uiState.amountError?.let { { Text(it) } },
+                    supportingText = uiState.amountError?.let { { Text(it.asString()) } },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = subFullShape,
@@ -223,10 +225,10 @@ fun SubscriptionTabContent(
                     modifier = Modifier.weight(1f)
                 ) {
                     TextField(
-                        value = uiState.billingCycle,
+                        value = billingCycleLabel(uiState.billingCycle),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Billing Cycle", fontWeight = FontWeight.SemiBold) },
+                        label = { Text(stringResource(R.string.add_sub_billing_cycle), fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.EventRepeat, contentDescription = null) },
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         modifier = Modifier
@@ -243,7 +245,7 @@ fun SubscriptionTabContent(
                     ) {
                         billingCycles.forEach { cycle ->
                             DropdownMenuItem(
-                                text = { Text(cycle) },
+                                text = { Text(billingCycleLabel(cycle)) },
                                 onClick = {
                                     viewModel.updateSubscriptionBillingCycle(cycle)
                                     showBillingCycleMenu = false
@@ -308,13 +310,13 @@ fun SubscriptionTabContent(
                 TextField(
                     value = uiState.serviceName,
                     onValueChange = viewModel::updateSubscriptionService,
-                    label = { Text("Service Name *", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_sub_service_name), fontWeight = FontWeight.SemiBold) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = subTopShape,
                     leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
                     isError = uiState.serviceError != null,
-                    supportingText = uiState.serviceError?.let { { Text(it) } },
+                    supportingText = uiState.serviceError?.let { { Text(it.asString()) } },
                     colors = subFilledColors()
                 )
 
@@ -326,7 +328,7 @@ fun SubscriptionTabContent(
                     TextField(
                         value = uiState.category,
                         onValueChange = {},
-                        label = { Text("Category", fontWeight = FontWeight.SemiBold) },
+                        label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
                         readOnly = true,
                         singleLine = true,
                         modifier = Modifier
@@ -336,7 +338,7 @@ fun SubscriptionTabContent(
                         leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         isError = uiState.categoryError != null,
-                        supportingText = uiState.categoryError?.let { { Text(it) } },
+                        supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
                         colors = subFilledColors()
                     )
 
@@ -364,7 +366,7 @@ fun SubscriptionTabContent(
                 TextField(
                     value = uiState.notes,
                     onValueChange = viewModel::updateSubscriptionNotes,
-                    label = { Text("Notes (Optional)", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = subBottomShape,
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
@@ -408,7 +410,7 @@ fun SubscriptionTabContent(
                             // doesn't change name when the menu closes (#637).
                             text = uiState.selectedAccount
                                 ?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
-                                ?: "Paid from (optional)",
+                                ?: stringResource(R.string.add_sub_paid_from),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (uiState.selectedAccount != null)
                                 MaterialTheme.colorScheme.onSurface
@@ -430,7 +432,7 @@ fun SubscriptionTabContent(
                         ) {
                             Icon(
                                 Icons.Default.Clear,
-                                contentDescription = "Clear",
+                                contentDescription = stringResource(R.string.add_clear),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -452,9 +454,9 @@ fun SubscriptionTabContent(
                 DropdownMenuItem(
                     text = {
                         Column {
-                            Text("No account")
+                            Text(stringResource(R.string.add_sub_no_account))
                             Text(
-                                "Won't affect any balance",
+                                stringResource(R.string.add_sub_no_account_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -509,7 +511,7 @@ fun SubscriptionTabContent(
                             },
                             trailingIcon = {
                                 if (uiState.selectedAccount?.id == account.id) {
-                                    Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         )
@@ -554,7 +556,7 @@ fun SubscriptionTabContent(
                 } else {
                     Icon(Icons.Default.Done, contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Save", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.add_save), style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -579,13 +581,24 @@ fun SubscriptionTabContent(
                         }
                         showDatePicker = false
                     }
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
+}
+
+/** Billing cycles are stored as English keys; only the label is translated. */
+@Composable
+private fun billingCycleLabel(cycle: String): String = when (cycle) {
+    "Monthly" -> stringResource(R.string.add_sub_cycle_monthly)
+    "Quarterly" -> stringResource(R.string.add_sub_cycle_quarterly)
+    "Semi-Annual" -> stringResource(R.string.add_sub_cycle_semi_annual)
+    "Annual" -> stringResource(R.string.add_sub_cycle_annual)
+    "Weekly" -> stringResource(R.string.add_sub_cycle_weekly)
+    else -> cycle
 }

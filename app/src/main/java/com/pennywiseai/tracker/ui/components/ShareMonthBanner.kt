@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,18 +75,18 @@ fun ShareMonthBanner(
                     .padding(horizontal = Spacing.md),
             ) {
                 Text(
-                    text = "$month, summed up",
+                    text = stringResource(R.string.share_banner_title, month),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "See what PennyWise tracked for you",
+                    text = stringResource(R.string.share_banner_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.share_banner_dismiss),
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )
             }

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
@@ -354,11 +356,11 @@ class AddViewModel @Inject constructor(
             val to = state.toAccount
             when {
                 from == null || to == null ->
-                    _transactionUiState.update { it.copy(error = "Select both a From and To account") }
+                    _transactionUiState.update { it.copy(error = UiText.Res(R.string.add_error_transfer_select_accounts)) }
                 from.id == to.id ->
-                    _transactionUiState.update { it.copy(error = "From and To accounts must be different") }
+                    _transactionUiState.update { it.copy(error = UiText.Res(R.string.add_error_transfer_same_account)) }
                 from.currency != to.currency ->
-                    _transactionUiState.update { it.copy(error = "Both accounts must use the same currency") }
+                    _transactionUiState.update { it.copy(error = UiText.Res(R.string.add_error_transfer_currency)) }
                 else -> saveTransferInternal(state, from, to, onSuccess)
             }
             return
@@ -397,7 +399,7 @@ class AddViewModel @Inject constructor(
                 _transactionUiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to save transaction"
+                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_transaction)
                     )
                 }
             }
@@ -433,7 +435,7 @@ class AddViewModel @Inject constructor(
                 _transactionUiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to save transfer"
+                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_transfer)
                     )
                 }
             }
@@ -445,7 +447,7 @@ class AddViewModel @Inject constructor(
         _subscriptionUiState.update { currentState ->
             currentState.copy(
                 serviceName = service,
-                serviceError = if (service.isBlank()) "Service name is required" else null
+                serviceError = if (service.isBlank()) UiText.Res(R.string.add_error_service_required) else null
             )
         }
     }
@@ -527,7 +529,7 @@ class AddViewModel @Inject constructor(
         Log.d("AddViewModel", "saveSubscription called with state: $state")
         
         // Validate all fields
-        val serviceError = if (state.serviceName.isBlank()) "Service name is required" else null
+        val serviceError = if (state.serviceName.isBlank()) UiText.Res(R.string.add_error_service_required) else null
         val amountError = validateAmount(state.amount)
         val categoryError = validateCategory(state.category)
         
@@ -578,7 +580,7 @@ class AddViewModel @Inject constructor(
                 _subscriptionUiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to save subscription"
+                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_subscription)
                     )
                 }
             } finally {
@@ -589,26 +591,26 @@ class AddViewModel @Inject constructor(
     
     
     // Validation helpers
-    private fun validateAmount(amount: String): String? {
+    private fun validateAmount(amount: String): UiText? {
         return when {
-            amount.isBlank() -> "Amount is required"
-            amount.toDoubleOrNull() == null -> "Invalid amount"
-            amount.toDouble() <= 0 -> "Amount must be greater than 0"
+            amount.isBlank() -> UiText.Res(R.string.add_error_amount_required)
+            amount.toDoubleOrNull() == null -> UiText.Res(R.string.add_error_amount_invalid)
+            amount.toDouble() <= 0 -> UiText.Res(R.string.add_error_amount_positive)
             else -> null
         }
     }
     
-    private fun validateMerchant(merchant: String): String? {
+    private fun validateMerchant(merchant: String): UiText? {
         return when {
-            merchant.isBlank() -> "Merchant/Description is required"
-            merchant.length < 2 -> "Too short"
+            merchant.isBlank() -> UiText.Res(R.string.add_error_merchant_required)
+            merchant.length < 2 -> UiText.Res(R.string.add_error_merchant_too_short)
             else -> null
         }
     }
     
-    private fun validateCategory(category: String): String? {
+    private fun validateCategory(category: String): UiText? {
         return when {
-            category.isBlank() -> "Category is required"
+            category.isBlank() -> UiText.Res(R.string.add_error_category_required)
             else -> null
         }
     }
@@ -621,18 +623,18 @@ data class AddUiState(
 
 data class TransactionUiState(
     val amount: String = "",
-    val amountError: String? = null,
+    val amountError: UiText? = null,
     val transactionType: TransactionType = TransactionType.EXPENSE,
     val merchant: String = "",
-    val merchantError: String? = null,
+    val merchantError: UiText? = null,
     val category: String = "Others",
-    val categoryError: String? = null,
+    val categoryError: UiText? = null,
     val date: LocalDateTime = LocalDateTime.now(),
     val notes: String = "",
     val tags: List<String> = emptyList(),
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
     val selectedAccount: AccountBalanceEntity? = null,
     // For a TRANSFER, [selectedAccount] is the FROM account and this is the TO
     // account. Unused for all other transaction types.
@@ -668,17 +670,17 @@ data class TransactionUiState(
 
 data class SubscriptionUiState(
     val serviceName: String = "",
-    val serviceError: String? = null,
+    val serviceError: UiText? = null,
     val amount: String = "",
-    val amountError: String? = null,
+    val amountError: UiText? = null,
     val billingCycle: String = "Monthly",
-    val billingCycleError: String? = null,
+    val billingCycleError: UiText? = null,
     val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
     val category: String = "Subscriptions",
-    val categoryError: String? = null,
+    val categoryError: UiText? = null,
     val notes: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
     val currency: String = "INR",
     /**
      * Income vs Expense (#371). Income subscriptions get phantom-created

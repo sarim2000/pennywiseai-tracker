@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -45,7 +47,7 @@ fun TagInputField(
     onAddTag: (String) -> Unit,
     onRemoveTag: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Tags (Optional)"
+    label: String = stringResource(R.string.tag_input_label)
 ) {
     var input by remember { mutableStateOf("") }
 
@@ -93,7 +95,7 @@ fun TagInputField(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Remove $tag",
+                                contentDescription = stringResource(R.string.tag_input_remove, tag),
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         }
@@ -119,7 +121,7 @@ fun TagInputField(
                     IconButton(onClick = { commit(input) }) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Add tag",
+                            contentDescription = stringResource(R.string.tag_input_add),
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
@@ -156,7 +158,7 @@ fun TagInputField(
                         },
                         label = {
                             Text(
-                                "Create \"$trimmed\"",
+                                stringResource(R.string.tag_input_create, trimmed),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

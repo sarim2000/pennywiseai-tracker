@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -66,26 +68,26 @@ fun BudgetHistoryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     PennyWiseScaffold(
-        title = state.budget?.name ?: "Budget History",
+        title = state.budget?.name ?: stringResource(R.string.budget_history_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.budgets_back)
                 )
             }
         }
     ) { padding ->
         if (state.isLoading) {
             Box(modifier = Modifier.padding(padding).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.budget_history_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@PennyWiseScaffold
         }
         val budget = state.budget
         if (budget == null) {
             Box(modifier = Modifier.padding(padding).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("Budget not found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.budget_history_not_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@PennyWiseScaffold
         }
@@ -118,14 +120,22 @@ fun BudgetHistoryScreen(
                         }
                         Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
-                            text = "${CurrencyFormatter.formatCurrency(state.totalSpent, state.currency)} of ${CurrencyFormatter.formatCurrency(state.budgetAmount, state.currency)}",
+                            text = stringResource(
+                                R.string.budgets_amount_of,
+                                CurrencyFormatter.formatCurrency(state.totalSpent, state.currency),
+                                CurrencyFormatter.formatCurrency(state.budgetAmount, state.currency)
+                            ),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold
                             )
                         )
                         val longFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
                         Text(
-                            text = "Window: ${state.displayedWindowStart.format(longFormatter)} – ${state.displayedWindowEnd.format(longFormatter)}",
+                            text = stringResource(
+                                R.string.budget_history_window,
+                                state.displayedWindowStart.format(longFormatter),
+                                state.displayedWindowEnd.format(longFormatter)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -144,9 +154,9 @@ fun BudgetHistoryScreen(
             item {
                 Text(
                     text = when (budget.periodType) {
-                        BudgetPeriodType.WEEKLY -> "Per-week breakdown"
-                        BudgetPeriodType.MONTHLY -> "Cycle"
-                        BudgetPeriodType.CUSTOM -> "Range"
+                        BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_history_per_week)
+                        BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_history_cycle)
+                        BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_history_range)
                     },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
@@ -201,7 +211,11 @@ private fun HistoryRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${window.window.start.format(shortFormatter)} – ${window.window.end.format(shortFormatter)}",
+                    text = stringResource(
+                        R.string.budgets_date_range,
+                        window.window.start.format(shortFormatter),
+                        window.window.end.format(shortFormatter)
+                    ),
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -209,7 +223,7 @@ private fun HistoryRow(
                 )
                 if (isDisplayed) {
                     Text(
-                        text = "Current",
+                        text = stringResource(R.string.budget_history_current),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
@@ -249,7 +263,7 @@ private fun LiveBadge() {
                 .background(MaterialTheme.colorScheme.tertiary)
         )
         Text(
-            text = "Live · still accumulating",
+            text = stringResource(R.string.budget_history_live),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.tertiary
         )
@@ -270,7 +284,7 @@ private fun FrozenBadge(capDate: LocalDate) {
                 .background(MaterialTheme.colorScheme.onSurfaceVariant)
         )
         Text(
-            text = "Frozen as of ${capDate.format(formatter)}",
+            text = stringResource(R.string.budget_history_frozen, capDate.format(formatter)),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -328,12 +342,20 @@ private fun BreakdownSheet(
             val isOver = totalActual > totalBudget
 
             Text(
-                text = "${window.start.format(longFormatter)} – ${window.end.format(longFormatter)}",
+                text = stringResource(
+                    R.string.budgets_date_range,
+                    window.start.format(longFormatter),
+                    window.end.format(longFormatter)
+                ),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
             Text(
-                text = if (breakdown.isTrackingAll) "Tracking all expenses"
-                else "${CurrencyFormatter.formatCurrency(totalActual, currency)} of ${CurrencyFormatter.formatCurrency(totalBudget, currency)}",
+                text = if (breakdown.isTrackingAll) stringResource(R.string.budgets_tracking_all)
+                else stringResource(
+                    R.string.budgets_amount_of,
+                    CurrencyFormatter.formatCurrency(totalActual, currency),
+                    CurrencyFormatter.formatCurrency(totalBudget, currency)
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -344,7 +366,7 @@ private fun BreakdownSheet(
             if (!breakdown.isTrackingAll && breakdown.categorySpending.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = "Categories",
+                    text = stringResource(R.string.budget_history_categories),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -368,7 +390,11 @@ private fun BreakdownSheet(
                             )
                             if (cat.budgetAmount > BigDecimal.ZERO) {
                                 Text(
-                                    text = "of ${CurrencyFormatter.formatCurrency(cat.budgetAmount, currency)} · ${cat.percentageUsed.toInt()}%",
+                                    text = stringResource(
+                                        R.string.budget_history_of_budget_percent,
+                                        CurrencyFormatter.formatCurrency(cat.budgetAmount, currency),
+                                        cat.percentageUsed.toInt()
+                                    ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -381,9 +407,9 @@ private fun BreakdownSheet(
             Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = when {
-                    isOver -> "Over by ${CurrencyFormatter.formatCurrency(-remaining, currency)}"
-                    remaining > BigDecimal.ZERO -> "${CurrencyFormatter.formatCurrency(remaining, currency)} remaining"
-                    else -> "0 remaining"
+                    isOver -> stringResource(R.string.budgets_over_by, CurrencyFormatter.formatCurrency(-remaining, currency))
+                    remaining > BigDecimal.ZERO -> stringResource(R.string.budgets_remaining, CurrencyFormatter.formatCurrency(remaining, currency))
+                    else -> stringResource(R.string.budget_history_zero_remaining)
                 },
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = if (isOver) MaterialTheme.colorScheme.error
@@ -391,7 +417,7 @@ private fun BreakdownSheet(
             )
             if (totalBudget > BigDecimal.ZERO) {
                 Text(
-                    text = "${pctUsed.toInt()}% used",
+                    text = stringResource(R.string.budget_history_percent_used, pctUsed.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

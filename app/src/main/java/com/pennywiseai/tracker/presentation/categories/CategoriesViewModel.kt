@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -41,8 +43,8 @@ class CategoriesViewModel @Inject constructor(
     val editingCategory: StateFlow<CategoryEntity?> = _editingCategory.asStateFlow()
     
     // Snackbar message
-    private val _snackbarMessage = MutableStateFlow<String?>(null)
-    val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
+    private val _snackbarMessage = MutableStateFlow<UiText?>(null)
+    val snackbarMessage: StateFlow<UiText?> = _snackbarMessage.asStateFlow()
     
     fun showAddDialog() {
         _editingCategory.value = null
@@ -54,7 +56,7 @@ class CategoriesViewModel @Inject constructor(
             _editingCategory.value = category
             _showAddEditDialog.value = true
         } else {
-            _snackbarMessage.value = "System categories cannot be edited"
+            _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_editable)
         }
     }
     
@@ -85,11 +87,11 @@ class CategoriesViewModel @Inject constructor(
                             parentId = parentId
                         )
                     )
-                    _snackbarMessage.value = "Category updated successfully"
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_updated)
                 } else {
                     // Check if category already exists
                     if (categoryRepository.categoryExists(name)) {
-                        _snackbarMessage.value = "Category '$name' already exists"
+                        _snackbarMessage.value = UiText.Res(R.string.categories_msg_already_exists, listOf(name))
                         return@launch
                     }
                     
@@ -101,19 +103,19 @@ class CategoriesViewModel @Inject constructor(
                         icon = icon,
                         parentId = parentId
                     )
-                    _snackbarMessage.value = "Category created successfully"
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_created)
                 }
                 
                 hideDialog()
             } catch (e: Exception) {
-                _snackbarMessage.value = "Error saving category: ${e.message}"
+                _snackbarMessage.value = UiText.Res(R.string.categories_msg_save_error, listOf("${e.message}"))
             }
         }
     }
     
     fun deleteCategory(category: CategoryEntity) {
         if (category.isSystem) {
-            _snackbarMessage.value = "System categories cannot be deleted"
+            _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_deletable)
             return
         }
         
@@ -121,12 +123,12 @@ class CategoriesViewModel @Inject constructor(
             try {
                 val deleted = categoryRepository.deleteCategory(category.id)
                 if (deleted) {
-                    _snackbarMessage.value = "Category deleted successfully"
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_deleted)
                 } else {
-                    _snackbarMessage.value = "Cannot delete this category"
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_cannot_delete)
                 }
             } catch (e: Exception) {
-                _snackbarMessage.value = "Error deleting category: ${e.message}"
+                _snackbarMessage.value = UiText.Res(R.string.categories_msg_delete_error, listOf("${e.message}"))
             }
         }
     }
@@ -166,10 +168,13 @@ class CategoriesViewModel @Inject constructor(
                     val updated = categoryRepository.toggleCategoryHidden(categoryId)
                     if (updated != null) {
                         _snackbarMessage.value =
-                            if (updated.isHidden) "${updated.name} hidden" else "${updated.name} shown"
+                            UiText.Res(
+                                if (updated.isHidden) R.string.categories_msg_hidden else R.string.categories_msg_shown,
+                                listOf(updated.name)
+                            )
                     }
                 } catch (e: Exception) {
-                    _snackbarMessage.value = "Error updating category: ${e.message}"
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_update_error, listOf("${e.message}"))
                 }
             }
         }

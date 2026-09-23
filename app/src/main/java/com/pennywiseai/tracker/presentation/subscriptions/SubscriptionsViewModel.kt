@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
@@ -229,15 +231,15 @@ class SubscriptionsViewModel @Inject constructor(
                 ?: "Subscription"
             val message = when (result) {
                 is MarkSubscriptionPaidUseCase.Result.Created ->
-                    "$merchant marked paid · next cycle on ${result.nextPaymentDate}"
+                    UiText.Res(R.string.subscriptions_msg_marked_paid, listOf(merchant, "${result.nextPaymentDate}"))
                 is MarkSubscriptionPaidUseCase.Result.Linked ->
-                    "$merchant linked · next cycle on ${result.nextPaymentDate}"
+                    UiText.Res(R.string.subscriptions_msg_linked, listOf(merchant, "${result.nextPaymentDate}"))
                 is MarkSubscriptionPaidUseCase.Result.AlreadyMarked ->
-                    "$merchant already marked this cycle · advanced to ${result.nextPaymentDate}"
+                    UiText.Res(R.string.subscriptions_msg_already_marked, listOf(merchant, "${result.nextPaymentDate}"))
                 MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
-                    "Set a next-payment date on $merchant first"
+                    UiText.Res(R.string.subscriptions_msg_no_scheduled_date, listOf(merchant))
                 MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
-                    "Couldn't find that subscription"
+                    UiText.Res(R.string.subscriptions_msg_not_found)
             }
             _uiState.value = _uiState.value.copy(markPaidMessage = message)
         }
@@ -282,12 +284,12 @@ class SubscriptionsViewModel @Inject constructor(
                 ?: "Subscription"
             val message = when (result) {
                 is MarkSubscriptionPaidUseCase.Result.Linked ->
-                    "$merchant linked to existing payment · next cycle on ${result.nextPaymentDate}"
+                    UiText.Res(R.string.subscriptions_msg_linked_existing, listOf(merchant, "${result.nextPaymentDate}"))
                 MarkSubscriptionPaidUseCase.Result.NoScheduledDate ->
-                    "Set a next-payment date on $merchant first"
+                    UiText.Res(R.string.subscriptions_msg_no_scheduled_date, listOf(merchant))
                 MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
-                    "Couldn't find that subscription"
-                else -> "Linked"
+                    UiText.Res(R.string.subscriptions_msg_not_found)
+                else -> UiText.Res(R.string.subscriptions_msg_linked_generic)
             }
             _uiState.value = _uiState.value.copy(markPaidMessage = message)
         }
@@ -312,5 +314,5 @@ data class SubscriptionsUiState(
     val lastHiddenSubscription: SubscriptionEntity? = null,
     val lastEndedSubscription: SubscriptionEntity? = null,
     /** Snackbar text after a mark-as-paid action; cleared by [SubscriptionsViewModel.clearMarkPaidMessage]. */
-    val markPaidMessage: String? = null,
+    val markPaidMessage: UiText? = null,
 )

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -66,7 +68,7 @@ fun TagBreakdownCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Text(
-                text = "Spending by Tag",
+                text = stringResource(R.string.analytics_spending_by_tag),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -144,7 +146,7 @@ private fun TagBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${tag.percentage.toInt()}%",
+                    text = stringResource(R.string.analytics_percent, tag.percentage.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import java.util.Locale
 import java.time.format.TextStyle
 import java.time.DayOfWeek
 import com.pennywiseai.tracker.R
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -828,8 +828,11 @@ private fun CategoryBudgetRow(
  * Returns the localized full name for a [DayOfWeek] from its `value`
  * (1=Mon..7=Sun per `java.time.DayOfWeek.value`), clamping out-of-range inputs.
  */
+// App locale, not Locale.getDefault(), so it matches the per-app language.
+@Composable
+@ReadOnlyComposable
 private fun dayOfWeekName(value: Int): String =
-    DayOfWeek.of(value.coerceIn(1, 7)).getDisplayName(TextStyle.FULL, Locale.getDefault())
+    DayOfWeek.of(value.coerceIn(1, 7)).getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0])
 
 /**
  * Weekly cadence row — dropdown to pick the day-of-week the week starts

@@ -177,6 +177,8 @@
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s over budget</string>
     <string name="budget_card_remaining">%1$s remaining</string>
+    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <string name="budget_card_per_day">%1$s/day</string>
     <string name="budget_card_finished">Finished</string>
     <string name="budget_card_tracking_all">Tracking all expenses</string>
     <!-- %1$s is a weekday name -->

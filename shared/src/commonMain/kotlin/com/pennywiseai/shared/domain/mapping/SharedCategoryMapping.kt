@@ -33,6 +33,38 @@ object SharedCategoryMapping {
         "restaurant",
         "cafe",
         "food",
+        // Generic words, not brands. The list above is brand-heavy, so
+        // everyday Indian eateries fell through to "Others" (#678) — Play
+        // reviewers called out canteens and bakeries specifically.
+        "canteen",
+        "bakery",
+        "bakers",
+        "dhaba",
+        "sweets",
+        "biryani",
+        "biriyani",
+        "idli",
+        "dosa",
+        "chai",
+        "tiffin",
+        "eatery",
+        "diner",
+        "bistro",
+        "juice centre",
+        "juice center",
+        "juice bar",
+        "juice shop",
+        "coffee",
+        "tea stall",
+        "snacks",
+        "chaat",
+        "momos",
+        "shawarma",
+        "catering",
+        "confectionery",
+        "patisserie",
+        "ice cream",
+        "icecream",
         "starbucks",
         "haldiram",
         "barbeque",
@@ -70,7 +102,6 @@ object SharedCategoryMapping {
         "phosphorus",
         "rang indian",
         "moishi",
-        "cravings",
         "the matcha tokyo",
         "shawarma emprator",
         "shawrma alemprator",
@@ -84,7 +115,6 @@ object SharedCategoryMapping {
         "trucillo",
         "p.f. chang's",
         "neychor kada",
-        "salt",
         "koob al gahwa",
         "tanuki",
         "asiankitchen",
@@ -98,9 +128,7 @@ object SharedCategoryMapping {
         "manooshe",
         "awani",
         "sultan saray",
-        "pincode",
         "commonground",
-        "nala",
         "bombay bungalow",
         "punjab by amritsr",
         "the daily",
@@ -227,7 +255,9 @@ object SharedCategoryMapping {
         "jiomart",
         "dmart",
         "reliance fresh",
-        "more",
+        "more retail",
+        "more megastore",
+        "more supermarket",
         "grocery",
         "dunzo",
         "careem groceries",
@@ -257,7 +287,6 @@ object SharedCategoryMapping {
         "all day plus",
         "fresh good day",
         "al ghabat city",
-        "zoom",
         "zoom site",
         "all day",
         "all day advantage mini",
@@ -342,9 +371,28 @@ object SharedCategoryMapping {
         "snapdeal", "shopclues", "firstcry", "pepperfry", "urban ladder",
         "store", "mart"
     )
-    private val SHOPPING_EXCLUDE = setOf("jiomart", "dmart")
+    // Shopping is evaluated before Healthcare, so its generic retail words
+    // ("store", "mart") swallowed chemists — "SALT LAKE MEDICAL STORE" came
+    // back as Shopping. Let anything clearly clinical fall through (#678).
+    private val SHOPPING_EXCLUDE = setOf(
+        "jiomart",
+        "dmart",
+        "medical",
+        "pharmacy",
+        "chemist",
+        "clinic",
+        "hospital",
+        "diagnostic",
+    )
 
     private val SHOPPING_EXTENDED = setOf(
+        // Generic retail words — the rest of this list is brands, so an
+        // ordinary cloth shop fell through to "Others" (#678).
+        "textiles",
+        "garments",
+        "readymade",
+        "footwear",
+        "stationery",
         "paypal",
         "gmg consumer",
         "bloomingdales",

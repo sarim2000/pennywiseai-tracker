@@ -42,6 +42,21 @@ class KotakBankParser : BankParser() {
             if (merchant.isNotEmpty()) return merchant
         }
 
+        // NEFT credit: "credited to your Kotak Bank a/c XXNNNN via NEFT from
+        // beneficiary <Name>. UTR Ref. <utr>" — the counterparty is the sender,
+        // and the clause ends at a full stop rather than the "on/at/Ref" the
+        // generic FROM_PATTERN expects.
+        // Stop at the trailer clause rather than at the first period — names carry
+        // their own ("Mr. John Doe") and would otherwise truncate to "Mr".
+        val neftFromPattern = Regex(
+            """via\s+NEFT\s+from\s+(?:beneficiary\s+)?(.+?)\s*(?:\.\s*(?:UTR|Ref|Avl|Bal|Not|Call|Info)\b|\.?\s*$)""",
+            RegexOption.IGNORE_CASE
+        )
+        neftFromPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (merchant.isNotEmpty()) return merchant
+        }
+
         // IMPS credit from mobile: "linked to mobile xNNNN"
         val mobileLinkedPattern = Regex(
             """linked\s+to\s+mobile\s+([xX*]+\d{2,})""",

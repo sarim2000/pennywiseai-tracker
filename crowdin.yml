@@ -35,6 +35,7 @@ languages_mapping:
     fa: fa        # Persian    -> Iran
     am: am        # Amharic    -> Ethiopia
     es: es-419    # Spanish    -> Latin America (Colombia)
+    es-EM: es-419 # Spanish (Modern) — the project's Spanish; Play has no es-EM
 
 files:
   # In-app strings. Android falls back to English per string, so partially
@@ -42,6 +43,10 @@ files:
   - source: /app/src/main/res/values/strings*.xml
     translation: /app/src/main/res/values-%android_code%/%original_file_name%
     skip_untranslated_strings: true
+    # Android has no "es-EM" region; ship Spanish (Modern) as plain values-es.
+    languages_mapping:
+      android_code:
+        es-EM: es
 
   # Store listing: only ship fully-translated files, so a non-English listing
   # never shows English copy.

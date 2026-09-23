@@ -42,6 +42,7 @@ import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
+import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
@@ -113,8 +114,9 @@ fun AnalyticsScreen(
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
-    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel) {
-        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel)
+    val periodLabel = selectedPeriod.label
+    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
+        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
     }
     // Carry the custom range through drill-down navigation so the Transactions
     // screen (and its CSV export) shows exactly the slice being viewed here.

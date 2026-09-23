@@ -67,6 +67,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
+import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.profileIcon
@@ -204,8 +205,9 @@ fun TransactionsScreen(
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
-    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel) {
-        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel)
+    val periodLabel = selectedPeriod.label
+    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
+        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
     }
     
     // Apply initial filters only once when screen is first created

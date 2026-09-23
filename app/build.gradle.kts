@@ -110,6 +110,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // en-XA / ar-XB pseudo-locales: untranslated (hardcoded) text stands
+            // out as plain English, and RTL layout bugs show up without a translation.
+            isPseudoLocalesEnabled = true
         }
         release {
             isMinifyEnabled = true
@@ -136,6 +139,11 @@ android {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
+    }
+    // Lists every values-<lang>/ folder as a supported locale, so Android 13+
+    // shows PennyWise under System settings → App languages.
+    androidResources {
+        generateLocaleConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

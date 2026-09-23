@@ -53,6 +53,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -169,7 +171,7 @@ fun AppearanceScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         topBar = {
             CustomTitleTopAppBar(
-                title = "Appearance",
+                title = stringResource(R.string.appearance_title),
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
@@ -250,8 +252,8 @@ fun AppearanceScreen(
                     GroupedList {
                         if (showAmoled) {
                             PreferenceSwitch(
-                                title = "AMOLED Black",
-                                subtitle = "Use pure black background for deeper contrast",
+                                title = stringResource(R.string.appearance_amoled_title),
+                                subtitle = stringResource(R.string.appearance_amoled_subtitle),
                                 checked = themeUiState.isAmoledMode,
                                 onCheckedChange = { themeViewModel.updateAmoledMode(it) },
                                 leadingIcon = {
@@ -271,8 +273,8 @@ fun AppearanceScreen(
 
                         if (showBlur) {
                             PreferenceSwitch(
-                                title = "Blur Effects",
-                                subtitle = "Enable glassmorphism blur effects in UI components",
+                                title = stringResource(R.string.appearance_blur_title),
+                                subtitle = stringResource(R.string.appearance_blur_subtitle),
                                 checked = themeUiState.blurEffectsEnabled,
                                 onCheckedChange = { themeViewModel.updateBlurEffects(it) },
                                 position = ListItemPosition.from(toggleCount - 1, toggleCount)
@@ -283,7 +285,7 @@ fun AppearanceScreen(
 
                 // Navigation Style Section
                 SectionHeaderV2(
-                    title = "Navigation",
+                    title = stringResource(R.string.appearance_navigation_section),
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 NavBarStyleSelector(
@@ -293,7 +295,7 @@ fun AppearanceScreen(
 
                 // Cover Style Section
                 SectionHeaderV2(
-                    title = "Cover Style",
+                    title = stringResource(R.string.appearance_cover_section),
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 CoverStyleSelector(
@@ -304,7 +306,7 @@ fun AppearanceScreen(
 
                 // Font Selection Section
                 SectionHeaderV2(
-                    title = "Fonts",
+                    title = stringResource(R.string.appearance_fonts_section),
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 FontSelector(
@@ -341,7 +343,7 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.appearance_back),
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
@@ -368,9 +370,9 @@ private fun ThemeModeSelector(
         )
 
         val options = listOf(
-            ModeOption("System", Icons.Default.AutoAwesome, null, 16, 4, 16, 4),
-            ModeOption("Light", Icons.Default.LightMode, false, 4, 4, 4, 4),
-            ModeOption("Dark", Icons.Default.DarkMode, true, 4, 16, 4, 16)
+            ModeOption(stringResource(R.string.appearance_mode_system), Icons.Default.AutoAwesome, null, 16, 4, 16, 4),
+            ModeOption(stringResource(R.string.appearance_mode_light), Icons.Default.LightMode, false, 4, 4, 4, 4),
+            ModeOption(stringResource(R.string.appearance_mode_dark), Icons.Default.DarkMode, true, 4, 16, 4, 16)
         )
 
         options.forEachIndexed { index, option ->
@@ -459,7 +461,7 @@ private fun ThemeStyleSelector(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Dynamic",
+                            text = stringResource(R.string.appearance_style_dynamic),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (currentStyle == ThemeStyle.DYNAMIC)
@@ -467,7 +469,7 @@ private fun ThemeStyleSelector(
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Wallpaper Colors",
+                            text = stringResource(R.string.appearance_style_dynamic_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (currentStyle == ThemeStyle.DYNAMIC)
                                 MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -493,7 +495,7 @@ private fun ThemeStyleSelector(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Default",
+                        text = stringResource(R.string.appearance_style_default),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (currentStyle == ThemeStyle.BRANDED)
@@ -501,7 +503,7 @@ private fun ThemeStyleSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Rose Pine Colors",
+                        text = stringResource(R.string.appearance_style_default_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == ThemeStyle.BRANDED)
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -626,7 +628,7 @@ private fun NavBarStyleSelector(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Floating",
+                        text = stringResource(R.string.appearance_nav_floating),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (currentStyle == NavBarStyle.FLOATING)
@@ -634,7 +636,7 @@ private fun NavBarStyleSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Modern & Sleek",
+                        text = stringResource(R.string.appearance_nav_floating_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.FLOATING)
                             MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
@@ -664,7 +666,7 @@ private fun NavBarStyleSelector(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Normal",
+                        text = stringResource(R.string.appearance_nav_normal),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (currentStyle == NavBarStyle.NORMAL)
@@ -672,7 +674,7 @@ private fun NavBarStyleSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Standard M3",
+                        text = stringResource(R.string.appearance_nav_normal_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.NORMAL)
                             MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
@@ -727,7 +729,7 @@ private fun CoverStyleSelector(
             ) {
                 if (style == CoverStyle.NONE) {
                     Text(
-                        text = "None",
+                        text = stringResource(R.string.appearance_cover_none),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -735,7 +737,7 @@ private fun CoverStyleSelector(
                 if (isSelected) {
                     Icon(
                         Icons.Default.Check,
-                        contentDescription = "Selected",
+                        contentDescription = stringResource(R.string.appearance_cover_selected),
                         tint = Color.White,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
@@ -781,7 +783,7 @@ private fun FontSelector(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Default",
+                        text = stringResource(R.string.appearance_font_default),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Default,
@@ -790,7 +792,7 @@ private fun FontSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "System",
+                        text = stringResource(R.string.appearance_font_default_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = FontFamily.Default,
                         color = if (currentFont == AppFont.SYSTEM)
@@ -830,7 +832,7 @@ private fun FontSelector(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Modern Mono",
+                        text = stringResource(R.string.appearance_font_sn_pro_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = SNProFontFamily,
                         color = if (currentFont == AppFont.SN_PRO)

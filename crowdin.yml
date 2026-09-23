@@ -1,10 +1,10 @@
-# Crowdin configuration — Google Play store-metadata localization.
+# Crowdin configuration — in-app strings + Google Play store metadata.
 #
-# Scope: this localizes the fastlane / Triple-T "supply" metadata only — the
-# Play Store listing copy (title, descriptions, release notes). The in-app UI
-# is not yet i18n-ready (strings are still hardcoded in Compose), so app
-# strings are intentionally NOT wired up here. Add them later once the UI is
-# extracted into string resources.
+# App UI: every app/src/main/res/values/strings*.xml is a source file. The UI
+# is being moved into string resources one screen at a time; each area keeps
+# its own strings_<area>.xml so extraction PRs don't collide.
+# Store listing: the fastlane / Triple-T "supply" metadata (title,
+# descriptions, release notes).
 #
 # Auth is read from the environment (and from GitHub Actions secrets):
 #   CROWDIN_PROJECT_ID, CROWDIN_PERSONAL_TOKEN
@@ -35,15 +35,32 @@ languages_mapping:
     fa: fa        # Persian    -> Iran
     am: am        # Amharic    -> Ethiopia
     es: es-419    # Spanish    -> Latin America (Colombia)
+    es-EM: es-419 # Spanish (Modern) — the project's Spanish; Play has no es-EM
 
 files:
+  # In-app strings. Android falls back to English per string, so partially
+  # translated languages are fine to ship — only drop untranslated entries.
+  - source: /app/src/main/res/values/strings*.xml
+    translation: /app/src/main/res/values-%android_code%/%original_file_name%
+    skip_untranslated_strings: true
+    # Android has no "es-EM" region; ship Spanish (Modern) as plain values-es.
+    languages_mapping:
+      android_code:
+        es-EM: es
+
+  # Store listing: only ship fully-translated files, so a non-English listing
+  # never shows English copy.
   - source: /fastlane/metadata/android/en-US/title.txt
     translation: /fastlane/metadata/android/%locale%/title.txt
+    skip_untranslated_files: true
   - source: /fastlane/metadata/android/en-US/short_description.txt
     translation: /fastlane/metadata/android/%locale%/short_description.txt
+    skip_untranslated_files: true
   - source: /fastlane/metadata/android/en-US/full_description.txt
     translation: /fastlane/metadata/android/%locale%/full_description.txt
+    skip_untranslated_files: true
   # Release notes: only the rolling fallback is localized. Per-version numbered
   # changelogs are left source-only to avoid re-translating historical notes.
   - source: /fastlane/metadata/android/en-US/changelogs/default.txt
     translation: /fastlane/metadata/android/%locale%/changelogs/default.txt
+    skip_untranslated_files: true

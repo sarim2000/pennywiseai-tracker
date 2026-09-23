@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import com.pennywiseai.tracker.R
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
@@ -225,7 +228,7 @@ fun SettingsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Settings",
+                title = stringResource(R.string.settings_title),
                 hasBackButton = true,
                 navigationContent = { SettingsNavigationContent(onNavigateBack) },
                 hazeState = hazeState
@@ -265,17 +268,17 @@ fun SettingsScreen(
                 // Row content adapts to entitlement state — paid users see
                 // "Active" so the row reads as status, free users see "Upgrade"
                 // so it reads as a call-to-action.
-                SectionHeaderV2(title = "PennyWise Pro")
+                SectionHeaderV2(title = stringResource(R.string.settings_pro_section))
                 SettingsGroup {
                     SettingsNavItem(
                         icon = Icons.Default.AutoAwesome,
                         iconBgColor = yellow_light,
                         iconTint = yellow_dark,
-                        title = if (isProEntitled) "PennyWise Pro" else "Upgrade to PennyWise Pro",
+                        title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
                         subtitle = if (isProEntitled) {
-                            "Active · all power features unlocked"
+                            stringResource(R.string.settings_pro_subtitle_active)
                         } else {
-                            "Unlimited rules, statements, exports, and more"
+                            stringResource(R.string.settings_pro_subtitle_upgrade)
                         },
                         onClick = { showUpgradeSheet = true },
                         position = ListItemPosition.Single,
@@ -284,28 +287,46 @@ fun SettingsScreen(
             }
 
             // ── Personalization ──
-            SectionHeaderV2(title = "Personalization")
+            SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Palette,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
-                    title = "Appearance",
-                    subtitle = "Theme, colors, fonts & navigation",
+                    title = stringResource(R.string.settings_appearance_title),
+                    subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onNavigateToAppearance,
-                    position = ListItemPosition.Single
+                    position = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ListItemPosition.Top else ListItemPosition.Single
                 )
+                // Per-app language is a system screen on Android 13+; older
+                // versions follow the device language.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    SettingsNavItem(
+                        icon = Icons.Default.Language,
+                        iconBgColor = orange_light,
+                        iconTint = orange_dark,
+                        title = stringResource(R.string.settings_language_title),
+                        subtitle = stringResource(R.string.settings_language_subtitle),
+                        onClick = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_LOCALE_SETTINGS)
+                                    .setData(Uri.fromParts("package", context.packageName, null))
+                            )
+                        },
+                        position = ListItemPosition.Bottom
+                    )
+                }
             }
 
             // ── Currency ──
-            SectionHeaderV2(title = "Currency")
+            SectionHeaderV2(title = stringResource(R.string.settings_currency_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.CurrencyExchange,
                     iconBgColor = green_light,
                     iconTint = green_dark,
-                    title = "Unified Currency Mode",
-                    subtitle = "Convert all transactions to display currency",
+                    title = stringResource(R.string.settings_unified_currency_title),
+                    subtitle = stringResource(R.string.settings_unified_currency_subtitle),
                     checked = unifiedCurrencyMode,
                     onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) },
                     position = ListItemPosition.Top
@@ -315,8 +336,8 @@ fun SettingsScreen(
                         icon = Icons.Default.AttachMoney,
                         iconBgColor = teal_light,
                         iconTint = teal_dark,
-                        title = "Display Currency",
-                        subtitle = "All amounts shown in this currency",
+                        title = stringResource(R.string.settings_display_currency_title),
+                        subtitle = stringResource(R.string.settings_display_currency_subtitle),
                         onClick = { showDisplayCurrencyDialog = true },
                         position = ListItemPosition.Middle,
                         trailingText = "${CurrencyFormatter.getCurrencySymbol(displayCurrency)} $displayCurrency"
@@ -326,8 +347,8 @@ fun SettingsScreen(
                     icon = Icons.Default.SwapHoriz,
                     iconBgColor = blue_light,
                     iconTint = blue_dark,
-                    title = "Exchange Rates",
-                    subtitle = "View and customize rates",
+                    title = stringResource(R.string.settings_exchange_rates_title),
+                    subtitle = stringResource(R.string.settings_exchange_rates_subtitle),
                     onClick = onNavigateToExchangeRates,
                     position = ListItemPosition.Middle
                 )
@@ -335,8 +356,8 @@ fun SettingsScreen(
                     icon = Icons.Default.CreditCard,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
-                    title = "Count card spend as expense",
-                    subtitle = "Include credit-card spend in \"Spent this month\"",
+                    title = stringResource(R.string.settings_card_spend_as_expense_title),
+                    subtitle = stringResource(R.string.settings_card_spend_as_expense_subtitle),
                     checked = countCreditCardAsExpense,
                     onCheckedChange = { settingsViewModel.setCountCreditCardAsExpense(it) },
                     position = ListItemPosition.Middle
@@ -345,8 +366,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Flag,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
-                    title = "Default Currency",
-                    subtitle = "Currency used for conversions",
+                    title = stringResource(R.string.settings_default_currency_title),
+                    subtitle = stringResource(R.string.settings_default_currency_subtitle),
                     currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
@@ -383,12 +404,12 @@ fun SettingsScreen(
                         icon = Icons.Default.AccountBalanceWallet,
                         iconBgColor = purple_light,
                         iconTint = purple_dark,
-                        title = "Main Account",
-                        subtitle = "Sets your default currency",
+                        title = stringResource(R.string.settings_main_account_title),
+                        subtitle = stringResource(R.string.settings_main_account_subtitle),
                         currentValue = mainAccount?.let { acc ->
                             val name = acc.alias?.takeIf { it.isNotBlank() } ?: acc.bankName
                             AccountBalanceEntity.accountLabel(name, acc.accountLast4)
-                        } ?: "Not set",
+                        } ?: stringResource(R.string.settings_main_account_not_set),
                         expanded = showMainAccountDropdown,
                         onExpandedChange = { showMainAccountDropdown = it },
                         position = ListItemPosition.Middle
@@ -421,8 +442,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Numbers,
                     iconBgColor = green_light,
                     iconTint = green_dark,
-                    title = "Number Format",
-                    subtitle = "How large amounts are grouped",
+                    title = stringResource(R.string.settings_number_format_title),
+                    subtitle = stringResource(R.string.settings_number_format_subtitle),
                     onClick = { showNumberFormatDialog = true },
                     position = ListItemPosition.Bottom,
                     trailingText = numberFormatStyleLabel(numberFormatStyle)
@@ -434,14 +455,14 @@ fun SettingsScreen(
             // Home / Analytics bucket transactions, so it lives up here next
             // to the other "display" knobs rather than buried in Data
             // Management with the budgets list.
-            SectionHeaderV2(title = "Budget")
+            SectionHeaderV2(title = stringResource(R.string.settings_budget_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.DateRange,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
-                    title = "Budget Cycle Start Day",
-                    subtitle = "Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th",
+                    title = stringResource(R.string.settings_budget_cycle_title),
+                    subtitle = stringResource(R.string.settings_budget_cycle_subtitle),
                     onClick = { showBudgetCycleDialog = true },
                     position = ListItemPosition.Single,
                     trailingText = ordinalSuffix(budgetCycleStartDay)
@@ -449,14 +470,14 @@ fun SettingsScreen(
             }
 
             // ── Contacts ──
-            SectionHeaderV2(title = "Contacts")
+            SectionHeaderV2(title = stringResource(R.string.settings_contacts_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Contacts,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
-                    title = "Replace UPI VPAs with contact names",
-                    subtitle = "Show 'John Doe' instead of '9876543210@paytm'. Needs contacts permission.",
+                    title = stringResource(R.string.settings_contacts_vpa_title),
+                    subtitle = stringResource(R.string.settings_contacts_vpa_subtitle),
                     checked = useContactsForVpa,
                     onCheckedChange = { wantsOn ->
                         if (wantsOn) {
@@ -479,15 +500,15 @@ fun SettingsScreen(
             }
 
             // ── Security ──
-            SectionHeaderV2(title = "Security")
+            SectionHeaderV2(title = stringResource(R.string.settings_security_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Lock,
                     iconBgColor = red_light,
                     iconTint = red_dark,
-                    title = "App Lock",
+                    title = stringResource(R.string.settings_app_lock_title),
                     subtitle = if (appLockUiState.canUseBiometric) {
-                        "Protect your data with biometric authentication"
+                        stringResource(R.string.settings_app_lock_subtitle)
                     } else {
                         appLockUiState.biometricCapability.getErrorMessage()
                     },
@@ -501,11 +522,14 @@ fun SettingsScreen(
                         icon = Icons.Default.Timer,
                         iconBgColor = pink_light,
                         iconTint = pink_dark,
-                        title = "Lock Timeout",
+                        title = stringResource(R.string.settings_lock_timeout_title),
                         subtitle = when (appLockUiState.timeoutMinutes) {
-                            0 -> "Lock immediately"
-                            1 -> "After 1 minute"
-                            else -> "After ${appLockUiState.timeoutMinutes} minutes"
+                            0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
+                            else -> pluralStringResource(
+                                R.plurals.settings_lock_timeout_after_minutes,
+                                appLockUiState.timeoutMinutes,
+                                appLockUiState.timeoutMinutes
+                            )
                         },
                         onClick = { showTimeoutDialog = true },
                         position = ListItemPosition.Bottom
@@ -514,14 +538,14 @@ fun SettingsScreen(
             }
 
             // ── Data Management ──
-            SectionHeaderV2(title = "Data Management")
+            SectionHeaderV2(title = stringResource(R.string.settings_data_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.AccountBalance,
                     iconBgColor = red_light,
                     iconTint = red_dark,
-                    title = "Manage Accounts",
-                    subtitle = "View and manage your bank accounts",
+                    title = stringResource(R.string.settings_manage_accounts_title),
+                    subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
                     onClick = onNavigateToManageAccounts,
                     position = ListItemPosition.Top
                 )
@@ -529,8 +553,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Category,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
-                    title = "Categories",
-                    subtitle = "Manage expense and income categories",
+                    title = stringResource(R.string.settings_categories_title),
+                    subtitle = stringResource(R.string.settings_categories_subtitle),
                     onClick = onNavigateToCategories,
                     position = ListItemPosition.Middle
                 )
@@ -538,8 +562,8 @@ fun SettingsScreen(
                     icon = Icons.Default.AutoAwesome,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
-                    title = "Smart Rules",
-                    subtitle = "Automatic transaction categorization",
+                    title = stringResource(R.string.settings_smart_rules_title),
+                    subtitle = stringResource(R.string.settings_smart_rules_subtitle),
                     onClick = onNavigateToRules,
                     position = ListItemPosition.Middle
                 )
@@ -547,8 +571,8 @@ fun SettingsScreen(
                     icon = Icons.Default.AccountBalanceWallet,
                     iconBgColor = green_light,
                     iconTint = green_dark,
-                    title = "Budgets",
-                    subtitle = "Track spending limits by category",
+                    title = stringResource(R.string.settings_budgets_title),
+                    subtitle = stringResource(R.string.settings_budgets_subtitle),
                     onClick = onNavigateToBudgets,
                     position = ListItemPosition.Middle
                 )
@@ -556,8 +580,8 @@ fun SettingsScreen(
                     icon = Icons.Default.SwapHoriz,
                     iconBgColor = amber_light,
                     iconTint = amber_dark,
-                    title = "Loans",
-                    subtitle = "Track money lent and borrowed",
+                    title = stringResource(R.string.settings_loans_title),
+                    subtitle = stringResource(R.string.settings_loans_subtitle),
                     onClick = onNavigateToLoans,
                     position = ListItemPosition.Middle
                 )
@@ -565,8 +589,8 @@ fun SettingsScreen(
                     icon = Icons.Default.EventRepeat,
                     iconBgColor = green_light,
                     iconTint = green_dark,
-                    title = "Recurring",
-                    subtitle = "Auto-add scheduled cash & manual transactions",
+                    title = stringResource(R.string.settings_recurring_title),
+                    subtitle = stringResource(R.string.settings_recurring_subtitle),
                     onClick = onNavigateToRecurring,
                     position = ListItemPosition.Middle
                 )
@@ -574,8 +598,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Folder,
                     iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
                     iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    title = "Transaction Groups",
-                    subtitle = "Organise transactions under a topic",
+                    title = stringResource(R.string.settings_transaction_groups_title),
+                    subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
                     onClick = onNavigateToTransactionGroups,
                     position = ListItemPosition.Middle
                 )
@@ -583,8 +607,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Upload,
                     iconBgColor = blue_light,
                     iconTint = blue_dark,
-                    title = "Export Data",
-                    subtitle = "Backup all data to a file",
+                    title = stringResource(R.string.settings_export_data_title),
+                    subtitle = stringResource(R.string.settings_export_data_subtitle),
                     onClick = { settingsViewModel.exportBackup() },
                     position = ListItemPosition.Middle
                 )
@@ -592,13 +616,13 @@ fun SettingsScreen(
                     icon = Icons.Default.Backup,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
-                    title = "Automatic Folder Backup",
+                    title = stringResource(R.string.settings_folder_backup_title),
                     subtitle = if (scheduledFolderBackupEnabled) {
-                        "Daily backup at 2:00 AM to your chosen folder"
+                        stringResource(R.string.settings_folder_backup_subtitle_enabled)
                     } else if (!isProEntitled) {
-                        "Pro · Save a backup to a folder every day at 2:00 AM"
+                        stringResource(R.string.settings_folder_backup_subtitle_pro)
                     } else {
-                        "Save a backup to a folder every day at 2:00 AM"
+                        stringResource(R.string.settings_folder_backup_subtitle_disabled)
                     },
                     checked = scheduledFolderBackupEnabled,
                     // Scheduling daily backups is a Pro feature. Turning it ON while
@@ -618,13 +642,13 @@ fun SettingsScreen(
                         icon = Icons.Default.SaveAlt,
                         iconBgColor = green_light,
                         iconTint = green_dark,
-                        title = "Back Up Now",
+                        title = stringResource(R.string.settings_backup_now_title),
                         subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                             val formatted = java.time.Instant.ofEpochMilli(timestamp)
                                 .atZone(java.time.ZoneId.systemDefault())
                                 .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
-                            "Last backup: $formatted"
-                        } ?: "Run a backup to your folder now",
+                            stringResource(R.string.settings_backup_now_last_backup, formatted)
+                        } ?: stringResource(R.string.settings_backup_now_subtitle),
                         onClick = { settingsViewModel.backupToFolderNow() },
                         position = ListItemPosition.Middle
                     )
@@ -632,8 +656,8 @@ fun SettingsScreen(
                         icon = Icons.Default.FolderOpen,
                         iconBgColor = amber_light,
                         iconTint = amber_dark,
-                        title = "Change Backup Folder",
-                        subtitle = "Pick a different folder for automatic backups",
+                        title = stringResource(R.string.settings_change_backup_folder_title),
+                        subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                         onClick = { settingsViewModel.requestChangeBackupFolder() },
                         position = ListItemPosition.Middle
                     )
@@ -642,8 +666,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Download,
                     iconBgColor = cyan_light,
                     iconTint = cyan_dark,
-                    title = "Import Data",
-                    subtitle = "Restore data from backup",
+                    title = stringResource(R.string.settings_import_data_title),
+                    subtitle = stringResource(R.string.settings_import_data_subtitle),
                     onClick = { importLauncher.launch("*/*") },
                     position = ListItemPosition.Middle
                 )
@@ -651,8 +675,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Download,
                     iconBgColor = cyan_light,
                     iconTint = cyan_dark,
-                    title = "Import Transactions (CSV)",
-                    subtitle = "Import from a PennyWise CSV export",
+                    title = stringResource(R.string.settings_import_csv_title),
+                    subtitle = stringResource(R.string.settings_import_csv_subtitle),
                     onClick = { csvImportLauncher.launch("*/*") },
                     position = ListItemPosition.Middle
                 )
@@ -660,8 +684,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Description,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
-                    title = "Import Statement",
-                    subtitle = "Import from GPay, PhonePe, Paytm",
+                    title = stringResource(R.string.settings_import_statement_title),
+                    subtitle = stringResource(R.string.settings_import_statement_subtitle),
                     onClick = onNavigateToImportStatement,
                     position = ListItemPosition.Middle
                 )
@@ -669,8 +693,8 @@ fun SettingsScreen(
                     icon = Icons.Default.Sms,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
-                    title = "Unrecognized SMS",
-                    subtitle = "View and report unsupported bank messages",
+                    title = stringResource(R.string.settings_unrecognized_sms_title),
+                    subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
                     onClick = onNavigateToUnrecognizedSms,
                     position = ListItemPosition.Middle
                 )
@@ -678,58 +702,59 @@ fun SettingsScreen(
                     icon = Icons.Default.CalendarMonth,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
-                    title = "SMS Scan Period",
+                    title = stringResource(R.string.settings_sms_scan_title),
                     subtitle = when {
-                        smsScanAllTime -> "Scan all SMS messages"
+                        smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
                         smsScanUseCustomDate -> {
                             val formattedDate = smsScanCustomDate?.let { formatSmsScanCustomDate(it) }
                             if (formattedDate != null) {
-                                "Scan from $formattedDate to today"
+                                stringResource(R.string.settings_sms_scan_subtitle_from_date, formattedDate)
                             } else {
-                                "Scan from a custom start date to today"
+                                stringResource(R.string.settings_sms_scan_subtitle_custom)
                             }
                         }
-                        else -> "Scan last $smsScanMonths months"
+                        else -> pluralStringResource(R.plurals.settings_sms_scan_subtitle_months, smsScanMonths, smsScanMonths)
                     },
                     onClick = { showSmsScanDialog = true },
                     position = ListItemPosition.Middle,
                     trailingText = when {
-                        smsScanAllTime -> "All Time"
-                        smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) } ?: "Custom"
-                        else -> "$smsScanMonths mo"
+                        smsScanAllTime -> stringResource(R.string.settings_sms_scan_all_time)
+                        smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) }
+                            ?: stringResource(R.string.settings_sms_scan_custom_short)
+                        else -> pluralStringResource(R.plurals.settings_sms_scan_months_short, smsScanMonths, smsScanMonths)
                     }
                 )
                 SettingsNavItem(
                     icon = Icons.Default.DeleteForever,
                     iconBgColor = red_light,
                     iconTint = red_dark,
-                    title = "Delete All Transactions",
-                    subtitle = "Clear your transaction history — accounts and budgets stay",
+                    title = stringResource(R.string.settings_delete_all_title),
+                    subtitle = stringResource(R.string.settings_delete_all_subtitle),
                     onClick = { settingsViewModel.requestDeleteAllTransactions() },
                     position = ListItemPosition.Bottom
                 )
             }
 
             // ── Notifications ──
-            SectionHeaderV2(title = "Notifications")
+            SectionHeaderV2(title = stringResource(R.string.settings_notifications_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Notifications,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
-                    title = "Bank Notification Access",
-                    subtitle = if (hasNotificationAccess) "Enabled" else "Tap to enable bank app notifications",
+                    title = stringResource(R.string.settings_notification_access_title),
+                    subtitle = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_enabled) else stringResource(R.string.settings_notification_access_disabled),
                     onClick = {
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         notificationAccessLauncher.launch(intent)
                     },
                     position = ListItemPosition.Single,
-                    trailingText = if (hasNotificationAccess) "On" else "Off"
+                    trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
                 )
             }
 
             // ── AI Features ──
-            SectionHeaderV2(title = "AI Features")
+            SectionHeaderV2(title = stringResource(R.string.settings_ai_section))
             SettingsGroup {
                 AiChatSettingsItem(
                     downloadState = downloadState,
@@ -743,14 +768,14 @@ fun SettingsScreen(
             }
 
             // ── Developer ──
-            SectionHeaderV2(title = "Developer")
+            SectionHeaderV2(title = stringResource(R.string.settings_developer_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
                     iconBgColor = grey_light,
                     iconTint = grey_dark,
-                    title = "Developer Mode",
-                    subtitle = "Show technical information in chat",
+                    title = stringResource(R.string.settings_developer_mode_title),
+                    subtitle = stringResource(R.string.settings_developer_mode_subtitle),
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
                     position = ListItemPosition.Single
@@ -758,14 +783,14 @@ fun SettingsScreen(
             }
 
             // ── Support & Community ──
-            SectionHeaderV2(title = "Support & Community")
+            SectionHeaderV2(title = stringResource(R.string.settings_support_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.AutoMirrored.Filled.Help,
                     iconBgColor = pink_light,
                     iconTint = pink_dark,
-                    title = "Help & FAQ",
-                    subtitle = "Frequently asked questions and help",
+                    title = stringResource(R.string.settings_help_faq_title),
+                    subtitle = stringResource(R.string.settings_help_faq_subtitle),
                     onClick = onNavigateToFaq,
                     position = ListItemPosition.Top
                 )
@@ -773,8 +798,8 @@ fun SettingsScreen(
                     icon = Icons.Default.BugReport,
                     iconBgColor = blue_light,
                     iconTint = blue_dark,
-                    title = "Report an Issue",
-                    subtitle = "Submit bug reports on GitHub",
+                    title = stringResource(R.string.settings_report_issue_title),
+                    subtitle = stringResource(R.string.settings_report_issue_subtitle),
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
@@ -787,7 +812,7 @@ fun SettingsScreen(
             // App Version
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = "PennyWise v${com.pennywiseai.tracker.BuildConfig.VERSION_NAME}",
+                text = stringResource(R.string.settings_app_version, com.pennywiseai.tracker.BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -803,7 +828,7 @@ fun SettingsScreen(
     if (showDisplayCurrencyDialog) {
         AlertDialog(
             onDismissRequest = { showDisplayCurrencyDialog = false },
-            title = { Text("Display Currency") },
+            title = { Text(stringResource(R.string.settings_display_currency_title)) },
             text = {
                 // Scrollable: the full currency list overflows the dialog's max
                 // height, so without this the entries below the fold (e.g. MXN)
@@ -843,7 +868,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDisplayCurrencyDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
@@ -853,7 +878,7 @@ fun SettingsScreen(
     if (showNumberFormatDialog) {
         AlertDialog(
             onDismissRequest = { showNumberFormatDialog = false },
-            title = { Text("Number Format") },
+            title = { Text(stringResource(R.string.settings_number_format_title)) },
             text = {
                 Column {
                     NumberFormatStyle.entries.forEach { style ->
@@ -895,7 +920,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showNumberFormatDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
@@ -905,13 +930,13 @@ fun SettingsScreen(
     if (showBudgetCycleDialog) {
         AlertDialog(
             onDismissRequest = { showBudgetCycleDialog = false },
-            title = { Text("Budget Cycle Start Day") },
+            title = { Text(stringResource(R.string.settings_budget_cycle_title)) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        text = "Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.",
+                        text = stringResource(R.string.settings_budget_cycle_dialog_body),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
@@ -948,7 +973,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showBudgetCycleDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
@@ -958,13 +983,13 @@ fun SettingsScreen(
     if (showSmsScanDialog) {
         AlertDialog(
             onDismissRequest = { showSmsScanDialog = false },
-            title = { Text("SMS Scan Period") },
+            title = { Text(stringResource(R.string.settings_sms_scan_title)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Text(
-                        text = "Choose how far back to scan SMS messages for transactions",
+                        text = stringResource(R.string.settings_sms_scan_dialog_body),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
@@ -1022,14 +1047,17 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.width(Spacing.md))
                             Text(
                                 text = when (months) {
-                                    -1 -> "All Time"
+                                    -1 -> stringResource(R.string.settings_sms_scan_all_time)
                                     -2 -> {
                                         val formattedDate = smsScanCustomDate?.let { formatSmsScanCustomDate(it) }
-                                        if (formattedDate != null) "Custom date ($formattedDate)" else "Custom date"
+                                        if (formattedDate != null) {
+                                            stringResource(R.string.settings_sms_scan_option_custom_with_date, formattedDate)
+                                        } else {
+                                            stringResource(R.string.settings_sms_scan_option_custom)
+                                        }
                                     }
-                                    1 -> "1 month"
-                                    24 -> "2 years"
-                                    else -> "$months months"
+                                    24 -> pluralStringResource(R.plurals.settings_sms_scan_option_years, 2, 2)
+                                    else -> pluralStringResource(R.plurals.settings_sms_scan_option_months, months, months)
                                 },
                                 style = MaterialTheme.typography.bodyLarge
                             )
@@ -1039,7 +1067,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSmsScanDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
@@ -1083,12 +1111,12 @@ fun SettingsScreen(
                         showSmsScanDatePicker = false
                     }
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.settings_action_ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { reopenScanDialog() }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         ) {
@@ -1101,7 +1129,9 @@ fun SettingsScreen(
     // of rows, and points at Export Data first.
     deleteAllTransactionsCount?.let { count ->
         var confirmationText by rememberSaveable(count) { mutableStateOf("") }
-        val confirmed = confirmationText.trim().equals("DELETE", ignoreCase = false)
+        // The confirmation word is deliberately not translated.
+        val confirmWord = "DELETE"
+        val confirmed = confirmationText.trim().equals(confirmWord, ignoreCase = false)
 
         AlertDialog(
             onDismissRequest = {
@@ -1114,19 +1144,14 @@ fun SettingsScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("Delete all transactions?") },
+            title = { Text(stringResource(R.string.settings_delete_all_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Text(
-                        if (count == 1) {
-                            "This permanently deletes your 1 transaction, along with its splits and tags. It cannot be undone."
-                        } else {
-                            "This permanently deletes all $count transactions, along with their splits and tags. It cannot be undone."
-                        }
+                        pluralStringResource(R.plurals.settings_delete_all_dialog_body, count, count)
                     )
                     Text(
-                        "Your accounts, budgets, loans, categories and rules are kept. " +
-                            "Export Data first if you might want this history back.",
+                        stringResource(R.string.settings_delete_all_dialog_kept),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1135,7 +1160,7 @@ fun SettingsScreen(
                         onValueChange = { confirmationText = it },
                         singleLine = true,
                         enabled = !isDeletingAllTransactions,
-                        label = { Text("Type DELETE to confirm") },
+                        label = { Text(stringResource(R.string.settings_delete_all_dialog_type_to_confirm, confirmWord)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1148,7 +1173,7 @@ fun SettingsScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text(if (isDeletingAllTransactions) "Deleting…" else "Delete All")
+                    Text(if (isDeletingAllTransactions) stringResource(R.string.settings_delete_all_dialog_deleting) else stringResource(R.string.settings_delete_all_dialog_confirm))
                 }
             },
             dismissButton = {
@@ -1156,20 +1181,20 @@ fun SettingsScreen(
                     onClick = { settingsViewModel.cancelDeleteAllTransactions() },
                     enabled = !isDeletingAllTransactions
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
     }
 
-    deleteAllTransactionsResult?.let { message ->
+    deleteAllTransactionsResult?.let { sentences ->
         AlertDialog(
             onDismissRequest = { settingsViewModel.clearDeleteAllTransactionsResult() },
-            title = { Text("Transactions") },
-            text = { Text(message) },
+            title = { Text(stringResource(R.string.settings_delete_all_result_title)) },
+            text = { Text(sentences.map { it.asString() }.joinToString(" ")) },
             confirmButton = {
                 TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }) {
-                    Text("OK")
+                    Text(stringResource(R.string.settings_action_ok))
                 }
             }
         )
@@ -1177,7 +1202,7 @@ fun SettingsScreen(
 
     // Show import/export message
     importExportMessage?.let { message ->
-        if (exportedBackupFile != null && message.contains("successfully! Choose")) {
+        if (exportedBackupFile != null && message == UiText.Res(R.string.settings_backup_created_choose)) {
             showExportOptionsDialog = true
         } else {
             LaunchedEffect(message) {
@@ -1187,11 +1212,11 @@ fun SettingsScreen(
 
             AlertDialog(
                 onDismissRequest = { settingsViewModel.clearImportExportMessage() },
-                title = { Text("Backup Status") },
-                text = { Text(message) },
+                title = { Text(stringResource(R.string.settings_backup_status_title)) },
+                text = { Text(message.asString()) },
                 confirmButton = {
                     TextButton(onClick = { settingsViewModel.clearImportExportMessage() }) {
-                        Text("OK")
+                        Text(stringResource(R.string.settings_action_ok))
                     }
                 }
             )
@@ -1210,12 +1235,12 @@ fun SettingsScreen(
                 showExportOptionsDialog = false
                 settingsViewModel.clearImportExportMessage()
             },
-            title = { Text("Save Backup") },
+            title = { Text(stringResource(R.string.settings_save_backup_title)) },
             text = {
                 Column {
-                    Text("Backup created successfully!")
+                    Text(stringResource(R.string.settings_save_backup_created))
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    Text("Choose how you want to save it:", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_save_backup_choose), style = MaterialTheme.typography.bodyMedium)
                 }
             },
             confirmButton = {
@@ -1229,7 +1254,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.SaveAlt, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Save to Files")
+                        Text(stringResource(R.string.settings_save_backup_to_files))
                     }
 
                     TextButton(
@@ -1241,7 +1266,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Share")
+                        Text(stringResource(R.string.settings_save_backup_share))
                     }
                 }
             },
@@ -1252,7 +1277,7 @@ fun SettingsScreen(
                         settingsViewModel.clearImportExportMessage()
                     }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_action_cancel))
                 }
             }
         )
@@ -1262,22 +1287,22 @@ fun SettingsScreen(
     if (showTimeoutDialog) {
         AlertDialog(
             onDismissRequest = { showTimeoutDialog = false },
-            title = { Text("Lock Timeout") },
+            title = { Text(stringResource(R.string.settings_lock_timeout_title)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Text(
-                        text = "Choose when to lock the app after it goes to background",
+                        text = stringResource(R.string.settings_lock_timeout_dialog_body),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
 
                     val timeoutOptions = listOf(
-                        0 to "Immediately",
-                        1 to "1 minute",
-                        5 to "5 minutes",
-                        15 to "15 minutes"
+                        0 to stringResource(R.string.settings_lock_timeout_option_immediately),
+                        1 to pluralStringResource(R.plurals.settings_lock_timeout_option_minutes, 1, 1),
+                        5 to pluralStringResource(R.plurals.settings_lock_timeout_option_minutes, 5, 5),
+                        15 to pluralStringResource(R.plurals.settings_lock_timeout_option_minutes, 15, 15)
                     )
 
                     timeoutOptions.forEach { (minutes, label) ->
@@ -1309,7 +1334,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showTimeoutDialog = false }) {
-                    Text("Done")
+                    Text(stringResource(R.string.settings_action_done))
                 }
             }
         )
@@ -1437,7 +1462,7 @@ private fun SettingsDropdownItem(
                 value = currentValue,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Currency") },
+                label = { Text(stringResource(R.string.settings_currency_field_label)) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },
@@ -1489,14 +1514,14 @@ private fun AiChatSettingsItem(
                 contentColor = yellow_dark
             )
             RowLabels(
-                title = "AI Chat Assistant",
+                title = stringResource(R.string.settings_ai_chat_title),
                 subtitle = when (downloadState) {
-                    DownloadState.NOT_DOWNLOADED -> "Download AI model (${Constants.ModelDownload.MODEL_SIZE_MB} MB)"
-                    DownloadState.DOWNLOADING -> "Downloading AI model..."
-                    DownloadState.PAUSED -> "Download interrupted"
-                    DownloadState.COMPLETED -> "AI model ready for chat"
-                    DownloadState.FAILED -> "Download failed"
-                    DownloadState.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
+                    DownloadState.NOT_DOWNLOADED -> stringResource(R.string.settings_ai_status_not_downloaded, Constants.ModelDownload.MODEL_SIZE_MB)
+                    DownloadState.DOWNLOADING -> stringResource(R.string.settings_ai_status_downloading)
+                    DownloadState.PAUSED -> stringResource(R.string.settings_ai_status_paused)
+                    DownloadState.COMPLETED -> stringResource(R.string.settings_ai_status_completed)
+                    DownloadState.FAILED -> stringResource(R.string.settings_ai_status_failed)
+                    DownloadState.ERROR_INSUFFICIENT_SPACE -> stringResource(R.string.settings_ai_status_insufficient_space)
                 }
             )
 
@@ -1505,7 +1530,7 @@ private fun AiChatSettingsItem(
                     Button(onClick = onDownload) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Download")
+                        Text(stringResource(R.string.settings_ai_download))
                     }
                 }
                 DownloadState.DOWNLOADING -> {
@@ -1520,7 +1545,7 @@ private fun AiChatSettingsItem(
                     Button(onClick = onDownload) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Retry")
+                        Text(stringResource(R.string.settings_ai_retry))
                     }
                 }
                 DownloadState.COMPLETED -> {
@@ -1530,12 +1555,12 @@ private fun AiChatSettingsItem(
                     ) {
                         Icon(
                             Icons.Default.CheckCircle,
-                            contentDescription = "Downloaded",
+                            contentDescription = stringResource(R.string.settings_ai_downloaded),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         TextButton(onClick = onDelete) {
-                            Text("Delete")
+                            Text(stringResource(R.string.settings_ai_delete))
                         }
                     }
                 }
@@ -1548,13 +1573,13 @@ private fun AiChatSettingsItem(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Retry")
+                        Text(stringResource(R.string.settings_ai_retry))
                     }
                 }
                 DownloadState.ERROR_INSUFFICIENT_SPACE -> {
                     Icon(
                         Icons.Default.Error,
-                        contentDescription = "Error",
+                        contentDescription = stringResource(R.string.settings_ai_error),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
@@ -1577,7 +1602,7 @@ private fun AiChatSettingsItem(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "$downloadedMB MB / $totalMB MB",
+                    text = stringResource(R.string.settings_ai_download_progress, downloadedMB, totalMB),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1590,7 +1615,7 @@ private fun AiChatSettingsItem(
                 ) {
                     Icon(Icons.Default.Cancel, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Cancel Download")
+                    Text(stringResource(R.string.settings_ai_cancel_download))
                 }
             }
         }
@@ -1601,8 +1626,7 @@ private fun AiChatSettingsItem(
         ) {
             HorizontalDivider()
             Text(
-                text = "Chat with AI about your expenses and get financial insights. " +
-                        "All conversations stay private on your device.",
+                text = stringResource(R.string.settings_ai_info),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1631,24 +1655,30 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.settings_back),
                 modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }
     }
 }
 
-private fun numberFormatStyleLabel(style: NumberFormatStyle): String = when (style) {
-    NumberFormatStyle.AUTO -> "Auto"
-    NumberFormatStyle.INDIAN -> "Indian"
-    NumberFormatStyle.INTERNATIONAL -> "International"
-}
+@Composable
+private fun numberFormatStyleLabel(style: NumberFormatStyle): String = stringResource(
+    when (style) {
+        NumberFormatStyle.AUTO -> R.string.settings_number_format_auto
+        NumberFormatStyle.INDIAN -> R.string.settings_number_format_indian
+        NumberFormatStyle.INTERNATIONAL -> R.string.settings_number_format_international
+    }
+)
 
-private fun numberFormatStyleExample(style: NumberFormatStyle): String = when (style) {
-    NumberFormatStyle.AUTO -> "Matches each currency (₹1,50,000 · $150,000)"
-    NumberFormatStyle.INDIAN -> "1,50,000 (lakh / crore)"
-    NumberFormatStyle.INTERNATIONAL -> "150,000 (thousand / million)"
-}
+@Composable
+private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringResource(
+    when (style) {
+        NumberFormatStyle.AUTO -> R.string.settings_number_format_auto_example
+        NumberFormatStyle.INDIAN -> R.string.settings_number_format_indian_example
+        NumberFormatStyle.INTERNATIONAL -> R.string.settings_number_format_international_example
+    }
+)
 
 /**
  * English ordinal suffix for the budget cycle start day — "1st", "2nd", "3rd",

@@ -149,6 +149,23 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `getMonthSummary excludes loan-linked transactions`() = runBlocking {
+        transactionsList.addAll(listOf(
+            createTransaction(amount = BigDecimal("100.00"), currency = "INR", type = TransactionType.INCOME),
+            createTransaction(amount = BigDecimal("50.00"), currency = "INR", type = TransactionType.EXPENSE),
+            // Loan disbursement (lent out) and repayment (received back) — must not count as real spend/income.
+            createTransaction(amount = BigDecimal("500.00"), currency = "INR", type = TransactionType.EXPENSE, loanId = 1L),
+            createTransaction(amount = BigDecimal("500.00"), currency = "INR", type = TransactionType.INCOME, loanId = 1L)
+        ))
+
+        val summary = repository.getChatContext().monthSummary
+
+        assertEquals(BigDecimal("100.00"), summary.totalIncome)
+        assertEquals(BigDecimal("50.00"), summary.totalExpense)
+        assertEquals(2, summary.transactionCount)
+    }
+
+    @Test
     fun `getRecentTransactions maps and converts amounts correctly`() = runBlocking {
         val now = LocalDateTime.now()
         transactionsList.addAll(listOf(
@@ -217,6 +234,23 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `getTopCategories excludes loan-linked transactions`() = runBlocking {
+        transactionsList.addAll(listOf(
+            createTransaction(amount = BigDecimal("100.00"), currency = "INR", category = "Food", type = TransactionType.EXPENSE),
+            // Money lent out, categorized as "Food" by mistake or not — must not inflate the category total.
+            createTransaction(amount = BigDecimal("900.00"), currency = "INR", category = "Food", type = TransactionType.EXPENSE, loanId = 1L)
+        ))
+
+        val topCategories = repository.getChatContext().topCategories
+
+        assertEquals(1, topCategories.size)
+        val foodCat = topCategories.find { it.category == "Food" }
+        assertNotNull(foodCat)
+        assertEquals(BigDecimal("100.00"), foodCat.amount)
+        assertEquals(100.0f, foodCat.percentage, 0.01f)
+    }
+
+    @Test
     fun `getQuickStats daily spending and largest expense convert currency correctly`() = runBlocking {
         transactionsList.addAll(listOf(
             // 20 USD = 1600 INR
@@ -234,13 +268,29 @@ class AiContextRepositoryTest {
         assertEquals(BigDecimal("1600.00"), stats.largestExpenseThisMonth.amount)
     }
 
+    @Test
+    fun `getQuickStats excludes loan-linked transactions from avg spend and largest expense`() = runBlocking {
+        transactionsList.addAll(listOf(
+            createTransaction(amount = BigDecimal("100.00"), currency = "INR", merchant = "Groceries", type = TransactionType.EXPENSE),
+            // A large loan disbursement that would otherwise dominate avgDailySpending / largestExpense.
+            createTransaction(amount = BigDecimal("50000.00"), currency = "INR", merchant = "Lent to Friend", type = TransactionType.EXPENSE, loanId = 1L)
+        ))
+
+        val stats = repository.getChatContext().quickStats
+
+        assertNotNull(stats.largestExpenseThisMonth)
+        assertEquals("Groceries", stats.largestExpenseThisMonth.merchantName)
+        assertEquals(BigDecimal("100.00"), stats.largestExpenseThisMonth.amount)
+    }
+
     private fun createTransaction(
         amount: BigDecimal,
         currency: String,
         merchant: String = "Merchant",
         category: String = "Food",
         type: TransactionType = TransactionType.EXPENSE,
-        date: LocalDateTime = LocalDateTime.now()
+        date: LocalDateTime = LocalDateTime.now(),
+        loanId: Long? = null
     ): TransactionEntity {
         return TransactionEntity(
             id = (1..100000).random().toLong(),
@@ -250,7 +300,8 @@ class AiContextRepositoryTest {
             transactionType = type,
             dateTime = date,
             currency = currency,
-            transactionHash = "hash_" + (1..100000).random()
+            transactionHash = "hash_" + (1..100000).random(),
+            loanId = loanId
         )
     }
 

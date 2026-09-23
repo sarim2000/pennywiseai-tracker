@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.compose.ui.graphics.toArgb
 import androidx.glance.appwidget.updateAll
@@ -195,7 +196,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (otherTotal.signum() > 0) {
                     add(
                         CategoryPieSlice(
-                            name = "Other",
+                            name = applicationContext.getString(R.string.widget_pie_other),
                             amountFormatted = CurrencyFormatter.formatCurrency(otherTotal, currency),
                             colorArgb = 0xFF9E9E9EL,
                             percent = percentOf(otherTotal)

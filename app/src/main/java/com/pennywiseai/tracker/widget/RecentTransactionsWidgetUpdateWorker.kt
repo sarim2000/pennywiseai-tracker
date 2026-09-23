@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorker
@@ -127,7 +128,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                     val itemCurrency = if (converted != null) targetCurrency else tx.currency
                     val title = tx.merchantName.takeIf { it.isNotBlank() }
                         ?: tx.description?.takeIf { it.isNotBlank() }
-                        ?: "Transaction"
+                        ?: applicationContext.getString(R.string.widget_recent_fallback_title)
                     val dateText = tx.dateTime.toLocalDate().format(formatter)
                     val subtitle = tx.category
                         .takeIf { it.isNotBlank() }

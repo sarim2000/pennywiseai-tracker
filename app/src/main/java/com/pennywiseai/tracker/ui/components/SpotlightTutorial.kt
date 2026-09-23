@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -130,7 +132,7 @@ fun SpotlightTutorial(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Tap anywhere to dismiss",
+                        text = stringResource(R.string.spotlight_tap_to_dismiss),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Black.copy(alpha = 0.6f)
                     )

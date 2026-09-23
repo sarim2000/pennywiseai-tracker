@@ -2,6 +2,7 @@ package com.pennywiseai.tracker
 
 import android.app.Activity
 import android.app.Application
+import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -58,6 +59,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+        lastLocales = resources.configuration.locales
 
         // Initial billing-entitlement sync. No-op on F-Droid (the stub
         // gateway returns immediately). Failure here is non-fatal — the
@@ -104,6 +106,19 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 CategoryMapping.userStyles.putAll(styles)
             }
         }
+    }
+
+    private var lastLocales: android.os.LocaleList? = null
+
+    // Widgets bake translated text into their stored snapshots, so rebuild them
+    // when the device or per-app language changes.
+    override fun onConfigurationChanged(newConfig: ResConfiguration) {
+        super.onConfigurationChanged(newConfig)
+        val locales = newConfig.locales
+        if (lastLocales != null && locales != lastLocales) {
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(this)
+        }
+        lastLocales = locales
     }
 
     /**

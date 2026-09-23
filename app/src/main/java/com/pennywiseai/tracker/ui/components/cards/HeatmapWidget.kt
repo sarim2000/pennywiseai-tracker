@@ -101,12 +101,13 @@ fun HeatmapWidget(
                     ) {
                         // Rows: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
                         for (d in 0 until 7) {
-                            val label = when (d) {
-                                0 -> "M"
-                                2 -> "W"
-                                4 -> "F"
-                                else -> null
-                            }
+                            // Narrow weekday initials (M / W / F in English), locale-aware.
+                            val label = if (d % 2 == 0 && d <= 4) {
+                                java.time.DayOfWeek.of(d + 1).getDisplayName(
+                                    java.time.format.TextStyle.NARROW,
+                                    java.util.Locale.getDefault()
+                                )
+                            } else null
                             Box(
                                 modifier = Modifier.size(cellSize),
                                 contentAlignment = Alignment.CenterStart

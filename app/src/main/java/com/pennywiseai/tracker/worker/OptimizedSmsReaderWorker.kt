@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
 import android.os.Trace
@@ -118,13 +119,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val nm = context.getSystemService(android.app.NotificationManager::class.java)
             if (nm.getNotificationChannel(channelId) == null) {
                 nm.createNotificationChannel(
-                    android.app.NotificationChannel(channelId, "SMS Scan", android.app.NotificationManager.IMPORTANCE_LOW)
+                    android.app.NotificationChannel(channelId, context.getString(R.string.notif_sms_scan_channel_name), android.app.NotificationManager.IMPORTANCE_LOW)
                 )
             }
             return androidx.core.app.NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_popup_sync)
-                .setContentTitle("Scanning transactions…")
-                .setContentText(if (total > 0) "Processed $processed / $total" else "Reading SMS…")
+                .setContentTitle(context.getString(R.string.notif_sms_scan_title))
+                .setContentText(if (total > 0) context.getString(R.string.notif_sms_scan_progress, processed, total) else context.getString(R.string.notif_sms_scan_reading))
                 .setProgress(total, processed, total == 0)
                 .setOngoing(true)
                 .setSilent(true)

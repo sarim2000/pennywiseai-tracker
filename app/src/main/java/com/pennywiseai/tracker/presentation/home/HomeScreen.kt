@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.home
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import android.view.HapticFeedbackConstants
@@ -179,6 +182,8 @@ fun HomeScreen(
     // Profile filter dropdown state
     var showProfileFilterMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val deletedMessage = stringResource(R.string.home_transaction_deleted)
+    val undoLabel = stringResource(R.string.home_undo)
 
     // Haptic feedback
     val view = LocalView.current
@@ -251,8 +256,8 @@ fun HomeScreen(
             
             scope.launch {
                 val result = snackbarHostState.showSnackbar(
-                    message = "Transaction deleted",
-                    actionLabel = "Undo",
+                    message = deletedMessage,
+                    actionLabel = undoLabel,
                     duration = SnackbarDuration.Short
                 )
                 if (result == SnackbarResult.ActionPerformed) {
@@ -322,7 +327,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "Upgrade to PennyWise Pro",
+                                    contentDescription = stringResource(R.string.home_upgrade_pro),
                                     tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
                                     modifier = Modifier.size(Dimensions.Icon.inline),
                                 )
@@ -348,7 +353,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
-                                    contentDescription = "Profile filter",
+                                    contentDescription = stringResource(R.string.home_profile_filter),
                                     tint = MaterialTheme.colorScheme.inverseSurface,
                                     modifier = Modifier.size(Dimensions.Icon.inline)
                                 )
@@ -379,7 +384,7 @@ fun HomeScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreHoriz,
-                                contentDescription = "More options",
+                                contentDescription = stringResource(R.string.home_more_options),
                                 tint = MaterialTheme.colorScheme.inverseSurface,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
                             )
@@ -569,11 +574,11 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
                                         SectionHeaderV2(
-                                            title = "Budgets",
+                                            title = stringResource(R.string.home_section_budgets),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
                                                 TextButton(onClick = onNavigateToBudgets) {
-                                                    Text("View All")
+                                                    Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -612,11 +617,11 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
                                         SectionHeaderV2(
-                                            title = "Loans",
+                                            title = stringResource(R.string.home_section_loans),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
                                                 TextButton(onClick = onNavigateToLoans) {
-                                                    Text("View All")
+                                                    Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -662,11 +667,11 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
                                         SectionHeaderV2(
-                                            title = "Groups",
+                                            title = stringResource(R.string.home_section_groups),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
                                                 TextButton(onClick = onNavigateToTransactionGroups) {
-                                                    Text("View All")
+                                                    Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -707,7 +712,7 @@ fun HomeScreen(
                             ) {
                                 Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                     SectionHeaderV2(
-                                        title = "Recent Transactions",
+                                        title = stringResource(R.string.home_section_recent_transactions),
                                         action = {
                                             Row(
                                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -720,14 +725,14 @@ fun HomeScreen(
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Search,
-                                                        contentDescription = "Search transactions",
+                                                        contentDescription = stringResource(R.string.home_search_transactions),
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
                                                 }
 
                                                 // View All button
                                                 TextButton(onClick = onNavigateToTransactions) {
-                                                    Text("View All")
+                                                    Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -767,9 +772,9 @@ fun HomeScreen(
                                 ) {
                                     PennyWiseEmptyState(
                                         icon = Icons.Default.Sync,
-                                        headline = "No transactions yet",
-                                        description = "Scan your SMS to get started — we'll find your transactions automatically",
-                                        actionLabel = "Scan Now",
+                                        headline = stringResource(R.string.home_empty_headline),
+                                        description = stringResource(R.string.home_empty_description),
+                                        actionLabel = stringResource(R.string.home_empty_action),
                                         onAction = { viewModel.scanSmsMessages() },
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                         ghostContent = {
@@ -847,11 +852,11 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
                                         SectionHeaderV2(
-                                            title = "Bank Accounts",
+                                            title = stringResource(R.string.home_section_accounts),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
                                                 TextButton(onClick = onNavigateToManageAccounts) {
-                                                    Text("Manage")
+                                                    Text(stringResource(R.string.home_manage))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -901,11 +906,11 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
                                         SectionHeaderV2(
-                                            title = "Upcoming Subscriptions",
+                                            title = stringResource(R.string.home_section_subscriptions),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
                                                 TextButton(onClick = onNavigateToSubscriptions) {
-                                                    Text("View All")
+                                                    Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                         contentDescription = null,
@@ -949,7 +954,7 @@ fun HomeScreen(
                                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                 ) {
                                     SectionHeaderV2(
-                                        title = "Activity",
+                                        title = stringResource(R.string.home_section_activity),
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                     com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
@@ -1003,7 +1008,7 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Transaction or Subscription"
+                    contentDescription = stringResource(R.string.home_fab_add)
                 )
             }
             
@@ -1037,7 +1042,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Sync,
-                            contentDescription = "Sync SMS (long press for full resync)",
+                            contentDescription = stringResource(R.string.home_fab_sync),
                             modifier = if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -1046,7 +1051,7 @@ fun HomeScreen(
                 // Hint for long-press functionality - only show for new users (no transactions yet)
                 if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
                     Text(
-                        text = "Hold for full resync",
+                        text = stringResource(R.string.home_fab_sync_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1066,16 +1071,10 @@ fun HomeScreen(
                     )
                 },
                 title = {
-                    Text("Full Resync")
+                    Text(stringResource(R.string.home_resync_title))
                 },
                 text = {
-                    Text(
-                        "This will reprocess all SMS messages from scratch. " +
-                        "Use this to fix issues caused by updated bank parsers.\n\n" +
-                        "Your loans, grouped transactions, and merchant mappings " +
-                        "are preserved.\n\n" +
-                        "This may take a few seconds depending on your message history."
-                    )
+                    Text(stringResource(R.string.home_resync_message))
                 },
                 confirmButton = {
                     Button(
@@ -1084,14 +1083,14 @@ fun HomeScreen(
                             viewModel.scanSmsMessages(forceResync = true)
                         }
                     ) {
-                        Text("Resync All")
+                        Text(stringResource(R.string.home_resync_confirm))
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showFullResyncDialog = false }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.home_cancel))
                     }
                 }
             )
@@ -1145,7 +1144,7 @@ fun HomeScreen(
             ) {
                 // Title
                 Text(
-                    text = "More Options",
+                    text = stringResource(R.string.home_menu_title),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -1158,7 +1157,7 @@ fun HomeScreen(
                 // it is rather than "Share ...": the menu sits beside Settings and Rate,
                 // and leading with the ask makes it read as a favour being requested.
                 MenuListItem(
-                    headline = "Monthly recap",
+                    headline = stringResource(R.string.home_menu_monthly_recap),
                     icon = { Icon(Icons.Default.Share, contentDescription = null) },
                     position = ListItemPosition.Top,
                     onClick = {
@@ -1169,7 +1168,7 @@ fun HomeScreen(
 
                 // Settings (Middle)
                 MenuListItem(
-                    headline = "Settings",
+                    headline = stringResource(R.string.home_menu_settings),
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
@@ -1180,7 +1179,7 @@ fun HomeScreen(
 
                 // Edit home screen (Middle) — reorder / hide Home sections (#770)
                 MenuListItem(
-                    headline = "Edit home screen",
+                    headline = stringResource(R.string.home_menu_edit_home),
                     icon = { Icon(Icons.Default.Tune, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
@@ -1191,7 +1190,7 @@ fun HomeScreen(
 
                 // Join Discord (Middle)
                 MenuListItem(
-                    headline = "Join Discord for feedback",
+                    headline = stringResource(R.string.home_menu_discord),
                     icon = {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_discord),
@@ -1209,7 +1208,7 @@ fun HomeScreen(
 
                 // Rate on Play Store (Bottom)
                 MenuListItem(
-                    headline = "Rate on Play Store",
+                    headline = stringResource(R.string.home_menu_rate),
                     icon = { Icon(Icons.Default.Star, contentDescription = null) },
                     position = ListItemPosition.Bottom,
                     onClick = {
@@ -1236,7 +1235,7 @@ fun HomeScreen(
                 }
                 versionName?.let {
                     Text(
-                        text = "v$it",
+                        text = stringResource(R.string.home_version, it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
@@ -1264,13 +1263,13 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
                 Text(
-                    text = "Edit home screen",
+                    text = stringResource(R.string.home_edit_title),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Reorder or hide sections on your home screen.",
+                    text = stringResource(R.string.home_edit_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -1284,8 +1283,9 @@ fun HomeScreen(
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
+                        val sectionLabel = stringResource(section.titleRes())
                         Text(
-                            text = section.label,
+                            text = sectionLabel,
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (isVisible) MaterialTheme.colorScheme.onSurface
                             else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1294,11 +1294,11 @@ fun HomeScreen(
                         IconButton(
                             enabled = i > 0,
                             onClick = { viewModel.moveHomeSection(section, -1) }
-                        ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move ${section.label} up") }
+                        ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
                         IconButton(
                             enabled = i < homeSectionLayout.lastIndex,
                             onClick = { viewModel.moveHomeSection(section, +1) }
-                        ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move ${section.label} down") }
+                        ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
                         Switch(
                             checked = isVisible,
                             onCheckedChange = { on -> viewModel.setHomeSectionVisible(section, on) }
@@ -1331,9 +1331,10 @@ private fun BreakdownDialog(
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
-    val currentPeriod = "${now.month.name.lowercase().let { s -> if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1) }} 1-${now.dayOfMonth}"
+    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) }
+    val currentPeriod = stringResource(R.string.home_breakdown_period, monthName(now.month), now.dayOfMonth)
     val lastMonth = now.minusMonths(1)
-    val lastPeriod = "${lastMonth.month.name.lowercase().let { s -> if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1) }} 1-${now.dayOfMonth}"
+    val lastPeriod = stringResource(R.string.home_breakdown_period, monthName(lastMonth.month), now.dayOfMonth)
     
     Dialog(onDismissRequest = onDismiss) {
         PennyWiseCardV2(
@@ -1354,7 +1355,7 @@ private fun BreakdownDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 Text(
-                    text = "Calculation Breakdown",
+                    text = stringResource(R.string.home_breakdown_title),
                     style = MaterialTheme.typography.headlineSmall
                 )
 
@@ -1382,8 +1383,7 @@ private fun BreakdownDialog(
                     contentPadding = Spacing.smd
                 ) {
                     Text(
-                        text = "Formula: Income - Expenses = Net Worth\n" +
-                               "Green (+) = Savings | Red (-) = Overspending",
+                        text = stringResource(R.string.home_breakdown_formula),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         textAlign = TextAlign.Center
@@ -1394,7 +1394,7 @@ private fun BreakdownDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Close")
+                    Text(stringResource(R.string.home_close))
                 }
             }
         }
@@ -1416,11 +1416,11 @@ private fun BreakdownPeriod(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary
         )
-        BreakdownRow(label = "Income", amount = income, isIncome = true, currency = currency)
-        BreakdownRow(label = "Expenses", amount = expenses, isIncome = false, currency = currency)
+        BreakdownRow(label = stringResource(R.string.home_breakdown_income), amount = income, isIncome = true, currency = currency)
+        BreakdownRow(label = stringResource(R.string.home_breakdown_expenses), amount = expenses, isIncome = false, currency = currency)
         HorizontalDivider()
         BreakdownRow(
-            label = "Net Worth",
+            label = stringResource(R.string.home_breakdown_net_worth),
             amount = net,
             isIncome = net >= BigDecimal.ZERO,
             isBold = true,
@@ -1578,7 +1578,7 @@ private fun UpcomingSubscriptionsCard(
                 }
                 Column {
                     Text(
-                        text = "${subscriptions.size} active subscriptions",
+                        text = pluralStringResource(R.plurals.home_active_subscriptions, subscriptions.size, subscriptions.size),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1586,21 +1586,24 @@ private fun UpcomingSubscriptionsCard(
                     Text(
                         // Unified mode: one converted figure. Native mode: per-currency
                         // ("₹499 · $10") so a mixed set isn't summed into a mislabel.
-                        text = "Monthly total: " + if (isUnified) {
-                            CurrencyFormatter.formatCurrency(totalAmount, currency)
-                        } else {
-                            CurrencyFormatter.formatByCurrency(
-                                totalByCurrency,
-                                fallbackCurrency = currency
-                            )
-                        },
+                        text = stringResource(
+                            R.string.home_subscriptions_monthly_total,
+                            if (isUnified) {
+                                CurrencyFormatter.formatCurrency(totalAmount, currency)
+                            } else {
+                                CurrencyFormatter.formatByCurrency(
+                                    totalByCurrency,
+                                    fallbackCurrency = currency
+                                )
+                            }
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
                     )
                 }
             }
             Text(
-                text = "View",
+                text = stringResource(R.string.home_view),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -1638,17 +1641,17 @@ private fun ActiveLoansSummaryCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${loans.size} active loan${if (loans.size != 1) "s" else ""}",
+                    text = pluralStringResource(R.plurals.home_active_loans, loans.size, loans.size),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
                 val subtitle = when {
                     totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
+                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
                     totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
+                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
                     else ->
-                        "You owe ${CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency)}"
+                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency))
                 }
                 Text(
                     text = subtitle,
@@ -1657,7 +1660,7 @@ private fun ActiveLoansSummaryCard(
                 )
             }
             Text(
-                text = "View",
+                text = stringResource(R.string.home_view),
                 style = MaterialTheme.typography.labelLarge,
                 color = loanColor,
                 fontWeight = FontWeight.Medium
@@ -1695,3 +1698,13 @@ private fun MenuListItem(
     }
 }
 
+@StringRes
+private fun HomeSection.titleRes(): Int = when (this) {
+    HomeSection.BUDGETS -> R.string.home_section_budgets
+    HomeSection.LOANS -> R.string.home_section_loans
+    HomeSection.GROUPS -> R.string.home_section_groups
+    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
+    HomeSection.ACCOUNTS -> R.string.home_section_accounts
+    HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
+    HomeSection.ACTIVITY -> R.string.home_section_activity
+}

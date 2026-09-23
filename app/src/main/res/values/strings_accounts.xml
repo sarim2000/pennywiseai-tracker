@@ -143,7 +143,7 @@
         <item quantity="one">%1$d transaction from this account is set to a different profile. Move it to the new profile too?</item>
         <item quantity="other">%1$d transactions from this account are set to a different profile. Move them to the new profile too?</item>
     </plurals>
-    <string name="manage_accounts_reassign_move">Move them</string>
+    <string name="manage_accounts_reassign_move">Move</string>
     <string name="manage_accounts_reassign_keep">Keep as is</string>
     <string name="manage_accounts_hidden_badge">Hidden</string>
     <string name="manage_accounts_business_badge">Business</string>

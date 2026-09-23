@@ -251,6 +251,7 @@ private fun AccountPickerRow(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
+                val creditTag = stringResource(R.string.merge_accounts_credit_tag)
                 Text(
                     text = buildString {
                         if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
@@ -259,7 +260,7 @@ private fun AccountPickerRow(
                             append(" · ")
                         }
                         append(acct.currency)
-                        if (acct.isCreditCard) append(" · " + stringResource(R.string.merge_accounts_credit_tag))
+                        if (acct.isCreditCard) append(" · $creditTag")
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

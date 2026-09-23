@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.countsInTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -109,8 +110,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 .filter {
                     (it.transaction.transactionType == TransactionType.EXPENSE ||
                         (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT)) &&
-                        it.transaction.loanId == null &&
-                        !it.transaction.excludedFromAnalytics
+                        it.transaction.countsInTotals()
                 }
 
             // Scope to the selected profile and drop hidden accounts, mirroring

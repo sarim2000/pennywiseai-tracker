@@ -1111,6 +1111,9 @@ class BudgetGroupRepository @Inject constructor(
  *    (Refund) amounts from `categoryAmounts` (floored at zero) and
  *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
  *    `categoryLimitBoosts`.
+ *  - skips loan-linked transactions (`loanId != null`), matching
+ *    [BudgetGroupRepository.sumExpensesForWindow]'s exclusion — a loan
+ *    disbursement/repayment isn't discretionary spend.
  *
  * `convertSplit` and `convertIncome` let callers project amounts into a
  * display currency. Same-currency callers pass identity lambdas; the
@@ -1129,6 +1132,7 @@ suspend fun aggregateBudgetCategorySpending(
     for (txWithSplits in transactions) {
         val type = txWithSplits.transaction.transactionType
         if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) continue
+        if (txWithSplits.transaction.loanId != null) continue
         val fromCurrency = txWithSplits.transaction.currency
         if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
             // Route the whole amount to its type bucket, ignoring category —

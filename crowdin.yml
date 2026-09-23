@@ -22,20 +22,12 @@ preserve_hierarchy: true
 #   Crowdin's default %locale% over-regionalizes some languages (e.g. sw-KE,
 #   th-TH) which Play REJECTS — Play wants bare `sw` / `th`. Every entry below is
 #   the exact Google Play listing code (verified against fastlane's ALL_LANGUAGES).
-languages_mapping:
-  locale:
-    hi: hi-IN     # Hindi      -> India
-    ar: ar        # Arabic     -> UAE / Saudi / Egypt
-    th: th        # Thai       -> Thailand   (NOT th-TH)
-    sw: sw        # Swahili    -> Kenya / Tanzania (NOT sw-KE)
-    ne: ne-NP     # Nepali     -> Nepal
-    ru: ru-RU     # Russian    -> Russia / Belarus
-    be: be        # Belarusian -> Belarus
-    cs: cs-CZ     # Czech      -> Czechia
-    fa: fa        # Persian    -> Iran
-    am: am        # Amharic    -> Ethiopia
-    es: es-419    # Spanish    -> Latin America (Colombia)
-    es-EM: es-419 # Spanish (Modern) — the project's Spanish; Play has no es-EM
+# Store-listing folder names must be exact Google Play codes (verified against
+# fastlane's ALL_LANGUAGES); Crowdin's defaults (th-TH, sw-KE, es-EM…) are
+# rejected. The mapping is defined once on the first store file (&store_langs)
+# and reused — Crowdin CLI only reads languages_mapping inside a files entry;
+# a top-level block is silently ignored. Keys are Crowdin language IDs.
+#   Priority: Hindi (India is ~87% of the install base) then Arabic (UAE+Saudi).
 
 files:
   # In-app strings. Android falls back to English per string, so partially
@@ -53,14 +45,37 @@ files:
   - source: /fastlane/metadata/android/en-US/title.txt
     translation: /fastlane/metadata/android/%locale%/title.txt
     skip_untranslated_files: true
+    languages_mapping: &store_langs
+      locale:
+        hi: hi-IN       # Hindi      -> India
+        ar: ar          # Arabic     -> UAE / Saudi / Egypt
+        ar-SA: ar       # Arabic, Saudi Arabia (Play has one Arabic listing)
+        th: th          # Thai       (NOT th-TH)
+        sw: sw          # Swahili    -> Kenya / Tanzania (NOT sw-KE)
+        sw-KE: sw
+        ne-NP: ne-NP    # Nepali     -> Nepal
+        ru: ru-RU       # Russian    -> Russia / Belarus
+        be: be          # Belarusian -> Belarus
+        cs: cs-CZ       # Czech      -> Czechia
+        fa: fa          # Persian    -> Iran
+        am: am          # Amharic    -> Ethiopia
+        es-EM: es-419   # Spanish (Modern) -> Latin America (Colombia)
+        es-ES: es-419
+        de: de-DE
+        fr: fr-FR
+        pt-PT: pt-PT
+        pt-BR: pt-BR
   - source: /fastlane/metadata/android/en-US/short_description.txt
     translation: /fastlane/metadata/android/%locale%/short_description.txt
     skip_untranslated_files: true
+    languages_mapping: *store_langs
   - source: /fastlane/metadata/android/en-US/full_description.txt
     translation: /fastlane/metadata/android/%locale%/full_description.txt
     skip_untranslated_files: true
+    languages_mapping: *store_langs
   # Release notes: only the rolling fallback is localized. Per-version numbered
   # changelogs are left source-only to avoid re-translating historical notes.
   - source: /fastlane/metadata/android/en-US/changelogs/default.txt
     translation: /fastlane/metadata/android/%locale%/changelogs/default.txt
     skip_untranslated_files: true
+    languages_mapping: *store_langs

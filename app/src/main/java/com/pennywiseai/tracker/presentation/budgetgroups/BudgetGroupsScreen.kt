@@ -64,6 +64,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.delay
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -606,24 +607,44 @@ private fun BudgetCard(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // Row 3: Remaining amount (hero)
+                // Row 3: Remaining amount (hero) + what's left to spend per
+                // day. Spending limits only — "per day" means nothing for a
+                // savings target or expected bills.
                 val remainingAbs = groupSpending.remaining.abs()
-                Text(
-                    text = if (isOverBudget) {
-                        stringResource(R.string.budgets_over_budget, CurrencyFormatter.formatCurrency(remainingAbs, currency))
-                    } else {
-                        stringResource(
-                            R.string.budgets_remaining,
-                            CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
+                val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
+                    groupSpending.dailyAllowance > BigDecimal.ZERO
+                // FlowRow: when there isn't room (narrow card, large font) the
+                // per-day label wraps below instead of squeezing the hero amount.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemVerticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Text(
+                        text = if (isOverBudget) {
+                            stringResource(R.string.budgets_over_budget, CurrencyFormatter.formatCurrency(remainingAbs, currency))
+                        } else {
+                            stringResource(
+                                R.string.budgets_remaining,
+                                CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
+                            )
+                        },
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = statusColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (showDaily) {
+                        Text(
+                            text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
-                    },
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = statusColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
 

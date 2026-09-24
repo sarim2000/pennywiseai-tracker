@@ -40,7 +40,7 @@
     <string name="settings_number_format_auto">Авто</string>
     <string name="settings_number_format_indian">Индийский</string>
     <string name="settings_number_format_international">Международные</string>
-    <string name="settings_number_format_auto_example">Соответствует каждой валюте (&lt;unk&gt; 1 50,000 · 150,000)</string>
+    <string name="settings_number_format_auto_example">Соответствует каждой валюте (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (озеро / урожай)</string>
     <string name="settings_number_format_international_example">150,000 (тысяча / миллион)</string>
     <!-- Budget -->

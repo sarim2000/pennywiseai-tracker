@@ -40,7 +40,7 @@
     <string name="settings_number_format_auto">Automaticky</string>
     <string name="settings_number_format_indian">Indický</string>
     <string name="settings_number_format_international">Mezinárodní</string>
-    <string name="settings_number_format_auto_example">Odpovídá každé měně (&lt;unk&gt; 1,50,000 · 150,000)</string>
+    <string name="settings_number_format_auto_example">Odpovídá každé měně (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (jezero/koridor)</string>
     <string name="settings_number_format_international_example">150,000 (v tisících za milion)</string>
     <!-- Budget -->

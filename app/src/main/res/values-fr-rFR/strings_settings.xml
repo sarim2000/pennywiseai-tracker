@@ -39,7 +39,7 @@
     <string name="settings_number_format_auto">Automatique</string>
     <string name="settings_number_format_indian">Indien</string>
     <string name="settings_number_format_international">International</string>
-    <string name="settings_number_format_auto_example">Correspond à chaque devise (1,50,000 &lt;unk&gt; · 150 000$)</string>
+    <string name="settings_number_format_auto_example">Correspond à chaque devise (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50.000 (lac/croûte)</string>
     <string name="settings_number_format_international_example">150 000 (mille / millions)</string>
     <!-- Budget -->

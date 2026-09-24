@@ -40,7 +40,7 @@
     <string name="settings_number_format_auto">Auto</string>
     <string name="settings_number_format_indian">Indisch</string>
     <string name="settings_number_format_international">International</string>
-    <string name="settings_number_format_auto_example">Spielt jede Währung (&lt;unk&gt; 1,50.000 · $150,000)</string>
+    <string name="settings_number_format_auto_example">Passt zu jeder Währung (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1.50.000 (Sek / Kror)</string>
     <string name="settings_number_format_international_example">150.000 (Tausend / Millionen)</string>
     <!-- Budget -->

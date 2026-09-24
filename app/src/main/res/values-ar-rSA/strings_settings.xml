@@ -40,7 +40,7 @@
     <string name="settings_number_format_auto">تلقائي</string>
     <string name="settings_number_format_indian">الهندية</string>
     <string name="settings_number_format_international">الدولية</string>
-    <string name="settings_number_format_auto_example">يطابق كل عملة (&lt;unk&gt; 1,50,000 · 150,000)</string>
+    <string name="settings_number_format_auto_example">يطابق كل عملة (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (لاخ / محرر)</string>
     <string name="settings_number_format_international_example">150,000 (ألف/مليون)</string>
     <!-- Budget -->
@@ -98,7 +98,7 @@
     <string name="settings_folder_backup_subtitle_enabled">النسخ الاحتياطي اليومي عند 2:00 صباحا للمجلد الذي اخترته</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · حفظ نسخة احتياطية في مجلد كل يوم في الثانية صباحا</string>
     <string name="settings_folder_backup_subtitle_disabled">حفظ نسخة احتياطية إلى مجلد كل يوم في الثانية صباحا</string>
-    <string name="settings_backup_now_title">العودة الآن</string>
+    <string name="settings_backup_now_title">النسخ الاحتياطي الآن</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">النسخة الاحتياطية الأخيرة: %1$s</string>
     <string name="settings_backup_now_subtitle">تشغيل نسخة احتياطية للمجلد الخاص بك الآن</string>

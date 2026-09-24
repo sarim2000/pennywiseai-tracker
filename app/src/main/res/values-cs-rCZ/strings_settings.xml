@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">Nastavení</string>
+    <string name="settings_back">Zpět</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">Zrušit</string>
+    <string name="settings_action_ok">OK</string>
+    <string name="settings_action_done">Hotovo</string>
+    <!-- PennyWise Pro -->
+    <string name="settings_pro_section">PennyWise Pro</string>
+    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <string name="settings_pro_title_upgrade">Upgradovat na PennyWise Pro</string>
+    <string name="settings_pro_subtitle_active">Aktivní · odemknuté funkce</string>
+    <string name="settings_pro_subtitle_upgrade">Neomezená pravidla, prohlášení, vývoz a další</string>
+    <!-- Personalization -->
+    <string name="settings_personalization_section">Přizpůsobení</string>
+    <string name="settings_appearance_title">Vzhled</string>
+    <string name="settings_appearance_subtitle">Motivy, barvy, písma &amp; navigace</string>
+    <string name="settings_language_title">Jazyk</string>
+    <string name="settings_language_subtitle">Vyberte jazyk aplikace</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">Měna</string>
+    <string name="settings_unified_currency_title">Režim jednotné měny</string>
+    <string name="settings_unified_currency_subtitle">Převést všechny transakce k zobrazení měny</string>
+    <string name="settings_display_currency_title">Zobrazovací měna</string>
+    <string name="settings_display_currency_subtitle">Všechny částky zobrazené v této měně</string>
+    <string name="settings_exchange_rates_title">Směnné kurzy</string>
+    <string name="settings_exchange_rates_subtitle">Zobrazit a přizpůsobit sazby</string>
+    <string name="settings_card_spend_as_expense_title">Počítat výdaje kartou jako výdaje</string>
+    <string name="settings_card_spend_as_expense_subtitle">Zahrnout útraty kreditní kartou v \"Utraceno tento měsíc\"</string>
+    <string name="settings_default_currency_title">Výchozí měna</string>
+    <string name="settings_default_currency_subtitle">Měna použitá pro konverze</string>
+    <string name="settings_main_account_title">Hlavní účet</string>
+    <string name="settings_main_account_subtitle">Nastaví výchozí měnu</string>
+    <string name="settings_main_account_not_set">Nenastaveno</string>
+    <string name="settings_currency_field_label">Měna</string>
+    <string name="settings_number_format_title">Formát čísla</string>
+    <string name="settings_number_format_subtitle">Jak velké částky jsou seskupeny</string>
+    <string name="settings_number_format_auto">Automaticky</string>
+    <string name="settings_number_format_indian">Indický</string>
+    <string name="settings_number_format_international">Mezinárodní</string>
+    <string name="settings_number_format_auto_example">Odpovídá každé měně (&lt;unk&gt; 1,50,000 · 150,000)</string>
+    <string name="settings_number_format_indian_example">1,50,000 (jezero/koridor)</string>
+    <string name="settings_number_format_international_example">150,000 (v tisících za milion)</string>
+    <!-- Budget -->
+    <string name="settings_budget_section">Rozpočet</string>
+    <string name="settings_budget_cycle_title">Den začátku rozpočtového cyklu</string>
+    <string name="settings_budget_cycle_subtitle">Shrne začátek každého měsíčního rozpočtového období; např. 25 znamená, že váš cyklus běží 25. → 24.</string>
+    <string name="settings_budget_cycle_dialog_body">Vyberte den zahájení každého měsíčního rozpočtového cyklu, např. 25 znamená, že cyklus probíhá od 25. do 24. dne následujícího měsíce.</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">Kontakty</string>
+    <string name="settings_contacts_vpa_title">Nahradit VPA UPI pomocí jmen kontaktů</string>
+    <string name="settings_contacts_vpa_subtitle">Zobrazit \"John Doe\" místo \"9876543210@paytm\". Potřebuje oprávnění ke kontaktům.</string>
+    <!-- Security -->
+    <string name="settings_security_section">Zabezpečení</string>
+    <string name="settings_app_lock_title">Zámek aplikací</string>
+    <string name="settings_app_lock_subtitle">Chraňte svá data biometrickým ověřením</string>
+    <string name="settings_lock_timeout_title">Časový limit zámku</string>
+    <string name="settings_lock_timeout_immediately_subtitle">Zamknout ihned</string>
+    <plurals name="settings_lock_timeout_after_minutes">
+        <item quantity="one">Po %1$d minutách</item>
+        <item quantity="few">Po %1$d minutách</item>
+        <item quantity="many">Po %1$d minutách</item>
+        <item quantity="other">Po %1$d minutách</item>
+    </plurals>
+    <string name="settings_lock_timeout_dialog_body">Vyberte, kdy uzamknout aplikaci po jejím přechodu na pozadí</string>
+    <string name="settings_lock_timeout_option_immediately">Okamžitě</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="one">%1$d minuta</item>
+        <item quantity="few">%1$d minut</item>
+        <item quantity="many">%1$d minut</item>
+        <item quantity="other">%1$d minut</item>
+    </plurals>
+    <!-- Data Management -->
+    <string name="settings_data_section">Správa dat</string>
+    <string name="settings_manage_accounts_title">Správa účtů</string>
+    <string name="settings_manage_accounts_subtitle">Zobrazit a spravovat vaše bankovní účty</string>
+    <string name="settings_categories_title">Kategorie</string>
+    <string name="settings_categories_subtitle">Spravujte kategorie výdajů a příjmů</string>
+    <string name="settings_smart_rules_title">Chytrá pravidla</string>
+    <string name="settings_smart_rules_subtitle">Automatické kategorizování transakcí</string>
+    <string name="settings_budgets_title">Rozpočty</string>
+    <string name="settings_budgets_subtitle">Limity výdajů na trasu podle kategorií</string>
+    <string name="settings_loans_title">Půjčky</string>
+    <string name="settings_loans_subtitle">Sledovat peníze zapůjčené a zapůjčené</string>
+    <string name="settings_recurring_title">Opakování</string>
+    <string name="settings_recurring_subtitle">Automaticky přidat naplánované hotovostní &amp; ruční transakce</string>
+    <string name="settings_transaction_groups_title">Skupiny transakcí</string>
+    <string name="settings_transaction_groups_subtitle">Spravovat transakce v rámci tématu</string>
+    <string name="settings_export_data_title">Exportovat data</string>
+    <string name="settings_export_data_subtitle">Zálohovat všechna data do souboru</string>
+    <string name="settings_folder_backup_title">Automatická záloha složky</string>
+    <string name="settings_folder_backup_subtitle_enabled">Denní záloha ve 2:00 do vybrané složky</string>
+    <string name="settings_folder_backup_subtitle_pro">Pro · Uložit zálohu do složky každý den ve 2:00</string>
+    <string name="settings_folder_backup_subtitle_disabled">Uložit zálohu do složky každý den ve 2:00 hodin</string>
+    <string name="settings_backup_now_title">Zálohovat nyní</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_backup_now_last_backup">Poslední záloha: %1$s</string>
+    <string name="settings_backup_now_subtitle">Spustit zálohu do složky</string>
+    <string name="settings_change_backup_folder_title">Změnit záložní složku</string>
+    <string name="settings_change_backup_folder_subtitle">Vyberte jinou složku pro automatické zálohování</string>
+    <string name="settings_import_data_title">Importovat data</string>
+    <string name="settings_import_data_subtitle">Obnovit data ze zálohy</string>
+    <string name="settings_import_csv_title">Importovat transakce (CSV)</string>
+    <string name="settings_import_csv_subtitle">Import z PennyWise CSV exportu</string>
+    <string name="settings_import_statement_title">Prohlášení o importu</string>
+    <string name="settings_import_statement_subtitle">Importovat z GPay, PhonePe, Paytm</string>
+    <string name="settings_unrecognized_sms_title">Nerozpoznané SMS</string>
+    <string name="settings_unrecognized_sms_subtitle">Zobrazit a nahlásit nepodporované bankovní zprávy</string>
+    <string name="settings_delete_all_title">Odstranit všechny transakce</string>
+    <string name="settings_delete_all_subtitle">Vymazat historii transakcí – účty a rozpočty zůstávají</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">Perioda skenování SMS</string>
+    <string name="settings_sms_scan_subtitle_all_time">Skenovat všechny SMS zprávy</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_subtitle_from_date">Skenovat od %1$s do dneška</string>
+    <string name="settings_sms_scan_subtitle_custom">Skenovat od vlastního počátečního data do dneška</string>
+    <plurals name="settings_sms_scan_subtitle_months">
+        <item quantity="one">Skenovat poslední %1$d měsíc</item>
+        <item quantity="few">Skenovat poslední %1$d měsíců</item>
+        <item quantity="many">Skenovat poslední %1$d měsíců</item>
+        <item quantity="other">Skenovat poslední %1$d měsíců</item>
+    </plurals>
+    <string name="settings_sms_scan_all_time">Celkově</string>
+    <string name="settings_sms_scan_custom_short">Vlastní</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <plurals name="settings_sms_scan_months_short">
+        <item quantity="one">%1$d mo</item>
+        <item quantity="few">%1$d mo</item>
+        <item quantity="many">%1$d mo</item>
+        <item quantity="other">%1$d mo</item>
+    </plurals>
+    <string name="settings_sms_scan_dialog_body">Zvolte, jak daleko lze skenovat SMS zprávy pro transakce</string>
+    <string name="settings_sms_scan_option_custom">Vlastní datum</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_option_custom_with_date">Vlastní datum (%1$s)</string>
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="one">%1$d měsíc</item>
+        <item quantity="few">%1$d měsíců</item>
+        <item quantity="many">%1$d měsíců</item>
+        <item quantity="other">%1$d měsíců</item>
+    </plurals>
+    <plurals name="settings_sms_scan_option_years">
+        <item quantity="one">%1$d rok</item>
+        <item quantity="few">%1$d let</item>
+        <item quantity="many">%1$d let</item>
+        <item quantity="other">%1$d let</item>
+    </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
+    <string name="settings_delete_all_dialog_title">Smazat všechny transakce?</string>
+    <plurals name="settings_delete_all_dialog_body">
+        <item quantity="one">Tímto trvale smaže vaši transakci v %1$d spolu s jejími rozděleními a značkami. Nelze ji vrátit zpět.</item>
+        <item quantity="few">Tímto trvale smaže všechny transakce v %1$d spolu s jejich rozdělením a značkami. Nelze to vrátit zpět.</item>
+        <item quantity="many">Tímto trvale smaže všechny transakce v %1$d spolu s jejich rozdělením a značkami. Nelze to vrátit zpět.</item>
+        <item quantity="other">Tímto trvale smaže všechny transakce v %1$d spolu s jejich rozdělením a značkami. Nelze to vrátit zpět.</item>
+    </plurals>
+    <string name="settings_delete_all_dialog_kept">Vaše účty, rozpočty, půjčky, kategorie a pravidla jsou zachovány. Nejdříve exportujte data, pokud chcete tuto historii zpět.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_type_to_confirm">Pro potvrzení zadejte %1$s</string>
+    <string name="settings_delete_all_dialog_deleting">Mazání…</string>
+    <string name="settings_delete_all_dialog_confirm">Smazat vše</string>
+    <string name="settings_delete_all_result_title">Časová osa</string>
+    <string name="settings_delete_all_result_none">Nebyly zjištěny žádné transakce k odstranění.</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="one">%1$d transakce byla smazána.</item>
+        <item quantity="few">%1$d odstraněny transakce.</item>
+        <item quantity="many">%1$d odstraněny transakce.</item>
+        <item quantity="other">%1$d odstraněny transakce.</item>
+    </plurals>
+    <plurals name="settings_delete_all_result_arrived">
+        <item quantity="one">%1$d nová transakce dorazila, zatímco byla na místě.</item>
+        <item quantity="few">%1$d nové transakce dorazily, zatímco na ně působí.</item>
+        <item quantity="many">%1$d nové transakce dorazily, zatímco na ně působí.</item>
+        <item quantity="other">%1$d nové transakce dorazily, zatímco na ně působí.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <string name="settings_delete_all_result_count_changed">Při potvrzování došlo k novým transakcím, takže nic nebylo smazáno. Nyní existuje %1$d. Zkontrolujte toto číslo a zkuste to znovu.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_delete_all_result_error">Nelze odstranit transakce: %1$s</string>
+    <!-- Data Management → Backup / import status -->
+    <string name="settings_backup_status_title">Stav zálohy</string>
+    <string name="settings_backup_created_choose">Záloha byla úspěšně vytvořena! Vyberte, kde ji chcete uložit.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_export_failed">Export se nezdařil: %1$s</string>
+    <string name="settings_export_error">Chyba exportu: %1$s</string>
+    <string name="settings_backup_saved">Záloha byla úspěšně uložena!</string>
+    <string name="settings_backup_save_failed">Uložení zálohy se nezdařilo: %1$s</string>
+    <string name="settings_importing_backup">Importuji zálohu...</string>
+    <string name="settings_import_failed">Import se nezdařil: %1$s</string>
+    <string name="settings_import_error">Chyba importu: %1$s</string>
+    <string name="settings_importing_transactions">Importuji transakce...</string>
+    <string name="settings_folder_backup_disabled">Automatické zálohování složky zakázáno</string>
+    <string name="settings_folder_access_failed">Nelze získat přístup k vybrané složce: %1$s</string>
+    <string name="settings_folder_select_first">Nejprve vyberte záložní složku</string>
+    <string name="settings_folder_not_writable">Nelze zapisovat do vybrané složky zálohy</string>
+    <string name="settings_folder_backup_saved">Záloha uložena do složky</string>
+    <string name="settings_folder_backup_enabled">Automatické zálohování složky povoleno. Zálohy běží denně na 2:00 hodin.</string>
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_title">Uložit zálohu</string>
+    <string name="settings_save_backup_created">Záloha byla úspěšně vytvořena!</string>
+    <string name="settings_save_backup_choose">Vyberte si, jak ho chcete uložit:</string>
+    <string name="settings_save_backup_to_files">Uložit do souborů</string>
+    <string name="settings_save_backup_share">Sdílet</string>
+    <string name="settings_share_backup_subject">PennyWise zálohování</string>
+    <string name="settings_share_backup_chooser">Sdílet zálohu</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">Oznámení</string>
+    <string name="settings_notification_access_title">Přístup k bankovním oznámením</string>
+    <string name="settings_notification_access_enabled">Povoleno</string>
+    <string name="settings_notification_access_disabled">Klepnutím povolíte upozornění na bankovní aplikaci</string>
+    <string name="settings_notification_access_on">Zapnuto</string>
+    <string name="settings_notification_access_off">Vypnuto</string>
+    <!-- AI Features -->
+    <string name="settings_ai_section">Funkce AI</string>
+    <string name="settings_ai_chat_title">AI Chat Asistent</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_not_downloaded">Stáhnout model AI (%1$d MB)</string>
+    <string name="settings_ai_status_downloading">Stahování AI modelu...</string>
+    <string name="settings_ai_status_paused">Stahování přerušeno</string>
+    <string name="settings_ai_status_completed">AI model připraven k chatu</string>
+    <string name="settings_ai_status_failed">Stahování se nezdařilo</string>
+    <string name="settings_ai_status_insufficient_space">Nedostatek volného místa</string>
+    <string name="settings_ai_download">Stáhnout</string>
+    <string name="settings_ai_retry">Opakovat</string>
+    <string name="settings_ai_downloaded">Staženo</string>
+    <string name="settings_ai_delete">Vymazat</string>
+    <string name="settings_ai_error">Chyba</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_cancel_download">Zrušit stahování</string>
+    <string name="settings_ai_info">Chatujte s AI o vašich výdajích a získejte finanční přehledy. Všechny konverzace zůstávají na vašem zařízení soukromé.</string>
+    <string name="settings_ai_download_notification_title">Model AI chatu</string>
+    <string name="settings_ai_download_notification_description">Stahování AI chatovacího asistenta PennyWise</string>
+    <!-- Developer -->
+    <string name="settings_developer_section">Vývojář</string>
+    <string name="settings_developer_mode_title">Vývojářský režim</string>
+    <string name="settings_developer_mode_subtitle">Zobrazit technické informace v chatu</string>
+    <!-- Support & Community -->
+    <string name="settings_support_section">Podpora &amp; komunita</string>
+    <string name="settings_help_faq_title">Pomozte &amp; FAQ</string>
+    <string name="settings_help_faq_subtitle">Často kladené otázky a pomoc</string>
+    <string name="settings_report_issue_title">Nahlásit problém</string>
+    <string name="settings_report_issue_subtitle">Odeslat hlášení o chybách na GitHub</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">Vzhled</string>
+    <string name="appearance_back">Zpět</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">Systém</string>
+    <string name="appearance_mode_light">Světlo</string>
+    <string name="appearance_mode_dark">Tmavé</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">Dynamické</string>
+    <string name="appearance_style_dynamic_subtitle">Barvy tapety</string>
+    <string name="appearance_style_default">Výchozí</string>
+    <string name="appearance_style_default_subtitle">Barevné Rose</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_title">AMOLED černá</string>
+    <string name="appearance_amoled_subtitle">Použijte čistě černé pozadí pro hlubší kontrast</string>
+    <string name="appearance_blur_title">Efekty rozostření</string>
+    <string name="appearance_blur_subtitle">Povolte efekty skleněného rozostření v UI prvcích</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">Navigace</string>
+    <string name="appearance_nav_floating">Plovoucí</string>
+    <string name="appearance_nav_floating_subtitle">Moderní &amp; Spáč</string>
+    <string name="appearance_nav_normal">Normální</string>
+    <string name="appearance_nav_normal_subtitle">Standardní M3</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_section">Styl obalu</string>
+    <string name="appearance_cover_none">Nic</string>
+    <string name="appearance_cover_selected">Vybrané</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">Písma</string>
+    <string name="appearance_font_default">Výchozí</string>
+    <string name="appearance_font_default_subtitle">Systém</string>
+    <string name="appearance_font_sn_pro_subtitle">Moderní Mono</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">Nejčastější dotazy</string>
+    <string name="faq_back">Zpět</string>
+    <string name="faq_collapse">Sbalit</string>
+    <string name="faq_expand">Rozbalit</string>
+    <!-- Transaction Types -->
+    <string name="faq_transaction_types_section">Typy transakcí</string>
+    <string name="faq_wallet_credit_question">Proč jsou transakce peněženky označeny jako kredit?</string>
+    <string name="faq_wallet_credit_answer">Peněženky (Amazon Pay, Paytm, atd.) jsou označeny jako Kredit, protože jsou účtovány na Váš bankovní účet nebo kreditní kartu jako první, nikoli přímé bankovní inkaso. To pomáhá sledovat skutečně použitý způsob platby.</string>
+    <string name="faq_transaction_types_question">Jaký je rozdíl mezi 5 typy transakcí?</string>
+    <string name="faq_transaction_types_answer">• Výdaje: Peníze z vašeho účtu (debety, nákupy, platby účtu)\n• Příjem z účtu: Peníze přicházející na Váš účet (plat, náhrady, cashback)\n• Investice: Vzájemné finanční prostředky, zásoby, SIP obchodní účty\n• Kredit: transakce kreditních karet a platby v peněžence (peníze, které zaplatíte později)\n• Převést: Peníze přesunuty mezi vašimi vlastními účty (sebepřevody)</string>
+    <string name="faq_transfer_vs_expense_question">Kdy mám použít Transfer vs Expense?</string>
+    <string name="faq_transfer_vs_expense_answer">Použít převod při přesouvání peněz mezi vlastními účty (např. úspory pro kontrolu). Ty neovlivňují váš čistý majetek. Pro skutečné výdaje použijte výdaje.</string>
+    <!-- SMS Parsing -->
+    <string name="faq_sms_parsing_section">Analýza SMS</string>
+    <string name="faq_sms_not_detected_question">Proč není detekována moje bankovní SMS zpráva?</string>
+    <string name="faq_sms_not_detected_answer">Zkontrolujte, zda je vaše banka podporována v našem seznamu. Pokud ne, nahlaste ji přes GitHub. Ujistěte se, že jsou udělena SMS oprávnění a formát odesílatele odpovídá standardním bankovním SMS vzorům.</string>
+    <string name="faq_unrecognized_sms_question">Co se stane s neznámými SMS?</string>
+    <string name="faq_unrecognized_sms_answer">Jsou uloženy v \"Nerozpoznaných zprávách\", kde je můžete ručně zkontrolovat nebo je nahlásit, abyste nám pomohli zlepšit zpracování.</string>
+    <string name="faq_duplicates_question">Proč jsou některé transakce duplikovány?</string>
+    <string name="faq_duplicates_answer">Některé banky odesílají více SMS pro tutéž transakci. Aplikace se snaží detekovat duplicity, ale můžete ručně smazat jakýkoliv tento doklad skrze aplikaci.</string>
+    <!-- Privacy & Data -->
+    <string name="faq_privacy_section">Soukromí &amp; Data</string>
+    <string name="faq_data_secure_question">Jsou moje finanční údaje bezpečné?</string>
+    <string name="faq_data_secure_answer">Ano! Všechna data zůstávají na vašem zařízení. Nemáme servery ani cloudové úložiště. Model AI běží lokálně pro úplné soukromí.</string>
+    <string name="faq_backup_question">Mohu zálohovat svá data?</string>
+    <string name="faq_backup_answer">V současné době jsou data uložena pouze lokálně. Export/zálohy funkce jsou naplánovány pro budoucí aktualizace.</string>
+    <string name="faq_data_access_question">Jaká data k aplikaci přistupují?</string>
+    <string name="faq_data_access_answer">Pouze SMS zprávy od známých bankovních odesílatelů. Osobní zprávy nečteme nebo přistupujeme k jiným datům aplikace.</string>
+    <!-- AI Features -->
+    <string name="faq_ai_section">Funkce AI</string>
+    <string name="faq_ai_download_question">Proč potřebuji stáhnout AI model?</string>
+    <string name="faq_ai_download_answer">Model 750MB umožňuje na zařízení chat o vašich výdajích bez zasílání dat na libovolný server, což zajistí úplné soukromí.</string>
+    <string name="faq_ai_ask_question">Co mohu požádat asistenta AI?</string>
+    <string name="faq_ai_ask_answer">Můžete se ptát na vzorce výdajů, rozpočtové poradenství, souhrny transakcí a obecné finanční otázky na základě Vašich údajů.</string>
+    <!-- Account Management -->
+    <string name="faq_accounts_section">Správa účtů</string>
+    <string name="faq_manual_accounts_question">Co je to manuální účty?</string>
+    <string name="faq_manual_accounts_answer">Manuální účty umožňují sledovat hotovost, investice nebo účty u nepodporovaných bank. Zůstatky aktualizujete ručně.</string>
+    <string name="faq_multiple_accounts_question">Jak zaznamenám více účtů ze stejné banky?</string>
+    <string name="faq_multiple_accounts_answer">Aplikace automaticky rozpoznává různé účty na základě posledních 4 číslic zobrazených v SMS.</string>
+    <!-- Still need help -->
+    <string name="faq_still_need_help_section">Stále potřebujete pomoc?</string>
+    <string name="faq_report_issue_title">Nahlásit problém</string>
+    <string name="faq_report_issue_subtitle">Odeslat hlášení o chybách, bankovní požadavky nebo vylepšení funkcí na GitHub</string>
+</resources>

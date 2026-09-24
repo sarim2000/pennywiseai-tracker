@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">การตั้งค่า</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">ยกเลิก</string>
+    <string name="settings_action_ok">ตกลง</string>
+    <string name="settings_action_done">เสร็จสิ้น</string>
+    <!-- PennyWise Pro -->
+    <!-- Personalization -->
+    <string name="settings_appearance_title">ลักษณะ</string>
+    <string name="settings_language_title">ภาษา</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">สกุลเงิน</string>
+    <string name="settings_display_currency_title">สกุลเงินที่แสดง</string>
+    <string name="settings_exchange_rates_title">อัตราแลกเปลี่ยน</string>
+    <string name="settings_default_currency_title">สกุลเงินเริ่มต้น</string>
+    <string name="settings_currency_field_label">สกุลเงิน</string>
+    <!-- Budget -->
+    <!-- Contacts -->
+    <string name="settings_contacts_section">รายชื่อติดต่อ</string>
+    <!-- Security -->
+    <string name="settings_security_section">ความปลอดภัย</string>
+    <string name="settings_app_lock_title">ล็อกแอป</string>
+    <string name="settings_app_lock_subtitle">ปกป้องข้อมูลของคุณด้วยการยืนยันตัวตนทางชีวมิติ</string>
+    <string name="settings_lock_timeout_title">เวลาหมดอายุล็อก</string>
+    <string name="settings_lock_timeout_option_immediately">ทันที</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="other">%1$d นาที</item>
+    </plurals>
+    <!-- Data Management -->
+    <string name="settings_data_section">การจัดการข้อมูล</string>
+    <string name="settings_categories_title">หมวดหมู่</string>
+    <string name="settings_categories_subtitle">จัดการหมวดหมู่ค่าใช้จ่ายและรายได้</string>
+    <string name="settings_smart_rules_title">กฎอัจฉริยะ</string>
+    <string name="settings_smart_rules_subtitle">การจัดหมวดหมู่ธุรกรรมอัตโนมัติ</string>
+    <string name="settings_budgets_title">งบประมาณ</string>
+    <string name="settings_loans_title">เงินกู้</string>
+    <string name="settings_recurring_title">เกิดซ้ำ</string>
+    <string name="settings_export_data_title">ส่งออกข้อมูล</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_import_data_title">นำเข้าข้อมูล</string>
+    <string name="settings_import_data_subtitle">กู้คืนข้อมูลจากการสำรอง</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">ระยะเวลาสแกน SMS</string>
+    <string name="settings_sms_scan_subtitle_all_time">สแกนข้อความ SMS ทั้งหมด</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_all_time">ตลอดเวลา</string>
+    <string name="settings_sms_scan_custom_short">กำหนดเอง</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <!-- %1$s = custom start date -->
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="other">%1$d เดือน</item>
+    </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_confirm">ลบทั้งหมด</string>
+    <string name="settings_delete_all_result_title">ไทม์ไลน์</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="other">ลบรายการธุรกรรม %1$d รายการ.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Backup / import status -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_share">แชร์</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">การแจ้งเตือน</string>
+    <!-- AI Features -->
+    <string name="settings_ai_chat_title">ผู้ช่วยแชท AI</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_insufficient_space">พื้นที่จัดเก็บไม่เพียงพอ</string>
+    <string name="settings_ai_download">ดาวน์โหลด</string>
+    <string name="settings_ai_retry">ลองอีกครั้ง</string>
+    <string name="settings_ai_delete">ลบ</string>
+    <string name="settings_ai_error">ข้อผิดพลาด</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <!-- Developer -->
+    <string name="settings_developer_mode_subtitle">แสดงข้อมูลทางเทคนิคในแชท</string>
+    <!-- Support & Community -->
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">ลักษณะ</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">ระบบ</string>
+    <string name="appearance_mode_light">สว่าง</string>
+    <string name="appearance_mode_dark">มืด</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">ไดนามิก</string>
+    <string name="appearance_style_dynamic_subtitle">สีวอลเปเปอร์</string>
+    <string name="appearance_style_default">ค่าเริ่มต้น</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_subtitle">ใช้พื้นหลังสีดำบริสุทธิ์เพื่อความคอนทราสต์ที่ลึกยิ่งขึ้น</string>
+    <string name="appearance_blur_title">เอฟเฟกต์เบลอ</string>
+    <string name="appearance_blur_subtitle">เปิดใช้งานเอฟเฟกต์เบลอแบบ Glassmorphism ในส่วนประกอบของ UI</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">การนำทาง</string>
+    <string name="appearance_nav_floating">ลอย</string>
+    <string name="appearance_nav_normal">ปกติ</string>
+    <string name="appearance_nav_normal_subtitle">มาตรฐาน M3</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_none">ไม่มี</string>
+    <string name="appearance_cover_selected">ที่เลือก</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">แบบอักษร</string>
+    <string name="appearance_font_default">ค่าเริ่มต้น</string>
+    <string name="appearance_font_default_subtitle">ระบบ</string>
+    <string name="appearance_font_sn_pro_subtitle">โมโนทันสมัย</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">คำถามที่พบบ่อย</string>
+    <string name="faq_collapse">ย่อ</string>
+    <string name="faq_expand">ขยาย</string>
+    <!-- Transaction Types -->
+    <!-- SMS Parsing -->
+    <!-- Privacy & Data -->
+    <!-- AI Features -->
+    <!-- Account Management -->
+    <!-- Still need help -->
+</resources>

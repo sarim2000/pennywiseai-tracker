@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Shared (accounts, loans, exchange rates) ══ -->
+    <!-- ══ Account detail ══ -->
+    <!-- %1$s = formatted amount; marks an estimate across currencies -->
+    <!-- %1$s = formatted balance after the transaction -->
+    <!-- ══ Balance history ══ -->
+    <!-- %1$s = first characters of the SMS -->
+    <!-- ══ Add account ══ -->
+    <!-- ══ Merge accounts sheet ══ -->
+    <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
+    <!-- %1$s = source account, %2$s = target account -->
+    <!-- Tag appended to a credit-card account row ("··1234 · INR · Credit") -->
+    <!-- ══ Manage accounts: status messages ══ -->
+    <!-- %1$s = formatted balance -->
+    <!-- %1$s / %2$s = currency codes -->
+    <!-- %1$d = transaction count, %2$s = target account -->
+    <!-- ══ Manage accounts screen ══ -->
+    <!-- %1$d = utilization percentage -->
+    <!-- %1$d = day of month -->
+    <!-- %1$s = short date -->
+    <!-- %1$s = formatted current balance -->
+    <!-- %1$s = currency code -->
+    <!-- %1$s = formatted balance -->
+    <!-- %1$s = SMS text -->
+    <!-- %1$s = bank name -->
+    <!-- %1$s = last digits of the account -->
+    <!-- ══ Loans list ══ -->
+    <!-- %1$s = formatted original loan amount -->
+    <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <!-- Open loans both ways that cancel out exactly -->
+    <!-- ══ Loan detail ══ -->
+    <!-- %1$s = formatted original loan amount -->
+    <!-- %1$d = percentage repaid -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = formatted remaining amount -->
+    <!-- ══ Exchange rates ══ -->
+    <!-- %1$s = date and time -->
+    <!-- ══ Accounts overview card (home) ══ -->
+    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
+</resources>

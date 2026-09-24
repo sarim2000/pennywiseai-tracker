@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">Confirgurações</string>
+    <string name="settings_back">Anterior</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">cancelar</string>
+    <string name="settings_action_ok">Certo</string>
+    <string name="settings_action_done">Concluído</string>
+    <!-- PennyWise Pro -->
+    <string name="settings_pro_section">PennyWise Pro</string>
+    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <string name="settings_pro_title_upgrade">Atualizar para PennyWise Pro</string>
+    <string name="settings_pro_subtitle_active">Ativo · todos os recursos de energia desbloqueados</string>
+    <string name="settings_pro_subtitle_upgrade">Regras ilimitadas, declarações, exportações e muito mais</string>
+    <!-- Personalization -->
+    <string name="settings_personalization_section">Personalização</string>
+    <string name="settings_appearance_title">Aparência</string>
+    <string name="settings_appearance_subtitle">Tema, cores, fontes &amp; navegação</string>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_language_subtitle">Escolha o idioma do aplicativo</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">moeda</string>
+    <string name="settings_unified_currency_title">Modo de moeda unificada</string>
+    <string name="settings_unified_currency_subtitle">Converter todas as transações para exibição de moeda</string>
+    <string name="settings_display_currency_title">Moeda de Exibição</string>
+    <string name="settings_display_currency_subtitle">Todos os valores mostrados nesta moeda</string>
+    <string name="settings_exchange_rates_title">Taxas de câmbio</string>
+    <string name="settings_exchange_rates_subtitle">Visualizar e personalizar taxas</string>
+    <string name="settings_card_spend_as_expense_title">Conte gastos com cartão como despesa</string>
+    <string name="settings_card_spend_as_expense_subtitle">Incluir valor gasto com cartão de crédito em \"Gasto este mês\"</string>
+    <string name="settings_default_currency_title">Moeda Padrão</string>
+    <string name="settings_default_currency_subtitle">Moeda usada para conversões</string>
+    <string name="settings_main_account_title">Conta principal</string>
+    <string name="settings_main_account_subtitle">Define a sua moeda padrão</string>
+    <string name="settings_main_account_not_set">Não definido</string>
+    <string name="settings_currency_field_label">moeda</string>
+    <string name="settings_number_format_title">Formato do número</string>
+    <string name="settings_number_format_subtitle">Quão grandes quantidades são agrupadas</string>
+    <string name="settings_number_format_auto">Automático</string>
+    <string name="settings_number_format_indian">Indiano</string>
+    <string name="settings_number_format_international">Internacional</string>
+    <string name="settings_number_format_auto_example">Corresponde a cada moeda (├1.50.000 · US$50.000)</string>
+    <string name="settings_number_format_indian_example">1,50.000 (lakh / crore)</string>
+    <string name="settings_number_format_international_example">150.000 (mil / milhões)</string>
+    <!-- Budget -->
+    <string name="settings_budget_section">Orçamento</string>
+    <string name="settings_budget_cycle_title">Dia Inicial do Ciclo de Orçamento</string>
+    <string name="settings_budget_cycle_subtitle">Desloca o início de cada período de orçamento mensal; por exemplo, 25 significa que seu ciclo roda 25th → 24th</string>
+    <string name="settings_budget_cycle_dialog_body">Escolha o dia que cada ciclo de orçamento mensal começa. Por exemplo, 25 significa que o ciclo corre a partir do dia 25 até o dia 24 do próximo mês.</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">Contatos</string>
+    <string name="settings_contacts_vpa_title">Substituir APV UPI por nomes de contatos</string>
+    <string name="settings_contacts_vpa_subtitle">Mostrar \'John Doe\' em vez de \'9876543210@paytm\'. Precisa de permissão de contatos.</string>
+    <!-- Security -->
+    <string name="settings_security_section">Segurança</string>
+    <string name="settings_app_lock_title">Bloqueio de apps</string>
+    <string name="settings_app_lock_subtitle">Proteja seus dados com autenticação biométrica</string>
+    <string name="settings_lock_timeout_title">Timeout de Bloqueio</string>
+    <string name="settings_lock_timeout_immediately_subtitle">Bloquear imediatamente</string>
+    <plurals name="settings_lock_timeout_after_minutes">
+        <item quantity="one">Após %1$d minuto</item>
+        <item quantity="other">Após %1$d minutos</item>
+    </plurals>
+    <string name="settings_lock_timeout_dialog_body">Escolha quando bloquear o aplicativo depois de acessar o plano de fundo</string>
+    <string name="settings_lock_timeout_option_immediately">Imediamente</string>
+    <!-- Data Management -->
+    <string name="settings_data_section">Gerenciamento de dados</string>
+    <string name="settings_manage_accounts_title">Gerenciar contas</string>
+    <string name="settings_manage_accounts_subtitle">Visualizar e gerenciar suas contas bancárias</string>
+    <string name="settings_categories_title">categorias</string>
+    <string name="settings_categories_subtitle">Gerenciar categorias de despesas e receitas</string>
+    <string name="settings_smart_rules_title">Regras Inteligentes</string>
+    <string name="settings_smart_rules_subtitle">Categorias de transações automáticas</string>
+    <string name="settings_budgets_title">Orçamentos</string>
+    <string name="settings_budgets_subtitle">Monitorar limites de gastos por categoria</string>
+    <string name="settings_loans_title">Empréstimos</string>
+    <string name="settings_loans_subtitle">Monitore o dinheiro emprestado</string>
+    <string name="settings_recurring_title">Recorrentes</string>
+    <string name="settings_recurring_subtitle">Adicionar dinheiro &amp; transações manuais agendadas automaticamente</string>
+    <string name="settings_transaction_groups_title">Grupos de transação</string>
+    <string name="settings_transaction_groups_subtitle">Organize transações sob um tópico</string>
+    <string name="settings_export_data_title">Exportar dados</string>
+    <string name="settings_export_data_subtitle">Fazer backup de todos os dados em um arquivo</string>
+    <string name="settings_folder_backup_title">Backup automático da pasta</string>
+    <string name="settings_folder_backup_subtitle_enabled">Backup diário às 2:00 AM para a pasta escolhida</string>
+    <string name="settings_folder_backup_subtitle_pro">Pro · Salve um backup em uma pasta todos os dias às 2:00 AM</string>
+    <string name="settings_folder_backup_subtitle_disabled">Salve um backup em uma pasta todos os dias às 2:00 AM</string>
+    <string name="settings_backup_now_title">Fazer backup agora</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_backup_now_last_backup">Último backup: %1$s</string>
+    <string name="settings_backup_now_subtitle">Execute um backup na sua pasta agora</string>
+    <string name="settings_change_backup_folder_title">Alterar pasta de Backup</string>
+    <string name="settings_change_backup_folder_subtitle">Escolha uma pasta diferente para backups automáticos</string>
+    <string name="settings_import_data_title">Importar dados</string>
+    <string name="settings_import_data_subtitle">Restaurar dados do backup</string>
+    <string name="settings_import_csv_title">Importar transações (CSV)</string>
+    <string name="settings_import_csv_subtitle">Importar de uma exportação CSV PennyWise</string>
+    <string name="settings_import_statement_title">Importar Declaração</string>
+    <string name="settings_import_statement_subtitle">Importar do GPay, PhonePe, Paytm</string>
+    <string name="settings_unrecognized_sms_title">SMS não reconhecido</string>
+    <string name="settings_unrecognized_sms_subtitle">Ver e reportar mensagens bancárias não suportadas</string>
+    <string name="settings_delete_all_title">Excluir Todas as Transações</string>
+    <string name="settings_delete_all_subtitle">Limpar seu histórico de transações — contas e orçamentos permanecem</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">Período de digitalização SMS</string>
+    <string name="settings_sms_scan_subtitle_all_time">Procurar todas as mensagens SMS</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_subtitle_from_date">Escanear de %1$s para hoje</string>
+    <string name="settings_sms_scan_subtitle_custom">Digitalizar de uma data de início personalizada até hoje</string>
+    <plurals name="settings_sms_scan_subtitle_months">
+        <item quantity="one">Escanear último mês em %1$d</item>
+        <item quantity="other">Escanear últimos %1$d meses</item>
+    </plurals>
+    <string name="settings_sms_scan_all_time">Todo o Tempo</string>
+    <string name="settings_sms_scan_custom_short">Personalizado</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <string name="settings_sms_scan_dialog_body">Escolha o quão longe volte a verificar as mensagens SMS por transações</string>
+    <string name="settings_sms_scan_option_custom">Data personalizada</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_option_custom_with_date">Data personalizada (%1$s)</string>
+    <plurals name="settings_sms_scan_option_years">
+        <item quantity="one">%1$d ano</item>
+        <item quantity="other">%1$d anos</item>
+    </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
+    <string name="settings_delete_all_dialog_title">Excluir todas as transações?</string>
+    <plurals name="settings_delete_all_dialog_body">
+        <item quantity="one">Isto exclui permanentemente sua transação %1$d , juntamente com suas divisões e tags. Não pode ser desfeito.</item>
+        <item quantity="other">Isto exclui permanentemente todas as transações %1$d , juntamente com suas divisões e etiquetas. Não pode ser desfeito.</item>
+    </plurals>
+    <string name="settings_delete_all_dialog_kept">Suas contas, orçamentos, empréstimos, categorias e regras são mantidas. Exporte dados primeiro se você quiser este histórico de volta.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_type_to_confirm">Digite %1$s para confirmar</string>
+    <string name="settings_delete_all_dialog_deleting">Excluindo…</string>
+    <string name="settings_delete_all_dialog_confirm">Excluir todos os</string>
+    <string name="settings_delete_all_result_title">Linha do Tempo</string>
+    <string name="settings_delete_all_result_none">Não havia transações para excluir.</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="one">Transação %1$d excluída.</item>
+        <item quantity="other">Transações %1$d excluídas.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <string name="settings_delete_all_result_count_changed">Nova transação chegou enquanto você estava confirmando, então nada foi excluído. Agora há %1$d. Verifique o número e tente novamente.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_delete_all_result_error">Não foi possível excluir transações: %1$s</string>
+    <!-- Data Management → Backup / import status -->
+    <string name="settings_backup_status_title">Status do backup</string>
+    <string name="settings_backup_created_choose">Backup criado com sucesso! Escolha onde salvá-lo.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_export_failed">Exportação falhou: %1$s</string>
+    <string name="settings_export_error">Erro de exportação: %1$s</string>
+    <string name="settings_backup_saved">Backup salvo com sucesso!</string>
+    <string name="settings_backup_save_failed">Falha ao salvar o backup: %1$s</string>
+    <string name="settings_importing_backup">Importando backup...</string>
+    <string name="settings_import_backup_success">Importação bem-sucedida! Transações %1$d importadas, categorias %2$d ignoradas. Puladas %3$d duplicadas.</string>
+    <string name="settings_import_backup_success_with_skipped_rows">Importação bem-sucedida! Transações %1$d importadas, categorias %2$d . Ignoradas %3$d duplicadas. Linhas %4$d não puderam ser importadas.</string>
+    <string name="settings_import_failed">Importação falhou: %1$s</string>
+    <string name="settings_import_error">Erro de importação: %1$s</string>
+    <string name="settings_importing_transactions">Importando transações...</string>
+    <string name="settings_import_csv_success_with_failed_rows">Transações %1$d importadas, duplicadas com %2$d saltadas, registros %3$d não puderam ser analisados</string>
+    <string name="settings_folder_backup_disabled">Backup automático de pastas desativado</string>
+    <string name="settings_folder_access_failed">Não foi possível acessar a pasta selecionada: %1$s</string>
+    <string name="settings_folder_select_first">Selecione uma pasta de backup primeiro</string>
+    <string name="settings_folder_not_writable">Não é possível gravar a pasta de backup selecionada</string>
+    <string name="settings_folder_backup_saved">Backup salvo na pasta</string>
+    <string name="settings_folder_backup_enabled">Backup automático de pastas ativado. Backups executam diariamente às 2:00 AM.</string>
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_title">Salvar Backup</string>
+    <string name="settings_save_backup_created">Backup criado com sucesso!</string>
+    <string name="settings_save_backup_choose">Escolha como você deseja salvá-lo:</string>
+    <string name="settings_save_backup_to_files">Salvar em Arquivos</string>
+    <string name="settings_save_backup_share">Compartilhar</string>
+    <string name="settings_share_backup_subject">Backup PennyWise</string>
+    <string name="settings_share_backup_chooser">Compartilhar backup</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">Notificações</string>
+    <string name="settings_notification_access_title">Acesso às notificações do banco</string>
+    <string name="settings_notification_access_enabled">Ativado</string>
+    <string name="settings_notification_access_disabled">Toque para ativar as notificações de apps bancários</string>
+    <string name="settings_notification_access_on">Ligado</string>
+    <string name="settings_notification_access_off">Desligado</string>
+    <!-- AI Features -->
+    <string name="settings_ai_section">Funcionalidades IA</string>
+    <string name="settings_ai_chat_title">Assistente de Chat com IA</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_not_downloaded">Baixar modelo de IA (%1$d MB)</string>
+    <string name="settings_ai_status_downloading">Baixando modelo de IA ...</string>
+    <string name="settings_ai_status_paused">Download interrompido</string>
+    <string name="settings_ai_status_completed">Modelo IA pronto para bate-papo</string>
+    <string name="settings_ai_status_failed">Download falhou</string>
+    <string name="settings_ai_status_insufficient_space">Espaço de armazenamento insuficiente</string>
+    <string name="settings_ai_download">BAIXAR</string>
+    <string name="settings_ai_retry">Repetir</string>
+    <string name="settings_ai_downloaded">Baixado</string>
+    <string name="settings_ai_delete">excluir</string>
+    <string name="settings_ai_error">Erro</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_cancel_download">Cancelar download</string>
+    <string name="settings_ai_info">Converse com AI sobre suas despesas e receba informações financeiras. Todas as conversas permanecem privadas no seu dispositivo.</string>
+    <string name="settings_ai_download_notification_title">Modelo de chat IA</string>
+    <string name="settings_ai_download_notification_description">Baixando o Assistente de chat IA para PennyWise</string>
+    <!-- Developer -->
+    <string name="settings_developer_section">Desenvolvedores</string>
+    <string name="settings_developer_mode_title">Modo de desenvolvedor</string>
+    <string name="settings_developer_mode_subtitle">Mostrar informações técnicas no chat</string>
+    <!-- Support & Community -->
+    <string name="settings_support_section">Suporte &amp; Comunidade</string>
+    <string name="settings_help_faq_title">Ajuda &amp; FAQ</string>
+    <string name="settings_help_faq_subtitle">Perguntas mais frequentes e ajuda</string>
+    <string name="settings_report_issue_title">Relatar um problema</string>
+    <string name="settings_report_issue_subtitle">Enviar relatórios de erros no GitHub</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">Aparência</string>
+    <string name="appearance_back">Anterior</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">Sistema</string>
+    <string name="appearance_mode_light">Claro</string>
+    <string name="appearance_mode_dark">Escuro</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">Dinâmico</string>
+    <string name="appearance_style_dynamic_subtitle">Cores do Papel de Parede</string>
+    <string name="appearance_style_default">Padrão</string>
+    <string name="appearance_style_default_subtitle">Cores de Pinheiro Rosa</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_title">Preto AMOLED</string>
+    <string name="appearance_amoled_subtitle">Use fundo preto puro para contraste mais profundo</string>
+    <string name="appearance_blur_title">Efeitos de Desfoque</string>
+    <string name="appearance_blur_subtitle">Ativar efeitos de vidro borrado nos componentes da interface</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">Navegação</string>
+    <string name="appearance_nav_floating">Flutuante</string>
+    <string name="appearance_nav_floating_subtitle">Moderno &amp; Lustrado</string>
+    <string name="appearance_nav_normal">normal</string>
+    <string name="appearance_nav_normal_subtitle">M3 Padrão</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_section">Estilo da capa</string>
+    <string name="appearance_cover_none">Nenhuma</string>
+    <string name="appearance_cover_selected">Selecionado</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">Fontes</string>
+    <string name="appearance_font_default">Padrão</string>
+    <string name="appearance_font_default_subtitle">Sistema</string>
+    <string name="appearance_font_sn_pro_subtitle">Moderno Mono</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">Perguntas Frequentes</string>
+    <string name="faq_back">Anterior</string>
+    <string name="faq_collapse">Recolher</string>
+    <string name="faq_expand">Expandir</string>
+    <!-- Transaction Types -->
+    <string name="faq_transaction_types_section">Tipos de transação</string>
+    <string name="faq_wallet_credit_question">Por que as transações de carteira são marcadas como Crédito?</string>
+    <string name="faq_wallet_credit_answer">As transações Wallet (Amazon Pay, Paytm, etc.) estão marcadas como Crédito porque são cobradas em sua conta bancária ou cartão de crédito primeiro, não como débitos bancários. Isso ajuda a rastrear o método de pagamento realmente usado.</string>
+    <string name="faq_transaction_types_question">Qual é a diferença entre os 5 tipos de transação?</string>
+    <string name="faq_transaction_types_answer">• Despesa: Dinheiro saindo da sua conta (débitos, compras,\nReceita: Dinheiro vindo em sua conta (salário, reembolso, reembolso)\n• Investimento: Fundos mútuos, ações, SIPs, contas de negociação\n• Crédito: transações com cartão de crédito e pagamentos em carteira (dinheiro que você pagará mais tarde)\n• Transferência: Dinheiro movido entre suas contas (transferências próprias)</string>
+    <string name="faq_transfer_vs_expense_question">Quando devo usar a Transferência vs Despesa?</string>
+    <string name="faq_transfer_vs_expense_answer">Use a Transferência ao movimentar dinheiro entre suas próprias contas (por exemplo, poupanças para verificação). Isso não afeta o seu valor líquido. Use despesas para gastos reais.</string>
+    <!-- SMS Parsing -->
+    <string name="faq_sms_parsing_section">Análise de SMS</string>
+    <string name="faq_sms_not_detected_question">Por que meu SMS bancário não está sendo detectado?</string>
+    <string name="faq_sms_not_detected_answer">Verifique se o seu banco é suportado na nossa lista. Se não, reporte via GitHub. Certifique-se de que as permissões de SMS são concedidas e o formato do remetente corresponde aos padrões padrão de SMS de banco padrão.</string>
+    <string name="faq_unrecognized_sms_question">O que acontece com SMS não reconhecido?</string>
+    <string name="faq_unrecognized_sms_answer">Eles são salvos em \'Mensagens não reconhecidas\', onde você pode revisá-las manualmente ou relatá-las para nos ajudar a melhorar a análise.</string>
+    <string name="faq_duplicates_question">Por que algumas transações são duplicadas?</string>
+    <string name="faq_duplicates_answer">Alguns bancos enviam vários SMS para a mesma transação. O aplicativo tenta detectar duplicadas, mas você pode excluir manualmente qualquer coisa que passar.</string>
+    <!-- Privacy & Data -->
+    <string name="faq_privacy_section">Privacidade &amp; Dados</string>
+    <string name="faq_data_secure_question">Meus dados financeiros estão seguros?</string>
+    <string name="faq_data_secure_answer">Sim! Todos os dados permanecem no seu dispositivo. Não temos servidores ou armazenamento em nuvem. O modelo de IA é executado localmente para total privacidade.</string>
+    <string name="faq_backup_question">Posso fazer backup dos meus dados?</string>
+    <string name="faq_backup_answer">Atualmente, os dados são armazenados apenas localmente. Recursos de exportação/backup estão planejados para futuras atualizações.</string>
+    <string name="faq_data_access_question">Quais dados o aplicativo acessa?</string>
+    <string name="faq_data_access_answer">Apenas mensagens SMS de remetentes bancários conhecidos. Não lemos mensagens pessoais nem acessamos outros dados do app.</string>
+    <!-- AI Features -->
+    <string name="faq_ai_section">Funcionalidades IA</string>
+    <string name="faq_ai_download_question">Por que eu preciso baixar o modelo de Inteligência?</string>
+    <string name="faq_ai_download_answer">O modelo de 750MB habilita o chat no dispositivo sobre as suas despesas sem enviar dados para nenhum servidor, garantindo total privacidade.</string>
+    <string name="faq_ai_ask_question">O que posso perguntar ao assistente de IA?</string>
+    <string name="faq_ai_ask_answer">Você pode perguntar sobre padrões de gastos, conselhos de orçamento, resumos de transações e perguntas financeiras gerais com base em seus dados.</string>
+    <!-- Account Management -->
+    <string name="faq_accounts_section">Gerenciamento da conta</string>
+    <string name="faq_manual_accounts_question">O que são contas manuais?</string>
+    <string name="faq_manual_accounts_answer">Contas manuais permitem que você rastreie dinheiro, investimentos ou contas de bancos não suportados. Você atualiza saldos manualmente.</string>
+    <string name="faq_multiple_accounts_question">Como faço para rastrear várias contas do mesmo banco?</string>
+    <string name="faq_multiple_accounts_answer">O aplicativo detecta automaticamente diferentes contas com base nos últimos 4 dígitos mostrados em SMS.</string>
+    <!-- Still need help -->
+    <string name="faq_still_need_help_section">Ainda precisa de ajuda?</string>
+    <string name="faq_report_issue_title">Relatar um problema</string>
+    <string name="faq_report_issue_subtitle">Enviar relatórios de bugs, pedidos bancários ou melhorias em recursos no GitHub</string>
+</resources>

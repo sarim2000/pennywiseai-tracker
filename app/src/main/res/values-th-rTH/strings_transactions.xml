@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Export transactions dialog -->
+    <string name="txn_export_title_ready">ส่งออกธุรกรรม</string>
+    <string name="txn_export_title_exporting">กำลังส่งออก...</string>
+    <string name="txn_export_title_success">ส่งออกเสร็จสิ้น!</string>
+    <string name="txn_export_title_error">การส่งออกล้มเหลว</string>
+    <plurals name="txn_export_ready_message">
+        <item quantity="other">ส่งออก %1$d ธุรกรรมไปยังรูปแบบ CSV</item>
+    </plurals>
+    <string name="txn_export_total_transactions">ธุรกรรมทั้งหมด:</string>
+    <string name="txn_export_date_range">ช่วงวันที่:</string>
+    <plurals name="txn_export_success_message">
+        <item quantity="other">ส่งออกธุรกรรม %1$d รายการสำเร็จ</item>
+    </plurals>
+    <string name="txn_export_file_size">ขนาด: %1$s</string>
+    <string name="txn_export_action_cancel">ยกเลิก</string>
+    <string name="txn_export_action_export">ส่งออก</string>
+    <string name="txn_export_action_done">เสร็จสิ้น</string>
+    <string name="txn_export_share_subject">ส่งออกธุรกรรม PennyWise</string>
+    <string name="txn_export_share_chooser_title">แชร์ CSV</string>
+    <string name="txn_export_action_share">แชร์</string>
+    <string name="txn_export_action_close">ปิด</string>
+    <string name="txn_export_action_retry">ลองอีกครั้ง</string>
+    <!-- Transaction detail: errors -->
+    <!-- Transaction types -->
+    <string name="txn_type_income">รายได้</string>
+    <string name="txn_type_expense">ค่าใช้จ่าย</string>
+    <string name="txn_type_credit">เครดิต</string>
+    <string name="txn_type_transfer">โอน</string>
+    <string name="txn_type_investment">การลงทุน</string>
+    <!-- Transaction detail -->
+    <string name="txn_detail_updated">อัปเดตธุรกรรมสำเร็จแล้ว</string>
+    <string name="txn_detail_title">รายละเอียดธุรกรรม</string>
+    <string name="txn_detail_title_edit">แก้ไขธุรกรรม</string>
+    <string name="txn_detail_action_cancel">ยกเลิก</string>
+    <string name="txn_detail_action_edit">แก้ไข</string>
+    <string name="txn_detail_action_delete">ลบ</string>
+    <string name="txn_detail_action_save">บันทึก</string>
+    <string name="txn_detail_action_ok">ตกลง</string>
+    <string name="txn_detail_action_confirm">ยืนยัน</string>
+    <string name="txn_detail_delete_title">ลบรายการธุรกรรม</string>
+    <string name="txn_detail_delete_message">คุณแน่ใจหรือว่าต้องการลบรายการธุรกรรมนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</string>
+    <string name="txn_detail_unmark_loan_title">ยกเลิกการทำเครื่องหมายเป็นเงินกู้?</string>
+    <string name="txn_detail_unmark_loan">ยกเลิกการทำเครื่องหมายเป็นเงินกู้</string>
+    <string name="txn_detail_mark_as_loan">ทำเครื่องหมายเป็นเงินกู้</string>
+    <string name="txn_detail_close">ปิด</string>
+    <string name="txn_detail_label_category">หมวดหมู่</string>
+    <string name="txn_detail_label_bank">ธนาคาร</string>
+    <string name="txn_detail_label_description">คำอธิบาย</string>
+    <string name="txn_detail_status_recurring">เกิดซ้ำ</string>
+    <string name="txn_detail_label_account">บัญชี</string>
+    <string name="txn_detail_label_balance">ยอดคงเหลือ</string>
+    <string name="txn_detail_receipt">ใบเสร็จ</string>
+    <string name="txn_detail_field_amount">จำนวนเงิน</string>
+    <string name="txn_detail_field_merchant">พ่อค้า</string>
+    <string name="txn_detail_field_description">คำอธิบาย (ไม่บังคับ)</string>
+    <string name="txn_detail_clear">ล้าง</string>
+    <string name="txn_detail_recurring_checkbox">ธุรกรรมซ้ำ</string>
+    <string name="txn_detail_budget_impact_none">ไม่มี</string>
+    <string name="txn_detail_select_time">เลือกเวลา</string>
+    <string name="txn_detail_group_remove">ลบ</string>
+    <!-- Transaction totals card -->
+    <string name="txn_totals_income">รายได้</string>
+    <string name="txn_totals_expense">ค่าใช้จ่าย</string>
+    <string name="txn_totals_expenses">ค่าใช้จ่าย</string>
+    <string name="txn_totals_credit">เครดิต</string>
+    <string name="txn_totals_net">สุทธิ</string>
+    <!-- Transactions list -->
+    <string name="txn_list_title">ไทม์ไลน์</string>
+    <string name="txn_list_deleted">ธุรกรรมถูกลบ</string>
+    <string name="txn_list_undo">เลิกทำ</string>
+    <string name="txn_list_selected_count">เลือก %1$d รายการ</string>
+    <string name="txn_list_add_transaction">เพิ่มรายการธุรกรรม</string>
+    <string name="txn_list_group_today">วันนี้</string>
+    <string name="txn_list_group_yesterday">เมื่อวาน</string>
+    <string name="txn_list_group_this_week">สัปดาห์นี้</string>
+    <string name="txn_list_group_earlier">ก่อนหน้านี้</string>
+    <string name="txn_list_sort_newest">ใหม่ที่สุดก่อน</string>
+    <string name="txn_list_sort_oldest">เก่าที่สุดก่อน</string>
+    <string name="txn_list_sort_amount_highest">จำนวนสูงสุด</string>
+    <string name="txn_list_sort_amount_lowest">จำนวนต่ำสุด</string>
+    <string name="txn_list_sort_merchant_az">ร้านค้า (A-Z)</string>
+    <string name="txn_list_sort_merchant_za">ร้านค้า (Z-A)</string>
+    <string name="txn_list_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="txn_list_filter_profile">โปรไฟล์</string>
+    <string name="txn_list_filter_account">บัญชี</string>
+    <string name="txn_list_filter_category">หมวดหมู่</string>
+    <string name="txn_list_filters">ตัวกรอง</string>
+    <string name="txn_list_search">ค้นหา</string>
+    <string name="txn_list_search_in_category">ค้นหาใน %1$s...</string>
+    <string name="txn_list_search_placeholder">ค้นหาธุรกรรม...</string>
+    <string name="txn_list_clear_search">ล้างการค้นหา</string>
+    <string name="txn_list_empty_title">ยังไม่มีรายการธุรกรรม</string>
+    <!-- Add transaction / subscription -->
+    <string name="add_title">เพิ่มใหม่</string>
+    <string name="add_tab_transaction">ธุรกรรม</string>
+    <string name="add_tab_subscription">การสมัครสมาชิก</string>
+    <string name="add_field_amount">จำนวนเงิน *</string>
+    <string name="add_field_merchant">พ่อค้า</string>
+    <string name="add_field_notes">หมายเหตุ (ไม่บังคับ)</string>
+    <string name="add_field_category">หมวดหมู่</string>
+    <string name="add_clear">ล้าง</string>
+    <string name="add_selected">ที่เลือก</string>
+    <string name="add_save">บันทึก</string>
+    <string name="add_ok">ตกลง</string>
+    <string name="add_cancel">ยกเลิก</string>
+    <string name="add_select_time">เลือกเวลา</string>
+    <string name="add_txn_select_account">เลือกบัญชี</string>
+    <string name="add_receipt_image">ใบเสร็จ</string>
+    <string name="add_receipt_gallery">แกลเลอรี</string>
+    <string name="add_sub_direction_expense">ค่าใช้จ่าย</string>
+    <string name="add_sub_direction_income">รายได้</string>
+    <string name="add_sub_info_expense">ติดตามค่าใช้จ่ายประจำ คุณจะต้องเพิ่มรายการด้วยตนเองทุกเดือน</string>
+    <string name="add_sub_billing_cycle">รอบบิล</string>
+    <string name="add_sub_cycle_monthly">รายเดือน</string>
+    <string name="add_sub_cycle_quarterly">รายไตรมาส</string>
+    <string name="add_sub_cycle_semi_annual">ครึ่งปี</string>
+    <string name="add_sub_cycle_annual">รายปี</string>
+    <string name="add_sub_cycle_weekly">รายสัปดาห์</string>
+    <string name="add_sub_service_name">ชื่อบริการ *</string>
+    <string name="add_error_save_transaction">บันทึกธุรกรรมล้มเหลว</string>
+    <string name="add_error_save_subscription">บันทึกการสมัครล้มเหลว</string>
+    <string name="add_error_service_required">จำเป็นต้องระบุชื่อบริการ</string>
+    <string name="add_error_amount_required">จำเป็นต้องระบุจำนวน</string>
+    <string name="add_error_amount_invalid">จำนวนไม่ถูกต้อง</string>
+    <string name="add_error_amount_positive">จำนวนต้องมากกว่า 0</string>
+    <string name="add_error_merchant_required">จำเป็นต้องระบุร้านค้าหรือคำอธิบาย</string>
+    <string name="add_error_merchant_too_short">สั้นเกินไป</string>
+    <string name="add_error_category_required">จำเป็นต้องระบุหมวดหมู่</string>
+    <!-- Transaction groups -->
+    <plurals name="groups_transaction_count">
+        <item quantity="other">%1$d ธุรกรรม</item>
+    </plurals>
+    <string name="group_save">บันทึก</string>
+    <string name="group_cancel">ยกเลิก</string>
+    <string name="group_delete">ลบ</string>
+    <string name="group_detail_edit">แก้ไข</string>
+    <string name="group_detail_add_transaction">เพิ่มรายการธุรกรรม</string>
+    <string name="group_detail_transactions">ไทม์ไลน์</string>
+    <string name="group_detail_expenses">ค่าใช้จ่าย</string>
+    <string name="group_detail_income">รายได้</string>
+    <string name="group_detail_empty_title">ยังไม่มีรายการธุรกรรม</string>
+    <string name="group_detail_picker_add">เพิ่ม</string>
+    <!-- Recurring transactions -->
+    <string name="recurring_title">เกิดซ้ำ</string>
+    <string name="recurring_frequency_daily">รายวัน</string>
+    <string name="recurring_frequency_weekly">รายสัปดาห์</string>
+    <string name="recurring_frequency_monthly">รายเดือน</string>
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
+    <string name="recurring_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="recurring_edit">แก้ไข</string>
+    <string name="recurring_delete">ลบ</string>
+    <string name="recurring_cancel">ยกเลิก</string>
+    <string name="recurring_save">บันทึก</string>
+    <string name="recurring_field_name">ชื่อ</string>
+    <string name="recurring_field_amount">จำนวนเงิน</string>
+    <string name="recurring_field_currency">สกุลเงิน</string>
+    <string name="recurring_expense">ค่าใช้จ่าย</string>
+    <string name="recurring_income">รายได้</string>
+    <string name="recurring_field_category">หมวดหมู่</string>
+    <!-- Share card, sheet and banner -->
+    <string name="share_sheet_share">แชร์</string>
+    <string name="share_sheet_done">เสร็จสิ้น</string>
+    <string name="share_sheet_show">แสดง</string>
+    <string name="share_sheet_transactions">ไทม์ไลน์</string>
+    <string name="share_sheet_subscriptions">การสมัครสมาชิก</string>
+    <!-- %1$s = month name -->
+    <string name="share_banner_dismiss">ปิด</string>
+    <!-- Shared transaction components -->
+    <string name="date_range_title">เลือกช่วงวันที่</string>
+    <string name="date_range_ok">ตกลง</string>
+    <string name="date_range_cancel">ยกเลิก</string>
+    <string name="filter_row_more">ตัวกรองเพิ่มเติม</string>
+    <plurals name="filter_row_more_active">
+        <item quantity="other">ตัวกรองเพิ่มเติม (%1$d กำลังใช้งาน)</item>
+    </plurals>
+    <string name="filter_row_collapse">ย่อ</string>
+    <string name="filter_row_expand">ขยาย</string>
+    <string name="split_editor_total">รวม:</string>
+</resources>

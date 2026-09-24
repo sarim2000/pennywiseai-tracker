@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_back">الرجوع</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">إلغاء</string>
+    <string name="settings_action_ok">موافق</string>
+    <string name="settings_action_done">تم</string>
+    <!-- PennyWise Pro -->
+    <string name="settings_pro_section">PennyWise Pro</string>
+    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <string name="settings_pro_title_upgrade">الترقية إلى PennyWise Pro</string>
+    <string name="settings_pro_subtitle_active">نشط · فتح جميع ميزات الطاقة</string>
+    <string name="settings_pro_subtitle_upgrade">القواعد والبيانات والصادرات وغير المحدودة والمزيد</string>
+    <!-- Personalization -->
+    <string name="settings_personalization_section">التخصيص</string>
+    <string name="settings_appearance_title">المظهر</string>
+    <string name="settings_appearance_subtitle">السمة والألوان والخطوط &amp; التنقل</string>
+    <string name="settings_language_title">اللغة</string>
+    <string name="settings_language_subtitle">اختر لغة التطبيق</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">العملة</string>
+    <string name="settings_unified_currency_title">وضع العملة الموحدة</string>
+    <string name="settings_unified_currency_subtitle">تحويل جميع المعاملات لعرض العملة</string>
+    <string name="settings_display_currency_title">عرض العملة</string>
+    <string name="settings_display_currency_subtitle">جميع المبالغ المبينة بهذه العملة</string>
+    <string name="settings_exchange_rates_title">أسعار الصرف</string>
+    <string name="settings_exchange_rates_subtitle">عرض وتخصيص المعدلات</string>
+    <string name="settings_card_spend_as_expense_title">عد البطاقة التي تنفق كنفقة</string>
+    <string name="settings_card_spend_as_expense_subtitle">إدراج إنفاق بطاقة الائتمان في \"إنفاق هذا الشهر\"</string>
+    <string name="settings_default_currency_title">العملة الافتراضية</string>
+    <string name="settings_default_currency_subtitle">العملة المستخدمة للتحويلات</string>
+    <string name="settings_main_account_title">الحساب الرئيسي</string>
+    <string name="settings_main_account_subtitle">تعيين عملتك الافتراضية</string>
+    <string name="settings_main_account_not_set">لم يتم تعيينه</string>
+    <string name="settings_currency_field_label">العملة</string>
+    <string name="settings_number_format_title">تنسيق الرقم</string>
+    <string name="settings_number_format_subtitle">باء - حجم المبالغ المجمعة</string>
+    <string name="settings_number_format_auto">تلقائي</string>
+    <string name="settings_number_format_indian">الهندية</string>
+    <string name="settings_number_format_international">الدولية</string>
+    <string name="settings_number_format_auto_example">يطابق كل عملة (&lt;unk&gt; 1,50,000 · 150,000)</string>
+    <string name="settings_number_format_indian_example">1,50,000 (لاخ / محرر)</string>
+    <string name="settings_number_format_international_example">150,000 (ألف/مليون)</string>
+    <!-- Budget -->
+    <string name="settings_budget_section">الميزانية</string>
+    <string name="settings_budget_cycle_title">يوم بداية دورة الميزانية</string>
+    <string name="settings_budget_cycle_subtitle">يغير بداية كل فترة ميزانية شهرية؛ على سبيل المثال، 25 يعني أن دورتك تعمل 25 → 24</string>
+    <string name="settings_budget_cycle_dialog_body">اختر اليوم الذي تبدأ فيه كل دورة ميزانية شهرية. على سبيل المثال، 25 يعني أن الدورة تمتد من 25 إلى 24 من الشهر التالي.</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">جهات الاتصال</string>
+    <string name="settings_contacts_vpa_title">استبدال UPI VPN بأسماء جهات الاتصال</string>
+    <string name="settings_contacts_vpa_subtitle">إظهار \'John Doe\' بدلا من \'9876543210@paytm\' يحتاج إلى إذن جهات الاتصال.</string>
+    <!-- Security -->
+    <string name="settings_security_section">الأمان</string>
+    <string name="settings_app_lock_title">قفل التطبيق</string>
+    <string name="settings_app_lock_subtitle">حافظ على بياناتك باستخدام المصادقة البيومترية</string>
+    <string name="settings_lock_timeout_title">مهلة القفل</string>
+    <string name="settings_lock_timeout_immediately_subtitle">قفل على الفور</string>
+    <plurals name="settings_lock_timeout_after_minutes">
+        <item quantity="zero">بعد %1$d دقيقة</item>
+        <item quantity="one">بعد %1$d دقيقة</item>
+        <item quantity="two">بعد %1$d دقيقة</item>
+        <item quantity="few">بعد %1$d دقيقة</item>
+        <item quantity="many">بعد %1$d دقيقة</item>
+        <item quantity="other">بعد %1$d دقيقة</item>
+    </plurals>
+    <string name="settings_lock_timeout_dialog_body">اختر متى يتم قفل التطبيق بعد أن يذهب إلى الخلفية</string>
+    <string name="settings_lock_timeout_option_immediately">فورًا</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="zero">%1$d دقائق</item>
+        <item quantity="one">%1$d دقيقة</item>
+        <item quantity="two">%1$d دقائق</item>
+        <item quantity="few">%1$d دقائق</item>
+        <item quantity="many">%1$d دقائق</item>
+        <item quantity="other">%1$d دقائق</item>
+    </plurals>
+    <!-- Data Management -->
+    <string name="settings_data_section">إدارة البيانات</string>
+    <string name="settings_manage_accounts_title">إدارة الحسابات</string>
+    <string name="settings_manage_accounts_subtitle">عرض وإدارة حساباتك المصرفية</string>
+    <string name="settings_categories_title">الفئات</string>
+    <string name="settings_categories_subtitle">إدارة فئات المصروفات والدخل</string>
+    <string name="settings_smart_rules_title">قواعد ذكية</string>
+    <string name="settings_smart_rules_subtitle">تصنيف المعاملات تلقائيًا</string>
+    <string name="settings_budgets_title">الميزانيات</string>
+    <string name="settings_budgets_subtitle">تتبع حدود الإنفاق حسب الفئة</string>
+    <string name="settings_loans_title">القروض</string>
+    <string name="settings_loans_subtitle">تتبع الأموال التي تم إقراضها واقتراضها</string>
+    <string name="settings_recurring_title">متكرر</string>
+    <string name="settings_recurring_subtitle">إضافة تلقائية للنقود المجدولة &amp; المعاملات اليدوية</string>
+    <string name="settings_transaction_groups_title">مجموعات المعاملات</string>
+    <string name="settings_transaction_groups_subtitle">تنظيم المعاملات تحت موضوع</string>
+    <string name="settings_export_data_title">تصدير البيانات</string>
+    <string name="settings_export_data_subtitle">النسخ الاحتياطي لجميع البيانات إلى ملف</string>
+    <string name="settings_folder_backup_title">النسخ الاحتياطي التلقائي للمجلد</string>
+    <string name="settings_folder_backup_subtitle_enabled">النسخ الاحتياطي اليومي عند 2:00 صباحا للمجلد الذي اخترته</string>
+    <string name="settings_folder_backup_subtitle_pro">Pro · حفظ نسخة احتياطية في مجلد كل يوم في الثانية صباحا</string>
+    <string name="settings_folder_backup_subtitle_disabled">حفظ نسخة احتياطية إلى مجلد كل يوم في الثانية صباحا</string>
+    <string name="settings_backup_now_title">العودة الآن</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_backup_now_last_backup">النسخة الاحتياطية الأخيرة: %1$s</string>
+    <string name="settings_backup_now_subtitle">تشغيل نسخة احتياطية للمجلد الخاص بك الآن</string>
+    <string name="settings_change_backup_folder_title">تغيير مجلد النسخ الاحتياطي</string>
+    <string name="settings_change_backup_folder_subtitle">اختيار مجلد مختلف للنسخ الاحتياطية التلقائية</string>
+    <string name="settings_import_data_title">استيراد البيانات</string>
+    <string name="settings_import_data_subtitle">استعادة البيانات من النسخة الاحتياطية</string>
+    <string name="settings_import_csv_title">استيراد المعاملات (CSV)</string>
+    <string name="settings_import_csv_subtitle">استيراد من تصدير PennyWise CSV</string>
+    <string name="settings_import_statement_title">بيان الاستيراد</string>
+    <string name="settings_import_statement_subtitle">استيراد من GPay. الهاتف, Paytm</string>
+    <string name="settings_unrecognized_sms_title">الرسائل القصيرة غير المعترف بها</string>
+    <string name="settings_unrecognized_sms_subtitle">عرض الرسائل المصرفية غير المدعومة والإبلاغ عنها</string>
+    <string name="settings_delete_all_title">حذف جميع المعاملات</string>
+    <string name="settings_delete_all_subtitle">مسح سجل المعاملات الخاص بك - تبقى الحسابات والميزانيات</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">فترة مسح الرسائل النصية</string>
+    <string name="settings_sms_scan_subtitle_all_time">مسح جميع رسائل SMS</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_subtitle_from_date">فحص من %1$s إلى اليوم</string>
+    <string name="settings_sms_scan_subtitle_custom">فحص من تاريخ بدء مخصص إلى اليوم</string>
+    <plurals name="settings_sms_scan_subtitle_months">
+        <item quantity="zero">فحص لمدة %1$d أشهر</item>
+        <item quantity="one">فحص لمدة %1$d شهر</item>
+        <item quantity="two">فحص لمدة %1$d أشهر</item>
+        <item quantity="few">فحص لمدة %1$d أشهر</item>
+        <item quantity="many">فحص لمدة %1$d أشهر</item>
+        <item quantity="other">فحص لمدة %1$d أشهر</item>
+    </plurals>
+    <string name="settings_sms_scan_all_time">كل الوقت</string>
+    <string name="settings_sms_scan_custom_short">مخصص</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <plurals name="settings_sms_scan_months_short">
+        <item quantity="zero">%1$d شهرًا</item>
+        <item quantity="one">%1$d شهرًا</item>
+        <item quantity="two">%1$d شهرًا</item>
+        <item quantity="few">%1$d شهرًا</item>
+        <item quantity="many">%1$d شهرًا</item>
+        <item quantity="other">%1$d شهرًا</item>
+    </plurals>
+    <string name="settings_sms_scan_dialog_body">اختر إلى أي مدى يعود لمسح رسائل SMS للمعاملات</string>
+    <string name="settings_sms_scan_option_custom">تاريخ مخصص</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_option_custom_with_date">تاريخ مخصص (%1$s)</string>
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="zero">%1$d أشهر</item>
+        <item quantity="one">%1$d شهر</item>
+        <item quantity="two">%1$d أشهر</item>
+        <item quantity="few">%1$d أشهر</item>
+        <item quantity="many">%1$d أشهر</item>
+        <item quantity="other">%1$d أشهر</item>
+    </plurals>
+    <plurals name="settings_sms_scan_option_years">
+        <item quantity="zero">%1$d سنوات</item>
+        <item quantity="one">%1$d سنة</item>
+        <item quantity="two">%1$d سنوات</item>
+        <item quantity="few">%1$d سنوات</item>
+        <item quantity="many">%1$d سنوات</item>
+        <item quantity="other">%1$d سنوات</item>
+    </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
+    <string name="settings_delete_all_dialog_title">حذف جميع المعاملات؟</string>
+    <plurals name="settings_delete_all_dialog_body">
+        <item quantity="zero">هذا يحذف جميع المعاملات %1$d بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+        <item quantity="one">هذا يحذف المعاملة %1$d الخاصة بك بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+        <item quantity="two">هذا يحذف جميع المعاملات %1$d بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+        <item quantity="few">هذا يحذف جميع المعاملات %1$d بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+        <item quantity="many">هذا يحذف جميع المعاملات %1$d بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+        <item quantity="other">هذا يحذف جميع المعاملات %1$d بشكل دائم، بالإضافة إلى التقسيمات والعلامات الخاصة بها. لا يمكن التراجع عنها.</item>
+    </plurals>
+    <string name="settings_delete_all_dialog_kept">حساباتك وميزانياتك وقروضك وفئاتك وقواعدها. تصدير البيانات أولا إذا كنت ترغب في استعادة هذا التاريخ.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_type_to_confirm">اكتب %1$s للتأكيد</string>
+    <string name="settings_delete_all_dialog_deleting">حذف…</string>
+    <string name="settings_delete_all_dialog_confirm">حذف الكل</string>
+    <string name="settings_delete_all_result_title">الخط الزمني</string>
+    <string name="settings_delete_all_result_none">لا توجد معاملات لحذفها.</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="zero">تم حذف %1$d معاملات.</item>
+        <item quantity="one">تم حذف المعاملة %1$d.</item>
+        <item quantity="two">تم حذف %1$d معاملات.</item>
+        <item quantity="few">تم حذف %1$d معاملات.</item>
+        <item quantity="many">تم حذف %1$d معاملات.</item>
+        <item quantity="other">تم حذف %1$d معاملات.</item>
+    </plurals>
+    <plurals name="settings_delete_all_result_arrived">
+        <item quantity="zero">وصل %1$d معاملات جديدة أثناء استمرارها.</item>
+        <item quantity="one">وصل %1$d معاملة جديدة أثناء استمرارها.</item>
+        <item quantity="two">وصل %1$d معاملات جديدة أثناء استمرارها.</item>
+        <item quantity="few">وصل %1$d معاملات جديدة أثناء استمرارها.</item>
+        <item quantity="many">وصل %1$d معاملات جديدة أثناء استمرارها.</item>
+        <item quantity="other">وصل %1$d معاملات جديدة أثناء استمرارها.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <string name="settings_delete_all_result_count_changed">وصلت معاملات جديدة أثناء تأكيدك، لذلك لم يتم حذف أي شيء. هناك الآن %1$d. تحقق من الرقم وحاول مرة أخرى.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_delete_all_result_error">تعذر حذف المعاملات: %1$s</string>
+    <!-- Data Management → Backup / import status -->
+    <string name="settings_backup_status_title">حالة النسخ الاحتياطي</string>
+    <string name="settings_backup_created_choose">تم إنشاء النسخ الاحتياطي بنجاح! اختر مكان لحفظه.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_export_failed">فشل التصدير: %1$s</string>
+    <string name="settings_export_error">خطأ في التصدير: %1$s</string>
+    <string name="settings_backup_saved">تم حفظ النسخ الاحتياطي بنجاح!</string>
+    <string name="settings_backup_save_failed">فشل حفظ النسخ الاحتياطي: %1$s</string>
+    <string name="settings_importing_backup">استيراد النسخ الاحتياطي...</string>
+    <string name="settings_import_backup_success">تم الاستيراد بنجاح! تم استيراد معاملات %1$d ، %2$d الفئات. تم تخطي %3$d مكررة.</string>
+    <string name="settings_import_backup_success_with_skipped_rows">تم الاستيراد بنجاح! تم استيراد معاملات %1$d ، %2$d الفئات. تم تخطي أكرر %3$d . تعذر استيراد صفوف %4$d.</string>
+    <string name="settings_import_failed">فشل الاستيراد: %1$s</string>
+    <string name="settings_import_error">خطأ في الاستيراد: %1$s</string>
+    <string name="settings_importing_transactions">استيراد المعاملات...</string>
+    <string name="settings_import_csv_success">المعاملات المستوردة %1$d ، تخطي %2$d التكرارات</string>
+    <string name="settings_import_csv_success_with_failed_rows">المعاملات المستوردة %1$d ، تخطي %2$d التكرار، %3$d الصفوف لا يمكن تحليلها</string>
+    <string name="settings_folder_backup_disabled">تم تعطيل النسخ الاحتياطي للمجلد التلقائي</string>
+    <string name="settings_folder_access_failed">تعذر الوصول إلى المجلد المحدد: %1$s</string>
+    <string name="settings_folder_select_first">حدد مجلد النسخ الاحتياطي أولاً</string>
+    <string name="settings_folder_not_writable">لا يمكن الكتابة إلى مجلد النسخ الاحتياطي المحدد</string>
+    <string name="settings_folder_backup_saved">تم حفظ النسخ الاحتياطي إلى المجلد</string>
+    <string name="settings_folder_backup_enabled">تم تمكين النسخ الاحتياطي التلقائي للمجلد. تعمل النسخ الاحتياطي يوميا في الساعة 2:00 صباحا.</string>
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_title">حفظ النسخ الاحتياطي</string>
+    <string name="settings_save_backup_created">تم إنشاء النسخ الاحتياطي بنجاح!</string>
+    <string name="settings_save_backup_choose">اختر كيف تريد حفظ:</string>
+    <string name="settings_save_backup_to_files">حفظ في الملفات</string>
+    <string name="settings_save_backup_share">مشاركة</string>
+    <string name="settings_share_backup_subject">النسخ الاحتياطي لـ PennyWise</string>
+    <string name="settings_share_backup_chooser">مشاركة النسخة الاحتياطية</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">الإشعارات</string>
+    <string name="settings_notification_access_title">الوصول إلى إشعار البنك</string>
+    <string name="settings_notification_access_enabled">تمكين</string>
+    <string name="settings_notification_access_disabled">انقر لتفعيل إشعارات التطبيقات المصرفية</string>
+    <string name="settings_notification_access_on">تشغيل</string>
+    <string name="settings_notification_access_off">متوقف</string>
+    <!-- AI Features -->
+    <string name="settings_ai_section">خصائص الذكاء الاصطناعي</string>
+    <string name="settings_ai_chat_title">مساعد الدردشة بالذكاء الاصطناعي</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_not_downloaded">تحميل نموذج الذكاء الاصطناعي (%1$d MB)</string>
+    <string name="settings_ai_status_downloading">جاري تحميل نموذج الذاكرة...</string>
+    <string name="settings_ai_status_paused">توقف التنزيل</string>
+    <string name="settings_ai_status_completed">نموذج AI جاهز للدردشة</string>
+    <string name="settings_ai_status_failed">فشل التحميل</string>
+    <string name="settings_ai_status_insufficient_space">لا توجد مساحة تخزين كافية</string>
+    <string name="settings_ai_download">تنزيل</string>
+    <string name="settings_ai_retry">إعادة المحاولة</string>
+    <string name="settings_ai_downloaded">تم التحميل</string>
+    <string name="settings_ai_delete">حذف</string>
+    <string name="settings_ai_error">خطأ</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_cancel_download">إلغاء التحميل</string>
+    <string name="settings_ai_info">دردشة مع الذكاء الاصطناعي حول مصروفاتك والحصول على رؤى مالية. جميع المحادثات تبقى خاصة على جهازك.</string>
+    <string name="settings_ai_download_notification_title">نموذج الدردشة AI</string>
+    <string name="settings_ai_download_notification_description">تحميل مساعد دردشة AI لـ PennyWise</string>
+    <!-- Developer -->
+    <string name="settings_developer_section">المطور</string>
+    <string name="settings_developer_mode_title">وضع المطور</string>
+    <string name="settings_developer_mode_subtitle">عرض المعلومات التقنية في الدردشة</string>
+    <!-- Support & Community -->
+    <string name="settings_support_section">دعم &amp; المجتمع</string>
+    <string name="settings_help_faq_title">المساعدة &amp; أسئلة متكررة</string>
+    <string name="settings_help_faq_subtitle">الأسئلة المتكررة والمساعدة</string>
+    <string name="settings_report_issue_title">الإبلاغ عن مشكلة</string>
+    <string name="settings_report_issue_subtitle">تقديم تقارير الأخطاء على GitHub</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">المظهر</string>
+    <string name="appearance_back">الرجوع</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">النظام</string>
+    <string name="appearance_mode_light">فاتح</string>
+    <string name="appearance_mode_dark">داكن</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">ديناميكي</string>
+    <string name="appearance_style_dynamic_subtitle">ألوان الخلفية</string>
+    <string name="appearance_style_default">افتراضي</string>
+    <string name="appearance_style_default_subtitle">ألوان باين الورد</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_title">أسود</string>
+    <string name="appearance_amoled_subtitle">استخدم خلفية سوداء نقية لتباين أعمق</string>
+    <string name="appearance_blur_title">تأثيرات التمويه</string>
+    <string name="appearance_blur_subtitle">تمكين تأثيرات التمويه الزجاجية في مكونات واجهة المستخدم</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">التنقل</string>
+    <string name="appearance_nav_floating">عائم</string>
+    <string name="appearance_nav_floating_subtitle">عصري &amp; اظهرك</string>
+    <string name="appearance_nav_normal">عادي</string>
+    <string name="appearance_nav_normal_subtitle">M3 القياسي</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_section">نمط الغطاء</string>
+    <string name="appearance_cover_none">لا يوجد</string>
+    <string name="appearance_cover_selected">المحدد</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">الخطوط</string>
+    <string name="appearance_font_default">افتراضي</string>
+    <string name="appearance_font_default_subtitle">النظام</string>
+    <string name="appearance_font_sn_pro_subtitle">وحيد حديث</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">الأسئلة الشائعة</string>
+    <string name="faq_back">الرجوع</string>
+    <string name="faq_collapse">طي</string>
+    <string name="faq_expand">توسيع</string>
+    <!-- Transaction Types -->
+    <string name="faq_transaction_types_section">أنواع المعاملات</string>
+    <string name="faq_wallet_credit_question">لماذا يتم وضع علامة على معاملات المحفظة كائتمان؟</string>
+    <string name="faq_wallet_credit_answer">معاملات المحفظة (دفع الأمازون، بايتم، إلخ.) تعتبر ائتمانية لأنها تُحمّل على حسابك البنكي أو بطاقة الائتمان أولا، وليس على الديون المصرفية المباشرة. وهذا يساعد على تتبع طريقة الدفع الفعلية المستخدمة.</string>
+    <string name="faq_transaction_types_question">ما هو الفرق بين أنواع المعاملات الخمسة؟</string>
+    <string name="faq_transfer_vs_expense_question">متى يجب أن أستخدم التحويل مقابل المصروفات؟</string>
+    <string name="faq_transfer_vs_expense_answer">استخدم التحويل عند نقل المال بين حساباتك الخاصة (على سبيل المثال، المدخرات للتحقق). هذه لا تؤثر على القيمة الصافية. استخدم المصاريف للإنفاق الفعلي.</string>
+    <!-- SMS Parsing -->
+    <string name="faq_sms_parsing_section">تحليل الرسائل القصيرة</string>
+    <string name="faq_sms_not_detected_question">لماذا لم يتم اكتشاف الرسائل القصيرة البنكية الخاصة بي؟</string>
+    <string name="faq_sms_not_detected_answer">تحقق مما إذا كان البنك الخاص بك مدعوما في قائمتنا. إذا لم يكن كذلك، أبلغ عن ذلك عبر GitHub. تأكد من منح أذونات الرسائل القصيرة وأن تنسيق المرسل يتطابق مع أنماط الرسائل القصيرة للبنك.</string>
+    <string name="faq_unrecognized_sms_question">ماذا يحدث للرسائل القصيرة غير المعترف بها؟</string>
+    <string name="faq_unrecognized_sms_answer">تم حفظها في \"رسائل غير معترف بها\" حيث يمكنك مراجعتها يدوياً أو الإبلاغ عنها لمساعدتنا على تحسين التحليل.</string>
+    <string name="faq_duplicates_question">لماذا تتكرر بعض المعاملات؟</string>
+    <string name="faq_duplicates_answer">بعض البنوك ترسل رسائل قصيرة متعددة لنفس المعاملة. التطبيق يحاول الكشف عن التكرار، ولكن يمكنك حذف أي من هذه الزلاقة يدويًا.</string>
+    <!-- Privacy & Data -->
+    <string name="faq_privacy_section">الخصوصية &amp; البيانات</string>
+    <string name="faq_data_secure_question">هل بياناتي المالية آمنة؟</string>
+    <string name="faq_data_secure_answer">نعم! تبقى جميع البيانات على جهازك. ليس لدينا خوادم أو تخزين سحابي. يعمل نموذج الذكاء الاصطناعي محليا للخصوصية الكاملة.</string>
+    <string name="faq_backup_question">هل يمكنني نسخ بياناتي احتياطيًا؟</string>
+    <string name="faq_backup_answer">في الوقت الحالي، يتم تخزين البيانات محلياً فقط. ومن المقرر وضع ميزات التصدير/النسخ الاحتياطي من أجل التحديثات المقبلة.</string>
+    <string name="faq_data_access_question">ما هي البيانات التي يصلها التطبيق؟</string>
+    <string name="faq_data_access_answer">رسائل SMS فقط من المرسلين المصرفيين المعروفين. نحن لا نقرأ الرسائل الشخصية أو الوصول إلى بيانات التطبيق الأخرى.</string>
+    <!-- AI Features -->
+    <string name="faq_ai_section">خصائص الذكاء الاصطناعي</string>
+    <string name="faq_ai_download_question">لماذا أحتاج إلى تنزيل نموذج الذكاء الاصطناعي؟</string>
+    <string name="faq_ai_download_answer">يتيح نموذج 750 ميغابايت دردشة على الجهاز حول مصروفاتك دون إرسال البيانات إلى أي خادم، مما يضمن الخصوصية الكاملة.</string>
+    <string name="faq_ai_ask_question">ماذا يمكنني أن أسأل مساعد الذكاء الاصطناعي؟</string>
+    <string name="faq_ai_ask_answer">يمكنك أن تسأل عن أنماط الإنفاق، ونصائح الميزانية، وملخصات المعاملات، والأسئلة المالية العامة بناء على بياناتك.</string>
+    <!-- Account Management -->
+    <string name="faq_accounts_section">إدارة الحساب</string>
+    <string name="faq_manual_accounts_question">ما هي الحسابات اليدوية؟</string>
+    <string name="faq_manual_accounts_answer">الحسابات اليدوية تسمح لك بتتبع النقد، أو الاستثمارات، أو الحسابات من البنوك غير المدعومة. يمكنك تحديث الأرصدة يدويا.</string>
+    <string name="faq_multiple_accounts_question">كيف يمكنني تتبع حسابات متعددة من نفس البنك؟</string>
+    <string name="faq_multiple_accounts_answer">يكشف التطبيق تلقائياً حسابات مختلفة استناداً إلى آخر 4 أرقام تظهر في الرسائل القصيرة.</string>
+    <!-- Still need help -->
+    <string name="faq_still_need_help_section">لا تزال بحاجة إلى مساعدة؟</string>
+    <string name="faq_report_issue_title">الإبلاغ عن مشكلة</string>
+    <string name="faq_report_issue_subtitle">تقديم تقارير الأخطاء، طلبات البنك، أو تحسينات الميزات على GitHub</string>
+</resources>

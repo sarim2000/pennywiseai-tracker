@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">هذا الشهر</string>
+    <string name="filter_period_last_month">الشهر الماضي</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">السنة المالية الحالية</string>
+    <string name="filter_period_all_time">كل الوقت</string>
+    <string name="filter_period_custom_range">نطاق مخصص</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">الكل</string>
+    <string name="filter_type_income">دخل</string>
+    <string name="filter_type_expense">مصروف</string>
+    <string name="filter_type_credit">رصيد</string>
+    <string name="filter_type_transfer">تحويل</string>
+    <string name="filter_type_investment">استثمار</string>
+    <!-- Account types -->
+    <string name="account_type_savings">مدخرات</string>
+    <string name="account_type_current">الحالي</string>
+    <string name="account_type_credit_card">بطاقة ائتمان</string>
+    <string name="account_type_cash">نقدا</string>
+</resources>

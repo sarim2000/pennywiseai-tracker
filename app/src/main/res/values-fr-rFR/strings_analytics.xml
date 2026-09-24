@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">Analyses</string>
+    <string name="analytics_trends">Tendances</string>
+    <string name="analytics_chart_line">Lignes</string>
+    <string name="analytics_chart_bar">Barre</string>
+    <string name="analytics_chart_heatmap">Carte de chaleur</string>
+    <string name="analytics_chart_line_full">Graphique en ligne</string>
+    <string name="analytics_chart_bar_full">Graphique à barres</string>
+    <string name="analytics_top_categories">Top Catégories</string>
+    <string name="analytics_toggle_view">Activer/désactiver la vue</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">Le total est net de %1$s en remboursements. Les barres de catégorie ne peuvent pas aller en dessous de zéro, donc elles peuvent s\'ajouter à plus que le total affiché.</string>
+    <string name="analytics_top_tags">Meilleurs mots-clés</string>
+    <string name="analytics_top_merchants">Meilleurs marchands</string>
+    <string name="analytics_by_account">Par compte</string>
+    <string name="analytics_pro_tags_title">Voir vos meilleurs tags avec Pro</string>
+    <string name="analytics_pro_tags_body">Débloquez une ventilation des dépenses sur tous vos tags. Le marquage et le filtrage restent gratuits.</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">Nettoyer</string>
+    <string name="analytics_filter_all_profiles">Tous les comptes</string>
+    <string name="analytics_filter_currency">Devise</string>
+    <string name="analytics_filter_category">Catégorie</string>
+    <string name="analytics_filter_all_categories">Toutes les catégories</string>
+    <string name="analytics_filter_account">Compte client</string>
+    <string name="analytics_filter_all_accounts">Tous les comptes</string>
+    <!-- List rows -->
+    <plurals name="analytics_transaction_count">
+        <item quantity="one">Transaction %1$d</item>
+        <item quantity="other">Transactions %1$d</item>
+    </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="one">Transaction %1$d • Abonnement</item>
+        <item quantity="other">Transactions %1$d • Abonnement</item>
+    </plurals>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
+    <string name="analytics_empty_headline">Pas encore assez de données</string>
+    <string name="analytics_empty_description">Vos prévisions de dépenses apparaîtront ici après votre première semaine de suivi</string>
+    <string name="analytics_empty_action">Scanner les SMS</string>
+    <!-- Summary card -->
+    <string name="analytics_summary_total">TOTAL</string>
+    <plurals name="analytics_summary_txns">
+        <item quantity="one">%1$d TXN</item>
+        <item quantity="other">%1$d TRANSACTIONS</item>
+    </plurals>
+    <string name="analytics_summary_average">MOYEN</string>
+    <string name="analytics_summary_per_day">" /jour"</string>
+    <!-- Pie charts -->
+    <string name="analytics_pie_unknown">Inconnu</string>
+    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
+    <string name="analytics_spending_by_category">Dépenses par Catégorie</string>
+    <string name="analytics_spending_by_tag">Dépenses par Tag</string>
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">Les budgets</string>
+    <string name="budgets_back">Précédent</string>
+    <string name="budgets_add">Ajouter un budget</string>
+    <string name="budgets_action_cancel">Abandonner</string>
+    <string name="budgets_action_delete">Supprimez</string>
+    <string name="budgets_action_ok">Ok</string>
+    <string name="budgets_setup_title">Configurez votre budget</string>
+    <string name="budgets_setup_body">Organisez vos dépenses en budgets pour savoir où va votre argent.</string>
+    <string name="budgets_setup_smart_defaults">Utiliser Smart Defaults</string>
+    <string name="budgets_setup_custom">Créer un budget personnalisé</string>
+    <string name="budgets_delete_title">Supprimer le budget</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete_message">Êtes-vous sûr de vouloir supprimer \"%1$s\" ? Cette action est irréversible.</string>
+    <string name="budgets_previous_month">Mois précédent</string>
+    <string name="budgets_next_month">Mois prochain</string>
+    <string name="budgets_edit">Modifier le budget</string>
+    <string name="budgets_delete">Supprimer le budget</string>
+    <string name="budgets_more_options">Plus d\'options</string>
+    <string name="budgets_view_history">Voir l\'historique de cette période</string>
+    <string name="budgets_move_up">Déplacer vers le haut</string>
+    <string name="budgets_move_down">Déplacer vers le bas</string>
+    <!-- %1$s = formatted amount -->
+    <string name="budgets_over_by">Plus de %1$s</string>
+    <string name="budgets_finished">Terminé</string>
+    <!-- %1$s = weekday name -->
+    <string name="budgets_resets_today_weekly">Réinitialisation aujourd\'hui · Renouvellement %1$s</string>
+    <!-- %1$d = days, %2$s = weekday name -->
+    <plurals name="budgets_resets_in_weekly">
+        <item quantity="one">Réinitialisation dans %1$d jour · %2$s renouvelé</item>
+        <item quantity="other">Réinitialisation dans %1$d jours · %2$s renouvelé</item>
+    </plurals>
+    <!-- %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">Réinitialisation aujourd\'hui · jour %1$d</string>
+    <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Réinitialisation dans %1$d jour · jour %2$d</item>
+        <item quantity="other">Réinitialisation dans %1$d jours · jour %2$d</item>
+    </plurals>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="one">Exécute %1$s · %2$d jour restant</item>
+        <item quantity="other">Exécute %1$s · %2$d jours restants</item>
+    </plurals>
+    <string name="budgets_runs_finished">Exécuter %1$s · Terminé</string>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <string name="budgets_spent_of">Dépenser %1$s de %2$s</string>
+    <string name="budgets_spent">Dépensé %1$s</string>
+    <string name="budgets_amount_of">%1$s de %2$s</string>
+    <string name="budgets_tracking_all">Suivi de toutes les dépenses</string>
+    <string name="budgets_chart_actual">Réel</string>
+    <string name="budgets_chart_pace">Rythme budgétaire</string>
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">Modifier le budget</string>
+    <string name="budget_edit_title_new">Nouveau budget</string>
+    <string name="budget_edit_save">Enregistrer les modifications</string>
+    <string name="budget_edit_create">Créer un budget</string>
+    <string name="budget_edit_color">Couleur</string>
+    <string name="budget_edit_period">Période budgétaire</string>
+    <string name="budget_edit_period_weekly">Hebdomadaire (récurrent)</string>
+    <string name="budget_edit_period_monthly">Mensuel (récurrent)</string>
+    <string name="budget_edit_period_one_time">Une fois</string>
+    <string name="budget_edit_start_date">Date de début</string>
+    <string name="budget_edit_end_date">Date de fin</string>
+    <!-- %1$s = weekday name -->
+    <string name="budget_edit_resets_every">Réinitialise chaque %1$s</string>
+    <string name="budget_edit_resets_on_day">Réinitialisation le jour %1$d de chaque mois</string>
+    <string name="budget_edit_runs_once">Exécute une fois, aucun rollover</string>
+    <string name="budget_edit_current_window">Fenêtre actuelle</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_category_limits">Limites de catégorie (facultatif)</string>
+    <string name="budget_edit_no_categories">Aucune catégorie ajoutée. Ce budget suivra toutes les dépenses.</string>
+    <string name="budget_edit_unallocated">Non alloué : %1$s</string>
+    <string name="budget_edit_over_allocated">Les limites de catégories dépassent le budget de %1$s</string>
+    <string name="budget_edit_add_category">Ajouter une catégorie</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_type_bucket_all">%1$s (tous)</string>
+    <string name="budget_edit_name_placeholder">Nom du budget</string>
+    <string name="budget_edit_edit_name">Modifier le nom</string>
+    <string name="budget_edit_spent">Dépensé: %1$s</string>
+    <string name="budget_edit_remove">Supprimer</string>
+    <string name="budget_edit_week_starts_on">La semaine commence le</string>
+    <string name="budget_edit_month_starts_on">Le mois commence le jour</string>
+    <string name="budget_edit_decrease_day">Diminuer le jour</string>
+    <string name="budget_edit_increase_day">Augmenter le jour</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">Historique du budget</string>
+    <string name="budget_history_loading">Chargement de…</string>
+    <string name="budget_history_not_found">Budget introuvable</string>
+    <string name="budget_history_window">Fenêtre : %1$s – %2$s</string>
+    <string name="budget_history_per_week">Répartition par semaine</string>
+    <string name="budget_history_cycle">Cycle</string>
+    <string name="budget_history_range">Range</string>
+    <string name="budget_history_current">Actuel</string>
+    <string name="budget_history_live">Live · toujours en cours d\'accumulation</string>
+    <string name="budget_history_frozen">Gelé à partir de %1$s</string>
+    <string name="budget_history_categories">Catégories</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <string name="budget_history_of_budget_percent">de %1$s · %2$d%%</string>
+    <string name="budget_history_zero_remaining">0 restants</string>
+    <string name="budget_history_percent_used">%1$d%% utilisés</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">Catégories</string>
+    <string name="categories_back">Précédent</string>
+    <string name="categories_add">Ajouter une catégorie</string>
+    <string name="categories_expense_section">Catégories de dépenses</string>
+    <string name="categories_income_section">Catégories de revenus</string>
+    <string name="categories_action_delete">Supprimez</string>
+    <string name="categories_action_edit">Editer</string>
+    <string name="categories_action_cancel">Abandonner</string>
+    <string name="categories_show_category">Afficher la catégorie</string>
+    <string name="categories_hide_category">Cacher la catégorie</string>
+    <string name="categories_system_badge">Système</string>
+    <string name="categories_msg_system_not_editable">Les catégories système ne peuvent pas être modifiées</string>
+    <string name="categories_msg_updated">Catégorie actualisée avec succès</string>
+    <!-- %1$s = category name -->
+    <string name="categories_msg_already_exists">La catégorie \'%1$s\' existe déjà</string>
+    <string name="categories_msg_created">Catégorie créée avec succès</string>
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_save_error">Erreur lors de la sauvegarde de la catégorie : %1$s</string>
+    <string name="categories_msg_system_not_deletable">Les catégories système ne peuvent pas être supprimées</string>
+    <string name="categories_msg_deleted">Catégorie supprimée avec succès</string>
+    <string name="categories_msg_cannot_delete">Impossible de supprimer cette catégorie</string>
+    <string name="categories_msg_delete_error">Erreur lors de la suppression de la catégorie : %1$s</string>
+    <string name="categories_msg_hidden">%1$s caché</string>
+    <string name="categories_msg_shown">%1$s affiché</string>
+    <string name="categories_msg_update_error">Erreur lors de la mise à jour de la catégorie : %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">Ajouter une catégorie</string>
+    <string name="category_edit_title_edit">Modifier la catégorie</string>
+    <string name="category_edit_name_required">Le nom de la catégorie est requis</string>
+    <string name="category_edit_name_label">Nom de catégorie</string>
+    <string name="category_edit_type">Type de catégorie</string>
+    <string name="category_edit_type_expense">Dépenses</string>
+    <string name="category_edit_type_income">Revenu</string>
+    <string name="category_edit_parent_label">Catégorie parente (facultatif)</string>
+    <string name="category_edit_parent_none">Aucun</string>
+    <string name="category_edit_icon_label">Icône (emoji, optionnel)</string>
+    <string name="category_edit_icon_placeholder">Tapotez pour choisir un emoji</string>
+    <string name="category_edit_clear_icon">Effacer l\'icône</string>
+    <string name="category_edit_color">Couleur</string>
+    <string name="category_edit_preview">Aperçu</string>
+    <string name="category_edit_add">Ajouter</string>
+    <string name="category_edit_save">Enregistrer</string>
+    <string name="category_edit_delete">Supprimer la catégorie</string>
+    <string name="category_edit_delete_title">Supprimer la catégorie?</string>
+    <string name="category_edit_delete_message">\"%1$s\" sera supprimé. Les transactions existantes conservent leur étiquette actuelle. Cela ne peut pas être annulé.</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">Abonnements</string>
+    <string name="subscriptions_add">Ajouter un abonnement</string>
+    <string name="subscriptions_undo">Annuler</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s caché</string>
+    <string name="subscriptions_active_section">Abonnements actifs</string>
+    <string name="subscriptions_empty_headline">Aucun abonnement détecté pour le moment</string>
+    <string name="subscriptions_empty_description">Synchronisez vos SMS pour détecter les abonnements</string>
+    <string name="subscriptions_cancelled_section">Annulé (%1$d)</string>
+    <string name="subscriptions_collapse">Réduire</string>
+    <string name="subscriptions_expand">Développer</string>
+    <string name="subscriptions_reactivate">Réactiver</string>
+    <string name="subscriptions_action_delete">Supprimez</string>
+    <string name="subscriptions_action_cancel">Abandonner</string>
+    <string name="subscriptions_action_ok">Ok</string>
+    <string name="subscriptions_delete_title">Supprimer l\'abonnement?</string>
+    <string name="subscriptions_delete_permanently_message">Supprimer définitivement «%1$s»? Cette action est irréversible.</string>
+    <string name="subscriptions_delete_message">«%1$s» sera définitivement supprimé. Cela ne peut pas être annulé.</string>
+    <string name="subscriptions_summary_title">Abonnements mensuels</string>
+    <string name="subscriptions_summary_none_active">Aucun abonnement actif</string>
+    <plurals name="subscriptions_summary_all_paid">
+        <item quantity="one">Tout l\' %1$d a payé ce cycle</item>
+        <item quantity="other">Tout l\' %1$d a payé ce cycle</item>
+    </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_summary_some_paid">%1$d de %2$d a payé ce cycle</string>
+    <string name="subscriptions_hide">Cacher</string>
+    <string name="subscriptions_sms_available">SMS disponible</string>
+    <string name="subscriptions_no_date">Aucune date définie</string>
+    <string name="subscriptions_due_today">À faire aujourd\'hui</string>
+    <string name="subscriptions_due_tomorrow">Echéance demain</string>
+    <!-- %1$s = date -->
+    <string name="subscriptions_paid_on">%1$s payé</string>
+    <string name="subscriptions_more_options">Plus d\'options</string>
+    <string name="subscriptions_menu_mark_paid">Marquer comme payé</string>
+    <string name="subscriptions_menu_view_source">Voir la source</string>
+    <string name="subscriptions_menu_edit">Editer</string>
+    <string name="subscriptions_menu_end">Fin de l\'abonnement</string>
+    <string name="subscriptions_source_notes">Notes</string>
+    <string name="subscriptions_source_original_sms">SMS original</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_title">Modifier l\'abonnement</string>
+    <string name="subscriptions_edit_name">Nom</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_amount">Montant (%1$s)</string>
+    <string name="subscriptions_edit_tap_to_set">Appuyer pour définir</string>
+    <string name="subscriptions_edit_next_date">Prochaine date de paiement</string>
+    <string name="subscriptions_edit_pick_date">Choisir la date</string>
+    <string name="subscriptions_edit_category">Catégorie (facultatif)</string>
+    <string name="subscriptions_edit_no_account">Aucun compte</string>
+    <string name="subscriptions_edit_paid_from">Payé depuis</string>
+    <string name="subscriptions_edit_pick_account">Choisir un compte</string>
+    <string name="subscriptions_edit_selected">Sélectionné</string>
+    <string name="subscriptions_edit_save">Enregistrer</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <string name="subscriptions_msg_marked_paid">%1$s marqué payé · prochain cycle sur %2$s</string>
+    <string name="subscriptions_msg_already_marked">%1$s a déjà marqué ce cycle · avancé à %2$s</string>
+    <string name="subscriptions_msg_no_scheduled_date">Définissez d\'abord une date de paiement le %1$s</string>
+    <string name="subscriptions_msg_not_found">Impossible de trouver cet abonnement</string>
+    <string name="subscriptions_msg_linked_generic">Lié</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <string name="mark_paid_eyebrow_paid">MARQUER COMME PAYÉ</string>
+    <string name="mark_paid_eyebrow_received">MARQUER COMME RECEVÉ</string>
+    <!-- %1$s = date -->
+    <string name="mark_paid_already_marked">Déjà marqué payé sur %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">Paiement correspondant à %1$d trouvé</item>
+        <item quantity="other">Paiements correspondants %1$d trouvés</item>
+    </plurals>
+    <string name="mark_paid_when">Quand?</string>
+    <!-- %1$s = formatted amount -->
+    <string name="mark_paid_cta_paid">Marquer comme payé · %1$s</string>
+    <string name="mark_paid_cta_received">Marquer comme reçu · %1$s</string>
+    <!-- %1$s = currency code -->
+    <string name="mark_paid_helper_income">Nous enregistrerons un revenu %1$s et lancerons le calendrier pour le prochain cycle.</string>
+    <string name="mark_paid_helper_expense">Nous enregistrerons les dépenses et lancerons le calendrier au prochain cycle.</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_link_payment">Lier ce paiement</string>
+    <string name="mark_paid_or_mark_today">ou marquer aujourd\'hui</string>
+    <string name="mark_paid_today">Aujourd\'hui</string>
+    <string name="mark_paid_yesterday">Hier</string>
+    <string name="mark_paid_pick_date">Choisir la date</string>
+</resources>

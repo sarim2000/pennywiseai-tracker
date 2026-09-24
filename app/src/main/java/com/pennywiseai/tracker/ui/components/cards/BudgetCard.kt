@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -147,9 +149,11 @@ fun BudgetCard(
         val remainingAbs = groupSpending.remaining.abs()
         val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
             groupSpending.dailyAllowance > BigDecimal.ZERO
-        Row(
+        // FlowRow: when there isn't room (narrow card, large font) the
+        // per-day label wraps below instead of squeezing the hero amount.
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
+            itemVerticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Text(
@@ -163,16 +167,14 @@ fun BudgetCard(
                 ),
                 color = statusColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
+                overflow = TextOverflow.Ellipsis
             )
             if (showDaily) {
                 Text(
                     text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.padding(bottom = 3.dp)
+                    maxLines = 1
                 )
             }
         }

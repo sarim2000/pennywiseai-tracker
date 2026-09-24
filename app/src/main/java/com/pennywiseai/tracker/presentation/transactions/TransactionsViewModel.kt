@@ -706,14 +706,7 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances().collect { balances ->
-                // Drop ignored accounts so their transactions leave the list too,
-                // not just the Home and Analytics figures (#826). Without this,
-                // hiding an account still left every one of its rows in history.
-                val ignored = ignoredAccountsStore.keys()
-                val visible = balances.filterNot { account ->
-                    IgnoredAccountsStore.keyFor(account.bankName, account.accountLast4) in ignored
-                }
-                _profileAccountKeys.value = buildProfileAccountKeys(visible)
+                _profileAccountKeys.value = buildProfileAccountKeys(balances)
             }
         }
         viewModelScope.launch {
@@ -803,6 +796,9 @@ class TransactionsViewModel @Inject constructor(
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
+            // Re-filter the moment an account is ignored, rather than at the
+            // next app start (#826).
+            ignoredAccountsStore.keysFlow.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
             selectedCurrency.map { "currency" },
@@ -1289,7 +1285,15 @@ class TransactionsViewModel @Inject constructor(
         transactions: List<TransactionEntity>,
         profileId: Long?
     ): List<TransactionEntity> {
-        return filterTransactionsByProfile(transactions, profileId, _profileAccountKeys.value)
+        // Ignored accounts drop out first, and independently of the profile
+        // filter — that one returns early for "All profiles" and falls back to
+        // Personal for an unattributed transaction, so it can't carry the
+        // exclusion (#826).
+        val ignored = ignoredAccountsStore.keys()
+        val tracked = if (ignored.isEmpty()) transactions else transactions.filterNot { tx ->
+            IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber)
+        }
+        return filterTransactionsByProfile(tracked, profileId, _profileAccountKeys.value)
     }
 
     private fun getFilteredTransactions(

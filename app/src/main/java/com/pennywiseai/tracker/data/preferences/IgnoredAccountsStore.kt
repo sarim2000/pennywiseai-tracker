@@ -1,7 +1,12 @@
 package com.pennywiseai.tracker.data.preferences
 
 import android.content.Context
+import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +29,19 @@ class IgnoredAccountsStore @Inject constructor(
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun keys(): Set<String> = prefs.getStringSet(KEY, emptySet()) ?: emptySet()
+
+    /**
+     * Emits on every change, so a list re-filters the moment an account is
+     * ignored rather than at the next app start.
+     */
+    val keysFlow: Flow<Set<String>> = callbackFlow {
+        trySend(keys())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+            if (changedKey == KEY || changedKey == null) trySend(keys())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
 
     fun replaceAll(keys: Set<String>) {
         prefs.edit().putStringSet(KEY, keys).apply()

@@ -41,6 +41,7 @@ import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.countsInTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -314,11 +315,11 @@ class HomeViewModel @Inject constructor(
     ): Map<String, TransactionRepository.MonthlyBreakdown> {
         // "Exclude from analytics" transactions stay in history & account balances
         // but must not count toward the home card's income/spend figures — same as
-        // the Analytics screen, budgets and AI summaries already do (#451). Without
-        // this, an excluded income still showed up as income on the main card even
-        // though the row is labelled "Excluded".
+        // the Analytics screen, budgets and AI summaries already do (#451). Loan
+        // exclusion already happened upstream in loadHomeData(); countsInTotals()
+        // still covers both so this stays correct if that upstream filter ever moves.
         return transactions
-            .filter { !it.excludedFromAnalytics }
+            .filter { it.countsInTotals() }
             .groupBy { it.currency }.mapValues { (_, txs) ->
             // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
             // expense, so it should shrink "Spent this month" and not appear as
@@ -367,8 +368,7 @@ class HomeViewModel @Inject constructor(
     ): Map<LocalDate, BigDecimal> {
         val daily = mutableMapOf<LocalDate, BigDecimal>()
         for (tx in transactions) {
-            if (tx.loanId != null) continue
-            if (tx.excludedFromAnalytics) continue  // keep the trend line consistent with the income/spend figures (#451)
+            if (!tx.countsInTotals()) continue  // keep the trend line consistent with the income/spend figures (#451)
             if (!isUnified && tx.currency != selectedCurrency) continue
 
             val sign = when {
@@ -431,7 +431,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .filter { it.loanId == null }
+                        .filter { it.countsInTotals() }
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     computeBreakdownByCurrency(nonLoan, creditAsExpense)
@@ -632,7 +632,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .filter { it.loanId == null }
+                        .filter { it.countsInTotals() }
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     computeBreakdownByCurrency(nonLoan, creditAsExpense)
@@ -1248,7 +1248,7 @@ class HomeViewModel @Inject constructor(
         val isUnified = _uiState.value.isUnifiedMode
         // Drop excluded-from-analytics rows here too, so the home CREDIT/TRANSFER/
         // INVESTMENT totals stay consistent with the income/spend breakdown (#451).
-        val nonLoanTransactions = transactions.filter { it.loanId == null && !it.excludedFromAnalytics }
+        val nonLoanTransactions = transactions.filter { it.countsInTotals() }
 
         if (isUnified) {
             // Convert all transactions to display currency
@@ -1505,7 +1505,7 @@ class HomeViewModel @Inject constructor(
         // from a category by aggregateBudgetCategorySpending (categorised refund);
         // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
         // understate.
-        val analyticsTransactions = raw.allTransactions.filter { !it.transaction.excludedFromAnalytics }
+        val analyticsTransactions = raw.allTransactions.filter { it.transaction.countsInTotals() }
         var totalIncome = BigDecimal.ZERO
         for (txWithSplits in analyticsTransactions) {
             val tx = txWithSplits.transaction

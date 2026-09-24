@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
+import com.pennywiseai.tracker.utils.countsInTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -1469,9 +1470,7 @@ class TransactionsViewModel @Inject constructor(
         // period's Income/Expense/etc. totals — loans are tracked in the Loans
         // feature, and excluded txns are opted out of every spend figure by the
         // user. Matches the Home/Analytics convention (HomeViewModel#1142).
-        val nonLoanTransactions = transactions.filter {
-            it.loanId == null && !it.excludedFromAnalytics
-        }
+        val nonLoanTransactions = transactions.filter { it.countsInTotals() }
         val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->

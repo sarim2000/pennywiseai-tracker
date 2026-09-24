@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.utils.countsInTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -89,7 +90,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // spending — exclude them, matching Home/Analytics. Analytics-excluded
             // transactions are opted out of every spend figure by the user, so they
             // must not count toward the widget's spend total either.
-            val nonLoan = allTransactions.filter { it.loanId == null && !it.excludedFromAnalytics }
+            val nonLoan = allTransactions.filter { it.countsInTotals() }
             // Null = no rate for this pair; the spend folds skip it rather than
             // counting a face-value foreign amount (#670).
             suspend fun inTarget(tx: com.pennywiseai.tracker.data.database.entity.TransactionEntity): BigDecimal? =

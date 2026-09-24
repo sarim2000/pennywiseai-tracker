@@ -52,14 +52,13 @@ interface LoanDao {
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC LIMIT 1")
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity?
 
-    // Only linked transactions in the loan's own currency count — a linked
-    // transaction whose currency is edited later must not leak into the total.
+    // No currency filter here on purpose: linked transactions can't change
+    // currency (TransactionDetailViewModel.saveChanges blocks it), and filtering
+    // would drop a loan's own principal from unlinkTransaction's recount.
     @Query("""
         SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
-        JOIN loans l ON l.id = t.loan_id
         WHERE t.loan_id = :loanId AND t.is_deleted = 0
         AND t.transaction_type = :repaymentType
-        AND t.currency = l.currency
     """)
     suspend fun getTotalRepaidByType(loanId: Long, repaymentType: String): BigDecimal
 

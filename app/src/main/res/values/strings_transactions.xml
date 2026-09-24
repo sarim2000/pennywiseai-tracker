@@ -42,6 +42,7 @@
     <string name="txn_detail_error_merchant_required">Merchant name is required</string>
     <string name="txn_detail_error_amount_positive">Amount must be positive</string>
     <string name="txn_detail_error_same_accounts">Source and destination accounts must be different</string>
+    <string name="txn_detail_error_loan_currency_locked">This transaction is part of a loan. Remove it from the loan before changing its currency.</string>
     <string name="txn_detail_error_tag_rule">Saved, but couldn\'t create the tag rule: %1$s</string>
     <string name="txn_detail_error_save">Failed to save changes: %1$s</string>
     <string name="txn_detail_error_delete">Failed to delete transaction</string>

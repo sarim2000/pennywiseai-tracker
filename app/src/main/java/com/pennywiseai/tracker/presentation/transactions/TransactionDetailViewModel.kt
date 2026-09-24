@@ -834,6 +834,15 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
 
+        // A loan's amounts are all in its own currency. Changing the currency of
+        // a transaction linked to a loan would silently mix currencies in the
+        // loan's totals, so require unlinking it first.
+        val original = _transaction.value
+        if (original?.loanId != null && !toSave.currency.equals(original.currency, ignoreCase = true)) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&

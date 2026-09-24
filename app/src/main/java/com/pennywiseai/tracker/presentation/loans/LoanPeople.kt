@@ -24,12 +24,13 @@ data class LoanPerson(
 }
 
 /**
- * Groups loans by person (name compared case- and space-insensitively).
+ * Groups loans by person. Names match exactly — the same rule loan creation
+ * uses — so two differently-spelled names are never settled together.
  * People with open loans come first, most recently touched first; within a
  * person, open loans come before settled ones.
  */
 fun groupLoansByPerson(loans: List<LoanEntity>): List<LoanPerson> =
-    loans.groupBy { it.personName.trim().lowercase() }
+    loans.groupBy { it.personName }
         .values
         .map { personLoans ->
             val sorted = personLoans.sortedWith(
@@ -41,7 +42,7 @@ fun groupLoansByPerson(loans: List<LoanEntity>): List<LoanPerson> =
                     if (it.direction == LoanDirection.LENT) it.remainingAmount else it.remainingAmount.negate()
                 }
                 .filterValues { it.amount.signum() != 0 }
-            LoanPerson(name = sorted.first().personName.trim(), loans = sorted, net = net)
+            LoanPerson(name = sorted.first().personName, loans = sorted, net = net)
         }
         .sortedWith(
             compareBy<LoanPerson> { !it.hasActive }

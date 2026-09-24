@@ -38,7 +38,7 @@ class LoanPeopleTest {
         val people = groupLoansByPerson(
             listOf(
                 loan(1, "Asha", LoanDirection.LENT, "2000"),
-                loan(2, "asha ", LoanDirection.BORROWED, "500"),
+                loan(2, "Asha", LoanDirection.BORROWED, "500"),
                 loan(3, "Asha", LoanDirection.LENT, "50", currency = "USD")
             )
         )
@@ -46,6 +46,23 @@ class LoanPeopleTest {
         val net = people.single().net
         assertEquals(0, BigDecimal("1500").compareTo(net.getValue("INR").amount))
         assertEquals(0, BigDecimal("50").compareTo(net.getValue("USD").amount))
+    }
+
+    @Test
+    fun `names that differ only in case stay separate people`() {
+        val people = groupLoansByPerson(
+            listOf(loan(1, "Rahul", LoanDirection.LENT, "100"), loan(2, "rahul", LoanDirection.LENT, "200"))
+        )
+        assertEquals(2, people.size)
+    }
+
+    @Test
+    fun `equal open balances net to nothing but stay active`() {
+        val p = groupLoansByPerson(
+            listOf(loan(1, "Kim", LoanDirection.LENT, "500"), loan(2, "Kim", LoanDirection.BORROWED, "500"))
+        ).single()
+        assertTrue(p.hasActive)
+        assertTrue(p.net.isEmpty())
     }
 
     @Test

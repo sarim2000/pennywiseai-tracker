@@ -233,7 +233,7 @@ private fun LoanPersonRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(Dimensions.Icon.avatar)
                     .clip(CircleShape)
                     .background(accent.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
@@ -249,8 +249,9 @@ private fun LoanPersonRow(
                 Text(person.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 if (person.net.isEmpty()) {
+                    // Empty net with open loans = lent and borrowed cancel out.
                     Text(
-                        stringResource(R.string.loans_person_all_settled),
+                        stringResource(if (person.hasActive) R.string.loans_person_even else R.string.loans_person_all_settled),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

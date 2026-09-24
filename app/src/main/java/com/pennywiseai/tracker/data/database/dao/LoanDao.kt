@@ -17,6 +17,14 @@ interface LoanDao {
     @Update
     suspend fun updateLoan(loan: LoanEntity)
 
+    /** Settles several loans in one transaction, so "Settle up" can't stop halfway. */
+    @Transaction
+    suspend fun settleLoans(loans: List<LoanEntity>, now: LocalDateTime) {
+        loans.forEach {
+            updateLoan(it.copy(status = LoanStatus.SETTLED, remainingAmount = BigDecimal.ZERO, settledAt = now, updatedAt = now))
+        }
+    }
+
     @Delete
     suspend fun deleteLoan(loan: LoanEntity)
 

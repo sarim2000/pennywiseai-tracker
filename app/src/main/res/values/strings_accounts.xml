@@ -243,6 +243,8 @@
     <string name="loans_person_owes_you">Owes you %1$s</string>
     <string name="loans_person_you_owe">You owe %1$s</string>
     <string name="loans_person_all_settled">All settled</string>
+    <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">Even — nothing owed either way</string>
     <string name="loans_settle_up">Settle up</string>
     <string name="loans_settle_up_title">Settle up with %1$s?</string>
     <string name="loans_settle_up_message">All open loans with %1$s will be marked as settled. Any amount still unpaid is forgiven.</string>

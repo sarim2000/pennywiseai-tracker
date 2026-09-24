@@ -135,7 +135,7 @@ class LoansViewModel @Inject constructor(
     /** Settles every open loan with [person]; unpaid balances are forgiven, as with a single loan. */
     fun settleUp(person: LoanPerson) {
         viewModelScope.launch {
-            person.activeLoans.forEach { loanRepository.settleLoan(it.id) }
+            loanRepository.settleLoans(person.activeLoans)
         }
     }
 

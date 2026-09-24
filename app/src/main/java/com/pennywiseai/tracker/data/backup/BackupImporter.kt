@@ -7,6 +7,7 @@ import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.billing.license.LicenseManager
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,8 @@ class BackupImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val licenseManager: LicenseManager
+    private val licenseManager: LicenseManager,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     
     /**
@@ -830,6 +832,13 @@ class BackupImporter @Inject constructor(
             userPreferencesRepository.updateFirstLaunchTime(it)
         }
         userPreferencesRepository.updateHasShownReviewPrompt(preferences.app.hasShownReviewPrompt)
+        // Additive: a restore can start ignoring an account but never silently
+        // un-ignores one the user set up on this device (#826).
+        if (preferences.app.ignoredAccounts.isNotEmpty()) {
+            ignoredAccountsStore.replaceAll(
+                ignoredAccountsStore.keys() + preferences.app.ignoredAccounts
+            )
+        }
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
         }

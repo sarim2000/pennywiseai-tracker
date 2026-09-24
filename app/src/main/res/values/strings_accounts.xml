@@ -137,7 +137,7 @@
     <string name="manage_accounts_section_bank">Bank Accounts</string>
     <string name="manage_accounts_section_unlinked_cards">Unlinked Cards</string>
     <string name="manage_accounts_section_credit_cards">Credit Cards</string>
-    <string name="manage_accounts_hidden_header">Hidden Accounts (%1$d)</string>
+    <string name="manage_accounts_hidden_header">Ignored Accounts (%1$d)</string>
     <string name="manage_accounts_reassign_title">Move existing transactions?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">%1$d transaction from this account is set to a different profile. Move it to the new profile too?</item>
@@ -145,7 +145,7 @@
     </plurals>
     <string name="manage_accounts_reassign_move">Move</string>
     <string name="manage_accounts_reassign_keep">Keep as is</string>
-    <string name="manage_accounts_hidden_badge">Hidden</string>
+    <string name="manage_accounts_hidden_badge">Ignored</string>
     <string name="manage_accounts_business_badge">Business</string>
     <string name="manage_accounts_outstanding">Outstanding</string>
     <string name="manage_accounts_available">Available</string>
@@ -158,8 +158,8 @@
     <string name="manage_accounts_action_clear">Clear</string>
     <string name="manage_accounts_action_link">Link</string>
     <string name="manage_accounts_menu_history">History</string>
-    <string name="manage_accounts_menu_show">Show</string>
-    <string name="manage_accounts_menu_hide">Hide</string>
+    <string name="manage_accounts_menu_show">Stop ignoring</string>
+    <string name="manage_accounts_menu_hide">Ignore this account</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Statement date: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Set statement date</string>

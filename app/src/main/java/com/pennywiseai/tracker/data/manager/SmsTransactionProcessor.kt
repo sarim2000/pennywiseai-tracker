@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
@@ -46,6 +47,7 @@ class SmsTransactionProcessor @Inject constructor(
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase
 ) {
     companion object {
@@ -58,7 +60,13 @@ class SmsTransactionProcessor @Inject constructor(
     data class ProcessingResult(
         val success: Boolean,
         val transactionId: Long? = null,
-        val reason: String? = null
+        val reason: String? = null,
+        /**
+         * True when nothing was saved on purpose (the account is ignored), as
+         * opposed to a parse or storage failure. Callers that queue a message
+         * for retry should treat this as settled, not as something to try again.
+         */
+        val intentionallySkipped: Boolean = false
     )
 
     /**
@@ -114,6 +122,29 @@ class SmsTransactionProcessor @Inject constructor(
         return try {
             // Convert to entity
             val entity = parsedTransaction.toEntity()
+
+            // An ignored account's messages are dropped before anything is
+            // stored, so no row and no notification (#826). A debit-card
+            // purchase reports the card's digits while the money leaves the
+            // linked account, so check both — ignoring the account has to stop
+            // its card spend too.
+            val linkedAccountLast4 = if (parsedTransaction.isFromCard) {
+                parsedTransaction.accountLast4?.let {
+                    cardRepository.getCard(parsedTransaction.bankName, it)?.accountLast4
+                }
+            } else null
+            if (ignoredAccountsStore.isIgnored(
+                    entity.bankName,
+                    entity.accountNumber,
+                    linkedAccountLast4
+                )
+            ) {
+                return ProcessingResult(
+                    success = false,
+                    reason = "Account is ignored",
+                    intentionallySkipped = true
+                )
+            }
 
             // Check if this transaction was previously deleted by the user
             val existingTransaction = transactionRepository.getTransactionByHash(entity.transactionHash)

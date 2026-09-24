@@ -62,6 +62,7 @@ class TransactionsViewModel @Inject constructor(
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val cardRepository: com.pennywiseai.tracker.data.repository.CardRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val profileRepository: ProfileRepository,
     private val transactionGroupRepository: TransactionGroupRepository,
@@ -116,6 +117,7 @@ class TransactionsViewModel @Inject constructor(
     private val _selectedProfileId = MutableStateFlow<Long?>(null)
     val selectedProfileId: StateFlow<Long?> = _selectedProfileId.asStateFlow()
 
+    private val _ignoredAccountKeys = MutableStateFlow<Set<String>>(emptySet())
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
     val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
 
@@ -710,6 +712,23 @@ class TransactionsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            // An already-imported card purchase is stored under the *card's*
+            // digits, so ignoring the account it draws on wouldn't hide it.
+            // Expand the set once with each linked card's key and the plain
+            // match below covers both (#826).
+            combine(
+                ignoredAccountsStore.keysFlow,
+                cardRepository.getAllCards()
+            ) { ignored, cards ->
+                if (ignored.isEmpty()) ignored
+                else ignored + cards.mapNotNull { card ->
+                    val account = card.accountLast4 ?: return@mapNotNull null
+                    IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
+                        .takeIf { IgnoredAccountsStore.keyFor(card.bankName, account) in ignored }
+                }
+            }.collect { _ignoredAccountKeys.value = it }
+        }
+        viewModelScope.launch {
             availableTags.collect { tags ->
                 val current = _tagFilter.value
                 if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
@@ -798,7 +817,7 @@ class TransactionsViewModel @Inject constructor(
             _profileAccountKeys.map { "profileAccountKeys" },
             // Re-filter the moment an account is ignored, rather than at the
             // next app start (#826).
-            ignoredAccountsStore.keysFlow.map { "ignoredAccounts" },
+            _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
             selectedCurrency.map { "currency" },
@@ -1289,7 +1308,7 @@ class TransactionsViewModel @Inject constructor(
         // filter — that one returns early for "All profiles" and falls back to
         // Personal for an unattributed transaction, so it can't carry the
         // exclusion (#826).
-        val ignored = ignoredAccountsStore.keys()
+        val ignored = _ignoredAccountKeys.value
         val tracked = if (ignored.isEmpty()) transactions else transactions.filterNot { tx ->
             IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber)
         }

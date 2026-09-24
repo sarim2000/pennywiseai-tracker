@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.utils.countsInTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
@@ -61,6 +62,7 @@ class TransactionsViewModel @Inject constructor(
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val profileRepository: ProfileRepository,
     private val transactionGroupRepository: TransactionGroupRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
@@ -704,7 +706,14 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances().collect { balances ->
-                _profileAccountKeys.value = buildProfileAccountKeys(balances)
+                // Drop ignored accounts so their transactions leave the list too,
+                // not just the Home and Analytics figures (#826). Without this,
+                // hiding an account still left every one of its rows in history.
+                val ignored = ignoredAccountsStore.keys()
+                val visible = balances.filterNot { account ->
+                    IgnoredAccountsStore.keyFor(account.bankName, account.accountLast4) in ignored
+                }
+                _profileAccountKeys.value = buildProfileAccountKeys(visible)
             }
         }
         viewModelScope.launch {

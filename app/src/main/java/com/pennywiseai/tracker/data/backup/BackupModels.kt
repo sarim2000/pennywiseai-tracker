@@ -315,7 +315,13 @@ data class AppPreferences(
     val licenseKey: String? = null,
 
     @SerialName("license_instance_id")
-    val licenseInstanceId: String? = null
+    val licenseInstanceId: String? = null,
+
+    // Accounts the user chose to ignore (#826), as "bankName_last4" keys.
+    // Without this a restore silently starts tracking a relative's account
+    // again. Defaulted, so pre-#826 backups still import.
+    @SerialName("ignored_accounts")
+    val ignoredAccounts: List<String> = emptyList()
 )
 
 /**

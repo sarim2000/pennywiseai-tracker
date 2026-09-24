@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -22,7 +23,8 @@ import javax.inject.Singleton
 class BackupExporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     
     /**
@@ -235,7 +237,8 @@ class BackupExporter @Inject constructor(
                     hasShownReviewPrompt = hasShownReviewPrompt,
                     lastReviewPromptTime = lastReviewPromptTime,
                     licenseKey = storedLicense?.key,
-                    licenseInstanceId = storedLicense?.instanceId
+                    licenseInstanceId = storedLicense?.instanceId,
+                    ignoredAccounts = ignoredAccountsStore.keys().sorted()
                 )
             )
         )

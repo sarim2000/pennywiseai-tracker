@@ -71,6 +71,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
+    private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
 
     /**
@@ -80,7 +81,8 @@ class ManageAccountsViewModel @Inject constructor(
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
-    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
+    // Reads/writes go through the shared store so the ingestion gate, the
+    // transaction list and the backup all see the same set (#826).
     
     private val _uiState = MutableStateFlow(ManageAccountsUiState())
     val uiState: StateFlow<ManageAccountsUiState> = _uiState.asStateFlow()
@@ -148,8 +150,7 @@ class ManageAccountsViewModel @Inject constructor(
     }
     
     private fun loadHiddenAccounts() {
-        val hidden = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
-        _uiState.update { it.copy(hiddenAccounts = hidden) }
+        _uiState.update { it.copy(hiddenAccounts = ignoredAccountsStore.keys()) }
     }
     
     fun updateBankName(name: String) {
@@ -329,7 +330,7 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun toggleAccountVisibility(bankName: String, accountLast4: String) {
-        val key = "${bankName}_${accountLast4}"
+        val key = com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.keyFor(bankName, accountLast4)
         val hidden = _uiState.value.hiddenAccounts.toMutableSet()
         
         if (hidden.contains(key)) {
@@ -338,8 +339,7 @@ class ManageAccountsViewModel @Inject constructor(
             hidden.add(key)
         }
         
-        // Save to SharedPreferences
-        sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+        ignoredAccountsStore.replaceAll(hidden)
         
         // Update UI state
         _uiState.update { it.copy(hiddenAccounts = hidden) }
@@ -542,7 +542,7 @@ class ManageAccountsViewModel @Inject constructor(
                 val key = "${bankName}_${accountLast4}"
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 hidden.remove(key)
-                sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                ignoredAccountsStore.replaceAll(hidden)
 
                 _uiState.update {
                     it.copy(
@@ -647,7 +647,7 @@ class ManageAccountsViewModel @Inject constructor(
                 val key = "${source.bankName}_${source.accountLast4}"
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 if (hidden.remove(key)) {
-                    sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                    ignoredAccountsStore.replaceAll(hidden)
                     _uiState.update { it.copy(hiddenAccounts = hidden) }
                 }
 
@@ -771,7 +771,7 @@ class ManageAccountsViewModel @Inject constructor(
                     if (hidden.contains(oldKey)) {
                         hidden.remove(oldKey)
                         hidden.add(newKey)
-                        sharedPrefs.edit().putStringSet("hidden_accounts", hidden).apply()
+                        ignoredAccountsStore.replaceAll(hidden)
                         _uiState.update { it.copy(hiddenAccounts = hidden) }
                     }
                 }

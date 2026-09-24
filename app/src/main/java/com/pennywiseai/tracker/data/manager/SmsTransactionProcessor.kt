@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
@@ -46,6 +47,7 @@ class SmsTransactionProcessor @Inject constructor(
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase
 ) {
     companion object {
@@ -114,6 +116,12 @@ class SmsTransactionProcessor @Inject constructor(
         return try {
             // Convert to entity
             val entity = parsedTransaction.toEntity()
+
+            // An ignored account's messages are dropped before anything is
+            // stored, so no row and no notification (#826).
+            if (ignoredAccountsStore.isIgnored(entity.bankName, entity.accountNumber)) {
+                return ProcessingResult(false, reason = "Account is ignored")
+            }
 
             // Check if this transaction was previously deleted by the user
             val existingTransaction = transactionRepository.getTransactionByHash(entity.transactionHash)

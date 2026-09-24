@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -73,6 +74,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
     private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
@@ -685,6 +687,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     ): SaveOutcome = try {
         coroutineScope {
             val entity = parsed.toEntity()
+
+            // Same gate as the live receiver: an ignored account never gets a
+            // row, so a rescan can't re-import what the user excluded (#826).
+            if (ignoredAccountsStore.isIgnored(entity.bankName, entity.accountNumber)) {
+                return@coroutineScope SaveOutcome.SKIPPED
+            }
+
             val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
 
             val customCategory = merchantMappingCache[entity.merchantName]

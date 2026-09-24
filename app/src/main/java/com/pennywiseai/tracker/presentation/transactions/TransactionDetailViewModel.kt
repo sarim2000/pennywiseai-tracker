@@ -1196,7 +1196,7 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
-                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection)
+                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
 
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
@@ -1210,7 +1210,7 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 // Check if an active loan already exists for this person + same direction
-                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
+                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
                     loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)

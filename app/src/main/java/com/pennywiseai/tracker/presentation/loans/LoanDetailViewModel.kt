@@ -56,7 +56,7 @@ class LoanDetailViewModel @Inject constructor(
     fun showRecordPayment() {
         val loan = _uiState.value.loan ?: return
         viewModelScope.launch {
-            loanRepository.getRecentUnlinkedRepayments(loan.direction).collect {
+            loanRepository.getRecentUnlinkedRepayments(loan.direction, loan.currency).collect {
                 _uiState.value = _uiState.value.copy(
                     recentUnlinkedTransactions = it,
                     showRecordPaymentSheet = true

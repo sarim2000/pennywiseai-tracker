@@ -718,13 +718,24 @@ class TransactionsViewModel @Inject constructor(
             // match below covers both (#826).
             combine(
                 ignoredAccountsStore.keysFlow,
-                cardRepository.getAllCards()
-            ) { ignored, cards ->
-                if (ignored.isEmpty()) ignored
-                else ignored + cards.mapNotNull { card ->
+                cardRepository.getAllCards(),
+                accountBalanceRepository.getAllLatestBalances()
+            ) { ignored, cards, balances ->
+                if (ignored.isEmpty()) return@combine ignored
+                val accountKeys = balances.map {
+                    IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4)
+                }.toSet()
+                ignored + cards.mapNotNull { card ->
                     val account = card.accountLast4 ?: return@mapNotNull null
-                    IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
-                        .takeIf { IgnoredAccountsStore.keyFor(card.bankName, account) in ignored }
+                    if (IgnoredAccountsStore.keyFor(card.bankName, account) !in ignored) {
+                        return@mapNotNull null
+                    }
+                    val cardKey = IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
+                    // A card's last four can collide with a real account's at
+                    // the same bank. The stored digits are all the list has to
+                    // match on, so adding the key would hide that account too —
+                    // leave it, and lose only the card rows we can't separate.
+                    if (cardKey in accountKeys && cardKey !in ignored) null else cardKey
                 }
             }.collect { _ignoredAccountKeys.value = it }
         }

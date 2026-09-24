@@ -214,7 +214,7 @@
     <string name="loans_section_active">ativo</string>
     <string name="loans_settled_toggle">Estabelecido (%1$d)</string>
     <string name="loans_owed_to_you">Devido a você</string>
-    <string name="loans_you_owe">Você Deve %1$s</string>
+    <string name="loans_you_owe">Você Deve</string>
     <string name="loans_direction_lent">Empréstimo</string>
     <string name="loans_direction_borrowed">Emprestado</string>
     <string name="loans_status_settled">Quitado</string>

@@ -135,7 +135,7 @@
     <string name="sms_scan_saved">تم حفظ %1$d</string>
     <!-- %1$s is a duration such as "2m 5s" -->
     <string name="sms_scan_time_left">~%1$s متبقي</string>
-    <string name="sms_scan_batch">الدفعة %1$d من %2$s</string>
+    <string name="sms_scan_batch">الدفعة %1$d من %2$d</string>
     <string name="sms_scan_processing">معالجة...</string>
     <string name="sms_scan_completed">اكتمل الفحص بنجاح!</string>
     <string name="sms_scan_failed">فشل الفحص. يرجى المحاولة مرة أخرى.</string>
@@ -144,8 +144,8 @@
     <string name="sms_scan_indicator">يتم فحص الرسائل: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$dساعة %2$dدقيقة</string>
-    <string name="duration_minutes_seconds">%1$dm %2$2s</string>
-    <string name="duration_seconds">%1$2s</string>
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
     <!-- ══ Shared cards ══ -->
     <string name="balance_show">إظهار الرصيد</string>
     <string name="balance_hide">إخفاء الرصيد</string>

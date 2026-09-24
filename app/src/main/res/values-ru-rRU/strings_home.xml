@@ -125,9 +125,9 @@
     <string name="sms_scan_starting">Запуск сканирования...</string>
     <string name="sms_scan_indicator">Сканирование SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
-    <string name="duration_hours_minutes">%1$ч %2$м</string>
-    <string name="duration_minutes_seconds">%1$м %2$с</string>
-    <string name="duration_seconds">%1$с</string>
+    <string name="duration_hours_minutes">%1$dч %2$dм</string>
+    <string name="duration_minutes_seconds">%1$dм %2$dс</string>
+    <string name="duration_seconds">%1$dс</string>
     <!-- ══ Shared cards ══ -->
     <string name="balance_show">Показать баланс</string>
     <string name="balance_hide">Скрыть баланс</string>

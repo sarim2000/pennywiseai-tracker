@@ -67,8 +67,8 @@
     <string name="sms_scan_starting">स्कैन शुरू हो रहा है...</string>
     <string name="sms_scan_indicator">एसएमएस स्कैनिंग: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
-    <string name="duration_minutes_seconds">%1$dm %2$2s</string>
-    <string name="duration_seconds">%1$2s</string>
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
     <!-- ══ Shared cards ══ -->
     <string name="card_collapse">संकुचित करें</string>
     <string name="card_expand">विस्तार करें</string>

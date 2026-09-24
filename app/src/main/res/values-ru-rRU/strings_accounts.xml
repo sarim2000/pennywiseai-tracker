@@ -220,7 +220,7 @@
     <string name="loans_section_active">Активный</string>
     <string name="loans_settled_toggle">Задано (%1$d)</string>
     <string name="loans_owed_to_you">Вам предоставлено право</string>
-    <string name="loans_you_owe">Вы должны %1$s</string>
+    <string name="loans_you_owe">Вы должны</string>
     <string name="loans_direction_lent">Одолжено</string>
     <string name="loans_direction_borrowed">Взято в долг</string>
     <string name="loans_status_settled">Погашено</string>

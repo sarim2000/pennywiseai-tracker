@@ -220,9 +220,9 @@ class LoanRepository @Inject constructor(
         )
     }
 
-    /** Settles all [loans] atomically — same effect as [settleLoan] on each. */
-    suspend fun settleLoans(loans: List<LoanEntity>) {
-        loanDao.settleLoans(loans, LocalDateTime.now())
+    /** Settles all [loanIds] atomically — same effect as [settleLoan] on each. */
+    suspend fun settleLoans(loanIds: List<Long>) {
+        loanDao.settleLoans(loanIds, LocalDateTime.now())
     }
 
     suspend fun reopenLoan(loanId: Long) {

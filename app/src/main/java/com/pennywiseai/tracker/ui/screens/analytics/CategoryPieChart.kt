@@ -172,12 +172,24 @@ private fun PieLegendItem(
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // The category's own icon rather than a bare swatch (#827), in a disc of
+        // the slice colour so the row still maps to the chart. The disc carries
+        // the colour rather than the glyph, because a custom emoji (#760) can't
+        // be tinted and would otherwise leave the row with no slice marker at
+        // all. Same treatment as the category list below the chart.
         Box(
             modifier = Modifier
-                .size(Dimensions.Component.legendDot)
+                .size(Dimensions.Icon.medium)
                 .clip(CircleShape)
-                .background(color)
-        )
+                .background(color.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CategoryIcon(
+                category = label,
+                size = Dimensions.Icon.small,
+                tint = color
+            )
+        }
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

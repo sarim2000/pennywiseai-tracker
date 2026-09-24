@@ -172,11 +172,13 @@ private fun PieLegendItem(
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Component.legendDot)
-                .clip(CircleShape)
-                .background(color)
+        // The category's own icon rather than a bare swatch (#827) — tinted with
+        // the slice colour so the row still reads against the chart. An unknown
+        // label falls back to the Others icon, same as everywhere else.
+        CategoryIcon(
+            category = label,
+            size = Dimensions.Icon.small,
+            tint = color
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {

@@ -238,7 +238,14 @@ class BackupExporter @Inject constructor(
                     lastReviewPromptTime = lastReviewPromptTime,
                     licenseKey = storedLicense?.key,
                     licenseInstanceId = storedLicense?.instanceId,
-                    ignoredAccounts = ignoredAccountsStore.keys().sorted()
+                    // Bank name + last four, so it identifies accounts the same
+                    // way the licence key identifies a person — FULL only, or a
+                    // masked export would leak what the mode exists to hide.
+                    ignoredAccounts = if (privacy == ExportPrivacy.FULL) {
+                        ignoredAccountsStore.keys().sorted()
+                    } else {
+                        emptyList()
+                    }
                 )
             )
         )

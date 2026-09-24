@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -35,11 +36,13 @@ class IgnoredAccountsStore @Inject constructor(
      * ignored rather than at the next app start.
      */
     val keysFlow: Flow<Set<String>> = callbackFlow {
-        trySend(keys())
+        // Register first, then read: a write landing between the two would
+        // otherwise produce no event and leave an open list stale.
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
             if (changedKey == KEY || changedKey == null) trySend(keys())
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(keys())
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }.distinctUntilChanged()
 
@@ -52,8 +55,8 @@ class IgnoredAccountsStore @Inject constructor(
      * can't identify (no bank, or no account digits parsed out of the SMS) is
      * never ignored — dropping unidentifiable transactions would lose real ones.
      */
-    fun isIgnored(bankName: String?, accountLast4: String?): Boolean =
-        isIgnored(keys(), bankName, accountLast4)
+    fun isIgnored(bankName: String?, vararg accountLast4: String?): Boolean =
+        isIgnored(keys(), bankName, *accountLast4)
 
     companion object {
         private const val PREFS_NAME = "account_prefs"
@@ -61,10 +64,26 @@ class IgnoredAccountsStore @Inject constructor(
 
         fun keyFor(bankName: String, accountLast4: String) = "${bankName}_${accountLast4}"
 
-        /** Pure form, so the gate is testable without a Context. */
-        fun isIgnored(ignored: Set<String>, bankName: String?, accountLast4: String?): Boolean {
-            if (bankName.isNullOrBlank() || accountLast4.isNullOrBlank()) return false
-            return keyFor(bankName, accountLast4) in ignored
+        /**
+         * Pure form, so the gate is testable without a Context.
+         *
+         * [accountLast4] may be several candidates for the same message: a card
+         * purchase carries the card's digits while the money leaves the linked
+         * bank account, and ignoring either should stop it.
+         *
+         * A message with no digits at all is only ignored when it belongs to a
+         * wallet the user ignored ([AccountBalanceEntity.WALLET_ACCOUNT_MARKER] —
+         * mobile-money services are one account keyed on the bank name alone).
+         * Otherwise it counts, because dropping what we cannot attribute would
+         * lose real transactions.
+         */
+        fun isIgnored(ignored: Set<String>, bankName: String?, vararg accountLast4: String?): Boolean {
+            if (bankName.isNullOrBlank() || ignored.isEmpty()) return false
+            val identified = accountLast4.filterNot { it.isNullOrBlank() }
+            if (identified.isEmpty()) {
+                return keyFor(bankName, AccountBalanceEntity.WALLET_ACCOUNT_MARKER) in ignored
+            }
+            return identified.any { keyFor(bankName, it!!) in ignored }
         }
     }
 }

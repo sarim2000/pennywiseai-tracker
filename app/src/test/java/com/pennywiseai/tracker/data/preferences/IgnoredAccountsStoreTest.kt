@@ -37,6 +37,34 @@ class IgnoredAccountsStoreTest {
     }
 
     @Test
+    fun `a card purchase is dropped when its linked account is ignored`() {
+        // A debit-card SMS carries the card's digits, but the money leaves the
+        // linked account — ignoring the account has to stop the card too.
+        assertTrue(isIgnored(ignored, "HDFC Bank", "8811", "4321"))
+    }
+
+    @Test
+    fun `a card on a tracked account still counts`() {
+        assertFalse(isIgnored(ignored, "HDFC Bank", "8811", "9999"))
+        assertFalse(isIgnored(ignored, "HDFC Bank", "8811", null))
+    }
+
+    @Test
+    fun `an ignored wallet is dropped even with no account digits`() {
+        // Mobile-money wallets are one account keyed on the bank name, with
+        // WALLET standing in for the digits the SMS never carries.
+        val wallets = setOf(keyFor("eMola", "WALLET"))
+        assertTrue(isIgnored(wallets, "eMola", null))
+        assertTrue(isIgnored(wallets, "eMola"))
+    }
+
+    @Test
+    fun `a tracked wallet still counts`() {
+        val wallets = setOf(keyFor("eMola", "WALLET"))
+        assertFalse(isIgnored(wallets, "M-PESA", null))
+    }
+
+    @Test
     fun `nothing is ignored when the set is empty`() {
         assertFalse(isIgnored(emptySet(), "HDFC Bank", "4321"))
     }

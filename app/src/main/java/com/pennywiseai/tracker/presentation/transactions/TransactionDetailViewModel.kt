@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
@@ -838,7 +839,12 @@ class TransactionDetailViewModel @Inject constructor(
         // a transaction linked to a loan would silently mix currencies in the
         // loan's totals, so require unlinking it first.
         val original = _transaction.value
-        if (original?.loanId != null && !toSave.currency.equals(original.currency, ignoreCase = true)) {
+        if (LoanCurrencyRules.blocksCurrencyChange(
+                linkedLoanId = original?.loanId,
+                originalCurrency = original?.currency.orEmpty(),
+                editedCurrency = toSave.currency
+            )
+        ) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
             return
         }

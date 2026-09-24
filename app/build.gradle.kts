@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.PathSensitivity
 
 plugins {
     alias(libs.plugins.android.application)
@@ -333,4 +334,13 @@ dependencies {
     "standardImplementation"(libs.billing.ktx)
 
     testImplementation(kotlin("test"))
+}
+
+// StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
+// infer. Without this the test task stays UP-TO-DATE when only translations
+// change — i.e. for exactly the pull requests it exists to check.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("src/main/res"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("androidResourcesForParityTest")
 }

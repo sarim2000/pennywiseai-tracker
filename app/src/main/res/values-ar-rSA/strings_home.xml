@@ -48,8 +48,7 @@
     <string name="home_breakdown_title">تفصيل الحساب</string>
     <!-- Month name, then day range, e.g. "March 1-15" -->
     <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">الصيغة: الدخل - المصروفات = صافي الثروة
-الأخضر (+) = المدخرات | الأحمر (-) = الإنفاق الزائد</string>
+    <string name="home_breakdown_formula">الصيغة: الدخل - المصروفات = صافي الثروة\nالأخضر (+) = المدخرات | الأحمر (-) = الإنفاق الزائد</string>
     <string name="home_breakdown_income">دخل</string>
     <string name="home_breakdown_expenses">النفقات</string>
     <string name="home_breakdown_net_worth">صافي الثروة</string>

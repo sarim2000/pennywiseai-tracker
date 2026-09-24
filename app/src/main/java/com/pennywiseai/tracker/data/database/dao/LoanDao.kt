@@ -54,8 +54,10 @@ interface LoanDao {
     @Query("SELECT DISTINCT person_name FROM loans WHERE status = 'ACTIVE' ORDER BY updated_at DESC")
     fun getRecentPersonNames(): Flow<List<String>>
 
-    @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND status = 'ACTIVE' LIMIT 1")
-    suspend fun getActiveLoanByPersonAndDirection(personName: String, direction: String): LoanEntity?
+    // Currency is part of the match: a loan's amounts are all in its own
+    // currency, so a USD payment must never merge into / repay an INR loan.
+    @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND currency = :currency AND status = 'ACTIVE' LIMIT 1")
+    suspend fun getActiveLoanByPersonAndDirection(personName: String, direction: String, currency: String): LoanEntity?
 
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC")
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>>
@@ -63,6 +65,9 @@ interface LoanDao {
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC LIMIT 1")
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity?
 
+    // No currency filter here on purpose: linked transactions can't change
+    // currency (TransactionDetailViewModel.saveChanges blocks it), and filtering
+    // would drop a loan's own principal from unlinkTransaction's recount.
     @Query("""
         SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
         WHERE t.loan_id = :loanId AND t.is_deleted = 0
@@ -125,10 +130,11 @@ interface LoanDao {
         SELECT * FROM transactions
         WHERE loan_id IS NULL AND is_deleted = 0
         AND transaction_type = :type
+        AND currency = :currency
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    fun getRecentUnlinkedTransactionsByType(type: String, limit: Int = 20): Flow<List<TransactionEntity>>
+    fun getRecentUnlinkedTransactionsByType(type: String, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
 
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")

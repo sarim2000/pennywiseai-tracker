@@ -52,9 +52,10 @@ class LoanRepository @Inject constructor(
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> =
         loanDao.getTransactionsForLoan(loanId)
 
-    fun getRecentUnlinkedRepayments(direction: LoanDirection, limit: Int = 20): Flow<List<TransactionEntity>> {
+    // Only same-currency transactions can repay a loan (see getActiveLoanByPersonAndDirection).
+    fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 20): Flow<List<TransactionEntity>> {
         val repaymentType = if (direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        return loanDao.getRecentUnlinkedTransactionsByType(repaymentType, limit)
+        return loanDao.getRecentUnlinkedTransactionsByType(repaymentType, currency, limit)
     }
 
     fun getRecentPersonNames(): Flow<List<String>> = loanDao.getRecentPersonNames()
@@ -64,8 +65,8 @@ class LoanRepository @Inject constructor(
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity? =
         loanDao.getOriginalTransactionForLoan(loanId)
 
-    suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
-        loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
+    suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection, currency: String): LoanEntity? =
+        loanDao.getActiveLoanByPersonAndDirection(personName, direction.name, currency)
 
     /**
      * Merge [transactionId] into an existing loan, bumping its principal by the

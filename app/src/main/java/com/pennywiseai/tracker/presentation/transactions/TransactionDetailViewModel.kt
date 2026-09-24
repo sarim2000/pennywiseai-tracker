@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
@@ -834,6 +835,20 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
 
+        // A loan's amounts are all in its own currency. Changing the currency of
+        // a transaction linked to a loan would silently mix currencies in the
+        // loan's totals, so require unlinking it first.
+        val original = _transaction.value
+        if (LoanCurrencyRules.blocksCurrencyChange(
+                linkedLoanId = original?.loanId,
+                originalCurrency = original?.currency.orEmpty(),
+                editedCurrency = toSave.currency
+            )
+        ) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
@@ -1196,7 +1211,7 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
-                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection)
+                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
 
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
@@ -1210,7 +1225,7 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 // Check if an active loan already exists for this person + same direction
-                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction)
+                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
                     loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)

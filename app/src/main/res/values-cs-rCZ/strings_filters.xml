@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">Tento měsíc</string>
+    <string name="filter_period_last_month">Minulý měsíc</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">Aktuální fiskální rok</string>
+    <string name="filter_period_all_time">Celkově</string>
+    <string name="filter_period_custom_range">Vlastní rozsah</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">Vše</string>
+    <string name="filter_type_income">Výnosy</string>
+    <string name="filter_type_expense">Výdaje</string>
+    <string name="filter_type_credit">Kredit</string>
+    <string name="filter_type_transfer">Převod</string>
+    <string name="filter_type_investment">Investice</string>
+    <!-- Account types -->
+    <string name="account_type_savings">Úspory</string>
+    <string name="account_type_current">Aktuální</string>
+    <string name="account_type_credit_card">Platební karta</string>
+    <string name="account_type_cash">Hotovost</string>
+</resources>

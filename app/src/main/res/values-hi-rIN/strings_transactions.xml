@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Export transactions dialog -->
+    <string name="txn_export_title_ready">लेन-देन निर्यात करें</string>
+    <string name="txn_export_title_exporting">निर्यात हो रहा है...</string>
+    <string name="txn_export_title_success">निर्यात पूर्ण!</string>
+    <string name="txn_export_title_error">निर्यात विफल</string>
+    <string name="txn_export_total_transactions">कुल लेन-देन:</string>
+    <string name="txn_export_date_range">तारीख सीमा:</string>
+    <string name="txn_export_file_size">आकार: %1$s</string>
+    <string name="txn_export_action_cancel">रद्द करें</string>
+    <string name="txn_export_action_export">निर्यात</string>
+    <string name="txn_export_action_done">समाप्त</string>
+    <string name="txn_export_share_subject">कैशिरो लेन-देन निर्यात</string>
+    <string name="txn_export_share_chooser_title">CSV साझा करें</string>
+    <string name="txn_export_action_share">साझा करें</string>
+    <string name="txn_export_action_close">बंद करें</string>
+    <string name="txn_export_action_retry">पुनः प्रयास करें</string>
+    <!-- Transaction detail: errors -->
+    <!-- Transaction types -->
+    <string name="txn_type_income">आय</string>
+    <string name="txn_type_expense">व्यय</string>
+    <string name="txn_type_credit">क्रेडिट</string>
+    <string name="txn_type_transfer">स्थानांतरण</string>
+    <string name="txn_type_investment">निवेश</string>
+    <!-- Transaction detail -->
+    <string name="txn_detail_updated">लेन-देन सफलतापूर्वक अपडेट किया गया</string>
+    <string name="txn_detail_title">लेन-देन विवरण</string>
+    <string name="txn_detail_title_edit">लेन-देन संपादित करें</string>
+    <string name="txn_detail_action_cancel">रद्द करें</string>
+    <string name="txn_detail_action_edit">संपादित करें</string>
+    <string name="txn_detail_action_delete">हटाएं</string>
+    <string name="txn_detail_action_save">सहेजें</string>
+    <string name="txn_detail_action_ok">ठीक है</string>
+    <string name="txn_detail_action_confirm">पुष्टि करें</string>
+    <string name="txn_detail_delete_title">लेन-देन हटा दें</string>
+    <string name="txn_detail_delete_message">क्या आप वाकई इस लेन-देन को हटाना चाहते हैं? इस क्रिया को पूर्ववत नहीं किया जा सकता।</string>
+    <string name="txn_detail_unmark_loan_title">ऋण के रूप में चिह्न हटाएँ?</string>
+    <string name="txn_detail_unmark_loan">ऋण के रूप में चिह्न हटाएँ</string>
+    <string name="txn_detail_mark_as_loan">ऋण के रूप में चिह्नित करें</string>
+    <string name="txn_detail_close">बंद करें</string>
+    <string name="txn_detail_label_category">श्रेणी</string>
+    <string name="txn_detail_label_bank">बैंक</string>
+    <string name="txn_detail_label_description">विवरण</string>
+    <string name="txn_detail_status_recurring">दोहराव</string>
+    <string name="txn_detail_label_account">खाता</string>
+    <string name="txn_detail_label_balance">बाकी राशि</string>
+    <string name="txn_detail_receipt">रसीद</string>
+    <string name="txn_detail_field_amount">राशि</string>
+    <string name="txn_detail_field_merchant">व्यापारी</string>
+    <string name="txn_detail_field_description">विवरण (वैकल्पिक)</string>
+    <string name="txn_detail_clear">साफ करें</string>
+    <string name="txn_detail_recurring_checkbox">पुनरावर्ती लेन-देन</string>
+    <string name="txn_detail_budget_impact_none">कोई नहीं</string>
+    <string name="txn_detail_select_time">समय चुनें</string>
+    <string name="txn_detail_group_remove">हटाएँ</string>
+    <!-- Transaction totals card -->
+    <string name="txn_totals_income">आय</string>
+    <string name="txn_totals_expense">व्यय</string>
+    <string name="txn_totals_expenses">खर्च</string>
+    <string name="txn_totals_credit">क्रेडिट</string>
+    <string name="txn_totals_net">शुद्ध</string>
+    <!-- Transactions list -->
+    <string name="txn_list_title">टाइमलाइन</string>
+    <string name="txn_list_deleted">लेन-देन हटाया गया</string>
+    <string name="txn_list_undo">पूर्ववत करें</string>
+    <string name="txn_list_selected_count">%1$d चयनित</string>
+    <string name="txn_list_add_transaction">लेन-देन जोड़ें</string>
+    <string name="txn_list_group_today">आज</string>
+    <string name="txn_list_group_yesterday">कल</string>
+    <string name="txn_list_group_this_week">इस सप्ताह</string>
+    <string name="txn_list_group_earlier">पहले</string>
+    <string name="txn_list_sort_newest">नवीनतम पहले</string>
+    <string name="txn_list_sort_oldest">सबसे पुराना पहले</string>
+    <string name="txn_list_sort_amount_highest">सबसे उच्च राशि</string>
+    <string name="txn_list_sort_amount_lowest">सबसे कम राशि</string>
+    <string name="txn_list_sort_merchant_az">व्यापारी (A-Z)</string>
+    <string name="txn_list_sort_merchant_za">व्यापारी (Z-A)</string>
+    <string name="txn_list_more_options">अधिक विकल्प</string>
+    <string name="txn_list_filter_profile">प्रोफाइल</string>
+    <string name="txn_list_filter_account">खाता</string>
+    <string name="txn_list_filter_category">श्रेणी</string>
+    <string name="txn_list_filters">फ़िल्टर</string>
+    <string name="txn_list_search">खोजें</string>
+    <string name="txn_list_search_in_category">%1$s में खोजें...</string>
+    <string name="txn_list_clear_search">खोज साफ़ करें</string>
+    <string name="txn_list_empty_title">अभी तक कोई लेनदेन नहीं</string>
+    <!-- Add transaction / subscription -->
+    <string name="add_title">नया जोड़ें</string>
+    <string name="add_tab_transaction">लेन-देन</string>
+    <string name="add_tab_subscription">सदस्यता</string>
+    <string name="add_field_merchant">व्यापारी</string>
+    <string name="add_field_notes">नोट्स (वैकल्पिक)</string>
+    <string name="add_field_category">श्रेणी</string>
+    <string name="add_clear">साफ करें</string>
+    <string name="add_selected">चयनित</string>
+    <string name="add_save">सहेजें</string>
+    <string name="add_ok">ठीक है</string>
+    <string name="add_cancel">रद्द करें</string>
+    <string name="add_select_time">समय चुनें</string>
+    <string name="add_txn_select_account">खाता चुनें</string>
+    <string name="add_receipt_image">रसीद</string>
+    <string name="add_receipt_gallery">गैलरी</string>
+    <string name="add_sub_direction_expense">व्यय</string>
+    <string name="add_sub_direction_income">आय</string>
+    <string name="add_sub_info_expense">बार-बार होने वाले खर्चों को ट्रैक करें। प्रत्येक महीने आपको लेनदेन मैन्युअली जोड़ने होंगे।</string>
+    <string name="add_sub_billing_cycle">बिलिंग चक्र</string>
+    <string name="add_sub_cycle_monthly">मासिक</string>
+    <string name="add_sub_cycle_quarterly">त्रैमासिक</string>
+    <string name="add_sub_cycle_semi_annual">अर्द्धवार्षिक</string>
+    <string name="add_sub_cycle_annual">वार्षिक</string>
+    <string name="add_sub_cycle_weekly">साप्ताहिक</string>
+    <string name="add_sub_service_name">सेवा का नाम *</string>
+    <string name="add_error_save_transaction">लेन-देन सहेजने में विफल</string>
+    <string name="add_error_save_subscription">सदस्यता सहेजने में विफल</string>
+    <string name="add_error_service_required">सेवा का नाम आवश्यक है</string>
+    <string name="add_error_amount_required">राशि आवश्यक है</string>
+    <string name="add_error_amount_invalid">अमान्य राशि</string>
+    <string name="add_error_amount_positive">राशि 0 से अधिक होनी चाहिए</string>
+    <string name="add_error_merchant_required">व्यापारी/विवरण आवश्यक है</string>
+    <string name="add_error_merchant_too_short">बहुत छोटा</string>
+    <string name="add_error_category_required">श्रेणी आवश्यक है</string>
+    <!-- Transaction groups -->
+    <string name="group_save">सहेजें</string>
+    <string name="group_cancel">रद्द करें</string>
+    <string name="group_delete">हटाएं</string>
+    <string name="group_detail_edit">संपादित करें</string>
+    <string name="group_detail_add_transaction">लेन-देन जोड़ें</string>
+    <string name="group_detail_transactions">टाइमलाइन</string>
+    <string name="group_detail_expenses">खर्च</string>
+    <string name="group_detail_income">आय</string>
+    <string name="group_detail_empty_title">अभी तक कोई लेनदेन नहीं</string>
+    <string name="group_detail_picker_add">जोड़ें</string>
+    <!-- Recurring transactions -->
+    <string name="recurring_title">दोहराव</string>
+    <string name="recurring_frequency_daily">दैनिक</string>
+    <string name="recurring_frequency_weekly">साप्ताहिक</string>
+    <string name="recurring_frequency_monthly">मासिक</string>
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
+    <string name="recurring_more_options">अधिक विकल्प</string>
+    <string name="recurring_edit">संपादित करें</string>
+    <string name="recurring_delete">हटाएं</string>
+    <string name="recurring_cancel">रद्द करें</string>
+    <string name="recurring_save">सहेजें</string>
+    <string name="recurring_field_name">नाम</string>
+    <string name="recurring_field_amount">राशि</string>
+    <string name="recurring_field_currency">मुद्रा</string>
+    <string name="recurring_expense">व्यय</string>
+    <string name="recurring_income">आय</string>
+    <string name="recurring_field_category">श्रेणी</string>
+    <!-- Share card, sheet and banner -->
+    <string name="share_sheet_share">साझा करें</string>
+    <string name="share_sheet_done">समाप्त</string>
+    <string name="share_sheet_show">दिखाएँ</string>
+    <string name="share_sheet_transactions">टाइमलाइन</string>
+    <string name="share_sheet_subscriptions">सदस्यताएँ</string>
+    <!-- %1$s = month name -->
+    <string name="share_banner_dismiss">नामंजूर करें</string>
+    <!-- Shared transaction components -->
+    <string name="date_range_title">तारीख सीमा चुनें</string>
+    <string name="date_range_ok">ठीक है</string>
+    <string name="date_range_cancel">रद्द करें</string>
+    <string name="filter_row_more">अधिक फ़िल्टर</string>
+    <plurals name="filter_row_more_active">
+        <item quantity="one">अधिक फ़िल्टर (%1$d सक्रिय)</item>
+        <item quantity="other">अधिक फ़िल्टर (%1$d सक्रिय)</item>
+    </plurals>
+    <string name="filter_row_collapse">संकुचित करें</string>
+    <string name="filter_row_expand">विस्तार करें</string>
+    <string name="split_editor_total">कुल:</string>
+</resources>

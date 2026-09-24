@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">सेटिंग्स</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">रद्द करें</string>
+    <string name="settings_action_ok">ठीक है</string>
+    <string name="settings_action_done">समाप्त</string>
+    <!-- PennyWise Pro -->
+    <!-- Personalization -->
+    <string name="settings_appearance_title">दिखावट</string>
+    <string name="settings_language_title">भाषा</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">मुद्रा</string>
+    <string name="settings_display_currency_title">प्रदर्शित मुद्रा</string>
+    <string name="settings_exchange_rates_title">विनिमय दरें</string>
+    <string name="settings_default_currency_title">डिफ़ॉल्ट मुद्रा</string>
+    <string name="settings_currency_field_label">मुद्रा</string>
+    <!-- Budget -->
+    <!-- Contacts -->
+    <string name="settings_contacts_section">संपर्क</string>
+    <!-- Security -->
+    <string name="settings_security_section">सुरक्षा</string>
+    <string name="settings_app_lock_title">एप लॉक</string>
+    <string name="settings_app_lock_subtitle">बायोमेट्रिक प्रमाणीकरण के साथ अपने डेटा की सुरक्षा करें</string>
+    <string name="settings_lock_timeout_title">लॉक समय समाप्ति</string>
+    <string name="settings_lock_timeout_option_immediately">तुरंत</string>
+    <!-- Data Management -->
+    <string name="settings_data_section">डेटा प्रबंधन</string>
+    <string name="settings_categories_title">श्रेणियाँ</string>
+    <string name="settings_categories_subtitle">व्यय और आय श्रेणियों का प्रबंधन करें</string>
+    <string name="settings_smart_rules_title">स्मार्ट नियम</string>
+    <string name="settings_smart_rules_subtitle">स्वचालित लेनदेन श्रेणीकरण</string>
+    <string name="settings_budgets_title">बजट</string>
+    <string name="settings_loans_title">उधार</string>
+    <string name="settings_recurring_title">दोहराव</string>
+    <string name="settings_export_data_title">डेटा निर्यात करें</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_import_data_title">डेटा आयात करें</string>
+    <string name="settings_import_data_subtitle">बैकअप से डेटा पुनर्स्थापित करें</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">एसएमएस स्कैन अवधि</string>
+    <string name="settings_sms_scan_subtitle_all_time">सभी एसएमएस संदेश स्कैन करें</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_all_time">सभी समय</string>
+    <string name="settings_sms_scan_custom_short">कस्टम</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <!-- %1$s = custom start date -->
+    <!-- Data Management → Delete all transactions dialog -->
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_confirm">सभी हटाएं</string>
+    <string name="settings_delete_all_result_title">टाइमलाइन</string>
+    <!-- %1$d = current number of transactions -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Backup / import status -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_share">साझा करें</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">सूचनाएँ</string>
+    <!-- AI Features -->
+    <string name="settings_ai_chat_title">एआई चैट सहायक</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_insufficient_space">पर्याप्त भंडारण स्थान नहीं</string>
+    <string name="settings_ai_download">डाउनलोड</string>
+    <string name="settings_ai_retry">पुनः प्रयास करें</string>
+    <string name="settings_ai_delete">हटाएं</string>
+    <string name="settings_ai_error">त्रुटि</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <!-- Developer -->
+    <string name="settings_developer_mode_subtitle">चैट में तकनीकी जानकारी दिखाएँ</string>
+    <!-- Support & Community -->
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">दिखावट</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">सिस्टम</string>
+    <string name="appearance_mode_light">लाइट</string>
+    <string name="appearance_mode_dark">डार्क</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">डायनामिक</string>
+    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रंग</string>
+    <string name="appearance_style_default">डिफ़ॉल्ट</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_subtitle">गहरे कंट्रास्ट के लिए शुद्ध काला पृष्ठभूमि उपयोग करें</string>
+    <string name="appearance_blur_title">ब्लर इफेक्ट्स</string>
+    <string name="appearance_blur_subtitle">UI कंपोनेंट्स में ग्लास्मॉर्फिज्म ब्लर इफेक्ट्स सक्षम करें</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">नेविगेशन</string>
+    <string name="appearance_nav_floating">फ्लोटिंग</string>
+    <string name="appearance_nav_normal">सामान्य</string>
+    <string name="appearance_nav_normal_subtitle">स्टैंडर्ड M3</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_none">कोई नहीं</string>
+    <string name="appearance_cover_selected">चयनित</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">फ़ॉन्ट्स</string>
+    <string name="appearance_font_default">डिफ़ॉल्ट</string>
+    <string name="appearance_font_default_subtitle">सिस्टम</string>
+    <string name="appearance_font_sn_pro_subtitle">मॉडर्न मोनो</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">सामान्य प्रश्न</string>
+    <string name="faq_collapse">संकुचित करें</string>
+    <string name="faq_expand">विस्तार करें</string>
+    <!-- Transaction Types -->
+    <!-- SMS Parsing -->
+    <!-- Privacy & Data -->
+    <!-- AI Features -->
+    <!-- Account Management -->
+    <!-- Still need help -->
+</resources>

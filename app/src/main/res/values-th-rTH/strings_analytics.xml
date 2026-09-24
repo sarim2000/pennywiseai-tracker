@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">การวิเคราะห์</string>
+    <string name="analytics_trends">แนวโน้ม</string>
+    <string name="analytics_chart_line">เส้น</string>
+    <string name="analytics_chart_bar">แท่ง</string>
+    <string name="analytics_chart_heatmap">แผนที่ความร้อน</string>
+    <string name="analytics_top_categories">หมวดหมู่ยอดนิยม</string>
+    <string name="analytics_toggle_view">สลับมุมมอง</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_top_merchants">ร้านค้าชั้นนำ</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">ล้าง</string>
+    <string name="analytics_filter_all_profiles">บัญชีทั้งหมด</string>
+    <string name="analytics_filter_currency">สกุลเงิน</string>
+    <string name="analytics_filter_category">หมวดหมู่</string>
+    <string name="analytics_filter_account">บัญชี</string>
+    <!-- List rows -->
+    <plurals name="analytics_transaction_count">
+        <item quantity="other">%1$d ธุรกรรม</item>
+    </plurals>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
+    <!-- Summary card -->
+    <string name="analytics_summary_total">รวมทั้งหมด</string>
+    <plurals name="analytics_summary_txns">
+        <item quantity="other">%1$d รายการ</item>
+    </plurals>
+    <string name="analytics_summary_average">ค่าเฉลี่ย</string>
+    <string name="analytics_summary_per_day">" /วัน"</string>
+    <!-- Pie charts -->
+    <!-- Breakdown cards -->
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">งบประมาณ</string>
+    <string name="budgets_action_cancel">ยกเลิก</string>
+    <string name="budgets_action_delete">ลบ</string>
+    <string name="budgets_action_ok">ตกลง</string>
+    <string name="budgets_delete_title">ลบงบประมาณ</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete">ลบงบประมาณ</string>
+    <string name="budgets_more_options">ตัวเลือกเพิ่มเติม</string>
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = weekday name -->
+    <!-- %1$d = days, %2$s = weekday name -->
+    <!-- %1$d = day of month the budget starts on -->
+    <!-- %1$d = days, %2$d = day of month -->
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_days_remaining">
+        <item quantity="other">เหลือ %1$d วัน</item>
+    </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">แก้งบประมาณ</string>
+    <string name="budget_edit_title_new">งบประมาณใหม่</string>
+    <string name="budget_edit_save">บันทึกการเปลี่ยนแปลง</string>
+    <string name="budget_edit_create">สร้างงบประมาณ</string>
+    <string name="budget_edit_color">สี</string>
+    <string name="budget_edit_period">ระยะเวลากำหนดงบประมาณ</string>
+    <!-- %1$s = weekday name -->
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_add_category">เพิ่มหมวดหมู่</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_remove">ลบ</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">ประวัติงบประมาณ</string>
+    <string name="budget_history_categories">หมวดหมู่</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <string name="budget_history_percent_used">%1$d%% ใช้แล้ว</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">หมวดหมู่</string>
+    <string name="categories_add">เพิ่มหมวดหมู่</string>
+    <string name="categories_expense_section">หมวดหมู่ค่าใช้จ่าย</string>
+    <string name="categories_income_section">หมวดหมู่รายได้</string>
+    <string name="categories_action_delete">ลบ</string>
+    <string name="categories_action_edit">แก้ไข</string>
+    <string name="categories_action_cancel">ยกเลิก</string>
+    <string name="categories_system_badge">ระบบ</string>
+    <!-- %1$s = category name -->
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_hidden">%1$s ซ่อนอยู่</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">เพิ่มหมวดหมู่</string>
+    <string name="category_edit_name_label">ชื่อหมวดหมู่</string>
+    <string name="category_edit_type_expense">ค่าใช้จ่าย</string>
+    <string name="category_edit_type_income">รายได้</string>
+    <string name="category_edit_parent_none">ไม่มี</string>
+    <string name="category_edit_color">สี</string>
+    <string name="category_edit_preview">ตัวอย่างล่วงหน้า</string>
+    <string name="category_edit_add">เพิ่ม</string>
+    <string name="category_edit_save">บันทึก</string>
+    <string name="category_edit_delete">ลบหมวดหมู่</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">การสมัครสมาชิก</string>
+    <string name="subscriptions_add">เพิ่มการสมัครสมาชิก</string>
+    <string name="subscriptions_undo">เลิกทำ</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s ซ่อนอยู่</string>
+    <string name="subscriptions_empty_headline">ยังไม่พบการสมัครสมาชิก</string>
+    <string name="subscriptions_empty_description">ซิงค์ SMS ของคุณเพื่อตรวจสอบการสมัครสมาชิก</string>
+    <string name="subscriptions_collapse">ย่อ</string>
+    <string name="subscriptions_expand">ขยาย</string>
+    <string name="subscriptions_action_delete">ลบ</string>
+    <string name="subscriptions_action_cancel">ยกเลิก</string>
+    <string name="subscriptions_action_ok">ตกลง</string>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_hide">ซ่อน</string>
+    <string name="subscriptions_sms_available">มี SMS ให้ใช้งาน</string>
+    <string name="subscriptions_due_today">ครบกำหนดวันนี้</string>
+    <string name="subscriptions_due_tomorrow">ครบกำหนดพรุ่งนี้</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="other">ครบกำหนดใน %1$d วัน</item>
+    </plurals>
+    <!-- %1$s = date -->
+    <string name="subscriptions_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="subscriptions_menu_edit">แก้ไข</string>
+    <string name="subscriptions_source_notes">บันทึก</string>
+    <string name="subscriptions_source_original_sms">SMS ต้นฉบับ</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_name">ชื่อ</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_selected">ที่เลือก</string>
+    <string name="subscriptions_edit_save">บันทึก</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <!-- %1$s = date -->
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = currency code -->
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_today">วันนี้</string>
+    <string name="mark_paid_yesterday">เมื่อวาน</string>
+</resources>

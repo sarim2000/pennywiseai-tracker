@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">Аналитика</string>
+    <string name="analytics_trends">Тенденции</string>
+    <string name="analytics_chart_line">Линия</string>
+    <string name="analytics_chart_bar">Столбец</string>
+    <string name="analytics_chart_heatmap">Тепловая карта</string>
+    <string name="analytics_chart_line_full">Линейная диаграмма</string>
+    <string name="analytics_chart_bar_full">Гистограмма</string>
+    <string name="analytics_top_categories">Популярные категории</string>
+    <string name="analytics_toggle_view">Переключить вид</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">Общая сумма %1$s в возвратах не может достигать нуля, поэтому они могут добавить больше чем указанная сумма.</string>
+    <string name="analytics_top_tags">Топ тегов</string>
+    <string name="analytics_top_merchants">Лучшие продавцы</string>
+    <string name="analytics_by_account">По Аккаунту</string>
+    <string name="analytics_pro_tags_title">Смотрите лучшие теги с Pro</string>
+    <string name="analytics_pro_tags_body">Разблокируйте разброс расходов по всем вашим тегам. Оставайтесь бесплатными метки и фильтры.</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">Очистить</string>
+    <string name="analytics_filter_all_profiles">Все счета</string>
+    <string name="analytics_filter_currency">Валюта</string>
+    <string name="analytics_filter_category">Категория</string>
+    <string name="analytics_filter_all_categories">Все категории</string>
+    <string name="analytics_filter_account">Счет</string>
+    <string name="analytics_filter_all_accounts">Все аккаунты</string>
+    <!-- List rows -->
+    <plurals name="analytics_transaction_count">
+        <item quantity="one">%1$d транзакция</item>
+        <item quantity="few">%1$d транзакций</item>
+        <item quantity="many">%1$d транзакций</item>
+        <item quantity="other">%1$d транзакций</item>
+    </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="one">%1$d транзакция • Подписка</item>
+        <item quantity="few">%1$d транзакции • Подписка</item>
+        <item quantity="many">%1$d транзакции • Подписка</item>
+        <item quantity="other">%1$d транзакции • Подписка</item>
+    </plurals>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <string name="analytics_percent">%1$d%%</string>
+    <!-- Empty state -->
+    <string name="analytics_empty_headline">Ещё недостаточно данных</string>
+    <string name="analytics_empty_description">Ваши прогнозы расходов появятся здесь после первой недели отслеживания</string>
+    <string name="analytics_empty_action">Сканирование SMS</string>
+    <!-- Summary card -->
+    <string name="analytics_summary_total">ИТОГО</string>
+    <plurals name="analytics_summary_txns">
+        <item quantity="one">%1$d TXN</item>
+        <item quantity="few">%1$d ТРАНЗАКЦИЙ</item>
+        <item quantity="many">%1$d ТРАНЗАКЦИЙ</item>
+        <item quantity="other">%1$d ТРАНЗАКЦИЙ</item>
+    </plurals>
+    <string name="analytics_summary_average">СРЕДНЕЕ</string>
+    <string name="analytics_summary_per_day">" /день"</string>
+    <string name="analytics_summary_percent_of_total">%1$d%% от общего</string>
+    <!-- Pie charts -->
+    <string name="analytics_pie_unknown">Неизвестен</string>
+    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
+    <string name="analytics_spending_by_category">Расходы по категориям</string>
+    <string name="analytics_spending_by_tag">Расходы по тегам</string>
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">Бюджеты</string>
+    <string name="budgets_back">Назад</string>
+    <string name="budgets_add">Добавить бюджет</string>
+    <string name="budgets_action_cancel">Отмена</string>
+    <string name="budgets_action_delete">Удалить</string>
+    <string name="budgets_action_ok">ОК</string>
+    <string name="budgets_setup_title">Настройте бюджет</string>
+    <string name="budgets_setup_body">Организуйте свои расходы в бюджеты, чтобы отслеживать, куда уходят ваши деньги.</string>
+    <string name="budgets_setup_smart_defaults">Использовать умные настройки по умолчанию</string>
+    <string name="budgets_setup_custom">Создать собственный бюджет</string>
+    <string name="budgets_delete_title">Удалить бюджет</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete_message">Вы уверены, что хотите удалить \"%1$s? Это действие не может быть отменено.</string>
+    <string name="budgets_previous_month">Предыдущий месяц</string>
+    <string name="budgets_next_month">Следующий месяц</string>
+    <string name="budgets_percent">%1$d%%</string>
+    <string name="budgets_edit">Изменить бюджет</string>
+    <string name="budgets_delete">Удалить бюджет</string>
+    <string name="budgets_more_options">Больше опций</string>
+    <string name="budgets_view_history">Просмотреть историю этого периода</string>
+    <string name="budgets_move_up">Вверх</string>
+    <string name="budgets_move_down">Сдвинуть вниз</string>
+    <!-- %1$s = formatted amount -->
+    <string name="budgets_remaining">%1$s осталось</string>
+    <string name="budgets_over_by">Свыше от %1$s</string>
+    <string name="budgets_finished">Завершено</string>
+    <!-- %1$s = weekday name -->
+    <string name="budgets_resets_today_weekly">Сброс сегодня · %1$s продлевает</string>
+    <!-- %1$d = days, %2$s = weekday name -->
+    <plurals name="budgets_resets_in_weekly">
+        <item quantity="one">Сброс через %1$d день · %2$s продлевается</item>
+        <item quantity="few">Сброс через %1$d дней · %2$s обновить</item>
+        <item quantity="many">Сброс через %1$d дней · %2$s обновить</item>
+        <item quantity="other">Сброс через %1$d дней · %2$s обновить</item>
+    </plurals>
+    <!-- %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">Сброс сегодня · день %1$d</string>
+    <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Сброс через %1$d день · день %2$d</item>
+        <item quantity="few">Сброс через %1$d дней · день %2$d</item>
+        <item quantity="many">Сброс через %1$d дней · день %2$d</item>
+        <item quantity="other">Сброс через %1$d дней · день %2$d</item>
+    </plurals>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <string name="budgets_date_range">%1$s – %2$s</string>
+    <!-- %1$s = date range, %2$d = days -->
+    <string name="budgets_runs_finished">Запуск %1$s · Завершено</string>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <string name="budgets_spent_of">Потрачено %1$s из %2$s</string>
+    <string name="budgets_spent">Потрачено %1$s</string>
+    <string name="budgets_amount_of">%1$s из %2$s</string>
+    <string name="budgets_tracking_all">Отслеживание всех расходов</string>
+    <string name="budgets_chart_actual">Фактический</string>
+    <string name="budgets_chart_pace">Сроки бюджета</string>
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">Редактировать бюджет</string>
+    <string name="budget_edit_title_new">Новый бюджет</string>
+    <string name="budget_edit_save">Сохранить изменения</string>
+    <string name="budget_edit_create">Создать бюджет</string>
+    <string name="budget_edit_color">Цвет</string>
+    <string name="budget_edit_period">Период бюджета</string>
+    <string name="budget_edit_period_weekly">Еженедельно (периодически)</string>
+    <string name="budget_edit_period_monthly">Ежемесячно (периодический)</string>
+    <string name="budget_edit_period_one_time">Одноразовое</string>
+    <string name="budget_edit_start_date">Начальная дата</string>
+    <string name="budget_edit_end_date">Конечная дата</string>
+    <!-- %1$s = weekday name -->
+    <string name="budget_edit_resets_every">Сбрасывает каждый %1$s</string>
+    <string name="budget_edit_resets_on_day">Сбрасывается в день %1$d каждого месяца</string>
+    <string name="budget_edit_runs_once">Выполняется один раз, без опрокидывания</string>
+    <string name="budget_edit_current_window">Текущее окно</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <string name="budget_edit_category_limits">Ограничения категории (опционально)</string>
+    <string name="budget_edit_no_categories">Категории не добавлены. Этот бюджет будет отслеживать все расходы.</string>
+    <string name="budget_edit_unallocated">Не выделено: %1$s</string>
+    <string name="budget_edit_add_category">Добавить категорию</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_type_bucket_all">%1$s (все)</string>
+    <string name="budget_edit_name_placeholder">Название бюджета</string>
+    <string name="budget_edit_edit_name">Изменить имя</string>
+    <string name="budget_edit_remove">Удалить</string>
+    <string name="budget_edit_week_starts_on">Начало недели</string>
+    <string name="budget_edit_month_starts_on">Месяц начинается в день</string>
+    <string name="budget_edit_decrease_day">Уменьшить день</string>
+    <string name="budget_edit_increase_day">Увеличить день</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">История бюджета</string>
+    <string name="budget_history_loading">Загрузка…</string>
+    <string name="budget_history_not_found">Бюджет не найден</string>
+    <string name="budget_history_window">Окно: %1$s – %2$s</string>
+    <string name="budget_history_per_week">Разбивка в неделю</string>
+    <string name="budget_history_cycle">Цикл</string>
+    <string name="budget_history_range">Range</string>
+    <string name="budget_history_current">Текущее</string>
+    <string name="budget_history_live">Live · все еще накопились</string>
+    <string name="budget_history_frozen">Замороженный от %1$s</string>
+    <string name="budget_history_categories">Категории</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <string name="budget_history_of_budget_percent">из %1$s · %2$d%%</string>
+    <string name="budget_history_zero_remaining">осталось 0</string>
+    <string name="budget_history_percent_used">%1$d%% использовано</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">Категории</string>
+    <string name="categories_back">Назад</string>
+    <string name="categories_add">Добавить категорию</string>
+    <string name="categories_expense_section">Категории расходов</string>
+    <string name="categories_income_section">Категории доходов</string>
+    <string name="categories_action_delete">Удалить</string>
+    <string name="categories_action_edit">Редактировать</string>
+    <string name="categories_action_cancel">Отмена</string>
+    <string name="categories_show_category">Показать категорию</string>
+    <string name="categories_hide_category">Скрыть категорию</string>
+    <string name="categories_system_badge">Система</string>
+    <string name="categories_msg_system_not_editable">Системные категории не могут быть изменены</string>
+    <string name="categories_msg_updated">Категория успешно обновлена</string>
+    <!-- %1$s = category name -->
+    <string name="categories_msg_created">Категория успешно создана</string>
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_save_error">Ошибка сохранения категории: %1$s</string>
+    <string name="categories_msg_system_not_deletable">Системные категории не могут быть удалены</string>
+    <string name="categories_msg_deleted">Категория успешно удалена</string>
+    <string name="categories_msg_cannot_delete">Не удается удалить эту категорию</string>
+    <string name="categories_msg_delete_error">Ошибка при удалении категории: %1$s</string>
+    <string name="categories_msg_hidden">%1$s скрыто</string>
+    <string name="categories_msg_shown">Показано %1$s</string>
+    <string name="categories_msg_update_error">Ошибка обновления категории: %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">Добавить категорию</string>
+    <string name="category_edit_title_edit">Изменить категорию</string>
+    <string name="category_edit_name_required">Требуется название категории</string>
+    <string name="category_edit_name_label">Название категории</string>
+    <string name="category_edit_type">Тип категории</string>
+    <string name="category_edit_type_expense">Расход</string>
+    <string name="category_edit_type_income">Доход</string>
+    <string name="category_edit_parent_label">Родительская категория (опционально)</string>
+    <string name="category_edit_parent_none">Нет</string>
+    <string name="category_edit_icon_label">Значок (emoji, необязательно)</string>
+    <string name="category_edit_icon_placeholder">Нажмите, чтобы выбрать эмодзи</string>
+    <string name="category_edit_clear_icon">Очистить иконку</string>
+    <string name="category_edit_color">Цвет</string>
+    <string name="category_edit_preview">Предпросмотр</string>
+    <string name="category_edit_add">Добавить</string>
+    <string name="category_edit_save">Сохранить</string>
+    <string name="category_edit_delete">Удалить категорию</string>
+    <string name="category_edit_delete_title">Удалить категорию?</string>
+    <string name="category_edit_delete_message">\"%1$s\" будет удален. Существующие транзакции сохраняют их текущую метку. Это не может быть отменено.</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">Подписки</string>
+    <string name="subscriptions_add">Добавить подписку</string>
+    <string name="subscriptions_undo">Отменить</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s скрыто</string>
+    <string name="subscriptions_snackbar_ended">%1$s завершен</string>
+    <string name="subscriptions_active_section">Активные подписки</string>
+    <string name="subscriptions_empty_headline">Подписки еще не обнаружены</string>
+    <string name="subscriptions_empty_description">Синхронизируйте свои SMS для обнаружения подписок</string>
+    <string name="subscriptions_cancelled_section">Отменено (%1$d)</string>
+    <string name="subscriptions_collapse">Свернуть</string>
+    <string name="subscriptions_expand">Развернуть</string>
+    <string name="subscriptions_reactivate">Переактивировать</string>
+    <string name="subscriptions_action_delete">Удалить</string>
+    <string name="subscriptions_action_cancel">Отмена</string>
+    <string name="subscriptions_action_ok">ОК</string>
+    <string name="subscriptions_delete_title">Удалить подписку?</string>
+    <string name="subscriptions_delete_message">\"%1$s\" будет удален навсегда. Это действие не может быть отменено.</string>
+    <string name="subscriptions_summary_title">Ежемесячные подписки</string>
+    <string name="subscriptions_summary_none_active">Нет активных подписок</string>
+    <plurals name="subscriptions_summary_active">
+        <item quantity="one">%1$d активная подписка</item>
+        <item quantity="few">%1$d активных подписок</item>
+        <item quantity="many">%1$d активных подписок</item>
+        <item quantity="other">%1$d активных подписок</item>
+    </plurals>
+    <plurals name="subscriptions_summary_all_paid">
+        <item quantity="one">Все %1$d оплатили этот цикл</item>
+        <item quantity="few">Все %1$d оплатили этот цикл</item>
+        <item quantity="many">Все %1$d оплатили этот цикл</item>
+        <item quantity="other">Все %1$d оплатили этот цикл</item>
+    </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_hide">Скрыть</string>
+    <string name="subscriptions_sms_available">Доступно SMS</string>
+    <string name="subscriptions_no_date">Дата не установлена</string>
+    <string name="subscriptions_due_today">Срок сегодня</string>
+    <string name="subscriptions_due_tomorrow">Срок завтра</string>
+    <!-- %1$s = date -->
+    <string name="subscriptions_paid_on">Оплачено %1$s</string>
+    <string name="subscriptions_more_options">Больше опций</string>
+    <string name="subscriptions_menu_mark_paid">Пометить как оплаченный</string>
+    <string name="subscriptions_menu_view_source">Источник</string>
+    <string name="subscriptions_menu_edit">Редактировать</string>
+    <string name="subscriptions_menu_end">Завершить подписку</string>
+    <string name="subscriptions_source_notes">Заметки</string>
+    <string name="subscriptions_source_original_sms">Оригинальное SMS</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_title">Редактировать подписку</string>
+    <string name="subscriptions_edit_name">Название</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_amount">Сумма (%1$s)</string>
+    <string name="subscriptions_edit_tap_to_set">Нажмите, чтобы установить</string>
+    <string name="subscriptions_edit_next_date">Дата следующего платежа</string>
+    <string name="subscriptions_edit_pick_date">Выберите дату</string>
+    <string name="subscriptions_edit_category">Категория (опционально)</string>
+    <string name="subscriptions_edit_no_account">Нет аккаунта</string>
+    <string name="subscriptions_edit_paid_from">Оплачено от</string>
+    <string name="subscriptions_edit_pick_account">Выбрать аккаунт</string>
+    <string name="subscriptions_edit_selected">Выбрано</string>
+    <string name="subscriptions_edit_save">Сохранить</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <string name="subscriptions_msg_marked_paid">%1$s отмечено оплачено · следующий цикл на %2$s</string>
+    <string name="subscriptions_msg_linked">%1$s привязан · Следующий цикл на %2$s</string>
+    <string name="subscriptions_msg_already_marked">%1$s уже пометил этот цикл · продвинуто к %2$s</string>
+    <string name="subscriptions_msg_no_scheduled_date">Установите следующую дату платежа для %1$s сначала</string>
+    <string name="subscriptions_msg_not_found">Не удалось найти эту подписку</string>
+    <string name="subscriptions_msg_linked_existing">%1$s привязан к существующему платежу · следующий цикл на %2$s</string>
+    <string name="subscriptions_msg_linked_generic">Связанные</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <string name="mark_paid_eyebrow_paid">МАРК КАК ПАЙД</string>
+    <string name="mark_paid_eyebrow_received">МАРКА ПОЛУЧЕНО</string>
+    <!-- %1$s = date -->
+    <string name="mark_paid_already_marked">Уже отмечено на %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">Найдено соответствие %1$d платежа</item>
+        <item quantity="few">Найдено %1$d совпадающих платежей</item>
+        <item quantity="many">Найдено %1$d совпадающих платежей</item>
+        <item quantity="other">Найдено %1$d совпадающих платежей</item>
+    </plurals>
+    <string name="mark_paid_when">Когда?</string>
+    <!-- %1$s = formatted amount -->
+    <string name="mark_paid_cta_paid">Отметить оплачено · %1$s</string>
+    <string name="mark_paid_cta_received">Отметить полученное · %1$s</string>
+    <!-- %1$s = currency code -->
+    <string name="mark_paid_helper_expense">Мы будем записывать расходы и переводить график на следующий цикл.</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <string name="mark_paid_link_payment">Связать этот платеж</string>
+    <string name="mark_paid_or_mark_today">или отметьте сегодня</string>
+    <string name="mark_paid_today">Сегодня</string>
+    <string name="mark_paid_yesterday">Вчера</string>
+    <string name="mark_paid_pick_date">Выберите дату</string>
+</resources>

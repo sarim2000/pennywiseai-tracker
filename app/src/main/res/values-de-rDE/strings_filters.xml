@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">Dieser Monat</string>
+    <string name="filter_period_last_month">Letzter Monat</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">Aktuelles Geschäftsjahr</string>
+    <string name="filter_period_all_time">Alle Zeiten</string>
+    <string name="filter_period_custom_range">Benutzerdefinierter Zeitraum</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">Alle</string>
+    <string name="filter_type_income">Einkommen</string>
+    <string name="filter_type_expense">Kosten</string>
+    <string name="filter_type_credit">Gutschrift</string>
+    <string name="filter_type_transfer">Überweisung</string>
+    <string name="filter_type_investment">Investition</string>
+    <!-- Account types -->
+    <string name="account_type_savings">Einsparungen</string>
+    <string name="account_type_current">Aktuell</string>
+    <string name="account_type_credit_card">Kreditkarte</string>
+    <string name="account_type_cash">Bargeld</string>
+</resources>

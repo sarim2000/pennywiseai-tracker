@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">सेटिङ्स</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
+    <string name="settings_action_ok">ठीक छ</string>
+    <string name="settings_action_done">समाप्त</string>
+    <!-- PennyWise Pro -->
+    <!-- Personalization -->
+    <string name="settings_appearance_title">रुपरेखा</string>
+    <string name="settings_language_title">भाषा</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">मुद्रा</string>
+    <string name="settings_display_currency_title">प्रदर्शन मुद्रा</string>
+    <string name="settings_exchange_rates_title">विनिमय दरहरू</string>
+    <string name="settings_default_currency_title">पूर्वनिर्धारित मुद्रा</string>
+    <string name="settings_currency_field_label">मुद्रा</string>
+    <!-- Budget -->
+    <!-- Contacts -->
+    <string name="settings_contacts_section">सम्पर्कहरू</string>
+    <!-- Security -->
+    <string name="settings_security_section">सुरक्षा</string>
+    <string name="settings_app_lock_title">एप लक</string>
+    <string name="settings_app_lock_subtitle">आफ्नो डेटा बायोमेट्रिक प्रमाणीकरणको प्रयोग गरेर सुरक्षित गर्नुहोस्</string>
+    <string name="settings_lock_timeout_title">लक समय समाप्ति</string>
+    <string name="settings_lock_timeout_option_immediately">तुरुन्त</string>
+    <!-- Data Management -->
+    <string name="settings_data_section">डेटा व्यवस्थापन</string>
+    <string name="settings_categories_title">वर्गहरू</string>
+    <string name="settings_categories_subtitle">खर्च र आम्दानीका वर्गहरू व्यवस्थापन गर्नुहोस्</string>
+    <string name="settings_smart_rules_title">स्मार्ट नियमहरू</string>
+    <string name="settings_smart_rules_subtitle">स्वचालित लेनदेन वर्गीकरण</string>
+    <string name="settings_budgets_title">बजेटहरू</string>
+    <string name="settings_loans_title">ऋणहरू</string>
+    <string name="settings_recurring_title">पुनरावृत्ती हुने</string>
+    <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_import_data_title">डेटा आयात गर्नुहोस्</string>
+    <string name="settings_import_data_subtitle">ब्याकअपबाट डेटा पुनर्स्थापना गर्नुहोस्</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">SMS स्क्यान अवधि</string>
+    <string name="settings_sms_scan_subtitle_all_time">सबै SMS सन्देश स्क्यान गर्नुहोस्</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_all_time">सधैं</string>
+    <string name="settings_sms_scan_custom_short">अनुकूल</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <!-- %1$s = custom start date -->
+    <!-- Data Management → Delete all transactions dialog -->
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_confirm">सबै मेटाउनुहोस्</string>
+    <string name="settings_delete_all_result_title">टाइमलाइन</string>
+    <!-- %1$d = current number of transactions -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Backup / import status -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_share">सेयर गर्नुहोस्</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">सूचनाहरू</string>
+    <!-- AI Features -->
+    <string name="settings_ai_chat_title">एआई च्याट सहायक</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_insufficient_space">पर्याप्त भण्डारण स्थान छैन</string>
+    <string name="settings_ai_download">डाउनलोड</string>
+    <string name="settings_ai_retry">पुन: प्रयास गर्नुहोस्</string>
+    <string name="settings_ai_delete">हटाउनुहोस्</string>
+    <string name="settings_ai_error">त्रुटि</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <!-- Developer -->
+    <string name="settings_developer_mode_subtitle">च्याटमा प्राविधिक जानकारी प्रदर्शन गर्नुहोस्</string>
+    <!-- Support & Community -->
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">रुपरेखा</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">प्रणाली</string>
+    <string name="appearance_mode_light">हल्का</string>
+    <string name="appearance_mode_dark">गाढा</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">गतिशील</string>
+    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रङहरू</string>
+    <string name="appearance_style_default">पूर्वनिर्धारित</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_subtitle">गहिरो विरोधाभासको लागि पूर्ण कालो पृष्ठभूमि प्रयोग गर्नुहोस्</string>
+    <string name="appearance_blur_title">ब्लर प्रभावहरू</string>
+    <string name="appearance_blur_subtitle">UI कम्पोनेन्टहरूमा ग्लासमॉर्फिज्म ब्लर प्रभाव सक्षम गर्नुहोस्</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">नेभिगेसन</string>
+    <string name="appearance_nav_floating">तैरिरहेको</string>
+    <string name="appearance_nav_normal">सामान्य</string>
+    <string name="appearance_nav_normal_subtitle">मानक M3</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_none">कुनै छैन</string>
+    <string name="appearance_cover_selected">छानिएको</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">फन्टहरू</string>
+    <string name="appearance_font_default">पूर्वनिर्धारित</string>
+    <string name="appearance_font_default_subtitle">प्रणाली</string>
+    <string name="appearance_font_sn_pro_subtitle">आधुनिक मोनो</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">सोधिने प्रश्नहरू</string>
+    <string name="faq_collapse">सङ्कुचन गर्नुहोस्</string>
+    <string name="faq_expand">विस्तार गर्नुहोस्</string>
+    <!-- Transaction Types -->
+    <!-- SMS Parsing -->
+    <!-- Privacy & Data -->
+    <!-- AI Features -->
+    <!-- Account Management -->
+    <!-- Still need help -->
+</resources>

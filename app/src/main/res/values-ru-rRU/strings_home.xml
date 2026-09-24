@@ -140,7 +140,7 @@
     <string name="account_card_outstanding">Непогашенный</string>
     <string name="account_card_balance">Баланс</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%больше по сравнению с прошлым месяцем</string>
+    <string name="balance_card_change_more">%1$d%% больше по сравнению с прошлым месяцем</string>
     <string name="balance_card_change_less">%1$d%% меньше по сравнению с прошлым месяцем</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Баланс: %1$s</string>

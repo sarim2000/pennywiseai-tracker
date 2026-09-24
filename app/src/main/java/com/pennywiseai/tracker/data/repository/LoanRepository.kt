@@ -220,6 +220,11 @@ class LoanRepository @Inject constructor(
         )
     }
 
+    /** Settles all [loanIds] atomically — same effect as [settleLoan] on each. */
+    suspend fun settleLoans(loanIds: List<Long>) {
+        loanDao.settleLoans(loanIds, LocalDateTime.now())
+    }
+
     suspend fun reopenLoan(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
         val repaymentType = if (loan.direction == LoanDirection.LENT) "INCOME" else "EXPENSE"

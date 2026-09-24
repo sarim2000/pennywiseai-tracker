@@ -94,6 +94,28 @@ fun LoansScreen(
             return@Scaffold
         }
 
+        var expandedPeople by remember { mutableStateOf(setOf<String>()) }
+        fun toggle(name: String) {
+            expandedPeople = if (name in expandedPeople) expandedPeople - name else expandedPeople + name
+        }
+        var settleUpPerson by remember { mutableStateOf<LoanPerson?>(null) }
+        settleUpPerson?.let { person ->
+            AlertDialog(
+                onDismissRequest = { settleUpPerson = null },
+                title = { Text(stringResource(R.string.loans_settle_up_title, person.name)) },
+                text = { Text(stringResource(R.string.loans_settle_up_message, person.name)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.settleUp(person)
+                        settleUpPerson = null
+                    }) { Text(stringResource(R.string.loans_settle_up)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { settleUpPerson = null }) { Text(stringResource(R.string.accounts_action_cancel)) }
+                }
+            )
+        }
+
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -120,8 +142,11 @@ fun LoansScreen(
                 Spacer(modifier = Modifier.height(Spacing.sm))
             }
 
-            // Active loans
-            if (uiState.activeLoans.isNotEmpty()) {
+            // One row per person; tap to see their loans and settle up.
+            val activePeople = uiState.people.filter { it.hasActive }
+            val settledPeople = uiState.people.filterNot { it.hasActive }
+
+            if (activePeople.isNotEmpty()) {
                 item {
                     Text(
                         stringResource(R.string.loans_section_active),
@@ -130,13 +155,10 @@ fun LoansScreen(
                         modifier = Modifier.padding(vertical = Spacing.xs)
                     )
                 }
-                items(uiState.activeLoans, key = { it.id }) { loan ->
-                    LoanListItem(loan = loan, onClick = { onNavigateToLoanDetail(loan.id) })
-                }
+                personItems(activePeople, expandedPeople, onToggle = ::toggle, onNavigateToLoanDetail, onSettleUp = { settleUpPerson = it })
             }
 
-            // Settled loans toggle
-            if (uiState.settledLoans.isNotEmpty()) {
+            if (settledPeople.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     TextButton(onClick = { viewModel.toggleShowSettled() }) {
@@ -146,15 +168,112 @@ fun LoansScreen(
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.loans_settled_toggle, uiState.settledLoans.size))
+                        Text(stringResource(R.string.loans_settled_toggle, settledPeople.size))
                     }
                 }
                 if (uiState.showSettledLoans) {
-                    items(uiState.settledLoans, key = { it.id }) { loan ->
-                        LoanListItem(loan = loan, onClick = { onNavigateToLoanDetail(loan.id) })
+                    personItems(settledPeople, expandedPeople, onToggle = ::toggle, onNavigateToLoanDetail, onSettleUp = {})
+                }
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
+    people: List<LoanPerson>,
+    expanded: Set<String>,
+    onToggle: (String) -> Unit,
+    onNavigateToLoanDetail: (Long) -> Unit,
+    onSettleUp: (LoanPerson) -> Unit
+) {
+    people.forEach { person ->
+        val isExpanded = person.name in expanded
+        item(key = "person-${person.name}") {
+            LoanPersonRow(person = person, expanded = isExpanded, onClick = { onToggle(person.name) })
+        }
+        if (isExpanded) {
+            items(person.loans, key = { "loan-${it.id}" }) { loan ->
+                LoanListItem(
+                    loan = loan,
+                    onClick = { onNavigateToLoanDetail(loan.id) },
+                    modifier = Modifier.padding(start = Spacing.lg)
+                )
+            }
+            if (person.hasActive) {
+                item(key = "settle-${person.name}") {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                        FilledTonalButton(onClick = { onSettleUp(person) }) {
+                            Text(stringResource(R.string.loans_settle_up))
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LoanPersonRow(
+    person: LoanPerson,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val owedColor = if (isDark) loan_dark else loan_light
+    val oweColor = if (isDark) income_dark else income_light
+    // Tint the avatar by the first open balance's direction; grey once all settled.
+    val accent = person.net.values.firstOrNull()?.let { if (it.isOwedToYou) owedColor else oweColor }
+        ?: MaterialTheme.colorScheme.onSurfaceVariant
+
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.avatar)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = person.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accent
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(person.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                if (person.net.isEmpty()) {
+                    // Empty net with open loans = lent and borrowed cancel out.
+                    Text(
+                        stringResource(if (person.hasActive) R.string.loans_person_even else R.string.loans_person_all_settled),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    // One line per currency — balances in different currencies are never added.
+                    person.net.values.forEach { money ->
+                        val formatted = CurrencyFormatter.formatCurrency(money.amount.abs(), money.currency)
+                        Text(
+                            if (money.isOwedToYou) stringResource(R.string.loans_person_owes_you, formatted)
+                            else stringResource(R.string.loans_person_you_owe, formatted),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (money.isOwedToYou) owedColor else oweColor
+                        )
+                    }
+                }
+            }
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -199,7 +318,8 @@ private fun LoanSummaryCard(
 @Composable
 fun LoanListItem(
     loan: LoanEntity,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
     val directionColor = if (loan.direction == LoanDirection.LENT) {
@@ -214,7 +334,7 @@ fun LoanListItem(
     } else 0f
 
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Row(
@@ -248,8 +368,12 @@ fun LoanListItem(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
+                    // Settled loans show what the loan was; ₹0 remaining says nothing.
                     Text(
-                        CurrencyFormatter.formatCurrency(loan.remainingAmount, loan.currency),
+                        CurrencyFormatter.formatCurrency(
+                            if (loan.status == LoanStatus.SETTLED) loan.originalAmount else loan.remainingAmount,
+                            loan.currency
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = if (loan.status == LoanStatus.SETTLED)

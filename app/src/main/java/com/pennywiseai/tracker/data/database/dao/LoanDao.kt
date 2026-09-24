@@ -17,6 +17,19 @@ interface LoanDao {
     @Update
     suspend fun updateLoan(loan: LoanEntity)
 
+    /**
+     * Settles several loans in one transaction, so "Settle up" can't stop
+     * halfway. Re-reads each loan inside the transaction so a newer edit isn't
+     * overwritten by the caller's stale copy.
+     */
+    @Transaction
+    suspend fun settleLoans(loanIds: List<Long>, now: LocalDateTime) {
+        loanIds.forEach { id ->
+            val loan = getLoanById(id) ?: return@forEach
+            updateLoan(loan.copy(status = LoanStatus.SETTLED, remainingAmount = BigDecimal.ZERO, settledAt = now, updatedAt = now))
+        }
+    }
+
     @Delete
     suspend fun deleteLoan(loan: LoanEntity)
 

@@ -29,19 +29,31 @@ class UCOBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
-        // UCO Bank format: "Rs.2000.00" or "Rs.2,000.00"
-        val amountPattern = Regex("""Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        amountPattern.find(message)?.let { match ->
-            val amount = match.groupValues[1].replace(",", "")
-            return try {
-                BigDecimal(amount)
-            } catch (e: NumberFormatException) {
-                null
-            }
+        // Read the amount from the "Debited/Credited with" clause itself. A bare
+        // "first Rs. in the message" search is unsafe here: when the amount
+        // doesn't match (e.g. "Rs..50", a sub-rupee amount printed without its
+        // leading zero) it walks on to the next "Rs." — the Avl Bal — and
+        // records the whole balance as the transaction.
+        DEBIT_CREDIT_AMOUNT.find(message)?.let { match ->
+            return toAmount(match.groupValues[1])
         }
 
-        // Fall back to base class patterns
-        return super.extractAmount(message)
+        // Anything else: only look before the balance clause, so the fallback
+        // can never pick up the balance either.
+        val beforeBalance = BALANCE_CLAUSE.find(message)?.let { message.substring(0, it.range.first) } ?: message
+        ANY_AMOUNT.find(beforeBalance)?.let { match ->
+            return toAmount(match.groupValues[1])
+        }
+
+        return super.extractAmount(beforeBalance)
+    }
+
+    /** "2,000.00" -> 2000.00; ".50" -> 0.50. */
+    private fun toAmount(raw: String): BigDecimal? = try {
+        val cleaned = raw.replace(",", "")
+        BigDecimal(if (cleaned.startsWith(".")) "0$cleaned" else cleaned)
+    } catch (e: NumberFormatException) {
+        null
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
@@ -94,7 +106,8 @@ class UCOBankParser : BankParser() {
     override fun extractBalance(message: String): BigDecimal? {
         // UCO Bank format: "Avl Bal Rs.11111.11"
         val balancePatterns = listOf(
-            Regex("""Avl\s+Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Bal Rs.11111.11" and "Avl Bal in your A/c is Rs.2,992.54"
+            Regex("""Avl\s+Bal\b[^0-9]*?Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             Regex(
                 """Available\s+Balance\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
                 RegexOption.IGNORE_CASE
@@ -131,5 +144,17 @@ class UCOBankParser : BankParser() {
         }
 
         return super.extractReference(message)
+    }
+
+    private companion object {
+        /** Rupees with or without a leading zero: "2,000.00", "50.00", ".50". */
+        private const val AMOUNT = """(\d[\d,]*(?:\.\d{1,2})?|\.\d{1,2})"""
+
+        val DEBIT_CREDIT_AMOUNT = Regex(
+            """(?:debited|credited)\s+with\s+Rs\.?\s*$AMOUNT""",
+            RegexOption.IGNORE_CASE
+        )
+        val ANY_AMOUNT = Regex("""Rs\.?\s*$AMOUNT""", RegexOption.IGNORE_CASE)
+        val BALANCE_CLAUSE = Regex("""Avl\s+Bal|Available\s+Balance""", RegexOption.IGNORE_CASE)
     }
 }

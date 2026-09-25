@@ -320,6 +320,7 @@
     <string name="group_detail_transactions">Transactions</string>
     <string name="group_detail_expenses">Expenses</string>
     <string name="group_detail_income">Income</string>
+    <string name="group_detail_invested">Invested</string>
     <string name="group_detail_empty_title">No transactions yet</string>
     <string name="group_detail_empty_hint">Tap + to add transactions to this group</string>
     <string name="group_detail_delete_title">Delete Group</string>

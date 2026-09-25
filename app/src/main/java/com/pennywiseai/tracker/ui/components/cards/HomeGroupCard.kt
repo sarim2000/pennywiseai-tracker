@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 /**
@@ -88,7 +89,10 @@ fun HomeGroupCard(
             // Per-currency figures, same rule as everywhere: mixed currencies
             // are listed side by side, never summed into one number. A group
             // holding both directions shows both lines, like the groups screen.
-            if (!summary.hasExpense && !summary.hasIncome) {
+            // Only an empty group is empty. Keying this on expense/income alone
+            // printed "No transactions yet" under "25 items" for a group of
+            // investments (#837).
+            if (summary.transactionCount == 0) {
                 Text(
                     text = stringResource(R.string.group_card_no_transactions),
                     style = MaterialTheme.typography.labelSmall,
@@ -101,6 +105,19 @@ fun HomeGroupCard(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = expenseColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (summary.hasInvested) {
+                    Text(
+                        text = stringResource(
+                            R.string.group_card_invested,
+                            CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.investment,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.data.repository.GroupSummary
@@ -198,6 +199,16 @@ private fun GroupListItem(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = expenseColor
+                    )
+                }
+                if (summary.hasInvested) {
+                    Text(
+                        stringResource(
+                            R.string.group_card_invested,
+                            CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.investment
                     )
                 }
                 if (summary.hasIncome) {

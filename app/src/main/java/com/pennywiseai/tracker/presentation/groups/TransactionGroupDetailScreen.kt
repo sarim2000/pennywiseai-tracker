@@ -33,6 +33,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -168,9 +169,13 @@ fun TransactionGroupDetailScreen(
                             )
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-                        Row(
+                        // Up to four figures (count, spent, invested, received),
+                        // each possibly listing several currencies — wrap onto a
+                        // second line on narrow screens instead of squeezing.
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
@@ -197,6 +202,21 @@ fun TransactionGroupDetailScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = expenseColor
+                                    )
+                                }
+                            }
+                            if (uiState.investedByCurrency.values.any { it.isPositive }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        stringResource(R.string.group_detail_invested),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        CurrencyFormatter.formatByCurrency(uiState.investedByCurrency),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.investment
                                     )
                                 }
                             }

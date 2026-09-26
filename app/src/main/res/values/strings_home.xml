@@ -216,6 +216,7 @@
         <item quantity="other">%1$d items</item>
     </plurals>
     <string name="group_card_no_transactions">No transactions yet</string>
+    <string name="group_card_invested">%1$s invested</string>
     <plurals name="group_card_transaction_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>

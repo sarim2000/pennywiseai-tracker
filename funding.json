@@ -1,0 +1,63 @@
+{
+    "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+    "version": "v1.0.0",
+    "entity": {
+        "type": "individual",
+        "role": "maintainer",
+        "name": "Sarim Ahmad",
+        "email": "sarimahmed3520@gmail.com",
+        "phone": "",
+        "description": "One day I decided to start tracking my UPI expenses, and I couldn't find an app I trusted with my financial data. Then I thought: we all already get an SMS from the bank for every transaction, so why not track those, on the phone itself? That's how PennyWise was born. It has since grown to cover many Indian and overseas banks, and I maintain it along with community contributors.",
+        "webpageUrl": {
+            "url": "https://github.com/sarim2000"
+        }
+    },
+    "projects": [{
+        "guid": "pennywise",
+        "name": "PennyWise",
+        "description": "PennyWise turns the transaction SMS that banks already send into categorised, searchable financial records. Parsing, storage and the optional AI assistant (a local Qwen 2.5 model via LiteRT-LM) run on the device; there are no accounts, ads, analytics or tracking SDKs. The only network use is optional: exchange-rate lookups for multi-currency features, and a user-initiated 'report a parsing problem' flow that sends the SMS text the user chooses to share. Every feature, including the Pro tier, is free in the F-Droid build.\n\nThe parser engine (parser-core, pure Kotlin) supports 157 banks across 24 countries and ships in apps on Google Play, F-Droid and the iOS App Store.\n\nAs of September 2026: about 1,300 installed users on Google Play (83% in India), 1,440 monthly active devices (up 35% over the previous 28 days) and a 4.4-star rating, with no paid marketing. On GitHub, since July 2025: 559 stars, 147 forks, 21 contributors and 8,000+ APK downloads from releases. Other projects build on it, e.g. Cashiro (AGPL-3.0, 188 stars), an expense tracker derived from PennyWise.\n\nBanks change their SMS formats often, and when they do, transactions go unrecorded until the parser is updated. Funding would pay for that ongoing maintenance: fixing and adding bank parsers, regression tests, releases, and reviewing community contributions.",
+        "webpageUrl": {
+            "url": "https://github.com/sarim2000/pennywiseai-tracker"
+        },
+        "repositoryUrl": {
+            "url": "https://github.com/sarim2000/pennywiseai-tracker"
+        },
+        "licenses": ["spdx:AGPL-3.0"],
+        "tags": ["personal-finance", "privacy", "android", "kotlin", "sms-parsing", "on-device-ai", "expense-tracker", "kotlin-multiplatform"]
+    }],
+    "funding": {
+        "channels": [
+            {
+                "guid": "bank",
+                "type": "bank",
+                "address": "",
+                "description": "Direct bank transfer to an Indian bank account. Please e-mail for details."
+            }
+        ],
+        "plans": [
+            {
+                "guid": "maintainer-time",
+                "status": "active",
+                "name": "Maintainer time",
+                "description": "One year of part-time maintenance: updating parsers when banks change SMS formats, adding requested banks, regression tests, regular releases, and reviewing community contributions.",
+                "amount": 10000,
+                "currency": "USD",
+                "frequency": "yearly",
+                "channels": ["bank"]
+            },
+            {
+                "guid": "goodwill",
+                "status": "active",
+                "name": "Goodwill",
+                "description": "Any amount to support the project.",
+                "amount": 0,
+                "currency": "USD",
+                "frequency": "one-time",
+                "channels": ["bank"]
+            }
+        ],
+        "history": [
+            {"year": 2026, "income": 9000, "currency": "INR", "description": "Optional Pro purchases on Google Play grossed about INR 15,372 (paid by users, incl. tax) through September 2026, for a net payout of about INR 9,000. New Pro purchases are moving to a direct license-key checkout (Dodo Payments)."}
+        ]
+    }
+}

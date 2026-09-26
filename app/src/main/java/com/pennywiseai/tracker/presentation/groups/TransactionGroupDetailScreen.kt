@@ -169,9 +169,13 @@ fun TransactionGroupDetailScreen(
                             )
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-                        Row(
+                        // Up to four figures (count, spent, invested, received),
+                        // each possibly listing several currencies — wrap onto a
+                        // second line on narrow screens instead of squeezing.
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(

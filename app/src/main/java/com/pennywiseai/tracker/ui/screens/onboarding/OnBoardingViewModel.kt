@@ -211,18 +211,18 @@ class OnBoardingViewModel @Inject constructor(
                             }
                         }
                         WorkInfo.State.SUCCEEDED -> {
-                            val outputTotal = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, total)
-                            val outputProcessed = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, processed)
-                            val outputParsed = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, parsed)
-                            val outputSaved = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, saved)
+                            // `progress` is already empty once the work has
+                            // finished, so fall back to the last counts seen
+                            // while it ran — never to zero.
+                            val out = workInfo.outputData
                             _uiState.update {
                                 it.copy(
                                     isScanning = false,
                                     scanCompleted = true,
-                                    scanTotal = outputTotal,
-                                    scanProcessed = outputProcessed,
-                                    scanParsed = outputParsed,
-                                    scanSaved = outputSaved
+                                    scanTotal = out.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, it.scanTotal),
+                                    scanProcessed = out.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, it.scanProcessed),
+                                    scanParsed = out.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, it.scanParsed),
+                                    scanSaved = out.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, it.scanSaved)
                                 )
                             }
                             loadAccounts()

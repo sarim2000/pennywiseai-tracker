@@ -373,7 +373,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
             }
             reportProgress(stats)
-            Result.success()
+            // WorkManager clears `progress` once work finishes, so a caller
+            // reading the result on SUCCEEDED saw every count as 0 — onboarding
+            // said "No transactions found" after importing a whole inbox. Hand
+            // the final counts back as output data.
+            Result.success(workDataOf(
+                PROGRESS_TOTAL     to stats.total,
+                PROGRESS_PROCESSED to stats.processed.get(),
+                PROGRESS_PARSED    to stats.parsed.get(),
+                PROGRESS_SAVED     to stats.saved.get()
+            ))
 
         } catch (e: Exception) {
             Log.e(TAG, "Fatal error in SMS worker", e)

@@ -88,6 +88,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
         const val PROGRESS_SAVED                    = "progress_saved"
+
+        /** The final counts handed back on success — `progress` is gone by then. */
+        fun completionData(total: Int, processed: Int, parsed: Int, saved: Int): Data = workDataOf(
+            PROGRESS_TOTAL     to total,
+            PROGRESS_PROCESSED to processed,
+            PROGRESS_PARSED    to parsed,
+            PROGRESS_SAVED     to saved
+        )
         const val PROGRESS_BLOCKED                  = "progress_blocked"
         const val PROGRESS_TIME_ELAPSED             = "progress_time_elapsed"
         const val PROGRESS_ESTIMATED_TIME_REMAINING = "progress_estimated_time_remaining"
@@ -377,12 +385,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // reading the result on SUCCEEDED saw every count as 0 — onboarding
             // said "No transactions found" after importing a whole inbox. Hand
             // the final counts back as output data.
-            Result.success(workDataOf(
-                PROGRESS_TOTAL     to stats.total,
-                PROGRESS_PROCESSED to stats.processed.get(),
-                PROGRESS_PARSED    to stats.parsed.get(),
-                PROGRESS_SAVED     to stats.saved.get()
-            ))
+            Result.success(
+                completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
+            )
 
         } catch (e: Exception) {
             Log.e(TAG, "Fatal error in SMS worker", e)

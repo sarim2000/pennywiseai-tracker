@@ -5,7 +5,11 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import java.math.BigDecimal
 
 class UCOBankParserTest {
@@ -72,8 +76,24 @@ class UCOBankParserTest {
                     balance = BigDecimal("2992.54")
                 )
             )
+
         )
 
         return ParserTestUtils.runTestSuite(parser, cases)
+    }
+
+    @Test
+    fun `an unavailable balance stays unknown instead of borrowing another amount`() {
+        // ExpectedTransaction treats balance = null as "don't check", so this
+        // needs a direct assertion. An open-ended gap after "Avl Bal" would
+        // reach the service charge and record it as the balance.
+        val parsed = UCOBankParser().parse(
+            "A/c XX1234 Debited with Rs.200.00 on 21-09-2025 by UCO-UPI.Avl Bal unavailable. Service charge Rs.10.00",
+            "VM-UCOBNK-S",
+            System.currentTimeMillis()
+        )
+        assertNotNull(parsed)
+        assertEquals(0, BigDecimal("200.00").compareTo(parsed!!.amount))
+        assertNull(parsed.balance)
     }
 }

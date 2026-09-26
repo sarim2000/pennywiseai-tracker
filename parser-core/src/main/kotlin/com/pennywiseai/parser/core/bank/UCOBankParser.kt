@@ -106,8 +106,11 @@ class UCOBankParser : BankParser() {
     override fun extractBalance(message: String): BigDecimal? {
         // UCO Bank format: "Avl Bal Rs.11111.11"
         val balancePatterns = listOf(
-            // "Avl Bal Rs.11111.11" and "Avl Bal in your A/c is Rs.2,992.54"
-            Regex("""Avl\s+Bal\b[^0-9]*?Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Bal Rs.11111.11" and "Avl Bal in your A/c is Rs.2,992.54".
+            // The connecting words are spelled out rather than skipped with a
+            // wildcard: an open gap would let "Avl Bal unavailable ... charge
+            // Rs.10.00" record the charge as the balance.
+            Regex("""Avl\s+Bal(?:\s+in\s+your\s+A/c\s+is)?\s*[:.]?\s*Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             Regex(
                 """Available\s+Balance\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
                 RegexOption.IGNORE_CASE

@@ -110,6 +110,11 @@ case "$MODE" in
         echo -e "${YELLOW}↳ skipped $loc — incomplete listing (missing:$missing)${NC}"
       fi
     done
+    # Skipping a translation is fine; skipping the source listing is not — that
+    # would "succeed" while uploading nothing that matters.
+    if [ ! -d "$STAGE/en-US" ]; then
+      echo -e "${RED}❌ en-US listing is incomplete — refusing to upload translations without it.${NC}"; exit 1
+    fi
     echo -e "${GREEN}⬆️  Uploading store listing (text + screenshots + feature graphic)${NC}"
     fastlane supply \
       --package_name "$PACKAGE" \

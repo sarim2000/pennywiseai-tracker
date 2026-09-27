@@ -462,6 +462,7 @@
     <string name="rules_preview_title">Rule Preview</string>
     <string name="rules_preview_sentence">When %1$s, %2$s</string>
     <string name="rules_preview_conditions_and">%1$s AND %2$s</string>
+    <string name="rules_preview_conditions_or">%1$s OR %2$s</string>
     <string name="rules_preview_actions_and">%1$s, and %2$s</string>
     <!-- field, operator, value -->
     <string name="rules_preview_condition">%1$s %2$s %3$s</string>
@@ -482,6 +483,8 @@
     <string name="rules_preview_field_generic">field</string>
     <string name="rules_preview_op_before">is before</string>
     <string name="rules_preview_op_after">is after</string>
+    <string name="rules_preview_op_less_than">is less than</string>
+    <string name="rules_preview_op_greater_than">is greater than</string>
     <string name="rules_preview_op_at_or_before">is at or before</string>
     <string name="rules_preview_op_at_or_after">is at or after</string>
     <string name="rules_preview_op_is">is</string>

@@ -654,7 +654,11 @@ fun CreateRuleScreen(
                                         }
                                     )
                                     val operatorText = stringResource(
-                                        when (condition.operator) {
+                                        when {
+                                            // before/after reads as time; amounts compare as numbers.
+                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.LESS_THAN -> R.string.rules_preview_op_less_than
+                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_greater_than
+                                            else -> when (condition.operator) {
                                             ConditionOperator.LESS_THAN -> R.string.rules_preview_op_before
                                             ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_after
                                             ConditionOperator.LESS_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_before
@@ -665,6 +669,7 @@ fun CreateRuleScreen(
                                             ConditionOperator.IN -> R.string.rules_preview_op_is_any_of
                                             ConditionOperator.NOT_EQUALS -> R.string.rules_preview_op_is_not
                                             else -> R.string.rules_preview_op_matches
+                                            }
                                         }
                                     )
                                     val valueText = when (condition.field) {
@@ -722,7 +727,13 @@ fun CreateRuleScreen(
                                 }
                                 stringResource(
                                     R.string.rules_preview_sentence,
-                                    conditionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_conditions_and, acc, text) },
+                                    conditionTexts.drop(1).zip(conditions.drop(1)).fold(conditionTexts.first()) { acc, (text, condition) ->
+                                        stringResource(
+                                            if (condition.logicalOperator == LogicalOperator.OR) R.string.rules_preview_conditions_or
+                                            else R.string.rules_preview_conditions_and,
+                                            acc, text
+                                        )
+                                    },
                                     actionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_actions_and, acc, text) }
                                 )
                             },

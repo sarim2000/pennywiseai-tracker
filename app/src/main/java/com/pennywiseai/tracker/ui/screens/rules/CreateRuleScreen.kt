@@ -654,7 +654,11 @@ fun CreateRuleScreen(
                                         }
                                     )
                                     val operatorText = stringResource(
-                                        when (condition.operator) {
+                                        when {
+                                            // before/after reads as time; amounts compare as numbers.
+                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.LESS_THAN -> R.string.rules_preview_op_less_than
+                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_greater_than
+                                            else -> when (condition.operator) {
                                             ConditionOperator.LESS_THAN -> R.string.rules_preview_op_before
                                             ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_after
                                             ConditionOperator.LESS_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_before
@@ -665,6 +669,7 @@ fun CreateRuleScreen(
                                             ConditionOperator.IN -> R.string.rules_preview_op_is_any_of
                                             ConditionOperator.NOT_EQUALS -> R.string.rules_preview_op_is_not
                                             else -> R.string.rules_preview_op_matches
+                                            }
                                         }
                                     )
                                     val valueText = when (condition.field) {
@@ -722,7 +727,12 @@ fun CreateRuleScreen(
                                 }
                                 stringResource(
                                     R.string.rules_preview_sentence,
-                                    conditionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_conditions_and, acc, text) },
+                                    joinPreviewConditions(
+                                        conditionTexts,
+                                        conditions.map { it.logicalOperator },
+                                        andFormat = stringResource(R.string.rules_preview_conditions_and),
+                                        orFormat = stringResource(R.string.rules_preview_conditions_or)
+                                    ),
                                     actionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_actions_and, acc, text) }
                                 )
                             },
@@ -1392,4 +1402,23 @@ private fun ActionEditor(
             }
         }
     }
+}
+
+/**
+ * Joins condition phrases the way [com.pennywiseai.tracker.domain.service.RuleEngine] evaluates
+ * them: left to right, no precedence. When the connector changes, what came before is
+ * bracketed, so "A OR B AND C" reads "(A OR B) AND C".
+ */
+internal fun joinPreviewConditions(
+    texts: List<String>,
+    operators: List<LogicalOperator>,
+    andFormat: String,
+    orFormat: String
+): String {
+    var result = texts.first()
+    for (i in 1 until texts.size) {
+        if (i >= 2 && operators[i] != operators[i - 1]) result = "($result)"
+        result = (if (operators[i] == LogicalOperator.OR) orFormat else andFormat).format(result, texts[i])
+    }
+    return result
 }

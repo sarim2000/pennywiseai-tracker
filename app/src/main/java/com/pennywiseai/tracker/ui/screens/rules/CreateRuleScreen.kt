@@ -727,13 +727,12 @@ fun CreateRuleScreen(
                                 }
                                 stringResource(
                                     R.string.rules_preview_sentence,
-                                    conditionTexts.drop(1).zip(conditions.drop(1)).fold(conditionTexts.first()) { acc, (text, condition) ->
-                                        stringResource(
-                                            if (condition.logicalOperator == LogicalOperator.OR) R.string.rules_preview_conditions_or
-                                            else R.string.rules_preview_conditions_and,
-                                            acc, text
-                                        )
-                                    },
+                                    joinPreviewConditions(
+                                        conditionTexts,
+                                        conditions.map { it.logicalOperator },
+                                        andFormat = stringResource(R.string.rules_preview_conditions_and),
+                                        orFormat = stringResource(R.string.rules_preview_conditions_or)
+                                    ),
                                     actionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_actions_and, acc, text) }
                                 )
                             },
@@ -1403,4 +1402,23 @@ private fun ActionEditor(
             }
         }
     }
+}
+
+/**
+ * Joins condition phrases the way [com.pennywiseai.tracker.domain.service.RuleEngine] evaluates
+ * them: left to right, no precedence. When the connector changes, what came before is
+ * bracketed, so "A OR B AND C" reads "(A OR B) AND C".
+ */
+internal fun joinPreviewConditions(
+    texts: List<String>,
+    operators: List<LogicalOperator>,
+    andFormat: String,
+    orFormat: String
+): String {
+    var result = texts.first()
+    for (i in 1 until texts.size) {
+        if (i >= 2 && operators[i] != operators[i - 1]) result = "($result)"
+        result = (if (operators[i] == LogicalOperator.OR) orFormat else andFormat).format(result, texts[i])
+    }
+    return result
 }

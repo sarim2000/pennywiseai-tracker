@@ -486,9 +486,14 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 }
 
-                val totalLimitBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                // Page totals only count budgets that cover some of this month. A
+                // budget with no window here (e.g. a one-time budget that ended
+                // last month) keeps its card but must not add its limit to the
+                // page's remaining amount or daily allowance.
+                val counted = groupSpendings.filterIndexed { i, _ -> perBudgetWindows[i].second.isNotEmpty() }
+                val totalLimitBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalLimitSpent = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitSpent = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 
                 // Compute totalIncome from allTxs that fall within pageWindow
@@ -509,13 +514,13 @@ class BudgetGroupRepository @Inject constructor(
                     limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
 
-                val totalTargetGoal = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetGoal = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalTargetActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetActual = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
-                val totalExpectedBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalExpectedActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedActual = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
 
                 val netSavings = totalIncome - totalLimitSpent

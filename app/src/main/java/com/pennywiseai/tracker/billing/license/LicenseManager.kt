@@ -48,6 +48,12 @@ class LicenseManager @Inject constructor(
         data object Offline : ActivationOutcome()
     }
 
+    // Must be initialised before [isLicensed]: its Eagerly-started collection
+    // runs the ticker, which calls revalidate() on another thread while this
+    // constructor may still be running. Declared later, mutex was still null
+    // there (NPE in revalidate, 2.21.0).
+    private val mutex = Mutex()
+
     val license: StateFlow<StoredLicense?> = preferences.storedLicense
         .stateIn(scope, SharingStarted.Eagerly, null)
 
@@ -69,8 +75,6 @@ class LicenseManager @Inject constructor(
         combine(preferences.storedLicense, ticker) { license, _ ->
             license != null && LicensePolicy.grantsPro(license.validatedAt, System.currentTimeMillis())
         }.stateIn(scope, SharingStarted.Eagerly, false)
-
-    private val mutex = Mutex()
 
     suspend fun activate(rawKey: String): ActivationOutcome = mutex.withLock {
         val key = rawKey.trim()

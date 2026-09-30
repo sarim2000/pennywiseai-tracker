@@ -579,17 +579,7 @@ class BudgetGroupRepository @Inject constructor(
             val queryEnd = if (maxEnd.isBefore(monthEnd)) monthEnd else maxEnd
             val queryStart = if (minStart.isAfter(monthStart)) monthStart else minStart
 
-            val daysElapsed: Int
-            val daysRemaining: Int
-            if (isCurrentMonth) {
-                daysElapsed = (java.time.temporal.ChronoUnit.DAYS.between(pageWindow.start, today).toInt() + 1)
-                    .coerceIn(1, pageWindow.days)
-                daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, pageWindow.end).toInt() + 1)
-                    .coerceIn(0, pageWindow.days)
-            } else {
-                daysElapsed = pageWindow.days
-                daysRemaining = 0
-            }
+            val (daysElapsed, daysRemaining) = pageWindow.dayCounts(today, isCurrentMonth)
 
             // We also need previous cycle transactions if it's the current month
             val prevCycleQueryStart: LocalDate?
@@ -930,17 +920,7 @@ class BudgetGroupRepository @Inject constructor(
         // today to displayWindow.end. For a historical month, the
         // displayed window is fully past, so daysElapsed = window.days
         // and daysRemaining = 0.
-        val daysElapsed: Int
-        val daysRemaining: Int
-        if (isCurrentMonth) {
-            daysElapsed = (ChronoUnit.DAYS.between(displayWindow.start, today).toInt() + 1)
-                .coerceIn(1, displayWindow.days)
-            daysRemaining = (ChronoUnit.DAYS.between(today, displayWindow.end).toInt() + 1)
-                .coerceIn(0, displayWindow.days)
-        } else {
-            daysElapsed = displayWindow.days
-            daysRemaining = 0
-        }
+        val (daysElapsed, daysRemaining) = displayWindow.dayCounts(today, isCurrentMonth)
 
         fun buildGroupPace(
             categoryNames: Set<String>?,  // null = all categories

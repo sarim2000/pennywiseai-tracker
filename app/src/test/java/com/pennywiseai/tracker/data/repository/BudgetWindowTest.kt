@@ -342,4 +342,20 @@ class BudgetWindowTest {
         assertEquals(LocalDate.of(2026, 12, 4), w.end)
         assertEquals(30, w.days)
     }
+
+    @Test
+    fun `dayCounts of an empty window is zero, not a crash (2_21_0)`() {
+        // Placeholder for a budget with no window this month, e.g. a one-time
+        // budget that already ended.
+        val empty = BudgetWindow(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 1), 0)
+        assertEquals(0 to 0, empty.dayCounts(LocalDate.of(2026, 9, 29), isCurrentMonth = true))
+        assertEquals(0 to 0, empty.dayCounts(LocalDate.of(2026, 9, 29), isCurrentMonth = false))
+    }
+
+    @Test
+    fun `dayCounts counts today as elapsed and remaining in the current window`() {
+        val sept = BudgetWindow(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), 30)
+        assertEquals(29 to 2, sept.dayCounts(LocalDate.of(2026, 9, 29), isCurrentMonth = true))
+        assertEquals(30 to 0, sept.dayCounts(LocalDate.of(2026, 9, 29), isCurrentMonth = false))
+    }
 }

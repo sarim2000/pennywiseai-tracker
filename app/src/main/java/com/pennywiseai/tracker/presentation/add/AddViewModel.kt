@@ -287,9 +287,9 @@ class AddViewModel @Inject constructor(
      * type and selects it. A same-name category of the other type is reported
      * on the field rather than selected, since the picker would filter it out.
      */
-    fun createAndSelectCategory(name: String, color: String, icon: String?) {
+    fun createAndSelectCategory(name: String, color: String, icon: String?, onDone: () -> Unit = {}) {
         val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
+        if (trimmed.isEmpty()) { onDone(); return }
         val isIncome = _transactionUiState.value.transactionType == TransactionType.INCOME
         viewModelScope.launch {
             try {
@@ -306,12 +306,19 @@ class AddViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                if (existing == null) categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                when {
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                    // Re-adding a hidden category brings it back, so the selection
+                    // is one the picker actually offers.
+                    existing.isHidden -> categoryRepository.setCategoryHidden(existing.id, false)
+                }
                 updateTransactionCategory(trimmed)
             } catch (e: Exception) {
                 _transactionUiState.update {
                     it.copy(categoryError = UiText.Res(R.string.txn_detail_error_create_category, listOf(e.message.toString())))
                 }
+            } finally {
+                onDone()
             }
         }
     }

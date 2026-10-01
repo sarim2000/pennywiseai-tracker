@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
@@ -159,7 +160,7 @@ fun TransactionTabContent(
     onSave: () -> Unit
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
-    val categories by viewModel.transactionCategories.collectAsState()
+    val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     val accounts by viewModel.accounts.collectAsState()
 
@@ -528,8 +529,9 @@ fun TransactionTabContent(
                     lockType = true,
                     onDismiss = { showAddCategoryDialog = false },
                     onSave = { name, color, _, icon, _ ->
-                        viewModel.createAndSelectCategory(name, color, icon)
-                        showAddCategoryDialog = false
+                        // Close only once the category is created and selected, so the
+                        // modal dialog blocks Save / type changes until it lands.
+                        viewModel.createAndSelectCategory(name, color, icon) { showAddCategoryDialog = false }
                     }
                 )
             }

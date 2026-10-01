@@ -29,7 +29,10 @@ data class ExpectedTransaction(
     // Explicitly assert that no per-account number was extracted. `accountLast4 = null` alone
     // can't express this (a null expectation is treated as "don't check"), so mobile-money
     // wallets that must consolidate into one account (#682) set this flag.
-    val expectNullAccountLast4: Boolean = false
+    val expectNullAccountLast4: Boolean = false,
+    // Same limitation for merchant: set this when the message names no counterparty
+    // and the parser must not invent one.
+    val expectNullMerchant: Boolean = false
 )
 
 data class ParserTestCase(
@@ -127,6 +130,9 @@ object ParserTestUtils {
         if (expected.expectNullAccountLast4 && result.accountLast4 != null) {
             errors.add("Expected no account number (mobile wallet) but got ${result.accountLast4}")
         }
+        if (expected.expectNullMerchant && result.merchant != null) {
+            errors.add("Expected no merchant but got ${result.merchant}")
+        }
 
         return errors
     }
@@ -186,6 +192,9 @@ object ParserTestUtils {
             {
                 if (expected.expectNullAccountLast4) {
                     assertNull(parsed.accountLast4, "Expected no account number (mobile wallet)")
+                }
+                if (expected.expectNullMerchant) {
+                    assertNull(parsed.merchant, "Expected no merchant")
                 }
             }
         )

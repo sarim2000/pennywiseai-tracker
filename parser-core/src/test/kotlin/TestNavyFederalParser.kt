@@ -173,7 +173,9 @@ class NavyFederalParserTest {
                     type = TransactionType.EXPENSE,
                     accountLast4 = "1234",
                     balance = BigDecimal("2500.00"),
-                    isFromCard = false
+                    isFromCard = false,
+                    // The alert names no counterparty — don't invent one.
+                    expectNullMerchant = true
                 )
             )
         )

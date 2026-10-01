@@ -1703,6 +1703,26 @@ private fun CategoryDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
+            // Create a new category without leaving the edit flow (#584). At the
+            // top so it's reachable without scrolling sub-categories (#835).
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.txn_detail_add_category)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    showAddDialog = true
+                },
+                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+            )
+
+            HorizontalDivider()
+
             categories.forEach { category ->
                 DropdownMenuItem(
                     text = {
@@ -1719,24 +1739,6 @@ private fun CategoryDropdown(
                 )
             }
 
-            HorizontalDivider()
-
-            // Create a new category without leaving the edit flow (#584)
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.txn_detail_add_category)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    showAddDialog = true
-                },
-                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-            )
         }
     }
 

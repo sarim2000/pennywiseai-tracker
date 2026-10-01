@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -40,6 +41,7 @@ class AddViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -143,6 +145,22 @@ class AddViewModel @Inject constructor(
 
     // Categories for dropdowns
     val categories = getCategoriesUseCase.execute()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Transaction-tab picker: income or expense categories to match the chosen
+    // type (#851), hidden ones excluded (#736) — same as the edit screen.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val transactionCategories = _transactionUiState
+        .map { it.transactionType == TransactionType.INCOME }
+        .distinctUntilChanged()
+        .flatMapLatest { isIncome ->
+            if (isIncome) categoryRepository.getVisibleIncomeCategories()
+            else categoryRepository.getVisibleExpenseCategories()
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -264,6 +282,40 @@ class AddViewModel @Inject constructor(
         }
     }
     
+    /**
+     * "Add category" from the picker (#835): creates a category of the current
+     * type and selects it. A same-name category of the other type is reported
+     * on the field rather than selected, since the picker would filter it out.
+     */
+    fun createAndSelectCategory(name: String, color: String, icon: String?) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        val isIncome = _transactionUiState.value.transactionType == TransactionType.INCOME
+        viewModelScope.launch {
+            try {
+                val existing = categoryRepository.getCategoryByName(trimmed)
+                if (existing != null && existing.isIncome != isIncome) {
+                    _transactionUiState.update {
+                        it.copy(
+                            categoryError = UiText.Res(
+                                if (existing.isIncome) R.string.txn_detail_error_category_exists_income
+                                else R.string.txn_detail_error_category_exists_expense,
+                                listOf(trimmed)
+                            )
+                        )
+                    }
+                    return@launch
+                }
+                if (existing == null) categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                updateTransactionCategory(trimmed)
+            } catch (e: Exception) {
+                _transactionUiState.update {
+                    it.copy(categoryError = UiText.Res(R.string.txn_detail_error_create_category, listOf(e.message.toString())))
+                }
+            }
+        }
+    }
+
     fun updateTransactionDate(dateMillis: Long) {
         val instant = Instant.ofEpochMilli(dateMillis)
         val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()

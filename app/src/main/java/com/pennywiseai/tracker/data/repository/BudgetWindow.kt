@@ -68,6 +68,20 @@ fun resolveBudgetWindow(
 }
 
 /**
+ * (days elapsed, days remaining) in this window as of [today]. Outside the
+ * current month the window is fully past. An empty window (days = 0, the
+ * placeholder for a budget with no window this month, e.g. a one-time budget
+ * that ended last month) has nothing elapsed or remaining; clamping it to
+ * `1..0` crashed 2.21.0.
+ */
+fun BudgetWindow.dayCounts(today: LocalDate, isCurrentMonth: Boolean): Pair<Int, Int> {
+    if (!isCurrentMonth || days < 1) return days.coerceAtLeast(0) to 0
+    val elapsed = (ChronoUnit.DAYS.between(start, today).toInt() + 1).coerceIn(1, days)
+    val remaining = (ChronoUnit.DAYS.between(today, end).toInt() + 1).coerceIn(0, days)
+    return elapsed to remaining
+}
+
+/**
  * True when [other] has any day in common with `this`. The BudgetGroups
  * screen uses this for the "Overlap" filter — a budget with a window
  * (Weekly, Monthly, or One-time) that intersects the selected year-month

@@ -486,9 +486,14 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 }
 
-                val totalLimitBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                // Page totals only count budgets that cover some of this month. A
+                // budget with no window here (e.g. a one-time budget that ended
+                // last month) keeps its card but must not add its limit to the
+                // page's remaining amount or daily allowance.
+                val counted = groupSpendings.filterIndexed { i, _ -> perBudgetWindows[i].second.isNotEmpty() }
+                val totalLimitBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalLimitSpent = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitSpent = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 
                 // Compute totalIncome from allTxs that fall within pageWindow
@@ -509,13 +514,13 @@ class BudgetGroupRepository @Inject constructor(
                     limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
 
-                val totalTargetGoal = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetGoal = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalTargetActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetActual = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
-                val totalExpectedBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalExpectedActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedActual = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
 
                 val netSavings = totalIncome - totalLimitSpent
@@ -579,17 +584,7 @@ class BudgetGroupRepository @Inject constructor(
             val queryEnd = if (maxEnd.isBefore(monthEnd)) monthEnd else maxEnd
             val queryStart = if (minStart.isAfter(monthStart)) monthStart else minStart
 
-            val daysElapsed: Int
-            val daysRemaining: Int
-            if (isCurrentMonth) {
-                daysElapsed = (java.time.temporal.ChronoUnit.DAYS.between(pageWindow.start, today).toInt() + 1)
-                    .coerceIn(1, pageWindow.days)
-                daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, pageWindow.end).toInt() + 1)
-                    .coerceIn(0, pageWindow.days)
-            } else {
-                daysElapsed = pageWindow.days
-                daysRemaining = 0
-            }
+            val (daysElapsed, daysRemaining) = pageWindow.dayCounts(today, isCurrentMonth)
 
             // We also need previous cycle transactions if it's the current month
             val prevCycleQueryStart: LocalDate?
@@ -930,17 +925,7 @@ class BudgetGroupRepository @Inject constructor(
         // today to displayWindow.end. For a historical month, the
         // displayed window is fully past, so daysElapsed = window.days
         // and daysRemaining = 0.
-        val daysElapsed: Int
-        val daysRemaining: Int
-        if (isCurrentMonth) {
-            daysElapsed = (ChronoUnit.DAYS.between(displayWindow.start, today).toInt() + 1)
-                .coerceIn(1, displayWindow.days)
-            daysRemaining = (ChronoUnit.DAYS.between(today, displayWindow.end).toInt() + 1)
-                .coerceIn(0, displayWindow.days)
-        } else {
-            daysElapsed = displayWindow.days
-            daysRemaining = 0
-        }
+        val (daysElapsed, daysRemaining) = displayWindow.dayCounts(today, isCurrentMonth)
 
         fun buildGroupPace(
             categoryNames: Set<String>?,  // null = all categories

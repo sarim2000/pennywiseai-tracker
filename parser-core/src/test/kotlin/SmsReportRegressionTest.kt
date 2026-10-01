@@ -164,6 +164,24 @@ class SmsReportRegressionTest {
             )
         )
 
-        return ParserTestUtils.runFactoryTestSuite(cases, "SMS report regressions")
+        return ParserTestUtils.runFactoryTestSuite(
+            cases + SimpleTestCase(
+                // Numeric shortcode: must not be claimed by a parser that grabs
+                // numeric senders (EverestBank) ahead of NFCU.
+                description = "NFCU shortcode 21398 routes to Navy Federal (#852)",
+                bankName = "Navy Federal Credit Union",
+                sender = "21398",
+                currency = "USD",
+                message = "NFCU: Transaction for \$231.72 was approved on credit card 1234 at TEST MERCHANT at 07:35 AM EDT on 09/25/26.Txt STOP to opt-out. Txt HELP for help.",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("231.72"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    isFromCard = true
+                ),
+                shouldHandle = true
+            ),
+            "SMS report regressions"
+        )
     }
 }

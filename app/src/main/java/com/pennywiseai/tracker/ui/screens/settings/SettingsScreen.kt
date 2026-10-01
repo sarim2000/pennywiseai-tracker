@@ -104,6 +104,7 @@ fun SettingsScreen(
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
+    onNavigateToWebhooks: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -746,6 +747,15 @@ fun SettingsScreen(
             // ── Developer ──
             SectionHeaderV2(title = "Developer")
             SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.CloudUpload,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = "Webhooks",
+                    subtitle = "Send transactions, budgets, accounts and subscriptions to your endpoint",
+                    onClick = onNavigateToWebhooks,
+                    position = ListItemPosition.Top
+                )
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
                     iconBgColor = grey_light,
@@ -754,7 +764,7 @@ fun SettingsScreen(
                     subtitle = "Show technical information in chat",
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ListItemPosition.Single
+                    position = ListItemPosition.Bottom
                 )
             }
 

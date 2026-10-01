@@ -488,6 +488,11 @@ fun MainScreen(
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.TransactionGroups
                                 ) { launchSingleTop = true }
+                            },
+                            onNavigateToWebhooks = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.Webhooks
+                                ) { launchSingleTop = true }
                             }
                         )
                     }

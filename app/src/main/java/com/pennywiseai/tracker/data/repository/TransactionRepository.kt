@@ -28,6 +28,12 @@ open class TransactionRepository @Inject constructor(
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
+    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String) =
+        transactionDao.getWebhookChanges(start, end, currency)
+
+    fun getWebhookTransactions(start: LocalDateTime, end: LocalDateTime, currency: String) =
+        transactionDao.getTransactionsFiltered(start, end, currency, null)
+
     fun getAllTransactions(): Flow<List<TransactionEntity>> = 
         transactionDao.getAllTransactions()
     
@@ -116,7 +122,7 @@ open class TransactionRepository @Inject constructor(
         transactionDao.insertTransactions(transactions)
     
     suspend fun updateTransaction(transaction: TransactionEntity) = 
-        transactionDao.updateTransaction(transaction)
+        transactionDao.updateTransaction(transaction.copy(updatedAt = LocalDateTime.now()))
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
         if (hardDelete) {
@@ -216,7 +222,7 @@ open class TransactionRepository @Inject constructor(
     }
 
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
-        transactionDao.updateTransaction(transaction.copy(isDeleted = false))
+        transactionDao.updateTransaction(transaction.copy(isDeleted = false, updatedAt = LocalDateTime.now()))
     }
     
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {

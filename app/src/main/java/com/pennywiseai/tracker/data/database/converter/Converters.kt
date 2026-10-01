@@ -9,6 +9,10 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.WebhookDataType
+import com.pennywiseai.tracker.data.database.entity.WebhookLogStatus
+import com.pennywiseai.tracker.data.database.entity.WebhookRangePreset
+import com.pennywiseai.tracker.data.webhook.WebhookSyncReason
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -148,4 +152,13 @@ class Converters {
     fun toLoanStatus(value: String): LoanStatus {
         return LoanStatus.valueOf(value)
     }
+
+    @TypeConverter fun fromWebhookDataType(value: WebhookDataType): String = value.name
+    @TypeConverter fun toWebhookDataType(value: String): WebhookDataType = WebhookDataType.valueOf(value)
+    @TypeConverter fun fromWebhookLogStatus(value: WebhookLogStatus): String = value.name
+    @TypeConverter fun toWebhookLogStatus(value: String): WebhookLogStatus = WebhookLogStatus.valueOf(value)
+    @TypeConverter fun fromWebhookRangePreset(value: WebhookRangePreset): String = value.name
+    @TypeConverter fun toWebhookRangePreset(value: String): WebhookRangePreset = WebhookRangePreset.valueOf(value)
+    @TypeConverter fun fromWebhookSyncReason(value: WebhookSyncReason): String = value.name
+    @TypeConverter fun toWebhookSyncReason(value: String): WebhookSyncReason = WebhookSyncReason.valueOf(value)
 }

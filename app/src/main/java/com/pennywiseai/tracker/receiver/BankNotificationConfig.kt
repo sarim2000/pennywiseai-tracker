@@ -20,7 +20,10 @@ object BankNotificationConfig {
         "indwin.c3.shareapp" to "slice",
         // Notification-only providers (UK) – aliases must match their parsers
         "com.chase.intl" to "ChaseUK",        // Chase UK — distinct from the US Chase parser
-        "com.avuscapital.trading212" to "Trading212"
+        "com.avuscapital.trading212" to "Trading212",
+        // Huntington (USA) – app notifications use the same wording as its texts;
+        // alias must match HuntingtonBankParser.canHandle()
+        "com.huntington.m" to "Huntington"    // Huntington Mobile Banking
     )
 
     fun isAllowed(packageName: String): Boolean =

@@ -148,6 +148,33 @@ class NavyFederalParserTest {
                     merchant = "Kroger",
                     isFromCard = true
                 )
+            ),
+            // #852 — alerts from the 21398 shortcode
+            ParserTestCase(
+                name = "Credit card purchase from shortcode 21398",
+                message = "NFCU: Transaction for \$19.15 was approved on credit card 1234 at WM SUPERCENTER #0000 at 03:59 PM EDT on 09/26/26.Txt STOP to opt-out. Txt HELP for help.",
+                sender = "21398",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("19.15"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "1234",
+                    merchant = "WM SUPERCENTER #0000",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Account withdrawal with available balance (#852)",
+                message = "NFCU: \$574.94 was withdrawn from your acct. end. in 1234 . As of 09/30/26 at 04:47 AM ET the available balance is \$2500.00. Sign in for details. Txt STOP to stop.",
+                sender = "21398",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("574.94"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("2500.00"),
+                    isFromCard = false
+                )
             )
         )
 
@@ -157,6 +184,7 @@ class NavyFederalParserTest {
             "NAVY FEDERAL" to true,
             "NAVYFEDERAL" to true,
             "US-NFCU-A" to true,
+            "21398" to true,
             "UNKNOWN" to false,
             "HDFC" to false,
             "SCHWAB" to false

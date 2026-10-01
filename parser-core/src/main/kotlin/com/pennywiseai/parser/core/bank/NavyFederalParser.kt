@@ -15,6 +15,7 @@ class NavyFederalParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "NFCU" ||
+                upperSender == "21398" || // NFCU's US alert shortcode (#852)
                 upperSender == "NAVYFED" ||
                 upperSender.contains("NAVY FEDERAL") ||
                 upperSender.contains("NAVYFEDERAL") ||
@@ -32,6 +33,8 @@ class NavyFederalParser : BankParser() {
                 """Transaction for \$([0-9,]+(?:\.[0-9]{2})?)\s+was declined""",
                 RegexOption.IGNORE_CASE
             ),
+            // Account alert: "$574.94 was withdrawn from your acct. end. in 1234"
+            Regex("""\$([0-9,]+(?:\.[0-9]{2})?)\s+was withdrawn""", RegexOption.IGNORE_CASE),
             Regex("""for \$([0-9,]+(?:\.[0-9]{2})?)\s+was approved""", RegexOption.IGNORE_CASE),
             Regex("""for \$([0-9,]+(?:\.[0-9]{2})?)\s+was declined""", RegexOption.IGNORE_CASE)
         )
@@ -77,6 +80,7 @@ class NavyFederalParser : BankParser() {
 
         return when {
             lowerMessage.contains("was approved") -> TransactionType.EXPENSE
+            lowerMessage.contains("was withdrawn") -> TransactionType.EXPENSE
             lowerMessage.contains("was declined") -> null // Don't track declined transactions
             lowerMessage.contains("payment received") -> TransactionType.CREDIT
             lowerMessage.contains("deposit") -> TransactionType.CREDIT
@@ -88,6 +92,7 @@ class NavyFederalParser : BankParser() {
         super.extractAccountLast4(message)?.let { return it }
         // Pattern: "on debit card xxxx" or "on credit card xxxx"
         val patterns = listOf(
+            Regex("""acct\.?\s+end\.?\s+in\s+(\d{4})""", RegexOption.IGNORE_CASE),
             Regex("""on debit card (\d{4})""", RegexOption.IGNORE_CASE),
             Regex("""on credit card (\d{4})""", RegexOption.IGNORE_CASE),
             Regex("""(?:debit|credit) card (\d{4})""", RegexOption.IGNORE_CASE)
@@ -100,6 +105,12 @@ class NavyFederalParser : BankParser() {
         }
 
         return null
+    }
+
+    override fun extractBalance(message: String): BigDecimal? {
+        Regex("""available balance is \$([0-9,]+(?:\.[0-9]{2})?)""", RegexOption.IGNORE_CASE)
+            .find(message)?.let { return it.groupValues[1].replace(",", "").toBigDecimalOrNull() }
+        return super.extractBalance(message)
     }
 
     override fun isTransactionMessage(message: String): Boolean {

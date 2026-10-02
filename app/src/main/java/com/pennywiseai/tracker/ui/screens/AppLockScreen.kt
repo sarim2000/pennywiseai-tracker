@@ -9,12 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.domain.security.BiometricAuthManager
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.security.BiometricCapability
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -71,7 +73,7 @@ fun AppLockScreen(
                 // Lock icon
                 Icon(
                     imageVector = Icons.Filled.Lock,
-                    contentDescription = "App Locked",
+                    contentDescription = stringResource(R.string.applock_icon_cd),
                     modifier = Modifier.size(120.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -80,7 +82,7 @@ fun AppLockScreen(
 
                 // Title
                 Text(
-                    text = "PennyWise is Locked",
+                    text = stringResource(R.string.applock_title),
                     style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
@@ -89,7 +91,7 @@ fun AppLockScreen(
 
                 // Description
                 Text(
-                    text = "Authenticate to access your expense data",
+                    text = stringResource(R.string.applock_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,7 +108,7 @@ fun AppLockScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = uiState.authenticationError!!,
+                            text = uiState.authenticationError!!.asString(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(Spacing.md),
@@ -129,7 +131,7 @@ fun AppLockScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Unlock")
+                            Text(stringResource(R.string.applock_unlock))
                         }
                     }
                     else -> {
@@ -144,19 +146,19 @@ fun AppLockScreen(
                                 modifier = Modifier.padding(Spacing.md)
                             ) {
                                 Text(
-                                    text = "Biometric authentication unavailable",
+                                    text = stringResource(R.string.applock_biometric_unavailable),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                                 Spacer(modifier = Modifier.height(Spacing.sm))
                                 Text(
-                                    text = uiState.biometricCapability.getErrorMessage(),
+                                    text = uiState.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                                 Spacer(modifier = Modifier.height(Spacing.sm))
                                 Text(
-                                    text = "Please disable app lock in device settings or set up biometric authentication.",
+                                    text = stringResource(R.string.applock_unavailable_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -169,13 +171,14 @@ fun AppLockScreen(
 
                 // Privacy note
                 Text(
-                    text = "Your data is protected with ${
-                        when (uiState.timeoutMinutes) {
-                            0 -> "immediate locking"
-                            1 -> "1 minute timeout"
-                            else -> "${uiState.timeoutMinutes} minute timeout"
-                        }
-                    }",
+                    text = when (uiState.timeoutMinutes) {
+                        0 -> stringResource(R.string.applock_protected_immediate)
+                        else -> pluralStringResource(
+                            R.plurals.applock_protected_timeout,
+                            uiState.timeoutMinutes,
+                            uiState.timeoutMinutes
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

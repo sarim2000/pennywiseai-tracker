@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ App lock ══ -->
+    <!-- Biometric capability errors (also shown in Settings) -->
+    <!-- ══ SMS permission screen ══ -->
+    <!-- ══ Unrecognized SMS ══ -->
+    <!-- ══ Import statement ══ -->
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
+    <!-- License key dialog -->
+    <!-- ══ Onboarding ══ -->
+    <!-- ══ Chat (PennyWise AI) ══ -->
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
+    <!-- Chat confirm card for an AI-proposed action -->
+    <!-- Chat errors -->
+    <!-- ══ Smart Rules list ══ -->
+    <!-- Rule sharing (export / import) results -->
+    <!-- Apply rule to past transactions -->
+    <!-- ══ Create / edit rule ══ -->
+    <!-- Rule fields (pickers) -->
+    <!-- Rule operators (condition chips) -->
+    <!-- Transaction type labels (stored value stays the enum name) -->
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
+    <!-- Condition value inputs -->
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
+    <!-- Action editor -->
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
+    <!-- field, operator, value -->
+    <!-- value, field -->
+    <!-- field, value -->
+</resources>

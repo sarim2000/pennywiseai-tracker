@@ -20,6 +20,8 @@ import javax.inject.Inject
 data class LoansUiState(
     val activeLoans: List<LoanEntity> = emptyList(),
     val settledLoans: List<LoanEntity> = emptyList(),
+    /** All loans grouped by person — what the list renders. */
+    val people: List<LoanPerson> = emptyList(),
     val totalLentRemaining: BigDecimal = BigDecimal.ZERO,
     val totalBorrowedRemaining: BigDecimal = BigDecimal.ZERO,
     val summaryCurrency: String = "INR",
@@ -80,6 +82,7 @@ class LoansViewModel @Inject constructor(
                 _uiState.value = LoansUiState(
                     activeLoans = inputs.activeLoans,
                     settledLoans = inputs.allLoans.filter { it.status == LoanStatus.SETTLED },
+                    people = groupLoansByPerson(inputs.allLoans),
                     totalLentRemaining = lent,
                     totalBorrowedRemaining = borrowed,
                     summaryCurrency = summaryCurrency,
@@ -127,6 +130,13 @@ class LoansViewModel @Inject constructor(
             .filter { it.direction == LoanDirection.BORROWED }
             .fold(BigDecimal.ZERO) { acc, l -> acc + l.remainingAmount }
         return lent to borrowed
+    }
+
+    /** Settles every open loan with [person]; unpaid balances are forgiven, as with a single loan. */
+    fun settleUp(person: LoanPerson) {
+        viewModelScope.launch {
+            loanRepository.settleLoans(person.activeLoans.map { it.id })
+        }
     }
 
     fun toggleShowSettled() {

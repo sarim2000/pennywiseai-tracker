@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -81,7 +83,7 @@ fun ColorSwatchRow(
                     if (isSelected) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.color_swatch_selected),
                             tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )

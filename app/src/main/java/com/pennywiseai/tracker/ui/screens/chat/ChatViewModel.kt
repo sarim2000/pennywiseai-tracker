@@ -7,12 +7,14 @@ import android.os.Environment
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -226,7 +228,7 @@ class ChatViewModel @Inject constructor(
                         "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "Couldn't apply that: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_apply_failed, listOf(e.message.orEmpty())))
             } finally {
                 _isConfirming.value = false
             }
@@ -249,15 +251,7 @@ class ChatViewModel @Inject constructor(
                 // Use streaming for better UX
                 llmRepository.sendMessageStream(message)
                     .catch { error ->
-                        val errorMessage = when {
-                            error.message?.contains("memory is full") == true -> 
-                                "Chat memory is full. Please clear the chat to continue."
-                            error.message?.contains("downloading") == true ->
-                                "Model is downloading. Please wait."
-                            error.message?.contains("not downloaded") == true ->
-                                "AI model not downloaded. Go to Settings to download."
-                            else -> error.message ?: "Failed to generate response"
-                        }
+                        val errorMessage = sendErrorText(error, R.string.chat_error_generate_failed)
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             error = errorMessage
@@ -270,15 +264,7 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _currentResponse.value = ""
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("memory is full") == true -> 
-                        "Chat memory is full. Please clear the chat to continue."
-                    e.message?.contains("downloading") == true ->
-                        "Model is downloading. Please wait."
-                    e.message?.contains("not downloaded") == true ->
-                        "AI model not downloaded. Go to Settings to download."
-                    else -> e.message ?: "Failed to send message"
-                }
+                val errorMessage = sendErrorText(e, R.string.chat_error_send_failed)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = errorMessage
@@ -300,6 +286,14 @@ class ChatViewModel @Inject constructor(
         }
     }
     
+    // The checks match LlmRepository's own (untranslated) exception messages.
+    private fun sendErrorText(error: Throwable, @androidx.annotation.StringRes fallback: Int): UiText = when {
+        error.message?.contains("memory is full") == true -> UiText.Res(R.string.chat_error_memory_full)
+        error.message?.contains("downloading") == true -> UiText.Res(R.string.chat_error_model_downloading)
+        error.message?.contains("not downloaded") == true -> UiText.Res(R.string.chat_error_model_not_downloaded)
+        else -> error.message?.let { UiText.Plain(it) } ?: UiText.Res(fallback)
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
@@ -331,7 +325,7 @@ class ChatViewModel @Inject constructor(
 
             val availableSpace = context.filesDir.usableSpace
             if (availableSpace < Constants.ModelDownload.REQUIRED_SPACE_BYTES) {
-                _uiState.value = _uiState.value.copy(error = "Not enough storage space for download")
+                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_no_storage))
                 return@launch
             }
 
@@ -340,7 +334,7 @@ class ChatViewModel @Inject constructor(
             if (modelUrl.isBlank() || !modelUrl.startsWith("http")) {
                 Log.e("ChatViewModel", "Invalid MODEL_URL: '$modelUrl'")
                 modelRepository.updateModelState(ModelState.ERROR)
-                _uiState.value = _uiState.value.copy(error = "AI model download is not available in this build.")
+                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_unavailable))
                 return@launch
             }
 
@@ -352,8 +346,8 @@ class ChatViewModel @Inject constructor(
 
             try {
                 val request = DownloadManager.Request(Uri.parse(modelUrl))
-                    .setTitle("AI Chat Model")
-                    .setDescription("Downloading AI chat assistant for PennyWise")
+                    .setTitle(context.getString(R.string.chat_download_notification_title))
+                    .setDescription(context.getString(R.string.chat_download_notification_description))
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
                     .setAllowedOverMetered(true)
@@ -366,7 +360,7 @@ class ChatViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Failed to start download", e)
                 modelRepository.updateModelState(ModelState.ERROR)
-                _uiState.value = _uiState.value.copy(error = "Failed to start download. Please try again.")
+                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_start_failed))
             }
         }
     }
@@ -404,14 +398,14 @@ class ChatViewModel @Inject constructor(
                                     _downloadProgress.value = 0
                                     modelRepository.updateModelState(ModelState.ERROR)
                                     _uiState.value = _uiState.value.copy(
-                                        error = "Downloaded model failed its integrity check and was removed. Please try downloading again."
+                                        error = UiText.Res(R.string.chat_error_integrity_failed)
                                     )
                                 }
                             }
                             DownloadManager.STATUS_FAILED -> {
                                 userPreferencesRepository.clearActiveDownloadId()
                                 modelRepository.updateModelState(ModelState.ERROR)
-                                _uiState.value = _uiState.value.copy(error = "Download failed. Please try again.")
+                                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_failed))
                             }
                         }
                     }
@@ -481,7 +475,7 @@ class ChatViewModel @Inject constructor(
 
 data class ChatUiState(
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: UiText? = null
 )
 
 data class ChatStats(

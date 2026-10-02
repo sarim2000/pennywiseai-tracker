@@ -42,7 +42,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val ACTION_EDIT_TRANSACTION = "com.pennywiseai.tracker.ACTION_EDIT_TRANSACTION"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
-        const val CHANNEL_NAME = "Transaction Notifications"
 
         // Category actions occupy slots 0..1; picker reserves slot 9.
         // Codes are unique per (transactionId, slot): txId*10+slot cannot alias across
@@ -147,18 +146,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         val discrepancyLine = savedTransaction?.let { tx ->
                             runCatching { entryPoint.detectBalanceDiscrepancy().execute(tx) }.getOrNull()
                         }?.let { d ->
-                            "⚠ Balance off by ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)} — " +
-                                "expected ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.expected, d.currency)}, " +
-                                "bank says ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.reported, d.currency)}"
+                            context.getString(
+                                R.string.notif_txn_balance_discrepancy,
+                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
+                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.expected, d.currency),
+                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.reported, d.currency)
+                            )
                         }
 
                         showTransactionNotification(
                             context = context,
                             transactionId = result.transactionId,
                             amount = parsedTransaction.amount.toString(),
-                            merchant = parsedTransaction.merchant ?: "Unknown",
+                            merchant = parsedTransaction.merchant ?: context.getString(R.string.notif_txn_unknown_merchant),
                             type = parsedTransaction.type.name,
-                            bankName = parsedTransaction.bankName ?: "Bank",
+                            bankName = parsedTransaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank),
                             category = savedTransaction?.category ?: "Others",
                             repository = repository,
                             discrepancyLine = discrepancyLine
@@ -199,10 +201,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // Create notification channel
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                CHANNEL_NAME,
+                context.getString(R.string.notif_txn_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notifications for new transactions"
+                description = context.getString(R.string.notif_txn_channel_description)
             }
             notificationManager.createNotificationChannel(channel)
 
@@ -231,7 +233,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }
 
             val title = "$typeEmoji $amount - $merchant"
-            val content = if (discrepancyLine != null) "$category • $bankName\n$discrepancyLine" else "$category • $bankName"
+            val categoryLine = context.getString(R.string.notif_txn_category_bank, category, bankName)
+            val content = if (discrepancyLine != null) "$categoryLine\n$discrepancyLine" else categoryLine
 
             // Get top 3 categories by usage (personalized for user)
             val topCategories = try {
@@ -291,7 +294,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 pickerIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            notificationBuilder.addAction(0, "More…", pickerPendingIntent)
+            notificationBuilder.addAction(0, context.getString(R.string.notif_txn_action_more), pickerPendingIntent)
 
             // Account balances stay off the lock screen (#734): private visibility
             // with a public version that carries no figures.
@@ -301,8 +304,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     .setPublicVersion(
                         NotificationCompat.Builder(context, CHANNEL_ID)
                             .setSmallIcon(R.drawable.ic_launcher_foreground)
-                            .setContentTitle("$typeEmoji New transaction")
-                            .setContentText("$bankName • balance needs a look")
+                            .setContentTitle(context.getString(R.string.notif_txn_public_title, typeEmoji))
+                            .setContentText(context.getString(R.string.notif_txn_public_text, bankName))
                             .setContentIntent(pendingIntent)
                             .setAutoCancel(true)
                             .build()

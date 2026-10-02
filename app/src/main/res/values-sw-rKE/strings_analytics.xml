@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <!-- %1$s = formatted refund amount -->
+    <!-- Filters -->
+    <!-- List rows -->
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
+    <!-- Summary card -->
+    <!-- Pie charts -->
+    <!-- Breakdown cards -->
+    <!-- ══ Budgets screen ══ -->
+    <!-- %1$s = budget name -->
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = weekday name -->
+    <!-- %1$d = days, %2$s = weekday name -->
+    <!-- %1$d = day of month the budget starts on -->
+    <!-- %1$d = days, %2$d = day of month -->
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <!-- ══ Budget edit screen ══ -->
+    <!-- %1$s = weekday name -->
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <!-- %1$s = transaction-type bucket name -->
+    <!-- ══ Budget history screen ══ -->
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <!-- ══ Categories screen ══ -->
+    <!-- %1$s = category name -->
+    <!-- %1$s = error detail -->
+    <!-- Category edit dialog -->
+    <!-- ══ Subscriptions screen ══ -->
+    <!-- %1$s = merchant name -->
+    <!-- %1$d = paid count, %2$d = active count -->
+    <!-- %1$s = date -->
+    <!-- Edit subscription dialog -->
+    <!-- %1$s = currency code -->
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <!-- %1$s = date -->
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = currency code -->
+    <!-- %1$s = relative date, %2$s = bank name -->
+</resources>

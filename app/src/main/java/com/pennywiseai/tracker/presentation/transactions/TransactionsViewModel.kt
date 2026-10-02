@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
@@ -33,6 +36,8 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.utils.countsInTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,6 +62,8 @@ class TransactionsViewModel @Inject constructor(
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val cardRepository: com.pennywiseai.tracker.data.repository.CardRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val profileRepository: ProfileRepository,
     private val transactionGroupRepository: TransactionGroupRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
@@ -110,6 +117,7 @@ class TransactionsViewModel @Inject constructor(
     private val _selectedProfileId = MutableStateFlow<Long?>(null)
     val selectedProfileId: StateFlow<Long?> = _selectedProfileId.asStateFlow()
 
+    private val _ignoredAccountKeys = MutableStateFlow<Set<String>>(emptySet())
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
     val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
 
@@ -326,7 +334,7 @@ class TransactionsViewModel @Inject constructor(
     )
 
     /** One-shot snackbar payload for a bulk action; cleared by the UI after showing. */
-    data class BulkSnack(val message: String, val undo: (() -> Unit)? = null)
+    data class BulkSnack(val message: UiText, val undo: (() -> Unit)? = null)
     private val _bulkSnack = MutableStateFlow<BulkSnack?>(null)
     val bulkSnack: StateFlow<BulkSnack?> = _bulkSnack.asStateFlow()
     fun consumeBulkSnack() { _bulkSnack.value = null }
@@ -372,7 +380,7 @@ class TransactionsViewModel @Inject constructor(
             refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} updated to \"$newCategory\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_category_updated, previous.size, listOf(previous.size, newCategory)),
                 undo = {
                     viewModelScope.launch {
                         previous.forEach { (id, oldCategory) ->
@@ -422,7 +430,7 @@ class TransactionsViewModel @Inject constructor(
     fun bulkMarkAsTransfer() {
         val ids = _selectedIds.value.toList()
         if (ids.size != 2) {
-            _bulkSnack.value = BulkSnack("Select exactly 2 transactions to mark as a transfer")
+            _bulkSnack.value = BulkSnack(UiText.Res(R.string.txn_list_bulk_transfer_need_two))
             return
         }
         val all = _uiState.value.transactions
@@ -431,7 +439,7 @@ class TransactionsViewModel @Inject constructor(
         val hasExpense = listOf(a, b).any { it.transactionType == TransactionType.EXPENSE }
         val hasIncome = listOf(a, b).any { it.transactionType == TransactionType.INCOME }
         if (!(hasExpense && hasIncome)) {
-            _bulkSnack.value = BulkSnack("Pick one outgoing (expense) and one incoming (income) transaction")
+            _bulkSnack.value = BulkSnack(UiText.Res(R.string.txn_list_bulk_transfer_need_pair))
             return
         }
         clearSelection()
@@ -475,7 +483,7 @@ class TransactionsViewModel @Inject constructor(
             )
             refreshWidgets()
             _bulkSnack.value = BulkSnack(
-                message = "Marked as transfer",
+                message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
                 undo = {
                     viewModelScope.launch {
                         val current = _uiState.value.transactions
@@ -512,7 +520,7 @@ class TransactionsViewModel @Inject constructor(
             refreshWidgets()
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${snapshot.size} deleted",
+                message = UiText.Plural(R.plurals.txn_list_bulk_deleted, snapshot.size),
                 undo = {
                     viewModelScope.launch {
                         restoreTransactionUseCase(snapshot)
@@ -549,7 +557,7 @@ class TransactionsViewModel @Inject constructor(
             }
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} added to \"$groupName\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_added_to_group, previous.size, listOf(previous.size, groupName)),
                 undo = { restoreGroupMembership(previous) }
             )
         }
@@ -573,7 +581,7 @@ class TransactionsViewModel @Inject constructor(
             }
             clearSelection()
             _bulkSnack.value = BulkSnack(
-                message = "${previous.size} added to \"${name.trim()}\"",
+                message = UiText.Plural(R.plurals.txn_list_bulk_added_to_group, previous.size, listOf(previous.size, name.trim())),
                 undo = {
                     viewModelScope.launch {
                         restoreGroupMembership(previous).join()
@@ -704,6 +712,34 @@ class TransactionsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            // An already-imported card purchase is stored under the *card's*
+            // digits, so ignoring the account it draws on wouldn't hide it.
+            // Expand the set once with each linked card's key and the plain
+            // match below covers both (#826).
+            combine(
+                ignoredAccountsStore.keysFlow,
+                cardRepository.getAllCards(),
+                accountBalanceRepository.getAllLatestBalances()
+            ) { ignored, cards, balances ->
+                if (ignored.isEmpty()) return@combine ignored
+                val accountKeys = balances.map {
+                    IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4)
+                }.toSet()
+                ignored + cards.mapNotNull { card ->
+                    val account = card.accountLast4 ?: return@mapNotNull null
+                    if (IgnoredAccountsStore.keyFor(card.bankName, account) !in ignored) {
+                        return@mapNotNull null
+                    }
+                    val cardKey = IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
+                    // A card's last four can collide with a real account's at
+                    // the same bank. The stored digits are all the list has to
+                    // match on, so adding the key would hide that account too —
+                    // leave it, and lose only the card rows we can't separate.
+                    if (cardKey in accountKeys && cardKey !in ignored) null else cardKey
+                }
+            }.collect { _ignoredAccountKeys.value = it }
+        }
+        viewModelScope.launch {
             availableTags.collect { tags ->
                 val current = _tagFilter.value
                 if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
@@ -790,6 +826,9 @@ class TransactionsViewModel @Inject constructor(
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
+            // Re-filter the moment an account is ignored, rather than at the
+            // next app start (#826).
+            _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
             selectedCurrency.map { "currency" },
@@ -1276,7 +1315,15 @@ class TransactionsViewModel @Inject constructor(
         transactions: List<TransactionEntity>,
         profileId: Long?
     ): List<TransactionEntity> {
-        return filterTransactionsByProfile(transactions, profileId, _profileAccountKeys.value)
+        // Ignored accounts drop out first, and independently of the profile
+        // filter — that one returns early for "All profiles" and falls back to
+        // Personal for an unattributed transaction, so it can't carry the
+        // exclusion (#826).
+        val ignored = _ignoredAccountKeys.value
+        val tracked = if (ignored.isEmpty()) transactions else transactions.filterNot { tx ->
+            IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber)
+        }
+        return filterTransactionsByProfile(tracked, profileId, _profileAccountKeys.value)
     }
 
     private fun getFilteredTransactions(
@@ -1466,9 +1513,7 @@ class TransactionsViewModel @Inject constructor(
         // period's Income/Expense/etc. totals — loans are tracked in the Loans
         // feature, and excluded txns are opted out of every spend figure by the
         // user. Matches the Home/Analytics convention (HomeViewModel#1142).
-        val nonLoanTransactions = transactions.filter {
-            it.loanId == null && !it.excludedFromAnalytics
-        }
+        val nonLoanTransactions = transactions.filter { it.countsInTotals() }
         val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
@@ -1557,20 +1602,20 @@ data class FilterParams(
     val typeFilter: TransactionTypeFilter
 )
 
-enum class DateGroup(val label: String) {
-    TODAY("Today"),
-    YESTERDAY("Yesterday"),
-    THIS_WEEK("This Week"),
-    EARLIER("Earlier")
+enum class DateGroup(@StringRes val labelRes: Int) {
+    TODAY(R.string.txn_list_group_today),
+    YESTERDAY(R.string.txn_list_group_yesterday),
+    THIS_WEEK(R.string.txn_list_group_this_week),
+    EARLIER(R.string.txn_list_group_earlier)
 }
 
-enum class SortOption(val label: String) {
-    DATE_NEWEST("Newest First"),
-    DATE_OLDEST("Oldest First"),
-    AMOUNT_HIGHEST("Highest Amount"),
-    AMOUNT_LOWEST("Lowest Amount"),
-    MERCHANT_AZ("Merchant (A-Z)"),
-    MERCHANT_ZA("Merchant (Z-A)")
+enum class SortOption(@StringRes val labelRes: Int) {
+    DATE_NEWEST(R.string.txn_list_sort_newest),
+    DATE_OLDEST(R.string.txn_list_sort_oldest),
+    AMOUNT_HIGHEST(R.string.txn_list_sort_amount_highest),
+    AMOUNT_LOWEST(R.string.txn_list_sort_amount_lowest),
+    MERCHANT_AZ(R.string.txn_list_sort_merchant_az),
+    MERCHANT_ZA(R.string.txn_list_sort_merchant_za)
 }
 
 data class FilteredTotals(

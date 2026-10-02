@@ -34,6 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -101,7 +103,7 @@ fun PermissionScreen(
             Spacer(modifier = Modifier.height(Spacing.xl))
 
             Text(
-                text = "Enable Automatic Transaction Detection",
+                text = stringResource(R.string.permission_title),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )
@@ -109,7 +111,7 @@ fun PermissionScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             Text(
-                text = "PennyWise can automatically detect and categorize your bank transactions from SMS messages, saving you time and effort.",
+                text = stringResource(R.string.permission_description),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -127,16 +129,13 @@ fun PermissionScreen(
                     modifier = Modifier.padding(Spacing.md)
                 ) {
                     Text(
-                        text = "Your Privacy Matters",
+                        text = stringResource(R.string.permission_privacy_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
-                        text = "• Only transaction messages are processed\n" +
-                            "• All data stays on your device\n" +
-                            "• No personal messages are read\n" +
-                            "• You can revoke access anytime in Settings",
+                        text = stringResource(R.string.permission_privacy_points),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -153,12 +152,12 @@ fun PermissionScreen(
             ) {
                 Column(modifier = Modifier.padding(Spacing.md)) {
                     Text(
-                        text = "Enable Bank Notification Access",
+                        text = stringResource(R.string.permission_notification_title),
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = "Allow PennyWise to read transaction notifications from supported banking apps. This helps capture purchases when SMS is delayed or unavailable.",
+                        text = stringResource(R.string.permission_notification_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -167,7 +166,7 @@ fun PermissionScreen(
                         AssistChip(
                             onClick = {},
                             enabled = false,
-                            label = { Text("Notification access enabled") }
+                            label = { Text(stringResource(R.string.permission_notification_enabled)) }
                         )
                     } else {
                         Button(
@@ -177,7 +176,7 @@ fun PermissionScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Open Notification Access Settings")
+                            Text(stringResource(R.string.permission_notification_open_settings))
                         }
                     }
                 }
@@ -193,8 +192,7 @@ fun PermissionScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Without SMS access, you'll need to manually add all your transactions. " +
-                            "We only read bank transaction messages, not personal conversations.",
+                        text = stringResource(R.string.permission_rationale),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(Spacing.md)
@@ -218,7 +216,7 @@ fun PermissionScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Enable Automatic Detection")
+                Text(stringResource(R.string.permission_enable_button))
             }
         }
     }

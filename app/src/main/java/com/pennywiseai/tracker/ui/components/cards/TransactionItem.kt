@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import android.content.res.Resources
+import androidx.compose.ui.platform.LocalContext
+import com.pennywiseai.tracker.R
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -79,6 +82,7 @@ fun TransactionItem(
     // tag below. (#383)
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
+    val resources = LocalContext.current.resources
     val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
         buildList {
             if (description != null) add(description)
@@ -91,23 +95,23 @@ fun TransactionItem(
 
             if (showTypeLabel) {
                 when (transaction.transactionType) {
-                    TransactionType.CREDIT -> add("Credit")
+                    TransactionType.CREDIT -> add(resources.getString(R.string.txn_item_tag_credit))
                     TransactionType.TRANSFER -> {
-                        if (transferTitleOverride(transaction) == null) {
-                            add("Transfer")
+                        if (transferTitleOverride(transaction, resources) == null) {
+                            add(resources.getString(R.string.txn_item_tag_transfer))
                         }
                     }
-                    TransactionType.INVESTMENT -> add("Investment")
+                    TransactionType.INVESTMENT -> add(resources.getString(R.string.txn_item_tag_investment))
                     else -> {}
                 }
             }
-            if (transaction.isRecurring) add("Recurring")
-            if (isEffectivelyBusiness) add("Business")
+            if (transaction.isRecurring) add(resources.getString(R.string.txn_item_tag_recurring))
+            if (isEffectivelyBusiness) add(resources.getString(R.string.txn_item_tag_business))
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
-            if (transaction.excludedFromAnalytics) add("Excluded")
+            if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
             transaction.balanceAfter?.let { balance ->
-                add("Bal ${CurrencyFormatter.formatCurrency(balance, transaction.currency)}")
+                add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
             }
         }.joinToString(" \u00B7 ")
     }
@@ -134,7 +138,7 @@ fun TransactionItem(
     // "Transfer from 1234") is more informative than the merchant name (often
     // the user's own contact name), and stops the two legs from looking like
     // duplicate rows in the list. Falls back to merchant otherwise.
-    val transferTitle = transferTitleOverride(transaction)
+    val transferTitle = transferTitleOverride(transaction, resources)
 
     ListItemCardV2(
         title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
@@ -209,16 +213,16 @@ fun TransactionItem(
  * account's last-4) rather than the merchant. Returns null for any other
  * row, in which case the default merchant-as-title rendering wins.
  */
-private fun transferTitleOverride(transaction: TransactionEntity): String? {
+private fun transferTitleOverride(transaction: TransactionEntity, resources: Resources): String? {
     if (transaction.transactionType != TransactionType.TRANSFER) return null
     val mine = transaction.accountNumber
     val from = transaction.fromAccount
     val to = transaction.toAccount
     return when {
-        from != null && to != null && mine == from -> "Transfer → ${to.takeLast(4)}"
-        from != null && to != null && mine == to -> "Transfer from ${from.takeLast(4)}"
-        to != null && mine != to -> "Transfer → ${to.takeLast(4)}"
-        from != null && mine != from -> "Transfer from ${from.takeLast(4)}"
+        from != null && to != null && mine == from -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
+        from != null && to != null && mine == to -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
+        to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
+        from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
         else -> null
     }
 }

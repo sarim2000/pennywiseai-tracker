@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -186,7 +188,7 @@ private fun AccountCarouselCard(
                 color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    text = if (isCreditCard) "Credit" else "Savings",
+                    text = if (isCreditCard) stringResource(R.string.account_card_type_credit) else stringResource(R.string.account_card_type_savings),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     fontWeight = FontWeight.Medium,
@@ -205,9 +207,9 @@ private fun AccountCarouselCard(
         ) {
             Text(
                 text = when {
-                    isLowBalance -> "Low balance"
-                    isCreditCard -> "Outstanding"
-                    else -> "Balance"
+                    isLowBalance -> stringResource(R.string.account_card_low_balance)
+                    isCreditCard -> stringResource(R.string.account_card_outstanding)
+                    else -> stringResource(R.string.account_card_balance)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (isLowBalance) FontWeight.Medium else null,
@@ -247,7 +249,7 @@ private fun AccountCarouselCard(
                     Icon(
                         imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
                                       else Icons.Default.Visibility,
-                        contentDescription = if (isAmountHidden) "Show balance" else "Hide balance",
+                        contentDescription = if (isAmountHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )

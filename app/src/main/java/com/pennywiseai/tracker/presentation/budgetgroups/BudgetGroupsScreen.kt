@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import java.time.format.TextStyle
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -59,6 +64,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.delay
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -85,12 +91,11 @@ fun BudgetGroupsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Budgets",
+                title = stringResource(R.string.budgets_title),
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
                 hazeState = hazeState
@@ -99,7 +104,7 @@ fun BudgetGroupsScreen(
         floatingActionButton = {
             if (uiState.hasGroups) {
                 FloatingActionButton(onClick = { onNavigateToGroupEdit(-1L) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Budget")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
                 }
             }
         }
@@ -192,13 +197,13 @@ private fun EmptyBudgetState(
                 )
 
                 Text(
-                    text = "Set Up Your Budget",
+                    text = stringResource(R.string.budgets_setup_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Organize your spending into budgets to track where your money goes.",
+                    text = stringResource(R.string.budgets_setup_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -210,14 +215,14 @@ private fun EmptyBudgetState(
                 ) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Use Smart Defaults")
+                    Text(stringResource(R.string.budgets_setup_smart_defaults))
                 }
 
                 OutlinedButton(
                     onClick = onCreateNew,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create Custom Budget")
+                    Text(stringResource(R.string.budgets_setup_custom))
                 }
             }
         }
@@ -331,8 +336,8 @@ private fun BudgetGroupsContent(
     if (deleteGroupId != null) {
         AlertDialog(
             onDismissRequest = { deleteGroupId = null },
-            title = { Text("Delete Budget") },
-            text = { Text("Are you sure you want to delete \"$deleteGroupName\"? This cannot be undone.") },
+            title = { Text(stringResource(R.string.budgets_delete_title)) },
+            text = { Text(stringResource(R.string.budgets_delete_message, deleteGroupName)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -343,12 +348,12 @@ private fun BudgetGroupsContent(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.budgets_action_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deleteGroupId = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.budgets_action_cancel))
                 }
             }
         )
@@ -377,7 +382,7 @@ private fun MonthSelector(
         ) {
             Icon(
                 Icons.Default.ChevronLeft,
-                contentDescription = "Previous month",
+                contentDescription = stringResource(R.string.budgets_previous_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
@@ -406,7 +411,7 @@ private fun MonthSelector(
         ) {
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "Next month",
+                contentDescription = stringResource(R.string.budgets_next_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
@@ -492,7 +497,7 @@ private fun BudgetCard(
                 ) {
                     if (groupSpending.totalBudget > BigDecimal.ZERO) {
                         Text(
-                            text = "${pctUsed.toInt()}%",
+                            text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier
@@ -509,7 +514,7 @@ private fun BudgetCard(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Edit budget",
+                            contentDescription = stringResource(R.string.budgets_edit),
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -520,7 +525,7 @@ private fun BudgetCard(
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete budget",
+                            contentDescription = stringResource(R.string.budgets_delete),
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         )
@@ -533,7 +538,7 @@ private fun BudgetCard(
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                contentDescription = "More options",
+                                contentDescription = stringResource(R.string.budgets_more_options),
                                 modifier = Modifier.size(Dimensions.Icon.small),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -543,7 +548,7 @@ private fun BudgetCard(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("View this period history") },
+                                text = { Text(stringResource(R.string.budgets_view_history)) },
                                 onClick = {
                                     showMenu = false
                                     onViewHistory()
@@ -553,7 +558,7 @@ private fun BudgetCard(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Move up") },
+                                text = { Text(stringResource(R.string.budgets_move_up)) },
                                 onClick = {
                                     showMenu = false
                                     onMoveUp()
@@ -564,7 +569,7 @@ private fun BudgetCard(
                                 enabled = !isFirst
                             )
                             DropdownMenuItem(
-                                text = { Text("Move down") },
+                                text = { Text(stringResource(R.string.budgets_move_down)) },
                                 onClick = {
                                     showMenu = false
                                     onMoveDown()
@@ -602,21 +607,44 @@ private fun BudgetCard(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // Row 3: Remaining amount (hero)
+                // Row 3: Remaining amount (hero) + what's left to spend per
+                // day. Spending limits only — "per day" means nothing for a
+                // savings target or expected bills.
                 val remainingAbs = groupSpending.remaining.abs()
-                Text(
-                    text = if (isOverBudget) {
-                        "${CurrencyFormatter.formatCurrency(remainingAbs, currency)} over budget"
-                    } else {
-                        "${CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)} remaining"
-                    },
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = statusColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
+                    groupSpending.dailyAllowance > BigDecimal.ZERO
+                // FlowRow: when there isn't room (narrow card, large font) the
+                // per-day label wraps below instead of squeezing the hero amount.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemVerticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Text(
+                        text = if (isOverBudget) {
+                            stringResource(R.string.budgets_over_budget, CurrencyFormatter.formatCurrency(remainingAbs, currency))
+                        } else {
+                            stringResource(
+                                R.string.budgets_remaining,
+                                CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
+                            )
+                        },
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = statusColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (showDaily) {
+                        Text(
+                            text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
 
@@ -627,39 +655,49 @@ private fun BudgetCard(
                 // the page is the July view) so this number is
                 // consistent across month views.
                 val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+                val locale = LocalConfiguration.current.locales[0]
                 val subtitleText = when {
-                    groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> "Finished"
-                    isOverBudget -> "Over by ${CurrencyFormatter.formatCurrency(remainingAbs, currency)}"
+                    groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)
+                    isOverBudget -> stringResource(R.string.budgets_over_by, CurrencyFormatter.formatCurrency(remainingAbs, currency))
                     groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
                         val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        val weekdayName = groupSpending.group.budget.weekStartDay
-                            ?.let { java.time.DayOfWeek.of(it.coerceIn(1, 7)).name.lowercase().replaceFirstChar { ch -> ch.titlecase() } }
-                            ?: "Monday"
-                        when {
-                            renewalIn == 0 -> "Resets today · $weekdayName renew"
-                            renewalIn == 1 -> "Resets in 1 day · $weekdayName renew"
-                            else -> "Resets in $renewalIn days · $weekdayName renew"
+                        val weekdayName = java.time.DayOfWeek.of((groupSpending.group.budget.weekStartDay ?: 1).coerceIn(1, 7))
+                            .getDisplayName(TextStyle.FULL, locale)
+                        if (renewalIn == 0) {
+                            stringResource(R.string.budgets_resets_today_weekly, weekdayName)
+                        } else {
+                            pluralStringResource(R.plurals.budgets_resets_in_weekly, renewalIn, renewalIn, weekdayName)
                         }
                     }
                     groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
                         val startDay = groupSpending.group.budget.monthStartDay
                             ?: groupSpending.windowStart.dayOfMonth
                         val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        when {
-                            renewalIn == 0 -> "Resets today · day $startDay"
-                            renewalIn == 1 -> "Resets in 1 day · day $startDay"
-                            else -> "Resets in $renewalIn days · day $startDay"
+                        if (renewalIn == 0) {
+                            stringResource(R.string.budgets_resets_today_monthly, startDay)
+                        } else {
+                            pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
                         }
                     }
                     groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
-                        val range = "${groupSpending.windowStart.format(dateFormatter)} – ${groupSpending.windowEnd.format(dateFormatter)}"
-                        when {
-                            groupSpending.daysRemaining > 1 -> "Runs $range · ${groupSpending.daysRemaining - 1} days remaining"
-                            groupSpending.daysRemaining == 1 -> "Runs $range · 1 day remaining"
-                            else -> "Runs $range · Finished"
+                        val range = stringResource(
+                            R.string.budgets_date_range,
+                            groupSpending.windowStart.format(dateFormatter),
+                            groupSpending.windowEnd.format(dateFormatter)
+                        )
+                        if (groupSpending.daysRemaining >= 1) {
+                            // >1 counts the days after today; ==1 reads as "1 day" (unchanged behaviour).
+                            val left = (groupSpending.daysRemaining - 1).coerceAtLeast(1)
+                            pluralStringResource(R.plurals.budgets_runs_days_remaining, left, range, left)
+                        } else {
+                            stringResource(R.string.budgets_runs_finished, range)
                         }
                     }
-                    else -> "${groupSpending.daysRemaining} days remaining"
+                    else -> pluralStringResource(
+                        R.plurals.budgets_days_remaining,
+                        groupSpending.daysRemaining,
+                        groupSpending.daysRemaining
+                    )
                 }
                 Text(
                     text = subtitleText,
@@ -671,14 +709,18 @@ private fun BudgetCard(
 
                 // Row 5: Spent X of Y
                 Text(
-                    text = "Spent ${CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)} of ${CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)}",
+                    text = stringResource(
+                        R.string.budgets_spent_of,
+                        CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
+                        CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    text = "Spent ${CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)}",
+                    text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -686,7 +728,7 @@ private fun BudgetCard(
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = "Tracking all expenses",
+                    text = stringResource(R.string.budgets_tracking_all),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -773,7 +815,7 @@ private fun BudgetCard(
                                     )
                                     if (catSpending.budgetAmount > BigDecimal.ZERO) {
                                         Text(
-                                            text = "${catPctUsed.toInt()}%",
+                                            text = stringResource(R.string.budgets_percent, catPctUsed.toInt()),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = catStatusColor
                                         )
@@ -800,7 +842,11 @@ private fun BudgetCard(
                                     }
                                     Spacer(modifier = Modifier.height(Spacing.xs))
                                     Text(
-                                        text = "${CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency)} of ${CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)}",
+                                        text = stringResource(
+                                            R.string.budgets_amount_of,
+                                            CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
+                                            CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -841,7 +887,7 @@ private fun SpendingPaceChart(
                     .height(120.dp),
                 data = listOf(
                     Line(
-                        label = "Actual",
+                        label = stringResource(R.string.budgets_chart_actual),
                         values = cumulativeSpending,
                         color = SolidColor(spendingColor),
                         firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
@@ -855,7 +901,7 @@ private fun SpendingPaceChart(
                         )
                     ),
                     Line(
-                        label = "Budget Pace",
+                        label = stringResource(R.string.budgets_chart_pace),
                         values = budgetPace,
                         color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
                         drawStyle = DrawStyle.Stroke(width = 1.5.dp),
@@ -905,7 +951,7 @@ private fun SpendingPaceChart(
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
-                    text = "Actual",
+                    text = stringResource(R.string.budgets_chart_actual),
                     style = MaterialTheme.typography.labelSmall,
                     color = themeColors.onSurfaceVariant
                 )
@@ -918,7 +964,7 @@ private fun SpendingPaceChart(
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
-                    text = "Budget Pace",
+                    text = stringResource(R.string.budgets_chart_pace),
                     style = MaterialTheme.typography.labelSmall,
                     color = themeColors.onSurfaceVariant
                 )

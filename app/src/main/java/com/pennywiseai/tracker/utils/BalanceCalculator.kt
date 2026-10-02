@@ -1,9 +1,18 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 
 object BalanceCalculator {
+    /**
+     * Carries an account's type over when its balance row is rebuilt from a new
+     * SMS/transaction. The single implementation every balance-rebuild call site
+     * shares, so a type can't silently drop on one path while staying fixed on
+     * another (#798).
+     */
+    fun preservedAccountType(existing: AccountBalanceEntity?): String? = existing?.accountType
+
     /**
      * Calculates the new account balance post-transaction.
      * For credit cards, balance represents outstanding debt.

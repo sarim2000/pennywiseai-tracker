@@ -1,12 +1,14 @@
 package com.pennywiseai.tracker.domain.security
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.pennywiseai.tracker.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -71,9 +73,9 @@ class BiometricAuthManager @Inject constructor(
      */
     fun authenticate(
         activity: FragmentActivity,
-        title: String = "Unlock PennyWise",
-        subtitle: String = "Authenticate to access your expense data",
-        description: String = "Use your biometric credential or device PIN",
+        title: String = activity.getString(R.string.applock_prompt_title),
+        subtitle: String = activity.getString(R.string.applock_prompt_subtitle),
+        description: String = activity.getString(R.string.applock_prompt_description),
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
         onFailed: () -> Unit = {}
@@ -125,13 +127,16 @@ sealed class BiometricCapability {
     object Unsupported : BiometricCapability()
     object Unknown : BiometricCapability()
 
-    fun getErrorMessage(): String = when (this) {
-        Available -> ""
-        NoHardware -> "This device doesn't have biometric hardware"
-        HardwareUnavailable -> "Biometric hardware is currently unavailable"
-        NoneEnrolled -> "No biometric credentials enrolled. Please set up fingerprint or face unlock in device settings"
-        SecurityUpdateRequired -> "Security update required for biometric authentication"
-        Unsupported -> "Biometric authentication is not supported on this device"
-        Unknown -> "Unknown biometric status"
-    }
+    /** User-facing explanation, or null when authentication is available. */
+    @get:StringRes
+    val errorMessageRes: Int?
+        get() = when (this) {
+            Available -> null
+            NoHardware -> R.string.biometric_error_no_hardware
+            HardwareUnavailable -> R.string.biometric_error_hw_unavailable
+            NoneEnrolled -> R.string.biometric_error_none_enrolled
+            SecurityUpdateRequired -> R.string.biometric_error_security_update
+            Unsupported -> R.string.biometric_error_unsupported
+            Unknown -> R.string.biometric_error_unknown
+        }
 }

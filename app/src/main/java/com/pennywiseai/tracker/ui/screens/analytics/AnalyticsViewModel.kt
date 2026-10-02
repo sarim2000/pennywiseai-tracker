@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.countsInTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -295,17 +296,15 @@ class AnalyticsViewModel @Inject constructor(
                 }
             }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
                 // Filter by transaction type in memory (splits are already loaded)
-                // Exclude loan repayments — they are fixed obligations, not discretionary spending
                 val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
                     allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
                 } else {
                     allTransactionsWithSplits
                 })
-                    .filter { it.transaction.loanId == null }
-                    // Drop transactions the user excluded from analytics (#451). They
+                    // Drop loan-linked and analytics-excluded transactions (#451, #800). They
                     // stay in history and count toward balance — only these breakdowns,
                     // totals, averages and the spending trend ignore them.
-                    .filter { !it.transaction.excludedFromAnalytics }
+                    .filter { it.transaction.countsInTotals() }
                     // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
                     // offset spending and are already netted out of the Expense view
                     // below, so counting them as income too would double-count them
@@ -397,7 +396,7 @@ class AnalyticsViewModel @Inject constructor(
                 if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
                     for (tw in allTransactionsWithSplits) {
                         val tx = tw.transaction
-                        if (tx.loanId != null || tx.excludedFromAnalytics) continue
+                        if (!tx.countsInTotals()) continue
                         if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
                             tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
                         ) continue

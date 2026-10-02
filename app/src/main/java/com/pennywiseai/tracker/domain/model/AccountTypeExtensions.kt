@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.domain.model
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 
@@ -34,9 +38,13 @@ fun AccountBalanceEntity.getAccountType(): AccountType {
 /**
  * Formats account type for UI display
  */
-fun AccountType.displayName(): String = when (this) {
-    AccountType.SAVINGS -> "Savings"
-    AccountType.CURRENT -> "Current"
-    AccountType.CREDIT -> "Credit Card"
-    AccountType.CASH -> "Cash"
-}
+@Composable
+@ReadOnlyComposable
+fun AccountType.displayName(): String = stringResource(
+    when (this) {
+        AccountType.SAVINGS -> R.string.account_type_savings
+        AccountType.CURRENT -> R.string.account_type_current
+        AccountType.CREDIT -> R.string.account_type_credit_card
+        AccountType.CASH -> R.string.account_type_cash
+    }
+)

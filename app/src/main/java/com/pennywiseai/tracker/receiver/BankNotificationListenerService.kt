@@ -115,10 +115,16 @@ class BankNotificationListenerService : NotificationListenerService() {
                     body = body,
                     timestamp = timestamp
                 )
+                if (result.success || result.intentionallySkipped) {
+                    // An ignored account is settled, not failed — leaving it
+                    // unprocessed would have it re-parsed by every retry run
+                    // and never cleared (#826).
+                    notificationId?.let {
+                        notificationRepository.markProcessed(it, result.transactionId)
+                    }
+                }
                 if (!result.success) {
                     Log.d(TAG, "Notification skipped: ${result.reason}")
-                } else if (notificationId != null) {
-                    notificationRepository.markProcessed(notificationId, result.transactionId)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to process bank notification", e)

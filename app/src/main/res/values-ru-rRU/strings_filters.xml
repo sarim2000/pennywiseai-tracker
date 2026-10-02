@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">Этот месяц</string>
+    <string name="filter_period_last_month">Прошлый месяц</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">Текущий финансовый год</string>
+    <string name="filter_period_all_time">За все время</string>
+    <string name="filter_period_custom_range">Пользовательский диапазон</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">Все</string>
+    <string name="filter_type_income">Доход</string>
+    <string name="filter_type_expense">Расход</string>
+    <string name="filter_type_credit">Кредит</string>
+    <string name="filter_type_transfer">Перевод</string>
+    <string name="filter_type_investment">Инвестиция</string>
+    <!-- Account types -->
+    <string name="account_type_savings">Сбережения</string>
+    <string name="account_type_current">Текущее</string>
+    <string name="account_type_credit_card">Кредитная карта</string>
+    <string name="account_type_cash">Наличные</string>
+</resources>

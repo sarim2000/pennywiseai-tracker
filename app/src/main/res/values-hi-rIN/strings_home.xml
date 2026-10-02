@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Home screen ══ -->
+    <string name="home_transaction_deleted">लेन-देन हटाया गया</string>
+    <string name="home_undo">पूर्ववत करें</string>
+    <string name="home_more_options">अधिक विकल्प</string>
+    <string name="home_view_all">सभी देखें</string>
+    <string name="home_search_transactions">लेन-देन खोजें</string>
+    <string name="home_cancel">रद्द करें</string>
+    <string name="home_close">बंद करें</string>
+    <!-- Home sections (headers + edit-home sheet) -->
+    <string name="home_section_budgets">बजट</string>
+    <string name="home_section_loans">उधार</string>
+    <string name="home_section_accounts">बैंक खाते</string>
+    <!-- Empty state -->
+    <string name="home_empty_headline">अभी तक कोई लेनदेन नहीं</string>
+    <!-- FABs + full resync -->
+    <string name="home_fab_add">लेनदेन या सदस्यता जोड़ें</string>
+    <string name="home_resync_title">पूर्ण पुनर्सिंक्रनाइज़ेशन</string>
+    <string name="home_resync_confirm">सभी को पुन: सिंक करें</string>
+    <!-- More options sheet -->
+    <string name="home_menu_settings">सेटिंग्स</string>
+    <!-- Edit home screen sheet -->
+    <string name="home_edit_description">अपने होम स्क्रीन पर सेक्शन्स को पुन: क्रमित या छुपाएँ।</string>
+    <!-- Calculation breakdown dialog -->
+    <string name="home_breakdown_title">गणना का विभाजन</string>
+    <!-- Month name, then day range, e.g. "March 1-15" -->
+    <string name="home_breakdown_income">आय</string>
+    <string name="home_breakdown_expenses">खर्च</string>
+    <string name="home_breakdown_net_worth">कुल संपत्ति</string>
+    <!-- Subscriptions + loans summary cards -->
+    <!-- ══ Greeting card (home header) ══ -->
+    <string name="greeting_last_day_of_month">%1$s का अंतिम दिन</string>
+    <string name="greeting_good_morning">सुप्रभात</string>
+    <string name="greeting_good_afternoon">नमस्कार (दोपहर)</string>
+    <string name="greeting_good_evening">शुभ संध्या</string>
+    <string name="greeting_good_night">शुभ रात्रि</string>
+    <string name="greeting_default_user_name">उपयोगकर्ता</string>
+    <string name="greeting_more_options">अधिक विकल्प</string>
+    <!-- ══ Bottom navigation ══ -->
+    <string name="nav_home">घर</string>
+    <string name="nav_transactions">टाइमलाइन</string>
+    <string name="nav_analytics">विश्लेषण</string>
+    <!-- ══ Shared components ══ -->
+    <string name="error_state_retry">पुनः प्रयास करें</string>
+    <string name="color_swatch_selected">चयनित</string>
+    <string name="profile_filter_all_accounts">सभी खाते</string>
+    <!-- Spotlight tutorial -->
+    <!-- Transaction type filter (short labels) -->
+    <string name="type_filter_all">सभी</string>
+    <string name="type_filter_income">आय</string>
+    <string name="type_filter_expense">व्यय</string>
+    <string name="type_filter_credit">क्रेडिट</string>
+    <string name="type_filter_transfer">स्थानांतरण</string>
+    <!-- ══ SMS scan progress dialog ══ -->
+    <string name="sms_scan_title">एसएमएस संदेश स्कैन कर रहे हैं</string>
+    <string name="sms_scan_cancel">स्कैन रद्द करें</string>
+    <string name="sms_scan_done">समाप्त</string>
+    <string name="sms_scan_close">बंद करें</string>
+    <string name="sms_scan_all_processed">सभी संदेश संसाधित हो गए!</string>
+    <!-- %1$s is a duration such as "2m 5s" -->
+    <string name="sms_scan_time_left">~%1$s बचे हैं</string>
+    <string name="sms_scan_batch">बॅच %2$d में से %1$d</string>
+    <string name="sms_scan_completed">स्कैन सफलतापूर्वक पूरा हुआ!</string>
+    <string name="sms_scan_failed">स्कैन विफल। कृपया पुनः प्रयास करें।</string>
+    <string name="sms_scan_cancelled">स्कैन रद्द कर दिया गया</string>
+    <string name="sms_scan_starting">स्कैन शुरू हो रहा है...</string>
+    <string name="sms_scan_indicator">एसएमएस स्कैनिंग: %1$d/%2$d</string>
+    <!-- Short elapsed/remaining durations -->
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
+    <!-- ══ Shared cards ══ -->
+    <string name="card_collapse">संकुचित करें</string>
+    <string name="card_expand">विस्तार करें</string>
+    <!-- Account carousel -->
+    <string name="account_card_type_credit">क्रेडिट</string>
+    <string name="account_card_type_savings">बचत</string>
+    <string name="account_card_outstanding">बकाया</string>
+    <string name="account_card_balance">बाकी राशि</string>
+    <!-- Balance / spending card -->
+    <!-- %1$s is a formatted (or masked) amount -->
+    <string name="balance_card_accounts">खाते</string>
+    <string name="balance_card_credit_cards">क्रेडिट कार्ड</string>
+    <string name="balance_card_total">कुल</string>
+    <!-- Budget card -->
+    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <!-- %1$s is a weekday name -->
+    <!-- %1$d is the day of month the budget starts on -->
+    <!-- %1$s is a date range -->
+    <string name="budget_cadence_weekly">साप्ताहिक</string>
+    <string name="budget_cadence_monthly">मासिक</string>
+    <string name="budget_carousel_create">बजट बनाएं</string>
+    <!-- Group cards -->
+    <string name="group_card_no_transactions">अभी तक कोई लेनदेन नहीं</string>
+    <!-- Transaction count · latest date -->
+    <!-- Cash flow card -->
+    <string name="cash_flow_credit">क्रेडिट</string>
+    <!-- Transaction row -->
+    <string name="txn_item_tag_credit">क्रेडिट</string>
+    <string name="txn_item_tag_transfer">स्थानांतरण</string>
+    <string name="txn_item_tag_investment">निवेश</string>
+    <string name="txn_item_tag_recurring">दोहराव</string>
+    <!-- %1$s is the last 4 digits of the other account -->
+    <!-- ══ Home-screen widgets ══ -->
+    <!-- Add transaction widget -->
+    <string name="widget_add_content_description">लेन-देन जोड़ें</string>
+    <string name="widget_add_title">जोड़ें</string>
+    <string name="widget_add_subtitle">लेन-देन</string>
+    <!-- Budget widget -->
+    <!-- Spending pie widget -->
+    <!-- Slice that groups the smallest categories -->
+    <string name="widget_pie_other">अन्य</string>
+    <!-- Recent transactions widget -->
+    <string name="widget_recent_add">लेन-देन जोड़ें</string>
+    <string name="widget_recent_empty">अभी तक कोई लेनदेन नहीं</string>
+    <string name="widget_recent_fallback_title">लेन-देन</string>
+    <!-- ══ Notifications ══ -->
+    <!-- SMS scan progress (foreground worker) -->
+    <!-- New transaction notification -->
+    <string name="notif_txn_unknown_bank">बैंक</string>
+    <!-- Category • bank name -->
+    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
+    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
+    <!-- Balance chart legend -->
+    <string name="balance_chart_label">बैलेंस प्रवृत्ति</string>
+</resources>

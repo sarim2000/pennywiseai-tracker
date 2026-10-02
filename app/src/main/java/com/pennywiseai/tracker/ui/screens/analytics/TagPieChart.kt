@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -96,7 +98,7 @@ fun TagPieChart(
         ) {
             items(chartData.sortedByDescending { it.data }) { pie ->
                 TagLegendItem(
-                    label = pie.label ?: "Unknown",
+                    label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                     value = pie.data,
                     color = pie.color,
                     isSelected = pie.selected,
@@ -164,7 +166,7 @@ private fun TagLegendItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "($percentage%)",
+                    text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

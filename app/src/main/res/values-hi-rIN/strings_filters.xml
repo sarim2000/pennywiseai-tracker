@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">इस महीने</string>
+    <string name="filter_period_last_month">पिछला महीना</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">वर्तमान वित्तीय वर्ष</string>
+    <string name="filter_period_all_time">सभी समय</string>
+    <string name="filter_period_custom_range">कस्टम रेंज</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">सभी</string>
+    <string name="filter_type_income">आय</string>
+    <string name="filter_type_expense">व्यय</string>
+    <string name="filter_type_credit">क्रेडिट</string>
+    <string name="filter_type_transfer">स्थानांतरण</string>
+    <string name="filter_type_investment">निवेश</string>
+    <!-- Account types -->
+    <string name="account_type_savings">बचत</string>
+    <string name="account_type_credit_card">क्रेडिट कार्ड</string>
+</resources>

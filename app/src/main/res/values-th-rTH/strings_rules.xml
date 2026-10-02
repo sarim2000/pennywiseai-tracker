@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ App lock ══ -->
+    <string name="applock_prompt_subtitle">ตรวจสอบตัวตนเพื่อเข้าถึงข้อมูลค่าใช้จ่ายของคุณ</string>
+    <string name="applock_title">PennyWise ถูกล็อก</string>
+    <string name="applock_subtitle">ตรวจสอบตัวตนเพื่อเข้าถึงข้อมูลค่าใช้จ่ายของคุณ</string>
+    <string name="applock_unlock">ปลดล็อก</string>
+    <string name="applock_biometric_unavailable">การตรวจสอบทางชีวมิติไม่สามารถใช้งานได้</string>
+    <string name="applock_unavailable_hint">โปรดปิดการล็อกแอปในการตั้งค่าอุปกรณ์หรือตั้งค่าการตรวจสอบทางชีวมิติ</string>
+    <!-- Biometric capability errors (also shown in Settings) -->
+    <!-- ══ SMS permission screen ══ -->
+    <!-- ══ Unrecognized SMS ══ -->
+    <string name="unrecognized_header_title">ข้อความธนาคารที่ไม่รู้จัก</string>
+    <string name="unrecognized_header_body">ข้อความเหล่านี้จากธนาคารที่อาจเกิดขึ้นไม่สามารถแยกวิเคราะห์โดยอัตโนมัติได้ ช่วยปรับปรุง PennyWise โดยรายงานพวกเขาเพื่อให้เราสนับสนุนธนาคารเพิ่มเติม</string>
+    <string name="unrecognized_show_reported">แสดงที่รายงานแล้ว</string>
+    <plurals name="unrecognized_new_count">
+        <item quantity="other">%1$d ใหม่</item>
+    </plurals>
+    <plurals name="unrecognized_reported_count">
+        <item quantity="other">%1$d รายงาน</item>
+    </plurals>
+    <string name="unrecognized_delete_title">ลบข้อความ</string>
+    <string name="unrecognized_delete_body">คุณแน่ใจหรือว่าต้องการลบข้อความที่ไม่รู้จักนี้? การกระทำนี้ไม่สามารถยกเลิกได้</string>
+    <string name="unrecognized_delete">ลบ</string>
+    <string name="unrecognized_cancel">ยกเลิก</string>
+    <string name="unrecognized_reported_badge">รายงานแล้ว</string>
+    <string name="unrecognized_report">รายงาน</string>
+    <!-- ══ Import statement ══ -->
+    <string name="import_statement_done">เสร็จสิ้น</string>
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
+    <string name="upgrade_restore">เรียกคืน</string>
+    <string name="upgrade_continue">ดำเนินการต่อ</string>
+    <string name="upgrade_cancel">ยกเลิก</string>
+    <!-- License key dialog -->
+    <!-- ══ Onboarding ══ -->
+    <string name="onboarding_name_title">เราควรเรียกคุณว่าอะไร?</string>
+    <string name="onboarding_selected_cd">ที่เลือก</string>
+    <string name="onboarding_get_started">เริ่มต้นใช้งาน</string>
+    <string name="onboarding_continue">ดำเนินการต่อ</string>
+    <!-- ══ Chat (PennyWise AI) ══ -->
+    <string name="chat_download">ดาวน์โหลด</string>
+    <string name="chat_cancel">ยกเลิก</string>
+    <string name="chat_settings">การตั้งค่า</string>
+    <string name="chat_model_required_short">ต้องใช้โมเดล</string>
+    <string name="chat_initializing_model">กำลังเริ่มโมเดล AI...</string>
+    <string name="chat_initializing_hint">อาจใช้เวลาไม่กี่วินาที</string>
+    <string name="chat_clear_chat">ล้างแชท</string>
+    <string name="chat_clear">ล้าง</string>
+    <string name="chat_dismiss">ปิด</string>
+    <string name="chat_send">ส่ง</string>
+    <string name="chat_memory_almost_full">หน่วยความจำแชทใกล้เต็ม! ล้างแชทเพื่อดำเนินการต่อ.</string>
+    <string name="chat_memory_warning">หน่วยความจำแชทเต็ม %1$d%% พิจารณาล้างในเร็ว ๆ นี้</string>
+    <string name="chat_memory_usage">หน่วยความจำแชทเต็ม %1$d%%</string>
+    <string name="chat_stats_tokens">%1$s โทเค็น</string>
+    <string name="chat_stats_tokens_of_max">%1$s / %2$s โทเค็น</string>
+    <string name="chat_stats_system_tokens">ระบบ: %1$s</string>
+    <string name="chat_context_usage">การใช้บริบท</string>
+    <string name="chat_collapse">ย่อ</string>
+    <string name="chat_expand">ขยาย</string>
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
+    <!-- Chat confirm card for an AI-proposed action -->
+    <string name="chat_action_add">เพิ่ม</string>
+    <string name="chat_action_delete">ลบ</string>
+    <!-- Chat errors -->
+    <!-- ══ Smart Rules list ══ -->
+    <string name="rules_title">กฎอัจฉริยะ</string>
+    <string name="rules_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="rules_menu_reset">รีเซ็ตเป็นค่าเริ่มต้น</string>
+    <string name="rules_create_cd">สร้างกฎ</string>
+    <string name="rules_ok">ตกลง</string>
+    <string name="rules_cancel">ยกเลิก</string>
+    <string name="rules_close">ปิด</string>
+    <string name="rules_reset_title">รีเซ็ตกฎ</string>
+    <string name="rules_reset_body">รีเซ็ตกฎทั้งหมดไปเป็นการตั้งค่าเริ่มต้น? การตั้งค่าส่วนตัวของคุณจะสูญหาย</string>
+    <string name="rules_reset">รีเซ็ต</string>
+    <string name="rules_auto_categorization_title">การจัดหมวดหมู่โดยอัตโนมัติ</string>
+    <string name="rules_auto_categorization_body">เปิดใช้งานกฎเพื่อจัดหมวดหมู่ธุรกรรมของคุณโดยอัตโนมัติบนพื้นฐานรูปแบบ</string>
+    <string name="rules_group_daily">ค่าใช้จ่ายประจำวัน</string>
+    <string name="rules_group_recurring">การชำระเงินซ้ำ</string>
+    <string name="rules_group_healthcare">การดูแลสุขภาพ</string>
+    <string name="rules_group_other">อื่นๆ</string>
+    <string name="rules_footer_info">กฎจะถูกนำไปใช้โดยอัตโนมัติกับธุรกรรมใหม่ กฎที่มีลำดับความสำคัญสูงจะทำงานก่อน</string>
+    <string name="rules_summary_salary">เครดิตที่มีคำหลักเกี่ยวกับเงินเดือน</string>
+    <string name="rules_summary_rent">การชำระเงินที่มีคำหลักเกี่ยวกับค่าเช่า</string>
+    <string name="rules_summary_emi">คำหลัก EMI/สินเชื่อ</string>
+    <string name="rules_summary_investment">กองทุนรวม, หุ้น คำหลัก</string>
+    <string name="rules_summary_subscription">Netflix, Spotify, ฯลฯ</string>
+    <string name="rules_summary_fuel">การทำธุรกรรมสถานีบริการน้ำมัน</string>
+    <string name="rules_summary_healthcare">โรงพยาบาล, ร้านขายยา คำหลัก</string>
+    <string name="rules_summary_transfer">การโอนเอง, การโอนตรงข้าม</string>
+    <string name="rules_priority_badge">ลำดับความสำคัญ: %1$d</string>
+    <string name="rules_menu_edit">แก้ไขกฎ</string>
+    <string name="rules_menu_apply_past">ใช้กับธุรกรรมที่ผ่านมา</string>
+    <string name="rules_delete_title">ลบกฎ</string>
+    <string name="rules_delete">ลบ</string>
+    <!-- Rule sharing (export / import) results -->
+    <!-- Apply rule to past transactions -->
+    <string name="rules_batch_applying">กำลังใช้กฎ...</string>
+    <string name="rules_batch_title">ใช้กฎกับรายการที่ผ่านมา</string>
+    <plurals name="rules_batch_processing">
+        <item quantity="other">กำลังประมวลผล %1$d จาก %2$d รายการ</item>
+    </plurals>
+    <string name="rules_batch_completed">เสร็จสิ้น</string>
+    <string name="rules_batch_result_processed">รายการที่ประมวลผล: %1$d</string>
+    <string name="rules_batch_result_updated">รายการที่อัปเดต: %1$d</string>
+    <string name="rules_batch_result_errors">ข้อผิดพลาด: %1$d</string>
+    <string name="rules_batch_apply_uncategorized">ไม่ได้จัดหมวดหมู่</string>
+    <string name="rules_batch_preview">ตัวอย่างล่วงหน้า</string>
+    <!-- ══ Create / edit rule ══ -->
+    <string name="rules_create_title">สร้างกฎ</string>
+    <string name="rules_edit_title">แก้ไขกฎ</string>
+    <string name="rules_save">บันทึก</string>
+    <string name="rules_quick_templates">แม่แบบด่วน</string>
+    <string name="rules_preset_block_otps">บล็อก OTP</string>
+    <string name="rules_preset_block_small">บล็อกจำนวนเงินเล็กน้อย</string>
+    <string name="rules_preset_small_food">จำนวนเงินเล็กน้อย → อาหาร</string>
+    <string name="rules_preset_standardize_merchant">ทำให้ชื่อร้านค้ามีมาตรฐาน</string>
+    <string name="rules_preset_mark_income">ทำเครื่องหมายเป็นรายได้</string>
+    <string name="rules_name_label">ชื่อกฎ</string>
+    <string name="rules_description_label">คำอธิบาย (ไม่บังคับ)</string>
+    <string name="rules_description_placeholder">กฎนี้ทำอะไร?</string>
+    <string name="rules_then">จากนั้น</string>
+    <string name="rules_action">การกระทำ</string>
+    <string name="rules_block_explainer">ธุรกรรมที่ตรงกับกฎนี้จะถูกบล็อกและไม่ถูกบันทึก</string>
+    <!-- Rule fields (pickers) -->
+    <string name="rules_field_label">ฟิลด์</string>
+    <string name="rules_field_amount">จำนวนเงิน</string>
+    <string name="rules_field_transaction_type">ประเภทการทำธุรกรรม</string>
+    <string name="rules_field_category">หมวดหมู่</string>
+    <string name="rules_field_merchant">พ่อค้า</string>
+    <string name="rules_field_sms_text">ข้อความ SMS</string>
+    <string name="rules_field_bank_name">ชื่อธนาคาร</string>
+    <string name="rules_field_date">วันที่</string>
+    <string name="rules_field_account">บัญชี</string>
+    <string name="rules_field_description">คำอธิบาย</string>
+    <!-- Rule operators (condition chips) -->
+    <!-- Transaction type labels (stored value stays the enum name) -->
+    <string name="rules_type_income">รายได้</string>
+    <string name="rules_type_expense">ค่าใช้จ่าย</string>
+    <string name="rules_type_credit">เครดิต</string>
+    <string name="rules_type_transfer">โอน</string>
+    <string name="rules_type_investment">การลงทุน</string>
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
+    <!-- Condition value inputs -->
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
+    <string name="rules_account_type_credit">เครดิต</string>
+    <string name="rules_value_label">ค่า</string>
+    <string name="rules_value_placeholder_amount">เช่น 200</string>
+    <string name="rules_value_placeholder_bank">ตัวอย่างเช่น HDFC Bank</string>
+    <!-- Action editor -->
+    <string name="rules_action_type_label">ประเภทการกระทำ</string>
+    <string name="rules_action_type_block">บล็อกการทำธุรกรรม</string>
+    <string name="rules_action_type_set">ตั้งค่าฟิลด์</string>
+    <string name="rules_action_type_clear">ล้างฟิลด์</string>
+    <string name="rules_category_name_label">ชื่อหมวดหมู่</string>
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
+    <!-- field, operator, value -->
+    <string name="rules_preview_field_amount">จำนวนเงิน</string>
+    <string name="rules_preview_field_type">ประเภท</string>
+    <string name="rules_preview_field_category">หมวดหมู่</string>
+    <string name="rules_preview_field_merchant">พ่อค้า</string>
+    <string name="rules_preview_field_description">คำอธิบาย</string>
+    <string name="rules_preview_field_bank">ธนาคาร</string>
+    <string name="rules_preview_field_time">เวลา</string>
+    <string name="rules_preview_field_date">วันที่</string>
+    <string name="rules_preview_field_account">บัญชี</string>
+    <string name="rules_preview_field_generic">ฟิลด์</string>
+    <!-- value, field -->
+    <!-- field, value -->
+</resources>

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountBalance
@@ -28,7 +30,7 @@ fun ProfileFilterDropdown(
     ) {
         // "All" option
         DropdownMenuItem(
-            text = { Text("All Accounts") },
+            text = { Text(stringResource(R.string.profile_filter_all_accounts)) },
             onClick = {
                 onProfileSelected(null)
                 onDismiss()

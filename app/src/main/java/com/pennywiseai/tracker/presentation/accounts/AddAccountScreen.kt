@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -52,12 +54,11 @@ fun AddAccountScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Add Account",
+                title = stringResource(R.string.add_account_title),
                 hasBackButton = true,
-                hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 hazeState = hazeState
@@ -95,7 +96,7 @@ fun AddAccountScreen(
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
-                        text = "Add accounts not tracked via SMS like cash, wallets, credit cards, or investment accounts.",
+                        text = stringResource(R.string.add_account_intro),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -121,7 +122,7 @@ fun AddAccountScreen(
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
-                            text = error,
+                            text = error.asString(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -159,7 +160,7 @@ fun AddAccountScreen(
                     },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Account Type", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_account_type_label), fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -217,7 +218,7 @@ fun AddAccountScreen(
                     value = "${formState.currency}  ${CurrencyFormatter.getCurrencySymbol(formState.currency)}",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Currency", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_account_currency_label), fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
                     modifier = Modifier
@@ -251,7 +252,7 @@ fun AddAccountScreen(
                 TextField(
                     value = formState.bankName,
                     onValueChange = viewModel::updateBankName,
-                    label = { Text("Account Name *", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_account_name_label), fontWeight = FontWeight.SemiBold) },
                     leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -265,7 +266,7 @@ fun AddAccountScreen(
                     onValueChange = viewModel::updateAccountLast4,
                     label = {
                         Text(
-                            if (formState.accountType == AccountType.CASH) "Identifier (Optional)" else "Last 4 Digits *",
+                            if (formState.accountType == AccountType.CASH) stringResource(R.string.add_account_identifier_label) else stringResource(R.string.add_account_last4_label),
                             fontWeight = FontWeight.SemiBold
                         )
                     },
@@ -280,7 +281,7 @@ fun AddAccountScreen(
                 TextField(
                     value = formState.balance,
                     onValueChange = viewModel::updateBalance,
-                    label = { Text("Current Balance *", fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_account_balance_label), fontWeight = FontWeight.SemiBold) },
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -294,9 +295,9 @@ fun AddAccountScreen(
                     TextField(
                         value = formState.creditLimit,
                         onValueChange = viewModel::updateCreditLimit,
-                        label = { Text("Credit Limit", fontWeight = FontWeight.SemiBold) },
+                        label = { Text(stringResource(R.string.add_account_credit_limit_label), fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.CreditScore, contentDescription = null) },
-                        supportingText = { Text("Optional: Set credit limit for utilization tracking") },
+                        supportingText = { Text(stringResource(R.string.add_account_credit_limit_hint)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -321,7 +322,7 @@ fun AddAccountScreen(
             ) {
                 Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
-                Text("Save", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.accounts_action_save), style = MaterialTheme.typography.titleMedium)
             }
 
             Spacer(modifier = Modifier.height(Spacing.md))

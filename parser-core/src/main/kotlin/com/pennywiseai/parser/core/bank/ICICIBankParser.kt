@@ -120,8 +120,10 @@ class ICICIBankParser : BaseIndianBankParser() {
      */
     private fun extractCurrencyFromMessage(message: String): String? {
         // Pattern for "USD 11.80 spent" format
+        // Same optional integer part as extractAmount — "USD .28 spent" has to
+        // match here too, or the amount is tagged INR.
         val currencySpentPattern = Regex(
-            """([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+spent""",
+            """([A-Z]{3})\s+(?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2})\s+spent""",
             RegexOption.IGNORE_CASE
         )
         currencySpentPattern.find(message)?.let { match ->
@@ -159,8 +161,11 @@ class ICICIBankParser : BaseIndianBankParser() {
 
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: Multi-currency support - "USD 11.80 spent" or "EUR 50.00 spent"
+        // The integer part is optional: ICICI prints sub-unit amounts as
+        // "USD .28 spent". Without this the pattern missed the real amount and
+        // a later pattern picked up "Avl Limit: INR 3,85,664.53" instead.
         val multiCurrencySpentPattern = Regex(
-            """[A-Z]{3}\s+([0-9,]+(?:\.\d{2})?)\s+spent""",
+            """[A-Z]{3}\s+((?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2}))\s+spent""",
             RegexOption.IGNORE_CASE
         )
         multiCurrencySpentPattern.find(message)?.let { match ->
@@ -174,7 +179,7 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         // Pattern 2: "Rs xxx.xx spent" or "INR xxx.xx spent" (for INR card transactions)
         val inrSpentPattern = Regex(
-            """(?:Rs\.?|INR)\s+([0-9,]+(?:\.\d{2})?)\s+spent""",
+            """(?:Rs\.?|INR)\s+((?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2}))\s+spent""",
             RegexOption.IGNORE_CASE
         )
         inrSpentPattern.find(message)?.let { match ->

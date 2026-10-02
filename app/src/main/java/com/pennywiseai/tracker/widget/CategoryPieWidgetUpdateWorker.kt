@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.compose.ui.graphics.toArgb
 import androidx.glance.appwidget.updateAll
@@ -23,6 +24,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.countsInTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -108,8 +110,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 .filter {
                     (it.transaction.transactionType == TransactionType.EXPENSE ||
                         (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT)) &&
-                        it.transaction.loanId == null &&
-                        !it.transaction.excludedFromAnalytics
+                        it.transaction.countsInTotals()
                 }
 
             // Scope to the selected profile and drop hidden accounts, mirroring
@@ -195,7 +196,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (otherTotal.signum() > 0) {
                     add(
                         CategoryPieSlice(
-                            name = "Other",
+                            name = applicationContext.getString(R.string.widget_pie_other),
                             amountFormatted = CurrencyFormatter.formatCurrency(otherTotal, currency),
                             colorArgb = 0xFF9E9E9EL,
                             percent = percentOf(otherTotal)

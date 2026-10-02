@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Time period filter chips (Transactions, Analytics) -->
+    <string name="filter_period_this_month">เดือนนี้</string>
+    <string name="filter_period_last_month">เดือนที่แล้ว</string>
+    <!-- FY = financial year (India: April to March) -->
+    <string name="filter_period_current_fy">ปีงบประมาณปัจจุบัน</string>
+    <string name="filter_period_all_time">ตลอดเวลา</string>
+    <string name="filter_period_custom_range">ช่วงกำหนดเอง</string>
+    <!-- Transaction type filter -->
+    <string name="filter_type_all">ทั้งหมด</string>
+    <string name="filter_type_income">รายได้</string>
+    <string name="filter_type_expense">ค่าใช้จ่าย</string>
+    <string name="filter_type_credit">เครดิต</string>
+    <string name="filter_type_transfer">โอน</string>
+    <string name="filter_type_investment">การลงทุน</string>
+    <!-- Account types -->
+    <string name="account_type_savings">การออม</string>
+    <string name="account_type_credit_card">บัตรเครดิต</string>
+</resources>

@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -29,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.data.repository.GroupSummary
@@ -56,11 +60,11 @@ fun TransactionGroupsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Transaction Groups",
+                title = stringResource(R.string.groups_title),
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
                 hazeState = hazeState
@@ -70,7 +74,7 @@ fun TransactionGroupsScreen(
             FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Group")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.groups_create))
             }
         }
     ) { paddingValues ->
@@ -93,8 +97,8 @@ fun TransactionGroupsScreen(
             ) {
                 PennyWiseEmptyState(
                     icon = Icons.Default.Folder,
-                    headline = "No groups yet",
-                    description = "Create a group to organise related transactions"
+                    headline = stringResource(R.string.groups_empty_title),
+                    description = stringResource(R.string.groups_empty_hint)
                 )
             }
             return@Scaffold
@@ -181,7 +185,7 @@ private fun GroupListItem(
                     )
                 }
                 Text(
-                    "${summary.transactionCount} transaction${if (summary.transactionCount != 1) "s" else ""}",
+                    pluralStringResource(R.plurals.groups_transaction_count, summary.transactionCount, summary.transactionCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -195,6 +199,16 @@ private fun GroupListItem(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = expenseColor
+                    )
+                }
+                if (summary.hasInvested) {
+                    Text(
+                        stringResource(
+                            R.string.group_card_invested,
+                            CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.investment
                     )
                 }
                 if (summary.hasIncome) {
@@ -219,13 +233,13 @@ private fun CreateGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Group") },
+        title = { Text(stringResource(R.string.groups_new_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Group name") },
+                    label = { Text(stringResource(R.string.group_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     shape = RoundedCornerShape(16.dp),
@@ -238,7 +252,7 @@ private fun CreateGroupDialog(
                 TextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Note (optional)") },
+                    label = { Text(stringResource(R.string.group_note)) },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = TextFieldDefaults.colors(
@@ -254,12 +268,12 @@ private fun CreateGroupDialog(
                 onClick = { onCreate(name, note.ifBlank { null }) },
                 enabled = name.isNotBlank()
             ) {
-                Text("Create")
+                Text(stringResource(R.string.groups_create_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.group_cancel))
             }
         }
     )

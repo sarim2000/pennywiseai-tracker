@@ -5,9 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
-import com.pennywiseai.tracker.utils.sumByCurrency
+import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -25,6 +24,7 @@ data class TransactionGroupDetailUiState(
     // Per-currency totals — a group can mix currencies, which can't be summed
     // into one figure. Keyed by currency code.
     val expenseByCurrency: Map<String, Money> = emptyMap(),
+    val investedByCurrency: Map<String, Money> = emptyMap(),
     val incomeByCurrency: Map<String, Money> = emptyMap(),
     val isLoading: Boolean = true,
     val showAddSheet: Boolean = false,
@@ -60,16 +60,13 @@ class TransactionGroupDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             repository.getTransactionsForGroup(groupId).collect { txns ->
-                val expense = txns
-                    .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-                    .sumByCurrency({ it.currency }, { it.amount })
-                val income = txns
-                    .filter { it.transactionType == TransactionType.INCOME }
-                    .sumByCurrency({ it.currency }, { it.amount })
+                // Same totals as the list and the Home card, from one definition.
+                val totals = groupTotalsOf(txns)
                 _uiState.value = _uiState.value.copy(
                     linkedTransactions = txns,
-                    expenseByCurrency = expense,
-                    incomeByCurrency = income
+                    expenseByCurrency = totals.expense,
+                    incomeByCurrency = totals.income,
+                    investedByCurrency = totals.invested
                 )
             }
         }

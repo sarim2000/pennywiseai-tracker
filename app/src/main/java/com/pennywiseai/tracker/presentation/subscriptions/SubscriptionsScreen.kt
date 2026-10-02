@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -98,12 +102,16 @@ fun SubscriptionsScreen(
         }
     }
 
+    val context = LocalContext.current
+    val undoLabel = stringResource(R.string.subscriptions_undo)
+    val markPaidText = uiState.markPaidMessage?.asString()
+
     // Show snackbar when subscription is hidden
     LaunchedEffect(uiState.lastHiddenSubscription) {
         uiState.lastHiddenSubscription?.let { subscription ->
             val result = snackbarHostState.showSnackbar(
-                message = "${subscription.merchantName} hidden",
-                actionLabel = "Undo",
+                message = context.getString(R.string.subscriptions_snackbar_hidden, subscription.merchantName),
+                actionLabel = undoLabel,
                 duration = SnackbarDuration.Short
             )
             if (result == SnackbarResult.ActionPerformed) {
@@ -115,7 +123,7 @@ fun SubscriptionsScreen(
     // Mark-as-paid feedback snackbar (#412). The sheet itself closes
     // optimistically; the VM publishes the outcome string here.
     LaunchedEffect(uiState.markPaidMessage) {
-        uiState.markPaidMessage?.let { msg ->
+        markPaidText?.let { msg ->
             snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
             viewModel.clearMarkPaidMessage()
         }
@@ -128,8 +136,8 @@ fun SubscriptionsScreen(
     LaunchedEffect(uiState.lastEndedSubscription) {
         uiState.lastEndedSubscription?.let { subscription ->
             val result = snackbarHostState.showSnackbar(
-                message = "${subscription.merchantName} ended",
-                actionLabel = "Undo",
+                message = context.getString(R.string.subscriptions_snackbar_ended, subscription.merchantName),
+                actionLabel = undoLabel,
                 duration = SnackbarDuration.Short
             )
             if (result == SnackbarResult.ActionPerformed) {
@@ -146,7 +154,7 @@ fun SubscriptionsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "Subscriptions",
+                title = stringResource(R.string.subscriptions_title),
                 hazeState = hazeState
             )
         },
@@ -158,7 +166,7 @@ fun SubscriptionsScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Subscription"
+                    contentDescription = stringResource(R.string.subscriptions_add)
                 )
             }
         }
@@ -206,7 +214,7 @@ fun SubscriptionsScreen(
             // Active Subscriptions (staggered 50ms per item, starting at 50ms)
             if (uiState.activeSubscriptions.isNotEmpty()) {
                 item {
-                    SectionHeaderV2(title = "Active Subscriptions")
+                    SectionHeaderV2(title = stringResource(R.string.subscriptions_active_section))
                 }
                 itemsIndexed(
                     items = uiState.activeSubscriptions,
@@ -271,8 +279,8 @@ fun SubscriptionsScreen(
                 item {
                     PennyWiseEmptyState(
                         icon = Icons.Default.Subscriptions,
-                        headline = "No subscriptions detected yet",
-                        description = "Sync your SMS to detect subscriptions"
+                        headline = stringResource(R.string.subscriptions_empty_headline),
+                        description = stringResource(R.string.subscriptions_empty_description)
                     )
                 }
             }
@@ -325,13 +333,13 @@ private fun EndedSubscriptionsSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Cancelled (${endedSubscriptions.size})",
+                text = stringResource(R.string.subscriptions_cancelled_section, endedSubscriptions.size),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(if (expanded) R.string.subscriptions_collapse else R.string.subscriptions_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -377,11 +385,11 @@ private fun EndedSubscriptionItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = onReactivate) { Text("Reactivate") }
+            TextButton(onClick = onReactivate) { Text(stringResource(R.string.subscriptions_reactivate)) }
             IconButton(onClick = { showDeleteConfirm = true }) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = stringResource(R.string.subscriptions_action_delete),
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -391,9 +399,9 @@ private fun EndedSubscriptionItem(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete subscription?") },
+            title = { Text(stringResource(R.string.subscriptions_delete_title)) },
             text = {
-                Text("Permanently delete '${subscription.merchantName}'? This cannot be undone.")
+                Text(stringResource(R.string.subscriptions_delete_permanently_message, subscription.merchantName))
             },
             confirmButton = {
                 TextButton(
@@ -402,11 +410,11 @@ private fun EndedSubscriptionItem(
                         onDelete()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -422,21 +430,21 @@ private fun TotalSubscriptionsSummary(
     currency: String? = null
 ) {
     val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
-    val pluralActive = if (activeCount != 1) "s" else ""
+
 
     // Subtitle shape:
     //   no paid yet  → "5 active subscriptions"
     //   some paid    → "3 of 5 paid this cycle"
     //   all paid     → "All 5 paid this cycle ✓"
     val subtitle = when {
-        activeCount == 0 -> "No active subscriptions"
-        paidThisCycleCount == 0 -> "$activeCount active subscription$pluralActive"
-        paidThisCycleCount == activeCount -> "All $activeCount paid this cycle"
-        else -> "$paidThisCycleCount of $activeCount paid this cycle"
+        activeCount == 0 -> stringResource(R.string.subscriptions_summary_none_active)
+        paidThisCycleCount == 0 -> pluralStringResource(R.plurals.subscriptions_summary_active, activeCount, activeCount)
+        paidThisCycleCount == activeCount -> pluralStringResource(R.plurals.subscriptions_summary_all_paid, activeCount, activeCount)
+        else -> stringResource(R.string.subscriptions_summary_some_paid, paidThisCycleCount, activeCount)
     }
 
     SummaryCardV2(
-        title = "Monthly Subscriptions",
+        title = stringResource(R.string.subscriptions_summary_title),
         // Unified mode: one converted figure. Native mode: per-currency so a
         // ₹ + $ mix shows "₹399 · $30" rather than dropping non-base subs.
         amount = when {
@@ -505,7 +513,7 @@ private fun SwipeableSubscriptionItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.VisibilityOff,
-                    contentDescription = "Hide",
+                    contentDescription = stringResource(R.string.subscriptions_hide),
                     tint = MaterialTheme.colorScheme.onError
                 )
             }
@@ -566,7 +574,7 @@ private fun SwipeableSubscriptionItem(
                                 if (!subscription.smsBody.isNullOrBlank()) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
-                                        contentDescription = "SMS available",
+                                        contentDescription = stringResource(R.string.subscriptions_sms_available),
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -576,7 +584,7 @@ private fun SwipeableSubscriptionItem(
                                 val subscriptionDate = subscription.nextPaymentDate
                                 if (subscriptionDate == null) {
                                     Text(
-                                        text = "No date set",
+                                        text = stringResource(R.string.subscriptions_no_date),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
@@ -597,9 +605,13 @@ private fun SwipeableSubscriptionItem(
                                     )
                                     Text(
                                         text = when {
-                                            daysUntilNext == 0L -> "Due today"
-                                            daysUntilNext == 1L -> "Due tomorrow"
-                                            daysUntilNext in 2..7 -> "Due in $daysUntilNext days"
+                                            daysUntilNext == 0L -> stringResource(R.string.subscriptions_due_today)
+                                            daysUntilNext == 1L -> stringResource(R.string.subscriptions_due_tomorrow)
+                                            daysUntilNext in 2..7 -> pluralStringResource(
+                                                R.plurals.subscriptions_due_in_days,
+                                                daysUntilNext.toInt(),
+                                                daysUntilNext.toInt()
+                                            )
                                             else -> nextPaymentDate.format(
                                                 DateTimeFormatter.ofPattern("MMM d")
                                             )
@@ -634,7 +646,10 @@ private fun SwipeableSubscriptionItem(
                                         tint = MaterialTheme.colorScheme.primary,
                                     )
                                     Text(
-                                        text = "Paid ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}",
+                                        text = stringResource(
+                                            R.string.subscriptions_paid_on,
+                                            "${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}"
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Medium,
@@ -688,7 +703,7 @@ private fun SwipeableSubscriptionItem(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More options",
+                                    contentDescription = stringResource(R.string.subscriptions_more_options),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -697,7 +712,7 @@ private fun SwipeableSubscriptionItem(
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Mark as paid") },
+                                    text = { Text(stringResource(R.string.subscriptions_menu_mark_paid)) },
                                     leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
@@ -706,7 +721,7 @@ private fun SwipeableSubscriptionItem(
                                 )
                                 if (!subscription.smsBody.isNullOrBlank()) {
                                     DropdownMenuItem(
-                                        text = { Text("View source") },
+                                        text = { Text(stringResource(R.string.subscriptions_menu_view_source)) },
                                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
                                         onClick = {
                                             showMenu = false
@@ -715,7 +730,7 @@ private fun SwipeableSubscriptionItem(
                                     )
                                 }
                                 DropdownMenuItem(
-                                    text = { Text("Edit") },
+                                    text = { Text(stringResource(R.string.subscriptions_menu_edit)) },
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
@@ -723,7 +738,7 @@ private fun SwipeableSubscriptionItem(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("End subscription") },
+                                    text = { Text(stringResource(R.string.subscriptions_menu_end)) },
                                     leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
@@ -731,7 +746,7 @@ private fun SwipeableSubscriptionItem(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Default.Delete,
@@ -774,7 +789,10 @@ private fun SwipeableSubscriptionItem(
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
-                                    text = if (subscription.bankName == "Manual Entry") "Notes" else "Original SMS",
+                                    text = stringResource(
+                                        if (subscription.bankName == "Manual Entry") R.string.subscriptions_source_notes
+                                        else R.string.subscriptions_source_original_sms
+                                    ),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -818,9 +836,9 @@ private fun SwipeableSubscriptionItem(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete subscription?") },
+            title = { Text(stringResource(R.string.subscriptions_delete_title)) },
             text = {
-                Text("\"${subscription.merchantName}\" will be permanently removed. This cannot be undone.")
+                Text(stringResource(R.string.subscriptions_delete_message, subscription.merchantName))
             },
             confirmButton = {
                 TextButton(
@@ -829,11 +847,11 @@ private fun SwipeableSubscriptionItem(
                         showDeleteConfirm = false
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -883,7 +901,7 @@ private fun EditSubscriptionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit subscription") },
+        title = { Text(stringResource(R.string.subscriptions_edit_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -891,14 +909,14 @@ private fun EditSubscriptionDialog(
                 OutlinedTextField(
                     value = merchantName,
                     onValueChange = { merchantName = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.subscriptions_edit_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Amount (${subscription.currency})") },
+                    label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
                     singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -907,24 +925,24 @@ private fun EditSubscriptionDialog(
                     isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
                 )
                 OutlinedTextField(
-                    value = nextDate?.format(DateTimeFormatter.ofPattern("d MMM yyyy")) ?: "Tap to set",
+                    value = nextDate?.format(DateTimeFormatter.ofPattern("d MMM yyyy")) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Next payment date") },
+                    label = { Text(stringResource(R.string.subscriptions_edit_next_date)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showDatePicker = true },
                     enabled = false,
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
+                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.subscriptions_edit_pick_date))
                         }
                     }
                 )
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("Category (optional)") },
+                    label = { Text(stringResource(R.string.subscriptions_edit_category)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -933,17 +951,17 @@ private fun EditSubscriptionDialog(
                 // the chosen account's balance; "No account" keeps it unlinked.
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = selectedAccount?.displayLabel ?: "No account",
+                        value = selectedAccount?.displayLabel ?: stringResource(R.string.subscriptions_edit_no_account),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Paid from") },
+                        label = { Text(stringResource(R.string.subscriptions_edit_paid_from)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showAccountMenu = true },
                         enabled = false,
                         trailingIcon = {
                             IconButton(onClick = { showAccountMenu = true }) {
-                                Icon(Icons.Default.AccountBalance, contentDescription = "Pick account")
+                                Icon(Icons.Default.AccountBalance, contentDescription = stringResource(R.string.subscriptions_edit_pick_account))
                             }
                         }
                     )
@@ -952,7 +970,7 @@ private fun EditSubscriptionDialog(
                         onDismissRequest = { showAccountMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("No account") },
+                            text = { Text(stringResource(R.string.subscriptions_edit_no_account)) },
                             onClick = {
                                 selectedAccount = null
                                 accountChanged = true
@@ -990,7 +1008,7 @@ private fun EditSubscriptionDialog(
                                 },
                                 trailingIcon = {
                                     if (selectedAccount?.id == account.id) {
-                                        Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Default.Check, stringResource(R.string.subscriptions_edit_selected), tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             )
@@ -1007,10 +1025,10 @@ private fun EditSubscriptionDialog(
                         onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
                     }
                 }
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.subscriptions_edit_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.subscriptions_action_cancel)) }
         }
     )
 
@@ -1026,10 +1044,10 @@ private fun EditSubscriptionDialog(
                         nextDate = LocalDate.ofEpochDay(millis / 86_400_000)
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

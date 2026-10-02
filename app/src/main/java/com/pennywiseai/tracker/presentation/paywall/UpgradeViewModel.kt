@@ -1,14 +1,13 @@
 package com.pennywiseai.tracker.presentation.paywall
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
-import com.pennywiseai.tracker.billing.EntitlementSource
-import com.pennywiseai.tracker.billing.ProProduct
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
 import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.billing.license.LicenseManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -23,18 +22,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Backs [UpgradeSheet]. Reads from [EntitlementSource] (catalog) and
- * [EntitlementGate] (auto-dismiss when Pro lands); writes through
- * [PurchaseLauncher]. Constructor depends only on the narrow interfaces it
- * actually needs — never the full `PurchaseGateway` (Interface Segregation).
- *
- * Selection is tracked by [ProProduct.key], not raw SKU — subscription base
- * plans share a SKU (e.g. monthly + annual both live on `pro_subscription`),
- * so SKU alone can't disambiguate which plan the user picked.
+ * Backs [UpgradeSheet]. Pro can't be bought in the app, so this only reads
+ * entitlement ([EntitlementGate], for the member/upgrade variant and the
+ * celebration), activates license keys, and re-queries Play on Restore for
+ * users who bought Pro there while that was possible.
  */
 @HiltViewModel
 class UpgradeViewModel @Inject constructor(
-    private val entitlementSource: EntitlementSource,
     private val purchaseLauncher: PurchaseLauncher,
     private val entitlementGate: EntitlementGate,
     private val licenseManager: LicenseManager,
@@ -55,24 +49,9 @@ class UpgradeViewModel @Inject constructor(
     val events: Flow<UpgradeEvent> = _events.receiveAsFlow()
 
     init {
-        viewModelScope.launch {
-            entitlementSource.products.collect { products ->
-                _state.update { current ->
-                    current.copy(
-                        products = products,
-                        isLoading = products.isEmpty() && current.isLoading,
-                    )
-                }
-            }
-        }
-
-        // On a fresh false → true transition (purchase succeeded or
-        // restore landed an entitlement mid-sheet), trigger the
-        // celebration content. drop(1) skips the StateFlow's replay of
-        // the current value, so users who were already Pro when they
-        // opened the sheet don't see a celebration on frame 1.
-        // The actual sheet dismiss is gated on [didBecomePro] which the
-        // UI flips after the celebration timer (or a Continue tap).
+        // On a fresh false → true transition (a key activated, or Restore
+        // landed an entitlement mid-sheet), trigger the celebration content.
+        // The actual sheet dismiss is gated on the celebration finishing.
         viewModelScope.launch {
             // Keep the sheet's member/upgrade variant in step with the gate.
             // The ViewModel outlives the sheet (Activity-scoped), so a value
@@ -133,15 +112,15 @@ class UpgradeViewModel @Inject constructor(
                     LicenseManager.ActivationOutcome.Activated ->
                         ui.copy(isActivating = false, showLicenseDialog = false)
                     LicenseManager.ActivationOutcome.InvalidKey ->
-                        ui.copy(isActivating = false, licenseError = "That key isn't valid. Check for typos and try again.")
+                        ui.copy(isActivating = false, licenseError = UiText.Res(R.string.upgrade_license_error_invalid))
                     LicenseManager.ActivationOutcome.ActiveElsewhere ->
                         ui.copy(
                             isActivating = false,
-                            licenseError = "This key is already active on another device.",
+                            licenseError = UiText.Res(R.string.upgrade_license_error_active_elsewhere),
                             licenseCanMove = BuildConfig.LICENSE_MOVE_URL.isNotBlank(),
                         )
                     LicenseManager.ActivationOutcome.Offline ->
-                        ui.copy(isActivating = false, licenseError = "Couldn't reach the license server. Check your connection and try again.")
+                        ui.copy(isActivating = false, licenseError = UiText.Res(R.string.upgrade_license_error_offline))
                 }
             }
         }
@@ -160,42 +139,7 @@ class UpgradeViewModel @Inject constructor(
         _events.trySend(UpgradeEvent.Dismiss)
     }
 
-    fun onSelectPlan(key: String) {
-        _state.update { it.copy(selectedKey = key) }
-    }
-
-    /**
-     * User tapped the CTA. The UI passes the active product (already
-     * resolved from the merged live + fallback catalog) so we can launch
-     * even during the initial refresh() window when [state.products] may
-     * still be empty.
-     *
-     * Previously this looked up the product itself from `state.products`
-     * and silently returned when the lookup missed — meaning a tap during
-     * the catalog-load gap was a dead no-op. Now we hand whatever the UI
-     * resolved straight to the gateway:
-     *   - If the gateway has live ProductDetails cached → flow launches.
-     *   - If not → the gateway's own retry path re-queries Play once.
-     *   - If still missing → the gateway returns
-     *     [PurchaseResult.Failed], which we surface as an inline error.
-     *
-     * The user always gets feedback: success, error, or spinner — never
-     * a silent dropped tap.
-     */
-    fun onPurchase(activity: Activity, product: ProProduct?) {
-        if (product == null) {
-            _state.update {
-                it.copy(errorMessage = "Plans are still loading. Try again in a moment.")
-            }
-            return
-        }
-        viewModelScope.launch {
-            _state.update { it.copy(isPurchasing = true, errorMessage = null) }
-            val result = purchaseLauncher.launchPurchase(activity, product)
-            handlePurchaseResult(result)
-        }
-    }
-
+    /** Re-queries Play for an entitlement bought back when Pro was sold there. */
     fun onRestore() {
         viewModelScope.launch {
             _state.update { it.copy(isPurchasing = true, errorMessage = null) }
@@ -204,45 +148,11 @@ class UpgradeViewModel @Inject constructor(
         }
     }
 
-    fun onErrorDismissed() {
-        _state.update { it.copy(errorMessage = null) }
-    }
-
     private fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             val result = purchaseLauncher.refresh()
             handleRefreshResult(result)
-        }
-    }
-
-    private fun handlePurchaseResult(result: PurchaseResult) {
-        when (result) {
-            is PurchaseResult.Success,
-            is PurchaseResult.Pending -> _state.update { it.copy(isPurchasing = false) }
-
-            is PurchaseResult.UserCancelled -> _state.update { it.copy(isPurchasing = false) }
-
-            is PurchaseResult.Failed -> _state.update {
-                it.copy(
-                    isPurchasing = false,
-                    errorMessage = result.debugMessage ?: "Purchase failed. Please try again.",
-                )
-            }
-
-            is PurchaseResult.ServiceUnavailable -> _state.update {
-                it.copy(
-                    isPurchasing = false,
-                    errorMessage = "Play Store unavailable. Check your connection and try again.",
-                )
-            }
-
-            is PurchaseResult.Unsupported -> _state.update {
-                it.copy(
-                    isPurchasing = false,
-                    errorMessage = "Purchases aren't available in this build.",
-                )
-            }
         }
     }
 
@@ -255,7 +165,7 @@ class UpgradeViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     isPurchasing = false,
-                    errorMessage = "Couldn't reach Play Store. Try again later.",
+                    errorMessage = UiText.Res(R.string.upgrade_error_play_unavailable),
                 )
             }
             else -> _state.update { it.copy(isLoading = false, isPurchasing = false) }

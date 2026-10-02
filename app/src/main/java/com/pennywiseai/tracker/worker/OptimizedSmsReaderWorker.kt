@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
 import android.os.Trace
@@ -22,6 +23,7 @@ import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -72,6 +74,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
     private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
@@ -85,6 +88,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
         const val PROGRESS_SAVED                    = "progress_saved"
+
+        /** The final counts handed back on success — `progress` is gone by then. */
+        fun completionData(total: Int, processed: Int, parsed: Int, saved: Int): Data = workDataOf(
+            PROGRESS_TOTAL     to total,
+            PROGRESS_PROCESSED to processed,
+            PROGRESS_PARSED    to parsed,
+            PROGRESS_SAVED     to saved
+        )
         const val PROGRESS_BLOCKED                  = "progress_blocked"
         const val PROGRESS_TIME_ELAPSED             = "progress_time_elapsed"
         const val PROGRESS_ESTIMATED_TIME_REMAINING = "progress_estimated_time_remaining"
@@ -118,13 +129,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val nm = context.getSystemService(android.app.NotificationManager::class.java)
             if (nm.getNotificationChannel(channelId) == null) {
                 nm.createNotificationChannel(
-                    android.app.NotificationChannel(channelId, "SMS Scan", android.app.NotificationManager.IMPORTANCE_LOW)
+                    android.app.NotificationChannel(channelId, context.getString(R.string.notif_sms_scan_channel_name), android.app.NotificationManager.IMPORTANCE_LOW)
                 )
             }
             return androidx.core.app.NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_popup_sync)
-                .setContentTitle("Scanning transactions…")
-                .setContentText(if (total > 0) "Processed $processed / $total" else "Reading SMS…")
+                .setContentTitle(context.getString(R.string.notif_sms_scan_title))
+                .setContentText(if (total > 0) context.getString(R.string.notif_sms_scan_progress, processed, total) else context.getString(R.string.notif_sms_scan_reading))
                 .setProgress(total, processed, total == 0)
                 .setOngoing(true)
                 .setSilent(true)
@@ -370,7 +381,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
             }
             reportProgress(stats)
-            Result.success()
+            // WorkManager clears `progress` once work finishes, so a caller
+            // reading the result on SUCCEEDED saw every count as 0 — onboarding
+            // said "No transactions found" after importing a whole inbox. Hand
+            // the final counts back as output data.
+            Result.success(
+                completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
+            )
 
         } catch (e: Exception) {
             Log.e(TAG, "Fatal error in SMS worker", e)
@@ -618,14 +635,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isBalanceUpdateNotification(sms.body)) {
                 parser.parseBalanceUpdate(sms.body)?.let { info ->
-                    actions += {
-                        accountBalanceRepository.insertBalanceUpdate(
-                            bankName     = info.bankName,
-                            accountLast4 = info.accountLast4 ?: "XXXX",
-                            balance      = info.balance,
-                            timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
-                            currency     = parser.getCurrency()
-                        )
+                    // Balance-only messages never reach saveTransaction, so the
+                    // ignore gate has to be applied here too (#826).
+                    if (!ignoredAccountsStore.isIgnored(info.bankName, info.accountLast4)) {
+                        actions += {
+                            accountBalanceRepository.insertBalanceUpdate(
+                                bankName     = info.bankName,
+                                accountLast4 = info.accountLast4 ?: "XXXX",
+                                balance      = info.balance,
+                                timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
+                                currency     = parser.getCurrency()
+                            )
+                        }
                     }
                 }
                 // If unparseable as balance update, fall through to check eMandate/futureDebit below
@@ -658,7 +679,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         is IndusIndBankParser -> {
             if (!parser.isBalanceUpdateNotification(sms.body)) null
-            else parser.parseBalanceUpdate(sms.body)?.let { info ->
+            else parser.parseBalanceUpdate(sms.body)?.takeUnless {
+                // Balance-only messages never reach saveTransaction (#826).
+                ignoredAccountsStore.isIgnored(it.bankName, it.accountLast4)
+            }?.let { info ->
                 ParseResult.SpecialNotification(sms) {
                     accountBalanceRepository.insertBalanceUpdate(
                         bankName     = info.bankName,
@@ -684,6 +708,24 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     ): SaveOutcome = try {
         coroutineScope {
             val entity = parsed.toEntity()
+
+            // Same gate as the live receiver, including the linked account
+            // behind a debit card (#826), so a rescan can't re-import what the
+            // user excluded.
+            val linkedAccountLast4 = if (parsed.isFromCard) {
+                parsed.accountLast4?.let {
+                    cardRepository.getCard(parsed.bankName, it)?.accountLast4
+                }
+            } else null
+            if (ignoredAccountsStore.isIgnored(
+                    entity.bankName,
+                    entity.accountNumber,
+                    linkedAccountLast4
+                )
+            ) {
+                return@coroutineScope SaveOutcome.SKIPPED
+            }
+
             val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
 
             val customCategory = merchantMappingCache[entity.merchantName]
@@ -854,6 +896,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = resolvedIsCreditCard,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
+            accountType   = BalanceCalculator.preservedAccountType(existing),
             currency      = parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
@@ -896,6 +939,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = false,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
+            accountType   = BalanceCalculator.preservedAccountType(existing),
             currency      = parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,

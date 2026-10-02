@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
@@ -91,8 +93,8 @@ class SettingsViewModel @Inject constructor(
     val totalMB: StateFlow<Long> = _totalMB.asStateFlow()
     
     // Import/Export state
-    private val _importExportMessage = MutableStateFlow<String?>(null)
-    val importExportMessage: StateFlow<String?> = _importExportMessage.asStateFlow()
+    private val _importExportMessage = MutableStateFlow<UiText?>(null)
+    val importExportMessage: StateFlow<UiText?> = _importExportMessage.asStateFlow()
     
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
@@ -114,8 +116,9 @@ class SettingsViewModel @Inject constructor(
 
     // Kept separate from [importExportMessage] so the outcome isn't reported
     // under that flow's "Backup Status" dialog.
-    private val _deleteAllTransactionsResult = MutableStateFlow<String?>(null)
-    val deleteAllTransactionsResult: StateFlow<String?> = _deleteAllTransactionsResult.asStateFlow()
+    // One or more sentences, shown space-separated.
+    private val _deleteAllTransactionsResult = MutableStateFlow<List<UiText>?>(null)
+    val deleteAllTransactionsResult: StateFlow<List<UiText>?> = _deleteAllTransactionsResult.asStateFlow()
 
     fun clearDeleteAllTransactionsResult() {
         _deleteAllTransactionsResult.value = null
@@ -373,8 +376,8 @@ class SettingsViewModel @Inject constructor(
             try {
                 // Create download request
                 val request = DownloadManager.Request(Uri.parse(modelUrl))
-                    .setTitle("AI Chat Model")
-                    .setDescription("Downloading AI chat assistant for PennyWise")
+                    .setTitle(context.getString(R.string.settings_ai_download_notification_title))
+                    .setDescription(context.getString(R.string.settings_ai_download_notification_description))
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
                     .setAllowedOverMetered(true) // Allow mobile data downloads
@@ -538,19 +541,13 @@ class SettingsViewModel @Inject constructor(
         // authorised history did go — but reporting a clean sweep while rows
         // exist would be a lie, so say what actually happened.
         val arrived = transactionRepository.observeAllTransactionCount().first()
-        _deleteAllTransactionsResult.value = buildString {
-            append(
-                when (deleted) {
-                    0 -> "There were no transactions to delete."
-                    1 -> "1 transaction deleted."
-                    else -> "$deleted transactions deleted."
-                }
+        _deleteAllTransactionsResult.value = buildList {
+            add(
+                if (deleted == 0) UiText.Res(R.string.settings_delete_all_result_none)
+                else UiText.Plural(R.plurals.settings_delete_all_result_deleted, deleted)
             )
             if (arrived > 0) {
-                append(
-                    if (arrived == 1) " 1 new transaction arrived while it ran."
-                    else " $arrived new transactions arrived while it ran."
-                )
+                add(UiText.Plural(R.plurals.settings_delete_all_result_arrived, arrived))
             }
         }
     }
@@ -563,9 +560,9 @@ class SettingsViewModel @Inject constructor(
                     is DeleteAllTransactionsUseCase.Result.CountChanged -> {
                         // Nothing was removed; the dialog stays open showing the
                         // new (observed) figure so the user re-authorises it.
-                        _deleteAllTransactionsResult.value =
-                            "New transactions arrived while you were confirming, so nothing was deleted. " +
-                                "There are now ${result.actual}. Check the number and try again."
+                        _deleteAllTransactionsResult.value = listOf(
+                            UiText.Res(R.string.settings_delete_all_result_count_changed, listOf(result.actual))
+                        )
                         return@launch
                     }
                     is DeleteAllTransactionsUseCase.Result.Deleted -> {
@@ -574,7 +571,9 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Delete all transactions failed", e)
-                _deleteAllTransactionsResult.value = "Couldn't delete transactions: ${e.message}"
+                _deleteAllTransactionsResult.value = listOf(
+                    UiText.Res(R.string.settings_delete_all_result_error, listOf("${e.message}"))
+                )
             } finally {
                 _isDeletingAllTransactions.value = false
                 _deleteAllTransactionsRequested.value = false
@@ -696,16 +695,16 @@ class SettingsViewModel @Inject constructor(
                     is ExportResult.Success -> {
                         // Store the file for later saving
                         _exportedBackupFile.value = result.file
-                        _importExportMessage.value = "Backup created successfully! Choose where to save it."
+                        _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
                     }
                     is ExportResult.Error -> {
-                        _importExportMessage.value = "Export failed: ${result.message}"
+                        _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Export failed: ${result.message}")
                     }
                     else -> {}
                 }
             } catch (e: Exception) {
-                _importExportMessage.value = "Export error: ${e.message}"
+                _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Export error", e)
             }
         }
@@ -720,11 +719,11 @@ class SettingsViewModel @Inject constructor(
                             inputStream.copyTo(outputStream)
                         }
                     }
-                    _importExportMessage.value = "Backup saved successfully!"
+                    _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
                     _exportedBackupFile.value = null
                 }
             } catch (e: Exception) {
-                _importExportMessage.value = "Failed to save backup: ${e.message}"
+                _importExportMessage.value = UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Error saving backup", e)
             }
         }
@@ -747,12 +746,12 @@ class SettingsViewModel @Inject constructor(
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/octet-stream"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "PennyWise Backup")
+                putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.settings_share_backup_subject))
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             
-            context.startActivity(Intent.createChooser(intent, "Share Backup").apply {
+            context.startActivity(Intent.createChooser(intent, context.getString(R.string.settings_share_backup_chooser)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         } catch (e: Exception) {
@@ -763,20 +762,24 @@ class SettingsViewModel @Inject constructor(
     fun importBackup(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                _importExportMessage.value = "Importing backup..."
+                _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
                 val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
                 when (result) {
                     is ImportResult.Success -> {
-                        val skipped = if (result.skippedRows > 0) " ${result.skippedRows} rows could not be imported." else ""
-                        _importExportMessage.value = "Import successful! Imported ${result.importedTransactions} transactions, ${result.importedCategories} categories. Skipped ${result.skippedDuplicates} duplicates.$skipped"
+                        val counts = listOf(result.importedTransactions, result.importedCategories, result.skippedDuplicates)
+                        _importExportMessage.value = if (result.skippedRows > 0) {
+                            UiText.Res(R.string.settings_import_backup_success_with_skipped_rows, counts + result.skippedRows)
+                        } else {
+                            UiText.Res(R.string.settings_import_backup_success, counts)
+                        }
                     }
                     is ImportResult.Error -> {
-                        _importExportMessage.value = "Import failed: ${result.message}"
+                        _importExportMessage.value = UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Import failed: ${result.message}")
                     }
                 }
             } catch (e: Exception) {
-                _importExportMessage.value = "Import error: ${e.message}"
+                _importExportMessage.value = UiText.Res(R.string.settings_import_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Import error", e)
             }
         }
@@ -789,22 +792,25 @@ class SettingsViewModel @Inject constructor(
     fun importCsv(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                _importExportMessage.value = "Importing transactions..."
+                _importExportMessage.value = UiText.Res(R.string.settings_importing_transactions)
                 when (val result = importCsvUseCase.execute(uri)) {
                     is com.pennywiseai.tracker.data.csv.ImportCsvUseCase.Result.Success -> {
-                        val failedSuffix = if (result.failed > 0) {
-                            ", ${result.failed} rows could not be parsed"
-                        } else ""
-                        _importExportMessage.value =
-                            "Imported ${result.imported} transactions, skipped ${result.skippedDuplicate} duplicates$failedSuffix"
+                        _importExportMessage.value = if (result.failed > 0) {
+                            UiText.Res(
+                                R.string.settings_import_csv_success_with_failed_rows,
+                                listOf(result.imported, result.skippedDuplicate, result.failed)
+                            )
+                        } else {
+                            UiText.Res(R.string.settings_import_csv_success, listOf(result.imported, result.skippedDuplicate))
+                        }
                     }
                     is com.pennywiseai.tracker.data.csv.ImportCsvUseCase.Result.Error -> {
-                        _importExportMessage.value = result.message
+                        _importExportMessage.value = UiText.Plain(result.message)
                         Log.e("SettingsViewModel", "CSV import failed: ${result.message}")
                     }
                 }
             } catch (e: Exception) {
-                _importExportMessage.value = "Import error: ${e.message}"
+                _importExportMessage.value = UiText.Res(R.string.settings_import_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "CSV import error", e)
             }
         }
@@ -827,7 +833,7 @@ class SettingsViewModel @Inject constructor(
             } else {
                 userPreferencesRepository.setScheduledFolderBackupEnabled(false)
                 scheduledFolderBackupScheduler.cancel()
-                _importExportMessage.value = "Automatic folder backup disabled"
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_disabled)
             }
         }
     }
@@ -861,7 +867,7 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _importExportMessage.value = "Could not access the selected folder: ${e.message}"
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_access_failed, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Failed to persist backup folder", e)
             }
         }
@@ -876,12 +882,12 @@ class SettingsViewModel @Inject constructor(
     private suspend fun performFolderBackup(showSuccessMessage: Boolean): Boolean {
         val treeUri = userPreferencesRepository.getScheduledFolderBackupTreeUri()
         if (treeUri.isNullOrBlank()) {
-            _importExportMessage.value = "Select a backup folder first"
+            _importExportMessage.value = UiText.Res(R.string.settings_folder_select_first)
             return false
         }
 
         if (!folderBackupWriter.canWriteToFolder(treeUri)) {
-            _importExportMessage.value = "Cannot write to the selected backup folder"
+            _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
             return false
         }
 
@@ -893,18 +899,18 @@ class SettingsViewModel @Inject constructor(
                             System.currentTimeMillis()
                         )
                         if (showSuccessMessage) {
-                            _importExportMessage.value = "Backup saved to folder"
+                            _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_saved)
                         }
                         true
                     }
                     is FolderBackupWriter.Result.Failure -> {
-                        _importExportMessage.value = writeResult.message
+                        _importExportMessage.value = UiText.Plain(writeResult.message)
                         false
                     }
                 }
             }
             is ExportBytesResult.Error -> {
-                _importExportMessage.value = exportResult.message
+                _importExportMessage.value = UiText.Plain(exportResult.message)
                 false
             }
         }
@@ -912,7 +918,7 @@ class SettingsViewModel @Inject constructor(
 
     private suspend fun enableScheduledFolderBackup(treeUri: String) {
         if (!folderBackupWriter.canWriteToFolder(treeUri)) {
-            _importExportMessage.value = "Cannot write to the selected backup folder"
+            _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
             return
         }
 
@@ -921,8 +927,7 @@ class SettingsViewModel @Inject constructor(
         // Only claim success if the immediate backup actually wrote. On failure,
         // performFolderBackup has already surfaced the reason — don't clobber it.
         if (performFolderBackup(showSuccessMessage = false)) {
-            _importExportMessage.value =
-                "Automatic folder backup enabled. Backups run daily at 2:00 AM."
+            _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_enabled)
         }
     }
     

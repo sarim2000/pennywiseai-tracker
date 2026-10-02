@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">Analytici</string>
+    <string name="analytics_trends">Trendy</string>
+    <string name="analytics_chart_line">Řádek</string>
+    <string name="analytics_chart_bar">Lišta</string>
+    <string name="analytics_chart_heatmap">Teplotní mapa</string>
+    <string name="analytics_chart_line_full">Řádkový graf</string>
+    <string name="analytics_chart_bar_full">Lišový graf</string>
+    <string name="analytics_top_categories">Nejlepší kategorie</string>
+    <string name="analytics_toggle_view">Přepnout zobrazení</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">Celkem je očištěno od %1$s v náhradách. Tyče kategorií nemohou být nižší než nula, takže mohou sečíst více než celkový zobrazený celek.</string>
+    <string name="analytics_top_tags">Top štítky</string>
+    <string name="analytics_top_merchants">Top obchodníci</string>
+    <string name="analytics_by_account">Podle účtu</string>
+    <string name="analytics_pro_tags_title">Podívejte se na Vaše nejlepší štítky s Pro</string>
+    <string name="analytics_pro_tags_body">Odemkněte rozpis výdajů ve všech vašich značkách. Označování a filtrování zůstávají zdarma.</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">Vyčistit</string>
+    <string name="analytics_filter_all_profiles">Všechny účty</string>
+    <string name="analytics_filter_currency">Měna</string>
+    <string name="analytics_filter_category">Kategorie</string>
+    <string name="analytics_filter_all_categories">Všechny kategorie</string>
+    <string name="analytics_filter_account">Účet</string>
+    <string name="analytics_filter_all_accounts">Všechny účty</string>
+    <!-- List rows -->
+    <plurals name="analytics_transaction_count">
+        <item quantity="one">%1$d transakce</item>
+        <item quantity="few">%1$d transakcí</item>
+        <item quantity="many">%1$d transakcí</item>
+        <item quantity="other">%1$d transakcí</item>
+    </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="one">%1$d transakce • Předplatné</item>
+        <item quantity="few">%1$d transakcí • Předplatné</item>
+        <item quantity="many">%1$d transakcí • Předplatné</item>
+        <item quantity="other">%1$d transakcí • Předplatné</item>
+    </plurals>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <string name="analytics_percent">%1$d%%</string>
+    <!-- Empty state -->
+    <string name="analytics_empty_headline">Zatím není dostatek dat</string>
+    <string name="analytics_empty_description">Vaše informace o výdajích se objeví zde po prvním týdnu sledování</string>
+    <string name="analytics_empty_action">Skenovat SMS</string>
+    <!-- Summary card -->
+    <string name="analytics_summary_total">CELKEM</string>
+    <plurals name="analytics_summary_txns">
+        <item quantity="one">%1$d TXN</item>
+        <item quantity="few">%1$d transakcí</item>
+        <item quantity="many">%1$d transakcí</item>
+        <item quantity="other">%1$d transakcí</item>
+    </plurals>
+    <string name="analytics_summary_average">PRŮMĚRNÁ</string>
+    <string name="analytics_summary_per_day">" /den"</string>
+    <string name="analytics_summary_percent_of_total">%1$d%% z celkového počtu</string>
+    <!-- Pie charts -->
+    <string name="analytics_pie_unknown">Neznámý</string>
+    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
+    <string name="analytics_spending_by_category">Výdaje podle kategorie</string>
+    <string name="analytics_spending_by_tag">Výdaje podle tagu</string>
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">Rozpočty</string>
+    <string name="budgets_back">Zpět</string>
+    <string name="budgets_add">Přidat rozpočet</string>
+    <string name="budgets_action_cancel">Zrušit</string>
+    <string name="budgets_action_delete">Vymazat</string>
+    <string name="budgets_action_ok">OK</string>
+    <string name="budgets_setup_title">Nastavte svůj rozpočet</string>
+    <string name="budgets_setup_body">Uspořádejte své výdaje do rozpočtů, abyste zjistili, kam směřují Vaše peníze.</string>
+    <string name="budgets_setup_smart_defaults">Použít chytré výchozí nastavení</string>
+    <string name="budgets_setup_custom">Vytvořit vlastní rozpočet</string>
+    <string name="budgets_delete_title">Smazat rozpočet</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete_message">Jste si jisti, že chcete odstranit \"%1$s\"? Tuto akci nelze vrátit zpět.</string>
+    <string name="budgets_previous_month">Předchozí měsíc</string>
+    <string name="budgets_next_month">Příští měsíc</string>
+    <string name="budgets_percent">%1$d%%</string>
+    <string name="budgets_edit">Upravit rozpočet</string>
+    <string name="budgets_delete">Odstranit rozpočet</string>
+    <string name="budgets_more_options">Další možnosti</string>
+    <string name="budgets_view_history">Zobrazit historii tohoto období</string>
+    <string name="budgets_move_up">Posunout nahoru</string>
+    <string name="budgets_move_down">Přesunout dolů</string>
+    <!-- %1$s = formatted amount -->
+    <string name="budgets_over_budget">%1$s nad rozpočtem</string>
+    <string name="budgets_remaining">Zbývá %1$s</string>
+    <string name="budgets_over_by">Přes %1$s</string>
+    <string name="budgets_finished">Dokončeno</string>
+    <!-- %1$s = weekday name -->
+    <string name="budgets_resets_today_weekly">Resetovat dnes · %1$s obnoveno</string>
+    <!-- %1$d = days, %2$s = weekday name -->
+    <plurals name="budgets_resets_in_weekly">
+        <item quantity="one">Resetuje se v %1$d dne · %2$s obnoveno</item>
+        <item quantity="few">Resetuje se v %1$d dní · %2$s obnoveno</item>
+        <item quantity="many">Resetuje se v %1$d dní · %2$s obnoveno</item>
+        <item quantity="other">Resetuje se v %1$d dní · %2$s obnoveno</item>
+    </plurals>
+    <!-- %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">Resetuje dnes · den %1$d</string>
+    <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Resetuje se v %1$d dne · den %2$d</item>
+        <item quantity="few">Resetuje se v %1$d dní · den %2$d</item>
+        <item quantity="many">Resetuje se v %1$d dní · den %2$d</item>
+        <item quantity="other">Resetuje se v %1$d dní · den %2$d</item>
+    </plurals>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <string name="budgets_date_range">%1$s – %2$s</string>
+    <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="one">Spustí %1$s · Zbývá %2$d den</item>
+        <item quantity="few">Spustí %1$s · Zbývá %2$d dnů</item>
+        <item quantity="many">Spustí %1$s · Zbývá %2$d dnů</item>
+        <item quantity="other">Spustí %1$s · Zbývá %2$d dnů</item>
+    </plurals>
+    <string name="budgets_runs_finished">Spustí %1$s · Dokončeno</string>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">Zbývá %1$d dne</item>
+        <item quantity="few">zbývá %1$d dní</item>
+        <item quantity="many">zbývá %1$d dní</item>
+        <item quantity="other">zbývá %1$d dní</item>
+    </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <string name="budgets_spent_of">Utraceno %1$s z %2$s</string>
+    <string name="budgets_spent">Utraceno %1$s</string>
+    <string name="budgets_amount_of">%1$s z %2$s</string>
+    <string name="budgets_tracking_all">Sledování všech výdajů</string>
+    <string name="budgets_chart_actual">Aktuální</string>
+    <string name="budgets_chart_pace">Tempo rozpočtu</string>
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">Upravit rozpočet</string>
+    <string name="budget_edit_title_new">Nový rozpočet</string>
+    <string name="budget_edit_save">Uložit změny</string>
+    <string name="budget_edit_create">Vytvořit rozpočet</string>
+    <string name="budget_edit_color">Barva</string>
+    <string name="budget_edit_period">Rozpočtové období</string>
+    <string name="budget_edit_period_weekly">Týdenní (opakované)</string>
+    <string name="budget_edit_period_monthly">Měsíčně (opakované)</string>
+    <string name="budget_edit_period_one_time">Jednorázový</string>
+    <string name="budget_edit_start_date">Datum zahájení</string>
+    <string name="budget_edit_end_date">Datum ukončení</string>
+    <!-- %1$s = weekday name -->
+    <string name="budget_edit_resets_every">Resetuje každý %1$s</string>
+    <string name="budget_edit_resets_on_day">Resetuje se na den %1$d každého měsíce</string>
+    <string name="budget_edit_runs_once">Spustí jednou, bez překlopení</string>
+    <string name="budget_edit_current_window">Aktuální okno</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <string name="budget_edit_category_limits">Limity kategorií (volitelné)</string>
+    <string name="budget_edit_no_categories">Žádné kategorie nebyly přidány. Tento rozpočet bude sledovat všechny výdaje.</string>
+    <string name="budget_edit_unallocated">Nepřiděleno: %1$s</string>
+    <string name="budget_edit_over_allocated">Omezení kategorií překračují rozpočet %1$s</string>
+    <string name="budget_edit_add_category">Přidat kategorii</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_type_bucket_all">%1$s (vše)</string>
+    <string name="budget_edit_name_placeholder">Název rozpočtu</string>
+    <string name="budget_edit_edit_name">Upravit název</string>
+    <string name="budget_edit_spent">Utraceno: %1$s</string>
+    <string name="budget_edit_remove">Odstranit</string>
+    <string name="budget_edit_week_starts_on">Týden začíná</string>
+    <string name="budget_edit_month_starts_on">Měsíc začíná dnem</string>
+    <string name="budget_edit_decrease_day">Snížit den</string>
+    <string name="budget_edit_increase_day">Zvýšit den</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">Historie rozpočtu</string>
+    <string name="budget_history_loading">Načítání…</string>
+    <string name="budget_history_not_found">Rozpočet nenalezen</string>
+    <string name="budget_history_window">Window: %1$s – %2$s</string>
+    <string name="budget_history_per_week">Členění podle jednotlivých týdnů</string>
+    <string name="budget_history_cycle">Cyklus</string>
+    <string name="budget_history_range">Range</string>
+    <string name="budget_history_current">Aktuální</string>
+    <string name="budget_history_live">Živá · stále se hromadí</string>
+    <string name="budget_history_frozen">Zmrazené od %1$s</string>
+    <string name="budget_history_categories">Kategorie</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <string name="budget_history_of_budget_percent">z %1$s · %2$d%%</string>
+    <string name="budget_history_zero_remaining">0 zbývá</string>
+    <string name="budget_history_percent_used">%1$d%% použito</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">Kategorie</string>
+    <string name="categories_back">Zpět</string>
+    <string name="categories_add">Přidat kategorii</string>
+    <string name="categories_expense_section">Kategorie výdajů</string>
+    <string name="categories_income_section">Příchozí kategorie</string>
+    <string name="categories_action_delete">Vymazat</string>
+    <string name="categories_action_edit">Upravit</string>
+    <string name="categories_action_cancel">Zrušit</string>
+    <string name="categories_show_category">Zobrazit kategorii</string>
+    <string name="categories_hide_category">Skrýt kategorii</string>
+    <string name="categories_system_badge">Systém</string>
+    <string name="categories_msg_system_not_editable">Systémové kategorie nelze upravit</string>
+    <string name="categories_msg_updated">Kategorie byla úspěšně aktualizována</string>
+    <!-- %1$s = category name -->
+    <string name="categories_msg_already_exists">Kategorie \'%1$s\' již existuje</string>
+    <string name="categories_msg_created">Kategorie byla úspěšně vytvořena</string>
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_save_error">Chyba při ukládání kategorie: %1$s</string>
+    <string name="categories_msg_system_not_deletable">Systémové kategorie nelze odstranit</string>
+    <string name="categories_msg_deleted">Kategorie byla úspěšně odstraněna</string>
+    <string name="categories_msg_cannot_delete">Tuto kategorii nelze odstranit</string>
+    <string name="categories_msg_delete_error">Chyba při odstraňování kategorie: %1$s</string>
+    <string name="categories_msg_hidden">%1$s skryto</string>
+    <string name="categories_msg_shown">%1$s zobrazeno</string>
+    <string name="categories_msg_update_error">Chyba při aktualizaci kategorie: %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">Přidat kategorii</string>
+    <string name="category_edit_title_edit">Upravit kategorii</string>
+    <string name="category_edit_name_required">Název kategorie je povinný</string>
+    <string name="category_edit_name_label">Název kategorie</string>
+    <string name="category_edit_type">Typ kategorie</string>
+    <string name="category_edit_type_expense">Výdaje</string>
+    <string name="category_edit_type_income">Výnosy</string>
+    <string name="category_edit_parent_label">Nadřazená kategorie (volitelné)</string>
+    <string name="category_edit_parent_none">Nic</string>
+    <string name="category_edit_icon_label">Ikona (emoji, volitelné)</string>
+    <string name="category_edit_icon_placeholder">Klepnutím vyberte smajlíky</string>
+    <string name="category_edit_clear_icon">Vymazat ikonu</string>
+    <string name="category_edit_color">Barva</string>
+    <string name="category_edit_preview">Náhled</string>
+    <string name="category_edit_add">Přidat</string>
+    <string name="category_edit_save">Uložit</string>
+    <string name="category_edit_delete">Odstranit kategorii</string>
+    <string name="category_edit_delete_title">Odstranit kategorii?</string>
+    <string name="category_edit_delete_message">\"%1$s\" bude odstraněno. Existující transakce zachovávají jejich aktuální popisek. Tuto akci nelze vrátit zpět.</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">Předplatné</string>
+    <string name="subscriptions_add">Přidat odběr</string>
+    <string name="subscriptions_undo">Zpět</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s skryto</string>
+    <string name="subscriptions_snackbar_ended">%1$s skončil</string>
+    <string name="subscriptions_active_section">Aktivní odběry</string>
+    <string name="subscriptions_empty_headline">Zatím nebyly nalezeny žádné odběry</string>
+    <string name="subscriptions_empty_description">Synchronizujte SMS pro detekci předplatného</string>
+    <string name="subscriptions_cancelled_section">Zrušeno (%1$d)</string>
+    <string name="subscriptions_collapse">Sbalit</string>
+    <string name="subscriptions_expand">Rozbalit</string>
+    <string name="subscriptions_reactivate">Znovu aktivovat</string>
+    <string name="subscriptions_action_delete">Vymazat</string>
+    <string name="subscriptions_action_cancel">Zrušit</string>
+    <string name="subscriptions_action_ok">OK</string>
+    <string name="subscriptions_delete_title">Smazat předplatné?</string>
+    <string name="subscriptions_delete_permanently_message">Trvale odstranit \'%1$s\'? Tuto akci nelze vrátit zpět.</string>
+    <string name="subscriptions_delete_message">\"%1$s\" bude trvale odstraněno. Tuto akci nelze vrátit zpět.</string>
+    <string name="subscriptions_summary_title">Měsíční odběry</string>
+    <string name="subscriptions_summary_none_active">Žádné aktivní předplatné</string>
+    <plurals name="subscriptions_summary_active">
+        <item quantity="one">%1$d aktivní předplatné</item>
+        <item quantity="few">%1$d aktivních odběrů</item>
+        <item quantity="many">%1$d aktivních odběrů</item>
+        <item quantity="other">%1$d aktivních odběrů</item>
+    </plurals>
+    <plurals name="subscriptions_summary_all_paid">
+        <item quantity="one">Všechny %1$d placené za tento cyklus</item>
+        <item quantity="few">Všechny %1$d placené za tento cyklus</item>
+        <item quantity="many">Všechny %1$d placené za tento cyklus</item>
+        <item quantity="other">Všechny %1$d placené za tento cyklus</item>
+    </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_summary_some_paid">%1$d z %2$d zaplatil tento cyklus</string>
+    <string name="subscriptions_hide">Skrýt</string>
+    <string name="subscriptions_sms_available">SMS k dispozici</string>
+    <string name="subscriptions_no_date">Není nastaveno žádné datum</string>
+    <string name="subscriptions_due_today">Termín dnes</string>
+    <string name="subscriptions_due_tomorrow">Termín zítra</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="one">Termín v %1$d dne</item>
+        <item quantity="few">Termín za %1$d dní</item>
+        <item quantity="many">Termín za %1$d dní</item>
+        <item quantity="other">Termín za %1$d dní</item>
+    </plurals>
+    <!-- %1$s = date -->
+    <string name="subscriptions_paid_on">Zaplaceno %1$s</string>
+    <string name="subscriptions_more_options">Další možnosti</string>
+    <string name="subscriptions_menu_mark_paid">Označit jako uhrazené</string>
+    <string name="subscriptions_menu_view_source">Zobrazit zdroj</string>
+    <string name="subscriptions_menu_edit">Upravit</string>
+    <string name="subscriptions_menu_end">Konečné předplatné</string>
+    <string name="subscriptions_source_notes">Poznámky</string>
+    <string name="subscriptions_source_original_sms">Původní SMS</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_title">Upravit předplatné</string>
+    <string name="subscriptions_edit_name">Název</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_amount">Částka (%1$s)</string>
+    <string name="subscriptions_edit_tap_to_set">Klepnutím nastavíte</string>
+    <string name="subscriptions_edit_next_date">Další datum platby</string>
+    <string name="subscriptions_edit_pick_date">Vybrat datum</string>
+    <string name="subscriptions_edit_category">Kategorie (volitelné)</string>
+    <string name="subscriptions_edit_no_account">Žádný účet</string>
+    <string name="subscriptions_edit_paid_from">Zaplaceno od</string>
+    <string name="subscriptions_edit_pick_account">Vybrat účet</string>
+    <string name="subscriptions_edit_selected">Vybrané</string>
+    <string name="subscriptions_edit_save">Uložit</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <string name="subscriptions_msg_marked_paid">%1$s označil zaplacené · další cyklus na %2$s</string>
+    <string name="subscriptions_msg_linked">%1$s propojil · další cyklus na %2$s</string>
+    <string name="subscriptions_msg_already_marked">%1$s již tento cyklus · pokročilý do %2$s</string>
+    <string name="subscriptions_msg_no_scheduled_date">Nastavit další datum platby na %1$s první</string>
+    <string name="subscriptions_msg_not_found">Odběr nebyl nalezen</string>
+    <string name="subscriptions_msg_linked_existing">%1$s je spojen s existující platbou · další cyklus na %2$s</string>
+    <string name="subscriptions_msg_linked_generic">Propojeno</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <string name="mark_paid_eyebrow_paid">ZNAČKA JAKO PAID</string>
+    <string name="mark_paid_eyebrow_received">ZNAČKA JAKO PŘIJATO</string>
+    <!-- %1$s = date -->
+    <string name="mark_paid_already_marked">Již označeno jako zaplaceno v %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">Nalezeno %1$d odpovídající platby</item>
+        <item quantity="few">Nalezeno %1$d odpovídající platby</item>
+        <item quantity="many">Nalezeno %1$d odpovídající platby</item>
+        <item quantity="other">Nalezeno %1$d odpovídající platby</item>
+    </plurals>
+    <string name="mark_paid_when">Kdy?</string>
+    <!-- %1$s = formatted amount -->
+    <string name="mark_paid_cta_paid">Označit zaplacené · %1$s</string>
+    <string name="mark_paid_cta_received">Přijaté označení · %1$s</string>
+    <!-- %1$s = currency code -->
+    <string name="mark_paid_helper_income">Budeme zaznamenávat příjem %1$s a přesouvat plán do dalšího cyklu.</string>
+    <string name="mark_paid_helper_expense">Budeme zaznamenávat výdaje a posunout harmonogram do dalšího cyklu.</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <string name="mark_paid_link_payment">Propojit tuto platbu</string>
+    <string name="mark_paid_or_mark_today">nebo dnes označit</string>
+    <string name="mark_paid_today">Dnes</string>
+    <string name="mark_paid_yesterday">Včera</string>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="one">%1$d den</item>
+        <item quantity="few">%1$d dny</item>
+        <item quantity="many">%1$d dny</item>
+        <item quantity="other">%1$d dny</item>
+    </plurals>
+    <string name="mark_paid_pick_date">Vybrat datum</string>
+</resources>

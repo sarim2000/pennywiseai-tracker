@@ -1,11 +1,43 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 class BalanceCalculatorTest {
+
+    @Test
+    fun `preservedAccountType carries over the existing account's type`() {
+        val existing = AccountBalanceEntity(
+            bankName = "HDFC",
+            accountLast4 = "1234",
+            balance = BigDecimal("1000.00"),
+            timestamp = LocalDateTime.now(),
+            accountType = "CURRENT"
+        )
+        assertEquals("CURRENT", BalanceCalculator.preservedAccountType(existing))
+    }
+
+    @Test
+    fun `preservedAccountType is null when there is no existing account`() {
+        assertNull(BalanceCalculator.preservedAccountType(null))
+    }
+
+    @Test
+    fun `preservedAccountType is null when the existing account never had a type set`() {
+        val existing = AccountBalanceEntity(
+            bankName = "SBI",
+            accountLast4 = "9999",
+            balance = BigDecimal("2000.00"),
+            timestamp = LocalDateTime.now(),
+            accountType = null
+        )
+        assertNull(BalanceCalculator.preservedAccountType(existing))
+    }
 
     @Test
     fun `explicit balance takes priority over all logic`() {

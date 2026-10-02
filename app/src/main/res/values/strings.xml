@@ -22,7 +22,7 @@
     <string name="support_payee_name" translatable="false">PennyWise</string>
     <string name="support_title">Support development</string>
     <string name="support_subtitle">Built by a solo dev — a small tip keeps it going 🦉</string>
-    <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. If it\'s useful to you, a small UPI tip helps keep it going 🦉</string>
+    <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. Everything is already unlocked in this build. If it\'s useful to you, a tip keeps it going 🦉</string>
     <string name="support_pay_via_upi">Pay via UPI</string>
     <string name="support_close">Close</string>
     <string name="support_copy_upi_id">Copy UPI ID</string>

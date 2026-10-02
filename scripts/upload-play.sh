@@ -92,6 +92,29 @@ case "$MODE" in
     echo -e "${GREEN}✅ Done.${NC} ${YELLOW}Left as a DRAFT — review & roll out in Play Console.${NC}"
     ;;
   listing)
+    # Play rejects a language whose listing is incomplete ("This app has no full
+    # description for language es-419") and throws away the WHOLE edit with it,
+    # English included. Crowdin exports a locale's title and short text as soon
+    # as they're translated but holds the long description back until it's
+    # complete, so partial locales are normal — skip them here instead of
+    # failing every listing push. (Release mode keeps them: it only sends
+    # changelogs, and a locale's "What's new" doesn't need a full listing.)
+    for dir in "$STAGE"/*/; do
+      loc=$(basename "$dir")
+      missing=""
+      for f in title.txt short_description.txt full_description.txt; do
+        [ -s "$dir$f" ] || missing="$missing $f"
+      done
+      if [ -n "$missing" ]; then
+        rm -rf "$dir"
+        echo -e "${YELLOW}↳ skipped $loc — incomplete listing (missing:$missing)${NC}"
+      fi
+    done
+    # Skipping a translation is fine; skipping the source listing is not — that
+    # would "succeed" while uploading nothing that matters.
+    if [ ! -d "$STAGE/en-US" ]; then
+      echo -e "${RED}❌ en-US listing is incomplete — refusing to upload translations without it.${NC}"; exit 1
+    fi
     echo -e "${GREEN}⬆️  Uploading store listing (text + screenshots + feature graphic)${NC}"
     fastlane supply \
       --package_name "$PACKAGE" \

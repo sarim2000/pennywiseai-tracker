@@ -40,7 +40,8 @@ data class ShareCardData(
     val transactionCount: Int = 0,
     val topCategories: List<String> = emptyList(),
     val subscriptionCount: Int = 0,
-    val periodLabel: String = "",
+    // null = all time; ShareCard renders the translated label.
+    val periodLabel: String? = "",
 )
 
 private val MONTH_LABEL: DateTimeFormatter =
@@ -188,7 +189,7 @@ class ShareCardViewModel @Inject constructor(
                         now.format(MONTH_LABEL).uppercase()
                     SharePeriod.LAST_MONTH ->
                         now.minusMonths(1).format(MONTH_LABEL).uppercase()
-                    SharePeriod.ALL_TIME -> "ALL TIME"
+                    SharePeriod.ALL_TIME -> null
                 },
             )
         }.onStart<ShareCardData?> { emit(null) }

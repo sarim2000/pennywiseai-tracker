@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.utils.countsInTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -155,8 +156,7 @@ class BudgetRepository @Inject constructor(
             // and transactions the user excluded from analytics (#451).
             allTransactions.filter {
                 it.transaction.transactionType == TransactionType.EXPENSE &&
-                    it.transaction.loanId == null &&
-                    !it.transaction.excludedFromAnalytics
+                    it.transaction.countsInTotals()
             }
         }
 

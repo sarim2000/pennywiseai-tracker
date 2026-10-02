@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.presentation.common
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -8,12 +13,12 @@ import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.time.LocalDate
 import java.time.YearMonth
 
-enum class TimePeriod(val label: String) {
-    THIS_MONTH("This Month"),
-    LAST_MONTH("Last Month"),
-    CURRENT_FY("Current FY"),
-    ALL("All Time"),
-    CUSTOM("Custom Range");
+enum class TimePeriod(@StringRes val labelRes: Int) {
+    THIS_MONTH(R.string.filter_period_this_month),
+    LAST_MONTH(R.string.filter_period_last_month),
+    CURRENT_FY(R.string.filter_period_current_fy),
+    ALL(R.string.filter_period_all_time),
+    CUSTOM(R.string.filter_period_custom_range);
 
     /**
      * True for the two "month" periods, which resolve against the user's budget
@@ -23,14 +28,20 @@ enum class TimePeriod(val label: String) {
         get() = this == THIS_MONTH || this == LAST_MONTH
 }
 
-enum class TransactionTypeFilter(val label: String) {
-    ALL("All"),
-    INCOME("Income"),
-    EXPENSE("Expense"),
-    CREDIT("Credit"),
-    TRANSFER("Transfer"),
-    INVESTMENT("Investment")
+enum class TransactionTypeFilter(@StringRes val labelRes: Int) {
+    ALL(R.string.filter_type_all),
+    INCOME(R.string.filter_type_income),
+    EXPENSE(R.string.filter_type_expense),
+    CREDIT(R.string.filter_type_credit),
+    TRANSFER(R.string.filter_type_transfer),
+    INVESTMENT(R.string.filter_type_investment)
 }
+
+val TimePeriod.label: String
+    @Composable @ReadOnlyComposable get() = stringResource(labelRes)
+
+val TransactionTypeFilter.label: String
+    @Composable @ReadOnlyComposable get() = stringResource(labelRes)
 
 fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate>? {
     val today = LocalDate.now()
@@ -97,11 +108,13 @@ fun getCycleAwareDateRange(
 /**
  * Chip text for a period. A cycle-following period on a non-calendar cycle
  * shows its resolved dates ("Sep 11 - Oct 10") — a bare "This Month" made
- * the chart look truncated at the cycle boundary (#686).
+ * the chart look truncated at the cycle boundary (#686). Otherwise [label],
+ * the period's translated name.
  */
 fun TimePeriod.chipLabel(
     cycleStartDay: Int,
     customRangeLabel: String?,
+    label: String,
     today: LocalDate = LocalDate.now()
 ): String = when {
     this == TimePeriod.CUSTOM && customRangeLabel != null -> customRangeLabel

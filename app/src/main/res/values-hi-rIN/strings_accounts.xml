@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Shared (accounts, loans, exchange rates) ══ -->
+    <string name="accounts_collapse">संकुचित करें</string>
+    <string name="accounts_expand">विस्तार करें</string>
+    <string name="accounts_action_cancel">रद्द करें</string>
+    <string name="accounts_action_delete">हटाएं</string>
+    <string name="accounts_action_save">सहेजें</string>
+    <!-- ══ Account detail ══ -->
+    <string name="account_detail_transactions_header">लेन-देन (%1$d)</string>
+    <string name="account_detail_empty_description">इस खाते के लिए लेन-देन यहाँ दिखाई देंगे</string>
+    <string name="account_detail_balance_trend">बैलेंस प्रवृत्ति</string>
+    <string name="account_detail_current_balance">वर्तमान शेष</string>
+    <string name="account_detail_income">आय</string>
+    <string name="account_detail_expenses">खर्च</string>
+    <string name="account_detail_net">शुद्ध</string>
+    <!-- %1$s = formatted amount; marks an estimate across currencies -->
+    <string name="account_detail_estimated_amount">अनुमानित %1$s</string>
+    <!-- %1$s = formatted balance after the transaction -->
+    <string name="account_detail_balance_after">• शेष: %1$s</string>
+    <string name="account_detail_type_credit">क्रेडिट</string>
+    <string name="account_detail_type_transfer">स्थानांतरण</string>
+    <string name="account_detail_type_investment">निवेश</string>
+    <string name="account_detail_range_last_7_days">पिछले 7 दिन</string>
+    <string name="account_detail_range_last_30_days">पिछले 30 दिन</string>
+    <string name="account_detail_range_last_3_months">पिछले 3 महीने</string>
+    <string name="account_detail_range_last_6_months">पिछले 6 महीने</string>
+    <string name="account_detail_range_last_year">पिछले वर्ष</string>
+    <string name="account_detail_range_all_time">सभी समय</string>
+    <!-- ══ Balance history ══ -->
+    <string name="balance_history_title">बैलेंस इतिहास</string>
+    <string name="balance_history_delete_title">बैलेंस रिकॉर्ड हटाएँ</string>
+    <string name="balance_history_delete_message">क्या आप वाकई इस बैलेंस रिकॉर्ड को हटाना चाहते हैं? इस क्रिया को पूर्ववत नहीं किया जा सकता।</string>
+    <string name="balance_history_source_transaction">लेन-देन</string>
+    <string name="balance_history_source_card_link">कार्ड लिंक</string>
+    <string name="balance_history_source_manual">मैनुअल</string>
+    <string name="balance_history_new_balance">नया बैलेंस</string>
+    <string name="balance_history_balance_label">बाकी राशि</string>
+    <string name="balance_history_sms_source">एसएमएस स्रोत</string>
+    <!-- %1$s = first characters of the SMS -->
+    <!-- ══ Add account ══ -->
+    <string name="add_account_title">खाता जोड़ें</string>
+    <string name="add_account_type_label">खाता प्रकार</string>
+    <string name="add_account_currency_label">मुद्रा</string>
+    <string name="add_account_name_label">खाता नाम *</string>
+    <string name="add_account_last4_label">अंतिम 4 अंक *</string>
+    <string name="add_account_balance_label">वर्तमान शेष *</string>
+    <string name="add_account_credit_limit_label">क्रेडिट सीमा</string>
+    <string name="add_account_credit_limit_hint">वैकल्पिक: उपयोग ट्रैकिंग के लिए क्रेडिट सीमा सेट करें</string>
+    <!-- ══ Merge accounts sheet ══ -->
+    <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
+    <!-- %1$s = source account, %2$s = target account -->
+    <string name="merge_accounts_confirm">मर्ज करें</string>
+    <string name="merge_accounts_selected">चयनित</string>
+    <!-- Tag appended to a credit-card account row ("··1234 · INR · Credit") -->
+    <string name="merge_accounts_credit_tag">क्रेडिट</string>
+    <!-- ══ Manage accounts: status messages ══ -->
+    <!-- %1$s = formatted balance -->
+    <!-- %1$s / %2$s = currency codes -->
+    <!-- %1$d = transaction count, %2$s = target account -->
+    <!-- ══ Manage accounts screen ══ -->
+    <string name="manage_accounts_title">खाते</string>
+    <string name="manage_accounts_section_bank">बैंक खाते</string>
+    <string name="manage_accounts_section_unlinked_cards">असंबद्ध कार्ड</string>
+    <string name="manage_accounts_section_credit_cards">क्रेडिट कार्ड</string>
+    <string name="manage_accounts_outstanding">बकाया</string>
+    <string name="manage_accounts_available">उपलब्ध</string>
+    <string name="manage_accounts_credit_limit">क्रेडिट सीमा</string>
+    <!-- %1$d = utilization percentage -->
+    <string name="manage_accounts_utilization_used">(%1$d%% उपयोग किया)</string>
+    <string name="manage_accounts_more_options">अधिक विकल्प</string>
+    <string name="manage_accounts_action_edit">संपादित करें</string>
+    <string name="manage_accounts_action_clear">साफ करें</string>
+    <string name="manage_accounts_action_link">लिंक करें</string>
+    <string name="manage_accounts_menu_history">इतिहास</string>
+    <!-- %1$d = day of month -->
+    <string name="manage_accounts_balance">बाकी राशि</string>
+    <string name="manage_accounts_linked_cards">लिंक किए गए कार्ड</string>
+    <string name="manage_accounts_card_inactive">(निष्क्रिय)</string>
+    <!-- %1$s = short date -->
+    <string name="manage_accounts_unlink_card">कार्ड अनलिंक करें</string>
+    <string name="manage_accounts_update_balance">शेष राशि अपडेट करें</string>
+    <!-- %1$s = formatted current balance -->
+    <!-- %1$s = currency code -->
+    <string name="manage_accounts_new_balance">नया बैलेंस</string>
+    <string name="manage_accounts_available_credit_label">उपलब्ध क्रेडिट:</string>
+    <!-- %1$s = formatted balance -->
+    <string name="manage_accounts_last_balance">अंतिम शेष राशि: %1$s</string>
+    <!-- %1$s = SMS text -->
+    <string name="manage_accounts_card_sms">एसएमएस: %1$s</string>
+    <string name="manage_accounts_card_sms_truncated">एसएमएस: %1$s... (विस्तार के लिए टैप करें)</string>
+    <string name="manage_accounts_bank_label">बैंक</string>
+    <string name="manage_accounts_card_type_debit">डेबिट</string>
+    <string name="manage_accounts_card_type_credit">क्रेडिट</string>
+    <!-- %1$s = bank name -->
+    <string name="manage_accounts_link_select_account">इस कार्ड को लिंक करने के लिए एक खाता चुनें:</string>
+    <string name="manage_accounts_delete_title">खाता हटाएं?</string>
+    <string name="manage_accounts_delete_message">क्या आप वाकई इस खाते को हटाना चाहते हैं?</string>
+    <!-- %1$s = last digits of the account -->
+    <string name="manage_accounts_delete_warning">यह इस खाते का पूरा बैलेंस इतिहास स्थायी रूप से हटा देगा। किसी भी लिंक किए गए कार्ड को अनलिंक कर दिया जाएगा। इस क्रिया को पूर्ववत नहीं किया जा सकता।</string>
+    <string name="manage_accounts_edit_account_title">खाता संपादित करें</string>
+    <string name="manage_accounts_type_credit_card">क्रेडिट कार्ड</string>
+    <string name="manage_accounts_bank_name_label">बैंक का नाम</string>
+    <!-- ══ Loans list ══ -->
+    <string name="loans_title">उधार</string>
+    <string name="loans_you_owe">आपको देना है</string>
+    <string name="loans_direction_lent">उधार दिया</string>
+    <string name="loans_direction_borrowed">उधार लिया</string>
+    <string name="loans_status_settled">निपटाया गया</string>
+    <!-- %1$s = formatted original loan amount -->
+    <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <!-- Open loans both ways that cancel out exactly -->
+    <!-- ══ Loan detail ══ -->
+    <!-- %1$s = formatted original loan amount -->
+    <!-- %1$d = percentage repaid -->
+    <string name="loan_detail_history">इतिहास</string>
+    <string name="loan_detail_original_chip">मूल</string>
+    <!-- %1$s = person name -->
+    <!-- %1$s = formatted remaining amount -->
+    <string name="loan_detail_amount_label">राशि</string>
+    <string name="loan_detail_add">जोड़ें</string>
+    <!-- ══ Exchange rates ══ -->
+    <string name="exchange_rates_title">विनिमय दरें</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">अंतिम अद्यतन: %1$s</string>
+    <string name="exchange_rates_badge_custom">कस्टम</string>
+    <string name="exchange_rates_rate_label">विनिमय दर</string>
+    <!-- ══ Accounts overview card (home) ══ -->
+    <string name="accounts_overview_balance">बाकी राशि</string>
+    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
+</resources>

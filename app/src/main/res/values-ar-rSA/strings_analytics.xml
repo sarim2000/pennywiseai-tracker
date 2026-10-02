@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">التحليلات</string>
+    <string name="analytics_trends">الاتجاهات</string>
+    <string name="analytics_chart_line">خط</string>
+    <string name="analytics_chart_bar">عمود</string>
+    <string name="analytics_chart_heatmap">خريطة الحرارة</string>
+    <string name="analytics_chart_line_full">مخطط سطري</string>
+    <string name="analytics_chart_bar_full">البار الرسم البياني</string>
+    <string name="analytics_top_categories">الفئات الأعلى</string>
+    <string name="analytics_toggle_view">تبديل العرض</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">المجموع غير شامل من %1$s في المبالغ المستردة. لا يمكن أن تذهب أشرطة الفئة إلى ما دون الصفر، لذلك قد تضيف ما يصل إلى أكثر من المجموع المعروض.</string>
+    <string name="analytics_top_tags">أعلى العلامات</string>
+    <string name="analytics_top_merchants">التجار الأعلى</string>
+    <string name="analytics_by_account">حسب الحساب</string>
+    <string name="analytics_pro_tags_title">شاهد أفضل العلامات مع Pro</string>
+    <string name="analytics_pro_tags_body">فتح تفكيك الإنفاق عبر جميع العلامات الخاصة بك. يبقى وضع العلامات والتصفية مجاناً.</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">مسح</string>
+    <string name="analytics_filter_all_profiles">جميع الحسابات</string>
+    <string name="analytics_filter_currency">العملة</string>
+    <string name="analytics_filter_category">الفئة</string>
+    <string name="analytics_filter_all_categories">جميع الفئات</string>
+    <string name="analytics_filter_account">الحساب</string>
+    <string name="analytics_filter_all_accounts">جميع الحسابات</string>
+    <!-- List rows -->
+    <plurals name="analytics_transaction_count">
+        <item quantity="zero">%1$d معاملة</item>
+        <item quantity="one">معاملة %1$d</item>
+        <item quantity="two">%1$d معاملة</item>
+        <item quantity="few">%1$d معاملة</item>
+        <item quantity="many">%1$d معاملة</item>
+        <item quantity="other">%1$d معاملة</item>
+    </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="zero">معاملات %1$d • الاشتراك</item>
+        <item quantity="one">%1$d معاملة • الاشتراك</item>
+        <item quantity="two">معاملات %1$d • الاشتراك</item>
+        <item quantity="few">معاملات %1$d • الاشتراك</item>
+        <item quantity="many">معاملات %1$d • الاشتراك</item>
+        <item quantity="other">معاملات %1$d • الاشتراك</item>
+    </plurals>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <string name="analytics_percent">%1$d%%</string>
+    <!-- Empty state -->
+    <string name="analytics_empty_headline">لا توجد بيانات كافية بعد</string>
+    <string name="analytics_empty_description">سوف تظهر رؤى الإنفاق الخاصة بك هنا بعد أسبوعك الأول من التتبع</string>
+    <string name="analytics_empty_action">مسح الرسائل القصيرة</string>
+    <!-- Summary card -->
+    <string name="analytics_summary_total">الإجمالي</string>
+    <plurals name="analytics_summary_txns">
+        <item quantity="zero">%1$d معاملات</item>
+        <item quantity="one">%1$d TXN</item>
+        <item quantity="two">%1$d معاملات</item>
+        <item quantity="few">%1$d معاملات</item>
+        <item quantity="many">%1$d معاملات</item>
+        <item quantity="other">%1$d معاملات</item>
+    </plurals>
+    <string name="analytics_summary_average">المتوسط</string>
+    <string name="analytics_summary_per_day">" /اليوم"</string>
+    <string name="analytics_summary_percent_of_total">%1$d%% من المجموع</string>
+    <!-- Pie charts -->
+    <string name="analytics_pie_unknown">غير معروف</string>
+    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
+    <string name="analytics_spending_by_category">الإنفاق حسب الفئة</string>
+    <string name="analytics_spending_by_tag">الإنفاق حسب العلامة</string>
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">الميزانيات</string>
+    <string name="budgets_back">الرجوع</string>
+    <string name="budgets_add">إضافة ميزانية</string>
+    <string name="budgets_action_cancel">إلغاء</string>
+    <string name="budgets_action_delete">حذف</string>
+    <string name="budgets_action_ok">موافق</string>
+    <string name="budgets_setup_title">تعيين ميزانيتك</string>
+    <string name="budgets_setup_body">قم بتنظيم إنفاقك في الميزانيات لتتبع أين تذهب أموالك.</string>
+    <string name="budgets_setup_smart_defaults">استخدام الافتراضي الذكي</string>
+    <string name="budgets_setup_custom">إنشاء ميزانية مخصصة</string>
+    <string name="budgets_delete_title">حذف الميزانية</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete_message">هل أنت متأكد من أنك تريد حذف \"%1$s\"؟ لا يمكن التراجع عن ذلك.</string>
+    <string name="budgets_previous_month">الشهر السابق</string>
+    <string name="budgets_next_month">الشهر القادم</string>
+    <string name="budgets_percent">%1$d%%</string>
+    <string name="budgets_edit">تعديل الميزانية</string>
+    <string name="budgets_delete">حذف الميزانية</string>
+    <string name="budgets_more_options">خيارات أكثر</string>
+    <string name="budgets_view_history">عرض سجل هذه الدورة</string>
+    <string name="budgets_move_up">تحريك للأعلى</string>
+    <string name="budgets_move_down">تحريك للأسفل</string>
+    <!-- %1$s = formatted amount -->
+    <string name="budgets_over_budget">%1$s زيادة على الميزانية</string>
+    <string name="budgets_remaining">متبقي %1$s</string>
+    <string name="budgets_over_by">أكثر من قبل %1$s</string>
+    <string name="budgets_finished">انتهى</string>
+    <!-- %1$s = weekday name -->
+    <string name="budgets_resets_today_weekly">إعادة تعيين اليوم · %1$s تجديد</string>
+    <!-- %1$d = days, %2$s = weekday name -->
+    <plurals name="budgets_resets_in_weekly">
+        <item quantity="zero">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+        <item quantity="one">إعادة تعيين في %1$d يوم · %2$s تجديد</item>
+        <item quantity="two">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+        <item quantity="few">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+        <item quantity="many">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+        <item quantity="other">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+    </plurals>
+    <!-- %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">إعادة تعيين اليوم · يوم %1$d</string>
+    <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="zero">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+        <item quantity="one">إعادة التعيين في %1$d يوم · يوم %2$d</item>
+        <item quantity="two">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+        <item quantity="few">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+        <item quantity="many">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+        <item quantity="other">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+    </plurals>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <string name="budgets_date_range">%1$s - %2$s</string>
+    <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="zero">تشغيل %1$s · %2$d أيام متبقية</item>
+        <item quantity="one">تشغيل %1$s · %2$d يوم متبقي</item>
+        <item quantity="two">تشغيل %1$s · %2$d أيام متبقية</item>
+        <item quantity="few">تشغيل %1$s · %2$d أيام متبقية</item>
+        <item quantity="many">تشغيل %1$s · %2$d أيام متبقية</item>
+        <item quantity="other">تشغيل %1$s · %2$d أيام متبقية</item>
+    </plurals>
+    <string name="budgets_runs_finished">تشغيل %1$s · انتهى</string>
+    <plurals name="budgets_days_remaining">
+        <item quantity="zero">%1$d أيام متبقية</item>
+        <item quantity="one">%1$d يوم متبقي</item>
+        <item quantity="two">%1$d أيام متبقية</item>
+        <item quantity="few">%1$d أيام متبقية</item>
+        <item quantity="many">%1$d أيام متبقية</item>
+        <item quantity="other">%1$d أيام متبقية</item>
+    </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <string name="budgets_spent_of">أنفق %1$s من %2$s</string>
+    <string name="budgets_spent">أنفق %1$s</string>
+    <string name="budgets_amount_of">%1$s من %2$s</string>
+    <string name="budgets_tracking_all">تتبع جميع المصروفات</string>
+    <string name="budgets_chart_actual">فعلي</string>
+    <string name="budgets_chart_pace">توازن الميزانية</string>
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">تعديل الميزانية</string>
+    <string name="budget_edit_title_new">ميزانية جديدة</string>
+    <string name="budget_edit_save">حفظ التغييرات</string>
+    <string name="budget_edit_create">إنشاء ميزانية</string>
+    <string name="budget_edit_color">اللون</string>
+    <string name="budget_edit_period">فترة الميزانية</string>
+    <string name="budget_edit_period_weekly">أسبوعيا (متكرر)</string>
+    <string name="budget_edit_period_monthly">شهريا (متكرر)</string>
+    <string name="budget_edit_period_one_time">لمرة واحدة</string>
+    <string name="budget_edit_start_date">تاريخ البدء</string>
+    <string name="budget_edit_end_date">تاريخ الانتهاء</string>
+    <!-- %1$s = weekday name -->
+    <string name="budget_edit_resets_every">إعادة تعيين كل %1$s</string>
+    <string name="budget_edit_resets_on_day">إعادة تعيينه في اليوم %1$d من كل شهر</string>
+    <string name="budget_edit_runs_once">يشتغل مرة واحدة، لا تمدد</string>
+    <string name="budget_edit_current_window">النافذة الحالية</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_window_caption">%1$s - %2$s · %3$s</string>
+    <string name="budget_edit_category_limits">حدود الفئة (اختياري)</string>
+    <string name="budget_edit_no_categories">لا توجد فئات مضافة. هذه الميزانية سوف تتتبع جميع المصروفات.</string>
+    <string name="budget_edit_unallocated">غير مخصص: %1$s</string>
+    <string name="budget_edit_over_allocated">حدود الفئة تتجاوز الميزانية ب %1$s</string>
+    <string name="budget_edit_add_category">إضافة فئة</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_type_bucket_all">%1$s (الكل)</string>
+    <string name="budget_edit_name_placeholder">اسم الميزانية</string>
+    <string name="budget_edit_edit_name">تحرير الاسم</string>
+    <string name="budget_edit_spent">أنفق: %1$s</string>
+    <string name="budget_edit_remove">إزالة</string>
+    <string name="budget_edit_week_starts_on">يبدأ الأسبوع في</string>
+    <string name="budget_edit_month_starts_on">يبدأ الشهر في اليوم</string>
+    <string name="budget_edit_decrease_day">تقليل اليوم</string>
+    <string name="budget_edit_increase_day">زيادة اليوم</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">تاريخ الميزانية</string>
+    <string name="budget_history_loading">جاري التحميل…</string>
+    <string name="budget_history_not_found">الميزانية غير موجودة</string>
+    <string name="budget_history_window">النافذة: %1$s – %2$s</string>
+    <string name="budget_history_per_week">تحليل كل أسبوع</string>
+    <string name="budget_history_cycle">دورة</string>
+    <string name="budget_history_range">Range</string>
+    <string name="budget_history_current">الحالي</string>
+    <string name="budget_history_live">· لا يزال يتراكم</string>
+    <string name="budget_history_frozen">متجمدة اعتباراً من %1$s</string>
+    <string name="budget_history_categories">الفئات</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <string name="budget_history_of_budget_percent">من %1$s · %2$d%%</string>
+    <string name="budget_history_zero_remaining">0 متبقي</string>
+    <string name="budget_history_percent_used">%1$d%% مستخدم</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">الفئات</string>
+    <string name="categories_back">الرجوع</string>
+    <string name="categories_add">إضافة فئة</string>
+    <string name="categories_expense_section">فئات النفقات</string>
+    <string name="categories_income_section">فئات الدخل</string>
+    <string name="categories_action_delete">حذف</string>
+    <string name="categories_action_edit">تحرير</string>
+    <string name="categories_action_cancel">إلغاء</string>
+    <string name="categories_show_category">إظهار الفئة</string>
+    <string name="categories_hide_category">إخفاء الفئة</string>
+    <string name="categories_system_badge">النظام</string>
+    <string name="categories_msg_system_not_editable">لا يمكن تعديل فئات النظام</string>
+    <string name="categories_msg_updated">تم تحديث الفئة بنجاح</string>
+    <!-- %1$s = category name -->
+    <string name="categories_msg_already_exists">الفئة \'%1$s\' موجود بالفعل</string>
+    <string name="categories_msg_created">تم إنشاء الفئة بنجاح</string>
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_save_error">خطأ في حفظ الفئة: %1$s</string>
+    <string name="categories_msg_system_not_deletable">لا يمكن حذف فئات النظام</string>
+    <string name="categories_msg_deleted">تم حذف الفئة بنجاح</string>
+    <string name="categories_msg_cannot_delete">لا يمكن حذف هذه الفئة</string>
+    <string name="categories_msg_delete_error">خطأ في حذف الفئة: %1$s</string>
+    <string name="categories_msg_hidden">تم إخفاء %1$s</string>
+    <string name="categories_msg_shown">عرض %1$s</string>
+    <string name="categories_msg_update_error">خطأ في تحديث الفئة: %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">إضافة فئة</string>
+    <string name="category_edit_title_edit">تحرير الفئة</string>
+    <string name="category_edit_name_required">اسم الفئة مطلوب</string>
+    <string name="category_edit_name_label">اسم الفئة</string>
+    <string name="category_edit_type">نوع الفئة</string>
+    <string name="category_edit_type_expense">مصروف</string>
+    <string name="category_edit_type_income">دخل</string>
+    <string name="category_edit_parent_label">الفئة الأصل (اختياري)</string>
+    <string name="category_edit_parent_none">لا يوجد</string>
+    <string name="category_edit_icon_label">أيقونة (تعبيري، اختياري)</string>
+    <string name="category_edit_icon_placeholder">انقر لاختيار إيموجي</string>
+    <string name="category_edit_clear_icon">امسح الرمز</string>
+    <string name="category_edit_color">اللون</string>
+    <string name="category_edit_preview">معاينة</string>
+    <string name="category_edit_add">إضافة</string>
+    <string name="category_edit_save">حفظ</string>
+    <string name="category_edit_delete">حذف الفئة</string>
+    <string name="category_edit_delete_title">حذف الفئة?</string>
+    <string name="category_edit_delete_message">سيتم إزالة \"%1$s\". المعاملات الحالية تحتفظ بتسميتها الحالية. لا يمكن التراجع عن ذلك.</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">الاشتراكات</string>
+    <string name="subscriptions_add">إضافة اشتراك</string>
+    <string name="subscriptions_undo">تراجع</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">تم إخفاء %1$s</string>
+    <string name="subscriptions_snackbar_ended">تم إنهاء %1$s</string>
+    <string name="subscriptions_active_section">اشتراكات نشطة</string>
+    <string name="subscriptions_empty_headline">لم يتم اكتشاف أي اشتراكات بعد</string>
+    <string name="subscriptions_empty_description">مزامنة رسائلك للكشف عن الاشتراكات</string>
+    <string name="subscriptions_cancelled_section">ملغاة (%1$d)</string>
+    <string name="subscriptions_collapse">طي</string>
+    <string name="subscriptions_expand">توسيع</string>
+    <string name="subscriptions_reactivate">إعادة التنشيط</string>
+    <string name="subscriptions_action_delete">حذف</string>
+    <string name="subscriptions_action_cancel">إلغاء</string>
+    <string name="subscriptions_action_ok">موافق</string>
+    <string name="subscriptions_delete_title">حذف الاشتراك؟</string>
+    <string name="subscriptions_delete_permanently_message">حذف بشكل دائم \'%1$s\'؟ لا يمكن التراجع عن ذلك.</string>
+    <string name="subscriptions_delete_message">\"%1$s\" سيتم إزالته بشكل دائم. لا يمكن التراجع عن ذلك.</string>
+    <string name="subscriptions_summary_title">الاشتراكات الشهرية</string>
+    <string name="subscriptions_summary_none_active">لا توجد اشتراكات نشطة</string>
+    <plurals name="subscriptions_summary_active">
+        <item quantity="zero">اشتراكات نشطة %1$d</item>
+        <item quantity="one">الاشتراك النشط %1$d</item>
+        <item quantity="two">اشتراكات نشطة %1$d</item>
+        <item quantity="few">اشتراكات نشطة %1$d</item>
+        <item quantity="many">اشتراكات نشطة %1$d</item>
+        <item quantity="other">اشتراكات نشطة %1$d</item>
+    </plurals>
+    <plurals name="subscriptions_summary_all_paid">
+        <item quantity="zero">جميع %1$d دفع هذه الدورة</item>
+        <item quantity="one">جميع %1$d دفع هذه الدورة</item>
+        <item quantity="two">جميع %1$d دفع هذه الدورة</item>
+        <item quantity="few">جميع %1$d دفع هذه الدورة</item>
+        <item quantity="many">جميع %1$d دفع هذه الدورة</item>
+        <item quantity="other">جميع %1$d دفع هذه الدورة</item>
+    </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_summary_some_paid">%1$d من %2$d دفع هذه الدورة</string>
+    <string name="subscriptions_hide">إخفاء</string>
+    <string name="subscriptions_sms_available">الرسائل القصيرة متوفرة</string>
+    <string name="subscriptions_no_date">لم يتم تعيين تاريخ</string>
+    <string name="subscriptions_due_today">مستحق اليوم</string>
+    <string name="subscriptions_due_tomorrow">مستحق غداً</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="zero">مستحق خلال %1$d أيام</item>
+        <item quantity="one">ينتهي في يوم %1$d</item>
+        <item quantity="two">مستحق خلال %1$d أيام</item>
+        <item quantity="few">مستحق خلال %1$d أيام</item>
+        <item quantity="many">مستحق خلال %1$d أيام</item>
+        <item quantity="other">مستحق خلال %1$d أيام</item>
+    </plurals>
+    <!-- %1$s = date -->
+    <string name="subscriptions_paid_on">%1$s مدفوع</string>
+    <string name="subscriptions_more_options">خيارات أكثر</string>
+    <string name="subscriptions_menu_mark_paid">تحديد كدفعة</string>
+    <string name="subscriptions_menu_view_source">عرض المصدر</string>
+    <string name="subscriptions_menu_edit">تحرير</string>
+    <string name="subscriptions_menu_end">إنهاء الاشتراك</string>
+    <string name="subscriptions_source_notes">الملاحظات</string>
+    <string name="subscriptions_source_original_sms">الرسائل القصيرة الأصلية</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_title">تحرير الاشتراك</string>
+    <string name="subscriptions_edit_name">الاسم</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_amount">المبلغ (%1$s)</string>
+    <string name="subscriptions_edit_tap_to_set">انقر للتعيين</string>
+    <string name="subscriptions_edit_next_date">تاريخ الدفع التالي</string>
+    <string name="subscriptions_edit_pick_date">اختيار تاريخ</string>
+    <string name="subscriptions_edit_category">الفئة (اختياري)</string>
+    <string name="subscriptions_edit_no_account">لا يوجد حساب</string>
+    <string name="subscriptions_edit_paid_from">مدفوع من</string>
+    <string name="subscriptions_edit_pick_account">اختيار حساب</string>
+    <string name="subscriptions_edit_selected">المحدد</string>
+    <string name="subscriptions_edit_save">حفظ</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <string name="subscriptions_msg_marked_paid">%1$s وضع علامة مدفوعة · الدورة التالية على %2$s</string>
+    <string name="subscriptions_msg_linked">%1$s مرتبط · الدورة التالية على %2$s</string>
+    <string name="subscriptions_msg_already_marked">%1$s وضع علامة مسبقاً على هذه الدورة · تقدم إلى %2$s</string>
+    <string name="subscriptions_msg_no_scheduled_date">تعيين تاريخ الدفع التالي في %1$s أولاً</string>
+    <string name="subscriptions_msg_not_found">تعذر العثور على هذا الاشتراك</string>
+    <string name="subscriptions_msg_linked_existing">%1$s مرتبط بالدفعة الحالية · الدورة التالية على %2$s</string>
+    <string name="subscriptions_msg_linked_generic">مرتبط</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <string name="mark_paid_eyebrow_paid">MARK AS PAID</string>
+    <string name="mark_paid_eyebrow_received">رسالة مميزة</string>
+    <!-- %1$s = date -->
+    <string name="mark_paid_already_marked">تم تحديد الدفع بالفعل على %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="zero">تم العثور على %1$d دفعات مطابقة</item>
+        <item quantity="one">تم العثور على %1$d دفعة مطابقة</item>
+        <item quantity="two">تم العثور على %1$d دفعات مطابقة</item>
+        <item quantity="few">تم العثور على %1$d دفعات مطابقة</item>
+        <item quantity="many">تم العثور على %1$d دفعات مطابقة</item>
+        <item quantity="other">تم العثور على %1$d دفعات مطابقة</item>
+    </plurals>
+    <string name="mark_paid_when">متى؟</string>
+    <!-- %1$s = formatted amount -->
+    <string name="mark_paid_cta_paid">علامة مدفوعة · %1$s</string>
+    <string name="mark_paid_cta_received">وضع علامة تم تلقيها · %1$s</string>
+    <!-- %1$s = currency code -->
+    <string name="mark_paid_helper_income">سنسجل دخل %1$s و ندرج الجدول الزمني إلى الدورة التالية.</string>
+    <string name="mark_paid_helper_expense">سنقوم بتسجيل المصروفات وندمج الجدول الزمني في الدورة التالية.</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <string name="mark_paid_link_payment">ربط هذه الدفعة</string>
+    <string name="mark_paid_or_mark_today">أو وضع علامة اليوم</string>
+    <string name="mark_paid_today">اليوم</string>
+    <string name="mark_paid_yesterday">أمس</string>
+    <string name="mark_paid_pick_date">اختيار تاريخ</string>
+</resources>

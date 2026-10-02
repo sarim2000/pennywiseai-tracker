@@ -88,15 +88,15 @@ class CycleAwareDateRangeTest {
         // Compare through the formatter: month abbreviations are locale-dependent ("Sep"/"Sept").
         assertEquals(
             DateRangeUtils.formatDateRange(LocalDate.of(2026, 8, 11), LocalDate.of(2026, 9, 10)),
-            TimePeriod.THIS_MONTH.chipLabel(cycleStartDay = 11, customRangeLabel = null, today = today)
+            TimePeriod.THIS_MONTH.chipLabel(cycleStartDay = 11, customRangeLabel = null, label = "This Month", today = today)
         )
         assertEquals(
             DateRangeUtils.formatDateRange(LocalDate.of(2026, 7, 11), LocalDate.of(2026, 8, 10)),
-            TimePeriod.LAST_MONTH.chipLabel(cycleStartDay = 11, customRangeLabel = null, today = today)
+            TimePeriod.LAST_MONTH.chipLabel(cycleStartDay = 11, customRangeLabel = null, label = "Last Month", today = today)
         )
         // Calendar cycle keeps the plain label; non-cycle periods are untouched.
-        assertEquals("This Month", TimePeriod.THIS_MONTH.chipLabel(cycleStartDay = 1, customRangeLabel = null, today = today))
-        assertEquals(TimePeriod.CURRENT_FY.label, TimePeriod.CURRENT_FY.chipLabel(cycleStartDay = 11, customRangeLabel = null, today = today))
-        assertEquals("Aug 1 - Aug 5", TimePeriod.CUSTOM.chipLabel(cycleStartDay = 11, customRangeLabel = "Aug 1 - Aug 5", today = today))
+        assertEquals("This Month", TimePeriod.THIS_MONTH.chipLabel(cycleStartDay = 1, customRangeLabel = null, label = "This Month", today = today))
+        assertEquals("Current FY", TimePeriod.CURRENT_FY.chipLabel(cycleStartDay = 11, customRangeLabel = null, label = "Current FY", today = today))
+        assertEquals("Aug 1 - Aug 5", TimePeriod.CUSTOM.chipLabel(cycleStartDay = 11, customRangeLabel = "Aug 1 - Aug 5", label = "Custom Range", today = today))
     }
 }

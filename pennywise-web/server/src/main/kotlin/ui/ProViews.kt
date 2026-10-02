@@ -94,7 +94,7 @@ object ProViews {
                         li {
                             b { +"Activate" }
                             +" — in the app open "
-                            span(classes = "path") { +"Settings → PennyWise Pro → Have a license key?" }
+                            span(classes = "path") { +"Settings → PennyWise Pro → Enter license key" }
                             +", paste the key, done."
                         }
                     }
@@ -117,9 +117,9 @@ object ProViews {
                             a(href = "https://discord.gg/H3xWeMWjKQ") { +"Discord" }
                             +"."
                         }
-                        faq("Why isn't this in the app?") {
-                            +"Google Play's rules don't allow apps to point at purchases made outside Play, so the app only has a place to enter a key. "
-                            +"This page is where the buying happens."
+                        faq("Why can't I buy Pro inside the app?") {
+                            +"Google Play's rules don't allow an app to point at purchases made elsewhere, so the app sells nothing at all — "
+                            +"it just takes your key. This page is where the buying happens."
                         }
                     }
 

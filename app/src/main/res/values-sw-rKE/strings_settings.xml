@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <!-- Shared dialog actions -->
+    <!-- PennyWise Pro -->
+    <!-- Personalization -->
+    <!-- Currency -->
+    <!-- Budget -->
+    <!-- Contacts -->
+    <!-- Security -->
+    <!-- Data Management -->
+    <!-- %1$s = date and time of the last backup -->
+    <!-- Data Management → SMS Scan Period -->
+    <!-- %1$s = custom start date -->
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <!-- %1$s = custom start date -->
+    <!-- Data Management → Delete all transactions dialog -->
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <!-- %1$d = current number of transactions -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Backup / import status -->
+    <!-- %1$s = technical error detail -->
+    <!-- Data Management → Save backup dialog -->
+    <!-- Notifications -->
+    <!-- AI Features -->
+    <!-- %1$d = model size in megabytes -->
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <!-- Developer -->
+    <!-- Support & Community -->
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <!-- Theme mode -->
+    <!-- Theme style -->
+    <!-- Toggles -->
+    <!-- Navigation -->
+    <!-- Cover style -->
+    <!-- Fonts -->
+    <!-- ══ FAQ screen ══ -->
+    <!-- Transaction Types -->
+    <!-- SMS Parsing -->
+    <!-- Privacy & Data -->
+    <!-- AI Features -->
+    <!-- Account Management -->
+    <!-- Still need help -->
+</resources>

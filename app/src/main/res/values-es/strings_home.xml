@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Home screen ══ -->
+    <!-- Home sections (headers + edit-home sheet) -->
+    <!-- Empty state -->
+    <!-- FABs + full resync -->
+    <!-- More options sheet -->
+    <!-- Edit home screen sheet -->
+    <!-- Calculation breakdown dialog -->
+    <!-- Month name, then day range, e.g. "March 1-15" -->
+    <!-- Subscriptions + loans summary cards -->
+    <!-- ══ Greeting card (home header) ══ -->
+    <!-- ══ Bottom navigation ══ -->
+    <!-- ══ Shared components ══ -->
+    <!-- Spotlight tutorial -->
+    <!-- Transaction type filter (short labels) -->
+    <!-- ══ SMS scan progress dialog ══ -->
+    <!-- %1$s is a duration such as "2m 5s" -->
+    <!-- Short elapsed/remaining durations -->
+    <!-- ══ Shared cards ══ -->
+    <!-- Account carousel -->
+    <!-- Balance / spending card -->
+    <!-- %1$s is a formatted (or masked) amount -->
+    <!-- Budget card -->
+    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <!-- %1$s is a weekday name -->
+    <!-- %1$d is the day of month the budget starts on -->
+    <!-- %1$s is a date range -->
+    <!-- Group cards -->
+    <!-- Transaction count · latest date -->
+    <!-- Cash flow card -->
+    <!-- Transaction row -->
+    <!-- %1$s is the last 4 digits of the other account -->
+    <!-- ══ Home-screen widgets ══ -->
+    <!-- Add transaction widget -->
+    <!-- Budget widget -->
+    <!-- Spending pie widget -->
+    <!-- Slice that groups the smallest categories -->
+    <!-- Recent transactions widget -->
+    <!-- ══ Notifications ══ -->
+    <!-- SMS scan progress (foreground worker) -->
+    <!-- New transaction notification -->
+    <!-- Category • bank name -->
+    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
+    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
+    <!-- Balance chart legend -->
+</resources>

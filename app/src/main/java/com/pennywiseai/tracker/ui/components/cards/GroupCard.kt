@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -70,8 +73,8 @@ fun GroupCard(
     val dateText = latestDate?.format(DateTimeFormatter.ofPattern("d MMM")) ?: ""
     val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
 
-    val countText = "${transactions.size} transaction${if (transactions.size != 1) "s" else ""}"
-    val subtitle = if (dateText.isNotEmpty()) "$countText · $dateText" else countText
+    val countText = pluralStringResource(R.plurals.group_card_transaction_count, transactions.size, transactions.size)
+    val subtitle = if (dateText.isNotEmpty()) stringResource(R.string.group_card_subtitle, countText, dateText) else countText
 
     val sign = if (isPositive) "+" else "-"
 

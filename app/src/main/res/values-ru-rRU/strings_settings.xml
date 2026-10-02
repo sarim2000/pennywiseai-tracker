@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings screen ══ -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_back">Назад</string>
+    <!-- Shared dialog actions -->
+    <string name="settings_action_cancel">Отмена</string>
+    <string name="settings_action_ok">ОК</string>
+    <string name="settings_action_done">Готово</string>
+    <!-- PennyWise Pro -->
+    <string name="settings_pro_section">PennyWise Pro</string>
+    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <string name="settings_pro_title_upgrade">Обновить до PennyWise Pro</string>
+    <string name="settings_pro_subtitle_active">Активные · все функции разблокированы</string>
+    <string name="settings_pro_subtitle_upgrade">Неограниченные правила, заявления, экспорт и многое другое</string>
+    <!-- Personalization -->
+    <string name="settings_personalization_section">Персонализация</string>
+    <string name="settings_appearance_title">Внешний вид</string>
+    <string name="settings_appearance_subtitle">Тема, цвета, шрифты &amp; навигация</string>
+    <string name="settings_language_title">Язык</string>
+    <string name="settings_language_subtitle">Выберите язык приложения</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">Валюта</string>
+    <string name="settings_unified_currency_title">Режим единой валюты</string>
+    <string name="settings_unified_currency_subtitle">Конвертировать все транзакции для отображения валюты</string>
+    <string name="settings_display_currency_title">Валюта отображения</string>
+    <string name="settings_display_currency_subtitle">Все суммы указаны в этой валюте</string>
+    <string name="settings_exchange_rates_title">Курсы обмена</string>
+    <string name="settings_exchange_rates_subtitle">Просмотреть и настроить тарифы</string>
+    <string name="settings_card_spend_as_expense_title">Счетчик тратить как расход</string>
+    <string name="settings_card_spend_as_expense_subtitle">Включить трату кредитной карты в \"Потрачено в этом месяце\"</string>
+    <string name="settings_default_currency_title">Валюта по умолчанию</string>
+    <string name="settings_default_currency_subtitle">Валюта, используемая для конверсий</string>
+    <string name="settings_main_account_title">Основной счет</string>
+    <string name="settings_main_account_subtitle">Устанавливает валюту по умолчанию</string>
+    <string name="settings_main_account_not_set">Не задано</string>
+    <string name="settings_currency_field_label">Валюта</string>
+    <string name="settings_number_format_title">Числовой формат</string>
+    <string name="settings_number_format_subtitle">Сколько больших сумм сгруппировано</string>
+    <string name="settings_number_format_auto">Авто</string>
+    <string name="settings_number_format_indian">Индийский</string>
+    <string name="settings_number_format_international">Международные</string>
+    <string name="settings_number_format_auto_example">Соответствует каждой валюте (₹1,50,000 · $150,000)</string>
+    <string name="settings_number_format_indian_example">1,50,000 (озеро / урожай)</string>
+    <string name="settings_number_format_international_example">150,000 (тысяча / миллион)</string>
+    <!-- Budget -->
+    <string name="settings_budget_section">Бюджет</string>
+    <string name="settings_budget_cycle_title">День начала цикла бюджета</string>
+    <string name="settings_budget_cycle_subtitle">Переключает начало каждого месячного бюджетного периода; например, 25 означает, что ваш цикл проходит 25 → 24</string>
+    <string name="settings_budget_cycle_dialog_body">Выберите день каждого месячного бюджетного цикла, например 25 означает, что цикл проходит с 25 по 24 следующего месяца.</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">Контакты</string>
+    <string name="settings_contacts_vpa_title">Заменить UPI VPA контактными именами</string>
+    <string name="settings_contacts_vpa_subtitle">Показывать \'John Doe\' вместо \'9876543210@paytm\'. Нужно разрешение для контактов.</string>
+    <!-- Security -->
+    <string name="settings_security_section">Безопасность</string>
+    <string name="settings_app_lock_title">Блокировка приложения</string>
+    <string name="settings_app_lock_subtitle">Защитите свои данные с помощью биометрической аутентификации</string>
+    <string name="settings_lock_timeout_title">Время блокировки</string>
+    <string name="settings_lock_timeout_immediately_subtitle">Заблокировать немедленно</string>
+    <plurals name="settings_lock_timeout_after_minutes">
+        <item quantity="one">После %1$d минуты</item>
+        <item quantity="few">Через %1$d минут</item>
+        <item quantity="many">Через %1$d минут</item>
+        <item quantity="other">Через %1$d минут</item>
+    </plurals>
+    <string name="settings_lock_timeout_dialog_body">Выберите, когда приложение будет заблокировано после перехода в фоновый режим</string>
+    <string name="settings_lock_timeout_option_immediately">Сразу</string>
+    <!-- Data Management -->
+    <string name="settings_data_section">Управление данными</string>
+    <string name="settings_manage_accounts_title">Управление аккаунтами</string>
+    <string name="settings_manage_accounts_subtitle">Просмотр и управление банковскими счетами</string>
+    <string name="settings_categories_title">Категории</string>
+    <string name="settings_categories_subtitle">Управлять категориями расходов и доходов</string>
+    <string name="settings_smart_rules_title">Умные правила</string>
+    <string name="settings_smart_rules_subtitle">Автоматическая категоризация транзакций</string>
+    <string name="settings_budgets_title">Бюджеты</string>
+    <string name="settings_budgets_subtitle">Отслеживать лимиты расходов по категориям</string>
+    <string name="settings_loans_title">Долги</string>
+    <string name="settings_loans_subtitle">Отслеживать кредит и заимствовать</string>
+    <string name="settings_recurring_title">Повторяющийся</string>
+    <string name="settings_recurring_subtitle">Автоматическое добавление запланированных наличных &amp; ручных операций</string>
+    <string name="settings_transaction_groups_title">Группы транзакций</string>
+    <string name="settings_transaction_groups_subtitle">Организовать транзакции по теме</string>
+    <string name="settings_export_data_title">Экспорт данных</string>
+    <string name="settings_export_data_subtitle">Резервировать все данные в файл</string>
+    <string name="settings_folder_backup_title">Автоматическое резервное копирование папок</string>
+    <string name="settings_folder_backup_subtitle_enabled">Ежедневное резервное копирование в 2:00 в выбранную папку</string>
+    <string name="settings_folder_backup_subtitle_pro">Pro · Сохранять резервную копию каждый день в 2:00 утра</string>
+    <string name="settings_folder_backup_subtitle_disabled">Сохранять резервную копию в папку каждый день в 2:00 утра</string>
+    <string name="settings_backup_now_title">Резервное копирование сейчас</string>
+    <!-- %1$s = date and time of the last backup -->
+    <string name="settings_backup_now_last_backup">Последняя резервная копия: %1$s</string>
+    <string name="settings_backup_now_subtitle">Запустить резервную копию в папку сейчас</string>
+    <string name="settings_change_backup_folder_title">Изменить папку резервного копирования</string>
+    <string name="settings_change_backup_folder_subtitle">Выберите другую папку для автоматического резервного копирования</string>
+    <string name="settings_import_data_title">Импорт данных</string>
+    <string name="settings_import_data_subtitle">Восстановить данные из резервной копии</string>
+    <string name="settings_import_csv_title">Импорт транзакций (CSV)</string>
+    <string name="settings_import_csv_subtitle">Импортировать из CSV PennyWise</string>
+    <string name="settings_import_statement_title">Импортировать отчёт</string>
+    <string name="settings_import_statement_subtitle">Импортировать из GPay, PhonePe, Paytm</string>
+    <string name="settings_unrecognized_sms_title">Нераспознанные СМС</string>
+    <string name="settings_unrecognized_sms_subtitle">Просмотр и отчет о неподдерживаемых банковских сообщениях</string>
+    <string name="settings_delete_all_title">Удалить все транзакции</string>
+    <string name="settings_delete_all_subtitle">Очистить историю транзакций — оставайтесь аккаунтами и бюджетами</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">Период сканирования SMS</string>
+    <string name="settings_sms_scan_subtitle_all_time">Сканировать все SMS</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_subtitle_from_date">Сканировать с %1$s по сегодня</string>
+    <string name="settings_sms_scan_subtitle_custom">Сканировать дату начала до сегодняшнего дня</string>
+    <string name="settings_sms_scan_all_time">За все время</string>
+    <string name="settings_sms_scan_custom_short">Пользовательский</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
+    <string name="settings_sms_scan_dialog_body">Выберите, как долго отсканировать SMS-сообщения для транзакций</string>
+    <string name="settings_sms_scan_option_custom">Пользовательская дата</string>
+    <!-- %1$s = custom start date -->
+    <string name="settings_sms_scan_option_custom_with_date">Пользовательская дата (%1$s)</string>
+    <!-- Data Management → Delete all transactions dialog -->
+    <string name="settings_delete_all_dialog_title">Удалить все транзакции?</string>
+    <plurals name="settings_delete_all_dialog_body">
+        <item quantity="one">Это навсегда удалит транзакцию %1$d вместе с ее разделителями и тегими. Она не может быть отменена.</item>
+        <item quantity="few">Это навсегда удалит все %1$d транзакции вместе с их разделителями и тегами. Это не может быть отменено.</item>
+        <item quantity="many">Это навсегда удалит все %1$d транзакции вместе с их разделителями и тегами. Это не может быть отменено.</item>
+        <item quantity="other">Это навсегда удалит все %1$d транзакции вместе с их разделителями и тегами. Это не может быть отменено.</item>
+    </plurals>
+    <string name="settings_delete_all_dialog_kept">Ваши счета, бюджеты, кредиты, категории и правила сохраняются. Экспортируйте данные сначала, если вам нужна эта история обратно.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
+    <string name="settings_delete_all_dialog_type_to_confirm">Введите %1$s для подтверждения</string>
+    <string name="settings_delete_all_dialog_deleting">Удаление…</string>
+    <string name="settings_delete_all_dialog_confirm">Удалить все</string>
+    <string name="settings_delete_all_result_title">Хронология</string>
+    <string name="settings_delete_all_result_none">Нет транзакций для удаления.</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="one">%1$d транзакция удалена.</item>
+        <item quantity="few">Удалено %1$d транзакций.</item>
+        <item quantity="many">Удалено %1$d транзакций.</item>
+        <item quantity="other">Удалено %1$d транзакций.</item>
+    </plurals>
+    <plurals name="settings_delete_all_result_arrived">
+        <item quantity="one">%1$d новая транзакция прибыла на время прохождения.</item>
+        <item quantity="few">%1$d новых транзакций прибыло на время прохождения.</item>
+        <item quantity="many">%1$d новых транзакций прибыло на время прохождения.</item>
+        <item quantity="other">%1$d новых транзакций прибыло на время прохождения.</item>
+    </plurals>
+    <!-- %1$d = current number of transactions -->
+    <string name="settings_delete_all_result_count_changed">Новые транзакции прибыли во время подтверждения, поэтому ничего не было удалено. Теперь %1$dПроверьте номер и повторите попытку.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_delete_all_result_error">Не удалось удалить транзакции: %1$s</string>
+    <!-- Data Management → Backup / import status -->
+    <string name="settings_backup_status_title">Статус резервного копирования</string>
+    <string name="settings_backup_created_choose">Резервная копия успешно создана! Выберите, где ее сохранить.</string>
+    <!-- %1$s = technical error detail -->
+    <string name="settings_export_failed">Ошибка экспорта: %1$s</string>
+    <string name="settings_export_error">Ошибка экспорта: %1$s</string>
+    <string name="settings_backup_saved">Резервная копия успешно сохранена!</string>
+    <string name="settings_backup_save_failed">Не удалось сохранить резервную копию: %1$s</string>
+    <string name="settings_importing_backup">Импорт резервной копии...</string>
+    <string name="settings_import_backup_success">Импорт выполнен успешно! Импортировано %1$d транзакций, категорий %2$d . Пропущено дубликатов %3$d.</string>
+    <string name="settings_import_backup_success_with_skipped_rows">Импорт выполнен успешно! Импортированные %1$d транзакции, категории %2$d . Пропущенные %3$d дубликаты. %4$d строки не могут быть импортированы.</string>
+    <string name="settings_import_failed">Ошибка импорта: %1$s</string>
+    <string name="settings_import_error">Ошибка импорта: %1$s</string>
+    <string name="settings_importing_transactions">Импорт транзакций...</string>
+    <string name="settings_import_csv_success">Импортированные %1$d транзакции, пропущены дубликаты %2$d</string>
+    <string name="settings_folder_backup_disabled">Автоматическое резервное копирование папок отключено</string>
+    <string name="settings_folder_access_failed">Не удалось получить доступ к выбранной папке: %1$s</string>
+    <string name="settings_folder_select_first">Сначала выберите папку с резервной копией</string>
+    <string name="settings_folder_not_writable">Запись в выбранную папку резервной копии невозможна</string>
+    <string name="settings_folder_backup_saved">Резервное копирование сохранено в папку</string>
+    <string name="settings_folder_backup_enabled">Автоматическое резервное копирование папок включено. Резервные копии выполняются ежедневно в 2:00 утра.</string>
+    <!-- Data Management → Save backup dialog -->
+    <string name="settings_save_backup_title">Сохранить резервную копию</string>
+    <string name="settings_save_backup_created">Резервная копия успешно создана!</string>
+    <string name="settings_save_backup_choose">Выберите, как вы хотите сохранить его:</string>
+    <string name="settings_save_backup_to_files">Сохранить в файлы</string>
+    <string name="settings_save_backup_share">Поделиться</string>
+    <string name="settings_share_backup_subject">Резервное копирование PennyWise</string>
+    <string name="settings_share_backup_chooser">Поделиться резервным копией</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">Уведомления</string>
+    <string name="settings_notification_access_title">Доступ к банковским уведомлениям</string>
+    <string name="settings_notification_access_enabled">Включено</string>
+    <string name="settings_notification_access_disabled">Нажмите, чтобы включить уведомления от банковских приложений</string>
+    <string name="settings_notification_access_on">На</string>
+    <string name="settings_notification_access_off">Выкл</string>
+    <!-- AI Features -->
+    <string name="settings_ai_section">Функции AI</string>
+    <string name="settings_ai_chat_title">AI-чат-ассистент</string>
+    <!-- %1$d = model size in megabytes -->
+    <string name="settings_ai_status_not_downloaded">Скачать модель AI (%1$d MB)</string>
+    <string name="settings_ai_status_downloading">Загрузка модели ИИ...</string>
+    <string name="settings_ai_status_paused">Загрузка прервана</string>
+    <string name="settings_ai_status_completed">Модель AI готова к чату</string>
+    <string name="settings_ai_status_failed">Ошибка загрузки</string>
+    <string name="settings_ai_status_insufficient_space">Недостаточно места</string>
+    <string name="settings_ai_download">Скачать</string>
+    <string name="settings_ai_retry">Повторить попытку</string>
+    <string name="settings_ai_downloaded">Загружено</string>
+    <string name="settings_ai_delete">Удалить</string>
+    <string name="settings_ai_error">Ошибка</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
+    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_cancel_download">Отменить загрузку</string>
+    <string name="settings_ai_info">Общайтесь с ИИ о ваших расходах и получайте финансовые знания. Все разговоры остаются приватными на вашем устройстве.</string>
+    <string name="settings_ai_download_notification_title">Модель чата ИИ</string>
+    <string name="settings_ai_download_notification_description">Загрузка помощника AI для PennyWise</string>
+    <!-- Developer -->
+    <string name="settings_developer_section">Разработчик</string>
+    <string name="settings_developer_mode_title">Режим разработчика</string>
+    <string name="settings_developer_mode_subtitle">Показать техническую информацию в чате</string>
+    <!-- Support & Community -->
+    <string name="settings_support_section">Поддержка &amp; Сообщество</string>
+    <string name="settings_help_faq_title">Помощь &amp; FAQ</string>
+    <string name="settings_help_faq_subtitle">Часто задаваемые вопросы и помощь</string>
+    <string name="settings_report_issue_title">Сообщить о проблеме</string>
+    <string name="settings_report_issue_subtitle">Отправить сообщения об ошибках на GitHub</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">Внешний вид</string>
+    <string name="appearance_back">Назад</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">Система</string>
+    <string name="appearance_mode_light">Светлый</string>
+    <string name="appearance_mode_dark">Темный</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">Динамический</string>
+    <string name="appearance_style_dynamic_subtitle">Цвета обоев</string>
+    <string name="appearance_style_default">По умолчанию</string>
+    <string name="appearance_style_default_subtitle">Цвета розовой сосны</string>
+    <!-- Toggles -->
+    <string name="appearance_amoled_title">Чёрный AMOLED</string>
+    <string name="appearance_amoled_subtitle">Использовать чисто черный фон для более глубокого контраста</string>
+    <string name="appearance_blur_title">Эффекты размытия</string>
+    <string name="appearance_blur_subtitle">Включить эффекты размытия в стиле glassmorphism в элементах интерфейса</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">Навигация</string>
+    <string name="appearance_nav_floating">Плавающая</string>
+    <string name="appearance_nav_floating_subtitle">Современное &amp; сын</string>
+    <string name="appearance_nav_normal">Обычный</string>
+    <string name="appearance_nav_normal_subtitle">Стандарт M3</string>
+    <!-- Cover style -->
+    <string name="appearance_cover_section">Стиль обложки</string>
+    <string name="appearance_cover_none">Нет</string>
+    <string name="appearance_cover_selected">Выбрано</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">Шрифты</string>
+    <string name="appearance_font_default">По умолчанию</string>
+    <string name="appearance_font_default_subtitle">Система</string>
+    <string name="appearance_font_sn_pro_subtitle">Современное моно</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">ЧАВО</string>
+    <string name="faq_back">Назад</string>
+    <string name="faq_collapse">Свернуть</string>
+    <string name="faq_expand">Развернуть</string>
+    <!-- Transaction Types -->
+    <string name="faq_transaction_types_section">Типы транзакций</string>
+    <string name="faq_wallet_credit_question">Почему транзакции кошелька помечены как Кредиты?</string>
+    <string name="faq_wallet_credit_answer">Транзакции кошелька (Amazon Pay, Paytm и т. д.) помечены как кредиты, потому что они списаны на ваш банковский счет или кредитную карту, а не прямые банковские дебиты. Это помогает отслеживать фактический метод оплаты.</string>
+    <string name="faq_transaction_types_question">В чем разница между 5 типами транзакций?</string>
+    <string name="faq_transaction_types_answer">• Расход: Деньги, выходящие с вашего счета (задолженности, покупки, Счета)\n• Вход: денежные средства, поступающие на ваш счет (заработная плата, возврат средств, кэшбэк)\n• Инвестиции: взаимные средства, акции, SIP, Торговые счета\n• Кредит: операции по кредитным картам и платежи по кошелькам (деньги вы платите позже)\n• Перевод: Деньги, перемещенные между вашими счетами (самопереводы)</string>
+    <string name="faq_transfer_vs_expense_question">Когда следует использовать услугу «Перевод и Расходы»?</string>
+    <string name="faq_transfer_vs_expense_answer">Используйте перевод для перемещения денег между собственными счетами (например, для проверки сбережений). Это не влияет на вашу чистую стоимость. Используйте расход для фактических расходов.</string>
+    <!-- SMS Parsing -->
+    <string name="faq_sms_parsing_section">Разбор СМС</string>
+    <string name="faq_sms_not_detected_question">Почему мои банковские SMS не обнаружены?</string>
+    <string name="faq_sms_not_detected_answer">Проверьте, поддерживает ли ваш банк в нашем списке. Если нет, сообщите об этом через GitHub. Убедитесь, что права на СМС предоставлены и формат отправителя соответствует стандартным шаблонам банковских SMS-сообщений.</string>
+    <string name="faq_unrecognized_sms_question">Что происходит с нераспознанными SMS?</string>
+    <string name="faq_unrecognized_sms_answer">Они сохраняются в \'Нераспознанных сообщениях\', где вы можете вручную просмотреть их или сообщить о них, чтобы помочь нам улучшить парсинг.</string>
+    <string name="faq_duplicates_question">Почему некоторые транзакции повторяются?</string>
+    <string name="faq_duplicates_answer">Некоторые банки отправляют несколько SMS для одной и той же транзакции. Приложение пытается обнаружить дубликаты, но вы можете вручную удалить любые проскальзывания.</string>
+    <!-- Privacy & Data -->
+    <string name="faq_privacy_section">Конфиденциальность &amp; Данные</string>
+    <string name="faq_data_secure_question">Безопасны ли мои финансовые данные?</string>
+    <string name="faq_data_secure_answer">Да! Все данные остаются на вашем устройстве. У нас нет серверов или облачных хранилищ. Модель ИИ работает локально для полной конфиденциальности.</string>
+    <string name="faq_backup_question">Могу ли я сделать резервную копию своих данных?</string>
+    <string name="faq_backup_answer">В настоящее время данные хранятся только локально. Экспорт/резервное копирование планируется для будущих обновлений.</string>
+    <string name="faq_data_access_question">Какие данные имеют доступ к приложению?</string>
+    <string name="faq_data_access_answer">Только SMS-сообщения от известных банковских отправителей. Мы не читаем личные сообщения и не используем другие данные.</string>
+    <!-- AI Features -->
+    <string name="faq_ai_section">Функции AI</string>
+    <string name="faq_ai_download_question">Зачем мне нужно скачать модель ИИ?</string>
+    <string name="faq_ai_download_answer">Модель 750MB позволяет общаться на устройстве без отправки данных на сервер, обеспечивая полную конфиденциальность.</string>
+    <string name="faq_ai_ask_question">Что я могу спросить помощника ИИ?</string>
+    <string name="faq_ai_ask_answer">На основе данных вы можете задать параметры расходов, бюджетные консультации, резюме транзакций и общие финансовые вопросы.</string>
+    <!-- Account Management -->
+    <string name="faq_accounts_section">Управление аккаунтом</string>
+    <string name="faq_manual_accounts_question">Что такое аккаунты вручную?</string>
+    <string name="faq_manual_accounts_answer">Ручные счета позволяют отслеживать наличность, инвестиции или счета из неподдерживаемых банков. Вы обновляете остатки вручную.</string>
+    <string name="faq_multiple_accounts_question">Как отслеживать несколько счетов из одного банка?</string>
+    <string name="faq_multiple_accounts_answer">Приложение автоматически определяет различные учетные записи на основе последних 4-х цифр, показанных в SMS.</string>
+    <!-- Still need help -->
+    <string name="faq_still_need_help_section">Ещё нужна помощь?</string>
+    <string name="faq_report_issue_title">Сообщить о проблеме</string>
+    <string name="faq_report_issue_subtitle">Отправить отчет об ошибках, банковские запросы или улучшения на GitHub</string>
+</resources>

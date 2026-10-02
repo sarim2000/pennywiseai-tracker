@@ -42,6 +42,21 @@ class KotakBankParser : BankParser() {
             if (merchant.isNotEmpty()) return merchant
         }
 
+        // NEFT credit: "credited to your Kotak Bank a/c XXNNNN via NEFT from
+        // beneficiary <Name>. UTR Ref. <utr>" — the counterparty is the sender,
+        // and the clause ends at a full stop rather than the "on/at/Ref" the
+        // generic FROM_PATTERN expects.
+        // Stop at the trailer clause rather than at the first period — names carry
+        // their own ("Mr. John Doe") and would otherwise truncate to "Mr".
+        val neftFromPattern = Regex(
+            """via\s+NEFT\s+from\s+(?:beneficiary\s+)?(.+?)\s*(?:\.\s*(?:UTR|Ref|Avl|Bal|Not|Call|Info)\b|\.?\s*$)""",
+            RegexOption.IGNORE_CASE
+        )
+        neftFromPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (merchant.isNotEmpty()) return merchant
+        }
+
         // IMPS credit from mobile: "linked to mobile xNNNN"
         val mobileLinkedPattern = Regex(
             """linked\s+to\s+mobile\s+([xX*]+\d{2,})""",
@@ -319,36 +334,13 @@ class KotakBankParser : BankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
+        // Shared skip-list (OTP, promos, payment requests, due reminders). This
+        // override used to re-list those checks and had drifted — the reminder
+        // block was missing, so "Payment of INR X ... is due on ..." was booked
+        // as an expense.
+        if (isNonTransactionMessage(message)) return false
+
         val lowerMessage = message.lowercase()
-
-        // Skip fraud warning links
-        if (lowerMessage.contains("not you") && lowerMessage.contains("fraud")) {
-            // This is still a transaction message, just with fraud warning
-            // Continue processing
-        }
-
-        // Skip OTP and promotional messages
-        if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code") ||
-            lowerMessage.contains("offer") ||
-            lowerMessage.contains("discount") ||
-            lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")
-        ) {
-            return false
-        }
-
-        // Skip payment request messages
-        if (lowerMessage.contains("has requested") ||
-            lowerMessage.contains("payment request") ||
-            lowerMessage.contains("collect request") ||
-            lowerMessage.contains("requesting payment") ||
-            lowerMessage.contains("requests rs") ||
-            lowerMessage.contains("ignore if already paid")
-        ) {
-            return false
-        }
 
         // Kotak specific transaction keywords
         val kotakTransactionKeywords = listOf(

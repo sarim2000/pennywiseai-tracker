@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import androidx.compose.ui.res.pluralStringResource
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,8 +102,9 @@ fun MarkAsPaidSheet(
     } else {
         if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
     }
-    val eyebrowText = if (isIncome) "MARK AS RECEIVED" else "MARK AS PAID"
-    val ctaPrefix = if (isIncome) "Mark received" else "Mark paid"
+    val eyebrowText = stringResource(
+        if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
+    )
 
     val confirmAndDismiss: () -> Unit = {
         onConfirm(selectedDate)
@@ -207,7 +211,10 @@ fun MarkAsPaidSheet(
                         )
                         Spacer(Modifier.width(Spacing.sm))
                         Text(
-                            text = "Already marked paid on ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("d MMM"))}",
+                            text = stringResource(
+                                R.string.mark_paid_already_marked,
+                                "${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("d MMM"))}"
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Medium,
@@ -223,11 +230,7 @@ fun MarkAsPaidSheet(
             // (advances the schedule, no duplicate phantom row created).
             if (candidates.isNotEmpty()) {
                 Text(
-                    text = if (candidates.size == 1) {
-                        "Found 1 matching payment"
-                    } else {
-                        "Found ${candidates.size} matching payments"
-                    },
+                    text = pluralStringResource(R.plurals.mark_paid_found_matches, candidates.size, candidates.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -245,7 +248,7 @@ fun MarkAsPaidSheet(
             // Date selector — chips for the common cases (today, yesterday)
             // + a "Pick date" option that defers to the system date picker.
             Text(
-                text = "When?",
+                text = stringResource(R.string.mark_paid_when),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -272,7 +275,10 @@ fun MarkAsPaidSheet(
                 contentPadding = PaddingValues(horizontal = Spacing.md),
             ) {
                 Text(
-                    text = "$ctaPrefix · ${CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency)}",
+                    text = stringResource(
+                        if (isIncome) R.string.mark_paid_cta_received else R.string.mark_paid_cta_paid,
+                        CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency)
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -283,9 +289,9 @@ fun MarkAsPaidSheet(
             // why the subscription will "go away" from the due list.
             Text(
                 text = if (isIncome) {
-                    "We'll log a ${subscription.currency} income and roll the schedule to the next cycle."
+                    stringResource(R.string.mark_paid_helper_income, subscription.currency)
                 } else {
-                    "We'll log the expense and roll the schedule to the next cycle."
+                    stringResource(R.string.mark_paid_helper_expense)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -310,10 +316,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -354,15 +360,16 @@ private fun CandidateCard(
                     color = amountColor,
                 )
                 Text(
-                    text = relativeDate(txn.dateTime.toLocalDate()) +
-                        (txn.bankName?.let { " · $it" } ?: ""),
+                    text = txn.bankName?.let {
+                        stringResource(R.string.mark_paid_candidate_subtitle, relativeDate(txn.dateTime.toLocalDate()), it)
+                    } ?: relativeDate(txn.dateTime.toLocalDate()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = "Link this payment",
+                contentDescription = stringResource(R.string.mark_paid_link_payment),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
@@ -383,7 +390,7 @@ private fun OrDivider() {
             color = MaterialTheme.colorScheme.outlineVariant,
         )
         Text(
-            text = "or mark today",
+            text = stringResource(R.string.mark_paid_or_mark_today),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -394,13 +401,14 @@ private fun OrDivider() {
     }
 }
 
+@Composable
 private fun relativeDate(date: LocalDate): String {
     val today = LocalDate.now()
     val days = java.time.temporal.ChronoUnit.DAYS.between(date, today)
     return when {
-        days == 0L -> "Today"
-        days == 1L -> "Yesterday"
-        days in 2..6 -> "$days days ago"
+        days == 0L -> stringResource(R.string.mark_paid_today)
+        days == 1L -> stringResource(R.string.mark_paid_yesterday)
+        days in 2..6 -> pluralStringResource(R.plurals.mark_paid_days_ago, days.toInt(), days.toInt())
         else -> date.format(DateTimeFormatter.ofPattern("d MMM"))
     }
 }
@@ -454,7 +462,7 @@ private fun DateChips(
         FilterChip(
             selected = isToday,
             onClick = { onSelect(today) },
-            label = { Text("Today") },
+            label = { Text(stringResource(R.string.mark_paid_today)) },
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -463,7 +471,7 @@ private fun DateChips(
         FilterChip(
             selected = isYesterday,
             onClick = { onSelect(yesterday) },
-            label = { Text("Yesterday") },
+            label = { Text(stringResource(R.string.mark_paid_yesterday)) },
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -477,7 +485,7 @@ private fun DateChips(
                     text = if (isCustom) {
                         selected.format(DateTimeFormatter.ofPattern("MMM d"))
                     } else {
-                        "Pick date"
+                        stringResource(R.string.mark_paid_pick_date)
                     },
                 )
             },

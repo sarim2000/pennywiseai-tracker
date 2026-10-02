@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -124,7 +126,7 @@ fun CategoryPieChart(
         ) {
             items(chartData.sortedByDescending { it.data }) { pie ->
                 PieLegendItem(
-                    label = pie.label ?: "Unknown",
+                    label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                     value = pie.data,
                     color = pie.color,
                     isSelected = pie.selected,
@@ -170,12 +172,24 @@ private fun PieLegendItem(
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // The category's own icon rather than a bare swatch (#827), in a disc of
+        // the slice colour so the row still maps to the chart. The disc carries
+        // the colour rather than the glyph, because a custom emoji (#760) can't
+        // be tinted and would otherwise leave the row with no slice marker at
+        // all. Same treatment as the category list below the chart.
         Box(
             modifier = Modifier
-                .size(Dimensions.Component.legendDot)
+                .size(Dimensions.Icon.medium)
                 .clip(CircleShape)
-                .background(color)
-        )
+                .background(color.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CategoryIcon(
+                category = label,
+                size = Dimensions.Icon.small,
+                tint = color
+            )
+        }
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -192,7 +206,7 @@ private fun PieLegendItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "($percentage%)",
+                    text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

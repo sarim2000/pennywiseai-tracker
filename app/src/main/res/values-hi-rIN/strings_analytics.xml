@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Analytics screen ══ -->
+    <string name="analytics_title">विश्लेषण</string>
+    <string name="analytics_trends">रुझान</string>
+    <string name="analytics_chart_line">लाइन</string>
+    <string name="analytics_chart_bar">बार</string>
+    <string name="analytics_chart_heatmap">हीटमैप</string>
+    <string name="analytics_top_categories">शीर्ष श्रेणियाँ</string>
+    <string name="analytics_toggle_view">दृश्य बदलें</string>
+    <!-- %1$s = formatted refund amount -->
+    <string name="analytics_top_merchants">शीर्ष व्यापारी</string>
+    <!-- Filters -->
+    <string name="analytics_filter_clear">साफ करें</string>
+    <string name="analytics_filter_all_profiles">सभी खाते</string>
+    <string name="analytics_filter_currency">मुद्रा</string>
+    <string name="analytics_filter_category">श्रेणी</string>
+    <string name="analytics_filter_account">खाता</string>
+    <!-- List rows -->
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
+    <!-- Summary card -->
+    <string name="analytics_summary_total">कुल</string>
+    <string name="analytics_summary_average">औसत</string>
+    <string name="analytics_summary_per_day">" /दिन"</string>
+    <!-- Pie charts -->
+    <!-- Breakdown cards -->
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">बजट</string>
+    <string name="budgets_action_cancel">रद्द करें</string>
+    <string name="budgets_action_delete">हटाएं</string>
+    <string name="budgets_action_ok">ठीक है</string>
+    <!-- %1$s = budget name -->
+    <string name="budgets_delete">बजट हटाएँ</string>
+    <string name="budgets_more_options">अधिक विकल्प</string>
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = weekday name -->
+    <!-- %1$d = days, %2$s = weekday name -->
+    <!-- %1$d = day of month the budget starts on -->
+    <!-- %1$d = days, %2$d = day of month -->
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
+    <!-- %1$s = spent amount, %2$s = budget amount -->
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">बजट संपादित करें</string>
+    <string name="budget_edit_title_new">नई बजट</string>
+    <string name="budget_edit_save">परिवर्तनों को सहेजें</string>
+    <string name="budget_edit_create">बजट बनाएं</string>
+    <string name="budget_edit_color">रंग</string>
+    <string name="budget_edit_period">बजट अवधि</string>
+    <!-- %1$s = weekday name -->
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
+    <string name="budget_edit_add_category">श्रेणी जोड़ें</string>
+    <!-- %1$s = transaction-type bucket name -->
+    <string name="budget_edit_remove">हटाएँ</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">बजट इतिहास</string>
+    <string name="budget_history_categories">श्रेणियाँ</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">श्रेणियाँ</string>
+    <string name="categories_add">श्रेणी जोड़ें</string>
+    <string name="categories_expense_section">व्यय श्रेणियाँ</string>
+    <string name="categories_income_section">आय श्रेणियाँ</string>
+    <string name="categories_action_delete">हटाएं</string>
+    <string name="categories_action_edit">संपादित करें</string>
+    <string name="categories_action_cancel">रद्द करें</string>
+    <string name="categories_system_badge">सिस्टम</string>
+    <!-- %1$s = category name -->
+    <!-- %1$s = error detail -->
+    <string name="categories_msg_hidden">%1$s छिपाई गई</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">श्रेणी जोड़ें</string>
+    <string name="category_edit_name_label">श्रेणी का नाम</string>
+    <string name="category_edit_type_expense">व्यय</string>
+    <string name="category_edit_type_income">आय</string>
+    <string name="category_edit_parent_none">कोई नहीं</string>
+    <string name="category_edit_color">रंग</string>
+    <string name="category_edit_preview">पूर्वावलोकन</string>
+    <string name="category_edit_add">जोड़ें</string>
+    <string name="category_edit_save">सहेजें</string>
+    <string name="category_edit_delete">श्रेणी हटाएँ</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">सदस्यताएँ</string>
+    <string name="subscriptions_add">सदस्यता जोड़ें</string>
+    <string name="subscriptions_undo">पूर्ववत करें</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s छिपाई गई</string>
+    <string name="subscriptions_empty_headline">अभी तक कोई सदस्यता नहीं मिली</string>
+    <string name="subscriptions_empty_description">सदस्यताएँ पता करने के लिए अपने एसएमएस को सिंक करें</string>
+    <string name="subscriptions_collapse">संकुचित करें</string>
+    <string name="subscriptions_expand">विस्तार करें</string>
+    <string name="subscriptions_action_delete">हटाएं</string>
+    <string name="subscriptions_action_cancel">रद्द करें</string>
+    <string name="subscriptions_action_ok">ठीक है</string>
+    <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_hide">छिपाएँ</string>
+    <string name="subscriptions_sms_available">एसएमएस उपलब्ध</string>
+    <string name="subscriptions_due_today">आज देय</string>
+    <string name="subscriptions_due_tomorrow">कल देय</string>
+    <!-- %1$s = date -->
+    <string name="subscriptions_more_options">अधिक विकल्प</string>
+    <string name="subscriptions_menu_edit">संपादित करें</string>
+    <string name="subscriptions_source_notes">नोट्स</string>
+    <string name="subscriptions_source_original_sms">मूल एसएमएस</string>
+    <!-- Edit subscription dialog -->
+    <string name="subscriptions_edit_name">नाम</string>
+    <!-- %1$s = currency code -->
+    <string name="subscriptions_edit_selected">चयनित</string>
+    <string name="subscriptions_edit_save">सहेजें</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
+    <!-- ══ Mark-as-paid sheet ══ -->
+    <!-- %1$s = date -->
+    <!-- %1$s = formatted amount -->
+    <!-- %1$s = currency code -->
+    <!-- %1$s = relative date, %2$s = bank name -->
+    <string name="mark_paid_today">आज</string>
+    <string name="mark_paid_yesterday">कल</string>
+</resources>

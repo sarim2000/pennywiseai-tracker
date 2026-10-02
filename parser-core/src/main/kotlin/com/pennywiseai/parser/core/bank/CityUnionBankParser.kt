@@ -52,6 +52,14 @@ class CityUnionBankParser : BaseIndianBankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
         return when {
+            // Transfers name both accounts ("Your a/c no. XX5501 is credited for
+            // Rs.X ... and debited from a/c no. XX4577"). The clause about *your*
+            // account decides the direction, so check it before the generic ones.
+            lowerMessage.contains("your a/c") && lowerMessage.contains("is credited") ->
+                TransactionType.INCOME
+            lowerMessage.contains("your a/c") && lowerMessage.contains("is debited") ->
+                TransactionType.EXPENSE
+
             // Check for debit patterns
             lowerMessage.contains("is debited") -> TransactionType.EXPENSE
             lowerMessage.contains("debited for") -> TransactionType.EXPENSE

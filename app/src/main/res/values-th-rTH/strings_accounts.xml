@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Shared (accounts, loans, exchange rates) ══ -->
+    <string name="accounts_collapse">ย่อ</string>
+    <string name="accounts_expand">ขยาย</string>
+    <string name="accounts_action_cancel">ยกเลิก</string>
+    <string name="accounts_action_delete">ลบ</string>
+    <string name="accounts_action_save">บันทึก</string>
+    <!-- ══ Account detail ══ -->
+    <string name="account_detail_transactions_header">ธุรกรรม (%1$d)</string>
+    <string name="account_detail_empty_description">ธุรกรรมสำหรับบัญชีนี้จะแสดงที่นี่</string>
+    <string name="account_detail_balance_trend">แนวโน้มยอดเงิน</string>
+    <string name="account_detail_current_balance">ยอดเงินปัจจุบัน</string>
+    <string name="account_detail_income">รายได้</string>
+    <string name="account_detail_expenses">ค่าใช้จ่าย</string>
+    <string name="account_detail_net">สุทธิ</string>
+    <!-- %1$s = formatted amount; marks an estimate across currencies -->
+    <string name="account_detail_estimated_amount">ประเมิน %1$s</string>
+    <!-- %1$s = formatted balance after the transaction -->
+    <string name="account_detail_balance_after">• ยอดคงเหลือ: %1$s</string>
+    <string name="account_detail_type_credit">เครดิต</string>
+    <string name="account_detail_type_transfer">โอน</string>
+    <string name="account_detail_type_investment">การลงทุน</string>
+    <string name="account_detail_range_last_7_days">7 วันที่ผ่านมา</string>
+    <string name="account_detail_range_last_30_days">30 วันที่ผ่านมา</string>
+    <string name="account_detail_range_last_3_months">3 เดือนที่ผ่านมา</string>
+    <string name="account_detail_range_last_6_months">6 เดือนที่ผ่านมา</string>
+    <string name="account_detail_range_last_year">ปีที่ผ่านมา</string>
+    <string name="account_detail_range_all_time">ตลอดเวลา</string>
+    <!-- ══ Balance history ══ -->
+    <string name="balance_history_title">ประวัติยอดคงเหลือ</string>
+    <plurals name="balance_history_record_count">
+        <item quantity="other">%1$d รายการ • ยอดคงเหลือล่าสุดจะแสดงในบัญชี</item>
+    </plurals>
+    <string name="balance_history_delete_title">ลบบันทึกยอดเงิน</string>
+    <string name="balance_history_delete_message">คุณแน่ใจหรือว่าต้องการลบบันทึกยอดเงินนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</string>
+    <string name="balance_history_source_transaction">ธุรกรรม</string>
+    <string name="balance_history_source_card_link">ลิงก์บัตร</string>
+    <string name="balance_history_source_manual">คู่มือ</string>
+    <string name="balance_history_new_balance">ยอดเงินใหม่</string>
+    <string name="balance_history_balance_label">ยอดคงเหลือ</string>
+    <string name="balance_history_sms_source">แหล่งที่มาของ SMS</string>
+    <!-- %1$s = first characters of the SMS -->
+    <!-- ══ Add account ══ -->
+    <string name="add_account_title">เพิ่มบัญชี</string>
+    <string name="add_account_type_label">ประเภทบัญชี</string>
+    <string name="add_account_currency_label">สกุลเงิน</string>
+    <string name="add_account_name_label">ชื่อบัญชี *</string>
+    <string name="add_account_last4_label">4 หลักสุดท้าย *</string>
+    <string name="add_account_balance_label">ยอดเงินปัจจุบัน *</string>
+    <string name="add_account_credit_limit_label">วงเงินเครดิต</string>
+    <string name="add_account_credit_limit_hint">ตัวเลือก: ตั้งค่าวงเงินเครดิตเพื่อติดตามการใช้งาน</string>
+    <!-- ══ Merge accounts sheet ══ -->
+    <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
+    <!-- %1$s = source account, %2$s = target account -->
+    <string name="merge_accounts_confirm">รวม</string>
+    <string name="merge_accounts_selected">ที่เลือก</string>
+    <!-- Tag appended to a credit-card account row ("··1234 · INR · Credit") -->
+    <string name="merge_accounts_credit_tag">เครดิต</string>
+    <!-- ══ Manage accounts: status messages ══ -->
+    <!-- %1$s = formatted balance -->
+    <!-- %1$s / %2$s = currency codes -->
+    <!-- %1$d = transaction count, %2$s = target account -->
+    <!-- ══ Manage accounts screen ══ -->
+    <string name="manage_accounts_title">บัญชี</string>
+    <string name="manage_accounts_section_bank">บัญชีธนาคาร</string>
+    <string name="manage_accounts_section_unlinked_cards">บัตรที่ยังไม่ลิงก์</string>
+    <string name="manage_accounts_section_credit_cards">บัตรเครดิต</string>
+    <string name="manage_accounts_outstanding">ยอดคงค้าง</string>
+    <string name="manage_accounts_available">พร้อมใช้งาน</string>
+    <string name="manage_accounts_credit_limit">วงเงินเครดิต</string>
+    <!-- %1$d = utilization percentage -->
+    <string name="manage_accounts_utilization_used">(%1$d%% ใช้แล้ว)</string>
+    <string name="manage_accounts_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="manage_accounts_action_edit">แก้ไข</string>
+    <string name="manage_accounts_action_clear">ล้าง</string>
+    <string name="manage_accounts_action_link">เชื่อมต่อ</string>
+    <string name="manage_accounts_menu_history">ประวัติ</string>
+    <!-- %1$d = day of month -->
+    <string name="manage_accounts_balance">ยอดคงเหลือ</string>
+    <string name="manage_accounts_linked_cards">บัตรที่เชื่อมต่อ</string>
+    <string name="manage_accounts_card_inactive">(ไม่ใช้งาน)</string>
+    <!-- %1$s = short date -->
+    <string name="manage_accounts_unlink_card">ยกเลิกการเชื่อมบัตร</string>
+    <string name="manage_accounts_update_balance">อัปเดตยอดคงเหลือ</string>
+    <!-- %1$s = formatted current balance -->
+    <!-- %1$s = currency code -->
+    <string name="manage_accounts_new_balance">ยอดเงินใหม่</string>
+    <!-- %1$s = formatted balance -->
+    <string name="manage_accounts_last_balance">ยอดคงเหลือล่าสุด: %1$s</string>
+    <!-- %1$s = SMS text -->
+    <string name="manage_accounts_card_sms">ข้อความ SMS: %1$s</string>
+    <string name="manage_accounts_card_sms_truncated">SMS: %1$s... (แตะเพื่อขยาย)</string>
+    <string name="manage_accounts_bank_label">ธนาคาร</string>
+    <string name="manage_accounts_card_type_debit">เดบิต</string>
+    <string name="manage_accounts_card_type_credit">เครดิต</string>
+    <!-- %1$s = bank name -->
+    <string name="manage_accounts_link_select_account">เลือกบัญชีเพื่อเชื่อมบัตรนี้:</string>
+    <string name="manage_accounts_delete_title">ลบบัญชี?</string>
+    <string name="manage_accounts_delete_message">คุณแน่ใจหรือว่าต้องการลบบัญชีนี้?</string>
+    <!-- %1$s = last digits of the account -->
+    <string name="manage_accounts_delete_warning">การกระทำนี้จะลบประวัติยอดเงินทั้งหมดของบัญชีนี้อย่างถาวร บัตรที่เชื่อมโยงทั้งหมดจะถูกยกเลิก การกระทำนี้ไม่สามารถย้อนกลับได้</string>
+    <string name="manage_accounts_edit_account_title">แก้ไขบัญชี</string>
+    <string name="manage_accounts_type_credit_card">บัตรเครดิต</string>
+    <string name="manage_accounts_bank_name_label">ชื่อธนาคาร</string>
+    <!-- ══ Loans list ══ -->
+    <string name="loans_title">เงินกู้</string>
+    <string name="loans_you_owe">คุณเป็นหนี้</string>
+    <string name="loans_direction_lent">ให้ยืม</string>
+    <string name="loans_direction_borrowed">ยืม</string>
+    <string name="loans_status_settled">ชำระแล้ว</string>
+    <!-- %1$s = formatted original loan amount -->
+    <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <!-- Open loans both ways that cancel out exactly -->
+    <!-- ══ Loan detail ══ -->
+    <!-- %1$s = formatted original loan amount -->
+    <!-- %1$d = percentage repaid -->
+    <string name="loan_detail_history">ประวัติ</string>
+    <string name="loan_detail_original_chip">ต้นฉบับ</string>
+    <!-- %1$s = person name -->
+    <!-- %1$s = formatted remaining amount -->
+    <string name="loan_detail_amount_label">จำนวนเงิน</string>
+    <string name="loan_detail_add">เพิ่ม</string>
+    <!-- ══ Exchange rates ══ -->
+    <string name="exchange_rates_title">อัตราแลกเปลี่ยน</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">อัปเดตล่าสุด: %1$s</string>
+    <string name="exchange_rates_badge_custom">กำหนดเอง</string>
+    <string name="exchange_rates_rate_label">อัตราแลกเปลี่ยน</string>
+    <!-- ══ Accounts overview card (home) ══ -->
+    <string name="accounts_overview_balance">ยอดคงเหลือ</string>
+    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
+</resources>

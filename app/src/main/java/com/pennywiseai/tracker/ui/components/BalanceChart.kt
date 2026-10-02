@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -89,7 +91,7 @@ fun BalanceChart(
             .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
-                label = "Balance Trend",
+                label = stringResource(R.string.balance_chart_label),
                 values = chartValues,
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),

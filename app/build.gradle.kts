@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.PathSensitivity
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,8 +21,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 104
-        versionName = "2.20.0"
+        versionCode = 105
+        versionName = "2.21.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -110,6 +111,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // en-XA / ar-XB pseudo-locales: untranslated (hardcoded) text stands
+            // out as plain English, and RTL layout bugs show up without a translation.
+            isPseudoLocalesEnabled = true
         }
         release {
             isMinifyEnabled = true
@@ -136,6 +140,11 @@ android {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
+    }
+    // Lists every values-<lang>/ folder as a supported locale, so Android 13+
+    // shows PennyWise under System settings → App languages.
+    androidResources {
+        generateLocaleConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -331,3 +340,11 @@ dependencies {
 }
 
 android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+// StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
+// infer. Without this the test task stays UP-TO-DATE when only translations
+// change — i.e. for exactly the pull requests it exists to check.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("src/main/res"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("androidResourcesForParityTest")
+}

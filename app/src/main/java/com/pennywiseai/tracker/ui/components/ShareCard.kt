@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
@@ -78,9 +80,9 @@ fun ShareCard(
         // someone who has never heard of PennyWise, and the only line explaining what was
         // tracked is the smallest text on the image. The zero stays: the effort that
         // wasn't spent is the surprising half, and it still reads at thumbnail size.
-        ShareHero.TRANSACTIONS -> "bank texts tracked. 0 typed."
+        ShareHero.TRANSACTIONS -> stringResource(R.string.share_card_caption_transactions)
         ShareHero.SUBSCRIPTIONS ->
-            if (value == 1) "subscription I forgot" else "subscriptions I forgot"
+            pluralStringResource(R.plurals.share_card_caption_subscriptions, value)
     }
 
     Column(
@@ -122,7 +124,7 @@ fun ShareCard(
                 )
             }
             Text(
-                text = data.periodLabel,
+                text = data.periodLabel ?: stringResource(R.string.share_card_period_all_time),
                 style = TextStyle(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
@@ -169,7 +171,7 @@ fun ShareCard(
         Spacer(Modifier.height(18.dp))
 
         Text(
-            text = "Read from my bank SMS. Nothing left my phone.",
+            text = stringResource(R.string.share_card_tagline),
             style = TextStyle(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,

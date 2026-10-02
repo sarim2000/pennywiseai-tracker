@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -64,7 +66,7 @@ fun SplitEditor(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Split Categories",
+                    text = stringResource(R.string.split_editor_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -75,7 +77,7 @@ fun SplitEditor(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Remove Splits")
+                    Text(stringResource(R.string.split_editor_remove_all))
                 }
             }
 
@@ -125,7 +127,7 @@ fun SplitEditor(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                 Spacer(modifier = Modifier.width(Spacing.xs))
-                Text("Add Split")
+                Text(stringResource(R.string.split_editor_add))
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
@@ -143,20 +145,20 @@ fun SplitEditor(
                     if (isBalanced) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "Balanced",
+                            contentDescription = stringResource(R.string.split_editor_balanced),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     } else {
                         Icon(
                             Icons.Default.Warning,
-                            contentDescription = "Not balanced",
+                            contentDescription = stringResource(R.string.split_editor_not_balanced),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
                     Text(
-                        text = "Total:",
+                        text = stringResource(R.string.split_editor_total),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -176,9 +178,9 @@ fun SplitEditor(
                     if (!isBalanced) {
                         Text(
                             text = if (remaining > BigDecimal.ZERO) {
-                                "${CurrencyFormatter.formatCurrency(remaining, currency)} remaining"
+                                stringResource(R.string.split_editor_remaining, CurrencyFormatter.formatCurrency(remaining, currency))
                             } else {
-                                "${CurrencyFormatter.formatCurrency(remaining.abs(), currency)} over"
+                                stringResource(R.string.split_editor_over, CurrencyFormatter.formatCurrency(remaining.abs(), currency))
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
@@ -207,20 +209,22 @@ private fun SplitRow(
         mutableStateOf(if (split.amount == BigDecimal.ZERO) "" else split.amount.stripTrailingZeros().toPlainString())
     }
 
-    Row(
+    // Category on its own full-width line, amount + remove beneath it. Side by
+    // side the dropdown was ~a third of the row, so anything longer than
+    // "Shopping" was clipped mid-word ("Bills & Util") once selected.
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .padding(Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // Category dropdown
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
                 value = split.category,
@@ -263,52 +267,58 @@ private fun SplitRow(
             }
         }
 
-        // Amount field
-        TextField(
-            value = amountText,
-            onValueChange = { newValue ->
-                val filtered = newValue.filter { it.isDigit() || it == '.' }
-                if (filtered.count { it == '.' } <= 1) {
-                    amountText = filtered
-                    val parsedAmount = filtered.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    onAmountChanged(parsedAmount)
-                }
-            },
-            singleLine = true,
-            modifier = Modifier.width(120.dp),
-            textStyle = MaterialTheme.typography.bodyMedium,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            prefix = {
-                Text(
-                    text = CurrencyFormatter.getCurrencySymbol(currency),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
-
-        // Remove button
-        IconButton(
-            onClick = onRemove,
-            enabled = canRemove,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = "Remove split",
-                tint = if (canRemove) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            // Amount field
+            TextField(
+                value = amountText,
+                onValueChange = { newValue ->
+                    val filtered = newValue.filter { it.isDigit() || it == '.' }
+                    if (filtered.count { it == '.' } <= 1) {
+                        amountText = filtered
+                        val parsedAmount = filtered.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                        onAmountChanged(parsedAmount)
+                    }
                 },
-                modifier = Modifier.size(Dimensions.Icon.medium)
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                prefix = {
+                    Text(
+                        text = CurrencyFormatter.getCurrencySymbol(currency),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
             )
+
+            // Remove button
+            IconButton(
+                onClick = onRemove,
+                enabled = canRemove,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.split_editor_remove),
+                    tint = if (canRemove) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
         }
     }
 }
@@ -333,7 +343,7 @@ fun SplitBreakdownCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Text(
-                text = "Category Breakdown",
+                text = stringResource(R.string.split_breakdown_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

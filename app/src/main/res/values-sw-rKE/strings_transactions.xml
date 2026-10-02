@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Export transactions dialog -->
+    <!-- Transaction detail: errors -->
+    <!-- Transaction types -->
+    <!-- Transaction detail -->
+    <!-- Transaction totals card -->
+    <!-- Transactions list -->
+    <!-- Add transaction / subscription -->
+    <!-- Transaction groups -->
+    <!-- Recurring transactions -->
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
+    <!-- Share card, sheet and banner -->
+    <!-- %1$s = month name -->
+    <!-- Shared transaction components -->
+</resources>

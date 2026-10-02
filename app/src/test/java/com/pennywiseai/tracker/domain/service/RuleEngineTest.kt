@@ -449,6 +449,24 @@ class RuleEngineTest {
 
     // --- factory helpers (shared) ---
 
+    @Test
+    fun `OR matches when either amount condition holds (#843)`() {
+        val rule = TransactionRule(
+            name = "Outside 500-600",
+            conditions = listOf(
+                RuleCondition(TransactionField.AMOUNT, ConditionOperator.LESS_THAN, "500"),
+                RuleCondition(TransactionField.AMOUNT, ConditionOperator.GREATER_THAN, "600", LogicalOperator.OR)
+            ),
+            actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Others"))
+        )
+        fun matches(amount: String) =
+            engine.evaluateRules(transaction(amount = BigDecimal(amount)), null, listOf(rule)).second.isNotEmpty()
+
+        assertTrue(matches("100"))
+        assertTrue(matches("700"))
+        assertFalse(matches("550"))
+    }
+
     private fun transaction(
         bankName: String? = "HDFC Bank",
         accountNumber: String? = "12345678",

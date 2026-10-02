@@ -55,9 +55,11 @@ class BankNotificationRetryWorker @AssistedInject constructor(
                         .toInstant()
                         .toEpochMilli()
                 )
-                if (result.success) {
+                if (result.success || result.intentionallySkipped) {
+                    // Clear intentional drops too, so an ignored account's
+                    // notifications don't pile up and get retried forever (#826).
                     notificationRepository.markProcessed(notification.id, result.transactionId)
-                    Log.d(TAG, "Retry succeeded for notification ${notification.id}")
+                    Log.d(TAG, "Retry settled notification ${notification.id}")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Retry failed for notification ${notification.id}", e)

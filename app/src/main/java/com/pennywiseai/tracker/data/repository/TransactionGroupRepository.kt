@@ -23,11 +23,39 @@ data class GroupSummary(
     val group: TransactionGroupEntity,
     val transactionCount: Int,
     val expenseByCurrency: Map<String, Money>,
-    val incomeByCurrency: Map<String, Money>
+    val incomeByCurrency: Map<String, Money>,
+    val investedByCurrency: Map<String, Money> = emptyMap()
 ) {
     val hasExpense: Boolean get() = expenseByCurrency.values.any { it.isPositive }
     val hasIncome: Boolean get() = incomeByCurrency.values.any { it.isPositive }
+    val hasInvested: Boolean get() = investedByCurrency.values.any { it.isPositive }
 }
+
+/** A group's per-currency totals, split by what the money did. */
+data class GroupTotals(
+    val expense: Map<String, Money>,
+    val income: Map<String, Money>,
+    val invested: Map<String, Money>
+)
+
+/**
+ * The one definition of a group's totals, used by every screen that shows
+ * them. Investments get their own figure (#837): they aren't spending, but a
+ * group that holds nothing else used to show "No transactions yet" under a
+ * non-zero item count. Transfers stay out of every figure — money moving
+ * between your own accounts isn't a total of anything.
+ */
+fun groupTotalsOf(transactions: List<TransactionEntity>): GroupTotals = GroupTotals(
+    expense = transactions
+        .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
+        .sumByCurrency({ it.currency }, { it.amount }),
+    income = transactions
+        .filter { it.transactionType == TransactionType.INCOME }
+        .sumByCurrency({ it.currency }, { it.amount }),
+    invested = transactions
+        .filter { it.transactionType == TransactionType.INVESTMENT }
+        .sumByCurrency({ it.currency }, { it.amount })
+)
 
 @Singleton
 class TransactionGroupRepository @Inject constructor(
@@ -50,13 +78,8 @@ class TransactionGroupRepository @Inject constructor(
         group: TransactionGroupEntity,
         transactions: List<TransactionEntity>
     ): GroupSummary {
-        val expense = transactions
-            .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .sumByCurrency({ it.currency }, { it.amount })
-        val income = transactions
-            .filter { it.transactionType == TransactionType.INCOME }
-            .sumByCurrency({ it.currency }, { it.amount })
-        return GroupSummary(group, transactions.size, expense, income)
+        val totals = groupTotalsOf(transactions)
+        return GroupSummary(group, transactions.size, totals.expense, totals.income, totals.invested)
     }
 
     fun getTransactionsForGroup(groupId: Long): Flow<List<TransactionEntity>> =

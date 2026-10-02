@@ -6,6 +6,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -211,20 +212,10 @@ class OnBoardingViewModel @Inject constructor(
                             }
                         }
                         WorkInfo.State.SUCCEEDED -> {
-                            val outputTotal = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, total)
-                            val outputProcessed = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, processed)
-                            val outputParsed = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, parsed)
-                            val outputSaved = workInfo.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, saved)
-                            _uiState.update {
-                                it.copy(
-                                    isScanning = false,
-                                    scanCompleted = true,
-                                    scanTotal = outputTotal,
-                                    scanProcessed = outputProcessed,
-                                    scanParsed = outputParsed,
-                                    scanSaved = outputSaved
-                                )
-                            }
+                            // `progress` is already empty once the work has
+                            // finished, so fall back to the last counts seen
+                            // while it ran — never to zero.
+                            _uiState.update { it.completedWith(workInfo.outputData) }
                             loadAccounts()
                         }
                         WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> {
@@ -299,3 +290,17 @@ class OnBoardingViewModel @Inject constructor(
     }
 
 }
+
+/**
+ * The state once the scan has finished. Reads the worker's output, falling back
+ * to the last counts seen while it ran — `progress` is already empty by then, so
+ * falling back to 0 would report "No transactions found" after a full import.
+ */
+internal fun OnBoardingUiState.completedWith(out: Data): OnBoardingUiState = copy(
+    isScanning = false,
+    scanCompleted = true,
+    scanTotal = out.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, scanTotal),
+    scanProcessed = out.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, scanProcessed),
+    scanParsed = out.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, scanParsed),
+    scanSaved = out.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, scanSaved)
+)

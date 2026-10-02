@@ -24,59 +24,11 @@
 -keep class com.google.ai.edge.litertlm.** { *; }
 -dontwarn com.google.ai.edge.litertlm.**
 
-# Room
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--keep @androidx.room.Dao class *
--keepclassmembers @androidx.room.Entity class * {
-    *;
-}
--keep class com.pennywiseai.tracker.data.database.entity.** { *; }
--keep class com.pennywiseai.tracker.data.database.dao.** { *; }
-
-# Hilt
--keep class dagger.hilt.** { *; }
--keep class javax.inject.** { *; }
--keep class * extends dagger.hilt.android.lifecycle.HiltViewModel
--keep @dagger.hilt.InstallIn class * { *; }
--keep @dagger.Module class * { *; }
--keep @dagger.hilt.android.EntryPoint class * { *; }
-
-# Jetpack Compose
--keep class androidx.compose.** { *; }
--dontwarn androidx.compose.**
-
-# Kotlin Serialization
--keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
--keepclassmembers class kotlinx.serialization.json.** {
-    *** Companion;
-}
--keepclasseswithmembers class kotlinx.serialization.json.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
--keep,includedescriptorclasses class com.pennywiseai.tracker.**$$serializer { *; }
--keepclassmembers class com.pennywiseai.tracker.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.pennywiseai.tracker.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
-# JetBrains Markdown
--keep class org.intellij.markdown.** { *; }
--dontwarn org.intellij.markdown.**
-
-# WorkManager
--keep class androidx.work.** { *; }
--keep class * extends androidx.work.Worker
--keep class * extends androidx.work.ListenableWorker {
-    public <init>(android.content.Context,androidx.work.WorkerParameters);
-}
-
-# Keep data classes
--keep class com.pennywiseai.tracker.data.model.** { *; }
--keep class com.pennywiseai.tracker.domain.model.** { *; }
+# Room, Hilt, Compose, WorkManager, kotlinx.serialization and Markdown ship
+# their own consumer rules, and nothing here serializes via reflection (backup
+# uses kotlinx.serialization codegen). Blanket `-keep X.** { *; }` rules for them
+# disabled R8 on ~70% of classes (all of material-icons-extended) — Play Console
+# flagged it as 34% DEX optimisation. Only add a keep with a concrete crash.
 
 # Keep enum classes
 -keepclassmembers enum * {

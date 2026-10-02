@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import androidx.glance.LocalContext
 import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.Composable
@@ -85,14 +86,14 @@ class AddTransactionWidget : GlanceAppWidget() {
                     ) {
                         Image(
                             provider = ImageProvider(R.drawable.ic_widget_add),
-                            contentDescription = "Add transaction",
+                            contentDescription = LocalContext.current.getString(R.string.widget_add_content_description),
                             modifier = GlanceModifier.size(20.dp)
                         )
                     }
                     Spacer(modifier = GlanceModifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Add",
+                            text = LocalContext.current.getString(R.string.widget_add_title),
                             style = TextStyle(
                                 color = GlanceTheme.colors.onPrimaryContainer,
                                 fontSize = 14.sp,
@@ -101,7 +102,7 @@ class AddTransactionWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.height(1.dp))
                         Text(
-                            text = "Transaction",
+                            text = LocalContext.current.getString(R.string.widget_add_subtitle),
                             style = TextStyle(
                                 color = GlanceTheme.colors.onPrimaryContainer,
                                 fontSize = 11.sp

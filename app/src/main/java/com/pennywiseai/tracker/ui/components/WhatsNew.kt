@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -113,7 +115,7 @@ fun WhatsNewDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("Got it")
+                Text(stringResource(R.string.whats_new_got_it))
             }
         }
     )

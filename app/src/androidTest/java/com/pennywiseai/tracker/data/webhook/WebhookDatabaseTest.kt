@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Rule
@@ -185,6 +186,39 @@ class WebhookDatabaseTest {
             }
         }
         instrumentation.targetContext.deleteDatabase(name)
+    }
+
+    @Test fun togglePreservesEditsAndDeliveryStatusCommittedBeforeItsWrite() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val profile = WebhookProfileEntity(id = "test-profile", name = "Original", url = "https://example.com/old")
+            val latest = profile.copy(name = "Edited", url = "https://example.com/new", currency = "USD",
+                dataTypes = "ACCOUNTS", lastSyncedAt = LocalDateTime.of(2026, 1, 1, 12, 0),
+                lastError = "HTTP 503", consecutiveFailures = 2)
+            val dao = db.webhookProfileDao()
+            dao.upsert(profile)
+            val interleaved = object : WebhookProfileDao by dao {
+                override suspend fun update(profile: WebhookProfileEntity) {
+                    dao.upsert(latest)
+                    dao.update(profile)
+                }
+                override suspend fun setEnabled(id: String, enabled: Boolean, at: LocalDateTime) {
+                    dao.upsert(latest)
+                    dao.setEnabled(id, enabled, at)
+                }
+            }
+            val repository = WebhookRepository(db, interleaved, db.webhookLogDao(), db.webhookCursorDao())
+            repository.setEnabled(profile.id, false)
+            val saved = requireNotNull(dao.byId(profile.id))
+            assertFalse(saved.enabled)
+            assertEquals(latest.name, saved.name)
+            assertEquals(latest.url, saved.url)
+            assertEquals(latest.currency, saved.currency)
+            assertEquals(latest.dataTypes, saved.dataTypes)
+            assertEquals(latest.lastSyncedAt, saved.lastSyncedAt)
+            assertEquals(latest.lastError, saved.lastError)
+            assertEquals(latest.consecutiveFailures, saved.consecutiveFailures)
+        } finally { db.close() }
     }
 
     @Test fun androidClientDeliversSyntheticJsonAndHeadersToLoopback() = runBlocking {

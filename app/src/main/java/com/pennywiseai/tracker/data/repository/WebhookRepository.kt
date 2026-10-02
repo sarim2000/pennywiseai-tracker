@@ -53,7 +53,7 @@ class WebhookRepository @Inject constructor(
         profiles.delete(id)
     }
     suspend fun setEnabled(id: String, enabled: Boolean) {
-        profiles.byId(id)?.let { profiles.update(it.copy(enabled = enabled, updatedAt = LocalDateTime.now())) }
+        profiles.setEnabled(id, enabled, LocalDateTime.now())
     }
     suspend fun getCursors(id: String) = cursors.forProfile(id)
     suspend fun appendLog(log: WebhookLogEntity) = database.withTransaction {

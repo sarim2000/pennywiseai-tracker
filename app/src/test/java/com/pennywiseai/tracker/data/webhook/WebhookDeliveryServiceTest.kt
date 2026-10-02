@@ -340,13 +340,13 @@ class WebhookDeliveryServiceTest {
         }
     }
     @Test
-    fun `cross origin GET redirect strips credentials`() = runBlocking {
+    fun `Apps Script response redirect strips credentials`() = runBlocking {
         val requests = mutableListOf<HttpRequestData>()
         val service = service(requests) { request ->
-            if (request.url.host == "example.com") respond("", HttpStatusCode.Found,
-                headersOf(HttpHeaders.Location, "https://other.example/result")) else jsonOk()
+            if (request.url.host == "script.google.com") respond("", HttpStatusCode.Found,
+                headersOf(HttpHeaders.Location, "https://script.googleusercontent.com/macros/echo?key=synthetic")) else jsonOk()
         }
-        assertTrue(service.deliver("https://example.com/hook", listOf(WebhookHeader("Authorization", "synthetic-token")), sampleEnvelope).success)
+        assertTrue(service.deliver("https://script.google.com/macros/s/X/exec", listOf(WebhookHeader("Authorization", "synthetic-token")), sampleEnvelope).success)
         assertEquals("synthetic-token", requests[0].headers["Authorization"])
         assertNull(requests[1].headers["Authorization"])
         assertEquals(HttpMethod.Get, requests[1].method)
@@ -360,6 +360,57 @@ class WebhookDeliveryServiceTest {
             assertFalse(service.deliver("https://example.com/hook", emptyList(), sampleEnvelope).success)
             assertEquals(1, requests.size)
         }
+    }
+
+    @Test
+    fun `generic 302 and 303 never acknowledge a bodyless followup`() = runBlocking {
+        for (status in listOf(HttpStatusCode.Found, HttpStatusCode.SeeOther)) {
+            for (target in listOf("https://example.com/result", "https://other.example/result",
+                "https://script.googleusercontent.com/macros/echo?key=synthetic")) {
+                val requests = mutableListOf<HttpRequestData>()
+                val service = service(requests) { request ->
+                    if (request.url.encodedPath == "/hook") respond("", status, headersOf(HttpHeaders.Location, target))
+                    else jsonOk()
+                }
+                val result = service.deliver("https://example.com/hook", emptyList(), sampleEnvelope)
+                assertFalse(result.success)
+                assertFalse(result.retryable)
+                assertEquals(1, requests.size)
+            }
+        }
+    }
+
+    @Test
+    fun `Apps Script cannot acknowledge login redirects or a second GET redirect`() = runBlocking {
+        for (target in listOf("https://accounts.google.com/login", "https://script.googleusercontent.com/not-content",
+            "http://script.googleusercontent.com/macros/echo", "https://script.googleusercontent.com:8443/macros/echo")) {
+            val requests = mutableListOf<HttpRequestData>()
+            val service = service(requests) { respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, target)) }
+            assertFalse(service.deliver("https://script.google.com/macros/s/X/exec", emptyList(), sampleEnvelope).success)
+            assertEquals(1, requests.size)
+        }
+        for (status in listOf(HttpStatusCode.MovedPermanently, HttpStatusCode.Found, HttpStatusCode.SeeOther,
+            HttpStatusCode.TemporaryRedirect, HttpStatusCode.PermanentRedirect)) {
+            val requests = mutableListOf<HttpRequestData>()
+            val service = service(requests) { request ->
+                respond("", if (request.method == HttpMethod.Post) HttpStatusCode.Found else status,
+                    headersOf(HttpHeaders.Location, if (request.method == HttpMethod.Post)
+                        "https://script.googleusercontent.com/macros/echo?key=synthetic" else "https://example.com/login"))
+            }
+            assertFalse(service.deliver("https://script.google.com/macros/s/X/exec", emptyList(), sampleEnvelope).success)
+            assertEquals(2, requests.size)
+        }
+    }
+
+    @Test
+    fun `oversized envelopes fail before any request and are not retried`() = runBlocking {
+        val requests = mutableListOf<HttpRequestData>()
+        val service = service(requests) { jsonOk() }
+        val result = service.deliver("https://example.com/hook", emptyList(),
+            sampleEnvelope.copy(profile = WebhookProfileInfo("synthetic", "x".repeat(1024 * 1024))))
+        assertFalse(result.success)
+        assertFalse(result.retryable)
+        assertTrue(requests.isEmpty())
     }
 
     @Test

@@ -61,13 +61,21 @@ class WebhookPayloadBuilder @Inject constructor(
         val budgetPayloads = if (WebhookDataType.BUDGETS in types) budgetPayloads(profile.currency, now.toLocalDate()) else emptyList()
         val accountPayloads = if (WebhookDataType.ACCOUNTS in types) accountPayloads(profile.currency) else emptyList()
         val subscriptionPayloads = if (WebhookDataType.SUBSCRIPTIONS in types) subscriptionPayloads(profile.currency) else emptyList()
-        val batches = rows.chunked(250).ifEmpty { listOf(emptyList()) }
+        val transactionsByBatch = rows.chunked(250)
+        val budgetsByBatch = budgetPayloads.chunked(250)
+        val accountsByBatch = accountPayloads.chunked(250)
+        val subscriptionsByBatch = subscriptionPayloads.chunked(250)
+        val batchCount = maxOf(1, transactionsByBatch.size, budgetsByBatch.size, accountsByBatch.size, subscriptionsByBatch.size)
         val batchId = UUID.randomUUID().toString()
         // A date-range export must not advance the updated-at cursor used by incremental exports.
         val updates = if (profile.rangePreset == WebhookRangePreset.SINCE_LAST_SUCCESS) {
             types.map { WebhookCursorUpdate(it, now, range.end) }
         } else emptyList()
-        return batches.mapIndexed { index, batch ->
+        return (0 until batchCount).map { index ->
+            val batch = transactionsByBatch.getOrNull(index).orEmpty()
+            val budgetBatch = budgetsByBatch.getOrNull(index).orEmpty()
+            val accountBatch = accountsByBatch.getOrNull(index).orEmpty()
+            val subscriptionBatch = subscriptionsByBatch.getOrNull(index).orEmpty()
             WebhookBatchPayload(
                 envelope = WebhookEnvelope(
                     generatedAt = now.toString(),
@@ -75,17 +83,16 @@ class WebhookPayloadBuilder @Inject constructor(
                     profile = WebhookProfileInfo(profile.id, profile.name),
                     request = WebhookRequestInfo(range.preset.name.lowercase(), range.start.toString(), range.end.toString(),
                         profile.currency, types.map { it.name.lowercase() }),
-                    batch = WebhookBatchInfo(batchId, index + 1, batches.size),
+                    batch = WebhookBatchInfo(batchId, index + 1, batchCount),
                     summary = if (index == 0) summary else null,
                     transactions = batch,
-                    budgets = if (index == 0) budgetPayloads else emptyList(),
-                    accounts = if (index == 0) accountPayloads else emptyList(),
-                    subscriptions = if (index == 0) subscriptionPayloads else emptyList()
+                    budgets = budgetBatch,
+                    accounts = accountBatch,
+                    subscriptions = subscriptionBatch
                 ),
                 cursorUpdates = updates,
-                itemCount = batch.size + if (index == 0) {
-                    budgetPayloads.size + accountPayloads.size + subscriptionPayloads.size + if (summary != null) 1 else 0
-                } else 0
+                itemCount = batch.size + budgetBatch.size + accountBatch.size + subscriptionBatch.size +
+                    if (index == 0 && summary != null) 1 else 0
             )
         }
     }
@@ -113,7 +120,7 @@ class WebhookPayloadBuilder @Inject constructor(
         accounts.getAllLatestBalances().first().filter { it.currency.equals(currency, true) }.map {
             WebhookAccountPayload("account_${it.bankName}_${it.accountLast4}", it.bankName, it.accountLast4,
                 it.balance.asPlainStringSafe(), it.currency, it.creditLimit?.asPlainStringSafe(), it.isCreditCard,
-                it.accountType.equals("CASH", true), it.timestamp.toString())
+                it.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER, it.timestamp.toString())
         }
 
     private suspend fun subscriptionPayloads(currency: String): List<WebhookSubscriptionPayload> =

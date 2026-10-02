@@ -5,7 +5,6 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.CancellationException
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -14,7 +13,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
-import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
@@ -38,9 +36,6 @@ class WebhookDeliveryService internal constructor(
     }
 
     private val client = HttpClient(engine) {
-        install(ContentNegotiation) {
-            json(json)
-        }
         followRedirects = false
         install(HttpTimeout) {
             requestTimeoutMillis = 30_000
@@ -57,11 +52,15 @@ class WebhookDeliveryService internal constructor(
         if (WebhookValidation.validateUrl(url) != null) {
             return WebhookAttemptResult(false, message = "Invalid endpoint URL")
         }
+        val body = json.encodeToString(WebhookEnvelope.serializer(), payload).toByteArray(Charsets.UTF_8)
+        if (body.size > MAX_PAYLOAD_BYTES) {
+            return WebhookAttemptResult(false, message = "Webhook payload exceeds the 1 MiB limit")
+        }
         val trimmedHeaders = headers.map { it.copy(key = it.key.trim()) }
         var lastError: WebhookAttemptResult? = null
         repeat(3) { attempt ->
             try {
-                val result = sendWithRedirects(url, trimmedHeaders, payload)
+                val result = sendWithRedirects(url, trimmedHeaders, body)
                 if (result.success) return result
                 lastError = result
             } catch (e: CancellationException) {
@@ -83,13 +82,13 @@ class WebhookDeliveryService internal constructor(
     }
 
     /**
-     * Manually follows up to [MAX_REDIRECTS] hops, downgrading POST→GET on 302/303
-     * (mirrors browser/OkHttp/curl) and stripping custom headers on cross-origin hops.
+     * Follows body-preserving redirects. Only Apps Script Content Service may redirect
+     * a processed POST to a GET response URL; generic GET redirects cannot acknowledge delivery.
      */
     private suspend fun sendWithRedirects(
         initialUrl: String,
         headers: List<WebhookHeader>,
-        payload: WebhookEnvelope
+        body: ByteArray
     ): WebhookAttemptResult {
         val originAuthority = authorityOf(initialUrl)
         var currentUrl = initialUrl
@@ -103,7 +102,7 @@ class WebhookDeliveryService internal constructor(
                 if (sameOrigin(currentUrl, originAuthority)) {
                     headers.forEach { header(it.key, it.value) }
                 }
-                if (includeBody) setBody(payload)
+                if (includeBody) setBody(body)
             }
             val status = response.status.value
             when {
@@ -113,6 +112,9 @@ class WebhookDeliveryService internal constructor(
                     message = "Delivered (HTTP $status)"
                 )
                 status in 300..399 -> {
+                    if (!includeBody) {
+                        return WebhookAttemptResult(false, status, "Response redirect did not acknowledge webhook delivery")
+                    }
                     val location = response.headers[HttpHeaders.Location]
                         ?: return WebhookAttemptResult(
                             success = false,
@@ -120,9 +122,13 @@ class WebhookDeliveryService internal constructor(
                             message = "HTTP $status without Location header",
                             retryable = false
                         )
+                    val nextUrl = java.net.URI(currentUrl).resolve(location).toString()
                     when (status) {
                         HttpStatusCode.Found.value,
                         HttpStatusCode.SeeOther.value -> {
+                            if (!isAppsScriptResponseRedirect(currentUrl, nextUrl)) {
+                                return WebhookAttemptResult(false, status, "Redirect did not acknowledge webhook delivery")
+                            }
                             method = HttpMethod.Get
                             includeBody = false
                         }
@@ -136,7 +142,6 @@ class WebhookDeliveryService internal constructor(
                             retryable = false
                         )
                     }
-                    val nextUrl = java.net.URI(currentUrl).resolve(location).toString()
                     if (WebhookValidation.validateUrl(nextUrl) != null ||
                         (Url(currentUrl).protocol.name == "https" && Url(nextUrl).protocol.name != "https")) {
                         return WebhookAttemptResult(false, status, "Unsafe redirect rejected")
@@ -168,11 +173,20 @@ class WebhookDeliveryService internal constructor(
         return currentAuthority.equals(originAuthority, ignoreCase = true)
     }
 
+    private fun isAppsScriptResponseRedirect(from: String, to: String): Boolean {
+        val source = Url(from)
+        val target = Url(to)
+        return source.protocol.name == "https" && source.port == 443 && source.host == "script.google.com" &&
+            source.encodedPath.matches(Regex("/macros/s/[^/]+/exec")) &&
+            target.protocol.name == "https" && target.port == 443 && target.host == "script.googleusercontent.com" &&
+            target.encodedPath == "/macros/echo"
+    }
+
     private fun authorityOf(url: String): String? =
         runCatching { Url(url).let { "${it.protocol.name}://${it.host}:${it.port}" } }.getOrNull()
 
     private companion object {
-        // Matches OkHttp's default redirect cap.
         const val MAX_REDIRECTS = 5
+        const val MAX_PAYLOAD_BYTES = 1024 * 1024
     }
 }

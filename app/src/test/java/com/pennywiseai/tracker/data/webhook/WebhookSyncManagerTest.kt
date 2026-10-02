@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.webhook
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import io.mockk.*
+import io.ktor.client.engine.mock.respond
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -53,6 +54,21 @@ class WebhookSyncManagerTest {
         coEvery { delivery.deliver(any(), any(), any()) } returns WebhookAttemptResult(true, 200, "Delivered")
         manager.syncProfile(profile.id, WebhookSyncReason.TEST, true)
         coVerify(exactly = 1) { delivery.deliver(profile.url, any(), any()) }
+        coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
+        coVerify(exactly = 0) { repository.recordDelivery(any(), any()) }
+    }
+
+    @Test fun `bodyless redirect never advances cursor or records a delivered receipt`() = runBlocking {
+        setup()
+        val client = WebhookDeliveryService(io.ktor.client.engine.mock.MockEngine {
+            if (it.url.encodedPath == "/hook") {
+                respond("", io.ktor.http.HttpStatusCode.Found,
+                    io.ktor.http.headersOf(io.ktor.http.HttpHeaders.Location, "https://example.com/result"))
+            } else respond("{}", io.ktor.http.HttpStatusCode.OK)
+        }, retryDelay = {})
+        val result = WebhookSyncManager(repository, builder, client).syncProfile(profile.id, WebhookSyncReason.MANUAL)
+        assertFalse(result.anySuccess)
+        assertFalse(result.anyRetryableFailure)
         coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
         coVerify(exactly = 0) { repository.recordDelivery(any(), any()) }
     }

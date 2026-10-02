@@ -16,6 +16,8 @@ interface WebhookProfileDao {
     @Query("SELECT * FROM webhook_profiles WHERE id = :id") suspend fun byId(id: String): WebhookProfileEntity?
     @androidx.room.Upsert suspend fun upsert(profile: WebhookProfileEntity)
     @Update suspend fun update(profile: WebhookProfileEntity)
+    @Query("UPDATE webhook_profiles SET enabled = :enabled, updated_at = :at WHERE id = :id")
+    suspend fun setEnabled(id: String, enabled: Boolean, at: LocalDateTime)
     @Query("DELETE FROM webhook_profiles WHERE id = :id") suspend fun delete(id: String)
     @Query("UPDATE webhook_profiles SET last_synced_at = :at, last_error = NULL, consecutive_failures = 0, updated_at = :at WHERE id = :id") suspend fun markSuccess(id: String, at: LocalDateTime)
     @Query("UPDATE webhook_profiles SET last_error = :error, consecutive_failures = consecutive_failures + 1, updated_at = :at WHERE id = :id") suspend fun markFailure(id: String, error: String, at: LocalDateTime)

@@ -34,3 +34,13 @@ interface WebhookCursorDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(cursor: WebhookCursorEntity)
     @Query("DELETE FROM webhook_cursors WHERE profile_id = :profileId") suspend fun deleteForProfile(profileId: String)
 }
+
+@Dao
+interface WebhookDeliveredTransactionDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(receipt: WebhookDeliveredTransactionEntity)
+    @Query("DELETE FROM webhook_delivered_transactions WHERE profile_id = :profileId AND transaction_id = :transactionId")
+    suspend fun delete(profileId: String, transactionId: Long)
+    @Query("DELETE FROM webhook_delivered_transactions WHERE profile_id = :profileId")
+    suspend fun deleteForProfile(profileId: String)
+}

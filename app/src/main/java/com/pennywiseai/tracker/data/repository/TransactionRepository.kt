@@ -28,8 +28,11 @@ open class TransactionRepository @Inject constructor(
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
-    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String) =
-        transactionDao.getWebhookChanges(start, end, currency)
+    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String) =
+        transactionDao.getWebhookChanges(start, end, currency, profileId)
+
+    suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String) =
+        transactionDao.getWebhookCurrencyRemovals(currency, profileId)
 
     fun getWebhookTransactions(start: LocalDateTime, end: LocalDateTime, currency: String) =
         transactionDao.getTransactionsFiltered(start, end, currency, null)

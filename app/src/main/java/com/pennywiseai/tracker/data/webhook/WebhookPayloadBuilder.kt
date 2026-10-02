@@ -30,20 +30,31 @@ class WebhookPayloadBuilder @Inject constructor(
         cursors: List<WebhookCursorEntity>,
         test: Boolean
     ): List<WebhookBatchPayload> {
+        return buildAt(profile, types, cursors, test, LocalDateTime.now())
+    }
+
+    internal suspend fun buildAt(
+        profile: WebhookProfileEntity,
+        types: Set<WebhookDataType>,
+        cursors: List<WebhookCursorEntity>,
+        test: Boolean,
+        time: LocalDateTime
+    ): List<WebhookBatchPayload> {
         // SQL mutation timestamps have millisecond precision; keep inclusive cursors at that precision too.
-        val now = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
+        val now = time.truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
         if (test) return listOf(testPayload(profile, types, now))
         val range = resolveWebhookRange(profile, types, cursors, now)
         val transactionRange = if (profile.rangePreset == WebhookRangePreset.SINCE_LAST_SUCCESS) {
-            range.copy(start = cursors.firstOrNull { it.dataType == WebhookDataType.TRANSACTIONS }?.lastSuccessAt ?: EPOCH)
+            range.copy(start = incrementalStart(cursors.firstOrNull { it.dataType == WebhookDataType.TRANSACTIONS }?.lastSuccessAt, now))
         } else range
         val rows = if (WebhookDataType.TRANSACTIONS in types) {
             val entities = if (range.preset == WebhookRangePreset.SINCE_LAST_SUCCESS) {
-                transactions.getWebhookChanges(transactionRange.start, transactionRange.end, profile.currency)
+                transactions.getWebhookChanges(transactionRange.start, transactionRange.end, profile.currency, profile.id)
             } else {
-                transactions.getWebhookTransactions(range.start, range.end, profile.currency).first()
+                transactions.getWebhookTransactions(range.start, range.end, profile.currency).first() +
+                    transactions.getWebhookCurrencyRemovals(profile.currency, profile.id)
             }
-            entities.map(::webhookTransactionPayload)
+            entities.map { webhookTransactionPayload(it, profile.currency) }
         } else emptyList()
         val summary = if (WebhookDataType.SUMMARY in types) summary(range, profile.currency) else null
         val budgetPayloads = if (WebhookDataType.BUDGETS in types) budgetPayloads(profile.currency, now.toLocalDate()) else emptyList()
@@ -141,7 +152,7 @@ internal fun resolveWebhookRange(
     val today = now.toLocalDate()
     val start = when (profile.rangePreset) {
         WebhookRangePreset.SINCE_LAST_SUCCESS -> types.minOfOrNull { type ->
-            cursors.firstOrNull { it.dataType == type }?.lastSuccessAt ?: EPOCH
+            incrementalStart(cursors.firstOrNull { it.dataType == type }?.lastSuccessAt, now)
         } ?: EPOCH
         WebhookRangePreset.TODAY -> today.atStartOfDay()
         WebhookRangePreset.CURRENT_WEEK -> today.startOfWeek().atStartOfDay()
@@ -158,8 +169,12 @@ internal fun resolveWebhookRange(
     return WebhookDateRange(profile.rangePreset, start, end)
 }
 
-internal fun webhookTransactionPayload(transaction: TransactionEntity): WebhookTransactionPayload =
-    if (transaction.isDeleted) WebhookTransactionPayload(id = "txn_${transaction.id}", action = "delete", updatedAt = transaction.updatedAt.toString())
+// A backward clock change invalidates timestamp cursors. Replay before committing a new cursor.
+private fun incrementalStart(cursor: LocalDateTime?, now: LocalDateTime): LocalDateTime =
+    if (cursor == null || cursor.isAfter(now)) EPOCH else cursor
+
+internal fun webhookTransactionPayload(transaction: TransactionEntity, currency: String = transaction.currency): WebhookTransactionPayload =
+    if (transaction.isDeleted || transaction.currency != currency) WebhookTransactionPayload(id = "txn_${transaction.id}", action = "delete", updatedAt = transaction.updatedAt.toString())
     else WebhookTransactionPayload("txn_${transaction.id}", "upsert", transaction.amount.asPlainStringSafe(), transaction.currency,
         transaction.merchantName, transaction.description, transaction.category, null, transaction.transactionType.name,
         transaction.dateTime.toString(), transaction.updatedAt.toString(), transaction.bankName, transaction.accountNumber?.takeLast(4))

@@ -8,7 +8,7 @@ idempotency, and limitations.
 
 ## Completed
 
-- Room schema 63, registered 62→63 migration, DAOs, converters, and Hilt wiring.
+- Room schema 64, registered 62→63 and 63→64 migrations, DAOs, converters, and Hilt wiring.
 - Create/edit/delete profiles, enable/disable, selected types and currency,
   predefined/custom ranges, masked custom headers, and delivery history.
 - Profile-specific synthetic tests, manual sync, and network-constrained
@@ -16,6 +16,8 @@ idempotency, and limitations.
   is cancelled. Both navigation roots are wired.
 - Incremental transaction updates and soft-delete tombstones, bounded by the
   captured sync time. Millisecond, inclusive cursors match SQL mutation timestamps.
+- Successful batches track delivered IDs for currency-change removals. Backward
+  clock changes replay retained records before resetting the cursor.
 - Cursor commits only after all batches succeed, and only if the profile's
   configuration has not changed during delivery. Profile edits preserve history.
 - Expense summary splits and analytics/credit-card preferences. Budgets use
@@ -27,12 +29,12 @@ idempotency, and limitations.
 
 ## Verification
 
-`./init.sh app` with JDK 21 and `:app:assembleStandardDebug` passed. There are 34 passing webhook unit tests.
+`./init.sh app` with JDK 21 and `:app:assembleDebug` passed. There are 37 passing webhook unit tests.
 Set `JAVA_HOME` to JDK 21 when the shell default uses an older JDK.
 
-Five instrumentation tests passed on the `Slim_Pixel` emulator, covering
-62→63 migration/data preservation, profile-edit history preservation and delete
-cascades, incremental queries, stale-config cursor protection, and Android
+Seven instrumentation tests passed on the `Slim_Pixel` emulator, covering
+62→64 and 63→64 migration/data preservation, profile-edit history preservation and delete
+cascades, incremental queries and currency removals, stale-config cursor protection, and Android
 client delivery of synthetic JSON/custom headers to a loopback receiver.
 Earlier migration/query tests also passed on the connected physical device.
 

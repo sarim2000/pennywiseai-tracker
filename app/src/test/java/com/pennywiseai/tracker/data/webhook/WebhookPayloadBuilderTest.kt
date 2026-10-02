@@ -35,7 +35,7 @@ class WebhookPayloadBuilderTest {
 
     @Test fun `incremental batching uses transaction cursor and a shared batch id`() = runBlocking {
         val cursorAt = LocalDateTime.now().minusHours(2)
-        coEvery { transactions.getWebhookChanges(cursorAt, any(), "INR") } returns (1L..251L).map {
+        coEvery { transactions.getWebhookChanges(cursorAt, any(), "INR", profile.id) } returns (1L..251L).map {
             TransactionEntity(id = it, amount = BigDecimal.ONE, merchantName = "Test merchant", category = "Food",
                 transactionType = TransactionType.EXPENSE, dateTime = cursorAt.minusYears(1), transactionHash = "test_$it")
         }
@@ -45,6 +45,35 @@ class WebhookPayloadBuilderTest {
         assertEquals(1, payloads.map { it.envelope.batch.id }.distinct().size)
         assertEquals(0, payloads.last().cursorUpdates.single().successAt.nano % 1_000_000)
         assertEquals(payloads.last().envelope.generatedAt, payloads.last().cursorUpdates.single().successAt.toString())
+    }
+
+    @Test fun `backward clock replays edits before the old cursor before resetting it`() = runBlocking {
+        val now = LocalDateTime.of(2026, 1, 1, 10, 0)
+        val oldCursor = now.plusHours(2)
+        val epoch = LocalDateTime.of(1970, 1, 1, 0, 0)
+        coEvery { transactions.getWebhookChanges(epoch, now, "INR", profile.id) } returns listOf(
+            TransactionEntity(id = 1, amount = BigDecimal.ONE, merchantName = "Test merchant", category = "Food",
+                transactionType = TransactionType.EXPENSE, dateTime = now.minusYears(1), transactionHash = "clock",
+                updatedAt = now.minusMinutes(1))
+        )
+        val payload = builder.buildAt(profile, setOf(WebhookDataType.TRANSACTIONS),
+            listOf(WebhookCursorEntity(profile.id, WebhookDataType.TRANSACTIONS, oldCursor)), false, now).single()
+        assertEquals(epoch.toString(), payload.envelope.request.start)
+        assertEquals("txn_1", payload.envelope.transactions.single().id)
+        assertEquals(now, payload.cursorUpdates.single().successAt)
+    }
+
+    @Test fun `currency removal contains no other currency financial details`() = runBlocking {
+        coEvery { transactions.getWebhookChanges(any(), any(), "INR", profile.id) } returns listOf(
+            TransactionEntity(id = 1, amount = BigDecimal.ONE, merchantName = "Test merchant", category = "Food",
+                currency = "USD", transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.now(), transactionHash = "currency")
+        )
+        val payload = builder.build(profile, setOf(WebhookDataType.TRANSACTIONS), emptyList(), false)
+            .single().envelope.transactions.single()
+        assertEquals("delete", payload.action)
+        assertNull(payload.currency)
+        assertNull(payload.amount)
+        assertNull(payload.merchant)
     }
 
     @Test fun `budget payload reports actual spending for resolved window in selected currency`() = runBlocking {

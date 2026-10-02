@@ -60,6 +60,17 @@ data class WebhookCursorEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: LocalDateTime = LocalDateTime.now()
 )
 
+@Entity(
+    tableName = "webhook_delivered_transactions",
+    primaryKeys = ["profile_id", "transaction_id"],
+    foreignKeys = [ForeignKey(entity = WebhookProfileEntity::class, parentColumns = ["id"], childColumns = ["profile_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("profile_id")]
+)
+data class WebhookDeliveredTransactionEntity(
+    @ColumnInfo(name = "profile_id") val profileId: String,
+    @ColumnInfo(name = "transaction_id") val transactionId: Long
+)
+
 enum class WebhookDataType { SUMMARY, TRANSACTIONS, BUDGETS, ACCOUNTS, SUBSCRIPTIONS }
 enum class WebhookLogStatus { SUCCESS, FAILURE }
 enum class WebhookRangePreset { SINCE_LAST_SUCCESS, TODAY, CURRENT_WEEK, CURRENT_MONTH, PREVIOUS_MONTH, LAST_30_DAYS, CUSTOM }

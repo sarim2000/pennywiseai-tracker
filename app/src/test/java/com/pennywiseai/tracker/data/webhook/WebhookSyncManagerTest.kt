@@ -35,6 +35,7 @@ class WebhookSyncManagerTest {
         val result = manager.syncProfile(profile.id, WebhookSyncReason.MANUAL)
         assertTrue(result.anyRetryableFailure)
         coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
+        coVerify(exactly = 1) { repository.recordDelivery(profile, any()) }
         coVerify(exactly = 1) { repository.markFailure(profile.id, "HTTP 503") }
     }
 
@@ -53,6 +54,7 @@ class WebhookSyncManagerTest {
         manager.syncProfile(profile.id, WebhookSyncReason.TEST, true)
         coVerify(exactly = 1) { delivery.deliver(profile.url, any(), any()) }
         coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
+        coVerify(exactly = 0) { repository.recordDelivery(any(), any()) }
     }
 
     @Test fun `disabled profile cannot send real data`() = runBlocking {

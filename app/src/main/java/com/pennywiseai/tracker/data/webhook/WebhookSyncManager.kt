@@ -65,6 +65,7 @@ class WebhookSyncManager @Inject constructor(
                 break
             }
             success = true
+            if (!test) repository.recordDelivery(profile, batch.envelope.transactions)
             updates += batch.cursorUpdates
         }
         if (completed && !test) repository.markSuccess(profile, LocalDateTime.now(), updates.distinctBy { it.dataType })

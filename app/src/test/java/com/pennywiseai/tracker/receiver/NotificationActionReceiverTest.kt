@@ -86,6 +86,7 @@ class NotificationActionReceiverTest {
         override fun recurringTransactionDao(): RecurringTransactionDao = error("unused")
         override fun webhookProfileDao(): WebhookProfileDao = error("unused")
         override fun webhookLogDao(): WebhookLogDao = error("unused")
+        override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
         override fun webhookCursorDao(): WebhookCursorDao = error("unused")
         override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper = error("unused")
         override fun createInvalidationTracker(): InvalidationTracker = error("unused")

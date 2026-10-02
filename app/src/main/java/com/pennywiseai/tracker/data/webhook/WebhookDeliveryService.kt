@@ -121,12 +121,12 @@ class WebhookDeliveryService internal constructor(
                             retryable = false
                         )
                     when (status) {
-                        HttpStatusCode.MovedPermanently.value,
                         HttpStatusCode.Found.value,
                         HttpStatusCode.SeeOther.value -> {
                             method = HttpMethod.Get
                             includeBody = false
                         }
+                        HttpStatusCode.MovedPermanently.value,
                         HttpStatusCode.TemporaryRedirect.value,
                         HttpStatusCode.PermanentRedirect.value -> Unit // preserve method + body
                         else -> return WebhookAttemptResult(

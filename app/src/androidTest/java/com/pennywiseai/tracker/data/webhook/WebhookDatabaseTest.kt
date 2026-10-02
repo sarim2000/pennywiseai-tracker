@@ -31,7 +31,7 @@ class WebhookDatabaseTest {
                 'synthetic', 0, '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
             close()
         }
-        helper.runMigrationsAndValidate(name, 63, true, PennyWiseDatabase.MIGRATION_62_63).use { db ->
+        helper.runMigrationsAndValidate(name, 64, true, PennyWiseDatabase.MIGRATION_62_63, PennyWiseDatabase.MIGRATION_63_64).use { db ->
             db.query("SELECT amount FROM transactions WHERE id = 1").use {
                 assertTrue(it.moveToFirst())
                 assertEquals("12.50", it.getString(0))
@@ -93,7 +93,66 @@ class WebhookDatabaseTest {
             repository.markSuccess(profile, now, listOf(WebhookCursorUpdate(WebhookDataType.TRANSACTIONS, now, now)))
             assertTrue(db.webhookCursorDao().forProfile(profile.id).isEmpty())
             assertNull(db.webhookProfileDao().byId(profile.id)?.lastSyncedAt)
+            repository.recordDelivery(profile, listOf(WebhookTransactionPayload("txn_1", "upsert", updatedAt = now.toString())))
+            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_delivered_transactions").use {
+                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+            }
         } finally { db.close() }
+    }
+
+    @Test fun currencyChangesRemoveOnlyPreviouslyDeliveredRowsAndRetainFailedBatchReceipts() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val profile = WebhookProfileEntity(id = "test-profile", name = "Test", url = "https://example.com")
+            db.webhookProfileDao().upsert(profile)
+            val repository = WebhookRepository(db, db.webhookProfileDao(), db.webhookLogDao(), db.webhookCursorDao())
+            val now = LocalDateTime.of(2026, 1, 1, 12, 0)
+            val row = TransactionEntity(id = 1, amount = BigDecimal.ONE, merchantName = "Test merchant", category = "Food",
+                transactionType = TransactionType.EXPENSE, dateTime = now, updatedAt = now, transactionHash = "currency")
+            db.transactionDao().insertTransaction(row)
+            // Disabling or changing filters after the POST does not undo its acceptance at the same receiver.
+            db.webhookProfileDao().upsert(profile.copy(enabled = false, dataTypes = "TRANSACTIONS"))
+            repository.recordDelivery(profile, listOf(webhookTransactionPayload(row)))
+            db.webhookProfileDao().upsert(profile)
+            // A later batch fails, so no cursor is committed. The successful receipt still matters.
+            db.transactionDao().updateTransaction(row.copy(currency = "USD", updatedAt = now.plusMinutes(1)))
+            db.transactionDao().insertTransaction(row.copy(id = 2, currency = "USD", transactionHash = "never-delivered"))
+            val changes = db.transactionDao().getWebhookChanges(now, now.plusHours(1), "INR", profile.id)
+            assertEquals(listOf(1L), changes.map { it.id })
+            assertTrue(db.transactionDao().getWebhookChanges(now, now.plusHours(1), "INR", "another-profile").isEmpty())
+            val removal = webhookTransactionPayload(changes.single(), "INR")
+            assertEquals("delete", removal.action)
+            assertNull(removal.amount)
+            assertNull(removal.currency)
+            assertEquals(listOf(1L), db.transactionDao().getWebhookCurrencyRemovals("INR", profile.id).map { it.id })
+            repository.recordDelivery(profile, listOf(removal))
+            assertTrue(db.transactionDao().getWebhookChanges(now, now.plusHours(1), "INR", profile.id).isEmpty())
+            // Moving back into INR is a normal upsert.
+            db.transactionDao().updateTransaction(row.copy(updatedAt = now.plusMinutes(2)))
+            assertEquals("upsert", webhookTransactionPayload(db.transactionDao()
+                .getWebhookChanges(now, now.plusHours(1), "INR", profile.id).single(), "INR").action)
+            repository.recordDelivery(profile, listOf(webhookTransactionPayload(row)))
+            db.webhookProfileDao().delete(profile.id)
+            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_delivered_transactions").use {
+                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+            }
+        } finally { db.close() }
+    }
+
+    @Test fun upgradeFrom63PreservesWebhookConfiguration() {
+        val name = "webhook-receipts-migration-test"
+        helper.createDatabase(name, 63).apply {
+            execSQL("""INSERT INTO webhook_profiles (id, name, url, range_preset, created_at, updated_at)
+                VALUES ('synthetic-profile', 'Test', 'https://example.com', 'SINCE_LAST_SUCCESS',
+                '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 64, true, PennyWiseDatabase.MIGRATION_63_64).use { db ->
+            db.query("SELECT name FROM webhook_profiles WHERE id = 'synthetic-profile'").use {
+                assertTrue(it.moveToFirst()); assertEquals("Test", it.getString(0))
+            }
+        }
+        instrumentation.targetContext.deleteDatabase(name)
     }
 
     @Test fun androidClientDeliversSyntheticJsonAndHeadersToLoopback() = runBlocking {

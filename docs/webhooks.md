@@ -36,6 +36,13 @@ partially completed run can deliver a transaction more than once, and an
 inclusive cursor boundary can repeat a row. Retry runs can have a new batch ID.
 Do not use batch IDs as the sole key for transaction deduplication.
 
+The app retains IDs from successful transaction batches, including batches in a
+partially failed run. If a delivered transaction changes currency, its former
+currency profile receives a deletion containing no financial details from the
+new currency. Transactions that were never delivered to that profile are not
+included in these removals. Changing an endpoint or profile currency clears
+this local delivery tracking; reconcile the former receiver separately.
+
 Any HTTP 2xx status is success; the response body has no required shape.
 Network failures, HTTP 429, and server errors are retried up to three times
 per delivery, followed by at most three WorkManager retries. Other HTTP errors
@@ -43,8 +50,8 @@ are recorded without immediate retry. Automatic sync will try again at the
 next interval. Cursors advance only after every batch succeeds. Tests never
 advance cursors.
 
-301/302/303 redirects use GET, supporting Google Apps Script response URLs.
-307/308 preserve the POST body only within the same origin. Custom headers
+302/303 redirects use GET, supporting Google Apps Script response URLs.
+301/307/308 preserve the POST body only within the same origin. Custom headers
 are stripped from cross-origin redirects. HTTPS cannot redirect to HTTP, and
 redirect chains are limited to five hops. Delivery error messages do not
 include URLs, response bodies, or header values.
@@ -54,6 +61,9 @@ include URLs, response bodies, or header values.
 - Since last success exports transactions by modification time, including edits
   to old transactions and soft-delete tombstones. The first run exports all
   retained transactions in the selected currency.
+- If the device clock moves behind a saved cursor, the next run replays retained
+  records through the new current time. Only after all batches succeed does it
+  reset the cursor to that time, so edits made after the clock change are included.
 - Other ranges export non-deleted transactions by their exact transaction
   timestamps. Changing the endpoint, currency, or range resets incremental
   cursors so the new configuration can receive its own initial export.

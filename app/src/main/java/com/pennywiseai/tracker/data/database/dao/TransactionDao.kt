@@ -9,8 +9,22 @@ import java.time.LocalDateTime
 
 @Dao
 interface TransactionDao {
-    @Query("SELECT * FROM transactions WHERE currency = :currency AND updated_at >= :start AND updated_at <= :end ORDER BY updated_at, id")
-    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String): List<TransactionEntity>
+    @Query("""
+        SELECT * FROM transactions
+        WHERE (currency = :currency AND updated_at >= :start AND updated_at <= :end)
+        OR (currency != :currency AND id IN (
+            SELECT transaction_id FROM webhook_delivered_transactions WHERE profile_id = :profileId
+        ))
+        ORDER BY updated_at, id
+    """)
+    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String = ""): List<TransactionEntity>
+
+    @Query("""
+        SELECT * FROM transactions WHERE currency != :currency AND id IN (
+            SELECT transaction_id FROM webhook_delivered_transactions WHERE profile_id = :profileId
+        ) ORDER BY updated_at, id
+    """)
+    suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String): List<TransactionEntity>
 
     
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")

@@ -49,6 +49,23 @@ class WebhookDeliveryServiceTest {
         respond(content = body, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
 
     @Test
+    fun `same origin 301 preserves POST and envelope`() = runBlocking {
+        val requests = mutableListOf<HttpRequestData>()
+        val service = service(requests) { request ->
+            if (request.url.encodedPath == "/hook") {
+                respond("", HttpStatusCode.MovedPermanently, headersOf(HttpHeaders.Location, "/hook/"))
+            } else {
+                assertEquals(HttpMethod.Post, request.method)
+                val body = (request.body as io.ktor.http.content.OutgoingContent.ByteArrayContent).bytes().decodeToString()
+                assertTrue(body.contains("profile-1"))
+                jsonOk()
+            }
+        }
+        assertTrue(service.deliver("https://example.com/hook", emptyList(), sampleEnvelope).success)
+        assertEquals(2, requests.size)
+    }
+
+    @Test
     fun `200 OK is treated as success regardless of body`() = runBlocking {
         val service = service { jsonOk(body = "<html>not json</html>") }
 

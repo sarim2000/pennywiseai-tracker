@@ -38,7 +38,7 @@ class WebhookRepository @Inject constructor(
             lastSyncedAt = old?.lastSyncedAt, createdAt = old?.createdAt ?: now, updatedAt = now
         )
         profiles.upsert(entity)
-        if (old != null && (old.url != entity.url || old.currency != entity.currency)) {
+        if (old != null && old.url != entity.url) {
             database.webhookDeliveredTransactionDao().deleteForProfile(id)
         }
         if (old != null && (old.url != entity.url || old.currency != entity.currency ||
@@ -71,7 +71,7 @@ class WebhookRepository @Inject constructor(
     suspend fun recordDelivery(profile: WebhookProfileEntity, transactions: List<WebhookTransactionPayload>) = database.withTransaction {
         val current = profiles.byId(profile.id) ?: return@withTransaction
         // The receiver already accepted this batch, even if delivery was disabled or filters changed meanwhile.
-        if (current.url != profile.url || current.currency != profile.currency) return@withTransaction
+        if (current.url != profile.url) return@withTransaction
         val receipts = database.webhookDeliveredTransactionDao()
         transactions.forEach { transaction ->
             val id = transaction.id.removePrefix("txn_").toLong()

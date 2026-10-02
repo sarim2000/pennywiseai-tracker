@@ -139,6 +139,38 @@ class WebhookDatabaseTest {
         } finally { db.close() }
     }
 
+    @Test fun profileCurrencyEditKeepsReceiptsIncludingInFlightBatchUntilRemovalsSucceed() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val profile = WebhookProfileEntity(id = "test-profile", name = "Test", url = "https://example.com")
+            db.webhookProfileDao().upsert(profile)
+            val repository = WebhookRepository(db, db.webhookProfileDao(), db.webhookLogDao(), db.webhookCursorDao())
+            val now = LocalDateTime.of(2026, 1, 1, 12, 0)
+            val row = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Test merchant", category = "Food",
+                transactionType = TransactionType.EXPENSE, dateTime = now, updatedAt = now, transactionHash = "profile-currency")
+            db.transactionDao().insertTransaction(row.copy(id = 1))
+            db.transactionDao().insertTransaction(row.copy(id = 2, transactionHash = "in-flight"))
+            repository.recordDelivery(profile, listOf(webhookTransactionPayload(row.copy(id = 1))))
+            db.webhookCursorDao().upsert(WebhookCursorEntity(profile.id, WebhookDataType.TRANSACTIONS, now))
+            val draft = WebhookProfileDraft(id = profile.id, name = profile.name, url = profile.url,
+                enabled = true, currency = "USD", dataTypes = setOf(WebhookDataType.TRANSACTIONS),
+                rangePreset = WebhookRangePreset.SINCE_LAST_SUCCESS, headers = emptyList())
+            repository.save(draft)
+            // The INR batch was already in flight when the profile switched to USD.
+            repository.recordDelivery(profile, listOf(webhookTransactionPayload(row.copy(id = 2))))
+            assertTrue(repository.getCursors(profile.id).isEmpty())
+            val removals = db.transactionDao().getWebhookChanges(now, now.plusHours(1), "USD", profile.id)
+            assertEquals(listOf(1L, 2L), removals.map { it.id })
+            val current = requireNotNull(repository.profile(profile.id))
+            repository.recordDelivery(current, removals.map { webhookTransactionPayload(it, "USD") })
+            assertTrue(db.transactionDao().getWebhookCurrencyRemovals("USD", profile.id).isEmpty())
+            // A new endpoint must not inherit the former receiver's delivery tracking.
+            repository.recordDelivery(current, listOf(webhookTransactionPayload(row.copy(id = 1))))
+            repository.save(draft.copy(url = "https://example.com/new"))
+            assertTrue(db.transactionDao().getWebhookCurrencyRemovals("USD", profile.id).isEmpty())
+        } finally { db.close() }
+    }
+
     @Test fun upgradeFrom63PreservesWebhookConfiguration() {
         val name = "webhook-receipts-migration-test"
         helper.createDatabase(name, 63).apply {

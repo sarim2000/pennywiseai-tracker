@@ -32,9 +32,9 @@ idempotency, and limitations.
 `./init.sh app` with JDK 21 and `:app:assembleDebug` passed. There are 37 passing webhook unit tests.
 Set `JAVA_HOME` to JDK 21 when the shell default uses an older JDK.
 
-Seven instrumentation tests passed on the `Slim_Pixel` emulator, covering
+Eight instrumentation tests passed on the `Slim_Pixel` emulator, covering
 62→64 and 63→64 migration/data preservation, profile-edit history preservation and delete
-cascades, incremental queries and currency removals, stale-config cursor protection, and Android
+cascades, incremental queries, transaction/profile currency removals, stale-config cursor protection, and Android
 client delivery of synthetic JSON/custom headers to a loopback receiver.
 Earlier migration/query tests also passed on the connected physical device.
 

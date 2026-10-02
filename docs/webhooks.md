@@ -40,8 +40,9 @@ The app retains IDs from successful transaction batches, including batches in a
 partially failed run. If a delivered transaction changes currency, its former
 currency profile receives a deletion containing no financial details from the
 new currency. Transactions that were never delivered to that profile are not
-included in these removals. Changing an endpoint or profile currency clears
-this local delivery tracking; reconcile the former receiver separately.
+included in these removals. Changing a profile's currency at the same endpoint
+retains delivery tracking so old-currency rows can be removed. Changing the
+endpoint clears tracking; reconcile the former receiver separately.
 
 Any HTTP 2xx status is success; the response body has no required shape.
 Network failures, HTTP 429, and server errors are retried up to three times

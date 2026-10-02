@@ -1,6 +1,7 @@
 # Webhook port status
 
-The webhook implementation is on `feat/webhook-sync`. It uses Cashiro as a
+The webhook implementation is on `feat/webhook-sync`, with the upstream contribution
+on `feat/webhook-sync-upstream`. It uses Cashiro as a
 reference, with PennyWise's current budget and transaction semantics.
 
 See [webhooks.md](webhooks.md) for setup, payloads, scheduling, receiver
@@ -29,7 +30,7 @@ idempotency, and limitations.
 
 ## Verification
 
-`./init.sh app` with JDK 21 and `:app:assembleDebug` passed. There are 37 passing webhook unit tests.
+`./init.sh` with JDK 21 and `:app:assembleDebug` passed. There are 38 passing webhook unit tests.
 Set `JAVA_HOME` to JDK 21 when the shell default uses an older JDK.
 
 Eight instrumentation tests passed on the `Slim_Pixel` emulator, covering

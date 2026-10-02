@@ -69,7 +69,8 @@ include URLs, response bodies, or header values.
   timestamps. Changing the endpoint, currency, or range resets incremental
   cursors so the new configuration can receive its own initial export.
 - Summary income and expense respect analytics exclusions and the credit-card
-  expense preference. Expense category amounts use transaction splits.
+  expense preference. Loan-linked transactions are excluded from totals.
+  Expense category amounts use transaction splits.
   Transfers and investments are excluded from the expense summary.
 - Budgets use current active budget windows and PennyWise's existing spending
   calculation, including currency, category, split, and refund rules.

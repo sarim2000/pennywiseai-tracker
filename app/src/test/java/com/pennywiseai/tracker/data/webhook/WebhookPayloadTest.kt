@@ -48,6 +48,18 @@ class WebhookPayloadTest {
         assertEquals(now, range.end)
     }
 
+    @Test fun `summary excludes loan linked income and expense from totals`() {
+        val rows = listOf(
+            TransactionWithSplits(transaction(1, TransactionType.INCOME, "200"), emptyList()),
+            TransactionWithSplits(transaction(2, TransactionType.EXPENSE, "50"), emptyList()),
+            TransactionWithSplits(transaction(3, TransactionType.INCOME, "900").copy(loanId = 1), emptyList()),
+            TransactionWithSplits(transaction(4, TransactionType.EXPENSE, "800").copy(loanId = 1), emptyList()))
+        val summary = webhookSummary(rows, "INR", false)
+        assertEquals("200", summary.totalIncome)
+        assertEquals("50", summary.totalExpense)
+        assertEquals("150", summary.netAmount)
+    }
+
     @Test fun `previous month handles year boundary and includes last instant`() {
         val range = resolveWebhookRange(WebhookProfileEntity(name = "Test", url = "https://example.com", rangePreset = WebhookRangePreset.PREVIOUS_MONTH),
             emptySet(), emptyList(), LocalDateTime.of(2026, 1, 1, 12, 0))

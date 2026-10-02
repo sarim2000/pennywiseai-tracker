@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.*
+import com.pennywiseai.tracker.utils.countsInTotals
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -91,7 +92,6 @@ class WebhookPayloadBuilder @Inject constructor(
 
     private suspend fun summary(range: WebhookDateRange, currency: String): WebhookSummaryPayload {
         val rows = splits.getTransactionsWithSplitsFiltered(range.start, range.end, currency).first()
-            .filterNot { it.transaction.excludedFromAnalytics }
         return webhookSummary(rows, currency, preferences.countCreditCardAsExpense.first())
     }
 
@@ -180,7 +180,7 @@ internal fun webhookTransactionPayload(transaction: TransactionEntity, currency:
         transaction.dateTime.toString(), transaction.updatedAt.toString(), transaction.bankName, transaction.accountNumber?.takeLast(4))
 
 internal fun webhookSummary(rows: List<TransactionWithSplits>, currency: String, countCredit: Boolean): WebhookSummaryPayload {
-    val selected = rows.filter { it.transaction.currency == currency && !it.transaction.isDeleted && !it.transaction.excludedFromAnalytics }
+    val selected = rows.filter { it.transaction.currency == currency && !it.transaction.isDeleted && it.transaction.countsInTotals() }
     val income = selected.filter { it.transaction.transactionType == TransactionType.INCOME }.sumOf { it.transaction.amount }
     val expenses = selected.filter { it.transaction.transactionType == TransactionType.EXPENSE ||
         (countCredit && it.transaction.transactionType == TransactionType.CREDIT) }

@@ -71,7 +71,7 @@ class WebhookPayloadBuilder @Inject constructor(
         val updates = if (profile.rangePreset == WebhookRangePreset.SINCE_LAST_SUCCESS) {
             types.map { WebhookCursorUpdate(it, now, range.end) }
         } else emptyList()
-        return (0 until batchCount).map { index ->
+        val batches = (0 until batchCount).map { index ->
             val batch = transactionsByBatch.getOrNull(index).orEmpty()
             val budgetBatch = budgetsByBatch.getOrNull(index).orEmpty()
             val accountBatch = accountsByBatch.getOrNull(index).orEmpty()
@@ -95,6 +95,40 @@ class WebhookPayloadBuilder @Inject constructor(
                     if (index == 0 && summary != null) 1 else 0
             )
         }
+        val sized = batches.flatMap { splitBySize(it.envelope) }
+        return sized.mapIndexed { index, envelope ->
+            val numbered = envelope.copy(batch = envelope.batch.copy(index = index + 1, count = sized.size))
+            WebhookBatchPayload(numbered, updates, itemCount(numbered))
+        }
+    }
+
+    private fun itemCount(envelope: WebhookEnvelope): Int =
+        envelope.transactions.size + envelope.budgets.size + envelope.accounts.size +
+            envelope.subscriptions.size + if (envelope.summary != null) 1 else 0
+
+    private fun splitBySize(envelope: WebhookEnvelope): List<WebhookEnvelope> {
+        // Reserve the largest possible numbering before splitting so final numbering cannot exceed the limit.
+        val reserved = envelope.copy(batch = envelope.batch.copy(index = Int.MAX_VALUE, count = Int.MAX_VALUE))
+        if (WebhookPayloadEncoding.encode(reserved).size <= WebhookPayloadEncoding.MAX_BYTES || itemCount(envelope) <= 1) {
+            return listOf(envelope)
+        }
+        var remaining = itemCount(envelope) / 2
+        val leftSummary = if (envelope.summary != null && remaining > 0) envelope.summary else null
+        if (leftSummary != null) remaining--
+        fun <T> partition(rows: List<T>): Pair<List<T>, List<T>> {
+            val count = minOf(remaining, rows.size)
+            remaining -= count
+            return rows.take(count) to rows.drop(count)
+        }
+        val (leftTransactions, rightTransactions) = partition(envelope.transactions)
+        val (leftBudgets, rightBudgets) = partition(envelope.budgets)
+        val (leftAccounts, rightAccounts) = partition(envelope.accounts)
+        val (leftSubscriptions, rightSubscriptions) = partition(envelope.subscriptions)
+        val left = envelope.copy(summary = leftSummary, transactions = leftTransactions, budgets = leftBudgets,
+            accounts = leftAccounts, subscriptions = leftSubscriptions)
+        val right = envelope.copy(summary = if (leftSummary == null) envelope.summary else null,
+            transactions = rightTransactions, budgets = rightBudgets, accounts = rightAccounts, subscriptions = rightSubscriptions)
+        return splitBySize(left) + splitBySize(right)
     }
 
     private suspend fun summary(range: WebhookDateRange, currency: String): WebhookSummaryPayload {

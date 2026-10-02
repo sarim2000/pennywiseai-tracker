@@ -76,6 +76,27 @@ class WebhookPayloadBuilderTest {
         assertNull(payload.merchant)
     }
 
+    @Test fun `byte sized batches preserve large multibyte records and summary without stalling`() = runBlocking {
+        val now = LocalDateTime.of(2026, 1, 1, 12, 0)
+        coEvery { transactions.getWebhookChanges(any(), any(), "INR", profile.id) } returns (1L..250L).map {
+            TransactionEntity(id = it, amount = BigDecimal.ONE, merchantName = "Test", category = "Food",
+                transactionType = TransactionType.EXPENSE, dateTime = now, transactionHash = "large_$it",
+                description = "界".repeat(2000))
+        }
+        every { splits.getTransactionsWithSplitsFiltered(any(), any(), "INR") } returns flowOf(emptyList())
+        every { preferences.countCreditCardAsExpense } returns flowOf(false)
+        val batches = builder.buildAt(profile, setOf(WebhookDataType.TRANSACTIONS, WebhookDataType.SUMMARY), emptyList(), false, now)
+        assertTrue(batches.size > 1)
+        assertTrue(batches.all { WebhookPayloadEncoding.encode(it.envelope).size <= WebhookPayloadEncoding.MAX_BYTES })
+        assertEquals((1L..250L).map { "txn_$it" }, batches.flatMap { it.envelope.transactions }.map { it.id })
+        assertEquals((1..batches.size).toList(), batches.map { it.envelope.batch.index })
+        assertTrue(batches.all { it.envelope.batch.count == batches.size })
+        assertEquals(1, batches.map { it.envelope.batch.id }.distinct().size)
+        assertEquals(251, batches.sumOf { it.itemCount })
+        assertNotNull(batches.first().envelope.summary)
+        assertTrue(batches.drop(1).all { it.envelope.summary == null })
+    }
+
     @Test fun `wallet marker is exported independently of cash account type`() = runBlocking {
         val now = LocalDateTime.of(2026, 1, 1, 12, 0)
         every { accounts.getAllLatestBalances() } returns flowOf(listOf(

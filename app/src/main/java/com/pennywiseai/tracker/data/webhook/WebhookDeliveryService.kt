@@ -16,7 +16,6 @@ import io.ktor.http.Url
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
-import kotlinx.serialization.json.Json
 
 @Singleton
 class WebhookDeliveryService internal constructor(
@@ -27,13 +26,6 @@ class WebhookDeliveryService internal constructor(
         engine = Android.create(),
         retryDelay = { attempt -> delay(1_000L shl attempt) }
     )
-
-    private val json = Json {
-        encodeDefaults = true
-        ignoreUnknownKeys = true
-        isLenient = true
-        explicitNulls = false
-    }
 
     private val client = HttpClient(engine) {
         followRedirects = false
@@ -52,8 +44,8 @@ class WebhookDeliveryService internal constructor(
         if (WebhookValidation.validateUrl(url) != null) {
             return WebhookAttemptResult(false, message = "Invalid endpoint URL")
         }
-        val body = json.encodeToString(WebhookEnvelope.serializer(), payload).toByteArray(Charsets.UTF_8)
-        if (body.size > MAX_PAYLOAD_BYTES) {
+        val body = WebhookPayloadEncoding.encode(payload)
+        if (body.size > WebhookPayloadEncoding.MAX_BYTES) {
             return WebhookAttemptResult(false, message = "Webhook payload exceeds the 1 MiB limit")
         }
         val trimmedHeaders = headers.map { it.copy(key = it.key.trim()) }
@@ -187,6 +179,5 @@ class WebhookDeliveryService internal constructor(
 
     private companion object {
         const val MAX_REDIRECTS = 5
-        const val MAX_PAYLOAD_BYTES = 1024 * 1024
     }
 }

@@ -26,11 +26,12 @@ idempotency, and limitations.
 - Bounded retries, cancellation propagation, request timeouts, safe redirect
   handling, credential-free error messages, and explicit schema/default JSON fields.
 - HTTPS for remote endpoints; loopback HTTP for local tests.
+- Count and UTF-8 byte limits split large batches before delivery without dropping records.
 - Validation errors beside Save and independent editor/list/history scroll state.
 
 ## Verification
 
-`./init.sh` with JDK 21 and `:app:assembleDebug` passed. The follow-up `./init.sh app` gate passed with 44 webhook unit tests.
+`./init.sh` with JDK 21 and `:app:assembleDebug` passed. The follow-up `./init.sh app` gate passed with 45 webhook unit tests.
 Set `JAVA_HOME` to JDK 21 when the shell default uses an older JDK.
 
 Nine instrumentation tests passed on the `Slim_Pixel` emulator, covering

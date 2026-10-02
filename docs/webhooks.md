@@ -27,7 +27,9 @@ The envelope contains `schema_version`, `generated_at`, `app`, `profile`,
 `request`, `batch`, and selected `summary`, `transactions`, `budgets`, `accounts`,
 and `subscriptions` sections. Each batch contains at most 250 records per
 transaction, budget, account, or subscription section. Requests larger than
-1 MiB are rejected locally without retrying or advancing cursors.
+1 MiB are split further by their encoded UTF-8 size. If one record or the
+envelope metadata alone exceeds 1 MiB, delivery fails locally without
+retrying or advancing cursors.
 All batches in a run share `batch.id`, with one-based `batch.index` and
 `batch.count`. Summary appears only in the first batch. For selected budget,
 account, and subscription snapshots, accumulate each section across every

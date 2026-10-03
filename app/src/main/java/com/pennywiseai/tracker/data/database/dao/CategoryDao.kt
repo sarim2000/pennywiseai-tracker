@@ -94,4 +94,52 @@ interface CategoryDao {
     
     @Query("DELETE FROM categories")
     suspend fun deleteAllCategories()
+
+    // --- Rename (#823) ------------------------------------------------------
+    // Seven tables store a category by *name*, not id, so renaming only the
+    // categories row left every existing reference pointing at a name that no
+    // longer exists. Budget rows are only renamed when they track a category
+    // (match_type IS NULL); otherwise category_name is just a type's label.
+
+    @Query("UPDATE transactions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInTransactions(oldName: String, newName: String)
+
+    @Query("UPDATE transactions SET budget_category = :newName WHERE budget_category = :oldName")
+    suspend fun renameInTransactionBudgetCategory(oldName: String, newName: String)
+
+    @Query("UPDATE transaction_splits SET category = :newName WHERE category = :oldName")
+    suspend fun renameInSplits(oldName: String, newName: String)
+
+    // OR IGNORE + delete: a budget that somehow already lists newName keeps that
+    // row rather than violating the (budget_id, category_name) unique index.
+    @Query("UPDATE OR IGNORE budget_categories SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
+    suspend fun renameInBudgetCategories(oldName: String, newName: String)
+
+    @Query("DELETE FROM budget_categories WHERE category_name = :oldName AND match_type IS NULL")
+    suspend fun deleteStaleBudgetCategories(oldName: String)
+
+    @Query("UPDATE budget_category_month_snapshots SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
+    suspend fun renameInBudgetSnapshots(oldName: String, newName: String)
+
+    @Query("UPDATE merchant_mappings SET category = :newName WHERE category = :oldName")
+    suspend fun renameInMerchantMappings(oldName: String, newName: String)
+
+    @Query("UPDATE recurring_transactions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInRecurring(oldName: String, newName: String)
+
+    @Query("UPDATE subscriptions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInSubscriptions(oldName: String, newName: String)
+
+    /** Points every stored reference to [oldName] at [newName]. Call inside a transaction. */
+    suspend fun renameReferences(oldName: String, newName: String) {
+        renameInTransactions(oldName, newName)
+        renameInTransactionBudgetCategory(oldName, newName)
+        renameInSplits(oldName, newName)
+        renameInBudgetCategories(oldName, newName)
+        deleteStaleBudgetCategories(oldName)
+        renameInBudgetSnapshots(oldName, newName)
+        renameInMerchantMappings(oldName, newName)
+        renameInRecurring(oldName, newName)
+        renameInSubscriptions(oldName, newName)
+    }
 }

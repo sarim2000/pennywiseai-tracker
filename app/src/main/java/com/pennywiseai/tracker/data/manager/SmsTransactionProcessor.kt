@@ -27,6 +27,8 @@ import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
 import java.time.Instant
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.LocalDateTime
 import java.time.ZoneId
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -52,6 +54,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val database: PennyWiseDatabase
 ) {
     companion object {
+        private val saveLock = Mutex()
+
         private const val TAG = "SmsTransactionProcessor"
     }
 
@@ -119,8 +123,11 @@ class SmsTransactionProcessor @Inject constructor(
     suspend fun saveParsedTransaction(
         parsedTransaction: ParsedTransaction,
         smsBody: String
-    ): ProcessingResult {
-        return try {
+    ): ProcessingResult = saveLock.withLock {
+        // One lock across the SMS receiver and the notification listener: a bank
+        // that texts and pushes at the same moment would otherwise let both pass
+        // the duplicate check before either insert lands.
+        try {
             // Convert to entity
             val entity = parsedTransaction.toEntity()
 
@@ -159,18 +166,21 @@ class SmsTransactionProcessor @Inject constructor(
                 return ProcessingResult(false, reason = "Duplicate transaction")
             }
 
-            // Same charge already booked from the bank's app notification.
-            val nearby = transactionRepository.getTransactionByAmountAndDate(
-                entity.amount,
-                entity.dateTime.minusMinutes(2),
-                entity.dateTime.plusMinutes(2)
-            )
-            if (TransactionDeduplication.isBookedByNotification(
-                    entity, nearby, BankNotificationConfig.notificationAliases
+            // Same charge already booked from the bank's other channel (SMS vs app
+            // notification). Runs under saveLock, together with the insert below.
+            if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    entity.amount,
+                    entity.dateTime.minusMinutes(2),
+                    entity.dateTime.plusMinutes(2)
                 )
-            ) {
-                Log.d(TAG, "Already booked from a notification: ${entity.transactionHash}")
-                return ProcessingResult(false, reason = "Duplicate transaction")
+                if (TransactionDeduplication.isBookedByOtherChannel(
+                        entity, nearby, BankNotificationConfig.notificationAliases
+                    )
+                ) {
+                    Log.d(TAG, "Already booked from the other channel: ${entity.transactionHash}")
+                    return ProcessingResult(false, reason = "Duplicate transaction")
+                }
             }
 
             // Check for custom merchant mapping

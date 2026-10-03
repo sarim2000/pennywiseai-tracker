@@ -44,22 +44,27 @@ object TransactionDeduplication {
     }
 
     /**
-     * SMS side of the cross-channel check. When a bank both texts and pushes an
-     * app notification, whichever arrives second must not book the charge again.
-     * The notification listener already checks nearby rows before saving; this is
-     * the same check for an SMS arriving after the notification. The two carry
-     * different senders (shortcode vs app alias), so their hashes never match.
+     * Cross-channel check: when a bank both texts and pushes an app notification
+     * for the same charge, whichever is saved second must not book it again. The
+     * two carry different senders (shortcode vs app alias), so their hashes never
+     * match. Callers run this inside the same lock as the insert, so an SMS and a
+     * notification arriving together can't both pass before either is saved.
      *
-     * Only rows booked from a notification count: two identical SMS charges a
-     * minute apart are two real purchases and must both be kept.
+     * Only a row from the *other* channel counts — two identical SMS charges a
+     * minute apart are two real purchases — and the accounts must agree, so an
+     * equal withdrawal from a different account is kept.
      */
-    fun isBookedByNotification(
+    fun isBookedByOtherChannel(
         incoming: TransactionEntity,
         nearby: List<TransactionEntity>,
         notificationAliases: Set<String>
     ): Boolean {
-        if (incoming.smsSender in notificationAliases) return false
-        return nearby.any { it.smsSender in notificationAliases && isSameCharge(it, incoming) }
+        val incomingIsNotification = incoming.smsSender in notificationAliases
+        return nearby.any {
+            (it.smsSender in notificationAliases) != incomingIsNotification &&
+                isSameCharge(it, incoming) &&
+                accountsMatch(it.accountNumber, incoming.accountNumber)
+        }
     }
 
     fun shouldReplaceWithIncoming(

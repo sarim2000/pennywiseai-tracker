@@ -737,17 +737,20 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
 
-            // Same charge already booked from the bank's app notification.
-            val nearby = transactionRepository.getTransactionByAmountAndDate(
-                entity.amount,
-                entity.dateTime.minusMinutes(2),
-                entity.dateTime.plusMinutes(2)
-            )
-            if (TransactionDeduplication.isBookedByNotification(
-                    entity, nearby, BankNotificationConfig.notificationAliases
+            // Same charge already booked from the bank's app notification. Only
+            // banks that can arrive by notification pay for the lookup.
+            if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    entity.amount,
+                    entity.dateTime.minusMinutes(2),
+                    entity.dateTime.plusMinutes(2)
                 )
-            ) {
-                return@coroutineScope SaveOutcome.SKIPPED
+                if (TransactionDeduplication.isBookedByOtherChannel(
+                        entity, nearby, BankNotificationConfig.notificationAliases
+                    )
+                ) {
+                    return@coroutineScope SaveOutcome.SKIPPED
+                }
             }
 
             // Durable deletion: skip re-inserting a transaction the user deleted,

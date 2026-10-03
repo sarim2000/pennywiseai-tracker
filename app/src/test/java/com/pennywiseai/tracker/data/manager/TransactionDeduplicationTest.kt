@@ -194,26 +194,44 @@ class TransactionDeduplicationTest {
         val fromNotification = transaction(id = 1, smsSender = "Huntington")
         val sms = transaction(id = 2, smsSender = "446622")
 
-        assertTrue(TransactionDeduplication.isBookedByNotification(sms, listOf(fromNotification), aliases))
+        assertTrue(TransactionDeduplication.isBookedByOtherChannel(sms, listOf(fromNotification), aliases))
+    }
+
+    @Test
+    fun `notification arriving after the sms is the same charge`() {
+        val aliases = setOf("Huntington")
+        val fromSms = transaction(id = 1, smsSender = "446622")
+        val notification = transaction(id = 2, smsSender = "Huntington")
+
+        assertTrue(TransactionDeduplication.isBookedByOtherChannel(notification, listOf(fromSms), aliases))
     }
 
     @Test
     fun `two identical sms charges are both kept`() {
-        // Two real purchases a minute apart — only a notification-booked row counts.
+        // Two real purchases a minute apart — only a row from the other channel counts.
         val aliases = setOf("Huntington")
         val firstSms = transaction(id = 1, smsSender = "446622")
         val secondSms = transaction(id = 2, smsSender = "446622")
 
-        assertFalse(TransactionDeduplication.isBookedByNotification(secondSms, listOf(firstSms), aliases))
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(secondSms, listOf(firstSms), aliases))
     }
 
     @Test
-    fun `a notification is not checked against itself on the sms side`() {
+    fun `two identical notifications are not cross-channel duplicates`() {
         val aliases = setOf("Huntington")
-        val existing = transaction(id = 1, smsSender = "Huntington")
-        val incomingNotification = transaction(id = 2, smsSender = "Huntington")
+        val first = transaction(id = 1, smsSender = "Huntington")
+        val second = transaction(id = 2, smsSender = "Huntington")
 
-        assertFalse(TransactionDeduplication.isBookedByNotification(incomingNotification, listOf(existing), aliases))
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(second, listOf(first), aliases))
+    }
+
+    @Test
+    fun `same charge on a different account is kept`() {
+        val aliases = setOf("Huntington")
+        val fromNotification = transaction(id = 1, smsSender = "Huntington", accountNumber = "1111")
+        val smsOtherAccount = transaction(id = 2, smsSender = "446622", accountNumber = "2222")
+
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(smsOtherAccount, listOf(fromNotification), aliases))
     }
 
     @Test

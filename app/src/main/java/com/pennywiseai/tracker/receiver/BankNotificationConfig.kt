@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.receiver
 
 import android.app.Notification
+import com.pennywiseai.parser.core.bank.BankParserFactory
 
 /**
  * Configuration and helpers for ingesting bank notifications.
@@ -28,6 +29,14 @@ object BankNotificationConfig {
 
     /** Sender aliases notification-booked transactions are saved under. */
     val notificationAliases: Set<String> by lazy { allowedPackages.values.toSet() }
+
+    /**
+     * Banks that can arrive by notification. Only these can have a cross-channel
+     * duplicate, so the (unindexed) nearby lookup is skipped for every other bank.
+     */
+    val notificationBankNames: Set<String> by lazy {
+        notificationAliases.mapNotNull { BankParserFactory.getParser(it)?.getBankName() }.toSet()
+    }
 
     fun isAllowed(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())

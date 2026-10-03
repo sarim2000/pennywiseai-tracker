@@ -618,8 +618,12 @@ class TransactionDetailViewModel @Inject constructor(
                     onResult(false)
                     return@launch
                 }
-                if (existing == null) {
-                    categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                when {
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                    // Re-adding a hidden category brings it back, so the selection
+                    // is one the picker actually offers. The cascading toggle also
+                    // restores its sub-categories / parent, like Settings does (#374).
+                    existing.isHidden -> categoryRepository.toggleCategoryHidden(existing.id)
                 }
                 updateCategory(trimmed)
                 onResult(true)

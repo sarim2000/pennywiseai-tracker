@@ -299,8 +299,11 @@ dependencies {
     "standardImplementation"(libs.review)
     "standardImplementation"(libs.review.ktx)
     
+    testImplementation(libs.mockk)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -336,6 +339,7 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 // StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
 // infer. Without this the test task stays UP-TO-DATE when only translations
 // change — i.e. for exactly the pull requests it exists to check.

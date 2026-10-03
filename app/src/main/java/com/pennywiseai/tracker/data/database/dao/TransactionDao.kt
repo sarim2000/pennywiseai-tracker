@@ -9,6 +9,23 @@ import java.time.LocalDateTime
 
 @Dao
 interface TransactionDao {
+    @Query("""
+        SELECT * FROM transactions
+        WHERE (currency = :currency AND updated_at >= :start AND updated_at <= :end)
+        OR (currency != :currency AND id IN (
+            SELECT transaction_id FROM webhook_delivered_transactions WHERE profile_id = :profileId
+        ))
+        ORDER BY updated_at, id
+    """)
+    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String = ""): List<TransactionEntity>
+
+    @Query("""
+        SELECT * FROM transactions WHERE currency != :currency AND id IN (
+            SELECT transaction_id FROM webhook_delivered_transactions WHERE profile_id = :profileId
+        ) ORDER BY updated_at, id
+    """)
+    suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String): List<TransactionEntity>
+
     
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
@@ -156,7 +173,7 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE loan_id IS NULL AND group_id IS NULL")
     suspend fun deleteUncuratedTransactions()
     
-    @Query("UPDATE transactions SET category = :newCategory WHERE merchant_name = :merchantName")
+    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
@@ -184,10 +201,10 @@ interface TransactionDao {
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>>
 
     // Soft delete methods - also clear hash so it doesn't block new inserts with same details
-    @Query("UPDATE transactions SET is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE id = :transactionId")
+    @Query("UPDATE transactions SET updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime'), is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE id = :transactionId")
     suspend fun softDeleteTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE transaction_hash = :transactionHash")
+    @Query("UPDATE transactions SET updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime'), is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE transaction_hash = :transactionHash")
     suspend fun softDeleteByHash(transactionHash: String)
 
     // Method to check if transaction exists by hash (including deleted)

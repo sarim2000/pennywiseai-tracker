@@ -25,15 +25,11 @@ class Trading212ParserTest {
                 )
             ),
             ParserTestCase(
-                name = "Interest on a EUR account",
+                name = "Non-GBP interest is skipped, not booked as pounds",
                 message = "💸 You earned €1.05 interest on uninvested cash!",
                 sender = "Trading212",
-                expected = ExpectedTransaction(
-                    amount = BigDecimal("1.05"),
-                    currency = "EUR",
-                    type = TransactionType.INCOME,
-                    merchant = "Trading 212 Interest"
-                )
+                expected = null,
+                shouldParse = false
             )
         )
         val handleCases = listOf("Trading212" to true, "TRADING 212" to true, "Chase" to false)

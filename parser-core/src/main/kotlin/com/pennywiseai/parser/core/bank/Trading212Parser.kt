@@ -8,7 +8,9 @@ import com.pennywiseai.parser.core.TransactionType
  *
  * - Interest: "💸 You earned £0.24 interest on uninvested cash!"
  *
- * Accounts can be held in GBP, EUR or USD, so the currency comes from the symbol.
+ * GBP only — the reported format. Trading 212 also offers EUR/USD accounts, but
+ * those need their own account currency (getCurrency labels the account) and a
+ * real sample; until then a non-£ notice is skipped rather than booked as pounds.
  * Reached through the "Trading212" alias of the com.avuscapital.trading212 app.
  */
 class Trading212Parser : BankParser() {
@@ -21,18 +23,13 @@ class Trading212Parser : BankParser() {
         sender.uppercase().replace(Regex("""[\s_-]"""), "") == "TRADING212"
 
     private val interestPattern = Regex(
-        """earned\s+([£€$])\s*([0-9,]+(?:\.\d{1,2})?)\s+interest""",
+        """earned\s+£\s*([0-9,]+(?:\.\d{1,2})?)\s+interest""",
         RegexOption.IGNORE_CASE
     )
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val m = interestPattern.find(smsBody) ?: return null
-        val amount = m.groupValues[2].replace(",", "").toBigDecimalOrNull() ?: return null
-        val currency = when (m.groupValues[1]) {
-            "€" -> "EUR"
-            "$" -> "USD"
-            else -> "GBP"
-        }
+        val amount = m.groupValues[1].replace(",", "").toBigDecimalOrNull() ?: return null
         return ParsedTransaction(
             amount = amount,
             type = TransactionType.INCOME,
@@ -44,7 +41,7 @@ class Trading212Parser : BankParser() {
             sender = sender,
             timestamp = timestamp,
             bankName = getBankName(),
-            currency = currency
+            currency = getCurrency()
         )
     }
 }

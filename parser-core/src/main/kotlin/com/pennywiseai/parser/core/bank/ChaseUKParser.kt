@@ -7,7 +7,7 @@ import java.math.BigDecimal
 /**
  * Chase UK (GBP) — app notifications only; Chase UK sends no transaction SMS.
  *
- * - Money in: "🎉 £0.01 just landed in Dean's Account from Jane Doe"
+ * - Money in: "🎉 £0.01 just landed in Account Holder's Account from Payer"
  *
  * Reached through the "ChaseUK" alias of the com.chase.intl app (see
  * BankNotificationConfig). Kept apart from [ChaseBankParser], which is the US

@@ -110,7 +110,9 @@ class SliceParser : BankParser() {
         if (Regex("""\ba/c\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
             val payeeKeyword = if (lowerMessage.contains("received")) "from" else "to"
             val payeePattern = Regex(
-                """\b$payeeKeyword\s+(.+?)(?:\s+on\b|\s+via\b|\s+is\b|\s*\(|\.\s|$)""",
+                // "in your" ends the payer in the app notification:
+                // "You've got ₹1,565 from NAME in your slice bank a/c xx1234."
+                """\b$payeeKeyword\s+(.+?)(?:\s+in\s+your\b|\s+on\b|\s+via\b|\s+is\b|\s*\(|\.\s|$)""",
                 RegexOption.IGNORE_CASE
             )
             payeePattern.find(message)?.let { match ->

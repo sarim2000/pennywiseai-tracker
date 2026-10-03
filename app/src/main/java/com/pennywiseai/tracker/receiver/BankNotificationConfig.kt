@@ -15,7 +15,12 @@ object BankNotificationConfig {
         "com.avanza.ambitwizfbl" to "FaysalBank",
         // Enpara (Turkey) – alias must match EnparaBankParser.canHandle()
         "finansbank.enpara" to "Enpara",      // Enpara.com Cep Şubesi (personal, older brand)
-        "com.enparabank.retail" to "Enpara"   // Enpara Bank Cep Şube (personal, post-rebrand)
+        "com.enparabank.retail" to "Enpara",  // Enpara Bank Cep Şube (personal, post-rebrand)
+        // slice (India) – alias must match SliceParser.canHandle()
+        "indwin.c3.shareapp" to "slice",
+        // Notification-only providers (UK) – aliases must match their parsers
+        "com.chase.intl" to "ChaseUK",        // Chase UK — distinct from the US Chase parser
+        "com.avuscapital.trading212" to "Trading212"
     )
 
     fun isAllowed(packageName: String): Boolean =

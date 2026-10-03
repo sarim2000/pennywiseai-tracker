@@ -21,7 +21,7 @@ class ChaseBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized == "24273" ||
-                normalized.contains("CHASE")
+                (normalized.contains("CHASE") && !normalized.contains("CHASEUK"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

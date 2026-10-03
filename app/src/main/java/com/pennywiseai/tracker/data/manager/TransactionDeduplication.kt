@@ -37,7 +37,29 @@ object TransactionDeduplication {
         incoming: TransactionEntity
     ): Boolean {
         if (existing.bankName != incoming.bankName) return false
+        // Equal numbers in different currencies are different charges (a
+        // multi-currency provider can post £0.24 and €0.24 together).
+        if (existing.currency != incoming.currency) return false
         return existing.merchantName.equals(incoming.merchantName, ignoreCase = true)
+    }
+
+    /**
+     * SMS side of the cross-channel check. When a bank both texts and pushes an
+     * app notification, whichever arrives second must not book the charge again.
+     * The notification listener already checks nearby rows before saving; this is
+     * the same check for an SMS arriving after the notification. The two carry
+     * different senders (shortcode vs app alias), so their hashes never match.
+     *
+     * Only rows booked from a notification count: two identical SMS charges a
+     * minute apart are two real purchases and must both be kept.
+     */
+    fun isBookedByNotification(
+        incoming: TransactionEntity,
+        nearby: List<TransactionEntity>,
+        notificationAliases: Set<String>
+    ): Boolean {
+        if (incoming.smsSender in notificationAliases) return false
+        return nearby.any { it.smsSender in notificationAliases && isSameCharge(it, incoming) }
     }
 
     fun shouldReplaceWithIncoming(

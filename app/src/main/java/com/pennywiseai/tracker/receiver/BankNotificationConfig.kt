@@ -10,7 +10,7 @@ import android.app.Notification
  */
 object BankNotificationConfig {
 
-    private val allowedPackages: Map<String, String> = mapOf(
+    internal val allowedPackages: Map<String, String> = mapOf(
         // Faysal Bank (Pakistan) – alias must match FaysalBankParser.canHandle()
         "com.avanza.ambitwizfbl" to "FaysalBank",
         // Enpara (Turkey) – alias must match EnparaBankParser.canHandle()
@@ -25,6 +25,9 @@ object BankNotificationConfig {
         // alias must match HuntingtonBankParser.canHandle()
         "com.huntington.m" to "Huntington"    // Huntington Mobile Banking
     )
+
+    /** Sender aliases notification-booked transactions are saved under. */
+    val notificationAliases: Set<String> by lazy { allowedPackages.values.toSet() }
 
     fun isAllowed(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())

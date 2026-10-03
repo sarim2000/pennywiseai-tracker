@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
 import java.time.Instant
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import java.time.LocalDateTime
 import java.time.ZoneId
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -155,6 +156,20 @@ class SmsTransactionProcessor @Inject constructor(
                 }
                 // Transaction already exists and not deleted - normal deduplication
                 Log.d(TAG, "Transaction already exists: ${entity.transactionHash}")
+                return ProcessingResult(false, reason = "Duplicate transaction")
+            }
+
+            // Same charge already booked from the bank's app notification.
+            val nearby = transactionRepository.getTransactionByAmountAndDate(
+                entity.amount,
+                entity.dateTime.minusMinutes(2),
+                entity.dateTime.plusMinutes(2)
+            )
+            if (TransactionDeduplication.isBookedByNotification(
+                    entity, nearby, BankNotificationConfig.notificationAliases
+                )
+            ) {
+                Log.d(TAG, "Already booked from a notification: ${entity.transactionHash}")
                 return ProcessingResult(false, reason = "Duplicate transaction")
             }
 

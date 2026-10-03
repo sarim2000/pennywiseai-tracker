@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.receiver
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -22,9 +23,18 @@ class BankNotificationConfigTest {
     )
 
     @Test
-    fun `every allowed package routes to its bank's parser`() {
-        expectedBankByPackage.forEach { (pkg, bank) ->
+    fun `every allowlisted package reaches a parser`() {
+        // Iterates the production map, so a package added there without a
+        // matching parser alias fails here instead of silently dropping notifications.
+        BankNotificationConfig.allowedPackages.forEach { (pkg, alias) ->
             assertTrue("$pkg should be allowed", BankNotificationConfig.isAllowed(pkg))
+            assertNotNull("$pkg alias '$alias' reaches no parser", BankParserFactory.getParser(alias))
+        }
+    }
+
+    @Test
+    fun `known packages route to the right bank`() {
+        expectedBankByPackage.forEach { (pkg, bank) ->
             val parser = BankParserFactory.getParser(BankNotificationConfig.senderAlias(pkg))
             assertEquals("$pkg should route to $bank", bank, parser?.getBankName())
         }

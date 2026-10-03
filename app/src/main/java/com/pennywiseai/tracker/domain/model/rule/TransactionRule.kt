@@ -20,3 +20,18 @@ data class TransactionRule(
                actions.isNotEmpty()
     }
 }
+
+/**
+ * This rule with category [oldName] replaced by [newName] wherever it names
+ * that category: a CATEGORY condition's value (compared ignoring case, as the
+ * engine matches it) and a SET-category action's value.
+ */
+fun TransactionRule.withCategoryRenamed(oldName: String, newName: String): TransactionRule = copy(
+    conditions = conditions.map { c ->
+        if (c.field == TransactionField.CATEGORY && c.value.equals(oldName, ignoreCase = true)) c.copy(value = newName) else c
+    },
+    actions = actions.map { a ->
+        if (a.field == TransactionField.CATEGORY && a.actionType == ActionType.SET && a.value == oldName) a.copy(value = newName) else a
+    }
+)
+

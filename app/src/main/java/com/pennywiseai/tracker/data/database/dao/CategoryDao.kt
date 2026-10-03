@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
+import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -94,4 +95,61 @@ interface CategoryDao {
     
     @Query("DELETE FROM categories")
     suspend fun deleteAllCategories()
+
+    // --- Rename (#823) ------------------------------------------------------
+    // Seven tables store a category by *name*, not id, so renaming only the
+    // categories row left every existing reference pointing at a name that no
+    // longer exists. Budget rows are only renamed when they track a category
+    // (match_type IS NULL); otherwise category_name is just a type's label.
+
+    @Query("UPDATE transactions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInTransactions(oldName: String, newName: String)
+
+    @Query("UPDATE transactions SET budget_category = :newName WHERE budget_category = :oldName")
+    suspend fun renameInTransactionBudgetCategory(oldName: String, newName: String)
+
+    @Query("UPDATE transaction_splits SET category = :newName WHERE category = :oldName")
+    suspend fun renameInSplits(oldName: String, newName: String)
+
+    @Query("UPDATE budget_categories SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
+    suspend fun renameInBudgetCategories(oldName: String, newName: String)
+
+    @Query("SELECT * FROM budget_categories WHERE match_type IS NULL AND category_name IN (:oldName, :newName)")
+    suspend fun budgetAllocationsNamed(oldName: String, newName: String): List<BudgetCategoryEntity>
+
+    @Query("UPDATE budget_categories SET budget_amount = :amount WHERE id = :id")
+    suspend fun setBudgetAllocationAmount(id: Long, amount: java.math.BigDecimal)
+
+    @Query("DELETE FROM budget_categories WHERE id = :id")
+    suspend fun deleteBudgetAllocation(id: Long)
+
+    @Query("UPDATE budget_category_month_snapshots SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
+    suspend fun renameInBudgetSnapshots(oldName: String, newName: String)
+
+    @Query("UPDATE merchant_mappings SET category = :newName WHERE category = :oldName")
+    suspend fun renameInMerchantMappings(oldName: String, newName: String)
+
+    @Query("UPDATE recurring_transactions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInRecurring(oldName: String, newName: String)
+
+    @Query("UPDATE subscriptions SET category = :newName WHERE category = :oldName")
+    suspend fun renameInSubscriptions(oldName: String, newName: String)
+
+    /** Points every stored reference to [oldName] at [newName]. Call inside a transaction. */
+    suspend fun renameReferences(oldName: String, newName: String) {
+        renameInTransactions(oldName, newName)
+        renameInTransactionBudgetCategory(oldName, newName)
+        renameInSplits(oldName, newName)
+        // A budget already holding newName would hit the unique index: fold the
+        // old row's amount into it first so no allocation is lost.
+        allocationMergesForRename(budgetAllocationsNamed(oldName, newName), oldName, newName).forEach {
+            setBudgetAllocationAmount(it.keepId, it.amount)
+            deleteBudgetAllocation(it.dropId)
+        }
+        renameInBudgetCategories(oldName, newName)
+        renameInBudgetSnapshots(oldName, newName)
+        renameInMerchantMappings(oldName, newName)
+        renameInRecurring(oldName, newName)
+        renameInSubscriptions(oldName, newName)
+    }
 }

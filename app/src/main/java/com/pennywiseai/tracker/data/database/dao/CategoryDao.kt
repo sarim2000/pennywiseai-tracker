@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
+import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -110,13 +111,17 @@ interface CategoryDao {
     @Query("UPDATE transaction_splits SET category = :newName WHERE category = :oldName")
     suspend fun renameInSplits(oldName: String, newName: String)
 
-    // OR IGNORE + delete: a budget that somehow already lists newName keeps that
-    // row rather than violating the (budget_id, category_name) unique index.
-    @Query("UPDATE OR IGNORE budget_categories SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
+    @Query("UPDATE budget_categories SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
     suspend fun renameInBudgetCategories(oldName: String, newName: String)
 
-    @Query("DELETE FROM budget_categories WHERE category_name = :oldName AND match_type IS NULL")
-    suspend fun deleteStaleBudgetCategories(oldName: String)
+    @Query("SELECT * FROM budget_categories WHERE match_type IS NULL AND category_name IN (:oldName, :newName)")
+    suspend fun budgetAllocationsNamed(oldName: String, newName: String): List<BudgetCategoryEntity>
+
+    @Query("UPDATE budget_categories SET budget_amount = :amount WHERE id = :id")
+    suspend fun setBudgetAllocationAmount(id: Long, amount: java.math.BigDecimal)
+
+    @Query("DELETE FROM budget_categories WHERE id = :id")
+    suspend fun deleteBudgetAllocation(id: Long)
 
     @Query("UPDATE budget_category_month_snapshots SET category_name = :newName WHERE category_name = :oldName AND match_type IS NULL")
     suspend fun renameInBudgetSnapshots(oldName: String, newName: String)
@@ -135,8 +140,13 @@ interface CategoryDao {
         renameInTransactions(oldName, newName)
         renameInTransactionBudgetCategory(oldName, newName)
         renameInSplits(oldName, newName)
+        // A budget already holding newName would hit the unique index: fold the
+        // old row's amount into it first so no allocation is lost.
+        allocationMergesForRename(budgetAllocationsNamed(oldName, newName), oldName, newName).forEach {
+            setBudgetAllocationAmount(it.keepId, it.amount)
+            deleteBudgetAllocation(it.dropId)
+        }
         renameInBudgetCategories(oldName, newName)
-        deleteStaleBudgetCategories(oldName)
         renameInBudgetSnapshots(oldName, newName)
         renameInMerchantMappings(oldName, newName)
         renameInRecurring(oldName, newName)

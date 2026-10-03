@@ -32,7 +32,9 @@ fun PennyWiseApp(
     editTransactionId: Long? = null,
     openAddTransaction: Boolean = false,
     onEditComplete: (() -> Unit)? = null,
-    onAddTransactionShortcutHandled: (() -> Unit)? = null
+    onAddTransactionShortcutHandled: (() -> Unit)? = null,
+    sharedText: String? = null,
+    onSharedTextHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -115,6 +117,14 @@ fun PennyWiseApp(
                 launchSingleTop = true
             }
             onAddTransactionShortcutHandled?.invoke()
+        }
+    }
+
+    // "Share to PennyWise": open Add Transaction pre-filled from the shared text.
+    LaunchedEffect(sharedText) {
+        sharedText?.let { text ->
+            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
+            onSharedTextHandled?.invoke()
         }
     }
 

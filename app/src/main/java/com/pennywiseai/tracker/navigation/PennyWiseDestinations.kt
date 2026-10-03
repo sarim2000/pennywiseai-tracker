@@ -34,7 +34,7 @@ object Chat
 data class TransactionDetail(val transactionId: Long)
 
 @Serializable
-data class AddTransaction(val sourceTransactionId: Long? = null)
+data class AddTransaction(val sourceTransactionId: Long? = null, val sharedText: String? = null)
 
 @Serializable
 data class AccountDetail(val bankName: String, val accountLast4: String)

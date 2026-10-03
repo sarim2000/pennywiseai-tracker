@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
@@ -735,6 +736,22 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
 
             if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+
+            // Same charge already booked from the bank's app notification. Only
+            // banks that can arrive by notification pay for the lookup.
+            if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    entity.amount,
+                    entity.dateTime.minusMinutes(2),
+                    entity.dateTime.plusMinutes(2)
+                )
+                if (TransactionDeduplication.isBookedByOtherChannel(
+                        entity, nearby, BankNotificationConfig.notificationAliases
+                    )
+                ) {
+                    return@coroutineScope SaveOutcome.SKIPPED
+                }
+            }
 
             // Durable deletion: skip re-inserting a transaction the user deleted,
             // even when its hash shifted across an app/parser update (the hash

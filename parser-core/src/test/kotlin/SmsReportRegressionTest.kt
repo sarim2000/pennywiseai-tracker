@@ -195,6 +195,23 @@ class SmsReportRegressionTest {
                 ),
                 shouldHandle = true
             ) + SimpleTestCase(
+                // Numeric shortcode — the parser only knew "Huntington Bank" (a contact
+                // display name), so real texts from 446622 were discarded unparsed.
+                description = "Huntington shortcode 446622 routes to Huntington",
+                bankName = "Huntington Bank",
+                sender = "446622",
+                currency = "USD",
+                message = "Huntington Heads Up. We processed an ATM withdrawal: \$17.07 at TEST ATM. Acct CK1234 has a \$500.00 bal (10/01/26 7:13 AM ET).",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("17.07"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "TEST ATM",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("500.00")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
                 // Numeric shortcode: must not be claimed by a parser that grabs
                 // numeric senders (EverestBank) ahead of NFCU.
                 description = "NFCU shortcode 21398 routes to Navy Federal (#852)",

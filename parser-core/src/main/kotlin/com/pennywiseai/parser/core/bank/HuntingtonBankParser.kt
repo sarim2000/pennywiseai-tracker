@@ -12,7 +12,9 @@ import java.math.BigDecimal
  * - ATM: "Huntington Heads Up. We processed an ATM withdrawal: $162.45 at POS John Inc. Acct CK0000 has a $20.20 bal (9/03/25 12:12 PM ET)."
  * - ACH: "Huntington Heads Up. We processed an ACH withdrawal: $50.67 at GEICO           . Acct CK0000 has a $6211.32 bal (8/09/25 3:23 PM ET)."
  *
- * Common senders: Huntington Bank, HUNTINGTON
+ * Senders: shortcode 446622 (the real SMS address), "Huntington Bank" (how a saved
+ * contact displays), and the "Huntington" alias from app notifications
+ * (com.huntington.m — same wording as the texts).
  */
 class HuntingtonBankParser : BankParser() {
 
@@ -22,7 +24,8 @@ class HuntingtonBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
-        return upperSender.contains("HUNTINGTON") ||
+        return upperSender == "446622" || // Huntington's US alert shortcode
+                upperSender.contains("HUNTINGTON") ||
                 upperSender == "HUNTINGTON BANK" ||
                 upperSender.matches(Regex("""^[A-Z]{2}-HUNTINGTON-[A-Z]$"""))
     }

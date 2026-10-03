@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.receiver
 
 import android.app.Notification
+import com.pennywiseai.parser.core.bank.BankParserFactory
 
 /**
  * Configuration and helpers for ingesting bank notifications.
@@ -10,7 +11,7 @@ import android.app.Notification
  */
 object BankNotificationConfig {
 
-    private val allowedPackages: Map<String, String> = mapOf(
+    internal val allowedPackages: Map<String, String> = mapOf(
         // Faysal Bank (Pakistan) – alias must match FaysalBankParser.canHandle()
         "com.avanza.ambitwizfbl" to "FaysalBank",
         // Enpara (Turkey) – alias must match EnparaBankParser.canHandle()
@@ -20,8 +21,22 @@ object BankNotificationConfig {
         "indwin.c3.shareapp" to "slice",
         // Notification-only providers (UK) – aliases must match their parsers
         "com.chase.intl" to "ChaseUK",        // Chase UK — distinct from the US Chase parser
-        "com.avuscapital.trading212" to "Trading212"
+        "com.avuscapital.trading212" to "Trading212",
+        // Huntington (USA) – app notifications use the same wording as its texts;
+        // alias must match HuntingtonBankParser.canHandle()
+        "com.huntington.m" to "Huntington"    // Huntington Mobile Banking
     )
+
+    /** Sender aliases notification-booked transactions are saved under. */
+    val notificationAliases: Set<String> by lazy { allowedPackages.values.toSet() }
+
+    /**
+     * Banks that can arrive by notification. Only these can have a cross-channel
+     * duplicate, so the (unindexed) nearby lookup is skipped for every other bank.
+     */
+    val notificationBankNames: Set<String> by lazy {
+        notificationAliases.mapNotNull { BankParserFactory.getParser(it)?.getBankName() }.toSet()
+    }
 
     fun isAllowed(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())

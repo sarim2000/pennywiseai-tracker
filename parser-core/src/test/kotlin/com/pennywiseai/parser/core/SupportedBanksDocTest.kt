@@ -49,6 +49,7 @@ class SupportedBanksDocTest {
         "TRY" to CountryMeta("Turkey", "🇹🇷", "₺"),
         "OMR" to CountryMeta("Oman", "🇴🇲", "ر.ع."),
         "EUR" to CountryMeta("Eurozone", "🇪🇺", "€"),
+        "GBP" to CountryMeta("United Kingdom", "🇬🇧", "£"),
     )
 
     // A currency maps 1:1 to a country for every bank we support — except where a

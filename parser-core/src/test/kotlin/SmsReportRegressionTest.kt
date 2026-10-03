@@ -166,6 +166,35 @@ class SmsReportRegressionTest {
 
         return ParserTestUtils.runFactoryTestSuite(
             cases + SimpleTestCase(
+                description = "slice app notification names the payer, not the account",
+                bankName = "Slice",
+                sender = "slice",
+                currency = "INR",
+                message = "UPI payment received! — You’ve got ₹1,565 from Person Name in your slice bank a/c xx1234. Avl. Bal. ₹3,502.05.",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1565"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Person Name",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("3502.05")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // The US ChaseBankParser accepts any sender containing "CHASE"; the
+                // UK alias must reach the GBP parser instead.
+                description = "ChaseUK alias routes to Chase UK, not the US parser",
+                bankName = "Chase UK",
+                sender = "ChaseUK",
+                currency = "GBP",
+                message = "🎉 £0.01 just landed in Test's Account from Jane Doe",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("0.01"),
+                    currency = "GBP",
+                    type = TransactionType.INCOME
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
                 // Numeric shortcode: must not be claimed by a parser that grabs
                 // numeric senders (EverestBank) ahead of NFCU.
                 description = "NFCU shortcode 21398 routes to Navy Federal (#852)",

@@ -98,9 +98,12 @@ class AddViewModel @Inject constructor(
             // source. Done after the default currency so the source's currency wins.
             sourceTransactionId?.let { prefillFromTransaction(it) }
             sharedText?.let { text ->
+                val guess = SharedTextAmount.extract(text)
                 _transactionUiState.update {
                     it.copy(
-                        amount = SharedTextAmount.extract(text)?.toPlainString() ?: it.amount,
+                        amount = guess?.amount?.toPlainString() ?: it.amount,
+                        // "$12" shared by an INR user is 12 USD, not 12 INR.
+                        currency = guess?.currency ?: it.currency,
                         notes = text
                     )
                 }

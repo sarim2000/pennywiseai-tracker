@@ -121,11 +121,21 @@ fun PennyWiseApp(
     }
 
     // "Share to PennyWise": open Add Transaction pre-filled from the shared text.
-    LaunchedEffect(sharedText) {
-        sharedText?.let { text ->
-            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
-            onSharedTextHandled?.invoke()
+    // Held until onboarding is done and the app is unlocked, so the form (and
+    // the shared text) never shows above the lock screen or skips setup; the
+    // effect re-runs when either gate opens.
+    LaunchedEffect(
+        sharedText,
+        themeUiState.hasCompletedOnboarding,
+        appLockUiState.isLoaded,
+        appLockUiState.isLocked
+    ) {
+        val text = sharedText ?: return@LaunchedEffect
+        if (!themeUiState.hasCompletedOnboarding || !appLockUiState.isLoaded || appLockUiState.isLocked) {
+            return@LaunchedEffect
         }
+        navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
+        onSharedTextHandled?.invoke()
     }
 
     // Keep widgets current when app launches (covers upgrades/installs with existing widgets)

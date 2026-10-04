@@ -20,6 +20,8 @@ interface RuleRepository {
      */
     suspend fun insertRules(rules: List<TransactionRule>)
     suspend fun updateRule(rule: TransactionRule)
+    /** Rewrites rules that name category [oldName] to use [newName] (category rename). */
+    suspend fun renameCategory(oldName: String, newName: String)
     suspend fun deleteRule(ruleId: String)
     suspend fun deleteAllRules()
     suspend fun setRuleActive(ruleId: String, isActive: Boolean)

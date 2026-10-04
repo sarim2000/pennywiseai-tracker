@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
+import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.hierarchical
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +15,9 @@ import javax.inject.Singleton
 
 @Singleton
 class CategoryRepository @Inject constructor(
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val database: PennyWiseDatabase,
+    private val ruleRepository: RuleRepository
 ) {
     
     fun getAllCategories(): Flow<List<CategoryEntity>> {
@@ -79,10 +84,20 @@ class CategoryRepository @Inject constructor(
         return categoryDao.insertCategory(category)
     }
     
-    suspend fun updateCategory(category: CategoryEntity) {
-        categoryDao.updateCategory(
-            category.copy(updatedAt = LocalDateTime.now())
-        )
+    /**
+     * Saves an edited category. When its name changed, every transaction,
+     * split, budget, merchant mapping, recurring entry, subscription and rule
+     * that stored [previousName] moves to the new name in the same transaction,
+     * so nothing is left pointing at a name that no longer exists.
+     */
+    suspend fun updateCategory(category: CategoryEntity, previousName: String = category.name) {
+        database.withTransaction {
+            categoryDao.updateCategory(category.copy(updatedAt = LocalDateTime.now()))
+            if (previousName != category.name) {
+                categoryDao.renameReferences(previousName, category.name)
+                ruleRepository.renameCategory(previousName, category.name)
+            }
+        }
     }
     
     suspend fun deleteCategory(categoryId: Long): Boolean {

@@ -77,7 +77,13 @@ class CategoriesViewModel @Inject constructor(
                 val editingCat = _editingCategory.value
                 
                 if (editingCat != null) {
-                    // Update existing category
+                    // Renaming onto another category's name would merge two
+                    // categories' transactions silently; refuse it.
+                    val clash = categoryRepository.getCategoryByName(name)
+                    if (clash != null && clash.id != editingCat.id) {
+                        _snackbarMessage.value = UiText.Res(R.string.categories_msg_already_exists, listOf(name))
+                        return@launch
+                    }
                     categoryRepository.updateCategory(
                         editingCat.copy(
                             name = name,
@@ -85,7 +91,8 @@ class CategoriesViewModel @Inject constructor(
                             isIncome = isIncome,
                             icon = icon,
                             parentId = parentId
-                        )
+                        ),
+                        previousName = editingCat.name
                     )
                     _snackbarMessage.value = UiText.Res(R.string.categories_msg_updated)
                 } else {

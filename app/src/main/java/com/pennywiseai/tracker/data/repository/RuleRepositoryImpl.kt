@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.domain.model.rule.withCategoryRenamed
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
@@ -9,6 +10,7 @@ import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -67,6 +69,13 @@ class RuleRepositoryImpl @Inject constructor(
 
     override suspend fun updateRule(rule: TransactionRule) {
         ruleDao.updateRule(ruleToEntity(rule))
+    }
+
+    override suspend fun renameCategory(oldName: String, newName: String) {
+        ruleDao.getAllRules().first().map(::entityToRule).forEach { rule ->
+            val renamed = rule.withCategoryRenamed(oldName, newName)
+            if (renamed != rule) ruleDao.updateRule(ruleToEntity(renamed))
+        }
     }
 
     override suspend fun deleteRule(ruleId: String) {

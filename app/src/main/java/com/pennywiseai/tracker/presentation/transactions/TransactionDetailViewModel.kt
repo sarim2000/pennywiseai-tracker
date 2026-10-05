@@ -1021,8 +1021,12 @@ class TransactionDetailViewModel @Inject constructor(
                 // transaction's merchant must not move or delete the alias other
                 // transactions from the old merchant still use.
                 val newMerchantName = normalizedTransaction.merchantName
-                val merchantRenamed = _transaction.value?.merchantName?.let { it != newMerchantName } == true
-                when (val write = aliasWriteOnSave(newMerchantName, _originalMerchantAlias, _merchantAlias.value)) {
+                val originalMerchantName = _transaction.value?.merchantName
+                // Saving re-cases all-caps names ("GOOGLE PLAY" → "Google Play"); that
+                // is the same merchant, not a rename.
+                val merchantRenamed = originalMerchantName != null &&
+                    !originalMerchantName.equals(newMerchantName, ignoreCase = true)
+                when (val write = aliasWriteOnSave(originalMerchantName, newMerchantName, _originalMerchantAlias, _merchantAlias.value)) {
                     is AliasWrite.Set -> merchantAliasRepository.setAlias(write.merchant, write.alias)
                     is AliasWrite.Remove -> merchantAliasRepository.removeAlias(write.merchant)
                     null -> Unit
@@ -1275,16 +1279,27 @@ internal sealed class AliasWrite {
 }
 
 /**
- * The alias change a save should make, or null for none. Only an edited alias
- * field counts — a renamed merchant on one transaction leaves every existing
- * alias where it is (the old merchant's other transactions still use it).
+ * The alias change a save should make, or null for none. An edited alias field
+ * is written under the saved merchant. A renamed merchant on one transaction
+ * leaves every existing alias where it is (the old merchant's other
+ * transactions still use it); a merchant that was only re-cased on save keeps
+ * its alias under the new spelling.
  */
-internal fun aliasWriteOnSave(merchant: String, originalAlias: String, editedAlias: String): AliasWrite? {
+internal fun aliasWriteOnSave(
+    originalMerchant: String?,
+    merchant: String,
+    originalAlias: String,
+    editedAlias: String
+): AliasWrite? {
     val edited = editedAlias.trim()
+    val recasedOnly = originalMerchant != null && originalMerchant != merchant &&
+        originalMerchant.equals(merchant, ignoreCase = true)
     return when {
-        edited == originalAlias.trim() -> null
-        edited.isEmpty() -> AliasWrite.Remove(merchant)
-        else -> AliasWrite.Set(merchant, edited)
+        edited != originalAlias.trim() -> if (edited.isEmpty()) AliasWrite.Remove(merchant) else AliasWrite.Set(merchant, edited)
+        // Same merchant, only re-cased on save: give the new spelling the alias too
+        // (the old key stays for its other, still all-caps, transactions).
+        recasedOnly && edited.isNotEmpty() -> AliasWrite.Set(merchant, edited)
+        else -> null
     }
 }
 

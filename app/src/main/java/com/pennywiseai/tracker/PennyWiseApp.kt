@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
@@ -121,19 +122,28 @@ fun PennyWiseApp(
     }
 
     // "Share to PennyWise": open Add Transaction pre-filled from the shared text.
-    // Held until onboarding is done and the app is unlocked, so the form (and
-    // the shared text) never shows above the lock screen or skips setup; the
-    // effect re-runs when either gate opens.
+    // Held until onboarding is done and the app is unlocked, so the form (and the
+    // shared text) never shows above the lock screen or skips setup. "Unlocked"
+    // must come from a lock check that ran *after* the share arrived (the resume
+    // re-check can still be pending), and the lock screen must have navigated
+    // away — otherwise its unlock/lock navigation would pop the form and drop
+    // the draft. The effect re-runs as each of these settles.
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val lockChecksAtShare = remember(sharedText) { appLockUiState.checks }
     LaunchedEffect(
         sharedText,
         themeUiState.hasCompletedOnboarding,
-        appLockUiState.isLoaded,
-        appLockUiState.isLocked
+        appLockUiState.checks,
+        appLockUiState.isLocked,
+        currentRoute
     ) {
         val text = sharedText ?: return@LaunchedEffect
-        if (!themeUiState.hasCompletedOnboarding || !appLockUiState.isLoaded || appLockUiState.isLocked) {
-            return@LaunchedEffect
-        }
+        val ready = themeUiState.hasCompletedOnboarding &&
+            appLockUiState.checks > lockChecksAtShare &&
+            !appLockUiState.isLocked &&
+            currentRoute != null &&
+            currentRoute != AppLock::class.qualifiedName
+        if (!ready) return@LaunchedEffect
         navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
     }

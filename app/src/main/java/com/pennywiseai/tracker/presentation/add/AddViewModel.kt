@@ -100,10 +100,12 @@ class AddViewModel @Inject constructor(
             sharedText?.let { text ->
                 val guess = SharedTextAmount.extract(text)
                 _transactionUiState.update {
+                    // Only prefill an amount in the form's own currency: "$12" shared
+                    // by an INR user is left for them to enter, rather than becoming
+                    // 12 INR or a USD figure saved against an INR account.
+                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
                     it.copy(
-                        amount = guess?.amount?.toPlainString() ?: it.amount,
-                        // "$12" shared by an INR user is 12 USD, not 12 INR.
-                        currency = guess?.currency ?: it.currency,
+                        amount = usable?.amount?.toPlainString() ?: it.amount,
                         notes = text
                     )
                 }

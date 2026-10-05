@@ -41,7 +41,7 @@ class AppLockViewModel @Inject constructor(
                         isLockEnabled = isEnabled,
                         timeoutMinutes = timeoutMinutes,
                         isLocked = shouldLock && isEnabled,
-                        isLoaded = true
+                        checks = it.checks + 1
                     )
                 }
             }
@@ -126,7 +126,7 @@ class AppLockViewModel @Inject constructor(
     fun lockApp() {
         viewModelScope.launch {
             val shouldLock = appLockRepository.shouldLockApp()
-            _uiState.update { it.copy(isLocked = shouldLock) }
+            _uiState.update { it.copy(isLocked = shouldLock, checks = it.checks + 1) }
         }
     }
 
@@ -136,7 +136,7 @@ class AppLockViewModel @Inject constructor(
     fun refreshLockState() {
         viewModelScope.launch {
             val shouldLock = appLockRepository.shouldLockApp()
-            _uiState.update { it.copy(isLocked = shouldLock) }
+            _uiState.update { it.copy(isLocked = shouldLock, checks = it.checks + 1) }
         }
     }
 
@@ -155,8 +155,12 @@ class AppLockViewModel @Inject constructor(
 }
 
 data class AppLockUiState(
-    /** False until the lock settings have loaded; isLocked is not meaningful before. */
-    val isLoaded: Boolean = false,
+    /**
+     * How many times the lock state has been evaluated (0 = not yet loaded, so
+     * isLocked means nothing). Lets a caller wait for a check that ran after
+     * some event, e.g. the resume-time re-check after text is shared in.
+     */
+    val checks: Int = 0,
     val isLockEnabled: Boolean = false,
     val isLocked: Boolean = false,
     val timeoutMinutes: Int = 1,

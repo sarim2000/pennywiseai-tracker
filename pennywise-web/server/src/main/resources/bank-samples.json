@@ -308,6 +308,17 @@
       "reference": "with",
       "balance": null
     },
+    "Chase UK": {
+      "sender": "ChaseUK",
+      "message": "🎉 £0.01 just landed in Test's Account from Jane Doe",
+      "currency": "GBP",
+      "amount": "0.01",
+      "type": "INCOME",
+      "merchant": "Jane Doe",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
+    },
     "Citi Bank": {
       "sender": "692484",
       "message": "Citi Alert: A $3.01 transaction was made at BP#1234E  on card ending in 1234. View details at citi.com/citimobileapp",
@@ -1088,6 +1099,17 @@
       "accountLast4": null,
       "reference": "13411949026",
       "balance": "100000"
+    },
+    "Trading 212": {
+      "sender": "Trading212",
+      "message": "💸 You earned £0.24 interest on uninvested cash!",
+      "currency": "GBP",
+      "amount": "0.24",
+      "type": "INCOME",
+      "merchant": "Trading 212 Interest",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
     },
     "UOB Thailand": {
       "sender": "UOB",

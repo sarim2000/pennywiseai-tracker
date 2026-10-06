@@ -12,6 +12,14 @@ import java.math.BigDecimal
  */
 abstract class BankParser {
 
+    private companion object {
+        /** A verb saying money actually moved — used to tell a payment from a reminder. */
+        val COMPLETED_MONEY_VERB = Regex(
+            """\b(debited|deducted|credited|deposited|withdrawn|spent|received|transferred|""" +
+                """sent|charged|used|refunded|reversed|paid|purchased)\b"""
+        )
+    }
+
     /**
      * Returns the name of the bank this parser handles.
      */
@@ -174,6 +182,15 @@ abstract class BankParser {
         if (lowerMessage.contains("will be auto-debited") ||
             lowerMessage.contains("will be auto debited")
         ) {
+            return true
+        }
+
+        // Bill-due reminders: "… bill of INR X due on 28-09-26. Pay on <link>".
+        // A real payment can mention a due date too ("Sent Rs.X … for EMI due on
+        // …"), so only skip when no completed-money verb is present. The list
+        // covers every completed verb the parsers recognise; word boundaries so
+        // the "paid" inside "Postpaid" doesn't count.
+        if (lowerMessage.contains("due on") && !COMPLETED_MONEY_VERB.containsMatchIn(lowerMessage)) {
             return true
         }
 

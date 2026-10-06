@@ -160,6 +160,9 @@
     <string name="manage_accounts_menu_history">History</string>
     <string name="manage_accounts_menu_show">Stop ignoring</string>
     <string name="manage_accounts_menu_hide">Ignore this account</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">%1$s ignored</string>
+    <string name="manage_accounts_undo">Undo</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Statement date: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Set statement date</string>

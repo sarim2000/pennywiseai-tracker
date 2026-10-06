@@ -188,6 +188,60 @@ class TransactionDeduplicationTest {
         assertFalse(TransactionDeduplication.isSameCharge(first, second))
     }
 
+    @Test
+    fun `sms arriving after the app notification is the same charge`() {
+        val aliases = setOf("Huntington")
+        val fromNotification = transaction(id = 1, smsSender = "Huntington")
+        val sms = transaction(id = 2, smsSender = "446622")
+
+        assertTrue(TransactionDeduplication.isBookedByOtherChannel(sms, listOf(fromNotification), aliases))
+    }
+
+    @Test
+    fun `notification arriving after the sms is the same charge`() {
+        val aliases = setOf("Huntington")
+        val fromSms = transaction(id = 1, smsSender = "446622")
+        val notification = transaction(id = 2, smsSender = "Huntington")
+
+        assertTrue(TransactionDeduplication.isBookedByOtherChannel(notification, listOf(fromSms), aliases))
+    }
+
+    @Test
+    fun `two identical sms charges are both kept`() {
+        // Two real purchases a minute apart — only a row from the other channel counts.
+        val aliases = setOf("Huntington")
+        val firstSms = transaction(id = 1, smsSender = "446622")
+        val secondSms = transaction(id = 2, smsSender = "446622")
+
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(secondSms, listOf(firstSms), aliases))
+    }
+
+    @Test
+    fun `two identical notifications are not cross-channel duplicates`() {
+        val aliases = setOf("Huntington")
+        val first = transaction(id = 1, smsSender = "Huntington")
+        val second = transaction(id = 2, smsSender = "Huntington")
+
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(second, listOf(first), aliases))
+    }
+
+    @Test
+    fun `same charge on a different account is kept`() {
+        val aliases = setOf("Huntington")
+        val fromNotification = transaction(id = 1, smsSender = "Huntington", accountNumber = "1111")
+        val smsOtherAccount = transaction(id = 2, smsSender = "446622", accountNumber = "2222")
+
+        assertFalse(TransactionDeduplication.isBookedByOtherChannel(smsOtherAccount, listOf(fromNotification), aliases))
+    }
+
+    @Test
+    fun `equal amounts in different currencies are different charges`() {
+        val gbp = transaction(id = 1, currency = "GBP")
+        val eur = transaction(id = 2, currency = "EUR")
+
+        assertFalse(TransactionDeduplication.isSameCharge(gbp, eur))
+    }
+
     private fun transaction(
         id: Long,
         amount: BigDecimal = BigDecimal("15000.00"),
@@ -196,7 +250,9 @@ class TransactionDeduplicationTest {
         reference: String = "111222333444",
         dateTime: LocalDateTime = baseTime,
         balanceAfter: BigDecimal? = BigDecimal("34567.67"),
-        merchantName: String = "Sample Merchant"
+        merchantName: String = "Sample Merchant",
+        smsSender: String = "SIBSMS",
+        currency: String = "INR"
     ): TransactionEntity = TransactionEntity(
         id = id,
         amount = amount,
@@ -206,11 +262,11 @@ class TransactionDeduplicationTest {
         dateTime = dateTime,
         smsBody = "sample sms",
         bankName = bankName,
-        smsSender = "SIBSMS",
+        smsSender = smsSender,
         accountNumber = accountNumber,
         balanceAfter = balanceAfter,
         transactionHash = "hash-$id",
-        currency = "INR",
+        currency = currency,
         reference = reference
     )
 }

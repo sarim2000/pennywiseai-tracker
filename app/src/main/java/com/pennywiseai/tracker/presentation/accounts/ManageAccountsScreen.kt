@@ -37,6 +37,8 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.style.TextOverflow
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -73,9 +75,46 @@ fun ManageAccountsScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
+    // Ignoring moves the account into the collapsed "Ignored Accounts" section, so
+    // expand it and offer an immediate Undo — otherwise it looks like it vanished.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val undoLabel = stringResource(R.string.manage_accounts_undo)
+    val ignoreAccount: (AccountBalanceEntity) -> Unit = { account ->
+        viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+        showHiddenAccounts = true
+        val label = AccountBalanceEntity.accountLabel(
+            account.alias?.takeIf { it.isNotBlank() } ?: account.bankName,
+            account.accountLast4
+        )
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.manage_accounts_ignored_snackbar, label),
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Short
+            )
+            // Skip if it was already un-ignored from the menu meanwhile.
+            if (result == SnackbarResult.ActionPerformed &&
+                viewModel.isAccountHidden(account.bankName, account.accountLast4)
+            ) {
+                viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+            }
+        }
+    }
+
+    // Editing can rename the account, which moves its ignored key: drop any pending
+    // Undo so it can't silently no-op against the old name. The account stays in
+    // the expanded Ignored section, so "Stop ignoring" is still one tap away.
+    LaunchedEffect(showEditDialog) {
+        if (showEditDialog) snackbarHostState.currentSnackbarData?.dismiss()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -240,9 +279,7 @@ fun ManageAccountsScreen(
                             account = account,
                             linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                             isHidden = false,
-                            onToggleVisibility = {
-                                viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
-                            },
+                            onToggleVisibility = { ignoreAccount(account) },
                             onUpdateBalance = {
                                 selectedAccount = account.bankName to account.accountLast4
                                 selectedAccountEntity = account
@@ -310,9 +347,7 @@ fun ManageAccountsScreen(
                         CreditCardItem(
                             card = card,
                             isHidden = false,
-                            onToggleVisibility = {
-                                viewModel.toggleAccountVisibility(card.bankName, card.accountLast4)
-                            },
+                            onToggleVisibility = { ignoreAccount(card) },
                             onUpdateBalance = {
                                 selectedAccount = card.bankName to card.accountLast4
                                 selectedAccountEntity = card

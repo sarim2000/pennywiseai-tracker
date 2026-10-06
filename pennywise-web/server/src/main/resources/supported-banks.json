@@ -1,6 +1,6 @@
 {
-  "totalBanks": 157,
-  "totalCountries": 24,
+  "totalBanks": 159,
+  "totalCountries": 25,
   "countries": [
     {
       "country": "India",
@@ -121,6 +121,14 @@
       "symbol": "€",
       "bankCount": 2,
       "banks": ["BPCE", "Sparkasse Rhein-Maas"]
+    },
+    {
+      "country": "United Kingdom",
+      "flag": "🇬🇧",
+      "currency": "GBP",
+      "symbol": "£",
+      "bankCount": 2,
+      "banks": ["Chase UK", "Trading 212"]
     },
     {
       "country": "Bangladesh",

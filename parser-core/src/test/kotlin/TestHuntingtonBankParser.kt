@@ -120,6 +120,7 @@ class HuntingtonBankParserTest {
         )
 
         val handleChecks = listOf(
+            "446622" to true,  // real SMS shortcode
             "Huntington Bank" to true,
             "HUNTINGTON" to true,
             "huntington" to true,

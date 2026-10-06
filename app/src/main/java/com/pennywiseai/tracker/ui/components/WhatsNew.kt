@@ -9,7 +9,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.BuildConfig
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.Icons
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
@@ -19,29 +24,24 @@ data class WhatsNewItem(
     val text: String
 )
 
-/**
- * Represents a version's changelog
- */
+/** A release's changelog: the bullet points from the Play "What's new" text. */
 data class WhatsNewVersion(
-    val title: String,
     val items: List<WhatsNewItem>
 )
 
 /**
- * Reads and parses the changelog from assets/whats_new.txt
+ * Reads the changelog the build copies into assets/whats_new.txt — the same
+ * file Play shows as "What's new" (fastlane changelogs/<versionCode>.txt).
  *
- * Expected format:
- * What's New in v2.15.44
- *
+ * Those files are bullets only, no title line:
  * • Feature one description
  * • Feature two description
- * • Bug fixes and improvements
+ *
+ * The dialog builds its own title from the app version. An older-style first
+ * line that isn't a bullet ("What's New in v2.15.44") is skipped.
  */
 object WhatsNewContent {
 
-    /**
-     * Parse the changelog file from assets
-     */
     fun parseFromAssets(context: Context): WhatsNewVersion? {
         return try {
             val content = context.assets.open("whats_new.txt")
@@ -54,36 +54,19 @@ object WhatsNewContent {
         }
     }
 
-    /**
-     * Parse changelog text content
-     */
+    private val BULLETS = listOf("•", "-", "*")
+
     fun parseChangelog(content: String): WhatsNewVersion? {
-        val lines = content.trim().lines()
-        if (lines.isEmpty()) return null
-
-        // First line is the title (e.g., "What's New in v2.15.44")
-        val title = lines.first().trim()
-
-        // Rest are bullet points starting with •, -, or *
-        val items = lines.drop(1)
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .map { line ->
-                // Remove bullet point prefix
-                val text = line
-                    .removePrefix("•")
-                    .removePrefix("-")
-                    .removePrefix("*")
-                    .trim()
-                WhatsNewItem(text)
-            }
-            .filter { it.text.isNotEmpty() }
-
-        return if (items.isNotEmpty()) {
-            WhatsNewVersion(title = title, items = items)
+        val lines = content.trim().lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val body = if (lines.firstOrNull()?.let { first -> BULLETS.none { first.startsWith(it) } } == true) {
+            lines.drop(1) // legacy title line
         } else {
-            null
+            lines
         }
+        val items = body
+            .map { line -> WhatsNewItem(BULLETS.fold(line) { acc, b -> acc.removePrefix(b) }.trim()) }
+            .filter { it.text.isNotEmpty() }
+        return if (items.isNotEmpty()) WhatsNewVersion(items) else null
     }
 }
 
@@ -94,19 +77,30 @@ fun WhatsNewDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = version.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+        icon = {
+            Icon(
+                Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
             )
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(R.string.whats_new_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = stringResource(R.string.whats_new_version, BuildConfig.VERSION_NAME),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         text = {
             Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 version.items.forEach { item ->
                     WhatsNewItemRow(item = item)
@@ -127,11 +121,11 @@ private fun WhatsNewItemRow(item: WhatsNewItem) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Text(
-            text = "•",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+        Icon(
+            Icons.Rounded.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = Spacing.xxs).size(Dimensions.Icon.small)
         )
         Text(
             text = item.text,

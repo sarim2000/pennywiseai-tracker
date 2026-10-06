@@ -35,6 +35,8 @@ import coil.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
@@ -158,7 +160,8 @@ fun TransactionTabContent(
     onSave: () -> Unit
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
     val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -490,6 +493,17 @@ fun TransactionTabContent(
                             expanded = showCategoryMenu,
                             onDismissRequest = { showCategoryMenu = false }
                         ) {
+                            // At the top so it's reachable without scrolling a long
+                            // list of sub-categories (#835).
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.txn_detail_add_category)) },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                onClick = {
+                                    showCategoryMenu = false
+                                    showAddCategoryDialog = true
+                                }
+                            )
+                            HorizontalDivider()
                             categories.forEach { category ->
                                 DropdownMenuItem(
                                     text = {
@@ -507,6 +521,19 @@ fun TransactionTabContent(
                         }
                     }
                 }
+            }
+
+            if (showAddCategoryDialog) {
+                CategoryEditDialog(
+                    defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
+                    lockType = true,
+                    onDismiss = { showAddCategoryDialog = false },
+                    onSave = { name, color, _, icon, _ ->
+                        // Close only once the category is created and selected, so the
+                        // modal dialog blocks Save / type changes until it lands.
+                        viewModel.createAndSelectCategory(name, color, icon) { showAddCategoryDialog = false }
+                    }
+                )
             }
 
             // Account selection dropdown menu (shared by From/To pickers).

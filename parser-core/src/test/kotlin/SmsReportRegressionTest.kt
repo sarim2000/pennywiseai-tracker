@@ -202,6 +202,32 @@ class SmsReportRegressionTest {
                 ),
                 shouldHandle = true
             ) + SimpleTestCase(
+                // Guard: "Sent … From HDFC Bank" isn't a debit verb but is a payment.
+                description = "A payment sent for an EMI due on a date still parses",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Sent Rs.5000.00 From HDFC Bank A/C *1111 To TEST MERCHANT for EMI due on 05-10-26 Ref 123456789012",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // Guard: money received against a due date is still income.
+                description = "A credit received for a due date still parses",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Update! INR 2,000.00 deposited in HDFC Bank A/c XX1111 on 01-OCT-26 for rent due on 01-OCT-26.Avl bal INR 9,000.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
                 description = "HDFC PIXEL credit card spend (#861)",
                 bankName = "HDFC Bank",
                 sender = "AD-HDFCBK-S",

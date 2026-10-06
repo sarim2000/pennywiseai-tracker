@@ -149,6 +149,7 @@
     <string name="manage_accounts_action_clear">Очистить</string>
     <string name="manage_accounts_action_link">Привязать</string>
     <string name="manage_accounts_menu_history">История</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_set_statement_date">Установить дату выписки</string>
     <string name="manage_accounts_menu_mark_personal">Отметить как персональное</string>

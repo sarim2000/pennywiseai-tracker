@@ -150,6 +150,7 @@
     <string name="manage_accounts_action_clear">Leeren</string>
     <string name="manage_accounts_action_link">Link</string>
     <string name="manage_accounts_menu_history">Verlauf</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Abrechnungsdatum: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Anweisungsdatum festlegen</string>

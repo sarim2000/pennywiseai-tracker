@@ -142,6 +142,7 @@
     <string name="manage_accounts_action_clear">Nettoyer</string>
     <string name="manage_accounts_action_link">Lier</string>
     <string name="manage_accounts_menu_history">Historique</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Date de la déclaration : %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Définir la date du relevé</string>

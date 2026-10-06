@@ -73,6 +73,7 @@
     <string name="manage_accounts_action_clear">खाली गर्नुहोस्</string>
     <string name="manage_accounts_action_link">लिंक गर्नुहोस्</string>
     <string name="manage_accounts_menu_history">इतिहास</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <string name="manage_accounts_balance">बालान्स</string>
     <string name="manage_accounts_linked_cards">सम्बन्धित कार्डहरू</string>

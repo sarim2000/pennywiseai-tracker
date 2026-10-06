@@ -24,13 +24,14 @@ class WebhookSyncScheduler @Inject constructor(
 
     suspend fun observeSchedule() {
         combine(repository.observeProfiles(), preferences.intervalHours, entitlementGate.isProEntitled) { profiles, hours, pro ->
-            (pro && profiles.any { it.enabled }) to hours
-        }.distinctUntilChanged().collect { (enabled, hours) ->
-            if (enabled) {
+            Triple(profiles.any { it.enabled }, hours, pro)
+        }.distinctUntilChanged().collect { (enabled, hours, pro) ->
+            // Preserve cadence while entitlement loads; the manager gates every delivery.
+            if (enabled && pro) {
                 work.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE,
                     PeriodicWorkRequestBuilder<WebhookSyncWorker>(hours.toLong(), TimeUnit.HOURS)
                         .setConstraints(constraints).build())
-            } else {
+            } else if (!enabled) {
                 work.cancelUniqueWork(WORK_NAME)
             }
         }

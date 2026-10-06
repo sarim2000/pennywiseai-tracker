@@ -1016,29 +1016,23 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 // Persist the merchant display alias (#583), keyed on the saved
-                // merchant name so it applies to every transaction from it. A
-                // blank alias clears any existing one.
-                val trimmedAlias = _merchantAlias.value.trim()
+                // merchant name so it applies to every transaction from it. Only an
+                // edit to the alias field writes anything: renaming *this*
+                // transaction's merchant must not move or delete the alias other
+                // transactions from the old merchant still use.
                 val newMerchantName = normalizedTransaction.merchantName
-                // _transaction still holds the pre-save transaction here (it is
-                // replaced below), so this is the original merchant name.
-                val oldMerchantName = _transaction.value?.merchantName
-                val merchantRenamed = oldMerchantName != null && oldMerchantName != newMerchantName
-
-                // If the merchant was renamed, drop any alias still keyed under
-                // the old name so it isn't orphaned under a name nothing uses.
-                if (merchantRenamed && _originalMerchantAlias.isNotBlank()) {
-                    merchantAliasRepository.removeAlias(oldMerchantName!!)
+                val originalMerchantName = _transaction.value?.merchantName
+                val write = aliasWriteOnSave(
+                    originalMerchantName, newMerchantName, _originalMerchantAlias, _merchantAlias.value,
+                    existingAliasForMerchant = merchantAliasRepository.getAliasForMerchant(newMerchantName)
+                )
+                when (write) {
+                    is AliasWrite.Set -> merchantAliasRepository.setAlias(write.merchant, write.alias)
+                    is AliasWrite.Remove -> merchantAliasRepository.removeAlias(write.merchant)
+                    null -> Unit
                 }
-                // Write the alias under the current name when it changed, or when
-                // the merchant was renamed (so a carried-over alias re-homes).
-                if (trimmedAlias != _originalMerchantAlias.trim() || merchantRenamed) {
-                    if (trimmedAlias.isEmpty()) {
-                        merchantAliasRepository.removeAlias(newMerchantName)
-                    } else {
-                        merchantAliasRepository.setAlias(newMerchantName, trimmedAlias)
-                    }
-                }
+                // Whatever is stored for the saved merchant is now the truth.
+                val trimmedAlias = merchantAliasRepository.getAliasForMerchant(newMerchantName) ?: ""
 
                 _transaction.value = normalizedTransaction
                 loadReceiptUri(normalizedTransaction)
@@ -1274,3 +1268,37 @@ class TransactionDetailViewModel @Inject constructor(
         val SPLITTABLE_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
     }
 }
+
+internal sealed class AliasWrite {
+    data class Set(val merchant: String, val alias: String) : AliasWrite()
+    data class Remove(val merchant: String) : AliasWrite()
+}
+
+/**
+ * The alias change a save should make, or null for none. An edited alias field
+ * is written under the saved merchant. A renamed merchant on one transaction
+ * leaves every existing alias where it is (the old merchant's other
+ * transactions still use it); a merchant that was only re-cased on save keeps
+ * its alias under the new spelling.
+ */
+internal fun aliasWriteOnSave(
+    originalMerchant: String?,
+    merchant: String,
+    originalAlias: String,
+    editedAlias: String,
+    existingAliasForMerchant: String? = null
+): AliasWrite? {
+    val edited = editedAlias.trim()
+    val recasedOnly = originalMerchant != null && originalMerchant != merchant &&
+        originalMerchant.equals(merchant, ignoreCase = true)
+    return when {
+        edited != originalAlias.trim() -> if (edited.isEmpty()) AliasWrite.Remove(merchant) else AliasWrite.Set(merchant, edited)
+        // Same merchant, only re-cased on save: give the new spelling the alias too
+        // (the old key stays for its other, still all-caps, transactions).
+        // ...unless that spelling already has its own alias, which its other
+        // transactions use: never overwrite it.
+        recasedOnly && edited.isNotEmpty() && existingAliasForMerchant.isNullOrBlank() -> AliasWrite.Set(merchant, edited)
+        else -> null
+    }
+}
+

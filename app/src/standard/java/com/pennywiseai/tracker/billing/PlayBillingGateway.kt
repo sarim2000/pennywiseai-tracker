@@ -91,25 +91,26 @@ class PlayBillingGateway @Inject constructor(
 
     private val connectionMutex = Mutex()
 
-    init {
-        // Hydrate the cached `isPro` so UI doesn't flicker on cold start.
-        // Genuine verification follows when `refresh()` lands.
-        applicationScope.launch {
-            _isPro.value = preferences.proCachedIsPro.first()
-            _isInitialized.value = true
-        }
+    // Hydrate before verification so a late cache read cannot overwrite its result.
+    private val cachedEntitlementLoad = applicationScope.launch {
+        _isPro.value = preferences.proCachedIsPro.first()
     }
 
     override suspend fun refresh(): PurchaseResult = withContext(Dispatchers.IO) {
-        when (val connect = ensureConnected()) {
-            is PurchaseResult.Success -> {
-                // Refresh both halves of state in parallel — products for the
-                // paywall, purchases for the entitlement flag.
-                queryProductsInternal()
-                queryPurchasesInternal()
-                PurchaseResult.Success
+        cachedEntitlementLoad.join()
+        try {
+            when (val connect = ensureConnected()) {
+                is PurchaseResult.Success -> {
+                    // Products for the paywall, purchases for the entitlement flag.
+                    queryProductsInternal()
+                    queryPurchasesInternal()
+                    PurchaseResult.Success
+                }
+                else -> connect
             }
-            else -> connect
+        } finally {
+            // A failed check retains cached access, matching the existing offline policy.
+            _isInitialized.value = true
         }
     }
 

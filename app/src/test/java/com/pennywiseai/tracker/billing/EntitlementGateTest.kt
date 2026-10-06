@@ -46,7 +46,7 @@ class EntitlementGateTest {
         }
     }
 
-    @Test fun `loaded license alone cannot declare free while play cache loads`() {
+    @Test fun `cached free state waits for pending Play verification`() {
         val play = MutableStateFlow(false)
         val initialized = MutableStateFlow(false)
         val source = mockk<EntitlementSource> {
@@ -64,6 +64,8 @@ class EntitlementGateTest {
             play.value = true
             initialized.value = true
             assertTrue(gate.isProEntitled.value)
+            play.value = false
+            assertEquals(false, gate.resolvedProEntitlement.value)
         } finally {
             scope.cancel()
         }

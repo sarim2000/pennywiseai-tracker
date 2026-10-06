@@ -3,8 +3,10 @@
 Webhook creation, configuration, manual sync, synthetic tests, and automatic
 delivery require Pro. F-Droid builds have this access unlocked. Free users can
 see the Settings entry and upgrade prompt. Scheduling requires Pro. Existing
-schedule timing is retained while cached entitlement loads. Once both caches
-resolve without Pro, the periodic job is cancelled. Queued work cannot send data
+schedule timing is retained while entitlement loads and the initial Play check
+is pending. Once initialization finishes without Pro, the periodic job is cancelled.
+Failed Play checks retain cached access, following the app's existing offline policy.
+Queued work cannot send data
 without entitlement.
 
 Open Settings → Developer → Webhooks to send selected financial data to an

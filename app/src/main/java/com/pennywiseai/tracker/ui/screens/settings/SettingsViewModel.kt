@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
-import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
@@ -71,13 +70,13 @@ class SettingsViewModel @Inject constructor(
     private val folderBackupWriter: FolderBackupWriter,
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
+    private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
     /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
-    private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     
     // Download state
     private val _downloadState = MutableStateFlow(DownloadState.NOT_DOWNLOADED)
@@ -132,7 +131,6 @@ class SettingsViewModel @Inject constructor(
 
     private var currentFolderPickerAction: FolderPickerAction = FolderPickerAction.ENABLE
 
-    private var currentDownloadId: Long? = null
     
     // Developer mode state
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
@@ -215,83 +213,31 @@ class SettingsViewModel @Inject constructor(
     
     private fun checkDownloadStatus() {
         viewModelScope.launch {
-            // First check for active download
-            val savedDownloadId = userPreferencesRepository.getActiveDownloadId()
-            Log.d("SettingsViewModel", "Checking download status, saved ID: $savedDownloadId")
-            
-            if (savedDownloadId != null) {
-                // Query DownloadManager for this ID
-                val query = DownloadManager.Query().setFilterById(savedDownloadId)
-                val cursor = downloadManager.query(query)
-                
-                if (cursor != null && cursor.moveToFirst()) {
-                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    
-                    if (statusIndex != -1) {
-                        val status = cursor.getInt(statusIndex)
-                        Log.d("SettingsViewModel", "Found active download with status: $status")
-                        
-                        when (status) {
-                            DownloadManager.STATUS_RUNNING,
-                            DownloadManager.STATUS_PENDING -> {
-                                _downloadState.value = DownloadState.DOWNLOADING
-                                currentDownloadId = savedDownloadId
-                                // Sync ModelRepository state
-                                modelRepository.updateModelState(ModelState.DOWNLOADING)
-                                // Get current progress
-                                val bytesIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                                val totalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                                if (bytesIndex != -1 && totalIndex != -1) {
-                                    val bytes = cursor.getLong(bytesIndex)
-                                    val total = cursor.getLong(totalIndex)
-                                    _downloadedMB.value = bytes / (1024 * 1024)
-                                    _totalMB.value = total / (1024 * 1024)
-                                    if (total > 0) {
-                                        _downloadProgress.value = (bytes * 100 / total).toInt()
-                                    }
-                                }
-                                monitorDownload(savedDownloadId)
-                            }
-                            DownloadManager.STATUS_SUCCESSFUL -> {
-                                _downloadProgress.value = 100
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Verify before trusting the completed download.
-                                modelRepository.updateModelState(ModelState.LOADING)
-                                if (modelRepository.finalizeDownloadedModel()) {
-                                    _downloadState.value = DownloadState.COMPLETED
-                                } else {
-                                    _downloadState.value = DownloadState.FAILED
-                                    _downloadProgress.value = 0
-                                }
-                            }
-                            DownloadManager.STATUS_FAILED -> {
-                                _downloadState.value = DownloadState.FAILED
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Sync ModelRepository state
-                                modelRepository.updateModelState(ModelState.NOT_DOWNLOADED)
-                            }
-                            DownloadManager.STATUS_PAUSED -> {
-                                _downloadState.value = DownloadState.PAUSED
-                                currentDownloadId = savedDownloadId
-                                // Sync ModelRepository state - still downloading but paused
-                                modelRepository.updateModelState(ModelState.DOWNLOADING)
-                            }
-                        }
-                    }
-                    cursor.close()
-                } else {
-                    // Download ID not found in DownloadManager, clear it and check file
-                    Log.d("SettingsViewModel", "Download ID not found in DownloadManager, checking file")
-                    userPreferencesRepository.clearActiveDownloadId()
-                    checkModelFile()
+            if (!modelDownloader.isRunning && !modelDownloader.resumeIfInterrupted()) checkModelFile()
+        }
+        // Mirror the shared downloader (it may have been started from Chat).
+        viewModelScope.launch {
+            combine(modelDownloader.progress, modelRepository.modelState) { p, m -> p to m }.collect { (p, m) ->
+                if (modelDownloader.isRunning || m == ModelState.DOWNLOADING) {
+                    _downloadState.value = DownloadState.DOWNLOADING
+                    _downloadedMB.value = p.downloadedBytes / BYTES_PER_MB
+                    _totalMB.value = p.totalBytes / BYTES_PER_MB
+                    _downloadProgress.value = (p.downloadedBytes * 100 / p.totalBytes.coerceAtLeast(1)).toInt()
                 }
-            } else {
-                // No active download, check if model file exists
-                checkModelFile()
+                when {
+                    p.failure == com.pennywiseai.tracker.data.manager.ModelDownloader.Failure.NO_SPACE ->
+                        _downloadState.value = DownloadState.ERROR_INSUFFICIENT_SPACE
+                    p.failure != null -> _downloadState.value = DownloadState.FAILED
+                    m == ModelState.READY && _downloadState.value == DownloadState.DOWNLOADING -> {
+                        _downloadState.value = DownloadState.COMPLETED
+                        _downloadProgress.value = 100
+                        _downloadedMB.value = _totalMB.value
+                    }
+                }
             }
         }
     }
-    
+
     private suspend fun checkModelFile() {
         val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
         Log.d("SettingsViewModel", "Checking model file at: ${modelFile.absolutePath}")
@@ -322,171 +268,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    fun startModelDownload() {
-        viewModelScope.launch {
-            // Check if download is already active
-            val existingDownloadId = userPreferencesRepository.getActiveDownloadId()
-            if (existingDownloadId != null) {
-                // Check if this download is still active
-                val query = DownloadManager.Query().setFilterById(existingDownloadId)
-                val cursor = downloadManager.query(query)
-                
-                if (cursor != null && cursor.moveToFirst()) {
-                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    if (statusIndex != -1) {
-                        val status = cursor.getInt(statusIndex)
-                        if (status == DownloadManager.STATUS_RUNNING || 
-                            status == DownloadManager.STATUS_PENDING ||
-                            status == DownloadManager.STATUS_PAUSED) {
-                            // Download is already active, just monitor it
-                            Log.d("SettingsViewModel", "Download already active with ID: $existingDownloadId")
-                            cursor.close()
-                            _downloadState.value = DownloadState.DOWNLOADING
-                            currentDownloadId = existingDownloadId
-                            modelRepository.updateModelState(ModelState.DOWNLOADING)
-                            monitorDownload(existingDownloadId)
-                            return@launch
-                        }
-                    }
-                    cursor.close()
-                }
-            }
-            
-            // Check storage space
-            val availableSpace = context.filesDir.usableSpace
-            if (availableSpace < Constants.ModelDownload.REQUIRED_SPACE_BYTES) {
-                _downloadState.value = DownloadState.ERROR_INSUFFICIENT_SPACE
-                return@launch
-            }
-            
-            // Validate model URL before attempting download
-            val modelUrl = Constants.ModelDownload.MODEL_URL
-            if (modelUrl.isBlank() || !modelUrl.startsWith("http")) {
-                Log.e("SettingsViewModel", "Invalid MODEL_URL: '$modelUrl'")
-                _downloadState.value = DownloadState.FAILED
-                return@launch
-            }
+    fun startModelDownload() = modelDownloader.start()
 
-            // Clean up any stale partial file — DownloadManager stays PENDING if destination exists
-            val existingFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
-            if (existingFile.exists()) {
-                existingFile.delete()
-            }
-
-            try {
-                // Create download request
-                val request = DownloadManager.Request(Uri.parse(modelUrl))
-                    .setTitle(context.getString(R.string.settings_ai_download_notification_title))
-                    .setDescription(context.getString(R.string.settings_ai_download_notification_description))
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
-                    .setAllowedOverMetered(true) // Allow mobile data downloads
-                    .setAllowedOverRoaming(false)
-
-                currentDownloadId = downloadManager.enqueue(request)
-                _downloadState.value = DownloadState.DOWNLOADING
-
-                // Sync ModelRepository state
-                modelRepository.updateModelState(ModelState.DOWNLOADING)
-
-                // Save download ID
-                userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
-                Log.d("SettingsViewModel", "Started download with ID: $currentDownloadId")
-
-                // Start monitoring progress
-                monitorDownload(currentDownloadId!!)
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Failed to start download", e)
-                _downloadState.value = DownloadState.FAILED
-            }
-        }
-    }
-    
-    private fun monitorDownload(downloadId: Long) {
-        viewModelScope.launch {
-            while (isActive && _downloadState.value == DownloadState.DOWNLOADING) {
-                val query = DownloadManager.Query().setFilterById(downloadId)
-                val cursor = downloadManager.query(query)
-                
-                if (cursor != null && cursor.moveToFirst()) {
-                    val bytesColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                    val totalBytesColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                    val statusColumnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    
-                    if (bytesColumnIndex != -1 && totalBytesColumnIndex != -1) {
-                        val bytesDownloaded = cursor.getLong(bytesColumnIndex)
-                        val rawBytesTotal = cursor.getLong(totalBytesColumnIndex)
-
-                        // Fallback to known model size when DownloadManager reports 0
-                        val bytesTotal = if (rawBytesTotal > 0) rawBytesTotal else Constants.ModelDownload.MODEL_SIZE_BYTES
-
-                        val progress = (bytesDownloaded * 100 / bytesTotal).toInt()
-
-                        _downloadProgress.value = progress
-                        _downloadedMB.value = bytesDownloaded / (1024 * 1024)
-                        _totalMB.value = bytesTotal / (1024 * 1024)
-                    }
-                    
-                    // Check status
-                    if (statusColumnIndex != -1) {
-                        when (cursor.getInt(statusColumnIndex)) {
-                            DownloadManager.STATUS_SUCCESSFUL -> {
-                                _downloadProgress.value = 100
-                                // Clear saved download ID
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Verify before trusting the completed download.
-                                modelRepository.updateModelState(ModelState.LOADING)
-                                if (modelRepository.finalizeDownloadedModel()) {
-                                    _downloadState.value = DownloadState.COMPLETED
-                                    Log.d("SettingsViewModel", "Download completed and verified")
-                                } else {
-                                    _downloadState.value = DownloadState.FAILED
-                                    _downloadProgress.value = 0
-                                    Log.e("SettingsViewModel", "Download failed integrity check")
-                                }
-                            }
-                            DownloadManager.STATUS_FAILED -> {
-                                _downloadState.value = DownloadState.FAILED
-                                // Clear saved download ID
-                                userPreferencesRepository.clearActiveDownloadId()
-                                // Sync ModelRepository state
-                                modelRepository.updateModelState(ModelState.NOT_DOWNLOADED)
-                                Log.d("SettingsViewModel", "Download failed")
-                            }
-                            DownloadManager.STATUS_PAUSED -> {
-                                _downloadState.value = DownloadState.PAUSED
-                            }
-                        }
-                    }
-                }
-                cursor?.close()
-                delay(1000) // Update every second
-            }
-        }
-    }
-    
     fun cancelDownload() {
-        viewModelScope.launch {
-            currentDownloadId?.let {
-                downloadManager.remove(it)
-                _downloadState.value = DownloadState.NOT_DOWNLOADED
-                _downloadProgress.value = 0
-                _downloadedMB.value = 0
-                _totalMB.value = 0
-                
-                // Clear saved download ID
-                userPreferencesRepository.clearActiveDownloadId()
-                
-                // Delete partial file
-                val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
-                if (modelFile.exists()) {
-                    modelFile.delete()
-                }
-                Log.d("SettingsViewModel", "Download cancelled and cleaned up")
-            }
-        }
+        modelDownloader.cancel()
+        _downloadState.value = DownloadState.NOT_DOWNLOADED
+        _downloadProgress.value = 0
+        _downloadedMB.value = 0
+        _totalMB.value = 0
     }
-    
+
     fun deleteModel() {
         viewModelScope.launch {
             val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
@@ -967,6 +758,8 @@ class SettingsViewModel @Inject constructor(
         }
     }
 }
+
+private const val BYTES_PER_MB = 1024L * 1024L
 
 enum class DownloadState {
     NOT_DOWNLOADED,

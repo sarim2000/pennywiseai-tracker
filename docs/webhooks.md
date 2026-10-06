@@ -1,5 +1,10 @@
 # Webhooks
 
+Webhook creation, configuration, manual sync, synthetic tests, and automatic
+delivery require Pro. F-Droid builds have this access unlocked. Free users can
+see the Settings entry and upgrade prompt. Losing entitlement cancels periodic
+scheduling and prevents queued work from sending data.
+
 Open Settings → Developer → Webhooks to send selected financial data to an
 endpoint you control. This is an opt-in exception to PennyWise's on-device data
 processing. Remote endpoints require HTTPS. HTTP is supported only for

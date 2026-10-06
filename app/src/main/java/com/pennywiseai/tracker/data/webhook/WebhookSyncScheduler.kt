@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.webhook
 
 import android.content.Context
+import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.work.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.worker.WebhookSyncWorker
@@ -15,14 +16,15 @@ import javax.inject.Singleton
 class WebhookSyncScheduler @Inject constructor(
     @ApplicationContext context: Context,
     private val repository: WebhookRepository,
-    private val preferences: WebhookPreferences
+    private val preferences: WebhookPreferences,
+    private val entitlementGate: EntitlementGate
 ) {
     private val work = WorkManager.getInstance(context)
     private val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
     suspend fun observeSchedule() {
-        combine(repository.observeProfiles(), preferences.intervalHours) { profiles, hours ->
-            profiles.any { it.enabled } to hours
+        combine(repository.observeProfiles(), preferences.intervalHours, entitlementGate.isProEntitled) { profiles, hours, pro ->
+            (pro && profiles.any { it.enabled }) to hours
         }.distinctUntilChanged().collect { (enabled, hours) ->
             if (enabled) {
                 work.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE,
@@ -35,6 +37,7 @@ class WebhookSyncScheduler @Inject constructor(
     }
 
     fun enqueue(reason: WebhookSyncReason, test: Boolean = false, profileId: String? = null) {
+        if (!entitlementGate.isProEntitled.value) return
         require(!test || profileId != null)
         val name = "${ONE_SHOT}_${profileId ?: "all"}_${if (test) "test" else "sync"}"
         work.enqueueUniqueWork(name, ExistingWorkPolicy.KEEP,

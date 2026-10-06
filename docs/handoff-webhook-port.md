@@ -9,7 +9,7 @@ idempotency, and limitations.
 
 ## Completed
 
-- Room schema 64, registered 62→63 and 63→64 migrations, DAOs, converters, and Hilt wiring.
+- Room schema 63, one registered 62→63 migration, DAOs, converters, and Hilt wiring.
 - Create/edit/delete profiles, enable/disable, selected types and currency,
   predefined/custom ranges, masked custom headers, and delivery history.
 - Profile-specific synthetic tests, manual sync, and network-constrained
@@ -26,18 +26,20 @@ idempotency, and limitations.
 - Bounded retries, cancellation propagation, request timeouts, safe redirect
   handling, credential-free error messages, and explicit schema/default JSON fields.
 - HTTPS for remote endpoints; loopback HTTP for local tests.
+- Pro gates creation and delivery, including queued/background work. F-Droid stays unlocked.
 - Count and UTF-8 byte limits split large batches before delivery without dropping records.
 - Validation errors beside Save and independent editor/list/history scroll state.
 
 ## Verification
 
-`./init.sh` with JDK 21 and `:app:assembleDebug` passed. The follow-up `./init.sh app` gate passed with 45 webhook unit tests.
+`./init.sh` with JDK 21 and `:app:assembleDebug` passed. The follow-up `./init.sh app` gate passed with 47 webhook unit tests.
 Set `JAVA_HOME` to JDK 21 when the shell default uses an older JDK.
 
 Nine instrumentation tests passed on the `Slim_Pixel` emulator, covering
-62→64 and 63→64 migration/data preservation, profile-edit history preservation and delete
+62→63 migration/data preservation, profile-edit history preservation and delete
 cascades, incremental queries, transaction/profile currency removals, stale-config cursor protection, concurrent profile-toggle preservation, and Android
-client delivery of synthetic JSON/custom headers to a loopback receiver.
+client delivery of synthetic JSON/custom headers to a loopback receiver, and
+category/loan/group bulk edits appearing in incremental exports.
 Earlier migration/query tests also passed on the connected physical device.
 
 Emulator UI checks passed for Settings navigation, visible save validation,
@@ -51,6 +53,11 @@ The APK is
 `app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk`.
 Its application ID is **com.pennywiseai.tracker.debug**, with activity
 **com.pennywiseai.tracker.MainActivity**. It is separate from the regular app.
+
+Maintainer follow-up checks confirmed that the standard free build opens the Pro
+sheet from Webhooks, while F-Droid opens the unlocked editor. The off-device
+delivery disclosure was checked in light and dark themes. The obsolete fork-test
+database was cleared only on the emulator.
 
 Use an emulator for further UI verification without clearing existing app data
 or altering real webhook profiles.

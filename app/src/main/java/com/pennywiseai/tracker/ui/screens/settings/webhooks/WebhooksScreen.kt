@@ -25,6 +25,8 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 @Composable
 fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showUpgrade by remember { mutableStateOf(false) }
     val listState = remember(state.editor != null, state.editor?.id, state.historyId) { LazyListState() }
     var deleteProfile by remember { mutableStateOf<WebhookProfileEntity?>(null) }
     val back: () -> Unit = {
@@ -53,8 +55,12 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                 state.message?.let { message -> item { Text(message, style = MaterialTheme.typography.bodyMedium) } }
             }
             when {
+                !isPro -> {
+                    item { Text("Webhook sync is a Pro feature. Send selected financial data to your own endpoint automatically.") }
+                    item { Button(onClick = { showUpgrade = true }) { Text("Unlock with Pro") } }
+                }
                 state.editor != null -> {
-                    item { WebhookEditor(state.editor!!, viewModel::updateEditor) }
+                    item { WebhookEditor(state.editor!!, state.intervalHours, viewModel::updateEditor) }
                     state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
                     item {
                         Button(onClick = viewModel::save, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
@@ -114,6 +120,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
             }
         }
     }
+    if (showUpgrade) com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(onDismiss = { showUpgrade = false })
     deleteProfile?.let { profile ->
         AlertDialog(onDismissRequest = { deleteProfile = null }, title = { Text("Delete webhook?") },
             text = { Text("Delete ${profile.name} and its delivery history?") },
@@ -155,13 +162,16 @@ private fun WebhookProfileCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun WebhookEditor(editor: WebhookEditorState, update: ((WebhookEditorState) -> WebhookEditorState) -> Unit) {
+private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((WebhookEditorState) -> WebhookEditorState) -> Unit) {
     var rangeMenu by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
         OutlinedTextField(editor.name, { value -> update { it.copy(name = value) } }, Modifier.fillMaxWidth(),
             label = { Text("Name") }, singleLine = true)
         OutlinedTextField(editor.url, { value -> update { it.copy(url = value) } }, Modifier.fillMaxWidth(),
             label = { Text("HTTPS endpoint URL") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+        Text(if (editor.enabled) "PennyWise will send the selected financial data outside this phone to this URL every $interval hours. Android may delay background delivery. Only use a URL you trust."
+            else "Automatic delivery is off. Manual sync sends the selected financial data outside this phone to this URL. Only use a URL you trust.",
+            style = MaterialTheme.typography.bodyMedium)
         if (editor.url.trim().startsWith("http://", true)) {
             Text("HTTP sends data and header credentials without encryption.", color = MaterialTheme.colorScheme.error)
         }

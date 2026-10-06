@@ -32,7 +32,7 @@ class WebhookDatabaseTest {
                 'synthetic', 0, '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
             close()
         }
-        helper.runMigrationsAndValidate(name, 64, true, PennyWiseDatabase.MIGRATION_62_63, PennyWiseDatabase.MIGRATION_63_64).use { db ->
+        helper.runMigrationsAndValidate(name, 63, true, PennyWiseDatabase.MIGRATION_62_63).use { db ->
             db.query("SELECT amount FROM transactions WHERE id = 1").use {
                 assertTrue(it.moveToFirst())
                 assertEquals("12.50", it.getString(0))
@@ -83,6 +83,36 @@ class WebhookDatabaseTest {
             assertTrue(changes.last().isDeleted)
         } finally { db.close() }
     }
+    @Test fun bulkCategoryLoanAndGroupEditsAreSelectedByIncrementalSync() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val before = LocalDateTime.now().minusMinutes(1)
+            val row = TransactionEntity(id = 1, amount = BigDecimal.ONE, merchantName = "Test merchant",
+                category = "Food", budgetCategory = "Food", transactionType = TransactionType.EXPENSE,
+                dateTime = before.minusYears(1), updatedAt = before.minusDays(1), transactionHash = "bulk_test",
+                loanId = 7, groupId = 9)
+            db.transactionDao().insertTransaction(row)
+            val mutations: List<suspend () -> Unit> = listOf(
+                { db.categoryDao().renameInTransactions("Food", "Meals") },
+                { db.categoryDao().renameInTransactionBudgetCategory("Food", "Meals") },
+                { db.loanDao().linkTransaction(1, 8) },
+                { db.loanDao().unlinkTransaction(1) },
+                { db.loanDao().unlinkAllTransactions(7) },
+                { db.transactionGroupDao().linkTransaction(1, 10) },
+                { db.transactionGroupDao().unlinkTransaction(1) },
+                { db.transactionGroupDao().unlinkAllTransactions(9) }
+            )
+            for ((index, mutate) in mutations.withIndex()) {
+                db.transactionDao().updateTransaction(row)
+                assertTrue(db.transactionDao().getWebhookChanges(before, LocalDateTime.now(), "INR").isEmpty())
+                mutate()
+                val selected = db.transactionDao().getWebhookChanges(before, LocalDateTime.now(), "INR")
+                assertEquals("Mutation $index must be exported", listOf(1L), selected.map { it.id })
+                assertTrue(selected.single().updatedAt.isAfter(before))
+            }
+        } finally { db.close() }
+    }
+
     @Test fun endpointEditDuringDeliveryCannotCommitOldCursors() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
         try {
@@ -170,22 +200,6 @@ class WebhookDatabaseTest {
             repository.save(draft.copy(url = "https://example.com/new"))
             assertTrue(db.transactionDao().getWebhookCurrencyRemovals("USD", profile.id).isEmpty())
         } finally { db.close() }
-    }
-
-    @Test fun upgradeFrom63PreservesWebhookConfiguration() {
-        val name = "webhook-receipts-migration-test"
-        helper.createDatabase(name, 63).apply {
-            execSQL("""INSERT INTO webhook_profiles (id, name, url, range_preset, created_at, updated_at)
-                VALUES ('synthetic-profile', 'Test', 'https://example.com', 'SINCE_LAST_SUCCESS',
-                '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
-            close()
-        }
-        helper.runMigrationsAndValidate(name, 64, true, PennyWiseDatabase.MIGRATION_63_64).use { db ->
-            db.query("SELECT name FROM webhook_profiles WHERE id = 'synthetic-profile'").use {
-                assertTrue(it.moveToFirst()); assertEquals("Test", it.getString(0))
-            }
-        }
-        instrumentation.targetContext.deleteDatabase(name)
     }
 
     @Test fun togglePreservesEditsAndDeliveryStatusCommittedBeforeItsWrite() = runBlocking {

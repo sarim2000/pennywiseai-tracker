@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 63,
-    "identityHash": "0db298a143481b84f619af50cdd0bc1e",
+    "identityHash": "309c7fec7b5d8d52d3b89c1655511ef0",
     "entities": [
       {
         "tableName": "transactions",
@@ -2321,11 +2321,60 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "webhook_delivered_transactions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`profile_id` TEXT NOT NULL, `transaction_id` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `transaction_id`), FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transactionId",
+            "columnName": "transaction_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "profile_id",
+            "transaction_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_webhook_delivered_transactions_profile_id",
+            "unique": false,
+            "columnNames": [
+              "profile_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_webhook_delivered_transactions_profile_id` ON `${TABLE_NAME}` (`profile_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "webhook_profiles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profile_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0db298a143481b84f619af50cdd0bc1e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '309c7fec7b5d8d52d3b89c1655511ef0')"
     ]
   }
 }

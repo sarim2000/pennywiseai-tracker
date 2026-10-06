@@ -776,8 +776,8 @@ fun SettingsScreen(
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
                     title = "Webhooks",
-                    subtitle = "Send transactions, budgets, accounts and subscriptions to your endpoint",
-                    onClick = onNavigateToWebhooks,
+                    subtitle = if (isProEntitled) "Send selected data to your endpoint" else "Pro · Send selected data to your endpoint",
+                    onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
                     position = ListItemPosition.Top
                 )
                 SettingsSwitchRow(

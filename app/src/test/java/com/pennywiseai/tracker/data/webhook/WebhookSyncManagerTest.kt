@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.data.webhook
 
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
+import com.pennywiseai.tracker.billing.EntitlementGate
+import kotlinx.coroutines.flow.MutableStateFlow
 import io.mockk.*
 import io.ktor.client.engine.mock.respond
 import kotlinx.coroutines.runBlocking
@@ -13,7 +15,9 @@ class WebhookSyncManagerTest {
     private val repository = mockk<WebhookRepository>(relaxed = true)
     private val builder = mockk<WebhookPayloadBuilder>()
     private val delivery = mockk<WebhookDeliveryService>()
-    private val manager = WebhookSyncManager(repository, builder, delivery)
+    private val pro = MutableStateFlow(true)
+    private val gate = mockk<EntitlementGate> { every { isProEntitled } returns pro }
+    private val manager = WebhookSyncManager(repository, builder, delivery, gate)
     private val profile = WebhookProfileEntity(id = "profile", name = "Test", url = "https://example.com/hook")
     private val end = LocalDateTime.of(2026, 1, 1, 12, 0)
     private val update = WebhookCursorUpdate(WebhookDataType.TRANSACTIONS, end, end)
@@ -66,11 +70,35 @@ class WebhookSyncManagerTest {
                     io.ktor.http.headersOf(io.ktor.http.HttpHeaders.Location, "https://example.com/result"))
             } else respond("{}", io.ktor.http.HttpStatusCode.OK)
         }, retryDelay = {})
-        val result = WebhookSyncManager(repository, builder, client).syncProfile(profile.id, WebhookSyncReason.MANUAL)
+        val result = WebhookSyncManager(repository, builder, client, gate).syncProfile(profile.id, WebhookSyncReason.MANUAL)
         assertFalse(result.anySuccess)
         assertFalse(result.anyRetryableFailure)
         coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
         coVerify(exactly = 0) { repository.recordDelivery(any(), any()) }
+    }
+
+    @Test fun `entitlement loss between batches stops delivery and cursor advancement`() = runBlocking {
+        setup()
+        coEvery { delivery.deliver(any(), any(), any()) } answers {
+            pro.value = false
+            WebhookAttemptResult(true, 200, "Delivered")
+        }
+        manager.syncProfile(profile.id, WebhookSyncReason.INTERVAL)
+        coVerify(exactly = 1) { delivery.deliver(any(), any(), any()) }
+        coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
+    }
+
+    @Test fun `free users cannot send manual scheduled or synthetic deliveries`() = runBlocking {
+        pro.value = false
+        for (reason in WebhookSyncReason.entries) {
+            assertFalse(manager.syncProfile(profile.id, reason).anySuccess)
+            assertFalse(manager.syncProfile(profile.id, reason, test = true).anySuccess)
+            assertFalse(manager.syncAll(reason).anySuccess)
+        }
+        coVerify(exactly = 0) { builder.build(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { delivery.deliver(any(), any(), any()) }
+        coVerify(exactly = 0) { repository.recordDelivery(any(), any()) }
+        coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }
     }
 
     @Test fun `disabled profile cannot send real data`() = runBlocking {

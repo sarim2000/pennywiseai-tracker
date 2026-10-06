@@ -72,7 +72,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 64
+const val SCHEMA_VERSION = 63
 
 /**
  * The PennyWise Room database.
@@ -705,11 +705,6 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_logs_created_at` ON `webhook_logs` (`created_at`)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_cursors` (`profile_id` TEXT NOT NULL, `data_type` TEXT NOT NULL, `last_success_at` TEXT, `last_range_end` TEXT, `updated_at` TEXT NOT NULL, PRIMARY KEY(`profile_id`, `data_type`), FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_cursors_profile_id` ON `webhook_cursors` (`profile_id`)")
-            }
-        }
-
-        val MIGRATION_63_64 = object : Migration(63, 64) {
-            override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_delivered_transactions` (`profile_id` TEXT NOT NULL, `transaction_id` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `transaction_id`), FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_delivered_transactions_profile_id` ON `webhook_delivered_transactions` (`profile_id`)")
             }
@@ -748,7 +743,6 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_60_61,
             MIGRATION_61_62,
             MIGRATION_62_63,
-            MIGRATION_63_64,
         )
     }
     

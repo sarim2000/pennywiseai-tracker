@@ -33,6 +33,8 @@ class MainActivity : FragmentActivity() {
         const val DEEP_LINK_HOST_ADD = "add"
 
         fun addDeepLink(): Uri = "$DEEP_LINK_SCHEME://$DEEP_LINK_HOST_ADD".toUri()
+
+        private const val MAX_SHARED_TEXT = 1000
     }
 
     // Transaction ID to edit when launched from notification
@@ -41,6 +43,10 @@ class MainActivity : FragmentActivity() {
 
     // Flag to navigate directly to Add Transaction when launched from a shortcut/widget
     var openAddTransaction by mutableStateOf(false)
+        private set
+
+    // Text shared to PennyWise from another app; opens Add Transaction pre-filled.
+    var sharedText by mutableStateOf<String?>(null)
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +61,7 @@ class MainActivity : FragmentActivity() {
 
         val editCompleteCallback = { editTransactionId = null }
         val addShortcutCallback = { openAddTransaction = false }
+        val sharedTextCallback = { sharedText = null }
 
         registerQuickAddShortcut()
 
@@ -63,7 +70,9 @@ class MainActivity : FragmentActivity() {
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
                 onEditComplete = editCompleteCallback,
-                onAddTransactionShortcutHandled = addShortcutCallback
+                onAddTransactionShortcutHandled = addShortcutCallback,
+                sharedText = sharedText,
+                onSharedTextHandled = sharedTextCallback
             )
         }
     }
@@ -80,6 +89,10 @@ class MainActivity : FragmentActivity() {
             if (transactionId != -1L) {
                 editTransactionId = transactionId
             }
+        }
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            // Capped: it travels as a navigation argument and ends up as a note.
+            sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = true

@@ -59,6 +59,10 @@ class AddViewModel @Inject constructor(
     // When launched via "Duplicate", this holds the id of the source transaction
     // whose values should pre-fill the form. Null for a fresh add.
     private val sourceTransactionId: Long? = savedStateHandle.get<Long>("sourceTransactionId")
+
+    // Text shared into the app ("Share to PennyWise"): pre-fills the amount when
+    // one is clear and keeps the full text as the note.
+    private val sharedText: String? = savedStateHandle.get<String>("sharedText")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -93,6 +97,19 @@ class AddViewModel @Inject constructor(
             // If launched via "Duplicate", prefill the transaction form from the
             // source. Done after the default currency so the source's currency wins.
             sourceTransactionId?.let { prefillFromTransaction(it) }
+            sharedText?.let { text ->
+                val guess = SharedTextAmount.extract(text)
+                _transactionUiState.update {
+                    // Only prefill an amount in the form's own currency: "$12" shared
+                    // by an INR user is left for them to enter, rather than becoming
+                    // 12 INR or a USD figure saved against an INR account.
+                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
+                    it.copy(
+                        amount = usable?.amount?.toPlainString() ?: it.amount,
+                        notes = text
+                    )
+                }
+            }
         }
     }
 

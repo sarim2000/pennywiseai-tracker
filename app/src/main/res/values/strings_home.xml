@@ -99,6 +99,8 @@
     <string name="color_swatch_selected">Selected</string>
     <string name="profile_filter_all_accounts">All Accounts</string>
     <string name="whats_new_got_it">Got it</string>
+    <string name="whats_new_title">What\'s new</string>
+    <string name="whats_new_version">Version %1$s</string>
 
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Tap here to scan your SMS messages for transactions</string>

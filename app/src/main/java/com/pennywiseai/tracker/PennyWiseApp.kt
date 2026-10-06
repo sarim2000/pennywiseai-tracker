@@ -130,6 +130,12 @@ fun PennyWiseApp(
     // the draft. The effect re-runs as each of these settles.
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val lockChecksAtShare = remember(sharedText) { appLockUiState.checks }
+    // Guarantee a lock check after that baseline: on a cold start the startup
+    // checks can finish before this composes (themeUiState loads first), and no
+    // other check would follow, leaving the draft pending forever.
+    LaunchedEffect(sharedText) {
+        if (sharedText != null) actualAppLockViewModel.refreshLockState()
+    }
     LaunchedEffect(
         sharedText,
         themeUiState.hasCompletedOnboarding,

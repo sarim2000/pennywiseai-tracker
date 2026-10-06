@@ -22,6 +22,16 @@ class AliasWriteOnSaveTest {
     }
 
     @Test
+    fun `re-casing never overwrites the new spelling's own alias`() {
+        assertNull(
+            aliasWriteOnSave(
+                "GOOGLE PLAY", "Google Play", originalAlias = "Play Store", editedAlias = "Play Store",
+                existingAliasForMerchant = "Apps & AI"
+            )
+        )
+    }
+
+    @Test
     fun `an edited alias is written under the saved merchant`() {
         assertEquals(AliasWrite.Set("Google Play", "Play Store"), aliasWriteOnSave("Google Play", "Google Play", "", "Play Store"))
     }

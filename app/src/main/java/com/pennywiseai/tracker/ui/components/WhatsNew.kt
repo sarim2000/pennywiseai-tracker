@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.Icons
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
@@ -125,7 +126,7 @@ private fun WhatsNewItemRow(item: WhatsNewItem) {
             Icons.Rounded.CheckCircle,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 2.dp).size(18.dp)
+            modifier = Modifier.padding(top = Spacing.xxs).size(Dimensions.Icon.small)
         )
         Text(
             text = item.text,

@@ -23,6 +23,9 @@ interface EntitlementSource {
      */
     val isPro: StateFlow<Boolean>
 
+    /** True after the persisted entitlement has loaded. */
+    val isInitialized: StateFlow<Boolean>
+
     /** Localized product catalog the paywall renders. Empty until refresh resolves. */
     val products: StateFlow<List<ProProduct>>
 }

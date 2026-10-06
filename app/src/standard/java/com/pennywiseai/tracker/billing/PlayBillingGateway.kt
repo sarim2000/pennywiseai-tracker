@@ -63,6 +63,9 @@ class PlayBillingGateway @Inject constructor(
     private val _isPro = MutableStateFlow(false)
     override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
+    private val _isInitialized = MutableStateFlow(false)
+    override val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+
     private val _products = MutableStateFlow<List<ProProduct>>(emptyList())
     override val products: StateFlow<List<ProProduct>> = _products.asStateFlow()
 
@@ -93,6 +96,7 @@ class PlayBillingGateway @Inject constructor(
         // Genuine verification follows when `refresh()` lands.
         applicationScope.launch {
             _isPro.value = preferences.proCachedIsPro.first()
+            _isInitialized.value = true
         }
     }
 

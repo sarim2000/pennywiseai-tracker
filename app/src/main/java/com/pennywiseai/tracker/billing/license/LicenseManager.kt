@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -71,10 +72,13 @@ class LicenseManager @Inject constructor(
     }.onEach { scope.launch { revalidateIfDue() } }
 
     /** True while the stored key is within [LicensePolicy]'s window. */
-    val isLicensed: StateFlow<Boolean> =
+    val resolvedLicenseEntitlement: StateFlow<Boolean?> =
         combine(preferences.storedLicense, ticker) { license, _ ->
             license != null && LicensePolicy.grantsPro(license.validatedAt, System.currentTimeMillis())
-        }.stateIn(scope, SharingStarted.Eagerly, false)
+        }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    val isLicensed: StateFlow<Boolean> = resolvedLicenseEntitlement
+        .map { it == true }.stateIn(scope, SharingStarted.Eagerly, false)
 
     suspend fun activate(rawKey: String): ActivationOutcome = mutex.withLock {
         val key = rawKey.trim()

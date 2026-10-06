@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,9 +33,21 @@ class EntitlementGate @Inject constructor(
     @ApplicationScope scope: CoroutineScope,
 ) {
 
+    /** Null while caches load, so background schedules do not treat startup as revocation. */
+    val resolvedProEntitlement: StateFlow<Boolean?> =
+        combine(entitlementSource.isPro, entitlementSource.isInitialized,
+            licenseManager.resolvedLicenseEntitlement) { play, initialized, license ->
+            when {
+                play || license == true -> true
+                initialized && license != null -> false
+                else -> null
+            }
+        }.stateIn(scope, SharingStarted.Eagerly,
+            if (entitlementSource.isPro.value || licenseManager.isLicensed.value) true else null)
+
     /** `true` when the user owns an active Pro SKU or a valid license key. */
     val isProEntitled: StateFlow<Boolean> =
-        combine(entitlementSource.isPro, licenseManager.isLicensed) { play, license -> play || license }
+        resolvedProEntitlement.map { it == true }
             .stateIn(
                 scope,
                 SharingStarted.Eagerly,

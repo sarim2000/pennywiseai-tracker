@@ -104,6 +104,13 @@ fun ManageAccountsScreen(
         }
     }
 
+    // Editing can rename the account, which moves its ignored key: drop any pending
+    // Undo so it can't silently no-op against the old name. The account stays in
+    // the expanded Ignored section, so "Stop ignoring" is still one tap away.
+    LaunchedEffect(showEditDialog) {
+        if (showEditDialog) snackbarHostState.currentSnackbarData?.dismiss()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,

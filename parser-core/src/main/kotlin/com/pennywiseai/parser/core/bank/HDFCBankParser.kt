@@ -293,6 +293,12 @@ class HDFCBankParser : BaseIndianBankParser() {
         return super.extractMerchant(message, sender)
     }
 
+    // The BLOCK instruction names the card type, so it marks a card even when the
+    // body only says "used on HDFC Bank PIXEL Card" (no "credit card" wording).
+    override fun detectIsCard(message: String): Boolean =
+        Regex("""\bblock\s?(?:p?cc|dc)\b""", RegexOption.IGNORE_CASE).containsMatchIn(message) ||
+            super.detectIsCard(message)
+
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
@@ -308,8 +314,14 @@ class HDFCBankParser : BaseIndianBankParser() {
             lowerMessage.contains("reversed") || lowerMessage.contains("reversal") -> TransactionType.INCOME
 
             // Credit card transactions - ONLY if message contains CC or PCC indicators
-            // Any transaction with BLOCK CC or BLOCK PCC is a credit card transaction
-            lowerMessage.contains("block cc") || lowerMessage.contains("block pcc") -> TransactionType.CREDIT
+            // Any transaction with BLOCK CC or BLOCK PCC is a credit card transaction.
+            // The space is optional: PIXEL cards write "SMS BLOCKPCC 1234".
+            Regex("""\bblock\s?p?cc\b""").containsMatchIn(lowerMessage) -> TransactionType.CREDIT
+
+            // "INR X deposited in HDFC Bank A/c … for Interest paid till …" — money in.
+            // Checked before the expense keywords: the narration's "paid" would
+            // otherwise make an interest credit an expense.
+            lowerMessage.contains("deposited in") -> TransactionType.INCOME
 
             // Legacy pattern for older format that explicitly says "spent on card"
             lowerMessage.contains("spent on card") && !lowerMessage.contains("block dc") -> TransactionType.CREDIT
@@ -385,8 +397,9 @@ class HDFCBankParser : BaseIndianBankParser() {
             return match.groupValues[1]
         }
 
-        // Pattern for "BLOCK DC ####" format — already exactly 4 digits
-        val blockDCPattern = Regex("""BLOCK\s+DC\s+(\d{4})""", RegexOption.IGNORE_CASE)
+        // "BLOCK DC ####" / "BLOCK CC ####" / "BLOCKPCC ####" — the card's last 4.
+        // PIXEL credit cards only name the card here ("SMS BLOCKPCC 1234").
+        val blockDCPattern = Regex("""BLOCK\s*(?:DC|P?CC)\s+(\d{4})\b""", RegexOption.IGNORE_CASE)
         blockDCPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
@@ -535,6 +548,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             "sent", // HDFC uses "Sent Rs.X From HDFC Bank"
             "deducted", // Add support for "deducted from" pattern
             "txn", // HDFC uses "Txn Rs.X" for card transactions
+            "used on", // PIXEL credit card: "Rs X used on HDFC Bank PIXEL Card at M on …"
             "refund", // "Refund initiated: Amt: Rs.X on HDFC Bank Credit Card ####"
             "reversed", // "Transaction Reversed!On HDFC Bank CREDIT Card ####" (#698)
             "reversal",

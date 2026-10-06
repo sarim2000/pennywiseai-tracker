@@ -177,6 +177,17 @@ abstract class BankParser {
             return true
         }
 
+        // Bill-due reminders: "… bill of INR X due on 28-09-26. Pay on <link>".
+        // A real debit can mention a due date too ("EMI due on … has been
+        // debited"), so only skip when no completed-money verb is present.
+        // \bpaid\b so the "paid" inside "Postpaid" doesn't count.
+        if (lowerMessage.contains("due on") &&
+            !Regex("""\b(debited|deducted|credited|spent|withdrawn|charged|paid)\b""")
+                .containsMatchIn(lowerMessage)
+        ) {
+            return true
+        }
+
         // Skip payment reminder/due messages
         if (lowerMessage.contains("is due") ||
             lowerMessage.contains("min amount due") ||

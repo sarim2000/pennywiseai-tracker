@@ -388,8 +388,10 @@ open class TransactionRepository @Inject constructor(
     /** Re-target TRANSFER from/to-account refs after an account merge (#368). */
     suspend fun retargetTransferLegRefs(
         sourceAccountLast4: String,
-        targetAccountLast4: String
+        targetAccountLast4: String,
+        scopeBankName: String? = null
     ): Int = transactionDao.retargetTransferLegRefs(
+        scopeBankName = scopeBankName,
         sourceAccountLast4 = sourceAccountLast4,
         targetAccountLast4 = targetAccountLast4,
         updatedAt = LocalDateTime.now()

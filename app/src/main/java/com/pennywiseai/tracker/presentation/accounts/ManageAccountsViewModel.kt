@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import kotlinx.coroutines.sync.withLock
+
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -73,6 +76,7 @@ class ManageAccountsViewModel @Inject constructor(
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
+    private val bankAccountMerges = BankAccountMergeStore(context)
 
     /**
      * Drives the Merge-accounts action — Pro-only gate. Free users still
@@ -606,41 +610,53 @@ class ManageAccountsViewModel @Inject constructor(
                     return@launch
                 }
 
+                val rememberAlias = source.bankName == target.bankName && !source.isCreditCard &&
+                    BankAccountMergeStore.isShortMaskPair(source.accountLast4, target.accountLast4)
+
                 // Run the full merge under a single Room transaction so a
                 // crash mid-flight can't leave partially-merged state (e.g.
                 // transactions retargeted but source balances still around,
                 // or vice versa). The source account effectively ceases to
                 // exist after this block commits.
-                val moved = database.withTransaction {
-                    val rows = transactionRepository.mergeAccountTransactions(
-                        sourceBankName = source.bankName,
-                        sourceAccountLast4 = source.accountLast4,
-                        targetBankName = target.bankName,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Self-transfer rows (#385) reference accounts via
-                    // `fromAccount` / `toAccount`. Re-target any references
-                    // to the source so the detail screen's From → To stays
-                    // pointing at a live account.
-                    transactionRepository.retargetTransferLegRefs(
-                        sourceAccountLast4 = source.accountLast4,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Re-link any debit cards bound to the source so they
-                    // keep working against the merged-into target. (Unlinking
-                    // would silently strip the user's card→account binding.)
-                    (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
-                        .forEach { card ->
-                            cardRepository.linkCardToAccount(card.id, target.accountLast4)
-                        }
-                    // Drop the source's balance snapshots. Source's running
-                    // balance was for source's standalone account, so
-                    // retargeting these snapshots into the target would
-                    // invent fictional history. Dropping is the only correct
-                    // option; the merged transactions appear on the target
-                    // without a historical balance trace.
-                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
-                    rows
+                val moved = BankAccountMergeStore.mutationMutex.withLock {
+                    val movedRows = database.withTransaction {
+                        val rows = transactionRepository.mergeAccountTransactions(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetBankName = target.bankName,
+                            targetAccountLast4 = target.accountLast4
+                        )
+                        // Self-transfer rows (#385) reference accounts via
+                        // `fromAccount` / `toAccount`. Re-target any references
+                        // to the source so the detail screen's From → To stays
+                        // pointing at a live account.
+                        transactionRepository.retargetTransferLegRefs(
+                            sourceAccountLast4 = source.accountLast4,
+                            targetAccountLast4 = target.accountLast4,
+                            scopeBankName = source.bankName.takeIf { rememberAlias }
+                        )
+                        // Re-link any debit cards bound to the source so they
+                        // keep working against the merged-into target. (Unlinking
+                        // would silently strip the user's card→account binding.)
+                        (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                            .filter { it.bankName == source.bankName && it.currency == source.currency }
+                            .forEach { card ->
+                                cardRepository.linkCardToAccount(card.id, target.accountLast4)
+                            }
+                        // Drop the source's balance snapshots. Source's running
+                        // balance was for source's standalone account, so
+                        // retargeting these snapshots into the target would
+                        // invent fictional history. Dropping is the only correct
+                        // option; the merged transactions appear on the target
+                        // without a historical balance trace.
+                        accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                        rows
+                    }
+
+                    if (rememberAlias) {
+                        bankAccountMerges.remember(source.bankName, source.currency, source.accountLast4, target.accountLast4)
+                    }
+                    movedRows
                 }
 
                 // Clear any "hidden" preference for the now-gone source.

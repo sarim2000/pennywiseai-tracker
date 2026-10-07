@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.manager
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+
 import android.content.Context
 import android.util.Log
 import androidx.room.withTransaction
@@ -27,7 +29,6 @@ import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
 import java.time.Instant
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -53,9 +54,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase
 ) {
+    private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
-        private val saveLock = Mutex()
-
         private const val TAG = "SmsTransactionProcessor"
     }
 
@@ -121,13 +121,14 @@ class SmsTransactionProcessor @Inject constructor(
      * - Balance updates
      */
     suspend fun saveParsedTransaction(
-        parsedTransaction: ParsedTransaction,
+        parsedInput: ParsedTransaction,
         smsBody: String
-    ): ProcessingResult = saveLock.withLock {
+    ): ProcessingResult = BankAccountMergeStore.mutationMutex.withLock {
         // One lock across the SMS receiver and the notification listener: a bank
         // that texts and pushes at the same moment would otherwise let both pass
         // the duplicate check before either insert lands.
         try {
+            val parsedTransaction = bankAccountMerges.resolve(parsedInput)
             // Convert to entity
             val entity = parsedTransaction.toEntity()
 

@@ -392,9 +392,11 @@ interface TransactionDao {
         SET from_account = CASE WHEN from_account = :sourceAccountLast4 THEN :targetAccountLast4 ELSE from_account END,
             to_account   = CASE WHEN to_account   = :sourceAccountLast4 THEN :targetAccountLast4 ELSE to_account   END,
             updated_at   = :updatedAt
-        WHERE from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4
+        WHERE (from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4)
+          AND (:scopeBankName IS NULL OR bank_name = :scopeBankName)
     """)
     suspend fun retargetTransferLegRefs(
+        scopeBankName: String?,
         sourceAccountLast4: String,
         targetAccountLast4: String,
         updatedAt: LocalDateTime

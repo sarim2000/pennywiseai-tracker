@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -70,6 +72,14 @@ fun ManageAccountsScreen(
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
+    val dismissedDuplicates = remember { mutableStateListOf<String>() }
+    val accountDuplicate = BankAccountMergeStore
+        .duplicatePairs(uiState.accounts)
+        .firstOrNull { (source, target) ->
+            BankAccountMergeStore.mappingKey(source.bankName, source.currency, source.accountLast4) !in dismissedDuplicates &&
+                !viewModel.isAccountHidden(source.bankName, source.accountLast4) &&
+                !viewModel.isAccountHidden(target.bankName, target.accountLast4)
+        }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -580,6 +590,21 @@ fun ManageAccountsScreen(
                 showEditDialog = false
                 accountToEdit = null
             }
+        )
+    }
+
+    if (!showMergeSheet && !showDeleteConfirmDialog && !showEditDialog && !showUpdateDialog &&
+        !showUpgradeSheet && !showSupportDialog && pendingProfileReassign == null && accountDuplicate != null) {
+        val (source, target) = accountDuplicate
+        val duplicateKey = BankAccountMergeStore.mappingKey(source.bankName, source.currency, source.accountLast4)
+        DuplicateAccountDialog(
+            source = source,
+            target = target,
+            onMerge = {
+                dismissedDuplicates.add(duplicateKey)
+                viewModel.mergeAccounts(source, target)
+            },
+            onDismiss = { dismissedDuplicates.add(duplicateKey) }
         )
     }
 

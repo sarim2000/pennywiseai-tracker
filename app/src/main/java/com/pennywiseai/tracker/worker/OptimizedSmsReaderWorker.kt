@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import kotlinx.coroutines.sync.withLock
+
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -80,6 +83,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val tagRepository: TagRepository,
     private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
 ) : CoroutineWorker(appContext, workerParams) {
+    private val bankAccountMerges = BankAccountMergeStore(appContext)
 
     companion object {
         const val TAG                               = "OptimizedSmsReaderWorker"
@@ -452,7 +456,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
-                try { processBalanceUpdate(update.parsed, update.entity, update.transactionId) }
+                try { BankAccountMergeStore.mutationMutex.withLock {
+                    processBalanceUpdate(update.parsed, update.entity, update.transactionId)
+                } }
                 catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Log.e(TAG, "Balance update failed: ${e.message}")
@@ -636,19 +642,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isBalanceUpdateNotification(sms.body)) {
                 parser.parseBalanceUpdate(sms.body)?.let { info ->
-                    // Balance-only messages never reach saveTransaction, so the
-                    // ignore gate has to be applied here too (#826).
-                    if (!ignoredAccountsStore.isIgnored(info.bankName, info.accountLast4)) {
-                        actions += {
-                            accountBalanceRepository.insertBalanceUpdate(
-                                bankName     = info.bankName,
-                                accountLast4 = info.accountLast4 ?: "XXXX",
-                                balance      = info.balance,
-                                timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
-                                currency     = parser.getCurrency()
-                            )
-                        }
-                    }
+                    actions += { saveBalanceNotification(info, parser.getCurrency(), sms) }
                 }
                 // If unparseable as balance update, fall through to check eMandate/futureDebit below
             }
@@ -680,18 +674,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         is IndusIndBankParser -> {
             if (!parser.isBalanceUpdateNotification(sms.body)) null
-            else parser.parseBalanceUpdate(sms.body)?.takeUnless {
-                // Balance-only messages never reach saveTransaction (#826).
-                ignoredAccountsStore.isIgnored(it.bankName, it.accountLast4)
-            }?.let { info ->
+            else parser.parseBalanceUpdate(sms.body)?.let { info ->
                 ParseResult.SpecialNotification(sms) {
-                    accountBalanceRepository.insertBalanceUpdate(
-                        bankName     = info.bankName,
-                        accountLast4 = info.accountLast4 ?: "XXXX",
-                        balance      = info.balance,
-                        timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
-                        currency     = parser.getCurrency()
-                    )
+                    saveBalanceNotification(info, parser.getCurrency(), sms)
                 }
             }
         }
@@ -699,112 +684,137 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         else -> null
     }
 
+    private suspend fun saveBalanceNotification(
+        info: BaseIndianBankParser.BaseBalanceUpdateInfo,
+        currency: String,
+        sms: SmsMessage
+    ) = BankAccountMergeStore.mutationMutex.withLock {
+        val suffix = info.accountLast4?.let { bankAccountMerges.resolveSuffix(info.bankName, currency, it) }
+        // Balance-only notifications bypass saveTransaction, so apply the same account gates here.
+        if (!ignoredAccountsStore.isIgnored(info.bankName, suffix)) {
+            accountBalanceRepository.insertBalanceUpdate(
+                bankName = info.bankName,
+                accountLast4 = suffix ?: "XXXX",
+                balance = info.balance,
+                timestamp = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
+                currency = currency
+            )
+        }
+    }
+
     // ─── Stage 3b: Regular transactions ──────────────────────────────────────
 
     private suspend fun saveTransaction(
-        parsed: ParsedTransaction,
+        parsedInput: ParsedTransaction,
         sms: SmsMessage,
         stats: ProcessingStats,
         balanceUpdates: SendChannel<DeferredBalanceUpdate>
     ): SaveOutcome = try {
-        coroutineScope {
-            val entity = parsed.toEntity()
+        var pendingBalance: DeferredBalanceUpdate? = null
+        val outcome = BankAccountMergeStore.mutationMutex.withLock {
+            coroutineScope {
+                val parsed = bankAccountMerges.resolve(parsedInput)
+                val entity = parsed.toEntity()
 
-            // Same gate as the live receiver, including the linked account
-            // behind a debit card (#826), so a rescan can't re-import what the
-            // user excluded.
-            val linkedAccountLast4 = if (parsed.isFromCard) {
-                parsed.accountLast4?.let {
-                    cardRepository.getCard(parsed.bankName, it)?.accountLast4
-                }
-            } else null
-            if (ignoredAccountsStore.isIgnored(
-                    entity.bankName,
-                    entity.accountNumber,
-                    linkedAccountLast4
-                )
-            ) {
-                return@coroutineScope SaveOutcome.SKIPPED
-            }
-
-            val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
-
-            val customCategory = merchantMappingCache[entity.merchantName]
-            val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
-
-            val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
-            val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
-
-            if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
-
-            // Same charge already booked from the bank's app notification. Only
-            // banks that can arrive by notification pay for the lookup.
-            if (entity.bankName in BankNotificationConfig.notificationBankNames) {
-                val nearby = transactionRepository.getTransactionByAmountAndDate(
-                    entity.amount,
-                    entity.dateTime.minusMinutes(2),
-                    entity.dateTime.plusMinutes(2)
-                )
-                if (TransactionDeduplication.isBookedByOtherChannel(
-                        entity, nearby, BankNotificationConfig.notificationAliases
+                // Same gate as the live receiver, including the linked account
+                // behind a debit card (#826), so a rescan can't re-import what the
+                // user excluded.
+                val linkedAccountLast4 = if (parsed.isFromCard) {
+                    parsed.accountLast4?.let {
+                        cardRepository.getCard(parsed.bankName, it)?.accountLast4
+                    }
+                } else null
+                if (ignoredAccountsStore.isIgnored(
+                        entity.bankName,
+                        entity.accountNumber,
+                        linkedAccountLast4
                     )
                 ) {
                     return@coroutineScope SaveOutcome.SKIPPED
                 }
-            }
 
-            // Durable deletion: skip re-inserting a transaction the user deleted,
-            // even when its hash shifted across an app/parser update (the hash
-            // includes the parsed amount). The raw SMS is stable, so a matching
-            // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
-            entity.smsBody?.let { body ->
-                if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
+
+                val customCategory = merchantMappingCache[entity.merchantName]
+                val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
+
+                val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
+                val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
+
+                if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+
+                // Same charge already booked from the bank's app notification. Only
+                // banks that can arrive by notification pay for the lookup.
+                if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                    val nearby = transactionRepository.getTransactionByAmountAndDate(
+                        entity.amount,
+                        entity.dateTime.minusMinutes(2),
+                        entity.dateTime.plusMinutes(2)
+                    )
+                    if (TransactionDeduplication.isBookedByOtherChannel(
+                            entity, nearby, BankNotificationConfig.notificationAliases
+                        )
+                    ) {
+                        return@coroutineScope SaveOutcome.SKIPPED
+                    }
+                }
+
+                // Durable deletion: skip re-inserting a transaction the user deleted,
+                // even when its hash shifted across an app/parser update (the hash
+                // includes the parsed amount). The raw SMS is stable, so a matching
+                // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
+                entity.smsBody?.let { body ->
+                    if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                        return@coroutineScope SaveOutcome.SKIPPED
+                    }
+                }
+
+                if (isBlocked) {
+                    stats.blocked.incrementAndGet()
                     return@coroutineScope SaveOutcome.SKIPPED
                 }
-            }
 
-            if (isBlocked) {
-                stats.blocked.incrementAndGet()
-                return@coroutineScope SaveOutcome.SKIPPED
-            }
+                val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
 
-            val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
-
-            val matchedSub = subscriptionRepository.matchTransactionToSubscription(
-                withRules.merchantName, withRules.amount
-            )
-            val finalEntity = if (matchedSub != null) {
-                subscriptionRepository.updateNextPaymentDateAfterCharge(
-                    matchedSub.id, withRules.dateTime.toLocalDate()
+                val matchedSub = subscriptionRepository.matchTransactionToSubscription(
+                    withRules.merchantName, withRules.amount
                 )
-                withRules.copy(isRecurring = true)
-            } else withRules
-
-            val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
-            if (duplicate != null) {
-                if (TransactionDeduplication.shouldReplaceWithIncoming(duplicate, finalEntity)) {
-                    val replacement = finalEntity.copy(
-                        id = duplicate.id,
-                        transactionHash = duplicate.transactionHash,
-                        isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
-                        createdAt = duplicate.createdAt
+                val finalEntity = if (matchedSub != null) {
+                    subscriptionRepository.updateNextPaymentDateAfterCharge(
+                        matchedSub.id, withRules.dateTime.toLocalDate()
                     )
-                    transactionRepository.updateTransaction(replacement)
-                    accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
-                    replaceRuleApplications(duplicate.id, ruleApps)
-                    balanceUpdates.send(DeferredBalanceUpdate(parsed, replacement, duplicate.id))
-                    return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
+                    withRules.copy(isRecurring = true)
+                } else withRules
+
+                val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
+                if (duplicate != null) {
+                    if (TransactionDeduplication.shouldReplaceWithIncoming(duplicate, finalEntity)) {
+                        val replacement = finalEntity.copy(
+                            id = duplicate.id,
+                            transactionHash = duplicate.transactionHash,
+                            isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
+                            createdAt = duplicate.createdAt
+                        )
+                        transactionRepository.updateTransaction(replacement)
+                        accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                        replaceRuleApplications(duplicate.id, ruleApps)
+                        pendingBalance = DeferredBalanceUpdate(parsed, replacement, duplicate.id)
+                        return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
+                    }
+                    return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
                 }
-                return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
+
+                val rowId = transactionRepository.insertTransaction(finalEntity)
+                if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
+
+                saveRuleApplications(rowId, ruleApps)
+                pendingBalance = DeferredBalanceUpdate(parsed, finalEntity, rowId)
+                SaveOutcome.SAVED
             }
-
-            val rowId = transactionRepository.insertTransaction(finalEntity)
-            if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
-
-            saveRuleApplications(rowId, ruleApps)
-            balanceUpdates.send(DeferredBalanceUpdate(parsed, finalEntity, rowId))
-            SaveOutcome.SAVED
         }
+        // Send outside the mutation lock so the balance consumer can drain a full channel.
+        pendingBalance?.let { balanceUpdates.send(it) }
+        outcome
     } catch (e: Exception) {
         if (e is CancellationException) throw e
         Log.e(TAG, "Error saving transaction: ${e.message}")
@@ -837,10 +847,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 // ─── Balance update ───────────────────────────────────────────────────────
 
     private suspend fun processBalanceUpdate(
-        parsed: ParsedTransaction,
+        parsedInput: ParsedTransaction,
         entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
         rowId: Long
     ) {
+        val parsed = bankAccountMerges.resolve(parsedInput)
         val accountLast4 = parsed.accountLast4 ?: run {
             // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
             // number — the whole wallet is one account. Derive a service-level row

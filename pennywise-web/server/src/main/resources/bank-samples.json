@@ -937,13 +937,13 @@
     },
     "Punjab National Bank": {
       "sender": "VM-PNBSMS-S",
-      "message": "A/c X0000 debited INR 125.00 Dt 01-01-26 12:00:00 to Swiggy thru UPI:000000000001..Bal INR 9000.00-PNB",
+      "message": "A/c X0000 credited INR 125.00 From 000000/UPI:000000000004. Bal INR 9000.00-PNB",
       "currency": "INR",
       "amount": "125.00",
-      "type": "EXPENSE",
-      "merchant": "Swiggy",
+      "type": "INCOME",
+      "merchant": "UPI Transaction",
       "accountLast4": "0000",
-      "reference": "000000000001",
+      "reference": "000000000004",
       "balance": "9000.00"
     },
     "Saraswat Co-operative Bank": {

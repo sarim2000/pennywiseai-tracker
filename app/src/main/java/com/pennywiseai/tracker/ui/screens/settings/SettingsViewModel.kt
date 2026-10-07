@@ -213,12 +213,15 @@ class SettingsViewModel @Inject constructor(
     
     private fun checkDownloadStatus() {
         viewModelScope.launch {
-            if (!modelDownloader.isRunning && !modelDownloader.resumeIfInterrupted()) checkModelFile()
+            if (!modelDownloader.isRunning &&
+                !modelDownloader.adoptLegacyDownload() &&
+                !modelDownloader.resumeIfInterrupted()
+            ) checkModelFile()
         }
         // Mirror the shared downloader (it may have been started from Chat).
         viewModelScope.launch {
             combine(modelDownloader.progress, modelRepository.modelState) { p, m -> p to m }.collect { (p, m) ->
-                if (modelDownloader.isRunning || m == ModelState.DOWNLOADING) {
+                if (m == ModelState.DOWNLOADING) {
                     _downloadState.value = DownloadState.DOWNLOADING
                     _downloadedMB.value = p.downloadedBytes / BYTES_PER_MB
                     _totalMB.value = p.totalBytes / BYTES_PER_MB
@@ -232,6 +235,13 @@ class SettingsViewModel @Inject constructor(
                         _downloadState.value = DownloadState.COMPLETED
                         _downloadProgress.value = 100
                         _downloadedMB.value = _totalMB.value
+                    }
+                    // Cancelled elsewhere (e.g. from Chat) while this screen was alive.
+                    m == ModelState.NOT_DOWNLOADED && _downloadState.value == DownloadState.DOWNLOADING -> {
+                        _downloadState.value = DownloadState.NOT_DOWNLOADED
+                        _downloadProgress.value = 0
+                        _downloadedMB.value = 0
+                        _totalMB.value = 0
                     }
                 }
             }

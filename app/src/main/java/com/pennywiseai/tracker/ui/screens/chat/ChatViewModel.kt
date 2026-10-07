@@ -153,6 +153,7 @@ class ChatViewModel @Inject constructor(
                     ModelDownloader.Failure.NO_SPACE -> R.string.chat_error_no_storage
                     ModelDownloader.Failure.NETWORK -> R.string.chat_error_download_failed
                     ModelDownloader.Failure.INTEGRITY -> R.string.chat_error_integrity_failed
+                    ModelDownloader.Failure.ROAMING -> R.string.chat_error_download_roaming
                     null -> return@collect
                 }
                 _uiState.value = _uiState.value.copy(error = UiText.Res(message))
@@ -311,10 +312,15 @@ class ChatViewModel @Inject constructor(
     fun startModelDownload() = modelDownloader.start()
 
     fun checkAndResumeDownload() {
-        if (modelDownloader.isRunning || modelDownloader.resumeIfInterrupted()) return
-        // No download to resume → resolve the model state, re-verifying a
-        // present-but-unverified file before it is shown as READY.
-        viewModelScope.launch { modelRepository.refreshModelState() }
+        viewModelScope.launch {
+            if (modelDownloader.isRunning ||
+                modelDownloader.adoptLegacyDownload() ||
+                modelDownloader.resumeIfInterrupted()
+            ) return@launch
+            // No download to resume → resolve the model state, re-verifying a
+            // present-but-unverified file before it is shown as READY.
+            modelRepository.refreshModelState()
+        }
     }
 
     fun cancelDownload() = modelDownloader.cancel()

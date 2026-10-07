@@ -88,6 +88,12 @@ data class TransactionEntity(
     @ColumnInfo(name = "to_account")
     val toAccount: String? = null,
 
+    @ColumnInfo(name = "from_bank_name", defaultValue = "NULL")
+    val fromBankName: String? = null,
+
+    @ColumnInfo(name = "to_bank_name", defaultValue = "NULL")
+    val toBankName: String? = null,
+
     @ColumnInfo(name = "reference")
     val reference: String? = null,
 

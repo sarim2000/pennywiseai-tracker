@@ -301,6 +301,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     private data class DeferredBalanceUpdate(
+        // Keep the original suffix so a merge after enqueue can apply the latest mapping.
         val parsed: ParsedTransaction,
         val entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
         val transactionId: Long
@@ -798,7 +799,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
                         replaceRuleApplications(duplicate.id, ruleApps)
-                        pendingBalance = DeferredBalanceUpdate(parsed, replacement, duplicate.id)
+                        pendingBalance = DeferredBalanceUpdate(parsedInput, replacement, duplicate.id)
                         return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
                     }
                     return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
@@ -808,7 +809,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
                 saveRuleApplications(rowId, ruleApps)
-                pendingBalance = DeferredBalanceUpdate(parsed, finalEntity, rowId)
+                pendingBalance = DeferredBalanceUpdate(parsedInput, finalEntity, rowId)
                 SaveOutcome.SAVED
             }
         }

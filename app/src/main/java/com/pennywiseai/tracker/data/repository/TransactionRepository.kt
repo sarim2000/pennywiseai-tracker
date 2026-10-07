@@ -389,12 +389,15 @@ open class TransactionRepository @Inject constructor(
     suspend fun retargetTransferLegRefs(
         sourceBankName: String,
         sourceAccountLast4: String,
-        targetAccountLast4: String
+        targetAccountLast4: String,
+        targetBankName: String = sourceBankName
     ): Int {
         val ids = transactionDao.getAccountTransferLegRefIds(sourceBankName, sourceAccountLast4)
         return ids.chunked(500).sumOf { batch ->
             transactionDao.retargetTransferLegRefs(
                 transactionIds = batch,
+                sourceBankName = sourceBankName,
+                targetBankName = targetBankName,
                 sourceAccountLast4 = sourceAccountLast4,
                 targetAccountLast4 = targetAccountLast4,
                 updatedAt = LocalDateTime.now()

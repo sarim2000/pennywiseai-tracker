@@ -72,7 +72,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 63
+const val SCHEMA_VERSION = 64
 
 /**
  * The PennyWise Room database.
@@ -710,6 +710,28 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_63_64 = object : Migration(63, 64) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN from_bank_name TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN to_bank_name TEXT DEFAULT NULL")
+                // The owning row identifies a leg directly. For the other leg, only
+                // backfill when one bank is evidenced by balances in the same currency.
+                // Shared suffixes at different banks must remain unknown.
+                for (leg in listOf("from", "to")) {
+                    db.execSQL("""
+                        UPDATE transactions SET ${leg}_bank_name = CASE
+                            WHEN account_number = ${leg}_account AND from_account IS NOT to_account THEN bank_name
+                            ELSE (SELECT MIN(bank_name) FROM account_balances b
+                                  WHERE b.account_last4 = transactions.${leg}_account
+                                    AND b.currency = transactions.currency
+                                  HAVING COUNT(DISTINCT bank_name) = 1)
+                        END
+                        WHERE transaction_type = 'TRANSFER' AND ${leg}_account IS NOT NULL
+                    """.trimIndent())
+                }
+            }
+        }
+
         /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
@@ -743,6 +765,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_60_61,
             MIGRATION_61_62,
             MIGRATION_62_63,
+            MIGRATION_63_64,
         )
     }
     

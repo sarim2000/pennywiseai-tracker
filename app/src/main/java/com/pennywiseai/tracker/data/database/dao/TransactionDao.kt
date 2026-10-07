@@ -381,7 +381,7 @@ interface TransactionDao {
         updatedAt: LocalDateTime
     ): Int
 
-    /** Include the other row of a referenced transfer, or a manual leg proven by balance history. */
+    /** Select bank-owned legs, including manual destinations and paired legacy SMS rows. */
     @Query("""
         WITH owned AS (
             SELECT * FROM transactions
@@ -391,7 +391,9 @@ interface TransactionDao {
         )
         SELECT DISTINCT candidate.id FROM transactions candidate
         WHERE (candidate.from_account = :sourceAccountLast4 OR candidate.to_account = :sourceAccountLast4)
-          AND (candidate.id IN (SELECT id FROM owned)
+          AND ((candidate.from_account = :sourceAccountLast4 AND candidate.from_bank_name = :bankName)
+               OR (candidate.to_account = :sourceAccountLast4 AND candidate.to_bank_name = :bankName)
+               OR candidate.id IN (SELECT id FROM owned)
                OR EXISTS (
                    SELECT 1 FROM owned seed
                    WHERE seed.transaction_type = 'TRANSFER' AND candidate.transaction_type = 'TRANSFER'
@@ -406,14 +408,18 @@ interface TransactionDao {
 
     @Query("""
         UPDATE transactions
-        SET from_account = CASE WHEN from_account = :sourceAccountLast4 THEN :targetAccountLast4 ELSE from_account END,
-            to_account   = CASE WHEN to_account   = :sourceAccountLast4 THEN :targetAccountLast4 ELSE to_account   END,
+        SET from_account = CASE WHEN from_account = :sourceAccountLast4 AND (from_bank_name IS NULL OR from_bank_name = :sourceBankName) THEN :targetAccountLast4 ELSE from_account END,
+            to_account = CASE WHEN to_account = :sourceAccountLast4 AND (to_bank_name IS NULL OR to_bank_name = :sourceBankName) THEN :targetAccountLast4 ELSE to_account END,
+            from_bank_name = CASE WHEN from_account = :sourceAccountLast4 AND (from_bank_name IS NULL OR from_bank_name = :sourceBankName) THEN :targetBankName ELSE from_bank_name END,
+            to_bank_name = CASE WHEN to_account = :sourceAccountLast4 AND (to_bank_name IS NULL OR to_bank_name = :sourceBankName) THEN :targetBankName ELSE to_bank_name END,
             updated_at   = :updatedAt
         WHERE (from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4)
           AND id IN (:transactionIds)
     """)
     suspend fun retargetTransferLegRefs(
         transactionIds: List<Long>,
+        sourceBankName: String,
+        targetBankName: String,
         sourceAccountLast4: String,
         targetAccountLast4: String,
         updatedAt: LocalDateTime

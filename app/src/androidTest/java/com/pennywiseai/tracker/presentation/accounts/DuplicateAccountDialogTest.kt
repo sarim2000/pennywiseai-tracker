@@ -3,6 +3,9 @@ package com.pennywiseai.tracker.presentation.accounts
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.room.Room
+import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -26,6 +29,9 @@ import org.junit.Test
 import org.junit.After
 
 class DuplicateAccountDialogTest {
+    private val instrumentation = InstrumentationRegistry.getInstrumentation()
+    @get:Rule val helper = MigrationTestHelper(instrumentation, PennyWiseDatabase::class.java,
+        emptyList(), FrameworkSQLiteOpenHelperFactory())
     @get:Rule val compose = createAndroidComposeRule<UiVerificationActivity>()
 
     private fun checkDialog(dark: Boolean, merge: Boolean) {
@@ -86,7 +92,7 @@ class DuplicateAccountDialogTest {
             val deleted = dao.insertTransaction(row.copy(isDeleted = true, transactionHash = "synthetic-c"))
             val ids = dao.getAccountTransferLegRefIds("Example Bank", "000")
             assertEquals(setOf(first, paired, deleted), ids.toSet())
-            dao.retargetTransferLegRefs(ids, "000", "1000", time)
+            dao.retargetTransferLegRefs(ids, "Example Bank", "Example Bank", "000", "1000", time)
             assertEquals(2, dao.mergeAccountTransactions("Example Bank", "000", "Example Bank", "1000", time))
             assertEquals("1000", dao.getTransactionById(first)?.accountNumber)
             assertEquals("1000", dao.getTransactionById(first)?.fromAccount)
@@ -102,10 +108,73 @@ class DuplicateAccountDialogTest {
                 accountLast4 = "000", balance = BigDecimal.ZERO, timestamp = time, transactionId = manual))
             val manualIds = dao.getAccountTransferLegRefIds("Example Bank", "000")
             assertEquals(listOf(manual), manualIds)
-            dao.retargetTransferLegRefs(manualIds, "000", "1000", time)
+            dao.retargetTransferLegRefs(manualIds, "Example Bank", "Example Bank", "000", "1000", time)
             assertEquals("1000", dao.getTransactionById(manual)?.toAccount)
             assertEquals("3000", dao.getTransactionById(manual)?.fromAccount)
         } finally { database.close() }
+    }
+
+    @Test fun incomingManualTransferKeepsItsBankLinkAcrossMerges() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val time = LocalDateTime.of(2026, 1, 1, 0, 0)
+            for (bank in listOf("Example Bank", "Another Bank")) {
+                balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = "000",
+                    balance = BigDecimal.TEN, timestamp = time), BigDecimal.TEN)
+            }
+            val transfer = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer", category = "Transfer",
+                transactionType = TransactionType.TRANSFER, dateTime = time, transactionHash = "synthetic-manual-destination",
+                bankName = "Another Bank", accountNumber = "000", fromAccount = "000", toAccount = "000")
+            val id = balances.insertTransferWithBalance(transfer, "Another Bank", "000", "Example Bank", "000")
+            assertEquals(BigDecimal("11"), balances.getLatestBalance("Example Bank", "000")?.balance)
+            assertEquals(BigDecimal("9"), balances.getLatestBalance("Another Bank", "000")?.balance)
+            val dao = db.transactionDao()
+            assertEquals("Example Bank", dao.getTransactionById(id)?.toBankName)
+            // Manual OPENING/MANUAL rows do not contain transaction IDs.
+            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM account_balances WHERE transaction_id IS NOT NULL").use {
+                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+            }
+            val ids = dao.getAccountTransferLegRefIds("Example Bank", "000")
+            assertEquals(listOf(id), ids)
+            dao.retargetTransferLegRefs(ids, "Example Bank", "Target Bank", "000", "1000", time)
+            val updated = dao.getTransactionById(id)!!
+            assertEquals("1000", updated.toAccount)
+            assertEquals("Target Bank", updated.toBankName)
+            assertEquals("000", updated.fromAccount)
+            assertEquals("Another Bank", updated.fromBankName)
+            balances.seedManualAccount(AccountBalanceEntity(bankName = "Target Bank", accountLast4 = "1000",
+                balance = BigDecimal.ZERO, timestamp = time), BigDecimal.ZERO)
+            balances.recomputeManualBalance("Target Bank", "1000")
+            assertEquals(BigDecimal.ONE, balances.getLatestBalance("Target Bank", "1000")?.balance)
+        } finally { db.close() }
+    }
+
+    @Test fun upgradeBackfillsOnlyUnambiguousTransferBanks() {
+        val name = "synthetic-transfer-bank-migration"
+        try {
+            helper.createDatabase(name, 63).apply {
+                execSQL("""INSERT INTO account_balances (bank_name, account_last4, balance, timestamp, created_at)
+                    VALUES ('Example Bank', '1000', '0', '2026-01-01T00:00:00', '2026-01-01T00:00:00'),
+                           ('Another Bank', '2000', '0', '2026-01-01T00:00:00', '2026-01-01T00:00:00'),
+                           ('Third Bank', '2000', '0', '2026-01-01T00:00:00', '2026-01-01T00:00:00')""")
+                for ((id, suffix) in listOf(1 to "1000", 2 to "2000")) {
+                    execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
+                        transaction_hash, is_recurring, created_at, updated_at, bank_name, account_number, from_account, to_account)
+                        VALUES ($id, '1', 'Example transfer', 'Transfer', 'TRANSFER', '2026-01-01T00:00:00',
+                        'synthetic-$id', 0, '2026-01-01T00:00:00', '2026-01-01T00:00:00', 'Source Bank', '3000', '3000', '$suffix')""")
+                }
+                close()
+            }
+            helper.runMigrationsAndValidate(name, 64, true, PennyWiseDatabase.MIGRATION_63_64).use { db ->
+                db.query("SELECT from_bank_name, to_bank_name FROM transactions ORDER BY id").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals("Source Bank", it.getString(0)); assertEquals("Example Bank", it.getString(1))
+                    assertTrue(it.moveToNext())
+                    assertEquals("Source Bank", it.getString(0)); assertTrue(it.isNull(1))
+                }
+            }
+        } finally { instrumentation.targetContext.deleteDatabase(name) }
     }
 
     @After fun clearSyntheticPreferences() {

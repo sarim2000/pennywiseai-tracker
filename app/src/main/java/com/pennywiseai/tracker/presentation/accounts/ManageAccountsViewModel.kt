@@ -645,7 +645,8 @@ class ManageAccountsViewModel @Inject constructor(
                         transactionRepository.retargetTransferLegRefs(
                             sourceBankName = source.bankName,
                             sourceAccountLast4 = source.accountLast4,
-                            targetAccountLast4 = target.accountLast4
+                            targetAccountLast4 = target.accountLast4,
+                            targetBankName = target.bankName
                         )
                         val rows = transactionRepository.mergeAccountTransactions(
                             sourceBankName = source.bankName,

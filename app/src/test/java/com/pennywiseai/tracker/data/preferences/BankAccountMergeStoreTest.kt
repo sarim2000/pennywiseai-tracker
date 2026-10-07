@@ -53,6 +53,7 @@ class BankAccountMergeStoreTest {
         val mappings = mapOf(key to "1000", otherKey to "1000")
         val compatible = BankAccountMergeStore.mappingsAfterMerge(mappings, source, account("Example Bank", "2000"))
         assertEquals("2000", compatible[key])
+        assertEquals("2000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "000", compatible))
         assertEquals("1000", compatible[otherKey])
         for (target in listOf(account("Example Bank", "1999"), account("Another Bank", "2000"),
             account("Example Bank", "2000", currency = "USD"), account("Example Bank", "2000", card = true))) {

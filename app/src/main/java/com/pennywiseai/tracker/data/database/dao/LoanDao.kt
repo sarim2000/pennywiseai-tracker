@@ -117,13 +117,13 @@ interface LoanDao {
         endDate: LocalDateTime
     ): Flow<List<LoanEntity>>
 
-    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL WHERE id = :transactionId")
+    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun unlinkTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET loan_id = :loanId WHERE id = :transactionId")
+    @Query("UPDATE transactions SET loan_id = :loanId, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun linkTransaction(transactionId: Long, loanId: Long)
 
-    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL WHERE loan_id = :loanId")
+    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE loan_id = :loanId")
     suspend fun unlinkAllTransactions(loanId: Long)
 
     @Query("""

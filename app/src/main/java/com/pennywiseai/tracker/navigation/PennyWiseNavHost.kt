@@ -134,7 +134,16 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToTransactionGroups = {
                     navController.navigate(TransactionGroups) { launchSingleTop = true }
+                },
+                onNavigateToWebhooks = {
+                    navController.navigate(Webhooks) { launchSingleTop = true }
                 }
+            )
+        }
+
+        composable<Webhooks> {
+            com.pennywiseai.tracker.ui.screens.settings.webhooks.WebhooksScreen(
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

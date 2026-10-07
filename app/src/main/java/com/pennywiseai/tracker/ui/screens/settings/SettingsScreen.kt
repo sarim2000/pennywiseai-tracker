@@ -107,6 +107,7 @@ fun SettingsScreen(
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
+    onNavigateToWebhooks: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -770,6 +771,15 @@ fun SettingsScreen(
             // ── Developer ──
             SectionHeaderV2(title = stringResource(R.string.settings_developer_section))
             SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.CloudUpload,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = "Webhooks",
+                    subtitle = if (isProEntitled) "Send selected data to your endpoint" else "Pro · Send selected data to your endpoint",
+                    onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
+                    position = ListItemPosition.Top
+                )
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
                     iconBgColor = grey_light,
@@ -778,7 +788,7 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_developer_mode_subtitle),
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ListItemPosition.Single
+                    position = ListItemPosition.Bottom
                 )
             }
 

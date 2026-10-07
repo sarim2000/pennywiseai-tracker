@@ -27,6 +27,9 @@ import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
+import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
+import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -287,6 +290,10 @@ object DatabaseModule {
     fun provideRecurringTransactionDao(database: PennyWiseDatabase): RecurringTransactionDao {
         return database.recurringTransactionDao()
     }
+
+    @Provides @Singleton fun provideWebhookProfileDao(database: PennyWiseDatabase): WebhookProfileDao = database.webhookProfileDao()
+    @Provides @Singleton fun provideWebhookLogDao(database: PennyWiseDatabase): WebhookLogDao = database.webhookLogDao()
+    @Provides @Singleton fun provideWebhookCursorDao(database: PennyWiseDatabase): WebhookCursorDao = database.webhookCursorDao()
 }
 
 /**

@@ -46,13 +46,13 @@ interface TransactionGroupDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE group_id = :groupId AND is_deleted = 0")
     fun getTransactionCount(groupId: Long): Flow<Int>
 
-    @Query("UPDATE transactions SET group_id = :groupId WHERE id = :transactionId")
+    @Query("UPDATE transactions SET group_id = :groupId, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun linkTransaction(transactionId: Long, groupId: Long)
 
-    @Query("UPDATE transactions SET group_id = NULL WHERE id = :transactionId")
+    @Query("UPDATE transactions SET group_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun unlinkTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET group_id = NULL WHERE group_id = :groupId")
+    @Query("UPDATE transactions SET group_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE group_id = :groupId")
     suspend fun unlinkAllTransactions(groupId: Long)
 
     @Query("""

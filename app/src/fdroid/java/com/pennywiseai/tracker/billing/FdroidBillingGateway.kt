@@ -21,6 +21,7 @@ import javax.inject.Singleton
 class FdroidBillingGateway @Inject constructor() : PurchaseGateway {
 
     override val isPro: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+    override val isInitialized: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
 
     override val products: StateFlow<List<ProProduct>> =
         MutableStateFlow(emptyList<ProProduct>()).asStateFlow()

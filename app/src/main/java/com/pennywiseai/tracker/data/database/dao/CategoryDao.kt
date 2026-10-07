@@ -102,10 +102,10 @@ interface CategoryDao {
     // longer exists. Budget rows are only renamed when they track a category
     // (match_type IS NULL); otherwise category_name is just a type's label.
 
-    @Query("UPDATE transactions SET category = :newName WHERE category = :oldName")
+    @Query("UPDATE transactions SET category = :newName, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE category = :oldName")
     suspend fun renameInTransactions(oldName: String, newName: String)
 
-    @Query("UPDATE transactions SET budget_category = :newName WHERE budget_category = :oldName")
+    @Query("UPDATE transactions SET budget_category = :newName, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE budget_category = :oldName")
     suspend fun renameInTransactionBudgetCategory(oldName: String, newName: String)
 
     @Query("UPDATE transaction_splits SET category = :newName WHERE category = :oldName")

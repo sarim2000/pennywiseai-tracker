@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.util.Log
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -181,6 +182,12 @@ class ModelDownloader @Inject constructor(
 
     private fun isRoaming(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // NET_CAPABILITY_NOT_ROAMING only exists from Android 9; before that every
+        // network lacks it, so use the older per-network roaming flag there.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            @Suppress("DEPRECATION")
+            return cm.activeNetworkInfo?.isRoaming == true
+        }
         val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
         return !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
     }

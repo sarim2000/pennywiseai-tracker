@@ -387,15 +387,20 @@ open class TransactionRepository @Inject constructor(
 
     /** Re-target TRANSFER from/to-account refs after an account merge (#368). */
     suspend fun retargetTransferLegRefs(
+        sourceBankName: String,
         sourceAccountLast4: String,
-        targetAccountLast4: String,
-        scopeBankName: String? = null
-    ): Int = transactionDao.retargetTransferLegRefs(
-        scopeBankName = scopeBankName,
-        sourceAccountLast4 = sourceAccountLast4,
-        targetAccountLast4 = targetAccountLast4,
-        updatedAt = LocalDateTime.now()
-    )
+        targetAccountLast4: String
+    ): Int {
+        val ids = transactionDao.getAccountTransferLegRefIds(sourceBankName, sourceAccountLast4)
+        return ids.chunked(500).sumOf { batch ->
+            transactionDao.retargetTransferLegRefs(
+                transactionIds = batch,
+                sourceAccountLast4 = sourceAccountLast4,
+                targetAccountLast4 = targetAccountLast4,
+                updatedAt = LocalDateTime.now()
+            )
+        }
+    }
 
     fun getTransactionsByAccountAndDateRange(
         bankName: String,

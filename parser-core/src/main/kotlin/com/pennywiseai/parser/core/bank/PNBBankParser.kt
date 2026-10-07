@@ -207,7 +207,7 @@ class PNBBankParser : BaseIndianBankParser() {
         }
 
         if (Regex("""thru\s+debitcard\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
-            return "Debit Card Transaction"
+            return super.extractMerchant(message, sender) ?: "Debit Card Transaction"
         }
 
         if (message.contains("NEFT", ignoreCase = true)) {

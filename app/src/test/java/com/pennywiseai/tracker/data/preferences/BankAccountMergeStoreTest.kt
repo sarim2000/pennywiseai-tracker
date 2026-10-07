@@ -46,6 +46,23 @@ class BankAccountMergeStoreTest {
         assertEquals("000", BankAccountMergeStore.resolve(parsed.copy(type = TransactionType.CREDIT), mapOf(key to "1000")).accountLast4)
     }
 
+    @Test fun `later merges retarget compatible aliases and invalidate incompatible targets`() {
+        val source = account("Example Bank", "1000")
+        val key = BankAccountMergeStore.mappingKey("Example Bank", "INR", "000")
+        val otherKey = BankAccountMergeStore.mappingKey("Another Bank", "INR", "000")
+        val mappings = mapOf(key to "1000", otherKey to "1000")
+        val compatible = BankAccountMergeStore.mappingsAfterMerge(mappings, source, account("Example Bank", "2000"))
+        assertEquals("2000", compatible[key])
+        assertEquals("1000", compatible[otherKey])
+        for (target in listOf(account("Example Bank", "1999"), account("Another Bank", "2000"),
+            account("Example Bank", "2000", currency = "USD"), account("Example Bank", "2000", card = true))) {
+            val invalidated = BankAccountMergeStore.mappingsAfterMerge(mappings, source, target)
+            assertFalse(invalidated.containsKey(key))
+            assertEquals("1000", invalidated[otherKey])
+            assertEquals("000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "000", invalidated))
+        }
+    }
+
     @Test fun `merge mappings roundtrip in backup and older backups have no mappings`() {
         val preferences = AppPreferences(bankAccountMerges = mapOf("Example Bank|INR|000" to "1000"))
         assertEquals(preferences, Json.decodeFromString<AppPreferences>(Json.encodeToString(preferences)))

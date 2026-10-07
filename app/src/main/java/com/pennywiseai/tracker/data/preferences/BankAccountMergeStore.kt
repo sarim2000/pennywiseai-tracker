@@ -27,6 +27,18 @@ class BankAccountMergeStore(context: Context) {
         write(imported.filter { (key, full) -> validMapping(key, full) } + mappings())
     }
 
+    /** Keep aliases consistent with later merges; unrelated target suffixes invalidate them. */
+    fun onMerge(source: AccountBalanceEntity, target: AccountBalanceEntity) = synchronized(writeLock) {
+        write(mappingsAfterMerge(mappings(), source, target))
+    }
+
+    fun forgetAccount(bank: String, suffix: String) = synchronized(writeLock) {
+        write(mappings().filterNot { (key, full) ->
+            val parts = key.split('|')
+            parts[0] == bank && (parts[2] == suffix || full == suffix)
+        })
+    }
+
     private fun write(mappings: Map<String, String>) {
         check(prefs.edit().putStringSet("bank_account_merges", mappings.map { "${it.key}:${it.value}" }.toSet()).commit())
     }
@@ -63,6 +75,27 @@ class BankAccountMergeStore(context: Context) {
             if (parsed.isFromCard || parsed.type == TransactionType.CREDIT) return parsed
             val suffix = parsed.accountLast4 ?: return parsed
             return parsed.copy(accountLast4 = resolveSuffix(parsed.bankName, parsed.currency, suffix, mappings))
+        }
+
+        fun mappingsAfterMerge(
+            mappings: Map<String, String>,
+            source: AccountBalanceEntity,
+            target: AccountBalanceEntity
+        ): Map<String, String> {
+            val updated = mappings.mapNotNull { (key, full) ->
+                if (!validMapping(key, full)) return@mapNotNull null
+                val parts = key.split('|')
+                if (parts[0] != source.bankName || parts[1] != source.currency || full != source.accountLast4) {
+                    key to full
+                } else if (source.bankName == target.bankName && source.currency == target.currency &&
+                    !target.isCreditCard && isShortMaskPair(parts[2], target.accountLast4)) {
+                    key to target.accountLast4
+                } else null
+            }.toMap()
+            return if (source.bankName == target.bankName && source.currency == target.currency &&
+                !source.isCreditCard && !target.isCreditCard && isShortMaskPair(source.accountLast4, target.accountLast4)) {
+                updated + (mappingKey(source.bankName, source.currency, source.accountLast4) to target.accountLast4)
+            } else updated
         }
 
         fun duplicatePairs(accounts: List<AccountBalanceEntity>): List<Pair<AccountBalanceEntity, AccountBalanceEntity>> {

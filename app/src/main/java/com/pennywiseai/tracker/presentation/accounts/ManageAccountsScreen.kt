@@ -602,7 +602,7 @@ fun ManageAccountsScreen(
             target = target,
             onMerge = {
                 dismissedDuplicates.add(duplicateKey)
-                viewModel.mergeAccounts(source, target)
+                viewModel.repairDuplicateAccounts(source, target)
             },
             onDismiss = { dismissedDuplicates.add(duplicateKey) }
         )

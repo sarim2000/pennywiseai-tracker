@@ -381,22 +381,39 @@ interface TransactionDao {
         updatedAt: LocalDateTime
     ): Int
 
-    /**
-     * Re-target any TRANSFER row that referenced [sourceAccountLast4] in its
-     * `from_account` / `to_account` columns so the detail screen's From → To
-     * flow keeps pointing at a live account after a merge (#368). Note:
-     * these columns don't carry a bank — match is by account last-4 only.
-     */
+    /** Include the other row of a referenced transfer, or a manual leg proven by balance history. */
+    @Query("""
+        WITH owned AS (
+            SELECT * FROM transactions
+            WHERE (bank_name = :bankName AND account_number = :sourceAccountLast4)
+               OR id IN (SELECT transaction_id FROM account_balances
+                         WHERE bank_name = :bankName AND account_last4 = :sourceAccountLast4)
+        )
+        SELECT DISTINCT candidate.id FROM transactions candidate
+        WHERE (candidate.from_account = :sourceAccountLast4 OR candidate.to_account = :sourceAccountLast4)
+          AND (candidate.id IN (SELECT id FROM owned)
+               OR EXISTS (
+                   SELECT 1 FROM owned seed
+                   WHERE seed.transaction_type = 'TRANSFER' AND candidate.transaction_type = 'TRANSFER'
+                     AND seed.reference IS NOT NULL AND TRIM(seed.reference) != ''
+                     AND candidate.reference = seed.reference
+                     AND candidate.currency = seed.currency AND candidate.amount = seed.amount
+                     AND candidate.from_account IS seed.from_account AND candidate.to_account IS seed.to_account
+                     AND julianday(candidate.date_time) BETWEEN julianday(seed.date_time, '-5 minutes') AND julianday(seed.date_time, '+5 minutes')
+               ))
+    """)
+    suspend fun getAccountTransferLegRefIds(bankName: String, sourceAccountLast4: String): List<Long>
+
     @Query("""
         UPDATE transactions
         SET from_account = CASE WHEN from_account = :sourceAccountLast4 THEN :targetAccountLast4 ELSE from_account END,
             to_account   = CASE WHEN to_account   = :sourceAccountLast4 THEN :targetAccountLast4 ELSE to_account   END,
             updated_at   = :updatedAt
         WHERE (from_account = :sourceAccountLast4 OR to_account = :sourceAccountLast4)
-          AND (:scopeBankName IS NULL OR bank_name = :scopeBankName)
+          AND id IN (:transactionIds)
     """)
     suspend fun retargetTransferLegRefs(
-        scopeBankName: String?,
+        transactionIds: List<Long>,
         sourceAccountLast4: String,
         targetAccountLast4: String,
         updatedAt: LocalDateTime

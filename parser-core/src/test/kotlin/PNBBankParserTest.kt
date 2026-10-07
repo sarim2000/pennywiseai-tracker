@@ -268,6 +268,13 @@ class PNBBankParserTest {
                     merchant = "Debit Card Transaction", accountLast4 = "0000", reference = "000000000001", isFromCard = false)
             ),
             ParserTestCase(
+                name = "Named debitcard merchant precedes the generic fallback",
+                message = "Ac XX0000 Debited by INR 125.00 thru Debitcard XXXX0000 at Example Shop on 01-01-2026. Aval Bal INR 9000.00-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(amount = BigDecimal("125.00"), currency = "INR", type = TransactionType.EXPENSE,
+                    merchant = "Example Shop", accountLast4 = "0000")
+            ),
+            ParserTestCase(
                 name = "Genuine three digit mask stays three digits",
                 message = "Your a/c no XX000 is credited by Rs 125.00 on 01-01-2026 (IMPS Ref no 000000000001)-PNB",
                 sender = "VM-PNBSMS-S",

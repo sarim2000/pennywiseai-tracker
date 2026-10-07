@@ -540,7 +540,11 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Delete all balance records for this account
-                val deletedCount = accountBalanceRepository.deleteAccount(bankName, accountLast4)
+                val deletedCount = BankAccountMergeStore.mutationMutex.withLock {
+                    accountBalanceRepository.deleteAccount(bankName, accountLast4).also {
+                        bankAccountMerges.forgetAccount(bankName, accountLast4)
+                    }
+                }
 
                 // Remove from hidden accounts if present
                 val key = "${bankName}_${accountLast4}"
@@ -585,7 +589,24 @@ class ManageAccountsViewModel @Inject constructor(
      * One-way for v1 — no undo. Run inside a single coroutine so the
      * partial-merge window is short.
      */
-    fun mergeAccounts(
+    fun mergeAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        if (!isProEntitled.value) return
+        performAccountMerge(source, target)
+    }
+
+    /** Free repair is limited to an unambiguous duplicate proposed by the shared store. */
+    fun repairDuplicateAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        val candidate = BankAccountMergeStore.duplicatePairs(_uiState.value.accounts).firstOrNull { (short, full) ->
+            short.bankName == source.bankName && short.accountLast4 == source.accountLast4 &&
+                full.bankName == target.bankName && full.accountLast4 == target.accountLast4
+        } ?: return
+        if (isAccountHidden(candidate.first.bankName, candidate.first.accountLast4) ||
+            isAccountHidden(candidate.second.bankName, candidate.second.accountLast4)) return
+        performAccountMerge(candidate.first, candidate.second)
+    }
+
+    /** Executes both the Pro merge and the separately validated free duplicate repair. */
+    private fun performAccountMerge(
         source: AccountBalanceEntity,
         target: AccountBalanceEntity
     ) {
@@ -610,9 +631,6 @@ class ManageAccountsViewModel @Inject constructor(
                     return@launch
                 }
 
-                val rememberAlias = source.bankName == target.bankName && !source.isCreditCard &&
-                    BankAccountMergeStore.isShortMaskPair(source.accountLast4, target.accountLast4)
-
                 // Run the full merge under a single Room transaction so a
                 // crash mid-flight can't leave partially-merged state (e.g.
                 // transactions retargeted but source balances still around,
@@ -620,20 +638,20 @@ class ManageAccountsViewModel @Inject constructor(
                 // exist after this block commits.
                 val moved = BankAccountMergeStore.mutationMutex.withLock {
                     val movedRows = database.withTransaction {
-                        val rows = transactionRepository.mergeAccountTransactions(
-                            sourceBankName = source.bankName,
-                            sourceAccountLast4 = source.accountLast4,
-                            targetBankName = target.bankName,
-                            targetAccountLast4 = target.accountLast4
-                        )
                         // Self-transfer rows (#385) reference accounts via
                         // `fromAccount` / `toAccount`. Re-target any references
                         // to the source so the detail screen's From → To stays
                         // pointing at a live account.
                         transactionRepository.retargetTransferLegRefs(
+                            sourceBankName = source.bankName,
                             sourceAccountLast4 = source.accountLast4,
-                            targetAccountLast4 = target.accountLast4,
-                            scopeBankName = source.bankName.takeIf { rememberAlias }
+                            targetAccountLast4 = target.accountLast4
+                        )
+                        val rows = transactionRepository.mergeAccountTransactions(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetBankName = target.bankName,
+                            targetAccountLast4 = target.accountLast4
                         )
                         // Re-link any debit cards bound to the source so they
                         // keep working against the merged-into target. (Unlinking
@@ -653,9 +671,7 @@ class ManageAccountsViewModel @Inject constructor(
                         rows
                     }
 
-                    if (rememberAlias) {
-                        bankAccountMerges.remember(source.bankName, source.currency, source.accountLast4, target.accountLast4)
-                    }
+                    bankAccountMerges.onMerge(source, target)
                     movedRows
                 }
 

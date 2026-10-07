@@ -91,7 +91,22 @@ class KarnatakaBankParser : BankParser() {
             }
         }
 
-        // Pattern 3: Check for specific transaction types
+        // Pattern 3: UPI transfer payee — "… debited for Rs.X on 06-10-26 trf to
+        // SK FAST FOOD CORNER. UPI:6****28.For dispute …" (#868). Ends at the
+        // ". UPI:" / ". For" trailer rather than any period, so a payee written
+        // with initials ("M. K. STORES") stays whole.
+        val trfToPattern = Regex(
+            """trf\s+to\s+(.+?)\s*\.\s*(?:UPI\b|For\b|$)""",
+            RegexOption.IGNORE_CASE
+        )
+        trfToPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 4: Check for specific transaction types
         val lowerMessage = message.lowercase()
         return when {
             lowerMessage.contains("lic of india") -> "LIC of India"
@@ -133,6 +148,10 @@ class KarnatakaBankParser : BankParser() {
         upiRefPattern.find(message)?.let { match ->
             return match.groupValues[1]
         }
+
+        // "UPI:6*********39" is masked — the generic UPI pattern would store the
+        // lone leading "6" as the reference. No reference beats a wrong one.
+        if (Regex("""UPI:\s*\d*\*""", RegexOption.IGNORE_CASE).containsMatchIn(message)) return null
 
         // Fall back to base class
         return super.extractReference(message)

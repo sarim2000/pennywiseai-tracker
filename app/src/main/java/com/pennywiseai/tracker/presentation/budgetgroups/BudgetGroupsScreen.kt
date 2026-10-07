@@ -811,6 +811,9 @@ private fun BudgetCard(
                                         text = catSpending.categoryName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
+                                        // Explicit: the card's tinted container doesn't supply a
+                                        // content colour, so this inherited black in dark mode.
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
                                     if (catSpending.budgetAmount > BigDecimal.ZERO) {

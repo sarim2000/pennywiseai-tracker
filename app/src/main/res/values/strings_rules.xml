@@ -232,6 +232,7 @@
     <string name="chat_error_download_start_failed">Failed to start download. Please try again.</string>
     <string name="chat_error_integrity_failed">Downloaded model failed its integrity check and was removed. Please try downloading again.</string>
     <string name="chat_error_download_failed">Download failed. Please try again.</string>
+    <string name="chat_error_download_roaming">Not downloading while roaming. Connect to Wi-Fi or turn off roaming, then try again.</string>
     <string name="chat_download_notification_title">AI Chat Model</string>
     <string name="chat_download_notification_description">Downloading AI chat assistant for PennyWise</string>
     <!-- ══ Smart Rules list ══ -->

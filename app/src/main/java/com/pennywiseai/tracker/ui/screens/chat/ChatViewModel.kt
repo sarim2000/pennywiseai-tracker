@@ -1,14 +1,13 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
-import android.app.DownloadManager
 import android.content.Context
-import android.net.Uri
-import android.os.Environment
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
@@ -18,7 +17,6 @@ import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,9 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -40,21 +36,23 @@ class ChatViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase,
     private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase,
-    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository
+    private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+    private val modelDownloader: ModelDownloader
 ) : ViewModel() {
 
-    private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-    private val _downloadProgress = MutableStateFlow(0)
-    val downloadProgress: StateFlow<Int> = _downloadProgress.asStateFlow()
+    val downloadProgress: StateFlow<Int> = modelDownloader.progress
+        .map { (it.downloadedBytes * 100 / it.totalBytes.coerceAtLeast(1)).toInt() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    private val _downloadedMB = MutableStateFlow(0L)
-    val downloadedMB: StateFlow<Long> = _downloadedMB.asStateFlow()
+    val downloadedMB: StateFlow<Long> = modelDownloader.progress
+        .map { it.downloadedBytes / BYTES_PER_MB }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
-    private val _totalMB = MutableStateFlow(Constants.ModelDownload.MODEL_SIZE_MB)
-    val totalMB: StateFlow<Long> = _totalMB.asStateFlow()
+    val totalMB: StateFlow<Long> = modelDownloader.progress
+        .map { it.totalBytes / BYTES_PER_MB }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.ModelDownload.MODEL_SIZE_MB)
 
-    private var currentDownloadId: Long? = null
     
     private val _contextMessage = MutableStateFlow<ChatMessage?>(null)
     
@@ -148,6 +146,19 @@ class ChatViewModel @Inject constructor(
 
         // Resume an in-progress download, or (when idle) resolve + re-verify the model.
         checkAndResumeDownload()
+
+        viewModelScope.launch {
+            modelDownloader.progress.map { it.failure }.distinctUntilChanged().collect { failure ->
+                val message = when (failure) {
+                    ModelDownloader.Failure.NO_SPACE -> R.string.chat_error_no_storage
+                    ModelDownloader.Failure.NETWORK -> R.string.chat_error_download_failed
+                    ModelDownloader.Failure.INTEGRITY -> R.string.chat_error_integrity_failed
+                    ModelDownloader.Failure.ROAMING -> R.string.chat_error_download_roaming
+                    null -> return@collect
+                }
+                _uiState.value = _uiState.value.copy(error = UiText.Res(message))
+            }
+        }
     }
     
     private suspend fun loadContextMessage() {
@@ -298,178 +309,24 @@ class ChatViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    fun startModelDownload() {
-        viewModelScope.launch {
-            val existingDownloadId = userPreferencesRepository.getActiveDownloadId()
-            if (existingDownloadId != null) {
-                val query = DownloadManager.Query().setFilterById(existingDownloadId)
-                val cursor = downloadManager.query(query)
-                if (cursor != null && cursor.moveToFirst()) {
-                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    if (statusIndex != -1) {
-                        val status = cursor.getInt(statusIndex)
-                        if (status == DownloadManager.STATUS_RUNNING ||
-                            status == DownloadManager.STATUS_PENDING ||
-                            status == DownloadManager.STATUS_PAUSED
-                        ) {
-                            cursor.close()
-                            currentDownloadId = existingDownloadId
-                            modelRepository.updateModelState(ModelState.DOWNLOADING)
-                            monitorDownload(existingDownloadId)
-                            return@launch
-                        }
-                    }
-                    cursor.close()
-                }
-            }
-
-            val availableSpace = context.filesDir.usableSpace
-            if (availableSpace < Constants.ModelDownload.REQUIRED_SPACE_BYTES) {
-                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_no_storage))
-                return@launch
-            }
-
-            // Validate model URL before attempting download
-            val modelUrl = Constants.ModelDownload.MODEL_URL
-            if (modelUrl.isBlank() || !modelUrl.startsWith("http")) {
-                Log.e("ChatViewModel", "Invalid MODEL_URL: '$modelUrl'")
-                modelRepository.updateModelState(ModelState.ERROR)
-                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_unavailable))
-                return@launch
-            }
-
-            // Clean up any stale partial file — DownloadManager stays PENDING if destination exists
-            val existingFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
-            if (existingFile.exists()) {
-                existingFile.delete()
-            }
-
-            try {
-                val request = DownloadManager.Request(Uri.parse(modelUrl))
-                    .setTitle(context.getString(R.string.chat_download_notification_title))
-                    .setDescription(context.getString(R.string.chat_download_notification_description))
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, Constants.ModelDownload.MODEL_FILE_NAME)
-                    .setAllowedOverMetered(true)
-                    .setAllowedOverRoaming(false)
-
-                currentDownloadId = downloadManager.enqueue(request)
-                modelRepository.updateModelState(ModelState.DOWNLOADING)
-                userPreferencesRepository.saveActiveDownloadId(currentDownloadId!!)
-                monitorDownload(currentDownloadId!!)
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "Failed to start download", e)
-                modelRepository.updateModelState(ModelState.ERROR)
-                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_start_failed))
-            }
-        }
-    }
-
-    private fun monitorDownload(downloadId: Long) {
-        viewModelScope.launch {
-            while (isActive && modelState.value == ModelState.DOWNLOADING) {
-                val query = DownloadManager.Query().setFilterById(downloadId)
-                val cursor = downloadManager.query(query)
-
-                if (cursor != null && cursor.moveToFirst()) {
-                    val bytesCol = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                    val totalCol = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                    val statusCol = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-
-                    if (bytesCol != -1 && totalCol != -1) {
-                        val bytesDownloaded = cursor.getLong(bytesCol)
-                        var bytesTotal = cursor.getLong(totalCol)
-                        if (bytesTotal <= 0) {
-                            bytesTotal = Constants.ModelDownload.MODEL_SIZE_BYTES
-                        }
-                        _downloadProgress.value = (bytesDownloaded * 100 / bytesTotal).toInt()
-                        _downloadedMB.value = bytesDownloaded / (1024 * 1024)
-                        _totalMB.value = bytesTotal / (1024 * 1024)
-                    }
-
-                    if (statusCol != -1) {
-                        when (cursor.getInt(statusCol)) {
-                            DownloadManager.STATUS_SUCCESSFUL -> {
-                                userPreferencesRepository.clearActiveDownloadId()
-                                _downloadProgress.value = 100
-                                // Verify the freshly-downloaded bytes before trusting the model.
-                                modelRepository.updateModelState(ModelState.LOADING)
-                                if (!modelRepository.finalizeDownloadedModel()) {
-                                    _downloadProgress.value = 0
-                                    modelRepository.updateModelState(ModelState.ERROR)
-                                    _uiState.value = _uiState.value.copy(
-                                        error = UiText.Res(R.string.chat_error_integrity_failed)
-                                    )
-                                }
-                            }
-                            DownloadManager.STATUS_FAILED -> {
-                                userPreferencesRepository.clearActiveDownloadId()
-                                modelRepository.updateModelState(ModelState.ERROR)
-                                _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_download_failed))
-                            }
-                        }
-                    }
-                }
-                cursor?.close()
-                delay(1000)
-            }
-        }
-    }
+    fun startModelDownload() = modelDownloader.start()
 
     fun checkAndResumeDownload() {
         viewModelScope.launch {
-            val savedDownloadId = userPreferencesRepository.getActiveDownloadId()
-            if (savedDownloadId != null) {
-                val query = DownloadManager.Query().setFilterById(savedDownloadId)
-                val cursor = downloadManager.query(query)
-                if (cursor != null && cursor.moveToFirst()) {
-                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                    if (statusIndex != -1) {
-                        val status = cursor.getInt(statusIndex)
-                        if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
-                            currentDownloadId = savedDownloadId
-                            modelRepository.updateModelState(ModelState.DOWNLOADING)
-                            val bytesCol = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                            val totalCol = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                            if (bytesCol != -1 && totalCol != -1) {
-                                val bytes = cursor.getLong(bytesCol)
-                                var total = cursor.getLong(totalCol)
-                                if (total <= 0) total = Constants.ModelDownload.MODEL_SIZE_BYTES
-                                _downloadedMB.value = bytes / (1024 * 1024)
-                                _totalMB.value = total / (1024 * 1024)
-                                if (total > 0) _downloadProgress.value = (bytes * 100 / total).toInt()
-                            }
-                            cursor.close()
-                            monitorDownload(savedDownloadId)
-                            return@launch
-                        }
-                    }
-                    cursor.close()
-                }
-            }
-            // No active download to resume → resolve the model state, re-verifying a
+            if (modelDownloader.isRunning ||
+                modelDownloader.adoptLegacyDownload() ||
+                modelDownloader.resumeIfInterrupted()
+            ) return@launch
+            // No download to resume → resolve the model state, re-verifying a
             // present-but-unverified file before it is shown as READY.
             modelRepository.refreshModelState()
         }
     }
 
-    fun cancelDownload() {
-        viewModelScope.launch {
-            currentDownloadId?.let {
-                downloadManager.remove(it)
-                modelRepository.updateModelState(ModelState.NOT_DOWNLOADED)
-                _downloadProgress.value = 0
-                _downloadedMB.value = 0
-                _totalMB.value = Constants.ModelDownload.MODEL_SIZE_MB
+    fun cancelDownload() = modelDownloader.cancel()
 
-                userPreferencesRepository.clearActiveDownloadId()
-
-                val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
-                if (modelFile.exists()) {
-                    modelFile.delete()
-                }
-            }
-        }
+    private companion object {
+        const val BYTES_PER_MB = 1024L * 1024L
     }
 }
 

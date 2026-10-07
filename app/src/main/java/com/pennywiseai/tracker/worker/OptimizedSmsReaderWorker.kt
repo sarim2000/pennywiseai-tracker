@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
+import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
 import com.pennywiseai.tracker.data.mapper.forDeferredBalance
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
@@ -302,7 +303,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     private data class DeferredBalanceUpdate(
-        // Retain the SMS balance; its account is read from the saved transaction at consumption.
+        // Capture the rule-selected account, then check it again at consumption.
         val parsed: ParsedTransaction,
         val transactionId: Long
     )
@@ -799,7 +800,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
                         replaceRuleApplications(duplicate.id, ruleApps)
-                        pendingBalance = DeferredBalanceUpdate(parsedInput, duplicate.id)
+                        pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
+                            DeferredBalanceUpdate(it, duplicate.id)
+                        }
                         return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
                     }
                     return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
@@ -809,7 +812,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
                 saveRuleApplications(rowId, ruleApps)
-                pendingBalance = DeferredBalanceUpdate(parsedInput, rowId)
+                pendingBalance = parsedInput.atEnqueuedAccount(parsed, finalEntity)?.let {
+                    DeferredBalanceUpdate(it, rowId)
+                }
                 SaveOutcome.SAVED
             }
         }

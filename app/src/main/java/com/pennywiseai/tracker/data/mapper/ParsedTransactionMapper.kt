@@ -55,6 +55,27 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
     )
 }
 
+/** Capture rule-selected identity before a balance update leaves the save lock. */
+internal fun ParsedTransaction.atEnqueuedAccount(
+    resolvedInput: ParsedTransaction,
+    saved: TransactionEntity
+): ParsedTransaction? {
+    val selectedBank = saved.bankName ?: return null
+    if (saved.currency != currency) return null
+    val sameAccount = selectedBank == resolvedInput.bankName &&
+        saved.accountNumber == resolvedInput.accountLast4
+    return copy(
+        bankName = selectedBank,
+        // Keep the original mask for later confirmed alias changes. A rule-selected
+        // account instead starts from the identity that was actually saved.
+        accountLast4 = if (sameAccount || isFromCard) accountLast4 else saved.accountNumber,
+        balance = if (sameAccount) balance else null,
+        amount = saved.amount,
+        type = if (saved.transactionType == type.toEntityType()) type
+            else com.pennywiseai.parser.core.TransactionType.valueOf(saved.transactionType.name)
+    )
+}
+
 /** Route a queued bank balance to the transaction's current account after edits or merges. */
 internal fun ParsedTransaction.forDeferredBalance(saved: TransactionEntity): ParsedTransaction? {
     if (saved.isDeleted || saved.currency != currency) return null

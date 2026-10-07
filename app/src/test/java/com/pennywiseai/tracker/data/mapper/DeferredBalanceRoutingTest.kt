@@ -31,6 +31,37 @@ class DeferredBalanceRoutingTest {
         assertNull(parsed.forDeferredBalance(saved.copy(currency = "USD")))
     }
 
+    @Test fun bankRuleRoutesInferredBalanceToSavedAccount() {
+        val saved = parsed.toEntity().copy(bankName = "Another Bank")
+        for (input in listOf(parsed, parsed.copy(balance = null))) {
+            val queued = requireNotNull(input.atEnqueuedAccount(input, saved))
+            assertEquals("Another Bank", queued.bankName)
+            assertNull(queued.balance)
+            assertEquals(BigDecimal.ONE, queued.amount)
+            assertEquals(queued, queued.forDeferredBalance(saved))
+            assertNull(queued.forDeferredBalance(saved.copy(bankName = "Third Bank")))
+        }
+    }
+
+    @Test fun bankRuleUsesSavedTypeAndSkipsClearedBank() {
+        val saved = parsed.toEntity().copy(bankName = "Another Bank",
+            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME)
+        val queued = requireNotNull(parsed.atEnqueuedAccount(parsed, saved))
+        assertEquals(TransactionType.INCOME, queued.type)
+        assertNull(parsed.atEnqueuedAccount(parsed, saved.copy(bankName = null)))
+    }
+
+    @Test fun enqueueKeepsOriginalMaskForLaterConfirmedMerge() {
+        val store = com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+        val key = store.mappingKey(parsed.bankName, "INR", "000")
+        val first = store.resolve(parsed, mapOf(key to "1000"))
+        val queued = requireNotNull(parsed.atEnqueuedAccount(first, first.toEntity()))
+        assertEquals("000", queued.accountLast4)
+        assertEquals(BigDecimal.TEN, queued.balance)
+        val latest = store.resolve(queued, mapOf(key to "2000"))
+        assertEquals(latest, latest.forDeferredBalance(first.toEntity().copy(accountNumber = "2000")))
+    }
+
     @Test fun transferSelectionMovesBankAndSuffixWithoutChangingOtherLeg() {
         val tx = parsed.toEntity().copy(accountNumber = "3000", bankName = "Source Bank",
             fromAccount = "3000", fromBankName = "Source Bank", toAccount = "1000", toBankName = "Example Bank")

@@ -937,14 +937,14 @@
     },
     "Punjab National Bank": {
       "sender": "VM-PNBSMS-S",
-      "message": "A/c XX1234 debited with Rs.5000.00,21-11-2025 13:23:22 thru card XX9239  . Out of 5 free txn on PNB ATM, you utilized 1 txn. Chrgs applicable as per policy. Bal 27000.00 CR. If not done, fwd SMS to 9264192641 to block card/call 18001800/18002021-PNB",
+      "message": "A/c X0000 debited INR 125.00 Dt 01-01-26 12:00:00 to Swiggy thru UPI:000000000001..Bal INR 9000.00-PNB",
       "currency": "INR",
-      "amount": "5000.00",
+      "amount": "125.00",
       "type": "EXPENSE",
-      "merchant": "Card XX9239",
-      "accountLast4": "1234",
-      "reference": "on",
-      "balance": "27000.00"
+      "merchant": "Swiggy",
+      "accountLast4": "0000",
+      "reference": "000000000001",
+      "balance": "9000.00"
     },
     "Saraswat Co-operative Bank": {
       "sender": "BV-SARBNK-S",

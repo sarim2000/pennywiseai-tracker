@@ -207,6 +207,17 @@ class PNBBankParser : BaseIndianBankParser() {
             return "NEFT Transfer"
         }
 
+        val upiPayeePattern = Regex(
+            """\bto\s+(.+?)\s+thru\s+UPI\s*:""",
+            RegexOption.IGNORE_CASE
+        )
+        upiPayeePattern.find(message)?.let { match ->
+            val payee = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(payee)) {
+                return payee
+            }
+        }
+
         if (message.contains("UPI", ignoreCase = true)) {
             return "UPI Transaction"
         }

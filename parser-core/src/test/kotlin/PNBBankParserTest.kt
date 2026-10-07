@@ -139,6 +139,34 @@ class PNBBankParserTest {
                     balance = BigDecimal("82431.67"),
                     merchant = "UPI Transaction"
                 )
+            ),
+            ParserTestCase(
+                name = "UPI debit includes payee",
+                message = "A/c X0000 debited INR 125.00 Dt 01-01-26 12:00:00 to Swiggy thru UPI:000000000001..Bal INR 9000.00-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("125.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "0000",
+                    reference = "000000000001",
+                    balance = BigDecimal("9000.00"),
+                    merchant = "Swiggy"
+                )
+            ),
+            ParserTestCase(
+                name = "UPI debit strips legal suffix from payee",
+                message = "A/c X0000 debited INR 250.00 Dt 02-01-26 12:00:00 to Swiggy Ltd thru UPI:000000000002.Bal INR 8750.00-PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "0000",
+                    reference = "000000000002",
+                    balance = BigDecimal("8750.00"),
+                    merchant = "Swiggy"
+                )
             )
         )
 

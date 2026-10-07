@@ -947,6 +947,8 @@ class TransactionDetailViewModel @Inject constructor(
                     accountChanged ||
                     originalTxn.transactionType != normalizedTransaction.transactionType ||
                     originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
+                    originalTxn.fromBankName != normalizedTransaction.fromBankName ||
+                    originalTxn.toBankName != normalizedTransaction.toBankName ||
                     originalTxn.fromAccount != normalizedTransaction.fromAccount ||
                     originalTxn.toAccount != normalizedTransaction.toAccount
                 )

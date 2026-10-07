@@ -11,12 +11,17 @@ class DeferredBalanceRoutingTest {
         merchant = "Example Shop", reference = null, accountLast4 = "000", balance = BigDecimal.TEN,
         smsBody = "Synthetic transaction", sender = "TEST", timestamp = 0, bankName = "Example Bank")
 
-    @Test fun followsSavedAccountAfterIncompatibleOrCrossBankMerge() {
+    @Test fun skipsSourceBalanceAfterIncompatibleOrCrossBankMerge() {
         val saved = parsed.toEntity().copy(bankName = "Another Bank", accountNumber = "1999")
-        val routed = parsed.forDeferredBalance(saved)!!
-        assertEquals("Another Bank", routed.bankName)
-        assertEquals("1999", routed.accountLast4)
-        assertEquals(parsed.balance, routed.balance)
+        assertNull(parsed.forDeferredBalance(saved))
+        assertNull(parsed.forDeferredBalance(saved.copy(bankName = parsed.bankName)))
+    }
+
+    @Test fun confirmedAliasBalanceStillMatchesCurrentSavedAccount() {
+        val key = com.pennywiseai.tracker.data.preferences.BankAccountMergeStore.mappingKey(parsed.bankName, "INR", "000")
+        val resolved = com.pennywiseai.tracker.data.preferences.BankAccountMergeStore.resolve(parsed, mapOf(key to "2000"))
+        val saved = parsed.toEntity().copy(accountNumber = "2000")
+        assertEquals(resolved, resolved.forDeferredBalance(saved))
     }
 
     @Test fun skipsDeletedUnassignedAndCurrencyChangedTransactions() {
@@ -44,6 +49,15 @@ class DeferredBalanceRoutingTest {
         val cleared = typed.withTransferAccount(null, null, incoming = true)
         assertNull(cleared.toAccount)
         assertNull(cleared.toBankName)
+        val clearedSource = outgoing.withTransferAccount(null, null, incoming = false)
+        val replacement = clearedSource.withTransferAccount("6000", "Replacement Bank", incoming = false)
+        assertEquals("6000", replacement.accountNumber)
+        assertEquals("Replacement Bank", replacement.bankName)
+        val incomingOwner = tx.copy(accountNumber = "1000", bankName = "Example Bank")
+        val reselected = incomingOwner.withTransferAccount(null, null, incoming = true)
+            .withTransferAccount("7000", "Replacement Bank", incoming = true)
+        assertEquals("7000", reselected.accountNumber)
+        assertEquals("Replacement Bank", reselected.bankName)
     }
 
     @Test fun cardSuffixRemainsAvailableForCardBinding() {

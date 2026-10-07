@@ -854,7 +854,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // The transaction may have moved again since enqueue, including a merge
         // that invalidated its original short-mask mapping. Follow the saved row.
         val current = transactionRepository.getTransactionById(rowId) ?: return
-        val parsed = parsedInput.forDeferredBalance(current) ?: return
+        val parsed = bankAccountMerges.resolve(parsedInput).forDeferredBalance(current) ?: return
         val accountLast4 = parsed.accountLast4 ?: run {
             // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
             // number — the whole wallet is one account. Derive a service-level row

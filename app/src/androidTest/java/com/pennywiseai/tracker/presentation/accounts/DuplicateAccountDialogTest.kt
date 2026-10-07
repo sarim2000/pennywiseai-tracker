@@ -156,7 +156,7 @@ class DuplicateAccountDialogTest {
         try {
             val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
             val time = LocalDateTime.of(2026, 1, 1, 0, 0)
-            for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000", "Another Bank" to "2000")) {
+            for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000", "Another Bank" to "1000")) {
                 balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = suffix,
                     balance = BigDecimal.TEN, timestamp = time), BigDecimal.TEN)
             }
@@ -165,15 +165,15 @@ class DuplicateAccountDialogTest {
                 bankName = "Source Bank", accountNumber = "3000", fromAccount = "3000", toAccount = "1000")
             val id = balances.insertTransferWithBalance(tx, "Source Bank", "3000", "Example Bank", "1000")
             val original = db.transactionDao().getTransactionById(id)!!
-            val edited = original.withTransferAccount("2000", "Another Bank", incoming = true)
+            val edited = original.withTransferAccount("1000", "Another Bank", incoming = true)
             db.transactionDao().updateTransaction(edited)
             balances.applyTransactionBalanceShift(original, edited)
             assertEquals(BigDecimal.TEN, balances.getLatestBalance("Example Bank", "1000")?.balance)
-            assertEquals(BigDecimal("11"), balances.getLatestBalance("Another Bank", "2000")?.balance)
+            assertEquals(BigDecimal("11"), balances.getLatestBalance("Another Bank", "1000")?.balance)
             assertEquals(BigDecimal("9"), balances.getLatestBalance("Source Bank", "3000")?.balance)
             db.transactionDao().updateTransaction(edited.copy(isDeleted = true))
             balances.applyDeleteBalanceShift(edited)
-            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Another Bank", "2000")?.balance)
+            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Another Bank", "1000")?.balance)
             assertEquals(BigDecimal.TEN, balances.getLatestBalance("Source Bank", "3000")?.balance)
         } finally { db.close() }
     }

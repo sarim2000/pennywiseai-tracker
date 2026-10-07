@@ -60,9 +60,10 @@ internal fun ParsedTransaction.forDeferredBalance(saved: TransactionEntity): Par
     if (saved.isDeleted || saved.currency != currency) return null
     // A card suffix identifies the card itself; its account binding is resolved separately.
     if (isFromCard) return this
-    if (accountLast4 != null && saved.accountNumber == null) return null
-    return copy(bankName = saved.bankName ?: bankName,
-        accountLast4 = if (accountLast4 != null) saved.accountNumber else null)
+    // Absolute SMS balances belong to the source account. The caller resolves
+    // confirmed aliases first; a move anywhere else must not overwrite its target.
+    if (bankName != saved.bankName || (accountLast4 != null && accountLast4 != saved.accountNumber)) return null
+    return this
 }
 
 /**

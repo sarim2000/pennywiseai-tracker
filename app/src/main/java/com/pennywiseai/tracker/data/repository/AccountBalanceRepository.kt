@@ -197,7 +197,15 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int {
-        return accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        return database.withTransaction {
+            val ids = transactionDao.getAccountTransferLegRefIds(oldBankName, accountLast4)
+            val now = LocalDateTime.now()
+            for (batch in ids.chunked(500)) {
+                transactionDao.retargetTransferLegRefs(batch, oldBankName, newBankName, accountLast4, accountLast4, now)
+            }
+            transactionDao.mergeAccountTransactions(oldBankName, accountLast4, newBankName, accountLast4, now)
+            accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        }
     }
 
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int {

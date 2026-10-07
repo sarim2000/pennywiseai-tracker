@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.accounts
 
 import android.content.Context
 import android.content.ContextWrapper
+import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -147,6 +148,60 @@ class DuplicateAccountDialogTest {
                 balance = BigDecimal.ZERO, timestamp = time), BigDecimal.ZERO)
             balances.recomputeManualBalance("Target Bank", "1000")
             assertEquals(BigDecimal.ONE, balances.getLatestBalance("Target Bank", "1000")?.balance)
+        } finally { db.close() }
+    }
+
+    @Test fun editingTransferDestinationUpdatesBothManualBalances() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val time = LocalDateTime.of(2026, 1, 1, 0, 0)
+            for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000", "Another Bank" to "2000")) {
+                balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = suffix,
+                    balance = BigDecimal.TEN, timestamp = time), BigDecimal.TEN)
+            }
+            val tx = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer", category = "Transfer",
+                transactionType = TransactionType.TRANSFER, dateTime = time, transactionHash = "synthetic-edited-transfer",
+                bankName = "Source Bank", accountNumber = "3000", fromAccount = "3000", toAccount = "1000")
+            val id = balances.insertTransferWithBalance(tx, "Source Bank", "3000", "Example Bank", "1000")
+            val original = db.transactionDao().getTransactionById(id)!!
+            val edited = original.withTransferAccount("2000", "Another Bank", incoming = true)
+            db.transactionDao().updateTransaction(edited)
+            balances.applyTransactionBalanceShift(original, edited)
+            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Example Bank", "1000")?.balance)
+            assertEquals(BigDecimal("11"), balances.getLatestBalance("Another Bank", "2000")?.balance)
+            assertEquals(BigDecimal("9"), balances.getLatestBalance("Source Bank", "3000")?.balance)
+            db.transactionDao().updateTransaction(edited.copy(isDeleted = true))
+            balances.applyDeleteBalanceShift(edited)
+            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Another Bank", "2000")?.balance)
+            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Source Bank", "3000")?.balance)
+        } finally { db.close() }
+    }
+
+    @Test fun renamingManualDestinationPreservesTransferUntilDeletion() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
+        try {
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val time = LocalDateTime.of(2026, 1, 1, 0, 0)
+            for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000")) {
+                balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = suffix,
+                    balance = BigDecimal.TEN, timestamp = time), BigDecimal.TEN)
+            }
+            val tx = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer", category = "Transfer",
+                transactionType = TransactionType.TRANSFER, dateTime = time, transactionHash = "synthetic-renamed-transfer",
+                bankName = "Source Bank", accountNumber = "3000", fromAccount = "3000", toAccount = "1000")
+            val id = balances.insertTransferWithBalance(tx, "Source Bank", "3000", "Example Bank", "1000")
+            balances.updateAccountBankName("Example Bank", "1000", "Renamed Bank")
+            val renamed = db.transactionDao().getTransactionById(id)!!
+            assertEquals("Renamed Bank", renamed.toBankName)
+            assertEquals("Source Bank", renamed.fromBankName)
+            assertNull(balances.getLatestBalance("Example Bank", "1000"))
+            balances.updateManualBalanceAndCurrency("Renamed Bank", "1000", "INR", BigDecimal("11"))
+            balances.recomputeManualBalance("Renamed Bank", "1000")
+            assertEquals(BigDecimal("11"), balances.getLatestBalance("Renamed Bank", "1000")?.balance)
+            db.transactionDao().updateTransaction(renamed.copy(isDeleted = true))
+            balances.applyDeleteBalanceShift(renamed)
+            assertEquals(BigDecimal.TEN, balances.getLatestBalance("Renamed Bank", "1000")?.balance)
         } finally { db.close() }
     }
 

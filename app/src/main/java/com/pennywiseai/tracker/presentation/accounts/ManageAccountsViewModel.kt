@@ -795,7 +795,10 @@ class ManageAccountsViewModel @Inject constructor(
             try {
                 // Update bank name if changed
                 if (newBankName != oldBankName) {
-                    accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                    BankAccountMergeStore.mutationMutex.withLock {
+                        accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                        bankAccountMerges.forgetAccount(oldBankName, accountLast4)
+                    }
 
                     // Update hidden accounts preference if bank name changed
                     val oldKey = "${oldBankName}_${accountLast4}"

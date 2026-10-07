@@ -1383,6 +1383,9 @@ private fun EditableExtractedInfoCard(
                 AccountNumberField(
                     accountNumber = transaction.fromAccount,
                     onAccountNumberChange = { viewModel.updateFromAccount(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.updateFromAccount(suffix, bank) },
+                    bankName = transaction.fromBankName,
+                    excludeBankName = transaction.toBankName,
                     viewModel = viewModel,
                     label = stringResource(R.string.txn_detail_field_from_account),
                     placeholder = stringResource(R.string.txn_detail_field_from_account_placeholder),
@@ -1391,6 +1394,9 @@ private fun EditableExtractedInfoCard(
                 AccountNumberField(
                     accountNumber = transaction.toAccount,
                     onAccountNumberChange = { viewModel.updateToAccount(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.updateToAccount(suffix, bank) },
+                    bankName = transaction.toBankName,
+                    excludeBankName = transaction.fromBankName,
                     viewModel = viewModel,
                     label = stringResource(R.string.txn_detail_field_to_account),
                     placeholder = stringResource(R.string.txn_detail_field_to_account_placeholder),
@@ -2014,17 +2020,21 @@ private fun AccountNumberField(
     excludeAccount: String? = null,
     // Fired alongside onAccountNumberChange when a real account is picked from
     // the dropdown, so the transaction's bankName follows the selected account
-    // (accounts are keyed by bankName+last4). Only the single-account field
-    // wires this; transfer From/To fields leave it null. See #566 / #570.
-    onBankNameChange: ((String?) -> Unit)? = null
+    // (accounts are keyed by bankName+last4). See #566 / #570.
+    onBankNameChange: ((String?) -> Unit)? = null,
+    onAccountSelected: ((String, String) -> Unit)? = null,
+    bankName: String? = null,
+    excludeBankName: String? = null
 ) {
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
-    val filteredAccounts = availableAccounts.filter { it.accountLast4 != excludeAccount }
+    val filteredAccounts = availableAccounts.filter {
+        it.accountLast4 != excludeAccount || (excludeBankName != null && it.bankName != excludeBankName)
+    }
     var expanded by remember { mutableStateOf(false) }
-    var selectedAccount by remember(accountNumber) { 
+    var selectedAccount by remember(accountNumber, bankName, availableAccounts) {
         mutableStateOf(
             availableAccounts.find { 
-                accountNumber?.endsWith(it.accountLast4) == true 
+                accountNumber?.endsWith(it.accountLast4) == true && (bankName == null || it.bankName == bankName)
             }?.displayName ?: accountNumber ?: ""
         )
     }
@@ -2107,8 +2117,11 @@ private fun AccountNumberField(
                         },
                         onClick = {
                             selectedAccount = account.displayName
-                            onAccountNumberChange(account.accountLast4)
-                            onBankNameChange?.invoke(account.bankName)
+                            if (onAccountSelected != null) onAccountSelected(account.bankName, account.accountLast4)
+                            else {
+                                onAccountNumberChange(account.accountLast4)
+                                onBankNameChange?.invoke(account.bankName)
+                            }
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding

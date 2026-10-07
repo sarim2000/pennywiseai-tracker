@@ -55,6 +55,16 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
     )
 }
 
+/** Route a queued bank balance to the transaction's current account after edits or merges. */
+internal fun ParsedTransaction.forDeferredBalance(saved: TransactionEntity): ParsedTransaction? {
+    if (saved.isDeleted || saved.currency != currency) return null
+    // A card suffix identifies the card itself; its account binding is resolved separately.
+    if (isFromCard) return this
+    if (accountLast4 != null && saved.accountNumber == null) return null
+    return copy(bankName = saved.bankName ?: bankName,
+        accountLast4 = if (accountLast4 != null) saved.accountNumber else null)
+}
+
 /**
  * Normalizes merchant name to consistent format.
  * Converts all-caps to proper case, preserves already mixed case.

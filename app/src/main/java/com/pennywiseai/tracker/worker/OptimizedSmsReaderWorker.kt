@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
+import com.pennywiseai.tracker.data.mapper.forDeferredBalance
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.utils.BalanceCalculator
@@ -301,9 +302,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     private data class DeferredBalanceUpdate(
-        // Keep the original suffix so a merge after enqueue can apply the latest mapping.
+        // Retain the SMS balance; its account is read from the saved transaction at consumption.
         val parsed: ParsedTransaction,
-        val entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
         val transactionId: Long
     )
 
@@ -458,7 +458,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
                 try { BankAccountMergeStore.mutationMutex.withLock {
-                    processBalanceUpdate(update.parsed, update.entity, update.transactionId)
+                    processBalanceUpdate(update.parsed, update.transactionId)
                 } }
                 catch (e: Exception) {
                     if (e is CancellationException) throw e
@@ -799,7 +799,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
                         replaceRuleApplications(duplicate.id, ruleApps)
-                        pendingBalance = DeferredBalanceUpdate(parsedInput, replacement, duplicate.id)
+                        pendingBalance = DeferredBalanceUpdate(parsedInput, duplicate.id)
                         return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
                     }
                     return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
@@ -809,7 +809,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
                 saveRuleApplications(rowId, ruleApps)
-                pendingBalance = DeferredBalanceUpdate(parsedInput, finalEntity, rowId)
+                pendingBalance = DeferredBalanceUpdate(parsedInput, rowId)
                 SaveOutcome.SAVED
             }
         }
@@ -849,17 +849,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private suspend fun processBalanceUpdate(
         parsedInput: ParsedTransaction,
-        entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
         rowId: Long
     ) {
-        val parsed = bankAccountMerges.resolve(parsedInput)
+        // The transaction may have moved again since enqueue, including a merge
+        // that invalidated its original short-mask mapping. Follow the saved row.
+        val current = transactionRepository.getTransactionById(rowId) ?: return
+        val parsed = parsedInput.forDeferredBalance(current) ?: return
         val accountLast4 = parsed.accountLast4 ?: run {
             // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
             // number — the whole wallet is one account. Derive a service-level row
             // from the running balance so a full re-scan also creates it, matching
             // SmsTransactionProcessor.
             if (parsed.isMobileWallet && parsed.balance != null) {
-                upsertWalletBalance(parsed, entity, rowId)
+                upsertWalletBalance(parsed, current, rowId)
             }
             return
         }
@@ -919,7 +921,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             bankName      = parsed.bankName,
             accountLast4  = targetAccount,
             balance       = newBalance,
-            timestamp     = entity.dateTime,
+            timestamp     = current.dateTime,
             transactionId = if (rowId != -1L) rowId else null,
             creditLimit   = resolvedCreditLimit,
             isCreditCard  = resolvedIsCreditCard,

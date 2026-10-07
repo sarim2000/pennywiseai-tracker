@@ -23,6 +23,7 @@ class PNBBankParser : BaseIndianBankParser() {
                 normalizedSender.matches(Regex("^[A-Z]{2}-PNB-S$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-PNBBNK$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-PNB$")) ||
+                normalizedSender.matches(Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")) || // Credit card alerts
                 normalizedSender == "PNBBNK" ||
                 normalizedSender == "PNB"
     }
@@ -116,6 +117,11 @@ class PNBBankParser : BaseIndianBankParser() {
             return null
         }
 
+        // "PNB Credit Card 1234 debited with Rs.270 ..." is a card spend.
+        if (isCreditCardMessage(message) && lowerMessage.contains("debited")) {
+            return TransactionType.CREDIT
+        }
+
         // Auto-Pay activation can carry a real initial debit that should remain an expense.
         if (lowerMessage.contains("auto pay facility") && lowerMessage.contains("debited")) {
             return TransactionType.EXPENSE
@@ -170,6 +176,15 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Credit card spend: "... debited with Rs.270 [CODE:..] at <payee or VPA> on 04-10-2026"
+        if (isCreditCardMessage(message)) {
+            Regex("""\bat\s+(\S+)\s+on\s+\d""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
+                // Same as HDFC credit cards: show the VPA's handle, not the bank suffix.
+                val payee = cleanMerchantName(match.groupValues[1].substringBefore("@"))
+                if (payee.isNotEmpty()) return payee
+            }
+        }
+
         // Handle IMPS transactions early to avoid base class patterns matching phone numbers
         if (message.contains("IMPS", ignoreCase = true)) {
             return "IMPS Transfer"
@@ -331,10 +346,28 @@ class PNBBankParser : BaseIndianBankParser() {
         return super.extractBalance(message)
     }
 
+    override fun extractAvailableLimit(message: String): BigDecimal? {
+        // "Avl limit Rs. 48882.5." — one decimal digit, which the base patterns truncate.
+        Regex("""Avl\s+limit\s*(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+            .find(message)?.let { match ->
+                return match.groupValues[1].replace(",", "").toBigDecimalOrNull()
+            }
+        return super.extractAvailableLimit(message)
+    }
+
+    private fun isCreditCardMessage(message: String) =
+        message.contains("PNB credit card", ignoreCase = true)
+
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
         if (isUPIMandateNotification(message)) {
+            return false
+        }
+
+        // Credit card bill payment received: skipped as HDFC/ICICI do — the debit
+        // from the paying bank account already records the money moving.
+        if (lowerMessage.contains("received as payment towards your pnb credit card")) {
             return false
         }
 

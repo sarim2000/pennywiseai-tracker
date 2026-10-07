@@ -638,6 +638,17 @@
       "reference": null,
       "balance": null
     },
+    "Karnataka Bank": {
+      "sender": "BG-KBLBNK-T",
+      "message": "Your a/c XX1111 debited for Rs.20.00 on 06-10-26 trf to SK FAST FOOD CORNER. UPI:6*********28.For dispute SMS BLOCK 1111 to 1800000000 -KarnatakaBank",
+      "currency": "INR",
+      "amount": "20.00",
+      "type": "EXPENSE",
+      "merchant": "SK FAST FOOD CORNER",
+      "accountLast4": "1111",
+      "reference": null,
+      "balance": null
+    },
     "Kasikorn Bank": {
       "sender": "KBank",
       "message": "KBank: You spent 1,250.00 THB at SHOPEE. A/C x5678 Bal 8,430.20 THB",

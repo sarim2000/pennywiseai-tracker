@@ -35,11 +35,11 @@ class DeferredBalanceRoutingTest {
         val saved = parsed.toEntity().copy(bankName = "Another Bank")
         for (input in listOf(parsed, parsed.copy(balance = null))) {
             val queued = requireNotNull(input.atEnqueuedAccount(input, saved))
-            assertEquals("Another Bank", queued.bankName)
-            assertNull(queued.balance)
+            assertEquals("Another Bank", queued.account.bankName)
+            assertNull(queued.account.balance)
             assertEquals(BigDecimal.ONE, queued.amount)
-            assertEquals(queued, queued.forDeferredBalance(saved))
-            assertNull(queued.forDeferredBalance(saved.copy(bankName = "Third Bank")))
+            assertEquals(queued.account, queued.forSavedTransaction(queued.account, saved))
+            assertNull(queued.forSavedTransaction(queued.account, saved.copy(bankName = "Third Bank")))
         }
     }
 
@@ -56,10 +56,38 @@ class DeferredBalanceRoutingTest {
         val key = store.mappingKey(parsed.bankName, "INR", "000")
         val first = store.resolve(parsed, mapOf(key to "1000"))
         val queued = requireNotNull(parsed.atEnqueuedAccount(first, first.toEntity()))
-        assertEquals("000", queued.accountLast4)
-        assertEquals(BigDecimal.TEN, queued.balance)
-        val latest = store.resolve(queued, mapOf(key to "2000"))
+        assertEquals("000", queued.account.accountLast4)
+        assertEquals(BigDecimal.TEN, queued.account.balance)
+        val latest = store.resolve(queued.account, mapOf(key to "2000"))
         assertEquals(latest, latest.forDeferredBalance(first.toEntity().copy(accountNumber = "2000")))
+    }
+
+    @Test fun creditRuleStillResolvesOriginalBankMask() {
+        val store = com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+        val key = store.mappingKey(parsed.bankName, "INR", "000")
+        val mappings = mapOf(key to "1000")
+        val resolved = store.resolve(parsed, mappings)
+        val saved = resolved.toEntity().copy(
+            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT)
+        val queued = requireNotNull(parsed.atEnqueuedAccount(resolved, saved))
+        val routed = requireNotNull(queued.forSavedTransaction(store.resolve(queued.account, mappings), saved))
+        assertEquals("1000", routed.accountLast4)
+        assertEquals(TransactionType.CREDIT, routed.type)
+        assertEquals(BigDecimal.TEN, routed.balance)
+    }
+
+    @Test fun cardRulesPreserveIssuerAndBindingIdentity() {
+        val card = parsed.copy(isFromCard = true, accountLast4 = "1000")
+        for (bank in listOf("Another Bank", null)) {
+            val saved = card.toEntity().copy(bankName = bank, accountNumber = "2000",
+                transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME)
+            val queued = requireNotNull(card.atEnqueuedAccount(card, saved))
+            val routed = requireNotNull(queued.forSavedTransaction(queued.account, saved))
+            assertEquals("Example Bank", routed.bankName)
+            assertEquals("1000", routed.accountLast4)
+            assertEquals(BigDecimal.TEN, routed.balance)
+            assertEquals(TransactionType.INCOME, routed.type)
+        }
     }
 
     @Test fun transferSelectionMovesBankAndSuffixWithoutChangingOtherLeg() {

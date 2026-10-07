@@ -55,25 +55,39 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
     )
 }
 
+/** Account-resolution facts stay separate from rule-selected financial values. */
+internal data class DeferredBalanceInput(
+    val account: ParsedTransaction,
+    val type: com.pennywiseai.parser.core.TransactionType,
+    val amount: java.math.BigDecimal
+) {
+    fun forSavedTransaction(resolvedAccount: ParsedTransaction, saved: TransactionEntity): ParsedTransaction? =
+        resolvedAccount.forDeferredBalance(saved)?.copy(type = type, amount = amount)
+}
+
 /** Capture rule-selected identity before a balance update leaves the save lock. */
 internal fun ParsedTransaction.atEnqueuedAccount(
     resolvedInput: ParsedTransaction,
     saved: TransactionEntity
-): ParsedTransaction? {
-    val selectedBank = saved.bankName ?: return null
+): DeferredBalanceInput? {
     if (saved.currency != currency) return null
-    val sameAccount = selectedBank == resolvedInput.bankName &&
-        saved.accountNumber == resolvedInput.accountLast4
-    return copy(
-        bankName = selectedBank,
-        // Keep the original mask for later confirmed alias changes. A rule-selected
-        // account instead starts from the identity that was actually saved.
-        accountLast4 = if (sameAccount || isFromCard) accountLast4 else saved.accountNumber,
-        balance = if (sameAccount) balance else null,
-        amount = saved.amount,
-        type = if (saved.transactionType == type.toEntityType()) type
-            else com.pennywiseai.parser.core.TransactionType.valueOf(saved.transactionType.name)
-    )
+    val account = if (isFromCard) {
+        // A transaction rule does not change the issuing bank or the card binding.
+        this
+    } else {
+        val selectedBank = saved.bankName ?: return null
+        val sameAccount = selectedBank == resolvedInput.bankName &&
+            saved.accountNumber == resolvedInput.accountLast4
+        copy(
+            bankName = selectedBank,
+            // Retain the original mask and type for later confirmed alias changes.
+            accountLast4 = if (sameAccount) accountLast4 else saved.accountNumber,
+            balance = if (sameAccount) balance else null
+        )
+    }
+    val selectedType = if (saved.transactionType == type.toEntityType()) type
+        else com.pennywiseai.parser.core.TransactionType.valueOf(saved.transactionType.name)
+    return DeferredBalanceInput(account, selectedType, saved.amount)
 }
 
 /** Route a queued bank balance to the transaction's current account after edits or merges. */

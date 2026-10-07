@@ -22,7 +22,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
-import com.pennywiseai.tracker.data.mapper.forDeferredBalance
+import com.pennywiseai.tracker.data.mapper.DeferredBalanceInput
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.utils.BalanceCalculator
@@ -304,7 +304,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private data class DeferredBalanceUpdate(
         // Capture the rule-selected account, then check it again at consumption.
-        val parsed: ParsedTransaction,
+        val input: DeferredBalanceInput,
         val transactionId: Long
     )
 
@@ -459,7 +459,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
                 try { BankAccountMergeStore.mutationMutex.withLock {
-                    processBalanceUpdate(update.parsed, update.transactionId)
+                    processBalanceUpdate(update.input, update.transactionId)
                 } }
                 catch (e: Exception) {
                     if (e is CancellationException) throw e
@@ -853,13 +853,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 // ─── Balance update ───────────────────────────────────────────────────────
 
     private suspend fun processBalanceUpdate(
-        parsedInput: ParsedTransaction,
+        input: DeferredBalanceInput,
         rowId: Long
     ) {
         // The transaction may have moved again since enqueue, including a merge
         // that invalidated its original short-mask mapping. Follow the saved row.
         val current = transactionRepository.getTransactionById(rowId) ?: return
-        val parsed = bankAccountMerges.resolve(parsedInput).forDeferredBalance(current) ?: return
+        val parsed = input.forSavedTransaction(bankAccountMerges.resolve(input.account), current) ?: return
         val accountLast4 = parsed.accountLast4 ?: run {
             // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
             // number — the whole wallet is one account. Derive a service-level row

@@ -150,6 +150,7 @@
     <string name="manage_accounts_action_clear">Vyčistit</string>
     <string name="manage_accounts_action_link">Odkaz</string>
     <string name="manage_accounts_menu_history">Historie</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Datum prohlášení: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Nastavit datum závazku.</string>

@@ -17,6 +17,7 @@
     <!-- %1$d = transaction count, %2$s = target account -->
     <!-- ══ Manage accounts screen ══ -->
     <!-- %1$d = utilization percentage -->
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
     <!-- %1$s = short date -->
     <!-- %1$s = formatted current balance -->

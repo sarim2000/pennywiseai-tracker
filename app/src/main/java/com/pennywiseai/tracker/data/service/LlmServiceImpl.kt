@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,8 +35,17 @@ class LlmServiceImpl @Inject constructor(
     private var engine: Engine? = null
     private var conversation: Conversation? = null
 
+    // Create / close / reset run on Dispatchers.IO from different callers; without
+    // this two closes could race on one Conversation, and LiteRT throws
+    // IllegalStateException for a close it can't perform (a 2.21.0 crash).
+    private val lifecycle = Mutex()
+
     override suspend fun initialize(modelPath: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
+        lifecycle.withLock { initializeLocked(modelPath) }
+    }
+
+    private fun initializeLocked(modelPath: String): Result<Unit> {
+        return try {
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
                 backend = Backend.CPU(),
@@ -54,14 +65,15 @@ class LlmServiceImpl @Inject constructor(
         systemPrompt: String,
         history: List<Pair<String, Boolean>>,
         withTools: Boolean
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(Dispatchers.IO) { lifecycle.withLock {
         try {
-            val currentEngine = engine ?: return@withContext Result.failure(
+            val currentEngine = engine ?: return@withLock Result.failure(
                 IllegalStateException("Engine not initialized")
             )
 
-            // Close any existing conversation
-            conversation?.close()
+            // Close any existing conversation. Taken first, so a failed close can't
+            // leave a dead conversation behind for the next caller to close again.
+            takeConversation()?.closeQuietly()
 
             val initialMessages = history.map { (message, isUser) ->
                 if (isUser) Message.user(message) else Message.model(message)
@@ -88,7 +100,7 @@ class LlmServiceImpl @Inject constructor(
             Log.e(TAG, "Failed to create conversation", e)
             Result.failure(e)
         }
-    }
+    } }
 
     override fun sendMessage(message: String): Flow<String> =
         sendMessageEvents(message).mapNotNull { (it as? LlmEvent.Text)?.delta }
@@ -118,20 +130,27 @@ class LlmServiceImpl @Inject constructor(
 
     override suspend fun closeConversation() {
         withContext(Dispatchers.IO) {
-            conversation?.close()
-            conversation = null
+            lifecycle.withLock { takeConversation()?.closeQuietly() }
             Log.d(TAG, "Conversation closed")
         }
     }
 
     override suspend fun reset() {
         withContext(Dispatchers.IO) {
-            conversation?.close()
-            conversation = null
-            engine?.close()
-            engine = null
+            lifecycle.withLock {
+                takeConversation()?.closeQuietly()
+                engine?.let { e -> runCatching { e.close() }.onFailure { Log.w(TAG, "Ignoring failed engine close", it) } }
+                engine = null
+            }
             Log.d(TAG, "Engine and conversation reset")
         }
+    }
+
+    private fun takeConversation(): Conversation? = conversation.also { conversation = null }
+
+    /** Closing is cleanup: a close LiteRT refuses (already closed, mid-generation) must not crash the app. */
+    private fun Conversation.closeQuietly() {
+        runCatching { close() }.onFailure { Log.w(TAG, "Ignoring failed conversation close", it) }
     }
 
     override fun isInitialized(): Boolean = engine != null

@@ -184,6 +184,31 @@ class PNBBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Credit card spend at a multi-word merchant",
+                message = "PNB Credit Card 1234 debited with Rs.1,499 [CODE:AB1234] at AMAZON INDIA on 05-10-2026 10:12 through UPI: 123456789012 Avl limit Rs. 47383.5. -PNB",
+                sender = "VA-PNBCCD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1499"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "AMAZON INDIA",
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                // The account is debited, not the card — paying the card bill is an
+                // account expense, not a card purchase.
+                name = "Bank-account debit towards a PNB credit card payment stays an expense",
+                message = "Ac XX1111 debited with Rs.270.00 on 05-10-2026 towards PNB credit card payment. Avl Bal Rs.5000.00 -PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("270.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                )
+            ),
+            ParserTestCase(
                 name = "Credit card bill payment received is ignored (bank-side debit records it)",
                 message = "Thank you Rs.668.79/- has been received as payment towards your PNB credit card  XX1234 via Online Payment. Your available credit limit is Rs.50000. - PNB",
                 sender = "VA-PNBCCD-S",

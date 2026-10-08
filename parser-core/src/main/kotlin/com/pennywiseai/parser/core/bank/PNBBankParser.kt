@@ -117,8 +117,10 @@ class PNBBankParser : BaseIndianBankParser() {
             return null
         }
 
-        // "PNB Credit Card 1234 debited with Rs.270 ..." is a card spend.
-        if (isCreditCardMessage(message) && lowerMessage.contains("debited")) {
+        // "PNB Credit Card 1234 debited with Rs.270 ..." is a card spend. Match the
+        // card as the thing debited — a bank-account debit "towards PNB credit card
+        // payment" also mentions the card and must stay an account expense.
+        if (isCardSpend(message)) {
             return TransactionType.CREDIT
         }
 
@@ -177,8 +179,10 @@ class PNBBankParser : BaseIndianBankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // Credit card spend: "... debited with Rs.270 [CODE:..] at <payee or VPA> on 04-10-2026"
-        if (isCreditCardMessage(message)) {
-            Regex("""\bat\s+(\S+)\s+on\s+\d""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
+        // The payee can be several words ("at AMAZON INDIA on …"), so take
+        // everything up to "on <date>".
+        if (isCardSpend(message)) {
+            Regex("""\bat\s+(.+?)\s+on\s+\d""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
                 // Same as HDFC credit cards: show the VPA's handle, not the bank suffix.
                 val payee = cleanMerchantName(match.groupValues[1].substringBefore("@"))
                 if (payee.isNotEmpty()) return payee
@@ -355,8 +359,9 @@ class PNBBankParser : BaseIndianBankParser() {
         return super.extractAvailableLimit(message)
     }
 
-    private fun isCreditCardMessage(message: String) =
-        message.contains("PNB credit card", ignoreCase = true)
+    private fun isCardSpend(message: String) =
+        Regex("""PNB\s+Credit\s+Card\s+(?:XX)?\d{4}\s+debited""", RegexOption.IGNORE_CASE)
+            .containsMatchIn(message)
 
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()

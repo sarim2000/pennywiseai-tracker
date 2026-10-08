@@ -167,10 +167,62 @@ class PNBBankParserTest {
                     balance = BigDecimal("8750.00"),
                     merchant = "Swiggy"
                 )
+            ),
+            ParserTestCase(
+                name = "Credit card UPI spend",
+                message = "PNB Credit Card 1234 debited with Rs.270 [CODE:VG9918] at ombk.aaeh000000abcd@mbk on 04-10-2026 20:44 through UPI: 627768901810 Avl limit Rs. 48882.5. -PNB",
+                sender = "VA-PNBCCD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("270"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "ombk.aaeh000000abcd",
+                    reference = "627768901810",
+                    accountLast4 = "1234",
+                    creditLimit = BigDecimal("48882.5"),
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Credit card spend at a multi-word merchant",
+                message = "PNB Credit Card 1234 debited with Rs.1,499 [CODE:AB1234] at AMAZON INDIA on 05-10-2026 10:12 through UPI: 123456789012 Avl limit Rs. 47383.5. -PNB",
+                sender = "VA-PNBCCD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1499"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "AMAZON INDIA",
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                // The account is debited, not the card — paying the card bill is an
+                // account expense, not a card purchase.
+                name = "Bank-account debit towards a PNB credit card payment stays an expense",
+                message = "Ac XX1111 debited with Rs.270.00 on 05-10-2026 towards PNB credit card payment. Avl Bal Rs.5000.00 -PNB",
+                sender = "VM-PNBSMS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("270.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                )
+            ),
+            ParserTestCase(
+                name = "Credit card bill payment received is ignored (bank-side debit records it)",
+                message = "Thank you Rs.668.79/- has been received as payment towards your PNB credit card  XX1234 via Online Payment. Your available credit limit is Rs.50000. - PNB",
+                sender = "VA-PNBCCD-S",
+                shouldParse = false
             )
         )
 
         val handleChecks = listOf(
+            "VA-PNBCCD-S" to true,
+            "VM-PNBCCD-S" to true,
+            "JD-PNBCCD-T" to true,
+            "AD-PNBCCD" to true,
+            "VA-PNBCCDX-S" to false,
+            "VA-XPNBCCD-S" to false,
             "VM-PNBSMS-S" to true,
             "VA-PNBSMS-S" to true,
             "VK-PNBSMS-S" to true,

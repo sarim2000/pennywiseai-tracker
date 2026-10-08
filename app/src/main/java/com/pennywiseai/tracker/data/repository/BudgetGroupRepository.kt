@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
@@ -97,6 +98,10 @@ class BudgetGroupRepository @Inject constructor(
         startDate: LocalDate? = null,
         endDate: LocalDate? = null
     ): Long {
+        // Smart defaults name built-ins ("Food & Dining"); follow a rename (#823).
+        val categories = categoryDao.getAllCategoriesList()
+        @Suppress("NAME_SHADOWING")
+        val buckets = buckets.map { if (it.matchType == null) it.copy(name = categories.currentNameFor(it.name)) else it }
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val now = LocalDate.now()

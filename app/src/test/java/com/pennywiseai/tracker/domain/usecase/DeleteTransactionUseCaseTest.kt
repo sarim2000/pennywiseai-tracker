@@ -133,8 +133,7 @@ class DeleteTransactionUseCaseTest {
         transactionRepository = object : TransactionRepository(
             transactionDao,
             splitDao,
-            object : com.pennywiseai.tracker.data.preferences.UserPreferencesRepository(mockContext) {}
-        ) {
+            object : com.pennywiseai.tracker.data.preferences.UserPreferencesRepository(mockContext) {}, io.mockk.mockk(relaxed = true)) {
             override suspend fun getTransactionById(id: Long): TransactionEntity? = transactions[id]
             override suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean) {
                 val current = transactions[transaction.id]

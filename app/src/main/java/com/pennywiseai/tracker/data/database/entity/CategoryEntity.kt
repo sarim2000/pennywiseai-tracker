@@ -37,6 +37,13 @@ data class CategoryEntity(
     
     @ColumnInfo(name = "is_system")
     val isSystem: Boolean = false,
+
+    // A built-in category's original name (#823). Auto-categorization keeps
+    // producing that name ("Food & Dining"), so after the user renames the
+    // category, new transactions are mapped to its current name through this.
+    // Null for user categories. Nullable + defaulted so old backups restore (#414).
+    @ColumnInfo(name = "system_name", defaultValue = "NULL")
+    val systemName: String? = null,
     
     @ColumnInfo(name = "is_income")
     val isIncome: Boolean = false,
@@ -59,6 +66,22 @@ data class CategoryEntity(
     @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
+
+/**
+ * The built-in name this category stands for, or null for a user category.
+ * Rows from before [CategoryEntity.systemName] existed (old backups) can't have
+ * been renamed, so a system row's own name is its key.
+ */
+val CategoryEntity.builtinKey: String? get() = systemName ?: name.takeIf { isSystem }
+
+/**
+ * The name a new transaction should carry for [name]. A category actually named
+ * [name] wins; otherwise a renamed built-in whose original name is [name] maps to
+ * its current name; anything else is returned unchanged.
+ */
+fun List<CategoryEntity>.currentNameFor(name: String): String =
+    if (any { it.name == name }) name
+    else firstOrNull { it.builtinKey == name }?.name ?: name
 
 /** Top-level categories in their order, each followed by its children in theirs. */
 fun List<CategoryEntity>.hierarchical(): List<CategoryEntity> {

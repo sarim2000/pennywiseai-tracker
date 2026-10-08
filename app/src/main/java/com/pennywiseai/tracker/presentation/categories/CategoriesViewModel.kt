@@ -52,12 +52,10 @@ class CategoriesViewModel @Inject constructor(
     }
     
     fun showEditDialog(category: CategoryEntity) {
-        if (!category.isSystem) {
-            _editingCategory.value = category
-            _showAddEditDialog.value = true
-        } else {
-            _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_editable)
-        }
+        // Built-ins can be renamed and restyled too (#823); the dialog locks their
+        // type and parent, and they still can't be deleted.
+        _editingCategory.value = category
+        _showAddEditDialog.value = true
     }
     
     fun hideDialog() {
@@ -88,9 +86,9 @@ class CategoriesViewModel @Inject constructor(
                         editingCat.copy(
                             name = name,
                             color = color,
-                            isIncome = isIncome,
+                            isIncome = if (editingCat.isSystem) editingCat.isIncome else isIncome,
                             icon = icon,
-                            parentId = parentId
+                            parentId = if (editingCat.isSystem) editingCat.parentId else parentId
                         ),
                         previousName = editingCat.name
                     )

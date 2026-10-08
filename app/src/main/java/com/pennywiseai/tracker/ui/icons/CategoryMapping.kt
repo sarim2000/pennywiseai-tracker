@@ -58,7 +58,7 @@ object CategoryMapping {
     )
 
     /** What the user set on a CategoryEntity: its color and optional emoji (#760). */
-    data class UserStyle(val colorHex: String, val emoji: String?)
+    data class UserStyle(val colorHex: String, val emoji: String?, val builtinKey: String? = null)
 
     /**
      * Name → user style, mirrored from the categories table by
@@ -85,7 +85,20 @@ object CategoryMapping {
             ?: Color.Gray
     }
 
-    val categories = mapOf(
+    /**
+     * Built-in icon/colour by name. A renamed built-in (#823) is found through its
+     * original name, carried in [userStyles], so every `categories[name]` call site
+     * keeps working after a rename.
+     */
+    val categories: Map<String, CategoryInfo> by lazy {
+        object : Map<String, CategoryInfo> by builtins {
+            override fun get(key: String): CategoryInfo? =
+                builtins[key] ?: userStyles[key]?.builtinKey?.let { builtins[it] }
+            override fun containsKey(key: String): Boolean = get(key) != null
+        }
+    }
+
+    private val builtins = mapOf(
         "Food & Dining" to CategoryInfo(
             displayName = "Food & Dining",
             icon = Icons.Default.Restaurant,

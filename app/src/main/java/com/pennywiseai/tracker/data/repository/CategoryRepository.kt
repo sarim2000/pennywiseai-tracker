@@ -123,6 +123,7 @@ class CategoryRepository @Inject constructor(
                     name = seed.name,
                     color = seed.colorHex,
                     isSystem = true,
+                    systemName = seed.name,
                     isIncome = seed.isIncome,
                     displayOrder = DefaultCategoryData.ALL.indexOf(seed) + 1
                 )

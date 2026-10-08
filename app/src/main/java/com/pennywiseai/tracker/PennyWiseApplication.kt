@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker
 
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
@@ -106,7 +107,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // icon call sites outside ViewModels can render custom categories.
         applicationScope.launch {
             categoryRepository.getAllCategories().collectLatest { categories ->
-                val styles = categories.associate { it.name to CategoryMapping.UserStyle(it.color, it.icon) }
+                val styles = categories.associate {
+                    it.name to CategoryMapping.UserStyle(it.color, it.icon, it.builtinKey?.takeIf { key -> key != it.name })
+                }
                 CategoryMapping.userStyles.keys.retainAll(styles.keys)
                 CategoryMapping.userStyles.putAll(styles)
             }

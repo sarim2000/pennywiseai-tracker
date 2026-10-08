@@ -34,4 +34,29 @@ class CategoryNameResolutionTest {
         assertEquals("Food & Dining", cat("Eating out", true, "Food & Dining").builtinKey)
         assertNull(cat("Pets").builtinKey)
     }
+
+    @Test
+    fun `identity lookup survives a built-in renamed to another's original name`() {
+        // Groceries -> Pantry, then Food & Dining -> Groceries.
+        val cats = listOf(cat("Groceries", true, "Food & Dining"), cat("Pantry", true, "Groceries"))
+        assertEquals("Groceries", cats.nameForBuiltin("Food & Dining"))
+        assertEquals("Pantry", cats.nameForBuiltin("Groceries"))
+        assertEquals("Pets", cats.nameForBuiltin("Pets"))
+    }
+
+    @Test
+    fun `mirror translates the auto-categorizer's names by identity`() {
+        com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.update(
+            listOf(cat("Groceries", true, "Food & Dining"), cat("Pantry", true, "Groceries"), cat("Shopping", system = true))
+        )
+        try {
+            val names = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+            assertEquals("Groceries", names.current("Food & Dining"))
+            assertEquals("Pantry", names.current("Groceries"))
+            assertEquals("Shopping", names.current("Shopping")) // not renamed
+            assertEquals("Others", names.current("Others"))
+        } finally {
+            com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.update(emptyList())
+        }
+    }
 }

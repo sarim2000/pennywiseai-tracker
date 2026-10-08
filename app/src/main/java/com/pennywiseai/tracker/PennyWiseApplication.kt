@@ -107,8 +107,18 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // icon call sites outside ViewModels can render custom categories.
         applicationScope.launch {
             categoryRepository.getAllCategories().collectLatest { categories ->
+                com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.update(categories)
+                val seedColors = com.pennywiseai.shared.data.bootstrap.DefaultCategoryData.ALL.associate { it.name to it.colorHex }
                 val styles = categories.associate {
-                    it.name to CategoryMapping.UserStyle(it.color, it.icon, it.builtinKey?.takeIf { key -> key != it.name })
+                    val key = it.builtinKey
+                    it.name to CategoryMapping.UserStyle(
+                        colorHex = it.color,
+                        emoji = it.icon,
+                        builtinKey = key?.takeIf { k -> k != it.name },
+                        // A built-in still on its seeded colour uses the palette; one the
+                        // user recoloured (now possible, #823) uses theirs.
+                        customColor = key == null || !it.color.equals(seedColors[key], ignoreCase = true)
+                    )
                 }
                 CategoryMapping.userStyles.keys.retainAll(styles.keys)
                 CategoryMapping.userStyles.putAll(styles)

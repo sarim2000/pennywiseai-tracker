@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
@@ -87,6 +88,8 @@ class CategoriesViewModel @Inject constructor(
                             name = name,
                             color = color,
                             isIncome = if (editingCat.isSystem) editingCat.isIncome else isIncome,
+                            // Pin the built-in's identity before its name changes (#823).
+                            systemName = editingCat.builtinKey,
                             icon = icon,
                             parentId = if (editingCat.isSystem) editingCat.parentId else parentId
                         ),

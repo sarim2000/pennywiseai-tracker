@@ -262,7 +262,9 @@ class LlmRepository @Inject constructor(
                 sourceText = userMessage,
                 categories = categoryRepository.getVisibleCategories().first(),
                 accounts = accountBalanceRepository.getAllLatestBalancesOnce(),
-                fallbackCategory = { merchant -> SharedCategoryMapping.getCategory(merchant) }
+                fallbackCategory = { merchant ->
+                    com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(SharedCategoryMapping.getCategory(merchant))
+                }
             )
             if (draft == null) {
                 "I couldn't work out the amount. Try something like \"coffee 120 at Starbucks\"."

@@ -75,13 +75,21 @@ data class CategoryEntity(
 val CategoryEntity.builtinKey: String? get() = systemName ?: name.takeIf { isSystem }
 
 /**
- * The name a new transaction should carry for [name]. A category actually named
- * [name] wins; otherwise a renamed built-in whose original name is [name] maps to
- * its current name; anything else is returned unchanged.
+ * The current name of the built-in whose original name is [key] — how the
+ * auto-categorizer's output ("Food & Dining") is translated after a rename.
+ * Matched by identity, so renaming one built-in to another's original name
+ * can't send the other's transactions to it. Non-built-in names pass through.
+ */
+fun List<CategoryEntity>.nameForBuiltin(key: String): String =
+    firstOrNull { it.builtinKey == key }?.name ?: key
+
+/**
+ * Last-resort repair at save time: a name that matches an existing category is
+ * kept as is (it may be one the user picked); only a name that matches nothing,
+ * but is a built-in's original name, is moved to that built-in's current name.
  */
 fun List<CategoryEntity>.currentNameFor(name: String): String =
-    if (any { it.name == name }) name
-    else firstOrNull { it.builtinKey == name }?.name ?: name
+    if (any { it.name == name }) name else nameForBuiltin(name)
 
 /** Top-level categories in their order, each followed by its children in theirs. */
 fun List<CategoryEntity>.hierarchical(): List<CategoryEntity> {

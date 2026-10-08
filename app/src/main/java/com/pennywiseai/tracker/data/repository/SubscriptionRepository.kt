@@ -297,6 +297,6 @@ class SubscriptionRepository @Inject constructor(
 
     private fun determineCategory(merchantName: String): String {
         // Use unified category mapping
-        return CategoryMapping.getCategory(merchantName)
+        return com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CategoryMapping.getCategory(merchantName))
     }
 }

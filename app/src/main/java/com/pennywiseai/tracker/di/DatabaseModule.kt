@@ -315,9 +315,9 @@ class DatabaseCallback : RoomDatabase.Callback() {
 
         categories.forEachIndexed { index, seed ->
             db.execSQL("""
-                INSERT OR IGNORE INTO categories (name, color, is_system, is_income, display_order, created_at, updated_at)
-                VALUES (?, ?, 1, ?, ?, datetime('now'), datetime('now'))
-            """.trimIndent(), arrayOf<Any>(seed.name, seed.colorHex, if (seed.isIncome) 1 else 0, index + 1))
+                INSERT OR IGNORE INTO categories (name, color, is_system, system_name, is_income, display_order, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?, ?, datetime('now'), datetime('now'))
+            """.trimIndent(), arrayOf<Any>(seed.name, seed.colorHex, seed.name, if (seed.isIncome) 1 else 0, index + 1))
         }
     }
 

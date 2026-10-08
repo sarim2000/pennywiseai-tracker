@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.entity.currentNameFor
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
@@ -98,10 +98,6 @@ class BudgetGroupRepository @Inject constructor(
         startDate: LocalDate? = null,
         endDate: LocalDate? = null
     ): Long {
-        // Smart defaults name built-ins ("Food & Dining"); follow a rename (#823).
-        val categories = categoryDao.getAllCategoriesList()
-        @Suppress("NAME_SHADOWING")
-        val buckets = buckets.map { if (it.matchType == null) it.copy(name = categories.currentNameFor(it.name)) else it }
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
         val now = LocalDate.now()
@@ -241,6 +237,11 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun createSmartDefaults(baseCurrency: String) {
+        // Defaults name built-ins by their original names; resolve each by identity
+        // so a renamed built-in gets its own allocation (#823).
+        val categories = categoryDao.getAllCategoriesList()
+        fun builtin(name: String) = categories.nameForBuiltin(name)
+
         // Default amounts based on typical monthly spending
         // Users can customize these after creation
         val isINR = baseCurrency.uppercase() == "INR" || baseCurrency == "₹"
@@ -258,14 +259,14 @@ class BudgetGroupRepository @Inject constructor(
             color = "#1565C0",
             currency = baseCurrency,
             buckets = listOf(
-                BudgetBucketInput("Food & Dining", amount(5000)),
-                BudgetBucketInput("Groceries", amount(8000)),
-                BudgetBucketInput("Shopping", amount(3000)),
-                BudgetBucketInput("Entertainment", amount(2000)),
-                BudgetBucketInput("Personal Care", amount(1000)),
-                BudgetBucketInput("Transportation", amount(3000)),
-                BudgetBucketInput("Travel", amount(5000)),
-                BudgetBucketInput("Others", amount(3000))
+                BudgetBucketInput(builtin("Food & Dining"), amount(5000)),
+                BudgetBucketInput(builtin("Groceries"), amount(8000)),
+                BudgetBucketInput(builtin("Shopping"), amount(3000)),
+                BudgetBucketInput(builtin("Entertainment"), amount(2000)),
+                BudgetBucketInput(builtin("Personal Care"), amount(1000)),
+                BudgetBucketInput(builtin("Transportation"), amount(3000)),
+                BudgetBucketInput(builtin("Travel"), amount(5000)),
+                BudgetBucketInput(builtin("Others"), amount(3000))
             ),
             displayOrder = 0
         )
@@ -277,10 +278,10 @@ class BudgetGroupRepository @Inject constructor(
             color = "#4CAF50",
             currency = baseCurrency,
             buckets = listOf(
-                BudgetBucketInput("Bills & Utilities", amount(5000)),
-                BudgetBucketInput("Mobile", amount(500)),
-                BudgetBucketInput("Insurance", amount(2000)),
-                BudgetBucketInput("Education", amount(3000))
+                BudgetBucketInput(builtin("Bills & Utilities"), amount(5000)),
+                BudgetBucketInput(builtin("Mobile"), amount(500)),
+                BudgetBucketInput(builtin("Insurance"), amount(2000)),
+                BudgetBucketInput(builtin("Education"), amount(3000))
             ),
             displayOrder = 1
         )

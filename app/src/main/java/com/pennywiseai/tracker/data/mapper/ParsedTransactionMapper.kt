@@ -125,7 +125,7 @@ private fun normalizeMerchantName(name: String): String {
  */
 private fun determineCategory(merchant: String?, type: TransactionType): String {
     val merchantName = merchant ?: return "Others"
-    return SharedCategoryMapping.determineCategory(merchantName, type.name)
+    return BuiltinCategoryNames.current(SharedCategoryMapping.determineCategory(merchantName, type.name))
 }
 
 /**

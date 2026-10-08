@@ -58,7 +58,14 @@ object CategoryMapping {
     )
 
     /** What the user set on a CategoryEntity: its color and optional emoji (#760). */
-    data class UserStyle(val colorHex: String, val emoji: String?, val builtinKey: String? = null)
+    data class UserStyle(
+        val colorHex: String,
+        val emoji: String?,
+        /** Original name of a renamed built-in (#823); null otherwise. */
+        val builtinKey: String? = null,
+        /** True when [colorHex] is the user's choice rather than a built-in's seed. */
+        val customColor: Boolean = true
+    )
 
     /**
      * Name → user style, mirrored from the categories table by
@@ -80,9 +87,9 @@ object CategoryMapping {
             runCatching { Color(android.graphics.Color.parseColor(overrideHex)) }
                 .getOrNull()?.let { return it }
         }
-        return categories[name]?.color
-            ?: userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
-            ?: Color.Gray
+        val userColor = userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
+        if (userColor != null && userStyles[name]?.customColor == true) return userColor
+        return categories[name]?.color ?: userColor ?: Color.Gray
     }
 
     /**
@@ -92,8 +99,9 @@ object CategoryMapping {
      */
     val categories: Map<String, CategoryInfo> by lazy {
         object : Map<String, CategoryInfo> by builtins {
+            // Identity first: a built-in renamed to another's freed name keeps its own icon.
             override fun get(key: String): CategoryInfo? =
-                builtins[key] ?: userStyles[key]?.builtinKey?.let { builtins[it] }
+                userStyles[key]?.builtinKey?.let { builtins[it] } ?: builtins[key]
             override fun containsKey(key: String): Boolean = get(key) != null
         }
     }

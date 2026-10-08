@@ -197,7 +197,15 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int {
-        return accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        return database.withTransaction {
+            val ids = transactionDao.getAccountTransferLegRefIds(oldBankName, accountLast4)
+            val now = LocalDateTime.now()
+            for (batch in ids.chunked(500)) {
+                transactionDao.retargetTransferLegRefs(batch, oldBankName, newBankName, accountLast4, accountLast4, now)
+            }
+            transactionDao.mergeAccountTransactions(oldBankName, accountLast4, newBankName, accountLast4, now)
+            accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        }
     }
 
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int {
@@ -288,9 +296,9 @@ open class AccountBalanceRepository @Inject constructor(
             if (original != null) {
                 if (original.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(original.fromAccount, incoming = false, revert = true,
-                        original.amount, updated?.id)
+                        original.amount, updated?.id, original.fromBankName)
                     shiftTransferLeg(original.toAccount, incoming = true, revert = true,
-                        original.amount, updated?.id)
+                        original.amount, updated?.id, original.toBankName)
                 } else if (origKey != null) {
                     shiftSingleAccount(origKey, original.transactionType, original.amount,
                         revert = true, updated?.id)
@@ -299,9 +307,9 @@ open class AccountBalanceRepository @Inject constructor(
             if (updated != null) {
                 if (updated.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(updated.fromAccount, incoming = false, revert = false,
-                        updated.amount, updated.id)
+                        updated.amount, updated.id, updated.fromBankName)
                     shiftTransferLeg(updated.toAccount, incoming = true, revert = false,
-                        updated.amount, updated.id)
+                        updated.amount, updated.id, updated.toBankName)
                 } else if (updKey != null) {
                     shiftSingleAccount(updKey, updated.transactionType, updated.amount,
                         revert = false, updated.id)
@@ -419,7 +427,9 @@ open class AccountBalanceRepository @Inject constructor(
         // Pin opening anchors from the PRE-insert snapshot for manual accounts (both legs).
         ensureManualOpening(fromBankName, fromLast4)
         ensureManualOpening(toBankName, toLast4)
-        val rowId = transactionDao.insertTransaction(transaction)
+        val rowId = transactionDao.insertTransaction(transaction.copy(
+            fromBankName = fromBankName, toBankName = toBankName
+        ))
         if (rowId != -1L) {
             // FROM leg: money out. Bank-aware so a shared last4 (Kotak ••9999 vs
             // HDFC ••9999) debits the account the user actually picked. Legs are
@@ -519,7 +529,7 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * Applies (or, with [revert], undoes) one TRANSFER leg's effect. Resolved by
-     * last4 alone — `from_account`/`to_account` only persist the last4. Manual
+     * bank and suffix when recorded, with a legacy suffix fallback. Manual
      * leg accounts are re-derived instead of getting a delta row (their MANUAL
      * row would fight it); an account with no anchor yet stays untouched, in
      * line with the rest of this class. Credit-card legs flip sign — money
@@ -530,10 +540,12 @@ open class AccountBalanceRepository @Inject constructor(
         incoming: Boolean,
         revert: Boolean,
         amount: BigDecimal,
-        transactionId: Long?
+        transactionId: Long?,
+        bankName: String? = null
     ) {
         if (accountLast4 == null) return
-        val latest = accountBalanceDao.getLatestBalanceByLast4(accountLast4) ?: return
+        val latest = (if (bankName != null) accountBalanceDao.getLatestBalance(bankName, accountLast4)
+            else accountBalanceDao.getLatestBalanceByLast4(accountLast4)) ?: return
         if (isManualAccount(latest.bankName, latest.accountLast4)) {
             ensureManualOpening(latest.bankName, latest.accountLast4)
             recomputeManualBalance(latest.bankName, latest.accountLast4)
@@ -624,8 +636,8 @@ open class AccountBalanceRepository @Inject constructor(
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
         for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
-            if (tx.toAccount == accountLast4) sum += tx.amount
-            if (tx.fromAccount == accountLast4) sum -= tx.amount
+            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
+            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
         }
         return sum
     }

@@ -17,6 +17,17 @@ import java.time.LocalDateTime
 class BackupModelsTest {
 
     @Test
+    fun transferBanksSurviveBackupRoundtrip() {
+        val transaction = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer",
+            category = "Transfer", transactionType = TransactionType.TRANSFER,
+            dateTime = LocalDateTime.of(2026, 1, 1, 0, 0), transactionHash = "synthetic-transfer-backup",
+            fromAccount = "000", toAccount = "1000", fromBankName = "Example Bank", toBankName = "Another Bank")
+        val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(transaction))
+        assertEquals(transaction, restored)
+    }
+
+
+    @Test
     fun backupSerializationRoundtripWithAllFields() {
         val backup = PennyWiseBackup(
             metadata = BackupMetadata(
@@ -475,6 +486,8 @@ class BackupModelsTest {
         assertEquals(false, tx.isDeleted)        // default
         assertEquals("INR", tx.currency)          // default
         assertNull(tx.profileId)                  // nullable default
+        assertNull(tx.fromBankName)
+        assertNull(tx.toBankName)
 
         // Subscription: billingCycle + direction were added later — must
         // default, not crash.

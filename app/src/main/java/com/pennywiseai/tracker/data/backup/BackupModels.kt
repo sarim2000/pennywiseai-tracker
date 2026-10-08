@@ -321,7 +321,10 @@ data class AppPreferences(
     // Without this a restore silently starts tracking a relative's account
     // again. Defaulted, so pre-#826 backups still import.
     @SerialName("ignored_accounts")
-    val ignoredAccounts: List<String> = emptyList()
+    val ignoredAccounts: List<String> = emptyList(),
+
+    @SerialName("bank_account_merges")
+    val bankAccountMerges: Map<String, String> = emptyMap()
 )
 
 /**

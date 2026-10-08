@@ -459,9 +459,10 @@ class TransactionsViewModel @Inject constructor(
             val toAcct = income.accountNumber
 
             // Snapshot for Undo: type + the two account fields per row.
-            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?)
+            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
+                val fromBankName: String?, val toBankName: String?)
             val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount)
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName)
             }
 
             val now = java.time.LocalDateTime.now()
@@ -470,6 +471,8 @@ class TransactionsViewModel @Inject constructor(
                     transactionType = TransactionType.TRANSFER,
                     fromAccount = fromAcct,
                     toAccount = toAcct,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
                     updatedAt = now
                 )
             )
@@ -478,6 +481,8 @@ class TransactionsViewModel @Inject constructor(
                     transactionType = TransactionType.TRANSFER,
                     fromAccount = fromAcct,
                     toAccount = toAcct,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
                     updatedAt = now
                 )
             )
@@ -495,6 +500,8 @@ class TransactionsViewModel @Inject constructor(
                                         transactionType = snapshot.type,
                                         fromAccount = snapshot.fromAccount,
                                         toAccount = snapshot.toAccount,
+                                        fromBankName = snapshot.fromBankName,
+                                        toBankName = snapshot.toBankName,
                                         updatedAt = nowUndo
                                     )
                                 )

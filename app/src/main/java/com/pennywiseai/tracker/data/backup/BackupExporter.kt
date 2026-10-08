@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.backup
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+
 import android.content.Context
 import android.os.Build
 import com.pennywiseai.tracker.BuildConfig
@@ -245,7 +247,10 @@ class BackupExporter @Inject constructor(
                         ignoredAccountsStore.keys().sorted()
                     } else {
                         emptyList()
-                    }
+                    },
+                    bankAccountMerges = if (privacy == ExportPrivacy.FULL) {
+                        BankAccountMergeStore(context).mappings()
+                    } else emptyMap()
                 )
             )
         )

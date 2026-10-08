@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.mapper.withTransferAccount
+
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
@@ -688,15 +690,15 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun updateFromAccount(account: String?) {
-        _editableTransaction.update { current ->
-            current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
-        }
-    }
+    fun updateFromAccount(account: String?, bankName: String? = null) =
+        updateTransferAccount(account, bankName, incoming = false)
 
-    fun updateToAccount(account: String?) {
+    fun updateToAccount(account: String?, bankName: String? = null) =
+        updateTransferAccount(account, bankName, incoming = true)
+
+    private fun updateTransferAccount(account: String?, bankName: String?, incoming: Boolean) {
         _editableTransaction.update { current ->
-            current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
+            current?.withTransferAccount(account, bankName, incoming)
         }
     }
 
@@ -857,7 +859,8 @@ class TransactionDetailViewModel @Inject constructor(
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
             toSave.toAccount != null &&
-            toSave.fromAccount == toSave.toAccount) {
+            toSave.fromAccount == toSave.toAccount &&
+            (toSave.fromBankName == null || toSave.toBankName == null || toSave.fromBankName == toSave.toBankName)) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_same_accounts)
             return
         }
@@ -944,6 +947,8 @@ class TransactionDetailViewModel @Inject constructor(
                     accountChanged ||
                     originalTxn.transactionType != normalizedTransaction.transactionType ||
                     originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
+                    originalTxn.fromBankName != normalizedTransaction.fromBankName ||
+                    originalTxn.toBankName != normalizedTransaction.toBankName ||
                     originalTxn.fromAccount != normalizedTransaction.fromAccount ||
                     originalTxn.toAccount != normalizedTransaction.toAccount
                 )

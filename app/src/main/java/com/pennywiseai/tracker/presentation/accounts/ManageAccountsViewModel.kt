@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import kotlinx.coroutines.sync.withLock
+
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -73,6 +76,7 @@ class ManageAccountsViewModel @Inject constructor(
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
+    private val bankAccountMerges = BankAccountMergeStore(context)
 
     /**
      * Drives the Merge-accounts action — Pro-only gate. Free users still
@@ -536,7 +540,11 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Delete all balance records for this account
-                val deletedCount = accountBalanceRepository.deleteAccount(bankName, accountLast4)
+                val deletedCount = BankAccountMergeStore.mutationMutex.withLock {
+                    accountBalanceRepository.deleteAccount(bankName, accountLast4).also {
+                        bankAccountMerges.forgetAccount(bankName, accountLast4)
+                    }
+                }
 
                 // Remove from hidden accounts if present
                 val key = "${bankName}_${accountLast4}"
@@ -581,7 +589,24 @@ class ManageAccountsViewModel @Inject constructor(
      * One-way for v1 — no undo. Run inside a single coroutine so the
      * partial-merge window is short.
      */
-    fun mergeAccounts(
+    fun mergeAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        if (!isProEntitled.value) return
+        performAccountMerge(source, target)
+    }
+
+    /** Free repair is limited to an unambiguous duplicate proposed by the shared store. */
+    fun repairDuplicateAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        val candidate = BankAccountMergeStore.duplicatePairs(_uiState.value.accounts).firstOrNull { (short, full) ->
+            short.bankName == source.bankName && short.accountLast4 == source.accountLast4 &&
+                full.bankName == target.bankName && full.accountLast4 == target.accountLast4
+        } ?: return
+        if (isAccountHidden(candidate.first.bankName, candidate.first.accountLast4) ||
+            isAccountHidden(candidate.second.bankName, candidate.second.accountLast4)) return
+        performAccountMerge(candidate.first, candidate.second)
+    }
+
+    /** Executes both the Pro merge and the separately validated free duplicate repair. */
+    private fun performAccountMerge(
         source: AccountBalanceEntity,
         target: AccountBalanceEntity
     ) {
@@ -611,36 +636,44 @@ class ManageAccountsViewModel @Inject constructor(
                 // transactions retargeted but source balances still around,
                 // or vice versa). The source account effectively ceases to
                 // exist after this block commits.
-                val moved = database.withTransaction {
-                    val rows = transactionRepository.mergeAccountTransactions(
-                        sourceBankName = source.bankName,
-                        sourceAccountLast4 = source.accountLast4,
-                        targetBankName = target.bankName,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Self-transfer rows (#385) reference accounts via
-                    // `fromAccount` / `toAccount`. Re-target any references
-                    // to the source so the detail screen's From → To stays
-                    // pointing at a live account.
-                    transactionRepository.retargetTransferLegRefs(
-                        sourceAccountLast4 = source.accountLast4,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Re-link any debit cards bound to the source so they
-                    // keep working against the merged-into target. (Unlinking
-                    // would silently strip the user's card→account binding.)
-                    (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
-                        .forEach { card ->
-                            cardRepository.linkCardToAccount(card.id, target.accountLast4)
-                        }
-                    // Drop the source's balance snapshots. Source's running
-                    // balance was for source's standalone account, so
-                    // retargeting these snapshots into the target would
-                    // invent fictional history. Dropping is the only correct
-                    // option; the merged transactions appear on the target
-                    // without a historical balance trace.
-                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
-                    rows
+                val moved = BankAccountMergeStore.mutationMutex.withLock {
+                    val movedRows = database.withTransaction {
+                        // Self-transfer rows (#385) reference accounts via
+                        // `fromAccount` / `toAccount`. Re-target any references
+                        // to the source so the detail screen's From → To stays
+                        // pointing at a live account.
+                        transactionRepository.retargetTransferLegRefs(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetAccountLast4 = target.accountLast4,
+                            targetBankName = target.bankName
+                        )
+                        val rows = transactionRepository.mergeAccountTransactions(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetBankName = target.bankName,
+                            targetAccountLast4 = target.accountLast4
+                        )
+                        // Re-link any debit cards bound to the source so they
+                        // keep working against the merged-into target. (Unlinking
+                        // would silently strip the user's card→account binding.)
+                        (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                            .filter { it.bankName == source.bankName && it.currency == source.currency }
+                            .forEach { card ->
+                                cardRepository.linkCardToAccount(card.id, target.accountLast4)
+                            }
+                        // Drop the source's balance snapshots. Source's running
+                        // balance was for source's standalone account, so
+                        // retargeting these snapshots into the target would
+                        // invent fictional history. Dropping is the only correct
+                        // option; the merged transactions appear on the target
+                        // without a historical balance trace.
+                        accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                        rows
+                    }
+
+                    bankAccountMerges.onMerge(source, target)
+                    movedRows
                 }
 
                 // Clear any "hidden" preference for the now-gone source.
@@ -762,7 +795,10 @@ class ManageAccountsViewModel @Inject constructor(
             try {
                 // Update bank name if changed
                 if (newBankName != oldBankName) {
-                    accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                    BankAccountMergeStore.mutationMutex.withLock {
+                        accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                        bankAccountMerges.forgetAccount(oldBankName, accountLast4)
+                    }
 
                     // Update hidden accounts preference if bank name changed
                     val oldKey = "${oldBankName}_${accountLast4}"

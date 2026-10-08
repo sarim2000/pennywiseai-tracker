@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.backup
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -827,6 +829,8 @@ class BackupImporter @Inject constructor(
         }
         
         // App preferences
+        BankAccountMergeStore(context)
+            .restore(preferences.app.bankAccountMerges)
         userPreferencesRepository.updateHasShownScanTutorial(preferences.app.hasShownScanTutorial)
         preferences.app.firstLaunchTime?.let {
             userPreferencesRepository.updateFirstLaunchTime(it)

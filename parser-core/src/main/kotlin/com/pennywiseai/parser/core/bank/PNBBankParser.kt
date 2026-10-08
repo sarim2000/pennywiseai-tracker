@@ -40,13 +40,13 @@ class PNBBankParser : BaseIndianBankParser() {
         // Use Java's built-in normalizer to decompose Unicode
         // NFKD = Compatibility Decomposition
         return Normalizer.normalize(text, Normalizer.Form.NFKD)
-            .replace(Regex("[^\\p{ASCII}]"), "") // Keep only ASCII
+            .replace(Regex("[^\\p{ASCII}₹]"), "") // Keep ASCII and the rupee symbol
     }
 
     override fun extractAmount(message: String): BigDecimal? {
         // Handle "a/c no XX340 is debited for Rs 7519" pattern
         val debitedForPattern = Regex(
-            """debited\s+for\s+(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""",
+            """debited\s+for\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         debitedForPattern.find(message)?.let { match ->
@@ -60,7 +60,7 @@ class PNBBankParser : BaseIndianBankParser() {
 
         // Handle explicit debit of initial amount in auto-pay messages
         val initialDebitPattern = Regex(
-            """initial\s+amount\s+of\s+(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)\s+has\s+been\s+debited""",
+            """initial\s+amount\s+of\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)\s+has\s+been\s+debited""",
             RegexOption.IGNORE_CASE
         )
         initialDebitPattern.find(message)?.let { match ->
@@ -72,10 +72,10 @@ class PNBBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Handle debit patterns - both "Rs." and "INR" formats
+        // Handle debit patterns with currency text or the rupee symbol
         // "with" is optional for backward compatibility ("debited Rs. X" and "debited with Rs. X")
         val debitPattern = Regex(
-            """debited\s+(?:with\s+)?(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)""",
+            """debited\s+(?:(?:with|by)\s+)?(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         debitPattern.find(message)?.let { match ->
@@ -87,9 +87,9 @@ class PNBBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Handle credit patterns - both "Rs." and "INR" formats
+        // Handle credit patterns with currency text or the rupee symbol
         val creditPattern = Regex(
-            """(?:(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?)\s+(?:has\s+been\s+)?credited|credited\s+(?:with\s+)?(?:Rs\.?|INR)\s*([0-9,]+(?:\.\d{2})?))""",
+            """(?:(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)\s+(?:has\s+been\s+)?credited|credited\s+(?:(?:with|by|for)\s+)?(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?))""",
             RegexOption.IGNORE_CASE
         )
         creditPattern.find(message)?.let { match ->
@@ -221,6 +221,13 @@ class PNBBankParser : BaseIndianBankParser() {
         if (message.contains("PNB ATM", ignoreCase = true)) {
             return "PNB ATM Withdrawal"
         }
+        if (Regex("""\bATM\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
+            return "ATM Transaction"
+        }
+
+        if (Regex("""thru\s+debitcard\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
+            return super.extractMerchant(message, sender) ?: "Debit Card Transaction"
+        }
 
         if (message.contains("NEFT", ignoreCase = true)) {
             return "NEFT Transfer"
@@ -238,6 +245,20 @@ class PNBBankParser : BaseIndianBankParser() {
         }
 
         if (message.contains("UPI", ignoreCase = true)) {
+            val byPayeePattern = Regex("""\bby\s+((?:(?!\bby\b).)+?)\s+thru\s+UPI\b""", RegexOption.IGNORE_CASE)
+            byPayeePattern.find(message)?.let { match ->
+                val payee = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(payee)) {
+                    return payee
+                }
+            }
+            val fromPayeePattern = Regex("""\bfrom\s+([^/\r\n]+)/""", RegexOption.IGNORE_CASE)
+            fromPayeePattern.find(message)?.let { match ->
+                val payee = cleanMerchantName(match.groupValues[1].trim())
+                if (isValidMerchantName(payee)) {
+                    return payee
+                }
+            }
             return "UPI Transaction"
         }
 
@@ -245,13 +266,13 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
-        // Handle "a/c no XX340" or "A/c XX1234" patterns - capture digits only
+        // Preserve short masks; take the trailing digits when more than four are visible.
         val acNoPattern = Regex(
-            """(?:a/c\s+no|A/c)\s+[X*]+(\d{2,4})""",
+            """(?:a/c\s+(?:no\.?\s*)?|ac\s+)[X*]+(\d{2,16})\b""",
             RegexOption.IGNORE_CASE
         )
         acNoPattern.find(message)?.let { match ->
-            return match.groupValues[1]
+            return match.groupValues[1].takeLast(4)
         }
 
         // Handle variations: Ac, Card followed by X/dots/spaces and then digits (4 to 16)
@@ -267,6 +288,9 @@ class PNBBankParser : BaseIndianBankParser() {
     }
 
     override fun extractReference(message: String): String? {
+        val rrnPattern = Regex("""\bRRN\s*[-:]\s*(\d{6,})""", RegexOption.IGNORE_CASE)
+        rrnPattern.find(message)?.let { return it.groupValues[1] }
+
         // Handle IMPS reference: "IMPS Ref no 606701245043"
         if (message.contains("IMPS", ignoreCase = true)) {
             // More flexible pattern: IMPS followed by any word then reference number
@@ -321,7 +345,7 @@ class PNBBankParser : BaseIndianBankParser() {
     override fun extractBalance(message: String): BigDecimal? {
         // Handle "Aval Bal", "Avl Bal", "Bal" followed by currency and amount, usually ending with CR/DR
         val balPattern = Regex(
-            """(?:Aval\s+Bal|Avl\s+Bal|Bal)\s*(?:INR\s*|Rs\.?\s*)?([0-9,]+(?:\.\d{2})?)(?:\s+(?:CR|DR))?""",
+            """(?:Aval\s+Bal|Avl\s+Bal|Avl|Bal)\s*(?:INR\s*|Rs\.?\s*|₹\s*)?([0-9,]+(?:\.\d{2})?)(?:\s+(?:CR|DR))?""",
             RegexOption.IGNORE_CASE
         )
         balPattern.find(message)?.let { match ->

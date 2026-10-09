@@ -60,7 +60,7 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Import Statement</string>
     <string name="import_statement_back">Back</string>
-    <string name="import_statement_description">Import transactions from Google Pay, PhonePe, Paytm, or slice PDF statements. Duplicates are automatically detected and skipped.</string>
+    <string name="import_statement_description">Import transactions from Google Pay, PhonePe, Paytm, slice, or ICICI Bank PDF statements. Duplicates are automatically detected and skipped.</string>
     <string name="import_statement_select_pdf">Select PDF Statement</string>
     <string name="import_statement_loading_title">Importing transactions...</string>
     <string name="import_statement_loading_body">Parsing PDF and checking for duplicates</string>
@@ -76,6 +76,12 @@
     <string name="import_statement_done">Done</string>
     <string name="import_statement_failed">Import Failed</string>
     <string name="import_statement_try_again">Try Again</string>
+    <string name="import_statement_password_title">Password-protected PDF</string>
+    <string name="import_statement_password_body">This statement is locked. Enter the password your bank gave you for it. It\'s only used to open the file and isn\'t saved.</string>
+    <string name="import_statement_password_label">PDF password</string>
+    <string name="import_statement_password_wrong">Wrong password. Try again.</string>
+    <string name="import_statement_password_open">Open</string>
+    <string name="import_statement_password_cancel">Cancel</string>
     <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_title">PennyWise Pro</string>
     <string name="upgrade_subtitle_member">All Pro capabilities active</string>

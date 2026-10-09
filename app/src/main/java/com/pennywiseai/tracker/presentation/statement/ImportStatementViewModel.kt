@@ -28,6 +28,8 @@ sealed class ImportStatementUiState {
     data object Loading : ImportStatementUiState()
     data class Success(val result: StatementImportResult.Success) : ImportStatementUiState()
     data class Error(val message: String) : ImportStatementUiState()
+    /** Waiting for the locked PDF's password; [wrongPassword] after a failed try. */
+    data class PasswordRequired(val uri: Uri, val wrongPassword: Boolean) : ImportStatementUiState()
 }
 
 @HiltViewModel
@@ -71,10 +73,10 @@ class ImportStatementViewModel @Inject constructor(
         initialValue = true,
     )
 
-    fun importStatement(uri: Uri) {
+    fun importStatement(uri: Uri, password: String? = null) {
         _uiState.value = ImportStatementUiState.Loading
         viewModelScope.launch {
-            when (val result = importStatementUseCase.import(uri)) {
+            when (val result = importStatementUseCase.import(uri, password)) {
                 is StatementImportResult.Success -> {
                     // Record the import so the next attempt this month is
                     // gated; Pro users will still see canImportThisMonth=true
@@ -90,6 +92,9 @@ class ImportStatementViewModel @Inject constructor(
                 }
                 is StatementImportResult.Error -> {
                     _uiState.value = ImportStatementUiState.Error(result.message)
+                }
+                is StatementImportResult.PasswordRequired -> {
+                    _uiState.value = ImportStatementUiState.PasswordRequired(uri, result.wrongPassword)
                 }
             }
         }

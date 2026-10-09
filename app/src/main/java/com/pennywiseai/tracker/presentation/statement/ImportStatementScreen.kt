@@ -135,6 +135,14 @@ fun ImportStatementScreen(
                     },
                     onDone = onNavigateBack
                 )
+                is ImportStatementUiState.PasswordRequired -> {
+                    IdleContent(onSelectPdf = onTryLaunchPicker)
+                    PdfPasswordDialog(
+                        wrongPassword = state.wrongPassword,
+                        onSubmit = { password -> viewModel.importStatement(state.uri, password) },
+                        onDismiss = { viewModel.resetState() }
+                    )
+                }
                 is ImportStatementUiState.Error -> ErrorContent(
                     message = state.message,
                     onTryAgain = {
@@ -431,4 +439,46 @@ private fun ErrorContent(
         Spacer(modifier = Modifier.width(Spacing.sm))
         Text(stringResource(R.string.import_statement_try_again))
     }
+}
+
+/** Asks for a locked statement's password (#874). Used only to open the file; never stored. */
+@Composable
+private fun PdfPasswordDialog(
+    wrongPassword: Boolean,
+    onSubmit: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.import_statement_password_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.import_statement_password_body))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.import_statement_password_label)) },
+                    singleLine = true,
+                    isError = wrongPassword,
+                    supportingText = if (wrongPassword) {
+                        { Text(stringResource(R.string.import_statement_password_wrong)) }
+                    } else null,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty()) {
+                Text(stringResource(R.string.import_statement_password_open))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.import_statement_password_cancel)) }
+        }
+    )
 }

@@ -9,6 +9,8 @@ import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.hierarchical
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -95,8 +97,9 @@ class CategoryRepository @Inject constructor(
         // The built-in name mirror switches inside the transaction, before commit, so
         // nothing classified after this rename can still get the old name (#823); a
         // row saved under the new name before commit waits on the write lock and
-        // finds it once the rename lands. A failed rename puts the mirror back.
-        val mirrorBefore = BuiltinCategoryNames.snapshot()
+        // finds it once the rename lands. If the rename fails, the mirror is rebuilt
+        // from what is actually committed — not from a snapshot, which an overlapping
+        // save that did commit would make stale.
         try {
             database.withTransaction {
                 categoryDao.updateCategory(category.copy(updatedAt = LocalDateTime.now()))
@@ -106,8 +109,8 @@ class CategoryRepository @Inject constructor(
                     BuiltinCategoryNames.update(categoryDao.getAllCategoriesList())
                 }
             }
-        } catch (e: Exception) {
-            BuiltinCategoryNames.restore(mirrorBefore)
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { BuiltinCategoryNames.update(categoryDao.getAllCategoriesList()) }
             throw e
         }
     }

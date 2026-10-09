@@ -20,9 +20,6 @@ object BuiltinCategoryNames {
             .toMap()
     }
 
-    internal fun snapshot(): Map<String, String> = currentByKey
-    internal fun restore(snapshot: Map<String, String>) { currentByKey = snapshot }
-
     /** The current name for the auto-categorizer's [category]. */
     fun current(category: String): String = currentByKey[category] ?: category
 }

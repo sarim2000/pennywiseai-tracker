@@ -112,6 +112,7 @@
     <string name="txn_detail_label_reference">Reference</string>
     <string name="txn_detail_receipt">Receipt</string>
     <string name="txn_detail_receipt_tap_to_view">Tap to view</string>
+    <string name="txn_detail_receipt_missing">Receipt photo not included in this backup</string>
     <string name="txn_detail_sms_hide">Hide SMS</string>
     <string name="txn_detail_sms_show">Show original SMS</string>
     <string name="txn_detail_field_amount">Amount</string>

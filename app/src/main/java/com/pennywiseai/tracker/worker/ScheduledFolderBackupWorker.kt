@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.backup.ExportBytesResult
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class ScheduledFolderBackupWorker @AssistedInject constructor(
@@ -37,7 +38,8 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
             return Result.retry()
         }
 
-        return when (val exportResult = backupExporter.exportBackupBytes()) {
+        val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
+        return when (val exportResult = backupExporter.exportBackupBytes(includeReceipts = includeReceipts)) {
             is ExportBytesResult.Success -> {
                 when (val writeResult = folderBackupWriter.writeBackup(treeUri, exportResult.bytes)) {
                     is FolderBackupWriter.Result.Success -> {

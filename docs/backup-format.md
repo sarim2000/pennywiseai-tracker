@@ -19,6 +19,7 @@ versions, and the rules you must follow when you change anything it touches.
 | `data/backup/BackupSerializers.kt` | The `backupJson` instance + custom serializers for `BigDecimal` / `LocalDate` / `LocalDateTime`. The one source of truth for serialization behavior. |
 | `data/backup/BackupExporter.kt` | Reads the DB → builds `PennyWiseBackup` → `backupJson.encodeToString`. |
 | `data/backup/BackupImporter.kt` | `backupJson.decodeFromString` → inserts into the DB (MERGE or REPLACE_ALL), remapping foreign keys and skipping bad rows. |
+| `data/backup/BackupReceipts.kt` | Receipt photos: collect (export), path-safety check + restore (import). |
 | `data/database/entity/*.kt` | The Room entities are serialized **directly** (each is `@Serializable`). |
 | `test/.../backup/BackupModelsTest.kt` | Round-trip + backward/forward compatibility regression tests. |
 | `test/.../backup/BackupSchemaGuardTest.kt` | CI guard: every wrapper-model field has a default. |
@@ -58,8 +59,40 @@ directions:
 | entity field keys | the Kotlin **property name** (camelCase, e.g. `merchantName`) |
 | wrapper-model keys | explicit `@SerialName` (snake_case, e.g. `merchant_mappings`) |
 
-Format string lives in `PennyWiseBackup.CURRENT_FORMAT` (`"PennyWise Backup v1.2"`).
+Format string lives in `PennyWiseBackup.CURRENT_FORMAT` (`"PennyWise Backup v1.3"`).
 Imports accept any `PennyWiseBackup.COMPATIBLE_PREFIX` (`"PennyWise Backup v1"`).
+
+## Receipt photos (v1.3, #839)
+
+Receipt images are embedded in the same JSON file, so there is still exactly
+one file format and every v1.x app can read it (older apps ignore the key):
+
+```json
+{
+  "_format": "PennyWise Backup v1.3",
+  "metadata": { "statistics": { "total_receipts": 1 } },
+  "database": { "transactions": [ { "receiptPath": "receipts/receipt_1727.jpg" } ] },
+  "receipts": [
+    { "path": "receipts/receipt_1727.jpg", "data_base64": "/9j/4AAQ..." }
+  ]
+}
+```
+
+- `path` is the transaction's `receiptPath` (relative to `filesDir`);
+  `data_base64` is the file's bytes, standard Base64. Both defaulted to `""`.
+- **Export** includes photos only when the caller opts in and only for `FULL`
+  exports. Settings has one toggle per path: *Include receipt photos* for
+  manual export (pref `export_include_receipts`, default **on**) and for
+  Automatic Folder Backup (pref `folder_backup_include_receipts`, default
+  **off**: it runs daily). Missing/unreadable files are skipped and logged.
+- **Import** treats `path` as untrusted: only `receipts/<name>` that resolves
+  (canonically) directly inside `filesDir/receipts` is written. Absolute paths,
+  `..`, nested dirs and backslashes are rejected. A receipt is written only if a
+  transaction in the DB after the import points at that path (so a merge
+  restores exactly the photos of the rows it kept), and an existing file is
+  never overwritten. Runs after the DB transaction commits.
+- A transaction whose `receiptPath` file is missing shows "Receipt photo not
+  included in this backup" on its detail screen.
 
 ## Resilience
 

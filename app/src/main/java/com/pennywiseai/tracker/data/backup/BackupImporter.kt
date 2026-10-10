@@ -50,11 +50,21 @@ class BackupImporter @Inject constructor(
             }
             
             // Import based on strategy
-            when (strategy) {
+            val result = when (strategy) {
                 ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
                 ImportStrategy.MERGE -> mergeData(backup)
                 ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
             }
+            // Receipt photos (#839), after the DB commit: write only the files
+            // a transaction now in the DB points at, so a merge restores the
+            // photos of the rows it kept (row ids get remapped; paths don't).
+            if (result is ImportResult.Success && backup.receipts.isNotEmpty()) {
+                val referenced = database.transactionDao().getAllTransactions().first()
+                    .mapNotNullTo(HashSet()) { it.receiptPath }
+                val restored = BackupReceipts.restore(context.filesDir, backup.receipts, referenced)
+                Log.i("BackupImporter", "Restored $restored of ${backup.receipts.size} receipt photos")
+            }
+            result
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
             ImportResult.Error("Import failed: ${e.message}")

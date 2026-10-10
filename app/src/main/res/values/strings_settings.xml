@@ -98,6 +98,10 @@
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Save a backup to a folder every day at 2:00 AM</string>
+    <string name="settings_export_include_receipts_title">Include receipt photos</string>
+    <string name="settings_export_include_receipts_subtitle">Add attached receipt photos to exported backups (larger file)</string>
+    <string name="settings_folder_backup_include_receipts_title">Include receipt photos in automatic backups</string>
+    <string name="settings_folder_backup_include_receipts_subtitle">Makes each daily backup larger</string>
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>

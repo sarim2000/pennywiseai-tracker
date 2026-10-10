@@ -11,7 +11,9 @@ import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import java.io.File
 import java.time.LocalDate
@@ -33,11 +35,12 @@ class BackupExporter @Inject constructor(
      * Export complete app data to a backup file
      */
     suspend fun exportBackup(
-        privacy: ExportPrivacy = ExportPrivacy.FULL
+        privacy: ExportPrivacy = ExportPrivacy.FULL,
+        includeReceipts: Boolean = false
     ): ExportResult {
         return try {
             val file = createBackupFile()
-            file.writeText(encodeBackup(privacy))
+            file.writeText(encodeBackup(privacy, includeReceipts))
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
@@ -45,24 +48,25 @@ class BackupExporter @Inject constructor(
     }
 
     suspend fun exportBackupBytes(
-        privacy: ExportPrivacy = ExportPrivacy.FULL
+        privacy: ExportPrivacy = ExportPrivacy.FULL,
+        includeReceipts: Boolean = false
     ): ExportBytesResult {
         return try {
-            ExportBytesResult.Success(encodeBackup(privacy).toByteArray(Charsets.UTF_8))
+            ExportBytesResult.Success(encodeBackup(privacy, includeReceipts).toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             ExportBytesResult.Error("Export failed: ${e.message}")
         }
     }
 
-    private suspend fun encodeBackup(privacy: ExportPrivacy): String {
-        val backup = createBackup(privacy)
+    private suspend fun encodeBackup(privacy: ExportPrivacy, includeReceipts: Boolean): String {
+        val backup = createBackup(privacy, includeReceipts)
         return backupJson.encodeToString(backup)
     }
     
     /**
      * Create backup data structure
      */
-    private suspend fun createBackup(privacy: ExportPrivacy): PennyWiseBackup {
+    private suspend fun createBackup(privacy: ExportPrivacy, includeReceipts: Boolean): PennyWiseBackup {
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()
         val categories = database.categoryDao().getAllCategories().first()
@@ -160,6 +164,13 @@ class BackupExporter @Inject constructor(
         // Recurring templates carry raw merchant names + notes, so they're kept
         // on FULL only — same treatment as loans / other relational tables.
         val exportedRecurringTransactions = if (privacy == ExportPrivacy.FULL) recurringTransactions else emptyList()
+        // Receipt photos (#839): only when the caller opts in, and only in FULL
+        // exports — a photo of a bill is exactly what masking is meant to hide.
+        val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
+            withContext(Dispatchers.IO) {
+                BackupReceipts.collect(context.filesDir, finalTransactions.mapNotNull { it.receiptPath })
+            }
+        } else emptyList()
 
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -187,6 +198,7 @@ class BackupExporter @Inject constructor(
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
                     totalMerchantAliases = merchantAliases.size,
                     totalRecurringTransactions = exportedRecurringTransactions.size,
+                    totalReceipts = exportedReceipts.size,
                     dateRange = dateRange
                 )
             ),
@@ -252,7 +264,8 @@ class BackupExporter @Inject constructor(
                         BankAccountMergeStore(context).mappings()
                     } else emptyMap()
                 )
-            )
+            ),
+            receipts = exportedReceipts
         )
     }
     

@@ -4,10 +4,13 @@ import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.hierarchical
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -91,12 +94,24 @@ class CategoryRepository @Inject constructor(
      * so nothing is left pointing at a name that no longer exists.
      */
     suspend fun updateCategory(category: CategoryEntity, previousName: String = category.name) {
-        database.withTransaction {
-            categoryDao.updateCategory(category.copy(updatedAt = LocalDateTime.now()))
-            if (previousName != category.name) {
-                categoryDao.renameReferences(previousName, category.name)
-                ruleRepository.renameCategory(previousName, category.name)
+        // The built-in name mirror switches inside the transaction, before commit, so
+        // nothing classified after this rename can still get the old name (#823); a
+        // row saved under the new name before commit waits on the write lock and
+        // finds it once the rename lands. If the rename fails, the mirror is rebuilt
+        // from what is actually committed — not from a snapshot, which an overlapping
+        // save that did commit would make stale.
+        try {
+            database.withTransaction {
+                categoryDao.updateCategory(category.copy(updatedAt = LocalDateTime.now()))
+                if (previousName != category.name) {
+                    categoryDao.renameReferences(previousName, category.name)
+                    ruleRepository.renameCategory(previousName, category.name)
+                    BuiltinCategoryNames.update(categoryDao.getAllCategoriesList())
+                }
             }
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { BuiltinCategoryNames.update(categoryDao.getAllCategoriesList()) }
+            throw e
         }
     }
     
@@ -123,6 +138,7 @@ class CategoryRepository @Inject constructor(
                     name = seed.name,
                     color = seed.colorHex,
                     isSystem = true,
+                    systemName = seed.name,
                     isIncome = seed.isIncome,
                     displayOrder = DefaultCategoryData.ALL.indexOf(seed) + 1
                 )

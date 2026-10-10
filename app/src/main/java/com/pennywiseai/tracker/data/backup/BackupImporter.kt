@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.backup
 
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 
 import android.content.Context
 import android.net.Uri
@@ -346,8 +347,19 @@ class BackupImporter @Inject constructor(
                 val (topLevel, children) = backup.database.categories.partition { it.parentId == null }
                 (topLevel + children).insertEachCounting({ skippedRows++ }) { category ->
                     if (!existingCategories.contains(category.name)) {
-                        // Generate new ID for imported category; parent remapped (or dropped if unknown)
-                        val newCategory = category.copy(id = 0, parentId = category.parentId?.let { categoryIdMap[it] })
+                        // Generate new ID for imported category; parent remapped (or dropped if unknown).
+                        // A built-in renamed in the backup ("Eating out" for "Food & Dining")
+                        // whose built-in already exists here comes in as a plain user
+                        // category, so two rows never claim the same built-in (#823).
+                        val duplicatesBuiltin = category.builtinKey?.let { key ->
+                            existingCategoryRows.any { it.builtinKey == key }
+                        } == true
+                        val newCategory = category.copy(
+                            id = 0,
+                            parentId = category.parentId?.let { categoryIdMap[it] },
+                            isSystem = category.isSystem && !duplicatesBuiltin,
+                            systemName = if (duplicatesBuiltin) null else category.systemName
+                        )
                         val newId = database.categoryDao().insertCategory(newCategory)
                         categoryIdMap[category.id] = newId
                         importedCategories++

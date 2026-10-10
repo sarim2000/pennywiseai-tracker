@@ -58,7 +58,14 @@ object CategoryMapping {
     )
 
     /** What the user set on a CategoryEntity: its color and optional emoji (#760). */
-    data class UserStyle(val colorHex: String, val emoji: String?)
+    data class UserStyle(
+        val colorHex: String,
+        val emoji: String?,
+        /** Original name of a renamed built-in (#823); null otherwise. */
+        val builtinKey: String? = null,
+        /** True when [colorHex] is the user's choice rather than a built-in's seed. */
+        val customColor: Boolean = true
+    )
 
     /**
      * Name → user style, mirrored from the categories table by
@@ -80,12 +87,26 @@ object CategoryMapping {
             runCatching { Color(android.graphics.Color.parseColor(overrideHex)) }
                 .getOrNull()?.let { return it }
         }
-        return categories[name]?.color
-            ?: userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
-            ?: Color.Gray
+        val userColor = userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
+        if (userColor != null && userStyles[name]?.customColor == true) return userColor
+        return categories[name]?.color ?: userColor ?: Color.Gray
     }
 
-    val categories = mapOf(
+    /**
+     * Built-in icon/colour by name. A renamed built-in (#823) is found through its
+     * original name, carried in [userStyles], so every `categories[name]` call site
+     * keeps working after a rename.
+     */
+    val categories: Map<String, CategoryInfo> by lazy {
+        object : Map<String, CategoryInfo> by builtins {
+            // Identity first: a built-in renamed to another's freed name keeps its own icon.
+            override fun get(key: String): CategoryInfo? =
+                userStyles[key]?.builtinKey?.let { builtins[it] } ?: builtins[key]
+            override fun containsKey(key: String): Boolean = get(key) != null
+        }
+    }
+
+    private val builtins = mapOf(
         "Food & Dining" to CategoryInfo(
             displayName = "Food & Dining",
             icon = Icons.Default.Restaurant,

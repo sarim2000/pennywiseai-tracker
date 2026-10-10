@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
@@ -19,7 +20,8 @@ import android.util.Log
 
 @Singleton
 class SubscriptionRepository @Inject constructor(
-    private val subscriptionDao: SubscriptionDao
+    private val subscriptionDao: SubscriptionDao,
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
     
     companion object {
@@ -287,7 +289,9 @@ class SubscriptionRepository @Inject constructor(
                 bankName = bankName,
                 accountLast4 = mandateInfo.accountLast4,
                 umn = mandateInfo.umn,
-                category = determineCategory(mandateInfo.merchant),
+                // Checked against the table too, like transactions: a name the mirror
+                // hadn't caught up with yet (process start) is repaired here (#823).
+                category = categoryDao.getAllCategoriesList().currentNameFor(determineCategory(mandateInfo.merchant)),
                 smsBody = smsBody
             )
         }
@@ -297,6 +301,6 @@ class SubscriptionRepository @Inject constructor(
 
     private fun determineCategory(merchantName: String): String {
         // Use unified category mapping
-        return CategoryMapping.getCategory(merchantName)
+        return com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CategoryMapping.getCategory(merchantName))
     }
 }

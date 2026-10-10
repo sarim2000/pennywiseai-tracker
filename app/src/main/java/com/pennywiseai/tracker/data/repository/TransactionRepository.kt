@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -27,7 +28,8 @@ import kotlin.math.min
 open class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
     suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String) =
         transactionDao.getWebhookChanges(start, end, currency, profileId)
@@ -119,11 +121,26 @@ open class TransactionRepository @Inject constructor(
         endDate: LocalDateTime
     ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
     
-    suspend fun insertTransaction(transaction: TransactionEntity): Long = 
-        transactionDao.insertTransaction(transaction)
-    
-    suspend fun insertTransactions(transactions: List<TransactionEntity>) = 
-        transactionDao.insertTransactions(transactions)
+    suspend fun insertTransaction(transaction: TransactionEntity): Long =
+        transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
+
+    suspend fun insertTransactions(transactions: List<TransactionEntity>) =
+        transactionDao.insertTransactions(withCurrentCategoryNames(transactions))
+
+    /**
+     * Auto-categorization speaks in built-in names ("Food & Dining"); if the user
+     * renamed that category (#823), new rows get its current name instead.
+     */
+    private suspend fun withCurrentCategoryNames(transactions: List<TransactionEntity>): List<TransactionEntity> {
+        val categories = categoryDao.getAllCategoriesList()
+        if (categories.none { it.systemName != null && it.systemName != it.name }) return transactions
+        return transactions.map { tx ->
+            tx.copy(
+                category = categories.currentNameFor(tx.category),
+                budgetCategory = tx.budgetCategory?.let { categories.currentNameFor(it) }
+            )
+        }
+    }
     
     suspend fun updateTransaction(transaction: TransactionEntity) = 
         transactionDao.updateTransaction(transaction.copy(updatedAt = LocalDateTime.now()))

@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.backup
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
 import kotlinx.serialization.decodeFromString
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -622,6 +623,28 @@ class BackupModelsTest {
         assertTrue(db.merchantAliases.isEmpty())
         // The sibling table that existed before still decodes.
         assertEquals(1, db.merchantMappings.size)
+    }
+
+    @Test
+    fun oldBackupCategoryWithoutSystemName_defaultsToNull() {
+        // Backups from before #823 have no systemName on categories.
+        val json = """
+        {
+          "database": {
+            "categories": [
+              { "name": "Food & Dining", "color": "#FC8019", "isSystem": true },
+              { "name": "Pets", "color": "#757575" }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val categories = backupJson.decodeFromString<PennyWiseBackup>(json).database.categories
+
+        assertEquals(listOf(null, null), categories.map { it.systemName })
+        // A system row from an old backup is still recognised as its own built-in.
+        assertEquals("Food & Dining", categories[0].builtinKey)
+        assertEquals(null, categories[1].builtinKey)
     }
 
     @Test

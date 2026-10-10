@@ -162,7 +162,9 @@ fun CategoriesScreen(
     if (showAddEditDialog) {
         CategoryEditDialog(
             category = editingCategory,
-            parentOptions = categories,
+            // A built-in keeps its type and stays top-level; only name/colour/icon change.
+            lockType = editingCategory?.isSystem == true,
+            parentOptions = if (editingCategory?.isSystem == true) emptyList() else categories,
             onDismiss = { viewModel.hideDialog() },
             onSave = { name, color, isIncome, icon, parentId ->
                 viewModel.saveCategory(name, color, isIncome, icon, parentId)
@@ -232,7 +234,7 @@ private fun SwipeableCategoryItem(
         content = {
             CategoryItem(
                 category = category,
-                onClick = if (!category.isSystem) onEdit else null,
+                onClick = onEdit,
                 onToggleHidden = onToggleHidden
             )
         },

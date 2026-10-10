@@ -37,6 +37,13 @@ data class CategoryEntity(
     
     @ColumnInfo(name = "is_system")
     val isSystem: Boolean = false,
+
+    // A built-in category's original name (#823). Auto-categorization keeps
+    // producing that name ("Food & Dining"), so after the user renames the
+    // category, new transactions are mapped to its current name through this.
+    // Null for user categories. Nullable + defaulted so old backups restore (#414).
+    @ColumnInfo(name = "system_name", defaultValue = "NULL")
+    val systemName: String? = null,
     
     @ColumnInfo(name = "is_income")
     val isIncome: Boolean = false,
@@ -59,6 +66,30 @@ data class CategoryEntity(
     @Contextual
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
+
+/**
+ * The built-in name this category stands for, or null for a user category.
+ * Rows from before [CategoryEntity.systemName] existed (old backups) can't have
+ * been renamed, so a system row's own name is its key.
+ */
+val CategoryEntity.builtinKey: String? get() = systemName ?: name.takeIf { isSystem }
+
+/**
+ * The current name of the built-in whose original name is [key] — how the
+ * auto-categorizer's output ("Food & Dining") is translated after a rename.
+ * Matched by identity, so renaming one built-in to another's original name
+ * can't send the other's transactions to it. Non-built-in names pass through.
+ */
+fun List<CategoryEntity>.nameForBuiltin(key: String): String =
+    firstOrNull { it.builtinKey == key }?.name ?: key
+
+/**
+ * Last-resort repair at save time: a name that matches an existing category is
+ * kept as is (it may be one the user picked); only a name that matches nothing,
+ * but is a built-in's original name, is moved to that built-in's current name.
+ */
+fun List<CategoryEntity>.currentNameFor(name: String): String =
+    if (any { it.name == name }) name else nameForBuiltin(name)
 
 /** Top-level categories in their order, each followed by its children in theirs. */
 fun List<CategoryEntity>.hierarchical(): List<CategoryEntity> {

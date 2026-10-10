@@ -71,4 +71,29 @@ class IciciBankPdfParserTest {
         val withOpening = statement.replace("VIN/MERCHANT 13\n17-10-2025", "B/F 1,25,100.00\nVIN/MERCHANT 13\n17-10-2025")
         assertEquals(TransactionType.EXPENSE, parser.parse(withOpening).first().type)
     }
+
+    @Test
+    fun `identical rows on different dates get different duplicate hashes`() {
+        // Same FD-interest particulars and amount, a month apart.
+        val text = """
+            ICICI Bank Limited
+            DATE
+            PARTICULARS
+            DEPOSITS
+            WITHDRAWALS
+            BALANCE
+            Int on FD/RD XXX1406 Tds:0.Int:600 and
+            25-10-2025
+            600.00
+            1,00,600.00
+            Int on FD/RD XXX1406 Tds:0.Int:600 and
+            25-11-2025
+            600.00
+            1,01,200.00
+        """.trimIndent()
+        val rows = parser.parse(text)
+        assertEquals(2, rows.size)
+        assertTrue(rows.all { it.type == TransactionType.INCOME })
+        assertTrue(rows[0].generateTransactionId() != rows[1].generateTransactionId())
+    }
 }

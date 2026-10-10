@@ -44,7 +44,11 @@ class IciciBankPdfParser : PdfStatementParser {
                 reference = REFERENCE.findAll(description.joinToString(" ")).lastOrNull()?.value,
                 accountLast4 = null,
                 balance = null,
-                smsBody = description.joinToString("\n"),
+                // Date and running balance lead the text: the import's duplicate hash is
+                // built from it, and recurring rows (monthly FD interest) share the
+                // same amount and particulars. The balance makes every row unique.
+                smsBody = (listOf("${row.date.format(DATE_FORMAT)} · balance ${row.balance.toPlainString()}") + description)
+                    .joinToString("\n"),
                 sender = "ICICI PDF",
                 timestamp = row.date.atTime(LocalTime.NOON).atZone(IST).toInstant().toEpochMilli(),
                 bankName = "ICICI Bank"

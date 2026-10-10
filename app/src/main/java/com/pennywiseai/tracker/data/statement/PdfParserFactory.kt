@@ -6,7 +6,8 @@ object PdfParserFactory {
         GPayPdfParser(),
         PhonePePdfParser(),
         PaytmPdfParser(),
-        SlicePdfParser()
+        SlicePdfParser(),
+        IciciBankPdfParser()
     )
 
     fun getParser(extractedText: String): PdfStatementParser? {

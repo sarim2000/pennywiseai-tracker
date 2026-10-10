@@ -15,13 +15,13 @@ class ImportStatementUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     @ApplicationContext private val context: Context
 ) {
-    suspend fun import(uri: Uri): StatementImportResult = withContext(Dispatchers.IO) {
+    suspend fun import(uri: Uri, password: String? = null): StatementImportResult = withContext(Dispatchers.IO) {
         try {
-            val text = PdfTextExtractor.extractText(context, uri)
+            val text = PdfTextExtractor.extractText(context, uri, password)
 
             val parser = PdfParserFactory.getParser(text)
                 ?: return@withContext StatementImportResult.Error(
-                    "Unsupported statement format. Currently supported: Google Pay, PhonePe, Paytm, slice."
+                    "Unsupported statement format. Currently supported: Google Pay, PhonePe, Paytm, slice, ICICI Bank."
                 )
 
             val parsedTransactions = parser.parse(text)
@@ -32,6 +32,8 @@ class ImportStatementUseCase @Inject constructor(
             }
 
             StatementImportProcessor(repositoryStore()).process(parsedTransactions)
+        } catch (e: PdfPasswordRequiredException) {
+            StatementImportResult.PasswordRequired(e.wrongPassword)
         } catch (e: Exception) {
             StatementImportResult.Error(
                 e.message ?: "Failed to import statement."

@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.encodeToStream
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -22,6 +23,9 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// OutOfMemoryError isn't an Exception: without this, too many photos crash the app.
+private const val TOO_LARGE = "Export failed: too many receipt photos for one backup. Turn off \"Include receipt photos\" and try again."
 
 @Singleton
 class BackupExporter @Inject constructor(
@@ -39,11 +43,15 @@ class BackupExporter @Inject constructor(
         includeReceipts: Boolean = false
     ): ExportResult {
         return try {
+            val backup = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
-            file.writeText(encodeBackup(privacy, includeReceipts))
+            // Streamed so the photos aren't held twice more as one big JSON string.
+            withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            ExportResult.Error(TOO_LARGE)
         }
     }
 
@@ -55,6 +63,8 @@ class BackupExporter @Inject constructor(
             ExportBytesResult.Success(encodeBackup(privacy, includeReceipts).toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             ExportBytesResult.Error("Export failed: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            ExportBytesResult.Error(TOO_LARGE)
         }
     }
 

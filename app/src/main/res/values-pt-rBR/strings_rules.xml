@@ -59,7 +59,6 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Importar Declaração</string>
     <string name="import_statement_back">Anterior</string>
-    <string name="import_statement_description">Importe transações a partir das declarações Google Pay, PhonePe, Paytm ou slice em PDF. As duplicatas são automaticamente detectadas e ignoradas.</string>
     <string name="import_statement_select_pdf">Selecionar declaração PDF</string>
     <string name="import_statement_loading_title">Importando transações...</string>
     <string name="import_statement_loading_body">Analisando PDF e verificando duplicados</string>

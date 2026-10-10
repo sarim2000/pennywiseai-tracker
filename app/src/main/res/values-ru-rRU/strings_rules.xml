@@ -65,7 +65,6 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Импортировать отчёт</string>
     <string name="import_statement_back">Назад</string>
-    <string name="import_statement_description">Импортируйте транзакции из Google Pay, PhonePe, Paytm или PDF операций. Дубликаты будут автоматически обнаружены и пропущены.</string>
     <string name="import_statement_select_pdf">Выберите PDF-файл</string>
     <string name="import_statement_loading_title">Импорт транзакций...</string>
     <string name="import_statement_loading_body">Анализ PDF и проверка дубликатов</string>

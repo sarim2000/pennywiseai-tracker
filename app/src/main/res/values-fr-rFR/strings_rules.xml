@@ -55,7 +55,6 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Importer une déclaration</string>
     <string name="import_statement_back">Précédent</string>
-    <string name="import_statement_description">Importer des transactions depuis Google Pay, PhonePe, Paytm ou slice PDF des relevés. Les doublons sont automatiquement détectés et ignorés.</string>
     <string name="import_statement_select_pdf">Sélectionnez la déclaration PDF</string>
     <string name="import_statement_loading_title">Importation des transactions...</string>
     <string name="import_statement_loading_body">Analyse du PDF et vérification des doublons</string>

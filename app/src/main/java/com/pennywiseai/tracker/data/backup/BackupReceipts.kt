@@ -82,8 +82,12 @@ object BackupReceipts {
                 target.parentFile?.mkdirs()
                 // Unique temp name: a fixed suffix could be another receipt's path.
                 val tmp = File.createTempFile("restore", ".tmp", target.parentFile)
-                tmp.writeBytes(bytes)
-                if (tmp.renameTo(target)) written++ else tmp.delete()
+                try {
+                    tmp.writeBytes(bytes)
+                    if (tmp.renameTo(target)) written++
+                } finally {
+                    tmp.delete() // no-op after a successful rename
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Skipped a receipt during import: ${e.message}")
             }

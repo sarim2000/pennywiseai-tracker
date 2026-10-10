@@ -80,7 +80,8 @@ object BackupReceipts {
                     continue
                 }
                 target.parentFile?.mkdirs()
-                val tmp = File(target.parentFile, "${target.name}.restoring")
+                // Unique temp name: a fixed suffix could be another receipt's path.
+                val tmp = File.createTempFile("restore", ".tmp", target.parentFile)
                 tmp.writeBytes(bytes)
                 if (tmp.renameTo(target)) written++ else tmp.delete()
             } catch (e: Exception) {

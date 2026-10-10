@@ -60,7 +60,10 @@ class BackupExporter @Inject constructor(
         includeReceipts: Boolean = false
     ): ExportBytesResult {
         return try {
-            ExportBytesResult.Success(encodeBackup(privacy, includeReceipts).toByteArray(Charsets.UTF_8))
+            val backup = createBackup(privacy, includeReceipts)
+            // Off the main thread: "Back up now" calls this from viewModelScope.
+            val bytes = withContext(Dispatchers.Default) { backupJson.encodeToString(backup).toByteArray(Charsets.UTF_8) }
+            ExportBytesResult.Success(bytes)
         } catch (e: Exception) {
             ExportBytesResult.Error("Export failed: ${e.message}")
         } catch (e: OutOfMemoryError) {
@@ -68,10 +71,6 @@ class BackupExporter @Inject constructor(
         }
     }
 
-    private suspend fun encodeBackup(privacy: ExportPrivacy, includeReceipts: Boolean): String {
-        val backup = createBackup(privacy, includeReceipts)
-        return backupJson.encodeToString(backup)
-    }
     
     /**
      * Create backup data structure

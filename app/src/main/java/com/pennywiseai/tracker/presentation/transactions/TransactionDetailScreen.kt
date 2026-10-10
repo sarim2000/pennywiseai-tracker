@@ -1028,7 +1028,7 @@ private fun TransactionReceipt(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
                 Row(
                     modifier = Modifier.padding(Spacing.md),

@@ -141,6 +141,8 @@ fun SettingsScreen(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
+    val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
@@ -614,6 +616,16 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
+                    icon = Icons.Default.Receipt,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = stringResource(R.string.settings_export_include_receipts_title),
+                    subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
+                    checked = exportIncludeReceipts,
+                    onCheckedChange = { settingsViewModel.setExportIncludeReceipts(it) },
+                    position = ListItemPosition.Middle
+                )
+                SettingsSwitchRow(
                     icon = Icons.Default.Backup,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
@@ -651,6 +663,16 @@ fun SettingsScreen(
                             stringResource(R.string.settings_backup_now_last_backup, formatted)
                         } ?: stringResource(R.string.settings_backup_now_subtitle),
                         onClick = { settingsViewModel.backupToFolderNow() },
+                        position = ListItemPosition.Middle
+                    )
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Receipt,
+                        iconBgColor = purple_light,
+                        iconTint = purple_dark,
+                        title = stringResource(R.string.settings_folder_backup_include_receipts_title),
+                        subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
+                        checked = folderBackupIncludeReceipts,
+                        onCheckedChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
                         position = ListItemPosition.Middle
                     )
                     SettingsNavItem(

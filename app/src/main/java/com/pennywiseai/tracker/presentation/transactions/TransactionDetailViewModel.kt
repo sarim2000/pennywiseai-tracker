@@ -1165,11 +1165,19 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
 
+    // True when the transaction points at a receipt whose file isn't on this
+    // device, e.g. restored from a backup made without photos (#839).
+    private val _receiptMissing = MutableStateFlow(false)
+    val receiptMissing: StateFlow<Boolean> = _receiptMissing.asStateFlow()
+
     private fun loadReceiptUri(transaction: TransactionEntity) {
+        _receiptMissing.value = false
         transaction.receiptPath?.let { path ->
             val file = receiptManager.getReceiptFile(path)
             if (file.exists()) {
                 _receiptUri.value = file.toUri()
+            } else {
+                _receiptMissing.value = true
             }
         }
     }

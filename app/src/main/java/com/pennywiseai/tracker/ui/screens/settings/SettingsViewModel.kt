@@ -125,6 +125,16 @@ class SettingsViewModel @Inject constructor(
 
     val scheduledFolderBackupEnabled = userPreferencesRepository.scheduledFolderBackupEnabled
     val scheduledFolderBackupLastTimestamp = userPreferencesRepository.scheduledFolderBackupLastTimestamp
+    val exportIncludeReceipts = userPreferencesRepository.exportIncludeReceipts
+    val folderBackupIncludeReceipts = userPreferencesRepository.folderBackupIncludeReceipts
+
+    fun setExportIncludeReceipts(include: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setExportIncludeReceipts(include) }
+    }
+
+    fun setFolderBackupIncludeReceipts(include: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setFolderBackupIncludeReceipts(include) }
+    }
 
     private val _requestFolderPicker = MutableStateFlow(false)
     val requestFolderPicker: StateFlow<Boolean> = _requestFolderPicker.asStateFlow()
@@ -491,7 +501,9 @@ class SettingsViewModel @Inject constructor(
     fun exportBackup() {
         viewModelScope.launch {
             try {
-                val result = backupExporter.exportBackup()
+                val result = backupExporter.exportBackup(
+                    includeReceipts = userPreferencesRepository.exportIncludeReceipts.first()
+                )
                 when (result) {
                     is ExportResult.Success -> {
                         // Store the file for later saving
@@ -692,7 +704,8 @@ class SettingsViewModel @Inject constructor(
             return false
         }
 
-        return when (val exportResult = backupExporter.exportBackupBytes()) {
+        val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
+        return when (val exportResult = backupExporter.exportBackupBytes(includeReceipts = includeReceipts)) {
             is ExportBytesResult.Success -> {
                 when (val writeResult = folderBackupWriter.writeBackup(treeUri, exportResult.bytes)) {
                     is FolderBackupWriter.Result.Success -> {

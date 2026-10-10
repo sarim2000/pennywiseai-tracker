@@ -42,16 +42,36 @@ data class PennyWiseBackup(
     val database: DatabaseSnapshot = DatabaseSnapshot(),
 
     @SerialName("preferences")
-    val preferences: PreferencesSnapshot = PreferencesSnapshot()
+    val preferences: PreferencesSnapshot = PreferencesSnapshot(),
+
+    // Receipt photos (#839), embedded so the backup stays one JSON file that
+    // every app version can read — older apps just ignore this key, and
+    // backups written before it existed decode to an empty list.
+    @SerialName("receipts")
+    val receipts: List<BackupReceipt> = emptyList()
 ) {
     companion object {
         /** Current format string written by this app version. */
-        const val CURRENT_FORMAT = "PennyWise Backup v1.2"
+        const val CURRENT_FORMAT = "PennyWise Backup v1.3"
 
         /** Prefix accepted on import — any `v1.x` backup is compatible. */
         const val COMPATIBLE_PREFIX = "PennyWise Backup v1"
     }
 }
+
+/**
+ * One receipt photo. [path] is the transaction's `receiptPath` (relative to
+ * `filesDir`, e.g. `receipts/receipt_123.jpg`); [dataBase64] is the file's
+ * bytes, standard Base64. Untrusted on import — see [BackupReceipts].
+ */
+@Serializable
+data class BackupReceipt(
+    @SerialName("path")
+    val path: String = "",
+
+    @SerialName("data_base64")
+    val dataBase64: String = ""
+)
 
 /**
  * Metadata about the backup. Informational only — never block an import on it,
@@ -137,6 +157,9 @@ data class BackupStatistics(
 
     @SerialName("total_recurring_transactions")
     val totalRecurringTransactions: Int = 0,
+
+    @SerialName("total_receipts")
+    val totalReceipts: Int = 0,
 
     @SerialName("date_range")
     val dateRange: DateRange? = null

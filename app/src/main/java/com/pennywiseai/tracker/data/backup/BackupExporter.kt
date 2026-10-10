@@ -11,8 +11,11 @@ import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.encodeToStream
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -20,6 +23,9 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+// OutOfMemoryError isn't an Exception: without this, too many photos crash the app.
+private const val TOO_LARGE = "Export failed: too many receipt photos for one backup. Turn off \"Include receipt photos\" and try again."
 
 @Singleton
 class BackupExporter @Inject constructor(
@@ -33,36 +39,43 @@ class BackupExporter @Inject constructor(
      * Export complete app data to a backup file
      */
     suspend fun exportBackup(
-        privacy: ExportPrivacy = ExportPrivacy.FULL
+        privacy: ExportPrivacy = ExportPrivacy.FULL,
+        includeReceipts: Boolean = false
     ): ExportResult {
         return try {
+            val backup = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
-            file.writeText(encodeBackup(privacy))
+            // Streamed so the photos aren't held twice more as one big JSON string.
+            withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            ExportResult.Error(TOO_LARGE)
         }
     }
 
     suspend fun exportBackupBytes(
-        privacy: ExportPrivacy = ExportPrivacy.FULL
+        privacy: ExportPrivacy = ExportPrivacy.FULL,
+        includeReceipts: Boolean = false
     ): ExportBytesResult {
         return try {
-            ExportBytesResult.Success(encodeBackup(privacy).toByteArray(Charsets.UTF_8))
+            val backup = createBackup(privacy, includeReceipts)
+            // Off the main thread: "Back up now" calls this from viewModelScope.
+            val bytes = withContext(Dispatchers.Default) { backupJson.encodeToString(backup).toByteArray(Charsets.UTF_8) }
+            ExportBytesResult.Success(bytes)
         } catch (e: Exception) {
             ExportBytesResult.Error("Export failed: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            ExportBytesResult.Error(TOO_LARGE)
         }
     }
 
-    private suspend fun encodeBackup(privacy: ExportPrivacy): String {
-        val backup = createBackup(privacy)
-        return backupJson.encodeToString(backup)
-    }
     
     /**
      * Create backup data structure
      */
-    private suspend fun createBackup(privacy: ExportPrivacy): PennyWiseBackup {
+    private suspend fun createBackup(privacy: ExportPrivacy, includeReceipts: Boolean): PennyWiseBackup {
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()
         val categories = database.categoryDao().getAllCategories().first()
@@ -160,6 +173,13 @@ class BackupExporter @Inject constructor(
         // Recurring templates carry raw merchant names + notes, so they're kept
         // on FULL only — same treatment as loans / other relational tables.
         val exportedRecurringTransactions = if (privacy == ExportPrivacy.FULL) recurringTransactions else emptyList()
+        // Receipt photos (#839): only when the caller opts in, and only in FULL
+        // exports — a photo of a bill is exactly what masking is meant to hide.
+        val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
+            withContext(Dispatchers.IO) {
+                BackupReceipts.collect(context.filesDir, finalTransactions.mapNotNull { it.receiptPath })
+            }
+        } else emptyList()
 
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -187,6 +207,7 @@ class BackupExporter @Inject constructor(
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
                     totalMerchantAliases = merchantAliases.size,
                     totalRecurringTransactions = exportedRecurringTransactions.size,
+                    totalReceipts = exportedReceipts.size,
                     dateRange = dateRange
                 )
             ),
@@ -252,7 +273,8 @@ class BackupExporter @Inject constructor(
                         BankAccountMergeStore(context).mappings()
                     } else emptyMap()
                 )
-            )
+            ),
+            receipts = exportedReceipts
         )
     }
     

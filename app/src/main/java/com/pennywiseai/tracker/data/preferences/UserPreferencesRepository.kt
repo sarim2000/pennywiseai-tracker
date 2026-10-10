@@ -171,6 +171,11 @@ open class UserPreferencesRepository @Inject constructor(
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
         val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
+
+        // Embed receipt photos in backups (#839). Manual export defaults ON;
+        // the daily folder backup defaults OFF (photos make every copy large).
+        val EXPORT_INCLUDE_RECEIPTS = booleanPreferencesKey("export_include_receipts")
+        val FOLDER_BACKUP_INCLUDE_RECEIPTS = booleanPreferencesKey("folder_backup_include_receipts")
     }
 
     private companion object {
@@ -992,6 +997,20 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
         }
+    }
+
+    val exportIncludeReceipts: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] ?: true }
+
+    val folderBackupIncludeReceipts: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] ?: false }
+
+    suspend fun setExportIncludeReceipts(include: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] = include }
+    }
+
+    suspend fun setFolderBackupIncludeReceipts(include: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] = include }
     }
 }
 

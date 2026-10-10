@@ -1023,6 +1023,33 @@ private fun TransactionReceipt(
             }
         }
 
+        val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
+        if (receiptUri == null && receiptMissing) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Default.Receipt,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.txn_detail_receipt_missing),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
         // ── SMS Section ──
         if (!transaction.smsBody.isNullOrBlank()) {
             ExpandableSmsSection(smsBody = transaction.smsBody)

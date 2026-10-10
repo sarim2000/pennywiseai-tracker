@@ -912,4 +912,67 @@ class BackupModelsTest {
         assertFalse(sms.smsScanUseCustomDate)
         assertNull(sms.smsScanCustomDate)
     }
+
+    /**
+     * #839 regression. Backups written before receipt photos existed have no
+     * top-level `receipts` key (nor `total_receipts`); they must decode with an
+     * empty list, not crash.
+     */
+    @Test
+    fun oldBackupWithoutReceipts_defaultsToEmptyList() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.2",
+          "metadata": { "statistics": { "total_transactions": 1 } },
+          "database": {
+            "transactions": [
+              {
+                "id": 1,
+                "amount": "10.00",
+                "merchantName": "Shop",
+                "category": "X",
+                "transactionType": "EXPENSE",
+                "dateTime": "2024-01-01T00:00:00",
+                "transactionHash": "r1",
+                "receiptPath": "receipts/receipt_1.jpg"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertTrue(backup.receipts.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalReceipts)
+        assertEquals("receipts/receipt_1.jpg", backup.database.transactions.single().receiptPath)
+    }
+
+    @Test
+    fun receipts_roundTripBytes() {
+        val bytes = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0, 1, 2, 127, -128)
+        val backup = PennyWiseBackup(
+            receipts = listOf(
+                BackupReceipt(
+                    path = "receipts/receipt_1.jpg",
+                    dataBase64 = java.util.Base64.getEncoder().encodeToString(bytes)
+                )
+            )
+        )
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"receipts\""))
+
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json).receipts.single()
+        assertEquals("receipts/receipt_1.jpg", restored.path)
+        assertTrue(bytes.contentEquals(java.util.Base64.getDecoder().decode(restored.dataBase64)))
+    }
+
+    /** A receipt entry missing one of its own keys still decodes (defaults). */
+    @Test
+    fun receiptEntryMissingKeys_usesDefaults() {
+        val json = """{ "receipts": [ { "path": "receipts/a.jpg" }, {} ] }"""
+        val receipts = backupJson.decodeFromString<PennyWiseBackup>(json).receipts
+        assertEquals(2, receipts.size)
+        assertEquals("", receipts[0].dataBase64)
+        assertEquals("", receipts[1].path)
+    }
 }

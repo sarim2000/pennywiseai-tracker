@@ -71,7 +71,6 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">بيان الاستيراد</string>
     <string name="import_statement_back">الرجوع</string>
-    <string name="import_statement_description">استيراد المعاملات من Google Pay, PhonePe, Paytm أو شريحة PDF. يتم الكشف عن التكرار والتخطي تلقائيًا.</string>
     <string name="import_statement_select_pdf">حدد بيان PDF</string>
     <string name="import_statement_loading_title">استيراد المعاملات...</string>
     <string name="import_statement_loading_body">تحليل PDF والتحقق من التكرارات</string>

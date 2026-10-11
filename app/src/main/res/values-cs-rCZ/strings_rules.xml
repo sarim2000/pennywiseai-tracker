@@ -65,7 +65,6 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Prohlášení o importu</string>
     <string name="import_statement_back">Zpět</string>
-    <string name="import_statement_description">Importovat transakce z příkazů PDF Google Pay, PhonePe, Paytm nebo z PDF. Duplikace jsou automaticky detekovány a přeskočeny.</string>
     <string name="import_statement_select_pdf">Vyberte PDF prohlášení</string>
     <string name="import_statement_loading_title">Importuji transakce...</string>
     <string name="import_statement_loading_body">Analýza PDF a kontrola duplicit</string>

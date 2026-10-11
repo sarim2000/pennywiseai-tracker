@@ -196,8 +196,12 @@ abstract class BankParser {
 
         // Skip convert-your-bill-to-EMI offers: "You can convert your Credit Card
         // … outstanding bill of Rs.X into SmartEMI … SMS SMARTEMI YES" (#885).
-        if (lowerMessage.contains("smartemi") ||
-            (lowerMessage.contains("convert") && lowerMessage.contains("into emi"))
+        // Only the invitation — a completed EMI payment ("Rs.3282 debited …
+        // towards SmartEMI") still parses. Debit verbs only: the offer itself says
+        // "Ignore if any amount is already paid".
+        if (lowerMessage.contains("convert") &&
+            (lowerMessage.contains("smartemi") || lowerMessage.contains("into emi")) &&
+            !Regex("""\b(debited|deducted|spent|charged|withdrawn)\b""").containsMatchIn(lowerMessage)
         ) {
             return true
         }

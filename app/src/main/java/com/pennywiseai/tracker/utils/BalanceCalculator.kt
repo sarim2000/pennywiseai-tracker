@@ -14,6 +14,31 @@ object BalanceCalculator {
     fun preservedAccountType(existing: AccountBalanceEntity?): String? = existing?.accountType
 
     /**
+     * Balance an account row should carry after a parsed SMS whose amount is in
+     * [transactionCurrency] while the account is kept in [accountCurrency].
+     *
+     * A spend in another currency (USD on an INR card) can't be added to the
+     * balance — that would sum across currencies, and the bank's own converted
+     * figure only arrives with a later SMS. So it keeps the explicit balance the
+     * SMS reports (that is the account's own figure), else the current balance.
+     * Same-currency SMS go through [calculateNewBalance] unchanged. (#888)
+     */
+    fun balanceAfter(
+        explicitBalance: BigDecimal?,
+        isCreditCard: Boolean,
+        transactionType: TransactionType,
+        transactionAmount: BigDecimal,
+        transactionCurrency: String,
+        accountCurrency: String,
+        currentBalance: BigDecimal?
+    ): BigDecimal =
+        if (transactionCurrency == accountCurrency) {
+            calculateNewBalance(explicitBalance, isCreditCard, transactionType, transactionAmount, currentBalance)
+        } else {
+            explicitBalance ?: currentBalance ?: BigDecimal.ZERO
+        }
+
+    /**
      * Calculates the new account balance post-transaction.
      * For credit cards, balance represents outstanding debt.
      */

@@ -227,6 +227,19 @@ class SmsReportRegressionTest {
                 message = "UPDATE : You can convert  your Credit Card xx0000 outstanding bill of Rs.27169.6 into SmartEMI of Rs.3282 + GST for 9 months. To use this service SMS \"SMARTEMI YES\" to 1800000000. Ignore if any amount is already paid from your statement.",
                 shouldParse = false
             ) + SimpleTestCase(
+                // Guard: a completed payment towards an EMI still parses.
+                description = "A debit towards SmartEMI is still a transaction",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Rs.3282.00 debited from HDFC Bank A/c XX1111 on 05-10-26 towards SmartEMI. Avl bal Rs.5000.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3282.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
                 // "paid" (expense) was matched before "deposited" (income).
                 description = "HDFC interest deposit is income, not an expense",
                 bankName = "HDFC Bank",

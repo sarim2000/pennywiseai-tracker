@@ -1,22 +1,26 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SettingsEthernet
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +29,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -39,11 +44,10 @@ fun TransactionTotalsCard(
     onCurrencySelected: (String) -> Unit = {},
     isUnifiedMode: Boolean = false,
     isLoading: Boolean = false,
-    // Optional fourth tile (#634): credit-card spend of the shown set. The
-    // regular list totals leave it off — credit lives on the Cash-Flow card —
-    // but selection totals show it, since the ask was income/expense/credit
-    // for exactly the rows the user picked.
-    credit: BigDecimal? = null,
+    // Optional fourth tile: a total the Income/Expenses/Net tiles leave out —
+    // credit-card spend, or the transfers/investments a type filter shows
+    // (#634, #893). See [extraTotalFor].
+    extra: ExtraTotal? = null,
     // Optional heading, e.g. "3 selected".
     title: String? = null,
     modifier: Modifier = Modifier
@@ -166,18 +170,22 @@ fun TransactionTotalsCard(
                                 )
                             },
                             // Four tiles leave no room for the plural — it wraps.
-                            label = if (credit != null) stringResource(R.string.txn_totals_expense) else stringResource(R.string.txn_totals_expenses),
+                            label = if (extra != null) stringResource(R.string.txn_totals_expense) else stringResource(R.string.txn_totals_expenses),
                             amount = CurrencyFormatter.formatCurrency(expenses, currency),
                             color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
                             modifier = Modifier.alpha(expenseAlpha)
                         )
                     }
 
-                    if (credit != null) {
+                    if (extra != null) {
                         Spacer(modifier = Modifier.width(Spacing.xxs))
 
-                        // Credit Column (selection totals only)
-                        val creditColor = if (!isSystemInDarkTheme()) credit_light else credit_dark
+                        val dark = isSystemInDarkTheme()
+                        val (extraIcon, extraLabel, extraColor) = when (extra.kind) {
+                            ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), if (dark) credit_dark else credit_light)
+                            ExtraTotalKind.TRANSFER -> Triple(Icons.Filled.SwapHoriz, stringResource(R.string.txn_totals_transfer), if (dark) transfer_dark else transfer_light)
+                            ExtraTotalKind.INVESTMENT -> Triple(Icons.AutoMirrored.Filled.ShowChart, stringResource(R.string.txn_totals_invest), if (dark) investment_dark else investment_light)
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -192,15 +200,15 @@ fun TransactionTotalsCard(
                             TotalColumn(
                                 icon = {
                                     Icon(
-                                        imageVector = Icons.Filled.CreditCard,
-                                        contentDescription = stringResource(R.string.txn_totals_credit),
+                                        imageVector = extraIcon,
+                                        contentDescription = extraLabel,
                                         modifier = Modifier.size(Dimensions.Icon.inline),
-                                        tint = creditColor
+                                        tint = extraColor
                                     )
                                 },
-                                label = stringResource(R.string.txn_totals_credit),
-                                amount = CurrencyFormatter.formatCurrency(credit, currency),
-                                color = creditColor,
+                                label = extraLabel,
+                                amount = CurrencyFormatter.formatCurrency(extra.amount, currency),
+                                color = extraColor,
                                 modifier = Modifier.alpha(expenseAlpha)
                             )
                         }
@@ -284,10 +292,17 @@ private fun TotalColumn(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             icon?.invoke()
+            // One line, shrinking to fit: four tiles at a large font size
+            // otherwise break "Income" mid-word.
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 8.sp,
+                    maxFontSize = MaterialTheme.typography.labelMedium.fontSize
+                )
             )
         }
         Text(
@@ -361,4 +376,22 @@ private fun CurrencyPickerPill(
             }
         }
     }
+}
+
+enum class ExtraTotalKind { CREDIT, TRANSFER, INVESTMENT }
+
+data class ExtraTotal(val kind: ExtraTotalKind, val amount: BigDecimal)
+
+/**
+ * The fourth tile for the totals card. Income/Expenses/Net never include
+ * credit-card spend, transfers or investments (Net is cash flow), so a list of
+ * only those read ₹0 / ₹0 / ₹0 (#893). Transfer and Investment filters show
+ * their own total; otherwise credit spend shows whenever the shown rows have
+ * any (and always for a selection, #634).
+ */
+internal fun extraTotalFor(totals: FilteredTotals, typeFilter: TransactionTypeFilter, selectionMode: Boolean): ExtraTotal? = when {
+    !selectionMode && typeFilter == TransactionTypeFilter.TRANSFER -> ExtraTotal(ExtraTotalKind.TRANSFER, totals.transfer)
+    !selectionMode && typeFilter == TransactionTypeFilter.INVESTMENT -> ExtraTotal(ExtraTotalKind.INVESTMENT, totals.investment)
+    selectionMode || totals.credit.signum() != 0 -> ExtraTotal(ExtraTotalKind.CREDIT, totals.credit)
+    else -> null
 }

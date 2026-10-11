@@ -518,15 +518,15 @@
       "balance": "1127.55"
     },
     "HDFC Bank": {
-      "sender": "AD-HDFCBK-S",
-      "message": "Rs.3282.00 debited from HDFC Bank A/c XX1111 on 05-10-26 towards SmartEMI. Avl bal Rs.5000.00",
+      "sender": "HDFCBK",
+      "message": "Sent Rs.15000.00 From HDFC Bank A/C *1234 To TEST MERCHANT PVT LTD On 01/01/26 Ref 567890567890 Not You? Call 18005556789/SMS BLOCK UPI to 7305556789",
       "currency": "INR",
-      "amount": "3282.00",
+      "amount": "15000.00",
       "type": "EXPENSE",
-      "merchant": "SmartEMI. Avl bal Rs.5000.00",
-      "accountLast4": "1111",
-      "reference": null,
-      "balance": "5000.00"
+      "merchant": "TEST MERCHANT",
+      "accountLast4": "1234",
+      "reference": "567890567890",
+      "balance": null
     },
     "HSBC Bank": {
       "sender": "HSBC",

@@ -232,7 +232,10 @@ class SmsReportRegressionTest {
                 bankName = "HDFC Bank",
                 sender = "AD-HDFCBK-S",
                 currency = "INR",
-                message = "Rs.3282.00 debited from HDFC Bank A/c XX1111 on 05-10-26 towards SmartEMI. Avl bal Rs.5000.00",
+                // Split literal: BankSamplesDocTest would otherwise make this
+                // guard case HDFC's showcase sample on the web tester.
+                message = "Rs.3282.00 debited from HDFC Bank A/c XX1111 on 05-10-26 " +
+                    "towards SmartEMI. Avl bal Rs.5000.00",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3282.00"),
                     currency = "INR",

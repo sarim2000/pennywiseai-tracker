@@ -1,5 +1,5 @@
 {
-  "totalBanks": 159,
+  "totalBanks": 160,
   "totalCountries": 25,
   "countries": [
     {
@@ -123,6 +123,14 @@
       "banks": ["BPCE", "Sparkasse Rhein-Maas"]
     },
     {
+      "country": "Kenya",
+      "flag": "🇰🇪",
+      "currency": "KES",
+      "symbol": "Ksh",
+      "bankCount": 2,
+      "banks": ["Equity Bank", "M-PESA"]
+    },
+    {
       "country": "United Kingdom",
       "flag": "🇬🇧",
       "currency": "GBP",
@@ -161,14 +169,6 @@
       "symbol": "Kč",
       "bankCount": 1,
       "banks": ["mBank CZ"]
-    },
-    {
-      "country": "Kenya",
-      "flag": "🇰🇪",
-      "currency": "KES",
-      "symbol": "Ksh",
-      "bankCount": 1,
-      "banks": ["M-PESA"]
     },
     {
       "country": "Oman",

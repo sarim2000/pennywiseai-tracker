@@ -211,10 +211,10 @@ open class TransactionRepository @Inject constructor(
      *
      * @return whether the row was repaired.
      */
-    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean {
-        if (transactionSplitDao.getSplitsForTransactionSync(stored.id).isNotEmpty()) return false
-        if (stored.loanId != null && stored.currency != fresh.currency) return false
-        return transactionDao.repairParsedAmount(
+    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean =
+        // The split and loan guards live in the UPDATE itself, so they see the row
+        // as it is at write time, not as it was when [stored] was read.
+        transactionDao.repairParsedAmount(
             id = stored.id,
             amount = fresh.amount,
             currency = fresh.currency,
@@ -222,7 +222,6 @@ open class TransactionRepository @Inject constructor(
             expectedAmount = stored.amount,
             expectedCurrency = stored.currency
         ) > 0
-    }
 
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999

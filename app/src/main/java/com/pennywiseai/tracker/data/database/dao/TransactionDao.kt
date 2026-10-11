@@ -266,16 +266,22 @@ interface TransactionDao {
     suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity>
 
     /**
-     * Rewrites only amount and currency, and only if the row still holds the
-     * amount being repaired — a whole-row @Update would overwrite anything the
-     * user saved (category, note, loan link) since the row was read. (#886)
-     * @return rows changed: 0 when the row moved on in the meantime.
+     * Rewrites only amount and currency, and only while the row is still safe to
+     * repair — checked here, at write time, not from an earlier read (#886):
+     *  - it still holds the amount being repaired (anything the user saved since
+     *    — category, note — is untouched, and a changed amount isn't overwritten)
+     *  - it has no splits (they were sized to the old amount)
+     *  - it isn't linked to a loan, unless the currency stays the same (loan
+     *    totals sum their linked rows as one currency)
+     * @return rows changed: 0 when any of these no longer holds.
      */
     @Query(
         """
         UPDATE transactions
         SET amount = :amount, currency = :currency, updated_at = :now
         WHERE id = :id AND amount = :expectedAmount AND currency = :expectedCurrency
+          AND NOT EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = :id)
+          AND (loan_id IS NULL OR currency = :currency)
         """
     )
     suspend fun repairParsedAmount(

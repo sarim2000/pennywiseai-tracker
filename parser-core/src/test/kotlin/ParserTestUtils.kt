@@ -32,7 +32,13 @@ data class ExpectedTransaction(
     val expectNullAccountLast4: Boolean = false,
     // Same limitation for merchant: set this when the message names no counterparty
     // and the parser must not invent one.
-    val expectNullMerchant: Boolean = false
+    val expectNullMerchant: Boolean = false,
+    // Currency the account (balance / limit) is kept in, when it differs from the
+    // transaction's — a USD spend on an INR card (#888).
+    val accountCurrency: String? = null,
+    // Assert the parser reports no separate account currency ("same as the
+    // transaction") — a null accountCurrency alone isn't checked.
+    val expectNullAccountCurrency: Boolean = false
 )
 
 data class ParserTestCase(
@@ -133,6 +139,12 @@ object ParserTestUtils {
         if (expected.expectNullMerchant && result.merchant != null) {
             errors.add("Expected no merchant but got ${result.merchant}")
         }
+        expected.accountCurrency?.let {
+            if (result.accountCurrency != it) errors.add("Account currency mismatch: expected $it, got ${result.accountCurrency}")
+        }
+        if (expected.expectNullAccountCurrency && result.accountCurrency != null) {
+            errors.add("Expected no separate account currency but got ${result.accountCurrency}")
+        }
 
         return errors
     }
@@ -195,6 +207,12 @@ object ParserTestUtils {
                 }
                 if (expected.expectNullMerchant) {
                     assertNull(parsed.merchant, "Expected no merchant")
+                }
+                expected.accountCurrency?.let {
+                    assertEquals(it, parsed.accountCurrency, "Account currency mismatch")
+                }
+                if (expected.expectNullAccountCurrency) {
+                    assertNull(parsed.accountCurrency, "Expected no separate account currency")
                 }
             }
         )

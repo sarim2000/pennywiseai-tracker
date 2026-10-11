@@ -905,7 +905,8 @@ class TransactionDetailViewModel @Inject constructor(
                 // (#688). Carry the current persisted values through the save.
                 val currentPersisted = _transaction.value
                 val normalizedTransaction = toSave.copy(
-                    merchantName = normalizeMerchantName(toSave.merchantName),
+                    // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
+                    merchantName = toSave.merchantName.trim(),
                     bankName = resolvedBankName,
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
@@ -1078,24 +1079,6 @@ class TransactionDetailViewModel @Inject constructor(
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
         } else {
             _errorMessage.value = null
-        }
-    }
-    
-    /**
-     * Normalizes merchant name to consistent format.
-     * Converts all-caps to proper case, preserves already mixed case.
-     */
-    private fun normalizeMerchantName(name: String): String {
-        val trimmed = name.trim()
-        
-        // If it's all uppercase, convert to proper case
-        return if (trimmed == trimmed.uppercase()) {
-            trimmed.lowercase().split(" ").joinToString(" ") { word ->
-                if (word.isEmpty()) word else word.substring(0, 1).uppercase() + word.substring(1)
-            }
-        } else {
-            // Already has mixed case, keep as is
-            trimmed
         }
     }
     

@@ -570,14 +570,14 @@ fun TransactionsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             // In selection mode the sticky card shows the totals of
-                            // just the selected rows (#634), with the credit tile the
-                            // reporter asked for; otherwise the filtered-list totals.
+                            // just the selected rows (#634); otherwise the filtered-list
+                            // totals. The fourth tile is picked by [extraTotalFor].
                             val cardTotals = if (selectionMode) selectionTotals else filteredTotals
                             TransactionTotalsCard(
                                 income = cardTotals.income,
                                 expenses = cardTotals.expenses,
                                 netBalance = cardTotals.netBalance,
-                                credit = if (selectionMode) cardTotals.credit else null,
+                                extra = extraTotalFor(cardTotals, transactionTypeFilter, selectionMode),
                                 title = if (selectionMode) {
                                     stringResource(R.string.txn_list_selected_count, selectedIds.size)
                                 } else {

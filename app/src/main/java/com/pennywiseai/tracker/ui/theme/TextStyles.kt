@@ -4,6 +4,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
 /**
@@ -99,4 +101,11 @@ object PennyWiseText {
     val chartLabel: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR)
+
+    /**
+     * Smallest size a one-line label may shrink to with `TextAutoSize` before
+     * it would rather ellipsize — e.g. the totals-card tiles at a large font
+     * scale. Shared so shrinking labels don't each pick their own floor.
+     */
+    val autoSizeFloor: TextUnit = 8.sp
 }

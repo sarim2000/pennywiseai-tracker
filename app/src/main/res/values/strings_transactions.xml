@@ -169,6 +169,8 @@
     <string name="txn_totals_expense">Expense</string>
     <string name="txn_totals_expenses">Expenses</string>
     <string name="txn_totals_credit">Credit</string>
+    <string name="txn_totals_transfer">Transfer</string>
+    <string name="txn_totals_invest">Invest</string>
     <string name="txn_totals_net">Net</string>
     <string name="txn_totals_select_currency">Select currency</string>
 

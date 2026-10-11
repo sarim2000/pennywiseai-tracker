@@ -266,6 +266,28 @@ interface TransactionDao {
     suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity>
 
     /**
+     * Rewrites only amount and currency, and only if the row still holds the
+     * amount being repaired — a whole-row @Update would overwrite anything the
+     * user saved (category, note, loan link) since the row was read. (#886)
+     * @return rows changed: 0 when the row moved on in the meantime.
+     */
+    @Query(
+        """
+        UPDATE transactions
+        SET amount = :amount, currency = :currency, updated_at = :now
+        WHERE id = :id AND amount = :expectedAmount AND currency = :expectedCurrency
+        """
+    )
+    suspend fun repairParsedAmount(
+        id: Long,
+        amount: BigDecimal,
+        currency: String,
+        now: LocalDateTime,
+        expectedAmount: BigDecimal,
+        expectedCurrency: String
+    ): Int
+
+    /**
      * The subset of [hashes] that already exist (including soft-deleted rows).
      * One query for the whole batch — used by CSV import to dedup a whole file
      * without issuing a per-row lookup.

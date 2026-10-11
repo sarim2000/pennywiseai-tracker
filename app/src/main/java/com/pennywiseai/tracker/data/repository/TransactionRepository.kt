@@ -196,16 +196,33 @@ open class TransactionRepository @Inject constructor(
     /**
      * Rewrites a stored row's amount and currency with a fresh read of the same
      * SMS — only for amounts [TransactionDeduplication.isParseArtifact] proves
-     * were an older parser's mistake. Everything the user set (category, notes,
-     * tags, splits) is kept. The hash is left alone: it is unique, and a
-     * soft-deleted duplicate may already hold the new one.
+     * were an older parser's mistake. Only those two columns change, and only if
+     * the row still holds the bad amount, so nothing the user saved is lost.
      *
-     * Account balances aren't shifted: these are historical rows, and the account
-     * has since been re-anchored by the bank's own figures in later SMS, so a
-     * corrective delta now would double-count.
+     * Left for the user to review instead:
+     *  - split transactions — the splits were sized to the old amount
+     *  - a loan-linked row whose currency would change — loan totals sum their
+     *    linked rows as one currency (the manual edit path forbids this too)
+     *
+     * The hash is left alone (it's unique; a soft-deleted duplicate may hold the
+     * new one), and account balances aren't shifted: these are historical rows,
+     * since re-anchored by the bank's own figures, so a delta now would
+     * double-count.
+     *
+     * @return whether the row was repaired.
      */
-    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity) =
-        updateTransaction(stored.copy(amount = fresh.amount, currency = fresh.currency))
+    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean {
+        if (transactionSplitDao.getSplitsForTransactionSync(stored.id).isNotEmpty()) return false
+        if (stored.loanId != null && stored.currency != fresh.currency) return false
+        return transactionDao.repairParsedAmount(
+            id = stored.id,
+            amount = fresh.amount,
+            currency = fresh.currency,
+            now = LocalDateTime.now(),
+            expectedAmount = stored.amount,
+            expectedCurrency = stored.currency
+        ) > 0
+    }
 
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999

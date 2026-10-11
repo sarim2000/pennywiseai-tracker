@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker
 
+import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import kotlinx.coroutines.sync.withLock
 
@@ -80,6 +81,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
+    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
@@ -1053,14 +1055,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             .forEach { group ->
                 val keep = group.minBy { it.id }
                 val newest = group.maxBy { it.id }
-                if (TransactionDeduplication.isParseArtifact(keep, newest)) {
-                    transactionRepository.correctParsedAmount(keep, newest)
-                }
-                group.filter { it.id != keep.id }.forEach { dup ->
-                    transactionRepository.deleteTransactionById(dup.id)
-                    accountBalanceRepository.deleteBalancesForTransaction(dup.id)
-                    ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
-                    removed++
+                // One transaction per SMS: an interrupted run must not leave a
+                // duplicate soft-deleted with its balance rows or rule
+                // applications behind — once deleted it no longer shows up here.
+                database.withTransaction {
+                    if (TransactionDeduplication.isParseArtifact(keep, newest)) {
+                        transactionRepository.correctParsedAmount(keep, newest)
+                    }
+                    group.filter { it.id != keep.id }.forEach { dup ->
+                        transactionRepository.deleteTransactionById(dup.id)
+                        accountBalanceRepository.deleteBalancesForTransaction(dup.id)
+                        ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
+                        removed++
+                    }
                 }
             }
         return removed

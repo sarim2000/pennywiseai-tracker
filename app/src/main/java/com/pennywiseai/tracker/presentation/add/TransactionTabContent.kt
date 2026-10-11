@@ -482,7 +482,7 @@ fun TransactionTabContent(
                             leadingIcon = {
                                 val selected = categories.find { it.name == uiState.category }
                                 if (selected != null) {
-                                    CategoryChip(category = selected, showText = false, modifier = Modifier.padding(start = 12.dp))
+                                    CategoryChip(category = selected, showText = false, modifier = Modifier.padding(start = Spacing.smd))
                                 } else {
                                     Icon(Icons.Default.Category, contentDescription = null)
                                 }

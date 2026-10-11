@@ -173,13 +173,13 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE loan_id IS NULL AND group_id IS NULL")
     suspend fun deleteUncuratedTransactions()
     
-    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName")
+    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName AND id != :excludeId")
+    @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName COLLATE NOCASE AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")

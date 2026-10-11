@@ -219,6 +219,10 @@ class HomeViewModel @Inject constructor(
      * (or once on first emission). Cheap: just two `LocalDate` reads + arithmetic.
      */
     private fun observeBudgetCycle() {
+        userPreferencesRepository.isBalanceHidden
+            .onEach { hidden -> _uiState.value = _uiState.value.copy(isBalanceHidden = hidden) }
+            .launchIn(viewModelScope)
+
         userPreferencesRepository.budgetCycleStartDay
             .onEach { startDay ->
                 _currentCycleWindow.value = BudgetCycle.currentCycle(LocalDate.now(), startDay)
@@ -227,9 +231,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleBalanceVisibility() {
-        _uiState.value = _uiState.value.copy(
-            isBalanceHidden = !_uiState.value.isBalanceHidden
-        )
+        val hidden = !_uiState.value.isBalanceHidden
+        _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
+        // Remembered across launches, so a revealed balance stays revealed.
+        viewModelScope.launch { userPreferencesRepository.setBalanceHidden(hidden) }
     }
 
     private fun loadUserName() {

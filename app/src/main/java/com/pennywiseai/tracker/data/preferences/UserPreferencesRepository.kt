@@ -833,7 +833,7 @@ open class UserPreferencesRepository @Inject constructor(
     // Balance Visibility
     val isBalanceHidden: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false
+            preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true // hidden until the user reveals it
         }
 
     suspend fun setBalanceHidden(hidden: Boolean) {

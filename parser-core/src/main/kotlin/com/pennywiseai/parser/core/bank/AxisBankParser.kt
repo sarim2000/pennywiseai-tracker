@@ -29,7 +29,30 @@ class AxisBankParser : BaseIndianBankParser() {
                 normalizedSender == "AXIS"
     }
 
+    /**
+     * Foreign-currency card spend, in both Axis layouts (#888):
+     * "Spent USD 100 Axis Bank Card no. XX0000 …" and the older
+     * "Spent Card no. XX0000 USD 10 …". Group 1 = ISO code, 2 = amount.
+     */
+    private val foreignSpendPattern = Regex(
+        """\bSpent\s+(?:Card\s+no\.\s*\S+\s+)?([A-Z]{3})\s+((?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2}))\b"""
+    )
+
+    private fun foreignSpend(message: String): MatchResult? =
+        foreignSpendPattern.find(message)?.takeIf { it.groupValues[1] != "INR" }
+
+    override fun transactionCurrency(message: String): String =
+        foreignSpend(message)?.groupValues?.get(1) ?: getCurrency()
+
+    // The card itself (balance, "Avl Limit: INR …") stays in INR.
+    override fun accountCurrency(message: String): String? =
+        if (foreignSpend(message) != null) getCurrency() else null
+
     override fun extractAmount(message: String): BigDecimal? {
+        foreignSpend(message)?.let { match ->
+            return match.groupValues[2].replace(",", "").toBigDecimalOrNull()
+        }
+
         val inrDebitPattern = Regex(
             """INR\s+([0-9,]+(?:\.\d{2})?)\s+debited""",
             RegexOption.IGNORE_CASE
@@ -261,11 +284,11 @@ class AxisBankParser : BaseIndianBankParser() {
         // Axis Bank specific patterns using "INR" instead of "Rs"
         val axisCreditLimitPatterns = listOf(
             // "Avl Limit: INR 217162.72"
-            Regex("""Avl\s+Limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Avl\s+Limit:?\s*INR\s+([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Avl Lmt INR 4632.87"
-            Regex("""Avl\s+Lmt\s+INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Avl\s+Lmt\s+INR\s+([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Available limit INR 111,111.89"
-            Regex("""Available\s+limit:?\s*INR\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            Regex("""Available\s+limit:?\s*INR\s+([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in axisCreditLimitPatterns) {

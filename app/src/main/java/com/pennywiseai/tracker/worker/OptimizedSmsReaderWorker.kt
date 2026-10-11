@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.worker
 
 import androidx.room.withTransaction
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import kotlinx.coroutines.sync.withLock
 
@@ -910,11 +911,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val resolvedIsCreditCard = isCreditCard || (existing?.isCreditCard ?: false)
 
-        val newBalance = BalanceCalculator.calculateNewBalance(
+        // The account keeps its own currency; a foreign-currency spend isn't
+        // added to it (see BalanceCalculator.balanceAfter).
+        val accountCurrency = existing?.currency
+            ?: parsed.accountCurrency
+            ?: parsed.currency
+        val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,
             isCreditCard = resolvedIsCreditCard,
             transactionType = parsed.type.toEntityType(),
             transactionAmount = parsed.amount,
+            transactionCurrency = parsed.currency,
+            accountCurrency = accountCurrency,
             currentBalance = existing?.balance
         )
 
@@ -939,7 +947,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             accountType   = BalanceCalculator.preservedAccountType(existing),
-            currency      = parsed.currency,
+            currency      = accountCurrency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold

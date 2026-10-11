@@ -75,6 +75,8 @@ class ICICIBankParser : BaseIndianBankParser() {
             bankName = getBankName(),
             isFromCard = detectIsCard(smsBody),
             currency = currency,
+            // ICICI cards and accounts are kept in INR; a foreign spend doesn't change that.
+            accountCurrency = if (currency != "INR") "INR" else null,
             fromAccount = transferAccounts?.first,
             toAccount = transferAccounts?.second
         )
@@ -123,7 +125,7 @@ class ICICIBankParser : BaseIndianBankParser() {
         // Same optional integer part as extractAmount — "USD .28 spent" has to
         // match here too, or the amount is tagged INR.
         val currencySpentPattern = Regex(
-            """([A-Z]{3})\s+(?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2})\s+spent""",
+            """([A-Z]{3})\s+(?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2})\s+(?:spent|is\s+debited)""",
             RegexOption.IGNORE_CASE
         )
         currencySpentPattern.find(message)?.let { match ->
@@ -164,8 +166,9 @@ class ICICIBankParser : BaseIndianBankParser() {
         // The integer part is optional: ICICI prints sub-unit amounts as
         // "USD .28 spent". Without this the pattern missed the real amount and
         // a later pattern picked up "Avl Limit: INR 3,85,664.53" instead.
+        // Also "GBP 1,202.00 is debited on ICICI Bank Credit Card …" (#888).
         val multiCurrencySpentPattern = Regex(
-            """[A-Z]{3}\s+((?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2}))\s+spent""",
+            """[A-Z]{3}\s+((?:[0-9,]+(?:\.\d{1,2})?|\.\d{1,2}))\s+(?:spent|is\s+debited)""",
             RegexOption.IGNORE_CASE
         )
         multiCurrencySpentPattern.find(message)?.let { match ->
@@ -252,6 +255,17 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // Credit card: "… is debited on ICICI Bank Credit Card XX0000 on 17-Jan-22.
+        // Info: Amazon. Available Limit: …" (#887). Ends at the trailer clause, not
+        // the first period, so "WWW.AMAZON.IN" stays whole.
+        Regex(
+            """\bInfo:\s+(.+?)\.\s+(?:Available|Avl|Call|Not\s+you)\b""",
+            RegexOption.IGNORE_CASE
+        ).find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) return merchant
+        }
+
         // Pattern 0: NEFT/RTGS transfer to beneficiary - use "NEFT Transfer" as merchant
         // These are outgoing transfers where we don't know the beneficiary name
         if (message.contains("credited to the beneficiary", ignoreCase = true) ||

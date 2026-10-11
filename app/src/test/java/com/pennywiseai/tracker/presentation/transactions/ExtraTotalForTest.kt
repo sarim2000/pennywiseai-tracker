@@ -47,4 +47,10 @@ class ExtraTotalForTest {
         // #634: the selection card always has the credit tile.
         assertEquals(ExtraTotal(ExtraTotalKind.CREDIT, BigDecimal.ZERO), extraTotalFor(noCredit, TransactionTypeFilter.TRANSFER, true))
     }
+
+    @Test
+    fun creditFilter_showsTileEvenWhenTotalIsZero() {
+        // e.g. every card spend in the list is excluded from analytics.
+        assertEquals(ExtraTotal(ExtraTotalKind.CREDIT, BigDecimal.ZERO), extraTotalFor(noCredit, TransactionTypeFilter.CREDIT, false))
+    }
 }

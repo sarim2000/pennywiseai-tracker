@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -300,7 +299,7 @@ private fun TotalColumn(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 autoSize = TextAutoSize.StepBased(
-                    minFontSize = 8.sp,
+                    minFontSize = PennyWiseText.autoSizeFloor,
                     maxFontSize = MaterialTheme.typography.labelMedium.fontSize
                 )
             )
@@ -386,12 +385,13 @@ data class ExtraTotal(val kind: ExtraTotalKind, val amount: BigDecimal)
  * The fourth tile for the totals card. Income/Expenses/Net never include
  * credit-card spend, transfers or investments (Net is cash flow), so a list of
  * only those read ₹0 / ₹0 / ₹0 (#893). Transfer and Investment filters show
- * their own total; otherwise credit spend shows whenever the shown rows have
- * any (and always for a selection, #634).
+ * their own total; the Credit filter and a selection (#634) always show the
+ * credit tile, even at zero; otherwise it shows whenever the shown rows have
+ * card spend.
  */
 internal fun extraTotalFor(totals: FilteredTotals, typeFilter: TransactionTypeFilter, selectionMode: Boolean): ExtraTotal? = when {
     !selectionMode && typeFilter == TransactionTypeFilter.TRANSFER -> ExtraTotal(ExtraTotalKind.TRANSFER, totals.transfer)
     !selectionMode && typeFilter == TransactionTypeFilter.INVESTMENT -> ExtraTotal(ExtraTotalKind.INVESTMENT, totals.investment)
-    selectionMode || totals.credit.signum() != 0 -> ExtraTotal(ExtraTotalKind.CREDIT, totals.credit)
+    selectionMode || typeFilter == TransactionTypeFilter.CREDIT || totals.credit.signum() != 0 -> ExtraTotal(ExtraTotalKind.CREDIT, totals.credit)
     else -> null
 }

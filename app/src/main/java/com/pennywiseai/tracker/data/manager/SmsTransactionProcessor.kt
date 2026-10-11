@@ -167,6 +167,17 @@ class SmsTransactionProcessor @Inject constructor(
                 return ProcessingResult(false, reason = "Duplicate transaction")
             }
 
+            // Same SMS already stored under an older hash (a parser fix changed the
+            // amount): never insert it twice, and repair a known-bad amount. (#886)
+            entity.smsBody?.let { body ->
+                transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                    if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
+                        transactionRepository.correctParsedAmount(stored, entity)
+                    }
+                    return ProcessingResult(false, reason = "Duplicate transaction")
+                }
+            }
+
             // Same charge already booked from the bank's other channel (SMS vs app
             // notification). Runs under saveLock, together with the insert below.
             if (entity.bankName in BankNotificationConfig.notificationBankNames) {

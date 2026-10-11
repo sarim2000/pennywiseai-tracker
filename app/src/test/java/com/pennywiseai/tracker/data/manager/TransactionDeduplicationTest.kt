@@ -242,6 +242,52 @@ class TransactionDeduplicationTest {
         assertFalse(TransactionDeduplication.isSameCharge(gbp, eur))
     }
 
+    // --- #886 / #888: repairing amounts an older parser got wrong ---------------
+
+    @Test
+    fun `dropped decimals are a parse artifact`() {
+        val stored = transaction(id = 1, amount = BigDecimal("11348"))
+        val fresh = transaction(id = 2, amount = BigDecimal("11348.7"))
+
+        assertTrue(TransactionDeduplication.isParseArtifact(stored, fresh))
+    }
+
+    @Test
+    fun `the available limit stored as the amount is a parse artifact`() {
+        val body = "Spent USD 100 Axis Bank Card no. XX0000 IST TEST / Avl Limit: INR 57888.3 Not you?"
+        val stored = transaction(id = 1, amount = BigDecimal("57888.3"), smsBody = body)
+        val fresh = transaction(id = 2, amount = BigDecimal("100"), currency = "USD", smsBody = body)
+
+        assertTrue(TransactionDeduplication.isParseArtifact(stored, fresh))
+    }
+
+    @Test
+    fun `a truncated limit stored as the amount is a parse artifact too`() {
+        val body = "Spent USD 100 Axis Bank Card no. XX0000 IST TEST / Avl Limit: INR 57888.3 Not you?"
+        val stored = transaction(id = 1, amount = BigDecimal("57888"), smsBody = body)
+        val fresh = transaction(id = 2, amount = BigDecimal("100"), currency = "USD", smsBody = body)
+
+        assertTrue(TransactionDeduplication.isParseArtifact(stored, fresh))
+    }
+
+    @Test
+    fun `an amount the user edited is left alone`() {
+        // Not a truncation of the fresh read and not a limit in the SMS.
+        val body = "Rs.500.00 debited from A/c XX1111 to TEST"
+        val stored = transaction(id = 1, amount = BigDecimal("450.00"), smsBody = body)
+        val fresh = transaction(id = 2, amount = BigDecimal("500.00"), smsBody = body)
+
+        assertFalse(TransactionDeduplication.isParseArtifact(stored, fresh))
+    }
+
+    @Test
+    fun `an identical read needs no correction`() {
+        val stored = transaction(id = 1, amount = BigDecimal("500.00"))
+        val fresh = transaction(id = 2, amount = BigDecimal("500.00"))
+
+        assertFalse(TransactionDeduplication.isParseArtifact(stored, fresh))
+    }
+
     private fun transaction(
         id: Long,
         amount: BigDecimal = BigDecimal("15000.00"),
@@ -252,7 +298,8 @@ class TransactionDeduplicationTest {
         balanceAfter: BigDecimal? = BigDecimal("34567.67"),
         merchantName: String = "Sample Merchant",
         smsSender: String = "SIBSMS",
-        currency: String = "INR"
+        currency: String = "INR",
+        smsBody: String = "sample sms"
     ): TransactionEntity = TransactionEntity(
         id = id,
         amount = amount,
@@ -260,7 +307,7 @@ class TransactionDeduplicationTest {
         category = "Others",
         transactionType = TransactionType.INCOME,
         dateTime = dateTime,
-        smsBody = "sample sms",
+        smsBody = smsBody,
         bankName = bankName,
         smsSender = smsSender,
         accountNumber = accountNumber,

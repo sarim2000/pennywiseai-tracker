@@ -761,12 +761,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     }
                 }
 
-                // Durable deletion: skip re-inserting a transaction the user deleted,
-                // even when its hash shifted across an app/parser update (the hash
-                // includes the parsed amount). The raw SMS is stable, so a matching
-                // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
+                // The raw SMS is the stable identity: the hash includes the parsed
+                // amount, so it shifts whenever a parser fix changes that amount.
+                //  - a soft-deleted row means the user deleted it — don't resurrect (#703)
+                //  - an active row means it's already booked — don't insert it twice,
+                //    and repair an amount an older parser got wrong (#886)
                 entity.smsBody?.let { body ->
-                    if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                    transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                        if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
+                            transactionRepository.correctParsedAmount(stored, entity)
+                        }
                         return@coroutineScope SaveOutcome.SKIPPED
                     }
                 }
@@ -1013,6 +1017,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.e(TAG, "Cleanup error: ${e.message}")
         }
         try {
+            val smsDuplicates = cleanupSmsDuplicates()
+            if (smsDuplicates > 0) {
+                Log.i(TAG, "Removed $smsDuplicates duplicate rows of the same SMS")
+            }
             val deletedDuplicates = cleanupExistingGPayDuplicates()
             if (deletedDuplicates > 0) {
                 Log.i(TAG, "Cleaned up $deletedDuplicates existing GPay duplicate transactions")
@@ -1028,6 +1036,34 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.e(TAG, "Prompt update error: ${e.message}")
             }
         }
+    }
+
+    /**
+     * Earlier rescans could store one SMS twice when a parser fix changed its
+     * amount (#886). Keep the oldest row — it carries the user's category, notes
+     * and tags — repairing its amount from the newest read when the old one is a
+     * known parser artifact, and remove the rest the same way GPay duplicates are
+     * removed.
+     */
+    private suspend fun cleanupSmsDuplicates(): Int {
+        var removed = 0
+        transactionRepository.getActiveSmsDuplicateRows()
+            .groupBy { it.smsBody to (it.smsSender ?: "") }
+            .values
+            .forEach { group ->
+                val keep = group.minBy { it.id }
+                val newest = group.maxBy { it.id }
+                if (TransactionDeduplication.isParseArtifact(keep, newest)) {
+                    transactionRepository.correctParsedAmount(keep, newest)
+                }
+                group.filter { it.id != keep.id }.forEach { dup ->
+                    transactionRepository.deleteTransactionById(dup.id)
+                    accountBalanceRepository.deleteBalancesForTransaction(dup.id)
+                    ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
+                    removed++
+                }
+            }
+        return removed
     }
 
     private suspend fun cleanupExistingGPayDuplicates(): Int {

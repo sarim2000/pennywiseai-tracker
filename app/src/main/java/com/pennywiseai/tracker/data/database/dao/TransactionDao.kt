@@ -230,6 +230,42 @@ interface TransactionDao {
     suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity?
 
     /**
+     * Any stored row for this exact SMS — an active one first, else a
+     * soft-deleted one. The raw SMS is the stable identity of a transaction: the
+     * hash includes the parsed amount, so it shifts whenever a parser fix changes
+     * that amount, and a rescan must still recognise the SMS. (#886)
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE sms_body = :smsBody
+          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
+        ORDER BY is_deleted ASC, id ASC
+        LIMIT 1
+        """
+    )
+    suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity?
+
+    /**
+     * Active rows that share their exact SMS with another active row — duplicates
+     * left by earlier rescans (#886). Grouped and resolved by the caller.
+     */
+    @Query(
+        """
+        SELECT t.* FROM transactions t
+        INNER JOIN (
+            SELECT sms_body AS body, IFNULL(sms_sender, '') AS sender FROM transactions
+            WHERE is_deleted = 0 AND sms_body IS NOT NULL AND sms_body != ''
+            GROUP BY sms_body, IFNULL(sms_sender, '')
+            HAVING COUNT(*) > 1
+        ) d ON t.sms_body = d.body AND IFNULL(t.sms_sender, '') = d.sender
+        WHERE t.is_deleted = 0
+        ORDER BY t.sms_body, t.id
+        """
+    )
+    suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity>
+
+    /**
      * The subset of [hashes] that already exist (including soft-deleted rows).
      * One query for the whole batch — used by CSV import to dedup a whole file
      * without issuing a per-row lookup.

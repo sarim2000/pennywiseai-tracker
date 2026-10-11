@@ -185,6 +185,28 @@ open class TransactionRepository @Inject constructor(
     suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity? =
         transactionDao.getDeletedBySms(smsBody, smsSender)
 
+    /** See [TransactionDao.getAnyBySms]. */
+    suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity? =
+        transactionDao.getAnyBySms(smsBody, smsSender)
+
+    /** See [TransactionDao.getActiveSmsDuplicateRows]. */
+    suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity> =
+        transactionDao.getActiveSmsDuplicateRows()
+
+    /**
+     * Rewrites a stored row's amount and currency with a fresh read of the same
+     * SMS — only for amounts [TransactionDeduplication.isParseArtifact] proves
+     * were an older parser's mistake. Everything the user set (category, notes,
+     * tags, splits) is kept. The hash is left alone: it is unique, and a
+     * soft-deleted duplicate may already hold the new one.
+     *
+     * Account balances aren't shifted: these are historical rows, and the account
+     * has since been re-anchored by the bank's own figures in later SMS, so a
+     * corrective delta now would double-count.
+     */
+    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity) =
+        updateTransaction(stored.copy(amount = fresh.amount, currency = fresh.currency))
+
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999
      * bind-variable limit (Room does not auto-chunk `IN (:list)`), so a large

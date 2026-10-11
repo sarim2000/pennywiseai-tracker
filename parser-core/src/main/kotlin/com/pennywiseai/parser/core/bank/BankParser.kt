@@ -13,6 +13,17 @@ import java.math.BigDecimal
 abstract class BankParser {
 
     private companion object {
+        /**
+         * A credit-limit clause and its figure: "Avl Limit: INR 57888.3",
+         * "Available Limit: INR 3,30,022.99", "Avl Lmt INR 35182.45". The limit is
+         * never the transaction amount, so it's masked out before the amount
+         * patterns run (#888).
+         */
+        val CREDIT_LIMIT_CLAUSE = Regex(
+            """\b(?:Avl|Avail|Available)\.?\s+(?:Credit\s+)?(?:Limit|Lmt)\b\s*(?:is)?\s*:?\s*(?:INR|Rs\.?|₹)?\s*[0-9,]*\.?\d+""",
+            RegexOption.IGNORE_CASE
+        )
+
         /** A verb saying money actually moved — used to tell a payment from a reminder. */
         val COMPLETED_MONEY_VERB = Regex(
             """\b(debited|deducted|credited|deposited|withdrawn|spent|received|transferred|""" +
@@ -80,10 +91,17 @@ abstract class BankParser {
             timestamp = timestamp,
             bankName = getBankName(),
             isFromCard = detectIsCard(smsBody),
-            currency = getCurrency(),
+            currency = transactionCurrency(smsBody),
             isMobileWallet = isMobileWallet()
         )
     }
+
+    /**
+     * Currency of this message's amount. Defaults to the bank's home currency;
+     * parsers whose cards post foreign-currency spends override it so the amount
+     * isn't tagged with the wrong currency.
+     */
+    protected open fun transactionCurrency(message: String): String = getCurrency()
 
     /**
      * Whether this parser represents a mobile-money wallet whose SMS carries a
@@ -176,6 +194,14 @@ abstract class BankParser {
             return true
         }
 
+        // Skip convert-your-bill-to-EMI offers: "You can convert your Credit Card
+        // … outstanding bill of Rs.X into SmartEMI … SMS SMARTEMI YES" (#885).
+        if (lowerMessage.contains("smartemi") ||
+            (lowerMessage.contains("convert") && lowerMessage.contains("into emi"))
+        ) {
+            return true
+        }
+
         // Skip auto-debit intimations ("INR X for <merchant> will be auto-debited
         // ... by <date>"). These announce a future debit; the real debit arrives
         // as its own SMS, so booking them doubled the spend.
@@ -226,8 +252,9 @@ abstract class BankParser {
      * Extracts the transaction amount from the message.
      */
     protected open fun extractAmount(message: String): BigDecimal? {
+        val withoutLimit = CREDIT_LIMIT_CLAUSE.replace(message, " ")
         for (pattern in CompiledPatterns.Amount.ALL_PATTERNS) {
-            pattern.find(message)?.let { match ->
+            pattern.find(withoutLimit)?.let { match ->
                 val amountStr = match.groupValues[1].replace(",", "")
                 return try {
                     BigDecimal(amountStr)
@@ -464,17 +491,17 @@ abstract class BankParser {
         val cur = """(?:Rs\.?|INR|₹)"""
         val creditLimitPatterns = listOf(
             // "Available limit Rs.111,111.89" / "Available limit INR 111,111.89"
-            Regex("""Available\s+limit\s+$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Available\s+limit\s+$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Available limit: Rs 111,111.89"
-            Regex("""Available\s+limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Available\s+limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Avl Lmt: Rs 111,111.89" / "Avl Lmt: INR 111,111.89" (ICICI, IndusInd, others)
-            Regex("""Avl\s+Lmt:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Avl\s+Lmt:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Avail Limit Rs.111,111.89"
-            Regex("""Avail\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Avail\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Available Credit Limit: Rs.111,111.89"
-            Regex("""Available\s+Credit\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Available\s+Credit\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
             // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
-            Regex("""(?:^|\s)Limit:?\s*$cur\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            Regex("""(?:^|\s)Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
         )
 
         for ((index, pattern) in creditLimitPatterns.withIndex()) {

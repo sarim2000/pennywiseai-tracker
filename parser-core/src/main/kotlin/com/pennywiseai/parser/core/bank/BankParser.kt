@@ -92,7 +92,8 @@ abstract class BankParser {
             bankName = getBankName(),
             isFromCard = detectIsCard(smsBody),
             currency = transactionCurrency(smsBody),
-            isMobileWallet = isMobileWallet()
+            isMobileWallet = isMobileWallet(),
+            accountCurrency = accountCurrency(smsBody)
         )
     }
 
@@ -102,6 +103,13 @@ abstract class BankParser {
      * isn't tagged with the wrong currency.
      */
     protected open fun transactionCurrency(message: String): String = getCurrency()
+
+    /**
+     * Currency the account's balance/limit is kept in, when it differs from
+     * [transactionCurrency] — see [ParsedTransaction.accountCurrency]. Null by
+     * default ("same as the transaction").
+     */
+    protected open fun accountCurrency(message: String): String? = null
 
     /**
      * Whether this parser represents a mobile-money wallet whose SMS carries a

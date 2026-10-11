@@ -14,6 +14,26 @@ import java.math.BigDecimal
  */
 class SmsReportRegressionTest {
 
+    // #888: the account (balance / limit) keeps its own currency.
+    @org.junit.jupiter.api.Test
+    fun `a foreign spend on an INR card reports the card's currency as INR`() {
+        val sender = "AX-AXISBK-S"
+        val msg = "Spent USD 100 Axis Bank Card no. XX0000 14-12-25 23:32:40 IST TESTMERCHANT / Avl Limit: INR 57888.3 Not you? SMS BLOCK 0000 to 1800000000"
+        val parsed = com.pennywiseai.parser.core.bank.BankParserFactory.getParser(sender)!!.parse(msg, sender, 0L)!!
+        org.junit.jupiter.api.Assertions.assertEquals("USD", parsed.currency)
+        org.junit.jupiter.api.Assertions.assertEquals("INR", parsed.accountCurrency)
+    }
+
+    @org.junit.jupiter.api.Test
+    fun `a foreign-currency account keeps its own currency (no home-currency fallback)`() {
+        // Emirates NBD GBP account: balance is in GBP, the bank's home currency is AED.
+        val sender = "ENBD"
+        val msg = "GBP 200.00 debited from A/C xxxx5678 on 25-Dec-25. Avl Bal is GBP 3,500.00"
+        val parsed = com.pennywiseai.parser.core.bank.BankParserFactory.getParser(sender)!!.parse(msg, sender, 0L)!!
+        org.junit.jupiter.api.Assertions.assertEquals("GBP", parsed.currency)
+        org.junit.jupiter.api.Assertions.assertNull(parsed.accountCurrency, "null = same as the transaction (GBP)")
+    }
+
     @TestFactory
     fun `reported messages parse correctly`(): List<DynamicTest> {
         val cases = listOf(

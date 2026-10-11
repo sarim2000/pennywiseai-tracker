@@ -75,6 +75,8 @@ class ICICIBankParser : BaseIndianBankParser() {
             bankName = getBankName(),
             isFromCard = detectIsCard(smsBody),
             currency = currency,
+            // ICICI cards and accounts are kept in INR; a foreign spend doesn't change that.
+            accountCurrency = if (currency != "INR") "INR" else null,
             fromAccount = transferAccounts?.first,
             toAccount = transferAccounts?.second
         )

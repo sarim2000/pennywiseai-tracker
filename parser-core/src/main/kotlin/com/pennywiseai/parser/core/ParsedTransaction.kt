@@ -23,7 +23,12 @@ data class ParsedTransaction(
     // running balance but no per-account number, because the whole wallet IS the
     // account. When true, the app derives a single service-level account row from
     // the balance instead of requiring an accountLast4.
-    val isMobileWallet: Boolean = false
+    val isMobileWallet: Boolean = false,
+    // Currency the ACCOUNT (balance / limit) is kept in, when it differs from the
+    // transaction's: a USD spend on an INR credit card. Null means "same as
+    // [currency]" — the common case, and the right answer for a foreign-currency
+    // account whose SMS reports its balance in that currency (#888).
+    val accountCurrency: String? = null
 ) {
     fun generateTransactionId(): String {
         val normalizedAmount = amount.setScale(2, java.math.RoundingMode.HALF_UP)

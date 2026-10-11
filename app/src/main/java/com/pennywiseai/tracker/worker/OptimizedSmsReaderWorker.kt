@@ -914,7 +914,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // The account keeps its own currency; a foreign-currency spend isn't
         // added to it (see BalanceCalculator.balanceAfter).
         val accountCurrency = existing?.currency
-            ?: BankParserFactory.getParser(parsed.sender)?.getCurrency()
+            ?: parsed.accountCurrency
             ?: parsed.currency
         val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,

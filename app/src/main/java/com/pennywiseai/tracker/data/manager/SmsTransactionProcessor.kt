@@ -371,7 +371,7 @@ class SmsTransactionProcessor @Inject constructor(
             // The account keeps its own currency; a foreign-currency spend isn't
             // added to it (see BalanceCalculator.balanceAfter).
             val accountCurrency = existingAccount?.currency
-                ?: BankParserFactory.getParser(parsedTransaction.sender)?.getCurrency()
+                ?: parsedTransaction.accountCurrency
                 ?: parsedTransaction.currency
             val newBalance = BalanceCalculator.balanceAfter(
                 explicitBalance = parsedTransaction.balance,

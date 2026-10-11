@@ -44,6 +44,10 @@ class AxisBankParser : BaseIndianBankParser() {
     override fun transactionCurrency(message: String): String =
         foreignSpend(message)?.groupValues?.get(1) ?: getCurrency()
 
+    // The card itself (balance, "Avl Limit: INR …") stays in INR.
+    override fun accountCurrency(message: String): String? =
+        if (foreignSpend(message) != null) getCurrency() else null
+
     override fun extractAmount(message: String): BigDecimal? {
         foreignSpend(message)?.let { match ->
             return match.groupValues[2].replace(",", "").toBigDecimalOrNull()

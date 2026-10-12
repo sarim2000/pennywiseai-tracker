@@ -115,13 +115,15 @@ class MPESAParser : BankParser() {
             }
         }
 
-        // Pattern 2: "sent to Person 2 0711 111 111" (with phone number - spaced format)
+        // Pattern 2: "sent to Person 2 0711 111 111" or "sent to JANE  DOE 0712345678"
+        // — the phone may be spaced or not (#895), and in 254… form. Name runs of
+        // spaces are collapsed.
         val sentToPhonePattern = Regex(
-            """sent to\s+(.+?)\s+0\d{3}\s+\d{3}\s+\d{3}""",
+            """sent to\s+(.+?)\s+(?:\+?254|0)\d(?:\s?\d){7,9}\b""",
             RegexOption.IGNORE_CASE
         )
         sentToPhonePattern.find(message)?.let { match ->
-            var merchant = match.groupValues[1].trim()
+            var merchant = match.groupValues[1].trim().replace(Regex("""\s+"""), " ")
             merchant = cleanMerchantName(merchant)
             if (isValidMerchantName(merchant)) {
                 return merchant

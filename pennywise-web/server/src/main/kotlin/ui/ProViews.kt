@@ -153,7 +153,6 @@ object ProViews {
         .includes li { padding-left: 22px; position: relative; }
         .includes li::before { content: "✓"; color: var(--mint); position: absolute; left: 0; font-weight: 700; }
         .steps li { margin: 12px 0; }
-        .path { font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; }
         @media (max-width: 640px) { .plans { grid-template-columns: 1fr; } .plan.featured { order: -1; } }
     """
 }

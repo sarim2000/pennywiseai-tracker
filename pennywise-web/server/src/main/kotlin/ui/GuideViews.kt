@@ -7,344 +7,87 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
 import kotlinx.html.*
+import kotlinx.html.stream.createHTML
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.put
 
 /**
- * /guide: the user guide people keep asking for in issues and on Discord.
- * One page (searchable with Ctrl+F, printable to PDF). Each topic pairs its text
- * with one phone frame; extra screenshots are thumbnails that swap into that
- * frame, so the page never turns into a wall of tall images.
+ * The user guide, structured like a help centre:
+ *  - /guide          hub: search, popular guides, guides grouped by area as cards.
+ *  - /guide/{slug}   one task per page: step-by-step player, "good to know", prev/next.
  *
- * Screenshots live in static/guide/, taken on an emulator with made-up demo data
- * (no real SMS, names or numbers). Retake at 540px wide, status bar cropped, WebP.
+ * Every guide is a [Guide] below; the hub, the pages, search and the sitemap are all
+ * generated from that one list. Screenshots live in static/guide/ and were taken on an
+ * emulator with made-up demo data (no real SMS, names or numbers). Tap-marker positions
+ * ([Step.x]/[Step.y], percent of the 540×1145 shot) must be re-checked if a shot is retaken.
  */
 object GuideViews {
 
-    private class Shot(val file: String, val caption: String)
-
-    private class Topic(
-        val id: String,
-        val title: String,
-        val intro: String,
-        val shots: List<Shot>,
-        val body: FlowContent.() -> Unit,
-    )
-
-    private fun shots(vararg s: Pair<String, String>) = s.map { Shot(it.first, it.second) }
-
-    /** One screen of a walkthrough. [x]/[y] (percent of the screenshot) place the tap marker. */
     private class Step(val shot: String, val title: String, val text: String, val x: Int? = null, val y: Int? = null)
 
-    /** [group] is the heading the goal sits under; [keywords] are synonyms search should match. */
-    private class Walkthrough(val id: String, val group: String, val goal: String, val steps: List<Step>, val keywords: String = "")
-
-    // Marker positions were measured on the 540×1145 screenshots; retaking a shot means re-checking them.
-    private val walkthroughs = listOf(
-        Walkthrough("setup", "Start", "Set up PennyWise", listOf(
-            Step("onboarding-welcome", "Open the app", "Tap Get Started. Setup takes about a minute and has four steps."),
-            Step("onboarding-permissions", "Allow SMS access", "Tap Enable Permissions, then Allow. Only bank messages are read; your chats are never touched.", 50, 67),
-            Step("onboarding-scan", "Let it scan", "PennyWise reads the bank SMS already on your phone and turns them into transactions."),
-            Step("onboarding-account", "Pick your main account", "This balance shows on Home. Tap Finish.", 83, 92),
-            Step("home-sync", "You're done", "New bank SMS are added automatically. Tap the sync button any time to check now.", 89, 86),
-        ), "install start onboarding permission begin"),
-        Walkthrough("phone", "Start", "Move to a new phone", listOf(
-            Step("settings-data", "Back up the old phone", "Settings → Export Data saves one file with everything. Put it on Drive, email it, or copy it to a computer.", 40, 23),
-            Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
-        ), "backup restore export import transfer switch device"),
-        Walkthrough("pro", "Start", "Unlock Pro with a key", listOf(
-            Step("pro-sheet", "Open PennyWise Pro", "Settings → Upgrade to PennyWise Pro, then tap Enter license key. Buy a key at pennywise.zynth.dev/pro.", 50, 75),
-            Step("license-key", "Paste your key", "Paste the key from your purchase email and tap Activate. Pro turns on right away.", 50, 51),
-        ), "license key upgrade premium buy activate"),
-
-        Walkthrough("cash", "Everyday", "Add cash spending", listOf(
-            Step("home", "Tap +", "From Home or Transactions, the + button opens the add screen.", 90, 78),
-            Step("add-transaction", "Enter the amount", "Type the amount, then a merchant like “Chai stall”. Expense is already selected.", 67, 19),
-            Step("add-transaction", "Pick a category", "Choose where it belongs so budgets and analytics stay accurate.", 28, 76),
-            Step("add-transaction", "Save", "That's it. It now counts toward this month's spending.", 50, 91),
-            Step("chat-add", "Or just type it", "In the Chat tab, write “coffee 180 at Starbucks” and tap Add on the card.", 71, 50),
-        ), "manual expense add transaction record"),
-        Walkthrough("bulk", "Everyday", "Edit many transactions at once", listOf(
-            Step("transactions", "Long-press one", "On the Transactions tab, press and hold a transaction until it highlights.", 40, 58),
-            Step("transactions-select", "Tap the rest", "Tap every other one you want. The totals card shows just your selection.", 40, 77),
-            Step("transactions-select", "Pick an action", "Use the top bar to mark them as a transfer, change their category, add them to a group or delete them.", 70, 5),
-        ), "select multiple bulk batch recategorise delete"),
-        Walkthrough("analytics", "Everyday", "See where your money goes", listOf(
-            Step("analytics", "Choose a period", "Open the Analytics tab and pick a period, an account or a type from the chips at the top.", 76, 18),
-            Step("analytics-categories", "Tap a category", "Scroll to Top Categories and tap one to see exactly which transactions make it up.", 68, 24),
-        ), "chart report spending breakdown merchant category stats"),
-        Walkthrough("chat", "Everyday", "Ask the AI about your spending", listOf(
-            Step("chat-download", "Download the model", "The first time you open the Chat tab it downloads about 1.5 GB. Use Wi-Fi; it only happens once."),
-            Step("chat-ask", "Ask in plain words", "Type a question like “how much on groceries this month?” and send it. Everything stays on your phone.", 40, 83),
-        ), "ai assistant question chat model"),
-        Walkthrough("recap", "Everyday", "Share your monthly recap", listOf(
-            Step("home", "Open the menu", "On Home, tap ⋯ at the top right and choose Monthly recap.", 88, 13),
-            Step("monthly-recap", "Share it", "The card shows counts, never amounts. Tap Share to send it anywhere.", 50, 84),
-        ), "share card month summary"),
-
-        Walkthrough("budget", "Plan", "Set a monthly budget", listOf(
-            Step("budgets-setup", "Open Budgets", "From Home tap View All next to Budgets. Tap Use Smart Defaults to start from your own spending.", 50, 64),
-            Step("budgets", "See what's left", "Each budget shows what's left this month and how much you can spend per day.", 70, 25),
-            Step("budget-edit", "Adjust it", "Tap the pencil to change the limit, colour, period or the day your month starts."),
-        ), "limit spending plan"),
-        Walkthrough("subscriptions", "Plan", "Track subscriptions", listOf(
-            Step("add-subscription", "Add one", "Tap +, switch to the Subscription tab, then enter the service, amount and billing cycle.", 75, 11),
-            Step("add-subscription", "Save it", "Save, and it shows on Home with the next due date.", 50, 91),
-            Step("subscriptions", "See them all", "Open Subscriptions from Home for the monthly total. Use ⋮ on one to edit or end it.", 86, 43),
-        ), "netflix spotify recurring bill renew due"),
-        Walkthrough("recurring", "Plan", "Auto-add a regular cash payment", listOf(
-            Step("recurring", "Open Recurring", "Settings → Recurring, then tap +.", 89, 92),
-            Step("recurring-new", "Set the schedule", "Name it, enter the amount and pick the day of the month. Tap Save.", 76, 84),
-            Step("recurring", "It adds itself", "On that day each month the transaction is added for you, no SMS needed."),
-        ), "schedule rent maid allowance automatic repeat"),
-        Walkthrough("loan", "Plan", "Track money a friend owes you", listOf(
-            Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
-            Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
-            Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
-        ), "lend lent borrow split owe"),
-        Walkthrough("group", "Plan", "Total up a trip or event", listOf(
-            Step("transactions-select", "Select its transactions", "Long-press one on the Transactions tab, tap the rest, then tap the group icon.", 81, 5),
-            Step("groups", "See the total", "Name the group once. Settings → Transaction Groups shows each group's total.", null, null),
-        ), "group trip wedding event project total"),
-
-        Walkthrough("category", "Fix", "Fix wrong categories for good", listOf(
-            Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
-            Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
-            Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”. Every new match is categorised automatically.", 50, 28),
-        ), "rule categorise categorize wrong merchant"),
-        Walkthrough("balance", "Fix", "Correct a balance or add cash", listOf(
-            Step("accounts", "Open Manage Accounts", "Settings → Manage Accounts. Tap Update Balance if a balance is off.", 30, 32),
-            Step("accounts", "Add a cash or wallet account", "Tap + to add an account that doesn't send SMS, like cash in hand.", 89, 92),
-            Step("account-detail", "Check its history", "Tap an account on Home to see its balance trend and transactions.", 75, 36),
-        ), "balance wrong cash wallet manual account"),
-        Walkthrough("currency", "Fix", "Use more than one currency", listOf(
-            Step("settings-currency", "Turn on Unified Currency Mode", "Settings → Currency. It converts everything into one display currency for combined totals.", 86, 12),
-            Step("exchange-rates", "Set your own rate", "Exchange Rates updates on its own. Tap a rate to override it.", 86, 22),
-        ), "currency usd dollar exchange rate foreign travel"),
-
-        Walkthrough("statement", "Data", "Import a PDF statement", listOf(
-            Step("settings-data", "Open Import Statement", "Settings → Import Statement.", 40, 67),
-            Step("import-statement", "Pick the PDF", "Tap Select PDF Statement and choose a Google Pay, PhonePe, Paytm, slice or ICICI Bank statement. Duplicates are skipped.", 50, 56),
-        ), "pdf gpay phonepe paytm upi history import"),
-        Walkthrough("export", "Data", "Export to Excel", listOf(
-            Step("transactions", "Filter, then tap download", "On the Transactions tab, filter to what you want, then tap the download button.", 90, 77),
-            Step("export-csv", "Export", "Tap Export and share the CSV to Sheets, Excel or email.", 65, 62),
-        ), "csv excel sheets spreadsheet download export"),
+    private class Guide(
+        val slug: String,
+        val group: String,
+        val title: String,
+        val intro: String,
+        val steps: List<Step>,
+        val keywords: String = "",
+        /** Screenshot for the hub card's preview, when the first step's top half is empty. */
+        val cover: String? = null,
+        val details: FlowContent.() -> Unit,
     )
 
-    private val walkthroughGroups = listOf("Start", "Everyday", "Plan", "Fix", "Data")
+    private val groups = listOf("Get started", "Everyday", "Plan ahead", "Organise", "Your data")
 
-    private val topics: List<Topic> = listOf(
-        Topic(
-            "getting-started", "Getting started",
-            "Install the app, give it SMS access, and it builds your history from the bank messages already on your phone.",
-            shots(
-                "onboarding-welcome" to "Welcome",
-                "onboarding-permissions" to "SMS permission",
-                "onboarding-scan" to "First scan",
-                "onboarding-account" to "Main account",
+    private val guides: List<Guide> = listOf(
+        // ── Get started ────────────────────────────────────────────────────────
+        Guide(
+            "set-up", "Get started", "Set up PennyWise",
+            "Give it SMS access and it builds your history from the bank messages already on your phone.",
+            listOf(
+                Step("onboarding-welcome", "Open the app", "Tap Get Started. Setup takes about a minute and has four steps."),
+                Step("onboarding-permissions", "Allow SMS access", "Tap Enable Permissions, then Allow. Only bank messages are read; your chats are never touched.", 50, 67),
+                Step("onboarding-scan", "Let it scan", "PennyWise reads the bank SMS already on your phone and turns them into transactions."),
+                Step("onboarding-account", "Pick your main account", "This balance shows on Home. Tap Finish.", 83, 92),
+                Step("home-sync", "You're done", "New bank SMS are added automatically. Tap the sync button any time to check now.", 89, 86),
             ),
+            "install start onboarding permission begin first",
+            cover = "onboarding-account",
         ) {
-            ol(classes = "steps") {
-                li { b { +"Profile." }; +" A name and avatar for the greeting. It never leaves the phone." }
-                li {
-                    b { +"SMS permission." }
-                    +" Only messages from bank senders are read; personal chats are ignored. Skip it if you'd rather add everything by hand."
-                }
-                li { b { +"First scan." }; +" Reads the bank SMS you already have and creates transactions and accounts." }
-                li { b { +"Main account." }; +" The account whose balance Home shows." }
-            }
             p {
-                +"New bank SMS are picked up automatically after that. Check your bank on the "
+                +"PennyWise reads messages from 140+ banks and wallets across 20+ countries. Check yours on the "
                 a(href = "/banks") { +"supported banks" }
-                +" list: 140+ banks and wallets across 20+ countries."
+                +" list."
             }
+            p { +"Skipped the SMS permission? Everything still works; you add transactions by hand instead." }
         },
-        Topic(
-            "home", "Home",
-            "What you've spent this month, your balance, budgets, recent transactions, accounts and upcoming subscriptions.",
-            shots(
-                "home" to "Home",
-                "home-bottom" to "Accounts and activity",
-                "home-sync" to "Sync button",
-                "monthly-recap" to "Monthly recap",
+        Guide(
+            "find-your-way", "Get started", "Find your way around",
+            "Home, the four tabs, and what each button does.",
+            listOf(
+                Step("home", "Home", "What you've spent this month, your balance and budgets. Tap the eye to hide amounts in public."),
+                Step("home-bottom", "Keep scrolling", "Recent transactions, accounts, upcoming subscriptions and a heatmap of when you spend."),
+                Step("home-sync", "The sync button", "Tap to check for new SMS. Long-press for a full rescan of every message.", 89, 86),
+                Step("home", "More options", "⋯ opens Settings, Monthly recap, and Edit home screen to reorder or hide sections.", 88, 13),
+                Step("monthly-recap", "Monthly recap", "A shareable card of your month. It shows counts, never amounts. Tap Share.", 50, 84),
             ),
+            "home tabs navigation menu overview recap share",
         ) {
             dl(classes = "defs") {
-                def("Sync button", "Tap to check for new SMS. Long-press for a full rescan of every message.")
-                def("+ button", "Add a transaction or subscription by hand.")
-                def("Eye icon", "Hide or show amounts. PennyWise remembers your choice.")
-                def("⋯ menu", "Monthly recap, Settings, and Edit home screen to reorder or hide sections.")
-            }
-            p {
-                b { +"Monthly recap" }
-                +" makes a shareable card of your month. It shows counts, never amounts, so it's safe to post."
+                def("Transactions tab", "Everything PennyWise has found, with search and filters.")
+                def("Analytics tab", "Where your money goes, by category, merchant and account.")
+                def("Chat tab", "An AI assistant that runs on your phone.")
             }
         },
-        Topic(
-            "transactions", "Transactions",
-            "Everything PennyWise has found, grouped by day, with search and filters for period, account, type, category and currency.",
-            shots(
-                "transactions" to "Transactions",
-                "transactions-select" to "Multi-select",
-                "transaction-detail" to "Details and actions",
-            ),
-        ) {
-            dl(classes = "defs") {
-                def("Select several", "Long-press one, tap the rest. Then mark them as a transfer, change the category, group or delete them.")
-                def("Open one", "See the original SMS, edit it, exclude it from analytics or mark it as a loan.")
-                def("⋮ menu", "Add to a group, duplicate, report a parsing problem, or delete.")
-            }
-            h3 { +"The five types" }
-            div(classes = "types") {
-                type("Expense", "Money out of a bank account.")
-                type("Income", "Salary, refunds, cashback.")
-                type("Credit", "Card and wallet spend you pay later, kept apart so the card bill isn't counted twice.")
-                type("Transfer", "Between your own accounts. Not spending.")
-                type("Investment", "SIPs, stocks, mutual funds.")
-            }
-        },
-        Topic(
-            "adding", "Adding transactions yourself",
-            "For cash, or a bank PennyWise can't read yet. Pick a type, amount and category; notes, tags and a receipt photo are optional.",
-            shots("add-transaction" to "Transaction", "add-subscription" to "Subscription"),
-        ) {
-            p { +"Any of these opens the same form:" }
-            ul(classes = "ticks") {
-                li { +"The + button on Home or Transactions." }
-                li { +"The Add Transaction widget or Quick Settings tile." }
-                li { +"Sharing a message or receipt text from another app to PennyWise. It fills the form for you." }
-                li { +"Typing it in "; a(href = "#chat") { +"AI chat" }; +", like “lunch 250”." }
-            }
-        },
-        Topic(
-            "categories-rules", "Categories and Smart Rules",
-            "Transactions are categorised from the merchant. When one is wrong, fix it once with a rule.",
-            shots("rules" to "Smart Rules", "create-rule" to "New rule", "categories" to "Categories"),
-        ) {
-            p {
-                path("Settings → Smart Rules")
-                +" turns “when this matches, do that” into something automatic: merchant contains UBER goes to Transportation, "
-                +"amounts under 200 go to Food, OTP messages get blocked. Start from a template or build your own."
-            }
-            p { +"Rules run on every new transaction, highest priority first. A rule's ⋮ menu can also apply it to past transactions." }
-            p { path("Settings → Categories"); +" adds your own categories and hides ones you don't use." }
-        },
-        Topic(
-            "budgets", "Budgets",
-            "Set limits by category and see what's left, with a daily allowance until the period resets.",
-            shots("budgets" to "Budgets", "budget-edit" to "Edit budget"),
-        ) {
-            p { +"“Use Smart Defaults” builds Spending, Fixed Costs and Investments budgets from your history. Or create your own and pick the categories each one counts." }
-            ul(classes = "ticks") {
-                li { +"Weekly, monthly or one-time, each with its own colour and start day." }
-                li { +"⋮ → View history shows past periods. Finished ones are frozen, so recategorising later doesn't rewrite them." }
-                li { +"Paid on the 25th? Set "; path("Settings → Budget Cycle Start Day"); +"." }
-            }
-        },
-        Topic(
-            "subscriptions", "Subscriptions, recurring, loans and groups",
-            "Four small tools for money that doesn't fit a single transaction.",
-            shots(
-                "subscriptions" to "Subscriptions",
-                "recurring" to "Recurring",
-                "mark-loan" to "Mark as loan",
-                "loans" to "Loans",
-                "groups" to "Groups",
-            ),
-        ) {
-            dl(classes = "defs") {
-                def("Subscriptions", "Netflix, Spotify, rent. Add them from the Subscription tab of the add screen; Home shows what's due next and the monthly total.")
-                def("Recurring", "Settings → Recurring adds a transaction on a schedule. Useful for cash you pay regularly that no SMS will report.")
-                def("Loans", "Paid for a friend? Open the transaction, tap Mark as loan and enter their name. Settings → Loans shows who owes whom.")
-                def("Groups", "Collect a trip or a renovation under one name to see its total. Select transactions and tap the group icon.")
-            }
-        },
-        Topic(
-            "accounts", "Accounts and balances",
-            "One account per bank account or card, created from your SMS and updated whenever a message includes a balance.",
-            shots("accounts" to "Manage accounts", "account-detail" to "Account detail"),
-        ) {
-            p { path("Settings → Manage Accounts"); +" lets you:" }
-            ul(classes = "ticks") {
-                li { +"Correct a balance by hand and see its history." }
-                li { +"Add a manual account for cash, a wallet, or a bank that doesn't text." }
-                li { +"See each credit card's limit, outstanding and available amount." }
-                li { +"Merge duplicates, like one card reported under two numbers (Pro)." }
-            }
-            p { +"Tap an account on Home for its balance trend and transactions." }
-        },
-        Topic(
-            "analytics", "Analytics",
-            "Any period, broken down by account and type: total, daily average, trend, top categories, top merchants.",
-            shots("analytics" to "Totals and trend", "analytics-categories" to "Categories"),
-        ) {
-            p { +"Tap a category to jump straight to those transactions. Pro adds a breakdown by tag." }
-        },
-        Topic(
-            "chat", "AI chat",
-            "An assistant that runs entirely on your phone. Your questions and data never leave it.",
-            shots("chat-add" to "Adding by chat", "chat-ask" to "Asking a question"),
-        ) {
-            p {
-                +"It needs a one-time download of about 1.5 GB, from the Chat tab or "
-                path("Settings → AI Features")
-                +". Use Wi-Fi."
-            }
-            dl(classes = "defs") {
-                def("Add by typing", "“coffee 180 at Starbucks”, “got 50000 salary”. A confirm card appears first; nothing is saved until you tap Add.")
-                def("Ask", "“how much on groceries this month?”, “what did I spend at Swiggy?”")
-            }
-            p(classes = "note") { +"It's a small model on a phone: quick totals and quick adds, not long financial advice. Older phones take a few seconds longer." }
-        },
-        Topic(
-            "currency", "Multiple currencies",
-            "Every amount keeps its own currency. Rupees and dollars are never added together.",
-            shots("settings-currency" to "Currency settings", "exchange-rates" to "Exchange rates"),
-        ) {
-            dl(classes = "defs") {
-                def("Unified Currency Mode", "Convert everything into one display currency for combined totals.")
-                def("Default Currency", "Used for manual entries. Choosing a Main Account sets it too.")
-                def("Exchange Rates", "Fetched automatically. Tap one to set your own; custom rates survive refreshes.")
-                def("Number Format", "Indian (1,00,000), international (100,000), or Auto per currency.")
-            }
-        },
-        Topic(
-            "data", "Import, export and backup",
-            "There's no account and no cloud, so a backup file is the only copy outside your phone. Keep one.",
-            shots("settings-data" to "Data management", "import-statement" to "Statement import", "export-csv" to "CSV export"),
-        ) {
-            p { +"Everything is under "; path("Settings → Data Management"); +"." }
-            dl(classes = "defs") {
-                def("Export / Import Data", "A full backup file: transactions, accounts, budgets, rules and more. Receipt photos optional.")
-                def("Automatic Folder Backup", "Saves a backup to a folder you choose every night at 2 AM (Pro).")
-                def("Import Statement", "PDF statements from Google Pay, PhonePe, Paytm, slice or ICICI Bank. Duplicates are skipped.")
-                def("CSV", "Import a PennyWise CSV, or any sheet with Date, Amount and Type. Export from the download button on Transactions.")
-                def("SMS Scan Period", "Scan everything, or only messages after a date.")
-                def("Unrecognized SMS", "Bank messages PennyWise couldn't read. Report them in one tap so support gets added.")
-            }
-            h3 { +"Moving to a new phone" }
-            ol(classes = "steps") {
-                li { +"On the old phone, Export Data and save the file to Drive, email or a computer." }
-                li { +"On the new phone, finish setup, then Import Data and pick the file. Pro comes with it." }
-            }
-        },
-        Topic(
-            "settings", "Other settings",
-            "Look and feel, privacy, and a few extras.",
-            shots("appearance" to "Appearance"),
-        ) {
-            dl(classes = "defs") {
-                def("Appearance", "Light, dark or system theme, Material You colours, AMOLED black, navigation style, fonts.")
-                def("App Lock", "Fingerprint or face unlock. Set up biometrics in Android first.")
-                def("Contacts", "Show a contact's name instead of their UPI ID.")
-                def("Bank Notification Access", "Also read bank app notifications, for banks that notify instead of texting.")
-                def("Widgets", "Long-press your home screen → Widgets → PennyWise: Add Transaction, Budget Overview, Spending Pie, Recent Transactions.")
-                def("Webhooks", "Send selected transaction data to your own server (Pro).")
-            }
-        },
-        Topic(
-            "pro", "Free and Pro",
+        Guide(
+            "pro", "Get started", "Free vs Pro",
             "Almost everything is free. Pro lifts a few limits and pays for new banks and features.",
-            shots("pro-sheet" to "PennyWise Pro", "license-key" to "License key"),
+            listOf(
+                Step("pro-sheet", "Open PennyWise Pro", "Settings → Upgrade to PennyWise Pro, then tap Enter license key.", 50, 75),
+                Step("license-key", "Paste your key", "Paste the key from your purchase email and tap Activate. Pro turns on right away.", 50, 51),
+            ),
+            "license key upgrade premium buy activate price",
         ) {
             div(classes = "compare") {
                 div(classes = "compare-head") { span { +"" }; span { +"Free" }; span { +"Pro" } }
@@ -357,330 +100,579 @@ object GuideViews {
             p {
                 +"Buy a key on the "
                 a(href = "/pro") { +"Pro page" }
-                +", then open "
-                path("Settings → PennyWise Pro → Enter license key")
                 +". F-Droid builds include every Pro feature for free."
+            }
+        },
+
+        // ── Everyday ───────────────────────────────────────────────────────────
+        Guide(
+            "add-transaction", "Everyday", "Add a transaction yourself",
+            "For cash, or a bank PennyWise can't read yet.",
+            listOf(
+                Step("home", "Tap +", "From Home or Transactions, the + button opens the add screen.", 90, 78),
+                Step("add-transaction", "Enter the amount", "Type the amount, then a merchant like “Chai stall”. Expense is already selected.", 67, 19),
+                Step("add-transaction", "Pick a category", "Choose where it belongs so budgets and analytics stay accurate.", 28, 76),
+                Step("add-transaction", "Save", "That's it. It now counts toward this month's spending.", 50, 91),
+                Step("chat-add", "Or just type it", "In the Chat tab, write “coffee 180 at Starbucks” and tap Add on the card.", 71, 50),
+            ),
+            "manual cash expense add record",
+        ) {
+            p { +"The Add Transaction widget and Quick Settings tile open the same form. You can also share a message from another app to PennyWise and it fills the form for you." }
+            h3 { +"The five types" }
+            div(classes = "types") {
+                type("Expense", "Money out of a bank account.")
+                type("Income", "Salary, refunds, cashback.")
+                type("Credit", "Card and wallet spend you pay later, kept apart so the bill isn't counted twice.")
+                type("Transfer", "Between your own accounts. Not spending.")
+                type("Investment", "SIPs, stocks, mutual funds.")
+            }
+        },
+        Guide(
+            "edit-transactions", "Everyday", "Find and edit transactions",
+            "Search and filter, fix one, or change many at once.",
+            listOf(
+                Step("transactions", "Search or filter", "The Transactions tab filters by period, account, type, category and currency.", 40, 20),
+                Step("transaction-detail", "Fix one", "Tap a transaction to see the original SMS. The pencil edits it; ⋮ duplicates, groups or deletes it.", 81, 5),
+                Step("transactions", "Change many at once", "Press and hold one transaction until it highlights.", 40, 58),
+                Step("transactions-select", "Tap the rest", "Tap every other one you want. The totals card shows just your selection.", 40, 77),
+                Step("transactions-select", "Pick an action", "The top bar marks them as a transfer, changes their category, groups or deletes them.", 70, 5),
+            ),
+            "search filter bulk select multiple edit delete recategorise duplicate",
+        ) {
+            p { +"Excluding a transaction from analytics keeps it in your history and balance but leaves it out of spending totals. Find the switch on its detail page." }
+        },
+        Guide(
+            "analytics", "Everyday", "See where your money goes",
+            "Totals, trends, top categories and merchants for any period.",
+            listOf(
+                Step("analytics", "Choose a period", "Open the Analytics tab and pick a period, account or type from the chips at the top.", 76, 18),
+                Step("analytics-categories", "Tap a category", "Scroll to Top Categories and tap one to see exactly which transactions make it up.", 68, 24),
+            ),
+            "chart report spending breakdown merchant category stats",
+        ) {
+            p { +"Pro adds a breakdown by tag." }
+        },
+        Guide(
+            "ai-chat", "Everyday", "Ask the AI about your spending",
+            "An assistant that runs entirely on your phone. Nothing you ask leaves it.",
+            listOf(
+                Step("chat-download", "Download the model", "The first time you open the Chat tab it downloads about 1.5 GB. Use Wi-Fi; it only happens once."),
+                Step("chat-add", "Add by typing", "Write “got 50000 salary” or “coffee 180”. A confirm card appears; nothing is saved until you tap Add.", 71, 50),
+                Step("chat-ask", "Ask questions", "“How much on groceries this month?” “What did I spend at Swiggy?”", 40, 83),
+            ),
+            "ai assistant question chat model offline",
+        ) {
+            p { +"It's a small model on a phone: quick totals and quick adds, not long financial advice. Older phones take a few seconds longer to reply." }
+        },
+
+        // ── Plan ahead ─────────────────────────────────────────────────────────
+        Guide(
+            "budgets", "Plan ahead", "Set a monthly budget",
+            "Set limits by category and see what's left, with a daily allowance.",
+            listOf(
+                Step("budgets-setup", "Open Budgets", "From Home tap View All next to Budgets. Use Smart Defaults starts from your own spending.", 50, 64),
+                Step("budgets", "See what's left", "Each budget shows what's left this month and how much you can spend per day.", 70, 25),
+                Step("budget-edit", "Adjust it", "The pencil changes the limit, colour, period, and the day your month starts."),
+            ),
+            "budget limit spending plan",
+        ) {
+            p { +"Budgets can be weekly, monthly or one-time. ⋮ → View history shows past periods; finished ones are frozen, so recategorising later doesn't rewrite them." }
+            p { +"Paid on the 25th? Set "; path("Settings → Budget Cycle Start Day"); +" so months run 25th to 24th." }
+        },
+        Guide(
+            "subscriptions", "Plan ahead", "Track subscriptions",
+            "Netflix, Spotify, rent: see what's due next and the monthly total.",
+            listOf(
+                Step("add-subscription", "Add one", "Tap +, switch to the Subscription tab, then enter the service, amount and billing cycle.", 75, 11),
+                Step("add-subscription", "Save it", "It now shows on Home with the next due date.", 50, 91),
+                Step("subscriptions", "See them all", "Open Subscriptions from Home. ⋮ on one edits or ends it.", 86, 43),
+            ),
+            "netflix spotify bill renew due",
+        ) {
+            p { +"Subscriptions are reminders. The payment itself still comes in from your bank SMS, or add it by hand." }
+        },
+        Guide(
+            "recurring", "Plan ahead", "Auto-add a regular cash payment",
+            "For money you pay on a schedule that no SMS will report.",
+            listOf(
+                Step("recurring", "Open Recurring", "Settings → Recurring, then tap +.", 89, 92),
+                Step("recurring-new", "Set the schedule", "Name it, enter the amount and pick the day of the month. Tap Save.", 76, 84),
+                Step("recurring", "It adds itself", "On that day each month the transaction is added for you."),
+            ),
+            "schedule rent maid allowance automatic repeat",
+        ) {
+            p { +"Free accounts get one recurring transaction; Pro is unlimited." }
+        },
+        Guide(
+            "loans", "Plan ahead", "Track money friends owe you",
+            "Paid for someone? Keep track of who owes whom.",
+            listOf(
+                Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
+                Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
+                Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
+            ),
+            "lend lent borrow split owe friend",
+        ) {
+            p { +"Only lent part of it? Enter just the amount they owe instead of the full payment." }
+        },
+        Guide(
+            "groups", "Plan ahead", "Total up a trip or event",
+            "Collect a holiday or a wedding under one name to see what it cost.",
+            listOf(
+                Step("transactions-select", "Select its transactions", "On the Transactions tab, long-press one, tap the rest, then tap the group icon.", 81, 5),
+                Step("groups", "See the total", "Name the group. Settings → Transaction Groups shows each group's total."),
+            ),
+            "group trip wedding event project total",
+        ) {
+            p { +"A transaction's ⋮ menu can also add it to a group later." }
+        },
+
+        // ── Organise ───────────────────────────────────────────────────────────
+        Guide(
+            "categories", "Organise", "Fix wrong categories for good",
+            "Correct one, then add a rule so it never happens again.",
+            listOf(
+                Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
+                Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
+                Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”.", 50, 28),
+                Step("categories", "Tidy your categories", "Settings → Categories adds your own and hides ones you don't use."),
+            ),
+            "rule categorise categorize wrong merchant automatic",
+        ) {
+            p { +"Rules run on every new transaction, highest priority first. A rule's ⋮ menu applies it to past transactions too. Free accounts get three rules; Pro is unlimited." }
+        },
+        Guide(
+            "accounts", "Organise", "Accounts and balances",
+            "Fix a balance that's off, or add cash and wallets.",
+            listOf(
+                Step("accounts", "Open Manage Accounts", "Settings → Manage Accounts. Tap Update Balance if a balance is off.", 30, 32),
+                Step("accounts", "Add cash or a wallet", "Tap + to add an account that doesn't send SMS, like cash in hand.", 89, 92),
+                Step("account-detail", "Check its history", "Tap an account on Home to see its balance trend and transactions.", 75, 36),
+            ),
+            "balance wrong cash wallet manual account credit card merge",
+        ) {
+            p { +"Accounts are created from your SMS, one per bank account or card. Balances update whenever a message includes one. Credit cards show their limit, outstanding and available amount." }
+            p { +"Same card showing up twice under different numbers? Merge them from Manage Accounts (Pro)." }
+        },
+        Guide(
+            "currencies", "Organise", "Use more than one currency",
+            "Every amount keeps its currency. Rupees and dollars are never added together.",
+            listOf(
+                Step("settings-currency", "Turn on Unified Currency Mode", "Settings → Currency. It converts everything into one display currency for combined totals.", 86, 12),
+                Step("exchange-rates", "Set your own rate", "Exchange Rates update on their own. Tap one to override it.", 86, 22),
+            ),
+            "currency usd dollar exchange rate foreign travel",
+        ) {
+            dl(classes = "defs") {
+                def("Default Currency", "Used for manual entries. Choosing a Main Account sets it too.")
+                def("Number Format", "Indian (1,00,000), international (100,000), or Auto per currency.")
+            }
+        },
+        Guide(
+            "personalise", "Organise", "Make it yours",
+            "Theme, app lock, widgets and the rest of Settings.",
+            listOf(
+                Step("appearance", "Appearance", "Settings → Appearance: light, dark or system theme, Material You colours, AMOLED black, fonts."),
+            ),
+            "theme dark light lock fingerprint widget notification webhook language contacts",
+        ) {
+            dl(classes = "defs") {
+                def("App Lock", "Fingerprint or face unlock. Set up biometrics in Android first.")
+                def("Widgets", "Long-press your home screen → Widgets → PennyWise: Add Transaction, Budget Overview, Spending Pie, Recent Transactions.")
+                def("Notifications", "Each new transaction can notify you, with buttons to change its category right there.")
+                def("Bank Notification Access", "Also read bank app notifications, for banks that notify instead of texting.")
+                def("Contacts", "Show a contact's name instead of their UPI ID.")
+                def("Language", "The app is translated by the community.")
+                def("Webhooks", "Send selected transaction data to your own server (Pro).")
+            }
+        },
+
+        // ── Your data ──────────────────────────────────────────────────────────
+        Guide(
+            "backup", "Your data", "Back up and move to a new phone",
+            "There's no cloud, so a backup file is your only copy outside the phone.",
+            listOf(
+                Step("settings-data", "Back up", "Settings → Export Data saves one file with everything. Keep it on Drive, email or a computer.", 40, 23),
+                Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
+            ),
+            "backup restore export import transfer switch device new phone",
+        ) {
+            dl(classes = "defs") {
+                def("Automatic Folder Backup", "Saves a backup to a folder you choose every night at 2 AM (Pro).")
+                def("Include receipt photos", "Adds attached receipts to the backup. Bigger file.")
+                def("SMS Scan Period", "Scan everything, or only messages after a date.")
+                def("Delete All Transactions", "Start over. Accounts and budgets stay.")
+            }
+        },
+        Guide(
+            "import-statement", "Your data", "Import a PDF statement",
+            "Bring in history from Google Pay, PhonePe, Paytm, slice or ICICI Bank.",
+            listOf(
+                Step("settings-data", "Open Import Statement", "Settings → Import Statement.", 40, 67),
+                Step("import-statement", "Pick the PDF", "Tap Select PDF Statement and choose the file. Duplicates are skipped.", 50, 56),
+            ),
+            "pdf gpay phonepe paytm upi history import",
+            cover = "import-statement",
+        ) {
+            p { +"Free accounts can import one statement a month; Pro is unlimited." }
+        },
+        Guide(
+            "export", "Your data", "Export to Excel",
+            "Get your transactions into Sheets or Excel as a CSV.",
+            listOf(
+                Step("transactions", "Filter, then tap download", "On the Transactions tab, filter to what you want, then tap the download button.", 90, 77),
+                Step("export-csv", "Export", "Tap Export and share the file to Sheets, Excel or email.", 65, 62),
+            ),
+            "csv excel sheets spreadsheet download export",
+        ) {
+            p {
+                path("Settings → Import Transactions (CSV)")
+                +" reads a PennyWise CSV back in, or any sheet with Date, Amount and Type columns. Free exports are capped at 100 rows a month."
             }
         },
     )
 
-    suspend fun ApplicationCall.respondGuidePage() {
-        respondHtml(HttpStatusCode.OK) {
-            lang = "en"
-            head {
-                commonHead(
-                    "PennyWise user guide: every feature, with screenshots",
-                    "How to use PennyWise: SMS auto-tracking, budgets, rules, analytics, the on-device AI chat, " +
-                        "multi-currency and backups, with a screenshot of every screen.",
-                    "/guide",
-                )
-                style { unsafe { +commonStyles; +guideStyles } }
-            }
-            body {
-                siteHeader(currentPage = "guide")
-                div(classes = "guide") {
-                    header(classes = "g-hero") {
-                        h1 { +"How to use PennyWise" }
-                        p(classes = "g-sub") { +"Pick what you want to do and follow it step by step, or browse every screen below." }
-                        div(classes = "g-search") {
-                            label(classes = "sr-only") { htmlFor = "guide-q"; +"Search the guide" }
-                            input(type = InputType.search) {
-                                id = "guide-q"
-                                placeholder = "Search the guide: backup, budget, duplicate…"
-                                attributes["autocomplete"] = "off"
-                                attributes["spellcheck"] = "false"
-                                attributes["role"] = "combobox"
-                                attributes["aria-expanded"] = "false"
-                                attributes["aria-controls"] = "guide-hits"
-                                attributes["aria-autocomplete"] = "list"
-                            }
-                            kbd { +"/" }
-                            ul(classes = "g-hits") {
-                                id = "guide-hits"
-                                attributes["role"] = "listbox"
-                                attributes["hidden"] = ""
-                            }
-                        }
-                    }
-                    walkthroughs()
-                    h2(classes = "g-ref-title") { +"Every screen, explained" }
+    private class Faq(val q: String, val k: String, val a: P.() -> Unit)
 
-                    div(classes = "g-layout") {
-                        nav(classes = "g-side") {
-                            attributes["aria-label"] = "Topics"
-                            ol {
-                                topics.forEach { t -> li { a(href = "#${t.id}") { +t.title } } }
-                                li { a(href = "#troubleshooting") { +"Troubleshooting" } }
-                            }
-                        }
+    private val faqs = listOf(
+        Faq("My bank's SMS aren't being picked up.", "detect detected not working unsupported bank missing parse") {
+            +"Check your bank is on the "
+            a(href = "/banks") { +"supported banks" }
+            +" list and SMS permission is on. Paste one message into the "
+            a(href = "/") { +"SMS parser" }
+            +" to see if it's read. If not, report it from "
+            path("Settings → Unrecognized SMS")
+            +" or open a "
+            a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues") { +"GitHub issue" }
+            +" with the message (hide your account number)."
+        },
+        Faq("Older transactions are missing.", "old history scan rescan past") {
+            +"Set "
+            path("Settings → SMS Scan Period")
+            +" to All Time, then long-press the sync button for a full rescan. PennyWise can only see SMS still on your phone."
+        },
+        Faq("A transaction shows up twice.", "duplicate double twice repeated") {
+            +"Some banks send two messages for one payment. Most duplicates are skipped; delete any that slip through."
+        },
+        Faq("A balance is wrong.", "incorrect balance mismatch fix") {
+            +"Balances come from the latest SMS that mentions one. "
+            a(href = "/guide/accounts") { +"Correct it in Manage Accounts" }
+            +"."
+        },
+        Faq("New transactions stop appearing in the background.", "background battery stopped not updating notification") {
+            +"Some phones (Xiaomi, Oppo, Vivo, Samsung) stop background apps. Set PennyWise's battery usage to Unrestricted, or tap sync when you open the app."
+        },
+        Faq("The AI model won't download, or chat is slow.", "ai model download slow chat stuck") {
+            +"It needs about 1.5 GB free and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
+        },
+        Faq("A backup won't restore.", "restore import backup failed error") {
+            +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."
+        },
+        Faq("Is my data private?", "privacy secure safe data server") {
+            +"Yes. SMS and transactions are processed and stored only on your phone, and the AI runs there too. No account, no servers holding your data, and the "
+            a(href = "https://github.com/sarim2000/pennywiseai-tracker") { +"code is open source" }
+            +"."
+        },
+    )
 
-                        main(classes = "g-main") {
-                            topics.forEach { topic(it) }
-                            section(classes = "g-topic g-faq") {
-                                id = "troubleshooting"
-                                h2 { +"Troubleshooting" }
-                                div(classes = "faq") { troubleshooting() }
-                            }
-                            p(classes = "g-foot") {
-                                +"Still stuck? Ask on "
-                                a(href = "https://discord.gg/H3xWeMWjKQ") { +"Discord" }
-                                +" or open a "
-                                a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues") { +"GitHub issue" }
-                                +". Need a PDF? Print this page and choose Save as PDF. Screenshots use made-up demo data."
-                            }
-                        }
-                    }
-                }
-                script { unsafe { +guideScript } }
-            }
-        }
-    }
+    private val popular = listOf("set-up", "add-transaction", "budgets", "backup", "categories")
 
-    private fun FlowContent.topic(t: Topic) {
-        section(classes = "g-topic") {
-            id = t.id
-            div(classes = "g-text") {
-                h2 { +t.title }
-                p(classes = "g-intro") { +t.intro }
-                t.body(this)
-            }
-            figure(classes = "g-shots") {
-                phone(t.shots.first().file, t.shots.first().caption)
-                if (t.shots.size > 1) {
-                    div(classes = "thumbs") {
-                        attributes["role"] = "group"
-                        attributes["aria-label"] = "${t.title} screenshots"
-                        t.shots.forEachIndexed { i, s ->
-                            button(classes = "thumb") {
-                                type = ButtonType.button
-                                attributes["data-src"] = src(s.file)
-                                attributes["data-alt"] = s.caption
-                                attributes["aria-pressed"] = (i == 0).toString()
-                                img(src = src(s.file), alt = "") {
-                                    width = "540"; height = "1145"
-                                    attributes["loading"] = "lazy"
-                                }
-                                span { +s.caption }
-                            }
-                        }
-                    }
-                } else {
-                    figcaption { +t.shots.first().caption }
-                }
-            }
-        }
-    }
+    /** Paths for the sitemap. */
+    val paths: List<String> = listOf("/guide") + guides.map { "/guide/${it.slug}" } + "/guide/troubleshooting"
 
+    private fun url(g: Guide) = "/guide/${g.slug}"
+    private fun groupId(group: String) = group.lowercase().replace(' ', '-')
     private fun src(file: String) = "/static/guide/$file.webp"
 
-    // Every step is rendered server-side; the script shows one at a time. Without JS
-    // the first walkthrough reads as a numbered list of screens.
-    private fun FlowContent.walkthroughs() {
-        section(classes = "wt") {
-            id = "walkthroughs"
-            div(classes = "wt-goals") {
-                attributes["role"] = "tablist"
-                attributes["aria-label"] = "What do you want to do?"
-                walkthroughGroups.forEach { g ->
-                    div(classes = "wt-group") {
-                        span(classes = "wt-group-name") { +g }
-                        walkthroughs.filter { it.group == g }.forEach { w ->
-                            button(classes = "wt-goal") {
-                                type = ButtonType.button
-                                attributes["role"] = "tab"
-                                attributes["aria-selected"] = (w == walkthroughs.first()).toString()
-                                attributes["aria-controls"] = "wt-${w.id}"
-                                attributes["data-k"] = w.keywords
-                                +w.goal
-                            }
+    // ── Pages ────────────────────────────────────────────────────────────────
+
+    suspend fun ApplicationCall.respondGuideHub() {
+        respondHtml(HttpStatusCode.OK) {
+            page("PennyWise help: step-by-step guides with screenshots",
+                "Step-by-step help for every part of PennyWise: setup, budgets, rules, AI chat, backups and more.", "/guide") {
+                header(classes = "hub-hero") {
+                    h1 { +"How can we help?" }
+                    p(classes = "hub-sub") { +"Step-by-step guides for every part of PennyWise, with screenshots." }
+                    search(large = true)
+                    p(classes = "popular") {
+                        span { +"Popular:" }
+                        popular.mapNotNull { s -> guides.find { it.slug == s } }.forEach { g -> a(href = url(g)) { +g.title } }
+                    }
+                }
+                groups.forEach { group ->
+                    section(classes = "hub-group") {
+                        id = groupId(group)
+                        h2 { +group }
+                        div(classes = "cards") {
+                            guides.filter { it.group == group }.forEach { card(it) }
                         }
                     }
                 }
+                section(classes = "stuck") {
+                    div {
+                        h2 { +"Still stuck?" }
+                        p { +"The questions people ask most, with fixes." }
+                        ul {
+                            faqs.take(4).forEachIndexed { i, f -> li { a(href = "/guide/troubleshooting#q-${i + 1}") { +f.q } } }
+                        }
+                        a(href = "/guide/troubleshooting", classes = "more") { +"All troubleshooting" }
+                    }
+                    div(classes = "stuck-ask") {
+                        p { b { +"Ask a person." }; +" Other PennyWise users and the developer answer on Discord." }
+                        a(href = "https://discord.gg/H3xWeMWjKQ", classes = "btn-solid") { +"Ask on Discord" }
+                        a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues", classes = "btn-line") { +"Report a bug" }
+                    }
+                }
             }
-            walkthroughs.forEachIndexed { i, w ->
-                div(classes = "wt-panel") {
-                    id = "wt-${w.id}"
-                    attributes["role"] = "tabpanel"
-                    if (i > 0) attributes["hidden"] = ""
-                    ol(classes = "wt-steps") {
-                        w.steps.forEachIndexed { n, st ->
-                            li(classes = "wt-step") {
-                                if (n > 0) attributes["data-later"] = ""
-                                div(classes = "phone") {
-                                    div(classes = "screen") {
-                                        img(src = src(st.shot), alt = st.title) {
-                                            width = "540"; height = "1145"
-                                            attributes["loading"] = if (i == 0 && n == 0) "eager" else "lazy"
-                                        }
-                                        if (st.x != null && st.y != null) {
-                                            span(classes = "tap") {
-                                                attributes["style"] = "left:${st.x}%;top:${st.y}%"
-                                                attributes["aria-hidden"] = "true"
-                                            }
-                                        }
+        }
+    }
+
+    /** Returns false when the slug doesn't exist, so the route can 404. */
+    suspend fun ApplicationCall.respondGuidePage(slug: String): Boolean {
+        if (slug == "troubleshooting") { respondTroubleshooting(); return true }
+        val i = guides.indexOfFirst { it.slug == slug }
+        if (i < 0) return false
+        val g = guides[i]
+        respondHtml(HttpStatusCode.OK) {
+            page("${g.title}: PennyWise guide", g.intro, url(g)) {
+                articleHead(g.group, g.title, g.intro)
+                player(g)
+                section(classes = "know") {
+                    h2 { +"Good to know" }
+                    div(classes = "know-body") { g.details(this) }
+                }
+                prevNext(guides.getOrNull(i - 1), guides.getOrNull(i + 1))
+            }
+        }
+        return true
+    }
+
+    private suspend fun ApplicationCall.respondTroubleshooting() {
+        respondHtml(HttpStatusCode.OK) {
+            page("Troubleshooting: PennyWise guide", "Fixes for the PennyWise questions people ask most.", "/guide/troubleshooting") {
+                articleHead(null, "Troubleshooting", "Fixes for the questions people ask most.")
+                div(classes = "faq faq-page") {
+                    faqs.forEachIndexed { i, f ->
+                        details {
+                            id = "q-${i + 1}"
+                            summary { +f.q }
+                            p { f.a(this) }
+                        }
+                    }
+                }
+                div(classes = "stuck stuck-inline") {
+                    div(classes = "stuck-ask") {
+                        p { b { +"Not here?" }; +" Ask on Discord, or report a bug on GitHub." }
+                        a(href = "https://discord.gg/H3xWeMWjKQ", classes = "btn-solid") { +"Ask on Discord" }
+                        a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues", classes = "btn-line") { +"Report a bug" }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Building blocks ──────────────────────────────────────────────────────
+
+    private fun HTML.page(title: String, description: String, path: String, content: DIV.() -> Unit) {
+        lang = "en"
+        head {
+            commonHead(title, description, path)
+            style { unsafe { +commonStyles; +guideStyles } }
+        }
+        body {
+            siteHeader(currentPage = "guide")
+            div(classes = "guide") { content() }
+            script(type = "application/json") { id = "guide-index"; unsafe { +searchIndex } }
+            script { unsafe { +guideScript } }
+        }
+    }
+
+    private fun DIV.articleHead(group: String?, title: String, intro: String) {
+        div(classes = "art-top") {
+            nav(classes = "crumbs") {
+                attributes["aria-label"] = "Breadcrumb"
+                a(href = "/guide") { +"Guide" }
+                if (group != null) { span { +"/" }; a(href = "/guide#${groupId(group)}") { +group } }
+            }
+            search(large = false)
+        }
+        header(classes = "art-head") {
+            h1 { +title }
+            p { +intro }
+        }
+    }
+
+    private fun FlowContent.search(large: Boolean) {
+        div(classes = if (large) "g-search large" else "g-search") {
+            label(classes = "sr-only") { htmlFor = if (large) "guide-q" else "guide-q-small"; +"Search the guide" }
+            input(type = InputType.search) {
+                id = if (large) "guide-q" else "guide-q-small"
+                placeholder = if (large) "Search, e.g. backup, budget, duplicate" else "Search the guide"
+                attributes["autocomplete"] = "off"
+                attributes["spellcheck"] = "false"
+                attributes["role"] = "combobox"
+                attributes["aria-expanded"] = "false"
+                attributes["aria-autocomplete"] = "list"
+                attributes["data-search"] = ""
+            }
+            kbd { +"/" }
+            ul(classes = "g-hits") { attributes["role"] = "listbox"; attributes["hidden"] = "" }
+        }
+    }
+
+    private fun FlowContent.card(g: Guide) {
+        a(href = url(g), classes = "card") {
+            div(classes = "peek") {
+                img(src = src(g.cover ?: g.steps.first().shot), alt = "") {
+                    width = "540"; height = "1145"
+                    attributes["loading"] = "lazy"
+                    attributes["decoding"] = "async"
+                }
+            }
+            div(classes = "card-body") {
+                h3 { +g.title }
+                p { +g.intro }
+                span(classes = "card-meta") { +if (g.steps.size == 1) "1 screen" else "${g.steps.size} steps" }
+            }
+        }
+    }
+
+    // All steps are rendered server-side; the script shows one at a time. Without JS
+    // they read as a numbered list of screens.
+    private fun FlowContent.player(g: Guide) {
+        section(classes = "player") {
+            attributes["aria-label"] = "${g.title}, step by step"
+            ol(classes = "steps-list") {
+                g.steps.forEachIndexed { n, st ->
+                    li(classes = "step") {
+                        id = "step-${n + 1}"
+                        div(classes = "phone") {
+                            div(classes = "screen") {
+                                img(src = src(st.shot), alt = st.title) {
+                                    width = "540"; height = "1145"
+                                    attributes["loading"] = if (n == 0) "eager" else "lazy"
+                                }
+                                if (st.x != null && st.y != null) {
+                                    span(classes = "tap") {
+                                        attributes["style"] = "left:${st.x}%;top:${st.y}%"
+                                        attributes["aria-hidden"] = "true"
                                     }
                                 }
-                                div(classes = "wt-copy") {
-                                    p(classes = "wt-count") { +"Step ${n + 1} of ${w.steps.size}" }
-                                    h3 { +st.title }
-                                    p { +st.text }
-                                }
                             }
                         }
+                        div(classes = "step-copy") {
+                            if (g.steps.size > 1) p(classes = "step-count") { +"Step ${n + 1} of ${g.steps.size}" }
+                            h2 { +st.title }
+                            p { +st.text }
+                        }
                     }
-                    div(classes = "wt-nav") {
-                        button(classes = "wt-back") { type = ButtonType.button; +"Back" }
-                        div(classes = "wt-dots") { w.steps.forEach { _ -> span() } }
-                        button(classes = "wt-next") { type = ButtonType.button; +"Next" }
-                    }
+                }
+            }
+            if (g.steps.size > 1) {
+                div(classes = "player-nav") {
+                    div(classes = "dots") { g.steps.forEach { _ -> span() } }
+                    button(classes = "back") { type = ButtonType.button; +"Back" }
+                    button(classes = "next") { type = ButtonType.button; +"Next" }
                 }
             }
         }
     }
 
-    // width/height reserve the space before the image loads, so nothing jumps.
-    private fun FlowContent.phone(file: String, alt: String, eager: Boolean = false) {
-        div(classes = "phone") {
-            img(src = src(file), alt = alt) {
-                width = "540"; height = "1145"
-                attributes["loading"] = if (eager) "eager" else "lazy"
-                attributes["decoding"] = "async"
-            }
+    private fun DIV.prevNext(prev: Guide?, next: Guide?) {
+        nav(classes = "pager") {
+            attributes["aria-label"] = "More guides"
+            if (prev != null) a(href = url(prev), classes = "pg prev") { span { +"Previous" }; b { +prev.title } } else div {}
+            if (next != null) a(href = url(next), classes = "pg next") { span { +"Next" }; b { +next.title } }
+            else a(href = "/guide/troubleshooting", classes = "pg next") { span { +"Still stuck?" }; b { +"Troubleshooting" } }
         }
     }
 
-    private fun DL.def(term: String, desc: String) {
-        dt { +term }
-        dd { +desc }
-    }
+    private fun DL.def(term: String, desc: String) { dt { +term }; dd { +desc } }
 
-    private fun FlowContent.type(name: String, desc: String) {
-        div(classes = "type") { b { +name }; span { +desc } }
-    }
+    private fun FlowContent.type(name: String, desc: String) { div(classes = "type") { b { +name }; span { +desc } } }
 
     private fun FlowContent.compare(feature: String, free: String, pro: String) {
         div(classes = "compare-row") { span { +feature }; span { +free }; span { +pro } }
     }
 
-    private fun FlowContent.path(text: String) {
-        span(classes = "path") { +text }
-    }
+    private fun FlowContent.path(text: String) { span(classes = "path") { +text } }
 
-    private fun FlowContent.faq(question: String, keywords: String = "", answer: P.() -> Unit) {
-        details {
-            if (keywords.isNotEmpty()) attributes["data-k"] = keywords
-            summary { +question }; p { answer() }
-        }
-    }
+    // ── Search index (embedded as JSON on every page) ────────────────────────
 
-    private fun FlowContent.troubleshooting() {
-        faq("My bank's SMS aren't being picked up.", "detect detected not working unsupported bank missing parse") {
-            +"Check your bank is on the "
-            a(href = "/banks") { +"supported banks" }
-            +" list and SMS permission is on. Paste one message into the "
-            a(href = "/") { +"SMS parser" }
-            +" here to see if it's read. If it isn't, report it from "
-            path("Settings → Unrecognized SMS")
-            +" or open a "
-            a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues") { +"GitHub issue" }
-            +" with the message (hide your account number)."
-        }
-        faq("Older transactions are missing.", "old history scan rescan past") {
-            +"Set "
-            path("Settings → SMS Scan Period")
-            +" to All Time, then long-press the sync button for a full rescan. PennyWise can only see SMS still on your phone."
-        }
-        faq("A transaction shows up twice.", "duplicate double twice repeated") {
-            +"Some banks send two messages for one payment. Most duplicates are skipped; delete any that slip through."
-        }
-        faq("A balance is wrong.", "incorrect balance mismatch fix") {
-            +"Balances come from the latest SMS that mentions one. Correct it in "
-            path("Settings → Manage Accounts → Update Balance")
-            +"."
-        }
-        faq("Lots of transactions are in the wrong category.", "category wrong recategorise rule") {
-            +"Change one, then add a "
-            a(href = "#categories-rules") { +"Smart Rule" }
-            +" for that merchant so it doesn't happen again."
-        }
-        faq("New transactions stop appearing in the background.", "background battery stopped not updating notification") {
-            +"Some phones (Xiaomi, Oppo, Vivo, Samsung) stop background apps. Set PennyWise's battery usage to Unrestricted, or tap sync when you open the app."
-        }
-        faq("The AI model won't download, or chat is slow.", "ai model download slow chat stuck") {
-            +"It needs about 1.5 GB free and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
-        }
-        faq("A backup won't restore.", "restore import backup failed error") {
-            +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."
-        }
-        faq("Is my data private?", "privacy secure safe data server") {
-            +"Yes. SMS and transactions are processed and stored only on your phone, and the AI runs there too. No account, no servers holding your data, and the "
-            a(href = "https://github.com/sarim2000/pennywiseai-tracker") { +"code is open source" }
-            +"."
-        }
-    }
+    private fun plain(block: DIV.() -> Unit): String =
+        createHTML().div { block() }.replace(Regex("<[^>]+>"), " ").replace("&amp;", "&").replace(Regex("\\s+"), " ").trim()
 
-    // Thumbnail → main phone swap, and sidebar highlighting via IntersectionObserver
-    // (no scroll listener). Both are progressive: without JS the page still reads fine.
-    private val guideScript = """
-        document.querySelectorAll('.wt').forEach(function (wt) {
-          var goals = wt.querySelectorAll('.wt-goal'), panels = wt.querySelectorAll('.wt-panel');
-          wt.classList.add('js');
-          panels.forEach(function (panel) {
-            var steps = panel.querySelectorAll('.wt-step'), dots = panel.querySelectorAll('.wt-dots span');
-            var back = panel.querySelector('.wt-back'), next = panel.querySelector('.wt-next'), i = 0;
-            function show(n) {
-              i = Math.max(0, Math.min(steps.length - 1, n));
-              steps.forEach(function (s, k) { s.hidden = k !== i; });
-              dots.forEach(function (d, k) { d.className = k === i ? 'on' : (k < i ? 'done' : ''); });
-              back.disabled = i === 0;
-              next.textContent = i === steps.length - 1 ? 'Start over' : 'Next';
+    private val searchIndex: String by lazy {
+        buildJsonArray {
+            guides.forEach { g ->
+                addJsonObject {
+                    put("kind", "Guide"); put("title", g.title); put("where", g.group); put("url", url(g))
+                    put("text", g.intro + " " + plain { g.details(this) }); put("k", g.keywords)
+                }
+                g.steps.forEachIndexed { n, st ->
+                    addJsonObject {
+                        put("kind", "Step"); put("title", st.title); put("where", g.title)
+                        put("url", url(g) + "#step-${n + 1}"); put("text", st.text); put("k", "")
+                    }
+                }
             }
-            back.addEventListener('click', function () { show(i - 1); });
-            next.addEventListener('click', function () { show(i === steps.length - 1 ? 0 : i + 1); });
-            panel.addEventListener('keydown', function (e) {
-              if (e.key === 'ArrowRight') show(i + 1);
-              if (e.key === 'ArrowLeft') show(i - 1);
-            });
-            panel.showStep = show;
-            show(0);
+            faqs.forEachIndexed { i, f ->
+                addJsonObject {
+                    put("kind", "Answer"); put("title", f.q); put("where", "Troubleshooting")
+                    put("url", "/guide/troubleshooting#q-${i + 1}"); put("text", plain { p { f.a(this) } }); put("k", f.k)
+                }
+            }
+        }.toString().replace("</", "<\\/")
+    }
+
+    private val guideScript = """
+        // Step player: one step at a time, deep-linkable as #step-N.
+        document.querySelectorAll('.player').forEach(function (pl) {
+          var steps = pl.querySelectorAll('.step'), dots = pl.querySelectorAll('.dots span');
+          var back = pl.querySelector('.back'), next = pl.querySelector('.next'), i = 0;
+          if (!next) return;
+          pl.classList.add('js');
+          function show(n, fromHash) {
+            i = Math.max(0, Math.min(steps.length - 1, n));
+            steps.forEach(function (s, k) { s.hidden = k !== i; });
+            dots.forEach(function (d, k) { d.className = k === i ? 'on' : (k < i ? 'done' : ''); });
+            back.disabled = i === 0;
+            next.textContent = i === steps.length - 1 ? 'Start over' : 'Next';
+            if (!fromHash) history.replaceState(null, '', i ? '#step-' + (i + 1) : location.pathname);
+          }
+          back.addEventListener('click', function () { show(i - 1); });
+          next.addEventListener('click', function () { show(i === steps.length - 1 ? 0 : i + 1); });
+          document.addEventListener('keydown', function (e) {
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight') show(i + 1);
+            if (e.key === 'ArrowLeft') show(i - 1);
           });
-          goals.forEach(function (g) {
-            g.addEventListener('click', function () {
-              goals.forEach(function (o) { o.setAttribute('aria-selected', String(o === g)); });
-              panels.forEach(function (p) { p.hidden = p.id !== g.getAttribute('aria-controls'); });
-            });
-          });
+          function fromHash() {
+            var m = /^#step-(\d+)$/.exec(location.hash);
+            show(m ? +m[1] - 1 : 0, true);
+            if (m) pl.scrollIntoView({ block: 'start' });
+          }
+          window.addEventListener('hashchange', fromHash);
+          fromHash();
         });
-        // Search: an index built from the page itself (walkthrough steps, topics,
-        // definitions, troubleshooting answers), shown as a dropdown of results.
+
+        // Troubleshooting deep links open their answer.
+        function openFaq() {
+          var d = /^#q-\d+$/.test(location.hash) && document.querySelector('details' + location.hash);
+          if (d) { d.open = true; d.classList.remove('flash'); void d.offsetWidth; d.classList.add('flash'); }
+        }
+        window.addEventListener('hashchange', openFaq); openFaq();
+
+        // Search: a dropdown over an index of every guide, step and answer.
         (function () {
-          var q = document.getElementById('guide-q'), box = document.getElementById('guide-hits');
-          if (!q) return;
-          var idx = [], hits = [], active = 0;
-          function txt(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
-          function add(kind, title, where, text, target, open) { idx.push({ kind: kind, title: title, where: where, text: text, target: target, open: open, k: '' }); return idx[idx.length - 1]; }
-
-          document.querySelectorAll('.wt-goal').forEach(function (g) {
-            var panel = document.getElementById(g.getAttribute('aria-controls')), goal = txt(g);
-            var e = add('Walkthrough', goal, panel.querySelectorAll('.wt-step').length + ' steps', [].map.call(panel.querySelectorAll('.wt-copy p:last-child'), txt).join(' '), panel, function () { g.click(); panel.showStep(0); });
-            e.k = g.dataset.k || '';
-            panel.querySelectorAll('.wt-step').forEach(function (st, n) {
-              add('Step', txt(st.querySelector('h3')), goal, txt(st.querySelector('.wt-copy p:last-child')), panel,
-                function () { g.click(); panel.showStep(n); });
-            });
-          });
-          document.querySelectorAll('.g-topic').forEach(function (t) {
-            var h = txt(t.querySelector('h2'));
-            if (t.id !== 'troubleshooting') add('Section', h, 'Every screen', txt(t.querySelector('.g-intro')), t);
-            t.querySelectorAll('dt').forEach(function (dt) { add('Section', txt(dt), h, txt(dt.nextElementSibling), t); });
-            t.querySelectorAll('.g-text > p:not(.g-intro), .ticks li, .steps li, .type').forEach(function (el) { add('Section', h, 'Every screen', txt(el), t); });
-            t.querySelectorAll('details').forEach(function (d) {
-              add('Answer', txt(d.querySelector('summary')), 'Troubleshooting', txt(d.querySelector('p')), d, function () { d.open = true; }).k = d.dataset.k || '';
-            });
-          });
-
+          var idx = JSON.parse(document.getElementById('guide-index').textContent);
+          var STOP = { a: 1, an: 1, the: 1, to: 1, my: 1, is: 1, i: 1, how: 1, do: 1, of: 1, in: 1, on: 1, for: 1, it: 1, can: 1, what: 1, why: 1, with: 1, and: 1, or: 1, me: 1, are: 1, be: 1 };
+          function terms(v) {
+            return v.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 1 && !STOP[w]; })
+              .map(function (w) { return w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w; });
+          }
           function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-          // One regex for all words, applied to raw text, so a short word ("a") can't match inside an inserted <mark>.
+          // One regex over raw text, so a short word can't match inside an inserted <mark>.
           function mark(s, words) {
             if (!words.length) return esc(s);
             var re = new RegExp('(' + words.map(function (w) { return w.replace(/[.*+?^{}()|[\]\\$]/g, '\\$&'); }).join('|') + ')', 'ig');
@@ -692,12 +684,6 @@ object GuideViews {
             if (at < 0 || s.length <= 110) return s.slice(0, 110) + (s.length > 110 ? '…' : '');
             var from = Math.max(0, s.lastIndexOf(' ', Math.max(0, at - 30)) + 1);
             return (from ? '…' : '') + s.slice(from, from + 110) + (from + 110 < s.length ? '…' : '');
-          }
-          // Words people type that carry no meaning here; "a" alone would match everything.
-          var STOP = { a: 1, an: 1, the: 1, to: 1, my: 1, is: 1, i: 1, how: 1, do: 1, of: 1, in: 1, on: 1, for: 1, it: 1, can: 1, what: 1, why: 1, with: 1, and: 1, or: 1, me: 1, are: 1, be: 1 };
-          function terms(v) {
-            return v.toLowerCase().split(/[^a-z0-9₹]+/).filter(function (w) { return w.length > 1 && !STOP[w]; })
-              .map(function (w) { return w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w; });
           }
           function search(v) {
             var words = terms(v), seen = {}, need = Math.max(1, Math.ceil(words.length * 0.6));
@@ -711,145 +697,130 @@ object GuideViews {
                 if (e.k.indexOf(w) >= 0) score += 2;
               });
               if (m < need) return null;
-              if (e.kind === 'Walkthrough') score += 1;
+              if (e.kind === 'Guide') score += 1;
               return { e: e, m: m, score: score, i: i };
             }).filter(function (h) {
               if (!h) return false;
               var key = h.e.title + '|' + h.e.where; if (seen[key]) return false; seen[key] = 1; return true;
             }).sort(function (a, b) { return b.m - a.m || b.score - a.score || a.i - b.i; }).slice(0, 8);
           }
-          function render() {
-            var v = q.value, words = terms(v);
-            hits = search(v); active = 0;
-            if (!v.trim()) { close(); return; }
-            box.innerHTML = hits.length ? hits.map(function (h, n) {
-              var e = h.e;
-              return '<li role="option" id="hit-' + n + '" class="g-hit"' + (n === 0 ? ' aria-selected="true"' : '') + ' data-n="' + n + '">' +
-                '<span class="hit-kind hit-' + e.kind.toLowerCase() + '">' + e.kind + '</span>' +
-                '<span class="hit-body"><span class="hit-title">' + mark(e.title, words) + '</span>' +
-                '<span class="hit-where">' + esc(e.where) + '</span>' +
-                (e.text ? '<span class="hit-text">' + mark(snippet(e.text, words), words) + '</span>' : '') + '</span></li>';
-            }).join('') : '<li class="g-nohit">Nothing matches “' + esc(v.trim()) + '”. Try another word, or ask on <a href="https://discord.gg/H3xWeMWjKQ">Discord</a>.</li>';
-            box.hidden = false; q.setAttribute('aria-expanded', 'true');
-            q.setAttribute('aria-activedescendant', hits.length ? 'hit-0' : '');
-          }
-          function close() { box.hidden = true; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); }
-          function move(d) {
-            if (!hits.length) return;
-            active = (active + d + hits.length) % hits.length;
-            box.querySelectorAll('.g-hit').forEach(function (li, n) { if (n === active) { li.setAttribute('aria-selected', 'true'); li.scrollIntoView({ block: 'nearest' }); } else li.removeAttribute('aria-selected'); });
-            q.setAttribute('aria-activedescendant', 'hit-' + active);
-          }
-          function go(n) {
-            var e = hits[n] && hits[n].e; if (!e) return;
-            close(); q.blur();
-            if (e.open) e.open();
-            e.target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
-            e.target.classList.remove('flash'); void e.target.offsetWidth; e.target.classList.add('flash');
-          }
-          q.addEventListener('input', render);
-          q.addEventListener('focus', function () { if (q.value.trim()) render(); });
-          q.addEventListener('keydown', function (ev) {
-            if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
-            else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
-            else if (ev.key === 'Enter') { ev.preventDefault(); go(active); }
-            else if (ev.key === 'Escape') { if (box.hidden) { q.value = ''; } close(); }
+          document.querySelectorAll('[data-search]').forEach(function (q) {
+            var box = q.parentNode.querySelector('.g-hits'), hits = [], active = 0;
+            box.id = q.id + '-hits'; q.setAttribute('aria-controls', box.id);
+            function close() { box.hidden = true; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); }
+            function render() {
+              var v = q.value, words = terms(v);
+              if (!v.trim()) { close(); return; }
+              hits = search(v); active = 0;
+              box.innerHTML = hits.length ? hits.map(function (h, n) {
+                var e = h.e;
+                return '<li role="option" id="' + box.id + '-' + n + '"' + (n === 0 ? ' aria-selected="true"' : '') + '>' +
+                  '<a class="g-hit" href="' + e.url + '" tabindex="-1">' +
+                  '<span class="hit-kind hit-' + e.kind.toLowerCase() + '">' + e.kind + '</span>' +
+                  '<span class="hit-body"><span class="hit-title">' + mark(e.title, words) + '</span>' +
+                  '<span class="hit-where">' + esc(e.where) + '</span>' +
+                  (e.text ? '<span class="hit-text">' + mark(snippet(e.text, words), words) + '</span>' : '') + '</span></a></li>';
+              }).join('') : '<li class="g-nohit">Nothing matches “' + esc(v.trim()) + '”. Try another word, or <a href="https://discord.gg/H3xWeMWjKQ">ask on Discord</a>.</li>';
+              box.hidden = false; q.setAttribute('aria-expanded', 'true');
+              if (hits.length) q.setAttribute('aria-activedescendant', box.id + '-0');
+            }
+            function move(d) {
+              if (!hits.length) return;
+              active = (active + d + hits.length) % hits.length;
+              box.querySelectorAll('li[role=option]').forEach(function (li, n) {
+                if (n === active) { li.setAttribute('aria-selected', 'true'); li.scrollIntoView({ block: 'nearest' }); } else li.removeAttribute('aria-selected');
+              });
+              q.setAttribute('aria-activedescendant', box.id + '-' + active);
+            }
+            q.addEventListener('input', render);
+            q.addEventListener('focus', function () { if (q.value.trim()) render(); });
+            q.addEventListener('keydown', function (ev) {
+              if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
+              else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
+              else if (ev.key === 'Enter' && hits[active]) { ev.preventDefault(); close(); location.href = hits[active].e.url; }
+              else if (ev.key === 'Escape') { if (box.hidden) q.value = ''; close(); }
+            });
+            box.addEventListener('mousemove', function (ev) {
+              var li = ev.target.closest('li[role=option]'); if (!li) return;
+              var n = [].indexOf.call(box.children, li); if (n !== active) move(n - active);
+            });
+            box.addEventListener('click', close);
+            document.addEventListener('click', function (ev) { if (!q.parentNode.contains(ev.target)) close(); });
           });
-          box.addEventListener('mousedown', function (ev) { var li = ev.target.closest('.g-hit'); if (li) { ev.preventDefault(); go(+li.dataset.n); } });
-          box.addEventListener('mousemove', function (ev) { var li = ev.target.closest('.g-hit'); if (li && +li.dataset.n !== active) move(+li.dataset.n - active); });
-          document.addEventListener('click', function (ev) { if (!ev.target.closest('.g-search')) close(); });
           document.addEventListener('keydown', function (ev) {
             var tag = document.activeElement.tagName;
-            if (ev.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') { ev.preventDefault(); q.focus(); q.select(); }
+            if (ev.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+              var q = document.querySelector('[data-search]'); if (q) { ev.preventDefault(); q.focus(); q.select(); }
+            }
           });
         })();
-        document.querySelectorAll('.g-shots').forEach(function (fig) {
-          var main = fig.querySelector('.phone img');
-          fig.querySelectorAll('.thumb').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-              main.src = btn.dataset.src; main.alt = btn.dataset.alt;
-              fig.querySelectorAll('.thumb').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
-            });
-          });
-        });
-        var links = {};
-        document.querySelectorAll('.g-side a').forEach(function (a) { links[a.hash.slice(1)] = a; });
-        if ('IntersectionObserver' in window) {
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (e) {
-              if (!e.isIntersecting) return;
-              Object.values(links).forEach(function (a) { a.removeAttribute('aria-current'); });
-              var a = links[e.target.id]; if (a) a.setAttribute('aria-current', 'true');
-            });
-          }, { rootMargin: '-35% 0px -60% 0px' });
-          document.querySelectorAll('.g-topic').forEach(function (s) { io.observe(s); });
-        }
     """
 
-    // Radius scale: 12px for panels and thumbnails, 30px only for phone frames.
+    // Radius scale: 12px controls and small panels, 18px cards and the player, 30px phone frames.
     private val guideStyles = """
-        .guide { max-width: 1180px; margin: 0 auto; padding: 8px 24px 64px; }
-        .g-hero { padding: 20px 0 24px; }
-        .g-hero h1 { font-size: clamp(32px, 4.4vw, 48px); line-height: 1.05; letter-spacing: -.035em; font-weight: 800; margin: 0 0 12px; }
-        .g-sub { font-size: 18px; line-height: 1.55; color: var(--muted); max-width: 44ch; margin: 0; }
+        .guide { max-width: 1120px; margin: 0 auto; padding: 8px 24px 80px; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-        /* Walkthroughs: goal tabs, then one step at a time with a tap marker on the screenshot. */
-        .wt { margin-bottom: 72px; }
-        .wt-goals { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; margin-bottom: 28px; }
-        .wt-group { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-        .wt-group-name { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 4px 2px; }
-        .wt-goals { padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; gap: 12px 20px; }
-        .wt-group { gap: 2px; }
-        .wt-group .wt-goal { width: 100%; text-align: left; line-height: 1.35; border: 0; border-radius: 10px; background: transparent; color: #B9C3CF; font-weight: 500; padding: 8px 10px; }
-        .wt-group .wt-goal:hover { background: var(--surface-2); color: var(--text); }
-        .wt-group .wt-goal[aria-selected="true"] { background: rgba(111,178,255,.14); color: var(--text); font-weight: 600; }
-        .wt-group-name { padding-left: 10px; }
-        .wt-goal { background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-weight: 600; font-size: 14px; }
-        .wt-goal:hover { background: var(--surface-2); color: var(--text); }
-        .wt-goal[aria-selected="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
-        .wt-panel { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px; }
-        .wt-steps { list-style: none; margin: 0; padding: 0; }
-        .wt:not(.js) .wt-step + .wt-step { margin-top: 32px; }
-        .wt-step { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 56px; align-items: center; }
-        .wt-step[hidden] { display: none; }
-        .wt.js .wt-step:not([hidden]) .wt-copy { animation: wt-in .35s cubic-bezier(.16,1,.3,1); }
-        @keyframes wt-in { from { opacity: 0; transform: translateY(8px); } }
-        .wt-count { font-family: var(--mono); font-size: 12px; color: var(--blue); margin: 0 0 10px; }
-        .wt-copy h3 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 14px; }
-        .wt-copy p:last-child { font-size: 17px; line-height: 1.6; color: #B9C3CF; max-width: 40ch; margin: 0; }
-        .screen { position: relative; }
-        .tap { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid var(--blue); box-shadow: 0 0 0 4px rgba(111,178,255,.25); pointer-events: none; }
-        .tap::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--blue); animation: tap 1.6s ease-out infinite; }
-        @keyframes tap { from { transform: scale(1); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
-        .wt-nav { display: none; align-items: center; justify-content: space-between; gap: 16px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line-soft); }
-        .wt.js .wt-nav { display: flex; }
-        /* Desktop: controls sit under the step text, beside the phone, so they stay in view. */
-        @media (min-width: 761px) {
-          .wt-nav { position: absolute; left: calc(32px + 230px + 56px); right: 32px; bottom: 28px; margin: 0; padding: 0; border: 0; justify-content: flex-start; }
-          .wt-dots { order: -1; margin-right: auto; }
-        }
-        .wt-nav button { min-width: 112px; border-radius: 999px; }
-        .wt-back { background: transparent; color: var(--text); border-color: var(--line); }
-        .wt-back:hover { border-color: var(--muted); }
-        .wt-next:hover { background: var(--blue); border-color: var(--blue); color: var(--ink); }
-        .wt-nav button:active { transform: scale(.98); }
-        .wt-dots { display: flex; gap: 6px; }
-        .wt-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
-        .wt-dots span.done { background: var(--muted); }
-        .wt-dots span.on { background: var(--blue); width: 22px; border-radius: 4px; }
-        .g-search { position: relative; max-width: 560px; margin-top: 24px; z-index: 40; }
-        .g-search input { width: 100%; color: var(--text); height: 52px; padding: 0 52px 0 18px; font-family: var(--body); font-size: 15.5px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); -webkit-appearance: none; transition: border-color .15s, box-shadow .15s; }
+        /* Hub */
+        .hub-hero { padding: 40px 0 16px; max-width: 720px; }
+        .hub-hero h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.05; letter-spacing: -.035em; font-weight: 800; margin: 0 0 12px; }
+        .hub-sub { font-size: 18px; color: var(--muted); margin: 0 0 26px; }
+        .popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 16px 0 0; font-size: 14px; }
+        .popular span { color: var(--muted); }
+        .popular a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 1px; }
+        .popular a:hover { border-color: var(--blue); color: var(--blue); }
+        .hub-group { padding-top: 56px; scroll-margin-top: 72px; }
+        .hub-group h2 { font-size: 22px; font-weight: 750; letter-spacing: -.02em; margin: 0 0 18px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+        .card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-soft); border-radius: 18px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .2s, transform .2s cubic-bezier(.16,1,.3,1); }
+        .card:hover { border-color: var(--line); transform: translateY(-2px); }
+        .card:active { transform: translateY(0) scale(.99); }
+        /* A peek at the guide's first screen: the top of the phone, cropped. */
+        .peek { height: 150px; overflow: hidden; padding: 18px 28px 0; background: linear-gradient(180deg, var(--surface-2), var(--surface)); }
+        .peek img { display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0; border: 1px solid var(--line); border-bottom: 0; transition: transform .35s cubic-bezier(.16,1,.3,1); }
+        .card:hover .peek img { transform: translateY(-6px); }
+        .card-body { padding: 16px 18px 18px; display: flex; flex-direction: column; flex: 1; }
+        .card-body h3 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px; }
+        .card-body p { font-size: 14px; color: #A9B4C1; line-height: 1.5; margin: 0 0 14px; flex: 1; }
+        .card-meta { font-size: 12.5px; color: var(--muted); }
+        .stuck { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-top: 72px; }
+        .stuck > div { background: var(--surface); border: 1px solid var(--line-soft); border-radius: 18px; padding: 26px 28px; }
+        .stuck h2 { font-size: 22px; font-weight: 750; letter-spacing: -.02em; margin: 0 0 6px; }
+        .stuck > div > p { color: var(--muted); margin: 0 0 14px; }
+        .stuck ul { list-style: none; padding: 0; margin: 0 0 18px; }
+        .stuck li a { display: block; padding: 9px 0; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+        .stuck li:last-child a { border-bottom: 0; }
+        .stuck li a:hover { color: var(--blue); }
+        .more { color: var(--blue); font-weight: 600; font-size: 14px; text-decoration: none; }
+        .stuck-ask { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; }
+        .stuck-ask p { color: #B9C3CF; margin: 0 0 6px; line-height: 1.6; }
+        .stuck-ask b { color: var(--text); }
+        .btn-solid, .btn-line { display: inline-block; padding: 11px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; text-decoration: none; }
+        .btn-solid { background: var(--text); color: var(--ink); }
+        .btn-solid:hover { background: var(--blue); }
+        .btn-line { color: var(--text); border: 1px solid var(--line); }
+        .btn-line:hover { border-color: var(--muted); }
+        .stuck-inline { grid-template-columns: 1fr; margin-top: 48px; }
+        .stuck-inline .stuck-ask { flex-direction: row; align-items: center; flex-wrap: wrap; }
+        .stuck-inline .stuck-ask p { margin: 0 auto 0 0; }
+
+        /* Search */
+        .g-search { position: relative; z-index: 40; }
+        .g-search input { width: 100%; height: 44px; padding: 0 40px 0 14px; color: var(--text); font-family: var(--body); font-size: 14.5px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); -webkit-appearance: none; transition: border-color .15s, box-shadow .15s; }
+        .g-search.large input { height: 56px; padding: 0 52px 0 20px; font-size: 16px; border-radius: 14px; }
         .g-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+        .g-search input::placeholder { color: var(--muted); }
         .g-search input:hover { border-color: #2E3843; }
         .g-search input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(111,178,255,.16); }
-        .g-search input::placeholder { color: var(--muted); }
-        .g-search kbd { position: absolute; right: 14px; top: 26px; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; pointer-events: none; }
+        .g-search kbd { position: absolute; right: 12px; top: 22px; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; pointer-events: none; }
+        .g-search.large kbd { top: 28px; right: 16px; }
         .g-search input:focus + kbd, .g-search input:not(:placeholder-shown) + kbd { display: none; }
-        .g-hits { position: absolute; top: calc(100% + 8px); left: 0; right: 0; margin: 0; padding: 6px; list-style: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px -16px rgba(0,0,0,.75); max-height: min(460px, 62vh); overflow-y: auto; }
-        .g-hit { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
-        .g-hit[aria-selected="true"] { background: rgba(111,178,255,.1); }
-        .hit-kind { flex: 0 0 86px; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted); }
-        .hit-walkthrough, .hit-step { color: var(--blue); }
+        .g-hits { position: absolute; top: calc(100% + 8px); left: 0; right: 0; min-width: 300px; margin: 0; padding: 6px; list-style: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px -16px rgba(0,0,0,.75); max-height: min(460px, 62vh); overflow-y: auto; }
+        .g-search:not(.large) .g-hits { left: auto; width: min(480px, 92vw); }
+        .g-hit { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: inherit; }
+        li[aria-selected="true"] > .g-hit { background: rgba(111,178,255,.1); }
+        .hit-kind { flex: 0 0 62px; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted); }
+        .hit-guide { color: var(--blue); }
         .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
         .hit-title { color: var(--text); font-weight: 600; font-size: 14.5px; }
         .hit-where { color: var(--muted); font-size: 12px; }
@@ -857,58 +828,60 @@ object GuideViews {
         .g-hits mark { background: none; color: var(--blue); font-weight: 600; }
         .g-nohit { padding: 14px 12px; color: var(--muted); font-size: 14px; }
         .g-nohit a { color: var(--blue); }
-        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-        .flash { animation: flash 1.4s ease-out; }
-        .faq details.flash { border-radius: 10px; }
-        @keyframes flash { 0%, 30% { box-shadow: 0 0 0 2px var(--blue); background: rgba(111,178,255,.06); } 100% { box-shadow: 0 0 0 2px transparent; } }
-        .g-ref-title { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; margin: 0 0 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); }
 
-        .g-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 56px; margin-top: 48px; }
-        .g-side { position: sticky; top: 88px; align-self: start; max-height: calc(100dvh - 110px); overflow-y: auto; }
-        .g-side ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
-        .g-side a { display: block; padding: 6px 0 6px 14px; margin-left: -1px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.35; transition: color .15s, border-color .15s; }
-        .g-side a:hover { color: var(--text); }
-        .g-side a[aria-current] { color: var(--text); border-left-color: var(--blue); font-weight: 600; }
+        /* Guide page */
+        .art-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 0 0; }
+        .art-top .g-search { width: 280px; }
+        .crumbs { font-size: 14px; display: flex; gap: 8px; }
+        .crumbs a { color: var(--muted); text-decoration: none; }
+        .crumbs a:hover { color: var(--text); }
+        .crumbs span { color: var(--line); }
+        .art-head { padding: 28px 0 28px; max-width: 720px; }
+        .art-head h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.06; letter-spacing: -.035em; font-weight: 800; margin: 0 0 12px; }
+        .art-head p { font-size: 18px; color: var(--muted); margin: 0; line-height: 1.55; }
 
-        .g-topic { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: 48px; padding: 56px 0; border-bottom: 1px solid var(--line-soft); scroll-margin-top: 72px; }
-        .g-topic:first-child { padding-top: 8px; }
-        .g-topic h2 { font-size: 28px; font-weight: 750; letter-spacing: -.03em; margin: 0 0 10px; line-height: 1.15; }
-        .g-topic h3 { font-size: 15px; font-weight: 700; margin: 28px 0 12px; }
-        .g-intro { font-size: 17px; color: var(--text) !important; line-height: 1.55; margin: 0 0 22px; max-width: 58ch; }
-        .g-text p, .g-text li, .g-text dd { color: #B9C3CF; font-size: 15.5px; line-height: 1.65; max-width: 62ch; }
-        .g-text p { margin: 14px 0; }
-        .g-text a, .g-foot a, .faq a { color: var(--blue); text-underline-offset: 3px; }
+        .player { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 32px 40px; }
+        .steps-list { list-style: none; margin: 0; padding: 0; }
+        .player:not(.js) .step + .step { margin-top: 40px; }
+        .step { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 64px; align-items: center; scroll-margin-top: 80px; }
+        .step[hidden] { display: none; }
+        .player.js .step:not([hidden]) .step-copy { animation: in .35s cubic-bezier(.16,1,.3,1); }
+        @keyframes in { from { opacity: 0; transform: translateY(8px); } }
+        .player.js .step-copy { padding-bottom: 72px; }
+        .step-count { font-family: var(--mono); font-size: 12px; color: var(--blue); margin: 0 0 10px; }
+        .step-copy h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 14px; }
+        .step-copy p:last-child { font-size: 17px; line-height: 1.6; color: #B9C3CF; max-width: 40ch; margin: 0; }
+        .phone { border-radius: 30px; padding: 7px; background: #05070A; border: 1px solid var(--line); box-shadow: 0 24px 60px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05); }
+        .screen { position: relative; }
+        .screen img { display: block; width: 100%; height: auto; border-radius: 23px; background: var(--surface); }
+        .tap { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid var(--blue); box-shadow: 0 0 0 4px rgba(111,178,255,.25); pointer-events: none; }
+        .tap::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--blue); animation: tap 1.6s ease-out infinite; }
+        @keyframes tap { from { transform: scale(1); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
+        .player-nav { display: none; position: absolute; left: calc(40px + 240px + 64px); right: 40px; bottom: 32px; align-items: center; gap: 10px; }
+        .player.js .player-nav { display: flex; }
+        .dots { display: flex; gap: 6px; margin-right: auto; }
+        .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
+        .dots span.done { background: var(--muted); }
+        .dots span.on { background: var(--blue); width: 22px; border-radius: 4px; }
+        .player-nav button { min-width: 104px; border-radius: 12px; }
+        .back { background: transparent; color: var(--text); border-color: var(--line); }
+        .back:hover { border-color: var(--muted); }
+        .next:hover { background: var(--blue); border-color: var(--blue); color: var(--ink); }
+        .player-nav button:active { transform: scale(.98); }
 
+        .know { max-width: 720px; padding-top: 48px; }
+        .know h2 { font-size: 20px; font-weight: 750; letter-spacing: -.02em; margin: 0 0 14px; }
+        .know h3 { font-size: 15px; font-weight: 700; margin: 26px 0 12px; }
+        .know-body p, .know-body dd { color: #B9C3CF; font-size: 16px; line-height: 1.65; }
+        .know-body p { margin: 0 0 14px; }
+        .know-body a, .faq a { color: var(--blue); text-underline-offset: 3px; }
         .defs { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 24px; margin: 0; }
-        .defs dt { color: var(--text); font-weight: 600; font-size: 14.5px; padding-top: 2px; }
+        .defs dt { color: var(--text); font-weight: 600; font-size: 15px; padding-top: 2px; }
         .defs dd { margin: 0; }
-        .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
-        .steps li { counter-increment: s; position: relative; padding-left: 40px; margin: 0 0 14px; }
-        .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font-family: var(--mono); font-size: 12.5px; display: grid; place-items: center; }
-        .steps b { color: var(--text); }
-        .ticks { list-style: none; padding: 0; margin: 0; }
-        .ticks li { position: relative; padding-left: 22px; margin: 0 0 10px; }
-        .ticks li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 8px; height: 2px; background: var(--blue); border-radius: 2px; }
         .types { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
         .type { background: var(--surface); border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: #B9C3CF; line-height: 1.5; }
         .type b { display: block; color: var(--text); margin-bottom: 2px; }
-        .note { font-size: 14px !important; color: var(--muted) !important; }
-
-        .g-shots { margin: 0; position: sticky; top: 88px; align-self: start; }
-        .phone { border-radius: 30px; padding: 7px; background: #05070A; border: 1px solid var(--line); box-shadow: 0 24px 60px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05); }
-        .phone img { display: block; width: 100%; height: auto; border-radius: 23px; background: var(--surface); }
-        .g-shots figcaption { text-align: center; font-size: 13px; color: var(--muted); margin-top: 12px; }
-        .thumbs { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
-        .thumb { flex: 0 0 auto; width: 56px; padding: 0; background: none; border: 0; color: var(--muted); cursor: pointer; scroll-snap-align: start; text-align: center; font-weight: 500; }
-        .thumb:hover { background: none; color: var(--text); }
-        .thumb img { display: block; width: 100%; height: auto; border-radius: 12px; border: 2px solid var(--line); opacity: .6; transition: opacity .15s, border-color .15s; }
-        .thumb span { display: block; font-size: 11.5px; line-height: 1.3; margin-top: 6px; }
-        .thumb:hover img { opacity: .9; }
-        .thumb[aria-pressed="true"] img { opacity: 1; border-color: var(--blue); }
-        .thumb[aria-pressed="true"] span { color: var(--text); }
-        .thumb:active img { transform: scale(.97); }
-
-        .compare { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14.5px; margin: 4px 0 18px; }
+        .compare { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14.5px; margin: 0 0 18px; }
         .compare-head, .compare-row { display: grid; grid-template-columns: minmax(0, 1.6fr) 1fr 1fr; gap: 12px; padding: 12px 16px; }
         .compare-head { background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 600; }
         .compare-row { color: #B9C3CF; }
@@ -916,51 +889,59 @@ object GuideViews {
         .compare-row span:first-child { color: var(--text); }
         .compare-row span:last-child { color: var(--blue); font-weight: 600; }
 
-        .g-faq { display: block; }
-        .g-faq h2 { margin-bottom: 8px; }
-        .g-faq .faq { max-width: 70ch; }
-        .faq details p { color: #B9C3CF; font-size: 15px; line-height: 1.65; }
-        .g-foot { color: var(--muted); font-size: 14px; margin-top: 40px; max-width: 70ch; }
+        .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--line-soft); }
+        .pg { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; border: 1px solid var(--line-soft); border-radius: 18px; text-decoration: none; color: inherit; transition: border-color .15s; }
+        .pg:hover { border-color: var(--line); }
+        .pg span { font-size: 13px; color: var(--muted); }
+        .pg b { color: var(--text); font-size: 16px; }
+        .pg.next { text-align: right; grid-column: 2; }
 
-        @media (max-width: 1100px) and (min-width: 761px) { .wt-goals { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        @media (max-width: 1024px) {
-          .g-layout { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 24px; }
-          .g-side { display: none; }
-        }
+        .faq-page { max-width: 760px; }
+        .faq details p { color: #B9C3CF; font-size: 15.5px; line-height: 1.65; }
+        .faq details { scroll-margin-top: 80px; border-radius: 10px; }
+        .flash { animation: flash 1.4s ease-out; }
+        @keyframes flash { 0%, 30% { box-shadow: 0 0 0 2px var(--blue); background: rgba(111,178,255,.06); } 100% { box-shadow: 0 0 0 2px transparent; } }
         @media (prefers-reduced-motion: reduce) { .tap::after { animation: none; } }
+
         @media (max-width: 760px) {
+          .guide { padding: 0 16px 56px; }
+          .hub-hero { padding: 16px 0 8px; }
+          .hub-group { padding-top: 40px; }
+          .cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+          /* Phone: cards become compact rows, peek on the left. */
+          .card { flex-direction: row; border-radius: 14px; }
+          .peek { flex: 0 0 92px; height: 108px; padding: 12px 12px 0; }
+          .peek img { border-radius: 10px 10px 0 0; }
+          .card-body { padding: 14px 16px; }
+          .card-body p { margin-bottom: 6px; }
+          .stuck { grid-template-columns: minmax(0, 1fr); margin-top: 48px; }
+          .stuck > div { padding: 22px 20px; }
+          .art-top { flex-direction: column; align-items: stretch; gap: 14px; padding-top: 8px; }
+          .art-top .g-search { width: 100%; }
+          .g-search:not(.large) .g-hits { left: 0; width: auto; }
           .hit-kind { display: none; }
-          .g-hits { max-height: 60vh; }
-          .wt-goals { display: flex; gap: 18px; overflow-x: auto; margin: 0 -16px 20px; padding: 0 16px 6px; scroll-snap-type: x proximity; }
-          .wt-group { flex: 0 0 auto; display: grid; grid-auto-flow: column; grid-template-rows: auto auto; grid-template-columns: none; column-gap: 8px; row-gap: 6px; align-items: start; scroll-snap-align: start; }
-          .wt-group-name { grid-row: 1; margin: 0 0 0 2px; }
-          .wt-goals { padding: 0 16px 6px; background: none; border: 0; border-radius: 0; }
-          .wt-group-name { padding-left: 2px; }
-          .wt-group .wt-goal { grid-row: 2; white-space: nowrap; width: auto; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 8px 14px; }
-          .wt-group .wt-goal[aria-selected="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
-          .wt-panel { padding: 20px 16px; border-radius: 16px; }
-          .wt-step { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-          .wt-step .phone { width: min(230px, 64vw); margin: 0 auto; }
-          .wt-copy { text-align: center; }
-          .wt-copy p:last-child { margin: 0 auto; font-size: 16px; }
-          .wt-nav button { min-width: 0; padding: 10px 18px; }
-          .guide { padding: 0 16px 48px; }
-          .g-hero { padding: 8px 0 24px; }
-          .g-topic { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 40px 0; }
-          .g-topic h2 { font-size: 24px; }
-          .g-shots { position: static; width: min(260px, 72vw); margin: 0 auto; }
+          .art-head { padding: 22px 0 20px; }
+          .player { padding: 20px 16px; border-radius: 16px; }
+          .step { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+          .step .phone { width: min(230px, 64vw); margin: 0 auto; }
+          .step-copy, .player.js .step-copy { text-align: center; padding-bottom: 0; }
+          .step-copy p:last-child { margin: 0 auto; font-size: 16px; }
+          .player-nav { position: static; margin-top: 22px; }
+          .player-nav button { min-width: 0; padding: 10px 18px; }
           .defs { grid-template-columns: minmax(0, 1fr); gap: 2px; }
           .defs dd { margin-bottom: 12px; }
           .compare-head, .compare-row { grid-template-columns: minmax(0, 1.3fr) 1fr 1fr; padding: 11px 12px; font-size: 13.5px; }
+          .pager { grid-template-columns: minmax(0, 1fr); }
+          .pg.next { grid-column: 1; }
         }
         @media print {
           :root { color-scheme: light; }
           body { background: #fff; color: #111; }
-          .header, .g-side, .thumbs, .wt { display: none; }
-          .g-layout, .g-topic { display: block; }
-          .g-shots { position: static; width: 200px; margin: 16px 0; }
-          .g-topic { break-inside: avoid; padding: 24px 0; }
-          .g-text p, .g-text li, .g-text dd, .g-intro, .compare-row, .faq details p { color: #222 !important; }
+          .header, .g-search, .player-nav, .pager, .stuck { display: none; }
+          .step, .step[hidden] { display: grid !important; break-inside: avoid; grid-template-columns: 160px 1fr; gap: 24px; margin-bottom: 24px; }
+          .step-copy { padding: 0 !important; }
+          .player { border: 0; padding: 0; }
+          .know-body p, .know-body dd, .step-copy p, .faq details p { color: #222 !important; }
           .path { background: #f2f2f2; color: #111; border-color: #ccc; }
         }
     """

@@ -246,6 +246,8 @@
     <string name="settings_support_section">Support &amp; Community</string>
     <string name="settings_help_faq_title">Help &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Frequently asked questions and help</string>
+    <string name="settings_user_guide_title">User Guide</string>
+    <string name="settings_user_guide_subtitle">Step-by-step guides with screenshots</string>
     <string name="settings_report_issue_title">Report an Issue</string>
     <string name="settings_report_issue_subtitle">Submit bug reports on GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->

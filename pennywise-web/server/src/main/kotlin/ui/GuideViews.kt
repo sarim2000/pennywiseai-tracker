@@ -31,6 +31,48 @@ object GuideViews {
 
     private fun shots(vararg s: Pair<String, String>) = s.map { Shot(it.first, it.second) }
 
+    /** One screen of a walkthrough. [x]/[y] (percent of the screenshot) place the tap marker. */
+    private class Step(val shot: String, val title: String, val text: String, val x: Int? = null, val y: Int? = null)
+
+    private class Walkthrough(val id: String, val goal: String, val steps: List<Step>)
+
+    // Marker positions were measured on the 540×1145 screenshots; retaking a shot means re-checking them.
+    private val walkthroughs = listOf(
+        Walkthrough("setup", "Set up PennyWise", listOf(
+            Step("onboarding-welcome", "Open the app", "Tap Get Started. Setup takes about a minute and has four steps."),
+            Step("onboarding-permissions", "Allow SMS access", "Tap Enable Permissions, then Allow. Only bank messages are read; your chats are never touched.", 50, 67),
+            Step("onboarding-scan", "Let it scan", "PennyWise reads the bank SMS already on your phone and turns them into transactions."),
+            Step("onboarding-account", "Pick your main account", "This balance shows on Home. Tap Finish.", 83, 92),
+            Step("home-sync", "You're done", "New bank SMS are added automatically. Tap the sync button any time to check now.", 89, 86),
+        )),
+        Walkthrough("cash", "Add cash spending", listOf(
+            Step("home", "Tap +", "From Home or Transactions, the + button opens the add screen.", 90, 78),
+            Step("add-transaction", "Enter the amount", "Type the amount, then a merchant like “Chai stall”. Expense is already selected.", 67, 19),
+            Step("add-transaction", "Pick a category", "Choose where it belongs so budgets and analytics stay accurate.", 28, 76),
+            Step("add-transaction", "Save", "That's it. It now counts toward this month's spending.", 50, 91),
+            Step("chat-add", "Or just type it", "In the Chat tab, write “coffee 180 at Starbucks” and tap Add on the card.", 71, 50),
+        )),
+        Walkthrough("budget", "Set a monthly budget", listOf(
+            Step("budgets-setup", "Open Budgets", "From Home tap View All next to Budgets. Tap Use Smart Defaults to start from your own spending.", 50, 64),
+            Step("budgets", "See what's left", "Each budget shows what's left this month and how much you can spend per day.", 70, 25),
+            Step("budget-edit", "Adjust it", "Tap the pencil to change the limit, colour, period or the day your month starts."),
+        )),
+        Walkthrough("category", "Fix wrong categories for good", listOf(
+            Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
+            Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
+            Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”. Every new match is categorised automatically.", 50, 28),
+        )),
+        Walkthrough("loan", "Track money a friend owes you", listOf(
+            Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
+            Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
+            Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
+        )),
+        Walkthrough("phone", "Move to a new phone", listOf(
+            Step("settings-data", "Back up the old phone", "Settings → Export Data saves one file with everything. Put it on Drive, email it, or copy it to a computer.", 40, 23),
+            Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
+        )),
+    )
+
     private val topics: List<Topic> = listOf(
         Topic(
             "getting-started", "Getting started",
@@ -279,12 +321,11 @@ object GuideViews {
                 siteHeader(currentPage = "guide")
                 div(classes = "guide") {
                     header(classes = "g-hero") {
-                        div {
-                            h1 { +"How to use PennyWise" }
-                            p(classes = "g-sub") { +"Every screen in the app, explained with screenshots. Read top to bottom or jump to a topic." }
-                        }
-                        phone("home", "PennyWise home screen", eager = true)
+                        h1 { +"How to use PennyWise" }
+                        p(classes = "g-sub") { +"Pick what you want to do and follow it step by step, or browse every screen below." }
                     }
+                    walkthroughs()
+                    h2(classes = "g-ref-title") { +"Every screen, explained" }
 
                     div(classes = "g-layout") {
                         nav(classes = "g-side") {
@@ -353,6 +394,65 @@ object GuideViews {
     }
 
     private fun src(file: String) = "/static/guide/$file.webp"
+
+    // Every step is rendered server-side; the script shows one at a time. Without JS
+    // the first walkthrough reads as a numbered list of screens.
+    private fun FlowContent.walkthroughs() {
+        section(classes = "wt") {
+            id = "walkthroughs"
+            div(classes = "wt-goals") {
+                attributes["role"] = "tablist"
+                attributes["aria-label"] = "What do you want to do?"
+                walkthroughs.forEachIndexed { i, w ->
+                    button(classes = "wt-goal") {
+                        type = ButtonType.button
+                        attributes["role"] = "tab"
+                        attributes["aria-selected"] = (i == 0).toString()
+                        attributes["aria-controls"] = "wt-${w.id}"
+                        +w.goal
+                    }
+                }
+            }
+            walkthroughs.forEachIndexed { i, w ->
+                div(classes = "wt-panel") {
+                    id = "wt-${w.id}"
+                    attributes["role"] = "tabpanel"
+                    if (i > 0) attributes["hidden"] = ""
+                    ol(classes = "wt-steps") {
+                        w.steps.forEachIndexed { n, st ->
+                            li(classes = "wt-step") {
+                                if (n > 0) attributes["data-later"] = ""
+                                div(classes = "phone") {
+                                    div(classes = "screen") {
+                                        img(src = src(st.shot), alt = st.title) {
+                                            width = "540"; height = "1145"
+                                            attributes["loading"] = if (i == 0 && n == 0) "eager" else "lazy"
+                                        }
+                                        if (st.x != null && st.y != null) {
+                                            span(classes = "tap") {
+                                                attributes["style"] = "left:${st.x}%;top:${st.y}%"
+                                                attributes["aria-hidden"] = "true"
+                                            }
+                                        }
+                                    }
+                                }
+                                div(classes = "wt-copy") {
+                                    p(classes = "wt-count") { +"Step ${n + 1} of ${w.steps.size}" }
+                                    h3 { +st.title }
+                                    p { +st.text }
+                                }
+                            }
+                        }
+                    }
+                    div(classes = "wt-nav") {
+                        button(classes = "wt-back") { type = ButtonType.button; +"Back" }
+                        div(classes = "wt-dots") { w.steps.forEach { _ -> span() } }
+                        button(classes = "wt-next") { type = ButtonType.button; +"Next" }
+                    }
+                }
+            }
+        }
+    }
 
     // width/height reserve the space before the image loads, so nothing jumps.
     private fun FlowContent.phone(file: String, alt: String, eager: Boolean = false) {
@@ -435,6 +535,34 @@ object GuideViews {
     // Thumbnail → main phone swap, and sidebar highlighting via IntersectionObserver
     // (no scroll listener). Both are progressive: without JS the page still reads fine.
     private val guideScript = """
+        document.querySelectorAll('.wt').forEach(function (wt) {
+          var goals = wt.querySelectorAll('.wt-goal'), panels = wt.querySelectorAll('.wt-panel');
+          wt.classList.add('js');
+          panels.forEach(function (panel) {
+            var steps = panel.querySelectorAll('.wt-step'), dots = panel.querySelectorAll('.wt-dots span');
+            var back = panel.querySelector('.wt-back'), next = panel.querySelector('.wt-next'), i = 0;
+            function show(n) {
+              i = Math.max(0, Math.min(steps.length - 1, n));
+              steps.forEach(function (s, k) { s.hidden = k !== i; });
+              dots.forEach(function (d, k) { d.className = k === i ? 'on' : (k < i ? 'done' : ''); });
+              back.disabled = i === 0;
+              next.textContent = i === steps.length - 1 ? 'Start over' : 'Next';
+            }
+            back.addEventListener('click', function () { show(i - 1); });
+            next.addEventListener('click', function () { show(i === steps.length - 1 ? 0 : i + 1); });
+            panel.addEventListener('keydown', function (e) {
+              if (e.key === 'ArrowRight') show(i + 1);
+              if (e.key === 'ArrowLeft') show(i - 1);
+            });
+            show(0);
+          });
+          goals.forEach(function (g) {
+            g.addEventListener('click', function () {
+              goals.forEach(function (o) { o.setAttribute('aria-selected', String(o === g)); });
+              panels.forEach(function (p) { p.hidden = p.id !== g.getAttribute('aria-controls'); });
+            });
+          });
+        });
         document.querySelectorAll('.g-shots').forEach(function (fig) {
           var main = fig.querySelector('.phone img');
           fig.querySelectorAll('.thumb').forEach(function (btn) {
@@ -461,13 +589,47 @@ object GuideViews {
     // Radius scale: 12px for panels and thumbnails, 30px only for phone frames.
     private val guideStyles = """
         .guide { max-width: 1180px; margin: 0 auto; padding: 8px 24px 64px; }
-        .g-hero { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 48px; align-items: center; padding: 32px 0 0; border-bottom: 1px solid var(--line-soft); }
-        .g-hero h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.04; letter-spacing: -.035em; font-weight: 800; margin: 0 0 16px; }
-        .g-sub { font-size: 18px; line-height: 1.55; color: var(--muted); max-width: 34ch; margin: 0 0 8px; }
-        /* Hero phone shows only its top half and runs into the divider, like a device rising out of the page. */
-        .g-hero .phone { height: 330px; overflow: hidden; border-bottom: 0; border-radius: 30px 30px 0 0; padding-bottom: 0; box-shadow: none; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
-        .g-hero .phone img { border-radius: 23px 23px 0 0; }
-        .g-hero > div { padding-bottom: 32px; }
+        .g-hero { padding: 20px 0 24px; }
+        .g-hero h1 { font-size: clamp(32px, 4.4vw, 48px); line-height: 1.05; letter-spacing: -.035em; font-weight: 800; margin: 0 0 12px; }
+        .g-sub { font-size: 18px; line-height: 1.55; color: var(--muted); max-width: 44ch; margin: 0; }
+
+        /* Walkthroughs: goal tabs, then one step at a time with a tap marker on the screenshot. */
+        .wt { margin-bottom: 72px; }
+        .wt-goals { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+        .wt-goal { background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-weight: 600; font-size: 14px; }
+        .wt-goal:hover { background: var(--surface-2); color: var(--text); }
+        .wt-goal[aria-selected="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
+        .wt-panel { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px; }
+        .wt-steps { list-style: none; margin: 0; padding: 0; }
+        .wt:not(.js) .wt-step + .wt-step { margin-top: 32px; }
+        .wt-step { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 56px; align-items: center; }
+        .wt-step[hidden] { display: none; }
+        .wt.js .wt-step:not([hidden]) .wt-copy { animation: wt-in .35s cubic-bezier(.16,1,.3,1); }
+        @keyframes wt-in { from { opacity: 0; transform: translateY(8px); } }
+        .wt-count { font-family: var(--mono); font-size: 12px; color: var(--blue); margin: 0 0 10px; }
+        .wt-copy h3 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 14px; }
+        .wt-copy p:last-child { font-size: 17px; line-height: 1.6; color: #B9C3CF; max-width: 40ch; margin: 0; }
+        .screen { position: relative; }
+        .tap { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid var(--blue); box-shadow: 0 0 0 4px rgba(111,178,255,.25); pointer-events: none; }
+        .tap::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--blue); animation: tap 1.6s ease-out infinite; }
+        @keyframes tap { from { transform: scale(1); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
+        .wt-nav { display: none; align-items: center; justify-content: space-between; gap: 16px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line-soft); }
+        .wt.js .wt-nav { display: flex; }
+        /* Desktop: controls sit under the step text, beside the phone, so they stay in view. */
+        @media (min-width: 761px) {
+          .wt-nav { position: absolute; left: calc(32px + 230px + 56px); right: 32px; bottom: 28px; margin: 0; padding: 0; border: 0; justify-content: flex-start; }
+          .wt-dots { order: -1; margin-right: auto; }
+        }
+        .wt-nav button { min-width: 112px; border-radius: 999px; }
+        .wt-back { background: transparent; color: var(--text); border-color: var(--line); }
+        .wt-back:hover { border-color: var(--muted); }
+        .wt-next:hover { background: var(--blue); border-color: var(--blue); color: var(--ink); }
+        .wt-nav button:active { transform: scale(.98); }
+        .wt-dots { display: flex; gap: 6px; }
+        .wt-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
+        .wt-dots span.done { background: var(--muted); }
+        .wt-dots span.on { background: var(--blue); width: 22px; border-radius: 4px; }
+        .g-ref-title { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; margin: 0 0 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); }
 
         .g-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 56px; margin-top: 48px; }
         .g-side { position: sticky; top: 88px; align-self: start; max-height: calc(100dvh - 110px); overflow-y: auto; }
@@ -532,10 +694,18 @@ object GuideViews {
           .g-layout { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 24px; }
           .g-side { display: none; }
         }
+        @media (prefers-reduced-motion: reduce) { .tap::after { animation: none; } }
         @media (max-width: 760px) {
+          .wt-goals { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 20px; padding: 0 16px 4px; scroll-snap-type: x mandatory; }
+          .wt-goal { flex: 0 0 auto; scroll-snap-align: start; }
+          .wt-panel { padding: 20px 16px; border-radius: 16px; }
+          .wt-step { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+          .wt-step .phone { width: min(230px, 64vw); margin: 0 auto; }
+          .wt-copy { text-align: center; }
+          .wt-copy p:last-child { margin: 0 auto; font-size: 16px; }
+          .wt-nav button { min-width: 0; padding: 10px 18px; }
           .guide { padding: 0 16px 48px; }
-          .g-hero { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 4px 0 32px; }
-          .g-hero .phone { display: none; }
+          .g-hero { padding: 8px 0 24px; }
           .g-topic { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 40px 0; }
           .g-topic h2 { font-size: 24px; }
           .g-shots { position: static; width: min(260px, 72vw); margin: 0 auto; }
@@ -546,7 +716,7 @@ object GuideViews {
         @media print {
           :root { color-scheme: light; }
           body { background: #fff; color: #111; }
-          .header, .g-side, .thumbs, .g-hero .phone { display: none; }
+          .header, .g-side, .thumbs, .wt { display: none; }
           .g-layout, .g-topic { display: block; }
           .g-shots { position: static; width: 200px; margin: 16px 0; }
           .g-topic { break-inside: avoid; padding: 24px 0; }

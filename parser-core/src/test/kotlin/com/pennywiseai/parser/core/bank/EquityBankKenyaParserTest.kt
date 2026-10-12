@@ -14,7 +14,10 @@ class EquityBankKenyaParserTest {
     private val transferOut =
         "Your transaction of Kshs. 200.0  has been credited to  254700000000  Jane Doe. Ref.  EQA0000000000000. MPESA Ref.  TESTMPESA1 on  13/09/2026 at 16:13:44."
 
-    private val received =
+    private // Edge case, passed by variable so BankSamplesDocTest doesn't harvest it.
+        val receivedWithSpaceRuns = "You have  received  2000.00 KES from TEST ENTERPRISES 0********1111 " +
+            "to your Equity account 0********1234. Ref. TESTREF0002 on 12 Sep 2026 at 17:56 EAT"
+        val received =
         "You have received 2000.00 KES from TEST ENTERPRISES 0********1111 to your Equity account 0********1234. Ref. TESTREF0001 on 12 Sep 2026 at 17:56 EAT"
 
     private val transferOutExpected = ExpectedTransaction(
@@ -38,6 +41,18 @@ class EquityBankKenyaParserTest {
     @TestFactory
     fun `Equity Bank Kenya parser handles common cases`(): List<DynamicTest> {
         val cases = listOf(
+            ParserTestCase(
+                name = "Incoming payment with runs of spaces still parses",
+                message = receivedWithSpaceRuns,
+                sender = "Equity Bank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000.00"),
+                    currency = "KES",
+                    type = TransactionType.INCOME,
+                    merchant = "TEST ENTERPRISES",
+                    accountLast4 = "1234"
+                )
+            ),
             ParserTestCase(
                 name = "Transfer to M-Pesa number is an expense (recipient is credited)",
                 message = transferOut,

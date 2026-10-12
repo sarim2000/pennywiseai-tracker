@@ -35,7 +35,7 @@ class EquityBankKenyaParser : BankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         val lower = message.lowercase()
         return when {
-            lower.contains("you have received") -> TransactionType.INCOME
+            Regex("""you\s+have\s+received""").containsMatchIn(lower) -> TransactionType.INCOME
             Regex("""has\s+been\s+credited\s+to""").containsMatchIn(lower) -> TransactionType.EXPENSE
             else -> null
         }

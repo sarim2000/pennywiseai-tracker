@@ -6,6 +6,7 @@ import com.example.ui.SharedComponents.siteHeader
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
+import io.ktor.server.response.*
 import kotlinx.html.*
 import kotlinx.html.stream.createHTML
 import kotlinx.serialization.json.addJsonObject
@@ -16,6 +17,11 @@ import kotlinx.serialization.json.put
  * The user guide, structured like a help centre:
  *  - /guide          hub: search, popular guides, guides grouped by area as cards.
  *  - /guide/{slug}   one task per page: step-by-step player, "good to know", prev/next.
+ *
+ * `?app=1` is app mode, used when the Android app opens the guide. The Play build sells
+ * nothing in-app, so in app mode the page must not lead to a purchase: a bare header (no
+ * Get Pro, no links out), links to other site pages become plain text, no buy sentence on
+ * the Pro guide, and guide-to-guide links keep `?app=1`.
  *
  * Every guide is a [Guide] below; the hub, the pages, search and the sitemap are all
  * generated from that one list. Screenshots live in static/guide/ and were taken on an
@@ -35,7 +41,8 @@ object GuideViews {
         val keywords: String = "",
         /** Screenshot for the hub card's preview, when the first step's top half is empty. */
         val cover: String? = null,
-        val details: FlowContent.() -> Unit,
+        /** [app] is true in app mode (see the class doc); only the Pro guide uses it. */
+        val details: FlowContent.(app: Boolean) -> Unit,
     )
 
     private val groups = listOf("Get started", "Everyday", "Plan ahead", "Organise", "Your data")
@@ -97,10 +104,14 @@ object GuideViews {
                 compare("Recurring transactions", "1", "Unlimited")
                 compare("Folder backup, merge accounts, tag analytics, webhooks", "No", "Yes")
             }
-            p {
-                +"Buy a key on the "
-                a(href = "/pro") { +"Pro page" }
-                +". F-Droid builds include every Pro feature for free."
+            if (it) {
+                p { +"Already have a key from your purchase email? Enter it as shown above. F-Droid builds include every Pro feature for free." }
+            } else {
+                p {
+                    +"Buy a key on the "
+                    a(href = "/pro") { +"Pro page" }
+                    +". F-Droid builds include every Pro feature for free."
+                }
             }
         },
 
@@ -404,8 +415,8 @@ object GuideViews {
     // ── Pages ────────────────────────────────────────────────────────────────
 
     suspend fun ApplicationCall.respondGuideHub() {
-        respondHtml(HttpStatusCode.OK) {
-            page("PennyWise help: step-by-step guides with screenshots",
+        respondGuideHtml { app ->
+            page(app, "PennyWise help: step-by-step guides with screenshots",
                 "Step-by-step help for every part of PennyWise: setup, budgets, rules, AI chat, backups and more.", "/guide") {
                 header(classes = "hub-hero") {
                     h1 { +"How can we help?" }
@@ -450,13 +461,13 @@ object GuideViews {
         val i = guides.indexOfFirst { it.slug == slug }
         if (i < 0) return false
         val g = guides[i]
-        respondHtml(HttpStatusCode.OK) {
-            page("${g.title}: PennyWise guide", g.intro, url(g)) {
+        respondGuideHtml { app ->
+            page(app, "${g.title}: PennyWise guide", g.intro, url(g)) {
                 articleHead(g.group, g.title, g.intro)
                 player(g)
                 section(classes = "know") {
                     h2 { +"Good to know" }
-                    div(classes = "know-body") { g.details(this) }
+                    div(classes = "know-body") { g.details(this, app) }
                 }
                 prevNext(guides.getOrNull(i - 1), guides.getOrNull(i + 1))
             }
@@ -465,8 +476,8 @@ object GuideViews {
     }
 
     private suspend fun ApplicationCall.respondTroubleshooting() {
-        respondHtml(HttpStatusCode.OK) {
-            page("Troubleshooting: PennyWise guide", "Fixes for the PennyWise questions people ask most.", "/guide/troubleshooting") {
+        respondGuideHtml { app ->
+            page(app, "Troubleshooting: PennyWise guide", "Fixes for the PennyWise questions people ask most.", "/guide/troubleshooting") {
                 articleHead(null, "Troubleshooting", "Fixes for the questions people ask most.")
                 div(classes = "faq faq-page") {
                     faqs.forEachIndexed { i, f ->
@@ -490,17 +501,43 @@ object GuideViews {
 
     // ── Building blocks ──────────────────────────────────────────────────────
 
-    private fun HTML.page(title: String, description: String, path: String, content: DIV.() -> Unit) {
+    // Rendered to a string so app mode can rewrite links in one place, whatever page built them.
+    private suspend fun ApplicationCall.respondGuideHtml(block: HTML.(app: Boolean) -> Unit) {
+        val app = request.queryParameters["app"] == "1"
+        val html = "<!DOCTYPE html>\n" + createHTML().html { block(app) }
+        respondText(if (app) appModeLinks(html) else html, ContentType.Text.Html)
+    }
+
+    private val siteLink = Regex("""<a\b[^>]*\bhref="/(?!guide)[^"]*"[^>]*>(.*?)</a>""", RegexOption.DOT_MATCHES_ALL)
+    private val guideLink = Regex("""href="(/guide[^"#?]*)(#[^"]*)?"""")
+
+    /** Links to other site pages (which carry Get Pro) become plain text; guide links keep app mode. */
+    internal fun appModeLinks(html: String): String =
+        html.replace(siteLink, "$1").replace(guideLink) { m -> "href=\"${m.groupValues[1]}?app=1${m.groupValues[2]}\"" }
+
+    private fun HTML.page(app: Boolean, title: String, description: String, path: String, content: DIV.() -> Unit) {
         lang = "en"
         head {
             commonHead(title, description, path)
             style { unsafe { +commonStyles; +guideStyles } }
         }
         body {
-            siteHeader(currentPage = "guide")
+            if (app) appHeader() else siteHeader(currentPage = "guide")
             div(classes = "guide") { content() }
-            script(type = "application/json") { id = "guide-index"; unsafe { +searchIndex } }
+            script(type = "application/json") { id = "guide-index"; unsafe { +(if (app) appSearchIndex else searchIndex) } }
             script { unsafe { +guideScript } }
+        }
+    }
+
+    private fun FlowContent.appHeader() {
+        div(classes = "header") {
+            div(classes = "header-content") {
+                div(classes = "logo-section") {
+                    img(src = "/static/logo.png", alt = "", classes = "logo")
+                    span(classes = "logo-text") { +"PennyWise guide" }
+                }
+                nav(classes = "nav-links") { a(href = "/guide") { +"All guides" } }
+            }
         }
     }
 
@@ -619,12 +656,16 @@ object GuideViews {
     private fun plain(block: DIV.() -> Unit): String =
         createHTML().div { block() }.replace(Regex("<[^>]+>"), " ").replace("&amp;", "&").replace(Regex("\\s+"), " ").trim()
 
-    private val searchIndex: String by lazy {
+    // Built per mode so app-mode search can't surface text the app-mode page leaves out.
+    private val searchIndex: String by lazy { buildIndex(app = false) }
+    private val appSearchIndex: String by lazy { buildIndex(app = true) }
+
+    private fun buildIndex(app: Boolean): String =
         buildJsonArray {
             guides.forEach { g ->
                 addJsonObject {
                     put("kind", "Guide"); put("title", g.title); put("where", g.group); put("url", url(g))
-                    put("text", g.intro + " " + plain { g.details(this) }); put("k", g.keywords)
+                    put("text", g.intro + " " + plain { g.details(this, app) }); put("k", g.keywords)
                 }
                 g.steps.forEachIndexed { n, st ->
                     addJsonObject {
@@ -640,7 +681,6 @@ object GuideViews {
                 }
             }
         }.toString().replace("</", "<\\/")
-    }
 
     private val guideScript = """
         // Step player: one step at a time, deep-linkable as #step-N.
@@ -655,7 +695,7 @@ object GuideViews {
             dots.forEach(function (d, k) { d.className = k === i ? 'on' : (k < i ? 'done' : ''); });
             back.disabled = i === 0;
             next.textContent = i === steps.length - 1 ? 'Start over' : 'Next';
-            if (!fromHash) history.replaceState(null, '', i ? '#step-' + (i + 1) : location.pathname);
+            if (!fromHash) history.replaceState(null, '', i ? '#step-' + (i + 1) : location.pathname + location.search);
           }
           back.addEventListener('click', function () { show(i - 1); });
           next.addEventListener('click', function () { show(i === steps.length - 1 ? 0 : i + 1); });
@@ -690,6 +730,12 @@ object GuideViews {
 
         // Search: a dropdown over an index of every guide, step and answer.
         (function () {
+          var APP = /[?&]app=1(&|$)/.test(location.search);
+          function withApp(u) {
+            if (!APP) return u;
+            var h = u.indexOf('#'), base = h < 0 ? u : u.slice(0, h);
+            return base + '?app=1' + (h < 0 ? '' : u.slice(h));
+          }
           var idx = JSON.parse(document.getElementById('guide-index').textContent);
           var STOP = { a: 1, an: 1, the: 1, to: 1, my: 1, is: 1, i: 1, how: 1, do: 1, of: 1, in: 1, on: 1, for: 1, it: 1, can: 1, what: 1, why: 1, with: 1, and: 1, or: 1, me: 1, are: 1, be: 1 };
           function terms(v) {
@@ -741,7 +787,7 @@ object GuideViews {
               box.innerHTML = hits.length ? hits.map(function (h, n) {
                 var e = h.e;
                 return '<li role="option" id="' + box.id + '-' + n + '"' + (n === 0 ? ' aria-selected="true"' : '') + '>' +
-                  '<a class="g-hit" href="' + e.url + '" tabindex="-1">' +
+                  '<a class="g-hit" href="' + withApp(e.url) + '" tabindex="-1">' +
                   '<span class="hit-kind hit-' + e.kind.toLowerCase() + '">' + e.kind + '</span>' +
                   '<span class="hit-body"><span class="hit-title">' + mark(e.title, words) + '</span>' +
                   '<span class="hit-where">' + esc(e.where) + '</span>' +
@@ -763,7 +809,7 @@ object GuideViews {
             q.addEventListener('keydown', function (ev) {
               if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
               else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
-              else if (ev.key === 'Enter' && !box.hidden && hits[active]) { ev.preventDefault(); close(); location.href = hits[active].e.url; }
+              else if (ev.key === 'Enter' && !box.hidden && hits[active]) { ev.preventDefault(); close(); location.href = withApp(hits[active].e.url); }
               else if (ev.key === 'Escape') { if (box.hidden) q.value = ''; close(); }
             });
             box.addEventListener('mousemove', function (ev) {

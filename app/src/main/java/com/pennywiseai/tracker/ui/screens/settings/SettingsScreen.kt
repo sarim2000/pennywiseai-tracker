@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -825,6 +826,18 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_help_faq_subtitle),
                     onClick = onNavigateToFaq,
                     position = ListItemPosition.Top
+                )
+                SettingsNavItem(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.settings_user_guide_title),
+                    subtitle = stringResource(R.string.settings_user_guide_subtitle),
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
+                    },
+                    position = ListItemPosition.Middle,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
                 )
                 SettingsNavItem(
                     icon = Icons.Default.BugReport,

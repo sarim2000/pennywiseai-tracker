@@ -44,6 +44,8 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 2. **PennyWise parses your transactions instantly** — extracts amount, merchant, category, and date. New SMS are detected in real-time.
 3. **Get insights** — analytics, budgets, subscriptions, and an on-device AI assistant you can ask anything.
 
+📖 **New here?** The [user guide](https://pennywise.zynth.dev/guide) walks through every feature step by step, with screenshots.
+
 ## Why PennyWise
 
 **Key Differentiators**
@@ -211,7 +213,7 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
-5. **Links** (Discord, GitHub, Play Store, backup docs) open your browser — no background data.
+5. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
 Everything else stays on your phone.
 
@@ -314,6 +316,7 @@ Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited C
 
 ## Community & Support
 
+- **User guide**: Step-by-step walkthroughs, troubleshooting, and search — [pennywise.zynth.dev/guide](https://pennywise.zynth.dev/guide)
 - **Discord**: Join the community, share feedback, and get help — [Join Discord](https://discord.gg/H3xWeMWjKQ)
 - **Issues**: Report bugs or request features — [Open an issue](https://github.com/sarim2000/pennywiseai-tracker/issues)
 

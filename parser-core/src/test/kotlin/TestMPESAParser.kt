@@ -33,6 +33,44 @@ class MPESAParserTest {
                 )
             ),
 
+            // #895: unspaced phone after the name (and a run of spaces in the name)
+            ParserTestCase(
+                name = "Sent to person, unspaced phone",
+                message = """UJB3S06XM8 Confirmed. Ksh100.00 sent to JANE  DOE 0712345678 on 11/10/26 at 12:28 PM. New M-PESA balance is Ksh4,324.29. Transaction cost, Ksh0.00.""",
+                sender = "MPESA",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100.00"),
+                    currency = "KES",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "JANE DOE",
+                    balance = BigDecimal("4324.29")
+                )
+            ),
+            ParserTestCase(
+                name = "Sent to person, 254 phone form",
+                message = """UJB3S06XM9 Confirmed. Ksh70.00 sent to JANE DOE 254712345678 on 11/10/26 at 12:28 PM. New M-PESA balance is Ksh4,204.29. Transaction cost, Ksh0.00.""",
+                sender = "MPESA",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("70.00"),
+                    currency = "KES",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "JANE DOE"
+                )
+            ),
+
+            // Guard: a paybill account number that looks like a phone
+            ParserTestCase(
+                name = "Paybill with a phone-like account number",
+                message = """UJB3S06XN1 Confirmed. Ksh500.00 sent to Equity Paybill Account for account 0712345678 on 11/10/26 at 12:28 PM. New M-PESA balance is Ksh3,704.29. Transaction cost, Ksh0.00.""",
+                sender = "MPESA",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "KES",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Equity Paybill Account"
+                )
+            ),
+
             // Paybill payment
             ParserTestCase(
                 name = "Paybill Payment to Equity",
